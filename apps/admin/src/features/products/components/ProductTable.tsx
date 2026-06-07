@@ -1,11 +1,14 @@
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/formatters";
 import { buildPublicImageUrl } from "@/services/core";
-import { Edit2, ImageIcon, Loader2, Search, Trash2 } from "lucide-react";
+import { Edit2, ImageIcon, Loader2, Search, Trash2, AlertTriangle } from "lucide-react";
 import type { EnrichedProduct } from "@/services/mappers";
+import React, { useState } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ProductTableProps = {
   isLoading: boolean;
@@ -38,6 +41,7 @@ export function ProductTable({
   onEdit,
   onDelete,
 }: ProductTableProps) {
+  const [productToDelete, setProductToDelete] = useState<EnrichedProduct | null>(null);
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <div className="border-b border-border/50 p-4">
@@ -59,12 +63,10 @@ export function ProductTable({
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="px-6 py-4">Nome</th>
-              <th className="px-6 py-4">Imagem</th>
+              <th className="px-6 py-4 w-16">Imagem</th>
+              <th className="px-6 py-4 min-w-[250px]">Nome</th>
               <th className="px-6 py-4">Departamento</th>
               <th className="px-6 py-4">Categoria</th>
-              <th className="px-6 py-4">Grupo</th>
-              <th className="px-6 py-4">Tipo</th>
               <th className="px-6 py-4">Preço</th>
               <th className="px-6 py-4">Estoque</th>
               <th className="px-6 py-4">Etiquetas</th>
@@ -75,18 +77,16 @@ export function ProductTable({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={11} className="py-12 text-center">
+                <td colSpan={9} className="py-12 text-center">
                   <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                 </td>
               </tr>
             ) : (
-              enrichedProducts.map((product) => {
+              enrichedProducts.map((product, index) => {
                 const mainImage = product.images[0]?.image;
-                const deleteDisabled = !product.canDelete;
 
                 return (
-                  <tr key={product.id} className="border-b border-border/50 transition-colors hover:bg-muted/20">
-                    <td className="px-6 py-4 font-medium text-foreground">{product.name}</td>
+                  <tr key={`${product.id}-${index}`} className="border-b border-border/50 transition-colors hover:bg-muted/20">
                     <td className="px-6 py-4">
                       {mainImage ? (
                         <img src={buildPublicImageUrl(mainImage.url)} alt={mainImage.name} className="h-10 w-10 rounded-lg border border-border/50 object-cover" />
@@ -96,14 +96,9 @@ export function ProductTable({
                         </div>
                       )}
                     </td>
+                    <td className="px-6 py-4 font-medium text-foreground">{product.name}</td>
                     <td className="px-6 py-4 text-muted-foreground">{product.department?.name || "-"}</td>
                     <td className="px-6 py-4 text-muted-foreground">{product.category?.name || "-"}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{product.productGroup?.name || "-"}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={product.productGroup?.hasVariations ? "outline" : "default"}>
-                        {product.productGroup?.hasVariations ? "Variação" : "Simples"}
-                      </Badge>
-                    </td>
                     <td className="px-6 py-4 font-medium text-primary">{formatCurrency(product.price)}</td>
                     <td className="px-6 py-4">
                       <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}>
@@ -137,14 +132,8 @@ export function ProductTable({
                         <Button
                           size="icon"
                           variant="ghost"
-                          disabled={deleteDisabled}
-                          title={deleteDisabled ? "Este produto não pode ser excluído agora." : "Excluir produto"}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate disabled:cursor-not-allowed disabled:opacity-40"
-                          onClick={() => {
-                            if (confirm("Remover este produto?")) {
-                              onDelete(product);
-                            }
-                          }}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
+                          onClick={() => setProductToDelete(product)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -189,6 +178,34 @@ export function ProductTable({
           </Button>
         </div>
       </div>
+      <AlertDialog open={productToDelete !== null} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent className="border-border/50 bg-card sm:max-w-[450px]">
+          <AlertDialogHeader>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive mb-4">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <AlertDialogTitle className="text-center text-xl">Excluir Produto?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center pt-2">
+              Você está prestes a excluir o produto <span className="font-bold text-foreground">"{productToDelete?.name}"</span>. 
+              Esta ação é permanente e não poderá ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0 mt-6">
+            <AlertDialogCancel className="mt-0 sm:mt-0">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (productToDelete) {
+                  onDelete(productToDelete);
+                  setProductToDelete(null);
+                }
+              }}
+            >
+              Sim, excluir produto
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

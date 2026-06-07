@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetCustomersQueryKey,
@@ -16,12 +16,24 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
 import { buildCustomerStats } from "@/services/mappers";
 import { getAllSales } from "@/services/sales.service";
+import { cleanPhone, formatPhone } from "@/lib/utils";
 
 export default function Customers() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const [searchVal, setSearchVal] = useState("");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchVal);
+      setPage(1);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchVal]);
+
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -146,8 +158,8 @@ export default function Customers() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                value={searchVal}
+                onChange={(event) => setSearchVal(event.target.value)}
                 className="bg-background pl-9"
               />
             </div>
@@ -253,69 +265,128 @@ export default function Customers() {
         </div>
       </div>
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[500px] border-border/50 bg-card">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-display">
-              <Users className="h-5 w-5 text-primary" /> {editingId ? "Editar Cliente" : "Novo Cliente"}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={onSubmit} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nome Completo</label>
-              <Input
-                required
-                value={formData.name}
-                onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
-                className="bg-background"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Telefone</label>
-                <Input
-                  value={formData.phone}
-                  onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))}
-                  className="bg-background"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">CPF / CNPJ</label>
-              <Input
-                value={formData.document}
-                onChange={(event) => setFormData((current) => ({ ...current, document: event.target.value }))}
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Endereço</label>
-              <Input
-                value={formData.address}
-                onChange={(event) => setFormData((current) => ({ ...current, address: event.target.value }))}
-                className="bg-background"
-              />
-            </div>
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isCreating || isUpdating} className="hover-elevate">
-                {isCreating || isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Cliente"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CustomerFormDialog
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editingId={editingId}
+        initialForm={formData}
+        isSaving={isCreating || isUpdating}
+        onSubmit={(payload) => {
+          if (editingId) {
+            updateCustomer({ id: editingId, data: payload });
+          } else {
+            createCustomer({ data: payload });
+          }
+        }}
+      />
     </AppLayout>
+  );
+}
+
+function CustomerFormDialog({
+  open,
+  onOpenChange,
+  editingId,
+  initialForm,
+  isSaving,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingId: number | null;
+  initialForm: { name: string; email: string; phone: string; document: string; address: string };
+  isSaving: boolean;
+  onSubmit: (payload: any) => void;
+}) {
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const documentRef = useRef<HTMLInputElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = nameRef.current?.value || "";
+    if (!name.trim()) return;
+    onSubmit({
+      name: name.trim(),
+      email: emailRef.current?.value.trim() || null,
+      phone: phoneRef.current?.value.trim() || null,
+      document: documentRef.current?.value.trim() || null,
+      address: addressRef.current?.value.trim() || null,
+    });
+  };
+
+  const handlePhoneBlur = () => {
+    if (phoneRef.current) {
+      phoneRef.current.value = formatPhone(cleanPhone(phoneRef.current.value));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px] border-border/50 bg-card">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl font-display">
+            <Users className="h-5 w-5 text-primary" /> {editingId ? "Editar Cliente" : "Novo Cliente"}
+          </DialogTitle>
+        </DialogHeader>
+        <form key={open ? (editingId ?? "new") : "closed"} onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Nome Completo</label>
+            <Input
+              required
+              ref={nameRef}
+              defaultValue={initialForm.name}
+              className="bg-background"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                ref={emailRef}
+                defaultValue={initialForm.email}
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Telefone</label>
+              <Input
+                ref={phoneRef}
+                defaultValue={formatPhone(initialForm.phone || "")}
+                onBlur={handlePhoneBlur}
+                className="bg-background"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">CPF / CNPJ</label>
+            <Input
+              ref={documentRef}
+              defaultValue={initialForm.document}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Endereço</label>
+            <Input
+              ref={addressRef}
+              defaultValue={initialForm.address}
+              className="bg-background"
+            />
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSaving} className="hover-elevate">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Cliente"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

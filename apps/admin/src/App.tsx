@@ -12,8 +12,13 @@ import Tags from "@/pages/tags";
 import Sales from "@/pages/sales";
 import Customers from "@/pages/customers";
 import Users from "@/pages/users";
+import Logs from "@/pages/logs";
+import LogDetails from "@/pages/log-details";
 import Images from "@/pages/images";
 import Suppliers from "@/pages/suppliers";
+import Grades from "@/pages/grades";
+import StockEntries from "@/pages/stock-entries";
+import Inventory from "@/pages/inventory";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,8 +42,13 @@ function Router() {
       <Route path="/vendas" component={Sales} />
       <Route path="/clientes" component={Customers} />
       <Route path="/fornecedores" component={Suppliers} />
-      <Route path="/usuarios" component={Users} />
+      <Route path="/sistema/usuarios" component={Users} />
+      <Route path="/sistema/logs" component={Logs} />
+      <Route path="/sistema/logs/:id" component={LogDetails} />
       <Route path="/imagens" component={Images} />
+      <Route path="/grades" component={Grades} />
+      <Route path="/estoque/entradas" component={StockEntries} />
+      <Route path="/estoque/inventario" component={Inventory} />
       <Route component={NotFound} />
     </Switch>
   );

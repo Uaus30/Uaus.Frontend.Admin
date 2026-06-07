@@ -129,14 +129,34 @@ export function TagMultiSelect({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between bg-background"
+            className="w-full justify-start bg-background min-h-[40px] h-auto p-2"
           >
-            <span className="truncate text-left">
-              {selectedTags.length > 0
-                ? `${selectedTags.length} etiqueta${selectedTags.length > 1 ? "s" : ""} selecionada${selectedTags.length > 1 ? "s" : ""}`
-                : placeholder}
-            </span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <div className="flex flex-wrap items-center gap-1.5 flex-1 pr-6">
+              {selectedTags.length > 0 ? (
+                selectedTags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant="outline"
+                    className="gap-1 rounded-sm px-1.5 py-0.5 text-xs font-normal border-transparent"
+                    style={{ backgroundColor: `${tag.color}30`, color: tag.color }}
+                  >
+                    {tag.name}
+                    <button
+                      type="button"
+                      className="inline-flex h-3 w-3 items-center justify-center rounded-full ml-1 hover:bg-black/10 dark:hover:bg-white/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChange(selectedIds.filter((id) => id !== tag.id));
+                      }}
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-muted-foreground font-normal ml-1">{placeholder}</span>
+              )}
+            </div>
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
@@ -187,28 +207,7 @@ export function TagMultiSelect({
         </PopoverContent>
       </Popover>
 
-      {selectedTags.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {selectedTags.map((tag) => (
-            <Badge
-              key={tag.id}
-              variant="outline"
-              className="gap-1 rounded-full px-2 py-1"
-              style={{ borderColor: tag.color, color: tag.color, backgroundColor: `${tag.color}12` }}
-            >
-              {tag.name}
-              {tag.isPublic ? <span className="text-[10px] uppercase">site</span> : null}
-              <button
-                type="button"
-                className="inline-flex h-4 w-4 items-center justify-center rounded-full"
-                onClick={() => onChange(selectedIds.filter((id) => id !== tag.id))}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      ) : null}
+
     </div>
   );
 }

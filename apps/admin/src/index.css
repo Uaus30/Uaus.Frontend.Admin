@@ -246,6 +246,22 @@
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+@keyframes border-flash {
+  0%, 100% { box-shadow: 0 0 0 rgba(34,197,94,0); border-color: inherit; }
+  50% { box-shadow: 0 0 12px rgba(34,197,94,0.8); border-color: #22c55e; }
+}
+.animate-border-flash {
+  animation: border-flash 0.8s ease-in-out 1;
+}
+
+@keyframes border-flash-primary {
+  0%, 100% { box-shadow: 0 0 0 hsla(var(--primary), 0); border-color: inherit; }
+  50% { box-shadow: 0 0 16px hsla(var(--primary), 0.4); border-color: hsl(var(--primary)); }
+}
+.animate-border-flash-primary {
+  animation: border-flash-primary 1.2s ease-in-out 1;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
@@ -331,3 +347,167 @@
     inset: -1px;
   }
 }
+
+/* ─── react-datepicker dark mode (Uaus theme) ──────────────────────────────── */
+/* Scoped to .uaus-rdp-dark to avoid leaking into other pickers */
+
+.uaus-rdp-dark {
+  /* Shell */
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  background-color: hsl(var(--card));
+  font-family: var(--app-font-sans);
+}
+
+.uaus-rdp-dark .react-datepicker {
+  background-color: hsl(var(--card));
+  border: none;
+  border-radius: 0;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.uaus-rdp-dark .react-datepicker__header {
+  background-color: hsl(var(--muted));
+  border-bottom: 1px solid hsl(var(--border));
+  border-radius: 0;
+  padding: 12px 0 8px;
+}
+
+.uaus-rdp-dark .react-datepicker__current-month {
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.uaus-rdp-dark .react-datepicker__day-name {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: 2.2rem;
+  line-height: 2rem;
+}
+
+/* ── Navigation arrows ── */
+.uaus-rdp-dark .react-datepicker__navigation {
+  top: 10px;
+}
+
+.uaus-rdp-dark .react-datepicker__navigation-icon::before {
+  border-color: hsl(var(--muted-foreground));
+  border-width: 2px 2px 0 0;
+  width: 8px;
+  height: 8px;
+  transition: border-color 0.15s;
+}
+
+.uaus-rdp-dark .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+  border-color: hsl(var(--foreground));
+}
+
+/* ── Day grid ── */
+.uaus-rdp-dark .react-datepicker__month {
+  margin: 8px;
+}
+
+.uaus-rdp-dark .react-datepicker__day {
+  color: hsl(var(--foreground));
+  border-radius: 6px;
+  width: 2.2rem;
+  line-height: 2.2rem;
+  font-size: 0.8rem;
+  margin: 0.1rem;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.uaus-rdp-dark .react-datepicker__day:hover {
+  background-color: color-mix(in srgb, hsl(var(--primary)), transparent 80%) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 6px;
+}
+
+/* ── Range highlight (in-range days) ── */
+.uaus-rdp-dark .react-datepicker__day--in-range,
+.uaus-rdp-dark .react-datepicker__day--in-selecting-range {
+  background-color: color-mix(in srgb, hsl(var(--primary)), transparent 75%) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 0 !important;
+}
+
+.uaus-rdp-dark .react-datepicker__day--in-range:hover,
+.uaus-rdp-dark .react-datepicker__day--in-selecting-range:hover {
+  background-color: color-mix(in srgb, hsl(var(--primary)), transparent 55%) !important;
+}
+
+/* ── Range start / end — solid primary ── */
+.uaus-rdp-dark .react-datepicker__day--range-start,
+.uaus-rdp-dark .react-datepicker__day--range-end,
+.uaus-rdp-dark .react-datepicker__day--selected,
+.uaus-rdp-dark .react-datepicker__day--selecting-range-start {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  font-weight: 700;
+  border-radius: 6px !important;
+}
+
+.uaus-rdp-dark .react-datepicker__day--range-start {
+  border-radius: 6px 0 0 6px !important;
+}
+
+.uaus-rdp-dark .react-datepicker__day--range-end {
+  border-radius: 0 6px 6px 0 !important;
+}
+
+.uaus-rdp-dark .react-datepicker__day--range-start.react-datepicker__day--range-end {
+  border-radius: 6px !important;
+}
+
+/* ── Keyboard selected (no hover ring) ── */
+.uaus-rdp-dark .react-datepicker__day--keyboard-selected {
+  background-color: color-mix(in srgb, hsl(var(--primary)), transparent 65%) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* ── Outside month ── */
+.uaus-rdp-dark .react-datepicker__day--outside-month {
+  color: hsl(var(--muted-foreground) / 0.3) !important;
+  background: transparent !important;
+}
+
+/* ── Disabled ── */
+.uaus-rdp-dark .react-datepicker__day--disabled {
+  color: hsl(var(--muted-foreground) / 0.25) !important;
+  cursor: not-allowed;
+  background: transparent !important;
+}
+
+/* ── Today button (footer) ── */
+.uaus-rdp-dark .react-datepicker__today-button {
+  background-color: hsl(var(--muted));
+  border-top: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 10px 0;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  text-align: center;
+}
+
+.uaus-rdp-dark .react-datepicker__today-button:hover {
+  background-color: color-mix(in srgb, hsl(var(--primary)), transparent 85%);
+  color: hsl(var(--primary));
+}
+
+/* ── Triangle (hidden — usamos portal sem arrow) ── */
+.uaus-rdp-dark .react-datepicker__triangle {
+  display: none;
+}
+

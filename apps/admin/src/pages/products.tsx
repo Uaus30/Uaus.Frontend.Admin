@@ -16,10 +16,9 @@ export default function Products() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Produtos</h1>
-            <p className="mt-1 text-muted-foreground">Gerencie o catálogo real da loja no modelo departamento, categoria, grupo e produto.</p>
           </div>
           <Button onClick={() => editor.openModal()} className="bg-primary text-primary-foreground hover-elevate">
-            <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
+            <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
         </div>
 
@@ -37,17 +36,7 @@ export default function Products() {
           statusOptions={table.statusOptions}
           onEdit={editor.openModal}
           onDelete={(product) => {
-            void editor.handleDeleteVariation({
-              key: `product-${product.id}`,
-              id: product.id,
-              name: product.name,
-              description: product.description || "",
-              price: product.price,
-              status: String(product.status),
-              tagIds: product.tags.map((tag) => tag.id),
-              images: editor.toLocalImages(product.images),
-              canDelete: product.canDelete,
-            });
+            void editor.handleDeleteProductGroup(product.productGroupId);
           }}
         />
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Loader2, Phone, Plus, Search, Shuffle, Trash2 } from "lucide-react";
+import { Edit2, Loader2, Phone, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
 import { formatCurrency } from "@/lib/formatters";
 import { getEnumOptions } from "@/services/core";
+import { cleanPhone, formatPhone } from "@/lib/utils";
 import {
   createSupplier,
   deleteSupplier,
@@ -79,13 +81,25 @@ type SupplierForm = {
   city: string;
   state: string;
   avatarColor: string;
+  description: string;
 };
 
 export default function Suppliers() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const [searchVal, setSearchVal] = useState("");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchVal);
+      setPage(1);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchVal]);
+
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -103,8 +117,9 @@ export default function Suppliers() {
     minimumPurchaseValue: "",
     status: "",
     city: "",
-    state: "",
+    state: "PR",
     avatarColor: randomColor(),
+    description: "",
   });
 
   const { data: statusOptions = [] } = useQuery({
@@ -138,10 +153,23 @@ export default function Suppliers() {
     });
   }, [activeStatusValue, modalOpen, selectableSupplierStatusOptions]);
 
-  const { data: suppliersPage, isLoading } = useQuery({
+  const { data: suppliersPage, isLoading, isError, error } = useQuery({
     queryKey: ["suppliers-page", { search, page, limit }],
     queryFn: () => getSuppliersPage({ search, page, limit }),
   });
+
+  useEffect(() => {
+    if (isError && error) {
+      const apiError = error as any;
+      if (apiError.status >= 500) {
+        toast({
+          title: "Servidor indisponível",
+          description: "O servidor está indisponível no momento. Por favor, tente novamente mais tarde.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [isError, error, toast]);
 
   const suppliers = useMemo(() => {
     if (statusFilter === "all") return suppliersPage?.data ?? [];
@@ -172,6 +200,7 @@ export default function Suppliers() {
         city: supplier.city || "",
         state: supplier.state || "",
         avatarColor: supplier.avatarColor || randomColor(),
+        description: supplier.description || "",
       });
     } else {
       setEditingId(null);
@@ -185,19 +214,18 @@ export default function Suppliers() {
         minimumPurchaseValue: "",
         status: activeStatusValue,
         city: "",
-        state: "",
+        state: "PR",
         avatarColor: randomColor(),
+        description: "",
       });
     }
 
     setModalOpen(true);
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-
-    const minimumPurchaseValue = Number(form.minimumPurchaseValue);
-    if (!form.name.trim() || form.minimumPurchaseValue === "" || Number.isNaN(minimumPurchaseValue) || minimumPurchaseValue < 0) {
+  async function handleSubmit(formData: SupplierForm) {
+    const minimumPurchaseValue = Number(formData.minimumPurchaseValue);
+    if (!formData.name.trim() || formData.minimumPurchaseValue === "" || Number.isNaN(minimumPurchaseValue) || minimumPurchaseValue < 0) {
       toast({
         title: "Preencha os campos obrigatórios",
         description: "Informe o nome do fornecedor e o valor mínimo de compra.",
@@ -206,7 +234,7 @@ export default function Suppliers() {
       return;
     }
 
-    const statusValue = form.status || activeStatusValue;
+    const statusValue = formData.status || activeStatusValue;
     if (!statusValue) {
       toast({
         title: "Status indisponível",
@@ -220,17 +248,18 @@ export default function Suppliers() {
 
     try {
       const payload = {
-        name: form.name.trim(),
-        corporateName: form.corporateName.trim() || null,
-        document: form.document.trim() || null,
-        salesRepresentative: form.salesRepresentative.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim() || null,
+        name: formData.name.trim(),
+        corporateName: formData.corporateName.trim() || null,
+        document: formData.document.trim() || null,
+        salesRepresentative: formData.salesRepresentative.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim() || null,
         minimumPurchaseValue,
         status: Number(statusValue),
-        city: form.city.trim(),
-        state: form.state,
-        avatarColor: form.avatarColor,
+        city: formData.city.trim(),
+        state: formData.state,
+        avatarColor: formData.avatarColor,
+        description: formData.description.trim() || null,
       };
 
       if (editingId) {
@@ -292,10 +321,9 @@ export default function Suppliers() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome..."
-                value={search}
+                value={searchVal}
                 onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
+                  setSearchVal(event.target.value);
                 }}
                 className="bg-background pl-9"
               />
@@ -327,15 +355,15 @@ export default function Suppliers() {
                   <th className="px-6 py-4">Localização</th>
                   <th className="px-6 py-4">Mín. Compra</th>
                   <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Cadastro</th>
+                  <th className="px-6 py-4">Descrição</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {isLoading ? (
+                {isLoading || (isError && (error as any)?.status >= 500) ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center">
-                      <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                      <Spinner />
                     </td>
                   </tr>
                 ) : suppliers.length === 0 ? (
@@ -362,7 +390,7 @@ export default function Suppliers() {
                         <div className="flex flex-col gap-1">
                           {supplier.phone ? (
                             <div className="flex items-center gap-2">
-                              <span className="text-sm">{supplier.phone}</span>
+                              <span className="text-sm">{formatPhone(supplier.phone)}</span>
                               <a
                                 href={whatsappUrl(supplier.phone)}
                                 target="_blank"
@@ -386,8 +414,10 @@ export default function Suppliers() {
                           {statusLabelById[supplier.status] ?? (supplier.status ? supplier.status : "Sem status")}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-xs text-muted-foreground">
-                        {new Date(supplier.createdAt).toLocaleDateString("pt-BR")}
+                      <td className="px-6 py-4 text-xs text-muted-foreground max-w-[200px]" title={supplier.description || ""}>
+                        <div className="line-clamp-2 leading-tight break-words">
+                          {supplier.description || "-"}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -454,211 +484,276 @@ export default function Suppliers() {
         </div>
       </div>
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-border/50 bg-card sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-display">
-              {editingId ? "Editar Fornecedor" : "Novo Fornecedor"}
-            </DialogTitle>
-          </DialogHeader>
+      <SupplierFormDialog
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editingId={editingId}
+        initialForm={form}
+        saving={saving}
+        selectableSupplierStatusOptions={selectableSupplierStatusOptions}
+        activeStatusValue={activeStatusValue}
+        onSubmit={handleSubmit}
+      />
+    </AppLayout>
+  );
+}
 
-          <form onSubmit={handleSubmit} className="space-y-5 py-2">
-            <div className="rounded-xl border border-primary/25 bg-primary/5 p-4">
-              <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,220px)] sm:items-end">
-                <div className="flex items-center gap-2 sm:self-center">
-                  <SupplierAvatar name={form.name || "?"} color={form.avatarColor} size="lg" />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8 flex-shrink-0 bg-background"
-                    title="Sortear cor do ícone"
-                    aria-label="Sortear cor do ícone"
-                    onClick={() =>
-                      setForm((current) => ({
-                        ...current,
-                        avatarColor: randomColor(),
-                      }))
-                    }
-                  >
-                    <Shuffle className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="supplier-name">Nome do fornecedor</Label>
-                  <Input
-                    id="supplier-name"
-                    value={form.name}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        name: event.target.value,
-                      }))
-                    }
-                    className="bg-background"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="supplier-minimum-purchase">Valor mínimo de compra (R$)</Label>
-                  <Input
-                    id="supplier-minimum-purchase"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    value={form.minimumPurchaseValue}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        minimumPurchaseValue: event.target.value,
-                      }))
-                    }
-                    className="bg-background"
-                    required
-                  />
-                </div>
+function SupplierFormDialog({
+  open,
+  onOpenChange,
+  editingId,
+  initialForm,
+  saving,
+  selectableSupplierStatusOptions,
+  activeStatusValue,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingId: number | null;
+  initialForm: SupplierForm;
+  saving: boolean;
+  selectableSupplierStatusOptions: any[];
+  activeStatusValue: string;
+  onSubmit: (form: SupplierForm) => Promise<void>;
+}) {
+  const [name, setName] = useState(initialForm.name);
+  const [status, setStatus] = useState(initialForm.status || "");
+  const [state, setState] = useState(initialForm.state || "");
+  const [avatarColor, setAvatarColor] = useState(initialForm.avatarColor || "");
+
+  useEffect(() => {
+    if (open) {
+      setName(initialForm.name);
+      setStatus(initialForm.status || "");
+      setState(initialForm.state || "");
+      setAvatarColor(initialForm.avatarColor || "");
+    }
+  }, [open, initialForm]);
+
+  const corporateNameRef = useRef<HTMLInputElement>(null);
+  const documentRef = useRef<HTMLInputElement>(null);
+  const salesRepresentativeRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const minimumPurchaseValueRef = useRef<HTMLInputElement>(null);
+  const cityRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void onSubmit({
+      name,
+      corporateName: corporateNameRef.current?.value || "",
+      document: documentRef.current?.value || "",
+      salesRepresentative: salesRepresentativeRef.current?.value || "",
+      phone: phoneRef.current?.value || "",
+      email: emailRef.current?.value || "",
+      minimumPurchaseValue: minimumPurchaseValueRef.current?.value || "",
+      status,
+      city: cityRef.current?.value || "",
+      state,
+      avatarColor,
+      description: descriptionRef.current?.value || "",
+    });
+  };
+
+  const handlePhoneBlur = () => {
+    if (phoneRef.current) {
+      phoneRef.current.value = formatPhone(cleanPhone(phoneRef.current.value));
+    }
+  };
+
+  const statusSelect = useMemo(() => (
+    <Select
+      value={status}
+      onValueChange={setStatus}
+      disabled={selectableSupplierStatusOptions.length === 0}
+    >
+      <SelectTrigger className="bg-background">
+        <SelectValue placeholder="Selecione..." />
+      </SelectTrigger>
+      <SelectContent>
+        {selectableSupplierStatusOptions.map((item) => (
+          <SelectItem key={item.id} value={String(item.id)}>
+            {item.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  ), [status, selectableSupplierStatusOptions]);
+
+  const ufSelect = useMemo(() => (
+    <Select
+      value={state || "__none"}
+      onValueChange={(value) => setState(value === "__none" ? "" : value)}
+    >
+      <SelectTrigger className="bg-background">
+        <SelectValue placeholder="Selecione..." />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none">Não informar</SelectItem>
+        {UF_LIST.map((uf) => (
+          <SelectItem key={uf} value={uf}>
+            {uf}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  ), [state]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-border/50 bg-card sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display">
+            {editingId ? "Editar Fornecedor" : "Novo Fornecedor"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form key={open ? (editingId ?? "new") : "closed"} onSubmit={handleSubmit} className="space-y-5 py-2">
+          <div className="rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,220px)] sm:items-end">
+              <div className="relative h-16 w-16 flex-shrink-0 sm:self-center">
+                <svg width="0" height="0" style={{ position: "absolute", width: 0, height: 0 }}>
+                  <defs>
+                    <linearGradient id="rainbow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ff3b30" />
+                      <stop offset="20%" stopColor="#ff9500" />
+                      <stop offset="40%" stopColor="#ffcc00" />
+                      <stop offset="60%" stopColor="#4cd964" />
+                      <stop offset="80%" stopColor="#5ac8fa" />
+                      <stop offset="100%" stopColor="#5856d6" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <SupplierAvatar name={name || "?"} color={avatarColor} size="lg" />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-6 w-6 rounded-full border border-border bg-background shadow-md hover:bg-muted hover-elevate"
+                  style={{ position: "absolute", bottom: "-4px", right: "-4px", zIndex: 10 }}
+                  title="Gerar nova cor"
+                  aria-label="Gerar nova cor"
+                  onClick={() => setAvatarColor(randomColor())}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" stroke="url(#rainbow-gradient)" />
+                </Button>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="supplier-name">Nome do fornecedor</Label>
+                <Input
+                  id="supplier-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="bg-background"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="supplier-minimum-purchase">Valor mínimo de compra (R$)</Label>
+                <Input
+                  id="supplier-minimum-purchase"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  ref={minimumPurchaseValueRef}
+                  defaultValue={initialForm.minimumPurchaseValue}
+                  className="bg-background"
+                  required
+                />
               </div>
             </div>
+          </div>
 
-            <fieldset className="space-y-4 rounded-xl border border-border/40 p-4">
-              <legend className="px-1 text-sm font-semibold text-foreground">Informações opcionais:</legend>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Razão Social</Label>
-                  <Input
-                    value={form.corporateName}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        corporateName: event.target.value,
-                      }))
-                    }
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>CPF / CNPJ</Label>
-                  <Input
-                    value={form.document}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        document: event.target.value,
-                      }))
-                    }
-                    className="bg-background font-mono"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Vendedor</Label>
-                  <Input
-                    value={form.salesRepresentative}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        salesRepresentative: event.target.value,
-                      }))
-                    }
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5" /> Telefone
-                  </Label>
-                  <Input
-                    value={form.phone}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        phone: event.target.value,
-                      }))
-                    }
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={form.email}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        email: event.target.value,
-                      }))
-                    }
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Status</Label>
-                  <Select
-                    value={form.status}
-                    onValueChange={(value) => setForm((current) => ({ ...current, status: value }))}
-                    disabled={selectableSupplierStatusOptions.length === 0}
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectableSupplierStatusOptions.map((item) => (
-                        <SelectItem key={item.id} value={String(item.id)}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Cidade</Label>
-                  <Input
-                    value={form.city}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        city: event.target.value,
-                      }))
-                    }
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>UF</Label>
-                  <Select
-                    value={form.state || "__none"}
-                    onValueChange={(value) =>
-                      setForm((current) => ({ ...current, state: value === "__none" ? "" : value }))
-                    }
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none">Não informar</SelectItem>
-                      {UF_LIST.map((uf) => (
-                        <SelectItem key={uf} value={uf}>
-                          {uf}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <fieldset className="space-y-4 rounded-xl border border-border/40 p-4">
+            <legend className="px-1 text-sm font-semibold text-foreground">Informações opcionais:</legend>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Razão Social</Label>
+                <Input
+                  ref={corporateNameRef}
+                  defaultValue={initialForm.corporateName || ""}
+                  className="bg-background"
+                />
               </div>
-            </fieldset>
+              <div className="space-y-1.5">
+                <Label>CPF / CNPJ</Label>
+                <Input
+                  ref={documentRef}
+                  defaultValue={initialForm.document || ""}
+                  className="bg-background font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Vendedor</Label>
+                <Input
+                  ref={salesRepresentativeRef}
+                  defaultValue={initialForm.salesRepresentative || ""}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" /> Telefone
+                </Label>
+                <Input
+                  ref={phoneRef}
+                  defaultValue={formatPhone(initialForm.phone || "")}
+                  onBlur={handlePhoneBlur}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  ref={emailRef}
+                  defaultValue={initialForm.email || ""}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                {statusSelect}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Cidade</Label>
+                <Input
+                  ref={cityRef}
+                  defaultValue={initialForm.city || ""}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>UF</Label>
+                {ufSelect}
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Descrição</Label>
+                <textarea
+                  ref={descriptionRef}
+                  defaultValue={initialForm.description || ""}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Descrição do fornecedor (limite de 200 caracteres)..."
+                  maxLength={200}
+                />
+              </div>
+            </div>
+          </fieldset>
 
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={saving} className="bg-primary text-primary-foreground hover-elevate">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </AppLayout>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={saving} className="bg-primary text-primary-foreground hover-elevate">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

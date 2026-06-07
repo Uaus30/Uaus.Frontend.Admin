@@ -11,7 +11,10 @@ import {
   SidebarMenuButton, 
   SidebarMenuItem, 
   SidebarHeader,
-  SidebarFooter
+  SidebarFooter,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton
 } from "@/components/ui/sidebar";
 import { 
   LayoutDashboard, 
@@ -25,24 +28,51 @@ import {
   LogOut,
   Loader2,
   ImageIcon,
-  Truck
+  Truck,
+  ChevronDown,
+  ClipboardList,
+  Settings
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 import { getDisplayName } from "@/services/mappers";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Spinner } from "@/components/ui/spinner";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Produtos", href: "/produtos", icon: Package },
-  { name: "Departamentos", href: "/departamentos", icon: Building2 },
-  { name: "Categorias", href: "/categorias", icon: Folder },
-  { name: "Etiquetas", href: "/etiquetas", icon: Tags },
-  { name: "Imagens", href: "/imagens", icon: ImageIcon },
-  { name: "Fornecedores", href: "/fornecedores", icon: Truck },
+  { 
+    name: "Produtos", 
+    icon: Package,
+    items: [
+      { name: "Lista de Produtos", href: "/produtos" },
+      { name: "Departamentos", href: "/departamentos" },
+      { name: "Categorias", href: "/categorias" },
+      { name: "Grades", href: "/grades" },
+      { name: "Etiquetas", href: "/etiquetas" }
+    ]
+  },
+  { 
+    name: "Estoque", 
+    icon: ClipboardList,
+    items: [
+      { name: "Fornecedores", href: "/fornecedores" },
+      { name: "Entradas", href: "/estoque/entradas" },
+      { name: "Inventário", href: "/estoque/inventario" }
+    ]
+  },
+  { name: "Mídia", href: "/imagens", icon: ImageIcon },
   { name: "Vendas", href: "/vendas", icon: ShoppingCart },
   { name: "Clientes", href: "/clientes", icon: Users },
-  { name: "Usuários", href: "/usuarios", icon: UserCog },
+  { 
+    name: "Sistema", 
+    icon: Settings,
+    items: [
+      { name: "Logs", href: "/sistema/logs" },
+      { name: "Usuários", href: "/sistema/usuarios" }
+    ]
+  },
 ];
 
 const roleLabels: Record<number, string> = {
@@ -79,7 +109,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner />
       </div>
     );
   }
@@ -120,7 +150,58 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {navigation.map((item) => {
-                    const isActive = location.startsWith(item.href);
+                    if (item.items) {
+                      const isSubActive = item.items.some(sub => location.startsWith(sub.href));
+                      return (
+                        <Collapsible 
+                          key={item.name} 
+                          defaultOpen={isSubActive}
+                          className="group/collapsible w-full"
+                        >
+                          <SidebarMenuItem>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuButton 
+                                className={`
+                                  h-11 px-4 mb-1 rounded-xl transition-all duration-200 w-full text-muted-foreground hover:bg-white/5 hover:text-foreground
+                                `}
+                              >
+                                <item.icon className="w-5 h-5 shrink-0" />
+                                <span className="text-sm flex-1 text-left">{item.name}</span>
+                                <ChevronDown className="w-4 h-4 ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                              </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <SidebarMenuSub className="ml-4 border-l border-border/50 pl-2">
+                                {item.items.map((sub) => {
+                                  const isActive = location === sub.href || (sub.href !== "/dashboard" && location.startsWith(sub.href));
+                                  return (
+                                    <SidebarMenuSubItem key={sub.name}>
+                                      <SidebarMenuSubButton 
+                                        asChild 
+                                        isActive={isActive}
+                                        className={`
+                                          h-9 px-3 rounded-lg transition-all duration-150 w-full
+                                          ${isActive 
+                                            ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium" 
+                                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                                          }
+                                        `}
+                                      >
+                                        <Link href={sub.href}>
+                                          <span className="text-sm">{sub.name}</span>
+                                        </Link>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  );
+                                })}
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                          </SidebarMenuItem>
+                        </Collapsible>
+                      );
+                    }
+
+                    const isActive = location === item.href || (item.href !== "/dashboard" && location.startsWith(item.href));
                     return (
                       <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton 

@@ -112,9 +112,11 @@ export interface ProductDto {
   productGroupId: number;
   name: string;
   description: string | null;
+  barcode: string;
   price: number;
   costPrice: number;
   stock: number;
+  minStock: number;
   status: number;
   canDelete: boolean;
 }
@@ -134,6 +136,24 @@ export interface ProductTagDto {
   updatedAt: string | null;
   productId: number;
   tagId: number;
+}
+
+export interface GradeOptionDto {
+  id: number;
+  gradeId: number;
+  value: string;
+  colorHex: string | null;
+  displayOrder: number;
+}
+
+export interface GradeDto {
+  id: number;
+  createdAt?: string;
+  updatedAt?: string | null;
+  name: string;
+  type: number; // GradeType (1 = Size, 2 = Color, 3 = Model, 4 = Print)
+  categoryIds: number[];
+  options: GradeOptionDto[];
 }
 
 export interface ImageDto {
@@ -171,6 +191,7 @@ export interface SupplierDto {
   city: string;
   state: string;
   avatarColor: string;
+  description: string | null;
 }
 
 export interface SaleDto {
@@ -219,12 +240,14 @@ export const API_BASE_URL =
 export class ApiError extends Error {
   status: number;
   payload: unknown;
+  method?: string;
 
-  constructor(message: string, status: number, payload: unknown) {
+  constructor(message: string, status: number, payload: unknown, method?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.payload = payload;
+    this.method = method;
   }
 }
 
@@ -344,7 +367,7 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const fallback = `Erro ${response.status} ao acessar ${path}`;
-    throw new ApiError(extractErrorMessage(payload, fallback), response.status, payload);
+    throw new ApiError(extractErrorMessage(payload, fallback), response.status, payload, method);
   }
 
   return {
@@ -691,3 +714,297 @@ export function useDeleteCategory(options?: {
     return response.data;
   }, options);
 }
+
+export const getGetGradesQueryKey = (): QueryKey => ["grades"];
+
+export function useGetGrades(options?: {
+  query?: Omit<UseQueryOptions<GradeDto[], ApiError, GradeDto[], QueryKey>, "queryKey" | "queryFn">;
+}) {
+  return useQuery<GradeDto[], ApiError, GradeDto[], QueryKey>({
+    queryKey: getGetGradesQueryKey(),
+    queryFn: async () => {
+      return apiGet<GradeDto[]>("/Grades");
+    },
+    ...options?.query,
+  });
+}
+
+export function useCreateGrade(options?: {
+  mutation?: UseMutationOptions<GradeDto, ApiError, { data: unknown }>;
+}) {
+  return useCrudMutation(async ({ data }) => {
+    const response = await apiPost<GradeDto>("/Grades", data);
+    if (!response.data) throw new Error("Não foi possível obter a grade criada.");
+    return response.data;
+  }, options);
+}
+
+export function useUpdateGrade(options?: {
+  mutation?: UseMutationOptions<GradeDto, ApiError, { data: unknown }>;
+}) {
+  return useCrudMutation(async ({ data }) => {
+    const response = await apiPut<GradeDto>("/Grades", data);
+    if (!response.data) throw new Error("Não foi possível obter a grade atualizada.");
+    return response.data;
+  }, options);
+}
+
+export function useDeleteGrade(options?: {
+  mutation?: UseMutationOptions<null, ApiError, { id: number }>;
+}) {
+  return useCrudMutation(async ({ id }) => {
+    const response = await apiDelete<null>(`/Grades/${id}`);
+    return response.data;
+  }, options);
+}
+
+// ==========================================
+// INVENTORY & PURCHASE ENTRIES TYPES & HOOKS
+// ==========================================
+
+export interface PurchaseEntryDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  supplierId: number;
+  entryDate: string;
+  invoiceNumber: string | null;
+  notes: string | null;
+  total: number;
+}
+
+export interface ReceivedPurchaseEntryItemDto {
+  id: number;
+  stockLotId: number;
+  productId: number;
+  productName: string;
+  barcode: string;
+  imageUrl: string | null;
+  productPrice: number;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  availableQuantity: number;
+  hasConsumedStock: boolean;
+}
+
+export interface ReceivedPurchaseEntryDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  supplierId: number;
+  supplierName: string;
+  entryDate: string;
+  invoiceNumber: string | null;
+  notes: string | null;
+  total: number;
+  canEdit: boolean;
+  canDelete: boolean;
+  items: ReceivedPurchaseEntryItemDto[];
+}
+
+export interface ReceivePurchaseEntryItemRequest {
+  productId: number;
+  quantity: number;
+  unitCost: number;
+  price: number;
+}
+
+export interface ReceivePurchaseEntryRequest {
+  supplierId: number;
+  entryDate: string;
+  invoiceNumber: string | null;
+  notes: string | null;
+  items: ReceivePurchaseEntryItemRequest[];
+}
+
+export interface InventoryMetricsDto {
+  totalProductsWithControl: number;
+  totalUnits: number;
+  totalValueMerchandise: number;
+  totalValueCost: number;
+  totalEstimatedProfit: number;
+  marginPercentage: number;
+  alertsNoStock: number;
+  alertsLowStock: number;
+}
+
+export interface CategoryInventorySummaryDto {
+  categoryName: string;
+  productsCount: number;
+  unitsCount: number;
+  merchandiseValue: number;
+  estimatedProfit: number;
+  percentageOfTotalValue: number;
+}
+
+export interface InventoryItemDto {
+  id: number;
+  productName: string;
+  barcode: string;
+  supplierName: string;
+  categoryName: string;
+  stock: number;
+  unitCost: number;
+  unitSale: number;
+  totalCost: number;
+  mercadoria: number;
+  estimatedProfit: number;
+  marginPercentage: number;
+}
+
+export interface BackendInventoryReportDto {
+  metrics: InventoryMetricsDto;
+  categorySummaries: CategoryInventorySummaryDto[];
+  items: BackendPagedResult<InventoryItemDto>;
+}
+
+export interface InventoryReportDto {
+  metrics: InventoryMetricsDto;
+  categorySummaries: CategoryInventorySummaryDto[];
+  items: UiPagedResult<InventoryItemDto>;
+}
+
+export function useGetPurchaseEntries(
+  params?: { supplierId?: number; productId?: number; barcode?: string; startDate?: string; endDate?: string; page?: number; limit?: number },
+  options?: {
+    query?: Omit<UseQueryOptions<UiPagedResult<PurchaseEntryDto>, ApiError, UiPagedResult<PurchaseEntryDto>, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<UiPagedResult<PurchaseEntryDto>, ApiError, UiPagedResult<PurchaseEntryDto>, QueryKey>({
+    queryKey: ["purchase-entries", params ?? {}],
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<PurchaseEntryDto>>("/PurchaseEntries", {
+        supplierId: params?.supplierId,
+        productId: params?.productId,
+        barcode: params?.barcode,
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+export function useGetPurchaseEntryDetails(
+  id: number,
+  options?: {
+    query?: Omit<UseQueryOptions<ReceivedPurchaseEntryDto, ApiError, ReceivedPurchaseEntryDto, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<ReceivedPurchaseEntryDto, ApiError, ReceivedPurchaseEntryDto, QueryKey>({
+    queryKey: ["purchase-entry-details", id],
+    enabled: !!id,
+    queryFn: async () => {
+      return apiGet<ReceivedPurchaseEntryDto>(`/PurchaseEntries/${id}/details`);
+    },
+    ...options?.query,
+  });
+}
+
+export function useReceivePurchaseEntry(options?: {
+  mutation?: UseMutationOptions<ReceivedPurchaseEntryDto, ApiError, { data: ReceivePurchaseEntryRequest }>;
+}) {
+  return useCrudMutation(async ({ data }) => {
+    const response = await apiPost<ReceivedPurchaseEntryDto>("/PurchaseEntries/receive", data);
+    if (!response.data) throw new Error("Não foi possível obter os dados da entrada.");
+    return response.data;
+  }, options);
+}
+
+export function useDeletePurchaseEntry(options?: {
+  mutation?: UseMutationOptions<null, ApiError, { id: number }>;
+}) {
+  return useCrudMutation(async ({ id }) => {
+    const response = await apiDelete<null>(`/PurchaseEntries/${id}`);
+    return response.data;
+  }, options);
+}
+
+export function useGetInventoryReport(
+  params?: { search?: string; supplierId?: number; categoryId?: number; stockStatus?: string; page?: number; limit?: number },
+  options?: {
+    query?: Omit<UseQueryOptions<InventoryReportDto, ApiError, InventoryReportDto, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<InventoryReportDto, ApiError, InventoryReportDto, QueryKey>({
+    queryKey: ["inventory-report", params ?? {}],
+    queryFn: async () => {
+      const result = await apiGet<BackendInventoryReportDto>("/Inventory", {
+        search: params?.search,
+        supplierId: params?.supplierId,
+        categoryId: params?.categoryId,
+        stockStatus: params?.stockStatus,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return {
+        metrics: result.metrics,
+        categorySummaries: result.categorySummaries,
+        items: mapPagedResult(result.items),
+      };
+    },
+    ...options?.query,
+  });
+}
+
+// ==========================================
+// SYSTEM LOGS TYPES & HOOKS
+// ==========================================
+
+export interface SystemLogDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  code: string;
+  requestId: string | null;
+  type: string;
+  origin: string;
+  message: string;
+  details: string | null;
+}
+
+export const getGetLogsQueryKey = (): QueryKey => ["logs"];
+
+export function useGetLogs(
+  params?: { search?: string; type?: string; startDate?: string; endDate?: string; page?: number; limit?: number },
+  options?: {
+    query?: Omit<UseQueryOptions<UiPagedResult<SystemLogDto>, ApiError, UiPagedResult<SystemLogDto>, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<UiPagedResult<SystemLogDto>, ApiError, UiPagedResult<SystemLogDto>, QueryKey>({
+    queryKey: [...getGetLogsQueryKey(), params ?? {}],
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<SystemLogDto>>("/Logs", {
+        search: params?.search,
+        type: params?.type,
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+export function useGetLog(
+  id: number,
+  options?: {
+    query?: Omit<UseQueryOptions<SystemLogDto, ApiError, SystemLogDto, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<SystemLogDto, ApiError, SystemLogDto, QueryKey>({
+    queryKey: ["log-details", id],
+    enabled: !isNaN(id) && id > 0,
+    queryFn: async () => {
+      return apiGet<SystemLogDto>(`/Logs/${id}`);
+    },
+    ...options?.query,
+  });
+}
+

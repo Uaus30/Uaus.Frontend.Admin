@@ -154,7 +154,7 @@ export default function Tags() {
   return (
     <AppLayout>
       <div className="mx-auto flex max-w-5xl flex-col gap-6">
-        <div className="flex justify-between gap-4">
+        <div className="flex justify-between items-center gap-4">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Etiquetas</h1>
             <p className="mt-1 text-muted-foreground">Classifique produtos para análises personalizadas.</p>

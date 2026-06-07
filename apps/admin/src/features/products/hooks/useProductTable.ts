@@ -5,10 +5,10 @@ import { buildProductCollections } from "@/services/mappers";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
 import { getAllImages } from "@/services/images.service";
 import {
-  getAllProductGroups,
+  getAllProducts,
   getAllProductImages,
   getAllProductTags,
-  getProductsPage,
+  getProductGroupsPage,
 } from "@/services/products.service";
 import { getAllTags } from "@/services/tags.service";
 
@@ -27,9 +27,9 @@ export function useProductTable() {
     queryFn: () => getAllCategories(),
   });
 
-  const { data: productGroups = [] } = useQuery({
-    queryKey: ["product-groups-all-for-products"],
-    queryFn: () => getAllProductGroups(),
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ["products-all-for-table"],
+    queryFn: () => getAllProducts(),
   });
 
   const { data: tags = [] } = useQuery({
@@ -57,16 +57,40 @@ export function useProductTable() {
     queryFn: () => getEnumOptions("/Products/enums/product-status"),
   });
 
-  const { data: productPage, isLoading } = useQuery({
-    queryKey: ["products-page", { search, page, limit }],
-    queryFn: () => getProductsPage({ search, page, limit }),
+  const { data: groupPage, isLoading } = useQuery({
+    queryKey: ["product-groups-page", { search, page, limit }],
+    queryFn: () => getProductGroupsPage({ search, page, limit }),
   });
 
   const enrichedProducts = useMemo(() => {
-    const pageProducts = productPage?.data ?? [];
-    return buildProductCollections({
-      products: pageProducts,
-      productGroups,
+    const pageGroups = groupPage?.data ?? [];
+    
+    // Para cada grupo, vamos encontrar o primeiro produto correspondente para extrair preço, estoque, imagens
+    const representativeProducts = pageGroups.map(group => {
+      const firstProduct = allProducts.find(p => p.productGroupId === group.id);
+      if (firstProduct) return firstProduct;
+      
+      // Fallback: Mock product if group has no products yet
+      return {
+        id: 0,
+        productGroupId: group.id,
+        name: group.name,
+        description: group.description,
+        barcode: "",
+        price: 0,
+        costPrice: 0,
+        stock: 0,
+        minStock: 0,
+        status: 1,
+        canDelete: true,
+        createdAt: group.createdAt,
+        updatedAt: group.updatedAt
+      };
+    });
+
+    const allEnriched = buildProductCollections({
+      products: representativeProducts,
+      productGroups: pageGroups,
       categories,
       departments,
       tags,
@@ -74,18 +98,24 @@ export function useProductTable() {
       images: imagesCatalog,
       productImages,
     }).enrichedProducts;
+
+    // Fix names to display the group name in the table
+    return allEnriched.map(item => ({
+      ...item,
+      name: item.productGroup?.name || item.name
+    }));
   }, [
     categories,
     departments,
     imagesCatalog,
-    productGroups,
+    groupPage?.data,
+    allProducts,
     productImages,
-    productPage?.data,
     productTags,
     tags,
   ]);
 
-  const totalPages = Math.max(1, Math.ceil((productPage?.total || 0) / limit));
+  const totalPages = Math.max(1, Math.ceil((groupPage?.total || 0) / limit));
 
   return {
     search,
@@ -95,7 +125,7 @@ export function useProductTable() {
     limit,
     setLimit,
     isLoading,
-    productPage,
+    productPage: groupPage,
     enrichedProducts,
     totalPages,
     statusOptions,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, Edit2, Folder, Loader2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
 import { formatCurrency } from "@/lib/formatters";
 import { createCategory, deleteCategory, getAllDepartments, getCategoriesPage, updateCategory } from "@/services/categories.service";
 import { buildMockCategoryReport } from "@/lib/mock-data";
@@ -35,7 +36,7 @@ export default function Categories() {
     queryFn: () => getAllDepartments(),
   });
 
-  const { data: categoriesPage, isLoading } = useQuery({
+  const { data: categoriesPage, isLoading, isError, error } = useQuery({
     queryKey: [...getGetCategoriesQueryKey(), { search, departmentFilter, page }],
     queryFn: () =>
       getCategoriesPage({
@@ -45,6 +46,19 @@ export default function Categories() {
         limit: 20,
       }),
   });
+
+  useEffect(() => {
+    if (isError && error) {
+      const apiError = error as any;
+      if (apiError.status >= 500) {
+        toast({
+          title: "Servidor indisponível",
+          description: "O servidor está indisponível no momento. Por favor, tente novamente mais tarde.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [isError, error, toast]);
 
   const categoriesWithDepartment = useMemo(() => {
     const departmentsById = new Map(departments.map((department) => [department.id, department]));
@@ -74,7 +88,7 @@ export default function Categories() {
     } else {
       setEditingId(null);
       setFormData({
-        departmentId: departments[0]?.id.toString() ?? "",
+        departmentId: departmentFilter !== "all" ? departmentFilter : (departments[0]?.id.toString() ?? ""),
         name: "",
         description: "",
       });
@@ -191,10 +205,10 @@ export default function Categories() {
                 </tr>
               </thead>
               <tbody>
-                {isLoading ? (
+                {isLoading || (isError && (error as any)?.status >= 500) ? (
                   <tr>
                     <td colSpan={5} className="py-12 text-center">
-                      <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                      <Spinner />
                     </td>
                   </tr>
                 ) : categoriesWithDepartment.length === 0 ? (
@@ -349,7 +363,7 @@ export default function Categories() {
           <div className="space-y-6 py-4">
             {!selectedReport ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Spinner />
               </div>
             ) : (
               <>

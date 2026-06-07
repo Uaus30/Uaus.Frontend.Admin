@@ -41,6 +41,20 @@ export async function getProductsPage(params?: {
   });
 }
 
+export async function getProductGroupsPage(params?: {
+  search?: string;
+  categoryId?: number;
+  page?: number;
+  limit?: number;
+}) {
+  return getPaged<ProductGroupDto>("/ProductGroups", {
+    search: params?.search,
+    categoryId: params?.categoryId,
+    page: params?.page ?? 1,
+    size: params?.limit ?? 20,
+  });
+}
+
 export async function createOrReuseProductGroup(payload: {
   categoryId: number;
   name: string;
@@ -145,17 +159,23 @@ export async function upsertProduct(payload: {
   productGroupId: number;
   name: string;
   description?: string | null;
+  barcode?: string;
   price: number;
+  minStock?: number;
   status: number;
+  gradeOptionIds?: number[];
 }) {
   const request = {
     productGroupId: payload.productGroupId,
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
+    barcode: payload.barcode || null,
     price: payload.price,
     costPrice: 0,
     stock: 0,
+    minStock: payload.minStock ?? 0,
     status: payload.status,
+    gradeOptionIds: payload.gradeOptionIds ?? [],
   };
 
   if (payload.id) {
@@ -188,9 +208,11 @@ export async function upsertProduct(payload: {
     productGroupId: payload.productGroupId,
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
+    barcode: payload.barcode || "",
     price: payload.price,
     costPrice: 0,
     stock: 0,
+    minStock: payload.minStock ?? 0,
     status: payload.status,
     canDelete: true,
   } satisfies ProductDto;
@@ -198,6 +220,10 @@ export async function upsertProduct(payload: {
 
 export async function deleteProduct(id: number) {
   return apiDelete<null>(`/Products/${id}`);
+}
+
+export async function deleteProductGroup(id: number) {
+  return apiDelete<null>(`/ProductGroups/${id}`);
 }
 
 export async function syncProductTags(payload: {
