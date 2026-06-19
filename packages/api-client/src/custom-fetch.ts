@@ -86,7 +86,10 @@ function looksLikeJson(text: string): boolean {
 function getStringField(value: unknown, key: string): string | undefined {
   if (!value || typeof value !== "object") return undefined;
 
-  const candidate = (value as Record<string, unknown>)[key];
+  const obj = value as Record<string, unknown>;
+  const capitalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+  const candidate = obj[key] !== undefined ? obj[key] : obj[capitalizedKey];
+  
   if (typeof candidate !== "string") return undefined;
 
   const trimmed = candidate.trim();

@@ -5,10 +5,15 @@ import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductEditorModal } from "@/features/products/components/ProductEditorModal";
+import { ProductHistoryModal } from "@/features/products/components/ProductHistoryModal";
+import { useState } from "react";
 
 export default function Products() {
   const table = useProductTable();
   const editor = useProductEditor();
+  const [historyProductGroupId, setHistoryProductGroupId] = useState<number | null>(null);
+  const [historyProductGroupName, setHistoryProductGroupName] = useState("");
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   return (
     <AppLayout>
@@ -38,10 +43,25 @@ export default function Products() {
           onDelete={(product) => {
             void editor.handleDeleteProductGroup(product.productGroupId);
           }}
+          onViewHistory={(product) => {
+            setHistoryProductGroupId(product.productGroupId);
+            setHistoryProductGroupName(product.productGroup?.name || product.name);
+            setHistoryModalOpen(true);
+          }}
+          onUpdatePrice={table.updateProductPrice}
+          updatingPriceId={table.updatingPriceId}
+          onUpdateStock={table.updateProductStock}
+          updatingStockId={table.updatingStockId}
         />
       </div>
 
       <ProductEditorModal editor={editor} />
+      <ProductHistoryModal
+        productGroupId={historyProductGroupId}
+        productGroupName={historyProductGroupName}
+        isOpen={historyModalOpen}
+        onOpenChange={setHistoryModalOpen}
+      />
     </AppLayout>
   );
 }

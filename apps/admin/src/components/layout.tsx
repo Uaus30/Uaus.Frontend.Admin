@@ -129,7 +129,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as CSSProperties}>
-      <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
+      <div className="flex h-full w-full bg-background text-foreground overflow-hidden">
         <Sidebar className="border-r border-border/50 bg-card">
           <SidebarHeader className="p-6">
             <div className="flex items-center gap-3">

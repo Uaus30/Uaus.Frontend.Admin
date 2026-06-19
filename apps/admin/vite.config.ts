@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
@@ -41,5 +41,9 @@ export default defineConfig({
     port: Number(process.env.PORT ?? 4173),
     host: "0.0.0.0",
     allowedHosts: true,
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
   },
 });

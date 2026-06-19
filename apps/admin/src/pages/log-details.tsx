@@ -9,10 +9,6 @@ import {
   Copy, 
   Check, 
   Loader2, 
-  AlertTriangle, 
-  AlertCircle, 
-  Info, 
-  CheckCircle2, 
   Terminal,
   Calendar,
   Hash,
@@ -20,8 +16,13 @@ import {
   Tag
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
+import { getLogTypeBadge } from "@/features/logs/components/LogsTable";
+import { formatDateTime } from "@/features/logs/hooks/useLogs";
 
+/**
+ * Página de Detalhes de um Registro de Log específico.
+ * Consome os helpers e componentes exportados da feature de logs para manter consistência visual e lógica.
+ */
 export default function LogDetails() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -50,65 +51,6 @@ export default function LogDetails() {
       description: "Conteúdo copiado com sucesso.",
     });
     setTimeout(() => setCopiedField(null), 2000);
-  }
-
-  function formatDateTime(dateStr: string) {
-    if (!dateStr) return "-";
-    try {
-      const d = new Date(dateStr);
-      return new Intl.DateTimeFormat("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }).format(d);
-    } catch {
-      return dateStr;
-    }
-  }
-
-  function getLogTypeBadge(type: string) {
-    const normType = type?.toLowerCase() || "";
-    if (normType.includes("err") || normType.includes("fail") || normType.includes("crit")) {
-      return (
-        <Badge variant="destructive" className="gap-1 px-3 py-1.5 text-xs font-semibold uppercase animate-pulse">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          {type || "ERROR"}
-        </Badge>
-      );
-    }
-    if (normType.includes("warn")) {
-      return (
-        <Badge className="bg-amber-500 hover:bg-amber-600 text-white gap-1 px-3 py-1.5 text-xs font-semibold uppercase">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          {type || "WARN"}
-        </Badge>
-      );
-    }
-    if (normType.includes("info")) {
-      return (
-        <Badge className="bg-blue-500 hover:bg-blue-600 text-white gap-1 px-3 py-1.5 text-xs font-semibold uppercase">
-          <Info className="h-3.5 w-3.5 shrink-0" />
-          {type || "INFO"}
-        </Badge>
-      );
-    }
-    if (normType.includes("success") || normType.includes("ok")) {
-      return (
-        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-3 py-1.5 text-xs font-semibold uppercase">
-          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-          {type || "SUCCESS"}
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="secondary" className="gap-1 px-3 py-1.5 text-xs font-semibold uppercase">
-        <Terminal className="h-3.5 w-3.5 shrink-0" />
-        {type || "LOG"}
-      </Badge>
-    );
   }
 
   const formattedDetails = (() => {

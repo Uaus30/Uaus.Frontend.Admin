@@ -5,10 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/formatters";
 import { buildPublicImageUrl } from "@/services/core";
-import { Edit2, ImageIcon, Loader2, Search, Trash2, AlertTriangle } from "lucide-react";
+import { Edit2, ImageIcon, Loader2, Search, Trash2, AlertTriangle, MoreVertical, Package, History } from "lucide-react";
 import type { EnrichedProduct } from "@/services/mappers";
 import React, { useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { useLocation } from "wouter";
 
 type ProductTableProps = {
   isLoading: boolean;
@@ -24,7 +29,119 @@ type ProductTableProps = {
   statusOptions: any[];
   onEdit: (product: EnrichedProduct) => void;
   onDelete: (product: EnrichedProduct) => void;
+  onViewHistory?: (product: EnrichedProduct) => void;
+  onUpdatePrice?: (product: EnrichedProduct, newPrice: number) => Promise<void>;
+  updatingPriceId?: number | null;
+  onUpdateStock?: (product: EnrichedProduct, newStock: number) => Promise<void>;
+  updatingStockId?: number | null;
 };
+
+function CurrencyInputInline({ value, onSave, disabled }: { value: number, onSave: (val: number) => void, disabled?: boolean }) {
+  const [focused, setFocused] = useState(false);
+  const [localValue, setLocalValue] = useState(value.toFixed(2).replace('.', ','));
+
+  // Sync value when it changes from outside
+  React.useEffect(() => {
+    if (!focused) {
+      setLocalValue(value.toFixed(2).replace('.', ','));
+    }
+  }, [value, focused]);
+
+  const handleBlurOrEnter = () => {
+    setFocused(false);
+    const numericValue = Number(localValue.replace(',', '.'));
+    if (!isNaN(numericValue) && numericValue !== value) {
+      onSave(numericValue);
+    } else {
+      setLocalValue(value.toFixed(2).replace('.', ','));
+    }
+  };
+
+  return (
+    <Input
+      type="text"
+      inputMode="decimal"
+      value={focused ? localValue : value.toFixed(2).replace('.', ',')}
+      disabled={disabled}
+      onChange={(e) => {
+        let val = e.target.value;
+        val = val.replace(/\./g, ',');
+        val = val.replace(/[^\d,]/g, '');
+        const parts = val.split(',');
+        if (parts.length > 2) {
+          val = parts[0] + ',' + parts.slice(1).join('');
+        }
+        setLocalValue(val);
+      }}
+      onFocus={() => {
+        setFocused(true);
+      }}
+      onBlur={handleBlurOrEnter}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+      }}
+      className="h-8 w-20 bg-transparent border-transparent hover:border-border/50 focus:bg-background focus:border-border px-1.5 font-medium text-orange-500 text-left shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
+    />
+  );
+}
+
+function StockInputInline({ value, onSave, disabled }: { value: number, onSave: (val: number) => void, disabled?: boolean }) {
+  const [focused, setFocused] = useState(false);
+  const [localValue, setLocalValue] = useState(String(value));
+
+  React.useEffect(() => {
+    if (!focused) {
+      setLocalValue(String(value));
+    }
+  }, [value, focused]);
+
+  const handleBlurOrEnter = () => {
+    setFocused(false);
+    const numericValue = Number(localValue);
+    if (!isNaN(numericValue) && numericValue !== value) {
+      onSave(numericValue);
+    } else {
+      setLocalValue(String(value));
+    }
+  };
+
+  const isLowStock = value < 10;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Input
+        type="text"
+        inputMode="numeric"
+        value={focused ? localValue : String(value)}
+        disabled={disabled}
+        onChange={(e) => {
+          let val = e.target.value;
+          val = val.replace(/[^\d]/g, '');
+          setLocalValue(val);
+        }}
+        onFocus={() => {
+          setFocused(true);
+        }}
+        onBlur={handleBlurOrEnter}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          }
+        }}
+        className={`h-7 w-12 text-center px-1 font-semibold rounded-md border text-xs focus-visible:ring-1 focus-visible:ring-primary/30 transition-all duration-150 shadow-none ${
+          focused
+            ? "bg-background border-border text-foreground"
+            : isLowStock
+            ? "bg-destructive/20 border-transparent text-destructive hover:border-destructive/30"
+            : "bg-secondary border-transparent text-secondary-foreground hover:border-secondary-foreground/20"
+        }`}
+      />
+      <span className="text-xs text-muted-foreground font-semibold select-none">un</span>
+    </div>
+  );
+}
 
 export function ProductTable({
   isLoading,
@@ -40,8 +157,15 @@ export function ProductTable({
   statusOptions,
   onEdit,
   onDelete,
+  onViewHistory,
+  onUpdatePrice,
+  updatingPriceId,
+  onUpdateStock,
+  updatingStockId,
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = useState<EnrichedProduct | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
+  const [, setLocation] = useLocation();
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <div className="border-b border-border/50 p-4">
@@ -86,60 +210,169 @@ export function ProductTable({
                 const mainImage = product.images[0]?.image;
 
                 return (
-                  <tr key={`${product.id}-${index}`} className="border-b border-border/50 transition-colors hover:bg-muted/20">
-                    <td className="px-6 py-4">
-                      {mainImage ? (
-                        <img src={buildPublicImageUrl(mainImage.url)} alt={mainImage.name} className="h-10 w-10 rounded-lg border border-border/50 object-cover" />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
-                          <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-foreground">{product.name}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{product.department?.name || "-"}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{product.category?.name || "-"}</td>
-                    <td className="px-6 py-4 font-medium text-primary">{formatCurrency(product.price)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}>
-                        {product.stock} un
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {product.tags.map((tag) => (
-                          <span key={tag.id} className="rounded-full border px-2 py-0.5 text-[10px] font-medium" style={{ borderColor: tag.color, color: tag.color, backgroundColor: `${tag.color}15` }}>
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={product.status === 2 ? "default" : "outline"}>
-                        {statusOptions.find((option) => option.id === product.status)?.name ?? product.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
+                  <ContextMenu key={`${product.id}-${index}`}>
+                    <ContextMenuTrigger asChild>
+                      <tr className="border-b border-border/50 transition-colors hover:bg-muted/20">
+                        <td className="px-6 py-4">
+                          {mainImage ? (
+                            <HoverCard openDelay={0} closeDelay={0}>
+                              <HoverCardTrigger asChild>
+                                <img
+                                  src={buildPublicImageUrl(mainImage.url)}
+                                  alt={mainImage.name}
+                                  className="h-10 w-10 rounded-lg border border-border/50 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => setSelectedImage({ url: mainImage.url, name: mainImage.name })}
+                                />
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-80 h-80 p-0 overflow-hidden border-border/50 shadow-2xl rounded-xl">
+                                <img
+                                  src={buildPublicImageUrl(mainImage.url)}
+                                  alt={mainImage.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </HoverCardContent>
+                            </HoverCard>
+                          ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                            </div>
+                          )}
+                        </td>
+                        <td
+                          className="px-6 py-4 font-medium text-foreground cursor-pointer hover:text-primary hover:underline transition-colors"
                           onClick={() => onEdit(product)}
                         >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                          onClick={() => setProductToDelete(product)}
+                          {product.name}
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground">{product.department?.name || "-"}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{product.category?.name || "-"}</td>
+                        <td className="px-6 py-4 font-medium text-orange-500">
+                          {product.productGroup?.hasVariations ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium text-orange-500">{formatCurrency(product.price)}</span>
+                              <span className="text-[10px] text-orange-500 font-semibold uppercase mt-0.5">Variações</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <span className="text-orange-500 font-semibold">R$</span>
+                              <CurrencyInputInline
+                                value={product.price}
+                                onSave={(newPrice) => onUpdatePrice?.(product, newPrice)}
+                                disabled={updatingPriceId === product.id}
+                              />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {product.productGroup?.hasVariations ? (
+                            <div className="flex flex-col">
+                              <span className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold w-max ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}>
+                                {product.stock} un
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-semibold uppercase mt-0.5">Variações</span>
+                            </div>
+                          ) : (
+                            <StockInputInline
+                              value={product.stock}
+                              onSave={(newStock) => onUpdateStock?.(product, newStock)}
+                              disabled={updatingStockId === product.id}
+                            />
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {product.tags.map((tag) => (
+                              <span key={tag.id} className="rounded-full border px-2 py-0.5 text-[10px] font-medium" style={{ borderColor: tag.color, color: tag.color, backgroundColor: `${tag.color}15` }}>
+                                {tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant={product.status === 2 ? "default" : "outline"}>
+                            {statusOptions.find((option) => option.id === product.status)?.name ?? product.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-36 border-border/50 bg-card">
+                                <DropdownMenuItem
+                                  onClick={() => onEdit(product)}
+                                  className="cursor-pointer gap-2"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setLocation(`/estoque/entradas?productId=${product.id}`)}
+                                  className="cursor-pointer gap-2"
+                                >
+                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                                  Estoque
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => onViewHistory?.(product)}
+                                  className="cursor-pointer gap-2"
+                                >
+                                  <History className="h-3.5 w-3.5 text-muted-foreground" />
+                                  Histórico
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setProductToDelete(product)}
+                                  className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </td>
+                      </tr>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-36 border-border/50 bg-card">
+                      <ContextMenuItem
+                        onClick={() => onEdit(product)}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        Editar
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => setLocation(`/estoque/entradas?productId=${product.id}`)}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                        Estoque
+                      </ContextMenuItem>
+                      {onViewHistory && (
+                        <ContextMenuItem
+                          onClick={() => onViewHistory(product)}
+                          className="cursor-pointer gap-2"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+                          <History className="h-3.5 w-3.5 text-muted-foreground" />
+                          Histórico
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuItem
+                        onClick={() => setProductToDelete(product)}
+                        className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Excluir
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })
             )}
@@ -206,6 +439,20 @@ export function ProductTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+        <DialogContent aria-describedby={undefined} className="max-w-[600px] border-border/50 bg-black/95 p-0 overflow-hidden shadow-2xl rounded-2xl flex flex-col items-center justify-center gap-0">
+          <DialogTitle className="sr-only">Visualizar Imagem</DialogTitle>
+          {selectedImage && (
+            <div className="relative w-full h-full flex items-center justify-center p-8">
+              <img
+                src={buildPublicImageUrl(selectedImage.url)}
+                alt={selectedImage.name}
+                className="max-h-[500px] max-w-[500px] rounded-lg object-contain shadow-2xl w-auto h-auto"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

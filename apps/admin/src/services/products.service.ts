@@ -1,5 +1,6 @@
 import {
   apiDelete,
+  apiGet,
   apiPost,
   apiPut,
   extractCreatedId,
@@ -222,6 +223,18 @@ export async function deleteProduct(id: number) {
   return apiDelete<null>(`/Products/${id}`);
 }
 
+export async function adjustProductStock(productId: number, newStock: number) {
+  const response = await apiPut<ProductDto>(`/Products/${productId}/adjust-stock`, {
+    newStock,
+  });
+
+  if (!response.data) {
+    throw new Error("Não foi possível ajustar o estoque do produto.");
+  }
+
+  return response.data;
+}
+
 export async function deleteProductGroup(id: number) {
   return apiDelete<null>(`/ProductGroups/${id}`);
 }
@@ -286,4 +299,8 @@ export async function syncProductImages(payload: {
       });
     }
   }
+}
+
+export async function getProductGroupById(id: number) {
+  return apiGet<ProductGroupDto>(`/ProductGroups/${id}`);
 }

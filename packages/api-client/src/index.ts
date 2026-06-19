@@ -94,6 +94,17 @@ export interface CategoryDto {
   description: string | null;
 }
 
+export interface ProductHistoryDto {
+  id: number;
+  createdAt: string;
+  createdBy: string | null;
+  userId: number | null;
+  userFirstName: string | null;
+  userLastName: string | null;
+  type: number;
+  description: string;
+}
+
 export interface ProductGroupDto {
   id: number;
   createdAt: string;
@@ -103,6 +114,7 @@ export interface ProductGroupDto {
   description: string | null;
   hasVariations: boolean;
   canDelete: boolean;
+  productHistories?: ProductHistoryDto[];
 }
 
 export interface ProductDto {
@@ -241,13 +253,15 @@ export class ApiError extends Error {
   status: number;
   payload: unknown;
   method?: string;
+  url?: string;
 
-  constructor(message: string, status: number, payload: unknown, method?: string) {
+  constructor(message: string, status: number, payload: unknown, method?: string, url?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.payload = payload;
     this.method = method;
+    this.url = url;
   }
 }
 
@@ -287,9 +301,15 @@ function extractErrorMessage(payload: unknown, fallback: string) {
   if (typeof payload === "string" && payload.trim()) return payload;
 
   if (payload && typeof payload === "object") {
-    const candidateKeys = ["message", "detail", "title", "error"];
+    const obj = payload as Record<string, unknown>;
+    const candidateKeys = [
+      "message", "Message",
+      "detail", "Detail",
+      "title", "Title",
+      "error", "Error"
+    ];
     for (const key of candidateKeys) {
-      const value = (payload as Record<string, unknown>)[key];
+      const value = obj[key];
       if (typeof value === "string" && value.trim()) {
         return value;
       }
@@ -367,7 +387,7 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const fallback = `Erro ${response.status} ao acessar ${path}`;
-    throw new ApiError(extractErrorMessage(payload, fallback), response.status, payload, method);
+    throw new ApiError(extractErrorMessage(payload, fallback), response.status, payload, method, path);
   }
 
   return {
@@ -1006,5 +1026,22 @@ export function useGetLog(
     },
     ...options?.query,
   });
+}
+
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const url = buildUrl("/health");
+    const response = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (response.ok) {
+      const text = await response.text();
+      return text.trim() === "Ok";
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 

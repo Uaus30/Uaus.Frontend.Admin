@@ -427,7 +427,7 @@ export default function Pdv() {
     : 0;
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden selection:bg-primary/30">
+    <div className="flex flex-col h-full bg-background overflow-hidden selection:bg-primary/30">
       {/* HEADER */}
       <header className="relative h-20 border-b border-border/50 bg-card/50 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-4">

@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,70 +8,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TagMultiSelect } from "@/components/tag-multi-select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/formatters";
-import { Loader2, Plus, Save, Trash2, Upload, X, Grid3X3, AlertTriangle, HelpCircle, Printer } from "lucide-react";
+import { Loader2, Plus, Save, Grid3X3, AlertTriangle, HelpCircle, Printer, Package, Eye, EyeOff } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import Barcode from "react-barcode";
 import type { useProductEditor } from "../hooks/useProductEditor";
-import type { Grade, GradeVariant } from "../types";
-
-function CurrencyInput({ id, value, onChange, className }: { id?: string, value: number, onChange: (val: number) => void, className?: string }) {
-  const [focused, setFocused] = useState(false);
-  const [localValue, setLocalValue] = useState(value.toString().replace('.', ','));
-
-  useEffect(() => {
-    if (!focused) {
-      setLocalValue(value.toString().replace('.', ','));
-    }
-  }, [value, focused]);
-
-  if (!focused) {
-    return (
-      <Input
-        id={id}
-        type="text"
-        value={formatCurrency(value)}
-        onFocus={() => {
-          setFocused(true);
-          if (value === 0) setLocalValue('');
-        }}
-        readOnly
-        className={className}
-      />
-    );
-  }
-
-  return (
-    <Input
-      id={id}
-      autoFocus
-      type="text"
-      inputMode="decimal"
-      value={localValue}
-      onChange={(e) => {
-        let val = e.target.value;
-        val = val.replace(/\./g, ',');
-        val = val.replace(/[^\d,]/g, '');
-        const parts = val.split(',');
-        if (parts.length > 2) {
-          val = parts[0] + ',' + parts.slice(1).join('');
-        }
-        setLocalValue(val);
-      }}
-      onBlur={() => {
-        setFocused(false);
-        const numericValue = Number(localValue.replace(',', '.'));
-        onChange(isNaN(numericValue) ? 0 : numericValue);
-      }}
-      className={`${className} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-    />
-  );
-}
+import type { Grade } from "../types";
+import { useLocation } from "wouter";
+import { CurrencyInput } from "./CurrencyInput";
+import { ProductImagesSection } from "./ProductImagesSection";
+import { ProductVariationsSection } from "./ProductVariationsSection";
+import { useToast } from "@/hooks/use-toast";
+import { optimizeImage } from "@/lib/imageOptimizer";
 
 type ProductEditorModalProps = {
+  /** The hook controller containing form states, API mutations, and modal behaviors */
   editor: ReturnType<typeof useProductEditor>;
 };
 
+/**
+ * ProductEditorModal
+ * 
+ * The main modal orchestrator for creating and editing products.
+ * Handles simple products and products with variations.
+ * 
+ * Features:
+ * - Decoupled subcomponents for Currency, Images and SKU Variations.
+ * - Eye toggle next to modal title to hide/show optional fields (description, stock, visibility, tags).
+ * - Pasteur handler for clipboard images (Ctrl+V).
+ * - Automatic EAN barcode generation preview.
+ * - Local field validation.
+ */
 export function ProductEditorModal({ editor }: ProductEditorModalProps) {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const {
     modalOpen,
     setModalOpen,
@@ -87,12 +56,11 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
     registerTag,
     images,
     setImages,
-    moveProductImage,
+    reorderProductImage,
     handleSimpleFileSelection,
     isFetchingGroupProducts,
     addVariationDraft,
     variationDrafts,
-    statusOptions,
     handleDeleteVariation,
     updateVariationDraft,
     saving,
@@ -100,25 +68,31 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
     activeGrades,
     generateVariationsMatrix,
     gradesList,
-    categoryGrades
+    categoryGrades,
+    activeVariation
   } = editor;
 
+  const currentProductId = form.hasVariations ? activeVariation?.id : productEditor.id;
+
+  // Local dialog/view states
   const [gridModalOpen, setGridModalOpen] = useState(false);
   const [selectedGradesInModal, setSelectedGradesInModal] = useState<number[]>([]);
   const [flashSuccess, setFlashSuccess] = useState(false);
   const [variationToDelete, setVariationToDelete] = useState<typeof variationDrafts[0] | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
 
-  // Reset modal selection when opening
+  // Reset selected grades when gridModal opens
   useEffect(() => {
     if (gridModalOpen) {
       setSelectedGradesInModal(activeGrades.map(g => g.id));
     }
   }, [gridModalOpen, activeGrades]);
 
-  // Clear validation errors when modal opens or closes
+  // Clear validation errors and reset optional visibility on open/close
   useEffect(() => {
     setValidationErrors({});
+    setShowOptionalFields(false);
   }, [modalOpen]);
 
   const toggleGradeInModal = (gradeId: number) => {
@@ -199,6 +173,61 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
 
     setValidationErrors({});
     await handleSubmit(e);
+  };
+
+  const handlePaste = async (event: React.ClipboardEvent<HTMLFormElement>) => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    const pastedFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf("image") !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+          pastedFiles.push(file);
+        }
+      }
+    }
+
+    if (pastedFiles.length > 0) {
+      event.preventDefault();
+
+      let totalOriginalSize = 0;
+      let totalOptimizedSize = 0;
+      let optimizedAny = false;
+      const nextImages = [];
+
+      for (let idx = 0; idx < pastedFiles.length; idx++) {
+        const file = pastedFiles[idx];
+        const extension = file.type.split("/")[1] || "png";
+        const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
+        const name = `imagem-colada-${dateStr}-${idx + 1}`;
+        const renamedFile = new File([file], `${name}.${extension}`, { type: file.type });
+
+        const result = await optimizeImage(renamedFile);
+        totalOriginalSize += result.originalSize;
+        totalOptimizedSize += result.optimizedSize;
+        if (result.optimized) {
+          optimizedAny = true;
+        }
+
+        nextImages.push({
+          name,
+          url: URL.createObjectURL(result.file),
+          file: result.file,
+        });
+      }
+
+      if (optimizedAny) {
+        toast({
+          title: "Imagens coladas otimizadas",
+          description: `${(totalOriginalSize / 1024 / 1024).toFixed(2)}MB reduzido para ${(totalOptimizedSize / 1024).toFixed(0)}KB (economizou ${Math.round((1 - totalOptimizedSize / totalOriginalSize) * 100)}%)`,
+        });
+      }
+
+      setImages((current) => [...current, ...nextImages]);
+    }
   };
 
   const isEanValid = (code: string) => /^\d{8}$|^\d{13}$/.test(code);
@@ -307,14 +336,12 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
     suffix = currentBarcode;
   }
   
-  // Generated placeholder internally for presentation if nothing is valid
   let displayBarcode = currentBarcode;
   if (!isValidEnteredEan) {
     const prefix12 = "2" + suffix.padStart(11, "0");
     const checkDigit = calculateEan13CheckDigit(prefix12);
     displayBarcode = prefix12 + checkDigit.toString();
   }
-
 
   return (
     <>
@@ -327,11 +354,52 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
     >
       <DialogContent aria-describedby={undefined} className="flex max-h-[90vh] flex-col border-border/50 bg-card sm:max-w-[900px] lg:max-w-[1100px]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-display">
-            {form.productGroupName ? "Editar Produto" : "Novo Produto"}
-          </DialogTitle>
+          <div className="flex items-center justify-between pr-8">
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-xl font-display">
+                {form.productGroupName ? "Editar Produto" : "Novo Produto"}
+              </DialogTitle>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      onClick={() => setShowOptionalFields(!showOptionalFields)}
+                    >
+                      {showOptionalFields ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{showOptionalFields ? "Ocultar campos opcionais" : "Mostrar campos opcionais"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            {currentProductId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 hover:bg-primary/5 hover:text-primary transition-all duration-200"
+                onClick={() => {
+                  setModalOpen(false);
+                  setLocation(`/estoque/entradas?productId=${currentProductId}`);
+                }}
+              >
+                <Package className="h-4 w-4" />
+                Estoque
+              </Button>
+            )}
+          </div>
         </DialogHeader>
-        <form onSubmit={handleLocalSubmit} className="flex flex-1 flex-col overflow-hidden">
+        <form onSubmit={handleLocalSubmit} onPaste={handlePaste} className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 space-y-6 overflow-y-auto py-4 pr-2">
             <div className="space-y-6 rounded-2xl border border-border/50 bg-background/40 p-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -394,10 +462,12 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
                   {validationErrors.name && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
                 </div>
                 
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-medium">Descrição</label>
-                  <Input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="bg-background" />
-                </div>
+                {showOptionalFields && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-medium">Descrição</label>
+                    <Input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="bg-background" />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Departamento <span className="text-red-500">*</span></label>
@@ -493,294 +563,86 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
                   </>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1">
-                      <label className="text-sm font-medium">Estoque mínimo</label>
-                      <TooltipProvider delayDuration={200}>
-                        <Tooltip>
-                          <TooltipTrigger type="button" tabIndex={-1}>
-                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Defina um valor maior que zero para controlar o estoque deste produto.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <Input type="number" min="0" value={productEditor.minStock} onChange={(event) => setProductEditor((current) => ({ ...current, minStock: Number(event.target.value) }))} className="bg-background" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1">
-                      <label className="text-sm font-medium">Estoque atual</label>
-                      <TooltipProvider delayDuration={200}>
-                        <Tooltip>
-                          <TooltipTrigger type="button" tabIndex={-1}>
-                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Calculado automaticamente com base nas entradas de estoque.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <Input type="number" value={productEditor.stock} readOnly className="bg-muted/30 text-muted-foreground cursor-not-allowed" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Visibilidade</label>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer border border-border/50 rounded-md px-3 h-10 bg-card hover:bg-muted/50 transition-colors w-full justify-between">
-                      <span className="font-medium shrink-0">Exibir no site</span>
-                      <Switch checked={form.isPublic} onCheckedChange={(checked) => setForm(current => ({ ...current, isPublic: checked === true }))} />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-medium">Etiquetas</label>
-                  <TagMultiSelect
-                    allTags={tags}
-                    selectedIds={productEditor.tagIds}
-                    onChange={(tagIds) => setProductEditor((current) => ({ ...current, tagIds }))}
-                    onTagCreated={registerTag}
-                    placeholder="Selecione ou crie uma nova etiqueta"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3 border-t border-border/30 pt-4 mt-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <label className="text-sm font-medium">Imagens do produto</label>
-                    {images.length > 1 && (
-                      <TooltipProvider delayDuration={200}>
-                        <Tooltip>
-                          <TooltipTrigger type="button" tabIndex={-1}>
-                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Arraste as imagens para definir a ordenação.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                </div>
-
-                {images.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {images.map((image, index) => (
-                      <div 
-                        key={`${image.name}-${index}`} 
-                        className="relative overflow-hidden rounded-xl border border-border/50 bg-background/50 cursor-grab active:cursor-grabbing hover:ring-2 ring-primary/50 transition-all"
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData("text/plain", index.toString());
-                          e.dataTransfer.effectAllowed = "move";
-                        }}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = "move";
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const oldIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
-                          if (!isNaN(oldIndex) && oldIndex !== index) {
-                            editor.reorderProductImage(oldIndex, index);
-                          }
-                        }}
-                      >
-                        <img src={image.url} alt={image.name} className="aspect-square w-full object-cover pointer-events-none" />
-                        <div className="p-2 pointer-events-none">
-                          <p className="truncate text-xs font-medium">{image.name}</p>
-                          {index === 0 && <p className="mt-1 text-[10px] text-primary">Imagem principal</p>}
-                        </div>
-                        <div className="absolute right-2 top-2 flex gap-1">
-                          <button
-                            type="button"
-                            className="rounded bg-card/90 p-1 text-destructive hover:bg-destructive/10"
-                            onClick={() => setImages((current) => current.filter((_, currentIndex) => currentIndex !== index))}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
+                {showOptionalFields && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <label className="text-sm font-medium">Estoque mínimo</label>
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger type="button" tabIndex={-1}>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Defina um valor maior que zero para controlar o estoque deste produto.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
-                    ))}
-                    <label className="relative flex items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/40 bg-background/20 hover:bg-muted/30 hover:border-primary/40 transition-colors cursor-pointer aspect-square min-h-[140px]">
-                      <Plus className="h-10 w-10 text-muted-foreground/50" />
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={handleSimpleFileSelection} />
-                    </label>
+                      <Input type="number" min="0" value={productEditor.minStock} onChange={(event) => setProductEditor((current) => ({ ...current, minStock: Number(event.target.value) }))} className="bg-background" required />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <label className="text-sm font-medium">Estoque atual</label>
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger type="button" tabIndex={-1}>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Calculado automaticamente com base nas entradas de estoque.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Input type="number" value={productEditor.stock} readOnly className="bg-muted/30 text-muted-foreground cursor-not-allowed" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Visibilidade</label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer border border-border/50 rounded-md px-3 h-10 bg-card hover:bg-muted/50 transition-colors w-full justify-between">
+                        <span className="font-medium shrink-0">Exibir no site</span>
+                        <Switch checked={form.isPublic} onCheckedChange={(checked) => setForm(current => ({ ...current, isPublic: checked === true }))} />
+                      </label>
+                    </div>
                   </div>
-                ) : (
-                  <label className="block rounded-xl border-2 border-dashed border-border/40 hover:border-primary/50 hover:bg-muted/20 p-8 text-center text-muted-foreground text-sm cursor-pointer transition-colors">
-                    <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-                    <p className="font-medium">Nenhuma imagem selecionada</p>
-                    <p className="text-xs mt-1">Clique para adicionar fotos.</p>
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleSimpleFileSelection} />
-                  </label>
+                )}
+
+                {showOptionalFields && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-medium">Etiquetas</label>
+                    <TagMultiSelect
+                      allTags={tags}
+                      selectedIds={productEditor.tagIds}
+                      onChange={(tagIds) => setProductEditor((current) => ({ ...current, tagIds }))}
+                      onTagCreated={registerTag}
+                      placeholder="Selecione ou crie uma nova etiqueta"
+                    />
+                  </div>
                 )}
               </div>
+
+              <ProductImagesSection
+                images={images}
+                setImages={setImages}
+                handleSimpleFileSelection={handleSimpleFileSelection}
+                reorderProductImage={reorderProductImage}
+              />
             </div>
 
-            {variationDrafts.length > 0 && (
-              <div id="variations-table-container" className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-5 mt-6 animate-in fade-in slide-in-from-bottom-4 transition-all duration-300">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">VARIAÇÕES DO PRODUTO</h2>
-                  {isFetchingGroupProducts ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : null}
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-border/50 bg-card/80">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-muted/30 text-xs uppercase text-muted-foreground border-b border-border/50">
-                      <tr>
-                        <th className="px-4 py-3 font-medium w-48 text-center">CÓDIGO</th>
-                        <th className="px-4 pl-7 py-3 font-medium">Nome</th>
-                        {activeGrades.map(g => (
-                          <th key={g.id} className="px-3 py-3 font-medium w-32 border-l border-border/30 bg-muted/20 text-foreground">{g.name}</th>
-                        ))}
-                        <th className="px-4 py-3 font-medium w-32 text-center">PREÇO <span className="text-red-500">*</span></th>
-                        <th className="px-4 py-3 font-medium w-32 text-center">Status <span className="text-red-500">*</span></th>
-                        <th className="px-4 py-3 font-medium text-right w-16">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {variationDrafts.map((variation) => (
-                        <tr key={variation.key} className="hover:bg-muted/10 transition-colors">
-                          <td className="px-4 py-2 text-center">
-                            <div className="flex items-center gap-1 justify-center">
-                              <Input 
-                                value={variation.barcode || ""} 
-                                onChange={(e) => updateVariationDraft(variation.key, draft => ({ ...draft, barcode: e.target.value }))}
-                                placeholder="Auto"
-                                className="h-8 bg-transparent border-transparent hover:border-border focus:bg-background font-mono text-xs text-center"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary"
-                                onClick={() => handlePrintBarcode(variation.barcode || "", variation.name, variation.price)}
-                                disabled={!(variation.barcode && variation.barcode.trim().length > 0)}
-                                title="Imprimir etiqueta"
-                              >
-                                <Printer className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2">
-                            <Input 
-                              id={`input-name-${variation.key}`}
-                              value={variation.name} 
-                              onChange={(e) => {
-                                updateVariationDraft(variation.key, draft => ({ ...draft, name: e.target.value }));
-                                if (validationErrors[`name-${variation.key}`]) setValidationErrors(prev => ({ ...prev, [`name-${variation.key}`]: false }));
-                              }}
-                              className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background uppercase ${validationErrors[`name-${variation.key}`] ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}
-                            />
-                            {validationErrors[`name-${variation.key}`] && <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">Preenchimento obrigatório</p>}
-                          </td>
-                          {activeGrades.map(g => {
-                            const variantId = variation.variantMap?.[g.id];
-                            return (
-                              <td key={g.id} className="px-2 py-2 border-l border-border/30 bg-muted/5">
-                                <Select 
-                                  value={variantId?.toString() || ""} 
-                                  onValueChange={(val) => {
-                                    const newVariantMap = { ...variation.variantMap, [g.id]: Number(val) };
-                                    updateVariationDraft(variation.key, draft => ({ ...draft, variantMap: newVariantMap }));
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 text-xs bg-transparent border-transparent hover:border-border">
-                                    <SelectValue placeholder="-" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {g.variants.map(v => (
-                                      <SelectItem key={v.id} value={v.id.toString()}>{v.value}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </td>
-                            );
-                          })}
-                          <td className="px-4 py-2 text-center">
-                            <CurrencyInput 
-                              id={`input-price-${variation.key}`}
-                              value={variation.price} 
-                              onChange={(val) => {
-                                updateVariationDraft(variation.key, draft => ({ ...draft, price: val }));
-                                if (validationErrors[`price-${variation.key}`]) setValidationErrors(prev => ({ ...prev, [`price-${variation.key}`]: false }));
-                              }}
-                              className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background cursor-pointer focus:cursor-text text-center ${validationErrors[`price-${variation.key}`] ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}
-                            />
-                            {validationErrors[`price-${variation.key}`] && <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">Preenchimento obrigatório</p>}
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            <Select 
-                              value={variation.status} 
-                              onValueChange={(value) => {
-                                updateVariationDraft(variation.key, draft => ({ ...draft, status: value }));
-                                if (validationErrors[`status-${variation.key}`]) setValidationErrors(prev => ({ ...prev, [`status-${variation.key}`]: false }));
-                              }}
-                            >
-                              <SelectTrigger id={`select-status-${variation.key}`} className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background justify-center text-center ${validationErrors[`status-${variation.key}`] ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}>
-                                <SelectValue placeholder="Selecione..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {selectableStatusOptions.map(status => (
-                                  <SelectItem key={status.id} value={status.id.toString()}>{status.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {validationErrors[`status-${variation.key}`] && <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">Preenchimento obrigatório</p>}
-                          </td>
-                          <td className="px-4 py-2 text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              disabled={variation.id != null && variation.canDelete === false}
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => {
-                                if (variation.id != null) {
-                                  setVariationToDelete(variation);
-                                } else {
-                                  handleDeleteVariation(variation);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                      
-                      {/* Ghost Row */}
-                      <tr className="hover:bg-muted/10 transition-colors border-t border-dashed border-primary/20 bg-primary/5 group">
-                        <td className="px-4 py-2 text-center">
-                          <Input 
-                            placeholder="0000000000000"
-                            className="h-8 bg-transparent border-transparent group-hover:border-primary/30 focus:bg-background font-mono text-xs focus:border-primary text-center"
-                            onBlur={(e) => { if(e.target.value.trim()) { addVariationDraft({ barcode: e.target.value.trim() }); e.target.value = ''; } }}
-                            onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <Input 
-                            placeholder="ADICIONAR VARIAÇÃO..."
-                            className="h-8 bg-transparent border-transparent group-hover:border-primary/30 focus:bg-background uppercase focus:border-primary text-xs"
-                            onBlur={(e) => { if(e.target.value.trim()) { addVariationDraft({ name: e.target.value.trim().toUpperCase() }); e.target.value = ''; } }}
-                            onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-                          />
-                        </td>
-                        <td colSpan={2 + activeGrades.length} className="px-4 py-2"></td>
-                        <td className="px-4 py-2"></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+            <ProductVariationsSection
+              variationDrafts={variationDrafts}
+              activeGrades={activeGrades}
+              isFetchingGroupProducts={isFetchingGroupProducts}
+              selectableStatusOptions={selectableStatusOptions}
+              validationErrors={validationErrors}
+              updateVariationDraft={updateVariationDraft}
+              handlePrintBarcode={handlePrintBarcode}
+              setVariationToDelete={setVariationToDelete}
+              handleDeleteVariation={handleDeleteVariation}
+              addVariationDraft={addVariationDraft}
+            />
 
             <DialogFooter className="pt-4 flex sm:justify-between items-center border-t border-border/40 mt-4">
               {!form.hasVariations && variationDrafts.length === 0 ? (
@@ -789,7 +651,7 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
                   className="bg-orange-500 hover:bg-orange-600 text-white" 
                   onClick={() => {
                     if (categoryGrades && categoryGrades.length > 0) {
-                      generateVariationsMatrix(categoryGrades.map(g => g.id));
+                      generateVariationsMatrix(categoryGrades.map((g: Grade) => g.id));
                     } else {
                       setGridModalOpen(true);
                     }
@@ -838,7 +700,6 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
       </AlertDialogContent>
     </AlertDialog>
     
-    {/* GRID SELECTION MODAL (MOCK) */}
     <Dialog open={gridModalOpen} onOpenChange={setGridModalOpen}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
@@ -864,7 +725,7 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
                 <div>
                   <p className="font-medium text-sm text-foreground">{grade.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {grade.variants.map((v: GradeVariant) => v.value).join(", ")}
+                    {grade.variants.map((v) => v.value).join(", ")}
                   </p>
                 </div>
               </label>

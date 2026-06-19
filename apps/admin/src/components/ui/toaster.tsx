@@ -93,12 +93,22 @@ function ToastItem({ id, title, description, action, variant, ...props }: any) {
   const getCopyText = () => {
     const method = rawError?.method ?? (rawError && typeof rawError === "object" && "method" in rawError ? rawError.method : "")
     const verbPrefix = method ? `[${String(method).toUpperCase()}] ` : ""
-    const currentPath = typeof window !== "undefined" ? window.location.pathname : ""
+    const rawUrl = rawError?.url ?? (rawError && typeof rawError === "object" && "url" in rawError ? rawError.url : "")
+    
+    let path = rawUrl || (typeof window !== "undefined" ? window.location.pathname : "")
+    if (path.startsWith("http")) {
+      try {
+        const parsed = new URL(path);
+        path = parsed.pathname + parsed.search;
+      } catch (_) {
+        // keep as is
+      }
+    }
 
     const copyData: Record<string, any> = {
       title: title || "Erro",
       message: displayDescription || description,
-      route: `${verbPrefix}${currentPath}`,
+      route: `${verbPrefix}${path}`,
       timestamp: new Date().toISOString(),
     }
 
