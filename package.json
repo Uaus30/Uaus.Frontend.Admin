@@ -8,6 +8,7 @@
     "packages/api-client"
   ],
   "scripts": {
+    "build": "npm run build:admin",
     "dev:admin": "npm run dev --workspace=@workspace/admin",
     "dev:pdv": "npm run dev --workspace=@workspace/pdv",
     "build:admin": "npm run build --workspace=@workspace/admin",

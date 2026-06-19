@@ -36,3 +36,13 @@ Todas as telas e funcionalidades devem ser implementadas usando a seguinte estru
 ## 🧪 4. Cobertura de Testes Unitários
 *   Toda lógica de negócio crítica, cálculos, validações de inputs e hooks customizados devem ser cobertos por testes unitários usando **Vitest** e **React Testing Library** (ex: `hooks/__tests__/use<FeatureName>.test.ts`).
 *   Antes de finalizar a tarefa, a suíte de testes deve ser executada para garantir que não há quebras.
+
+---
+
+## 🚀 5. Deploy e Hospedagem no Vercel (Configuração Monorepo)
+*   **Estrutura Monorepo**: O repositório é configurado como um monorepo (npm workspaces) contendo múltiplos aplicativos (ex: `apps/admin`, `apps/pdv`).
+*   **Comando de Build (Root vs Workspace)**:
+    *   Sempre garanta que a propriedade `"buildCommand"` no [vercel.json](file:///c:/Projects/Uaus/Uaus.Frontend.Admin/vercel.json) aponte para o script do workspace que está sendo hospedado (ex: `npm run build:admin`).
+    *   Mantenha um script de fallback `"build"` no [package.json](file:///c:/Projects/Uaus/Uaus.Frontend.Admin/package.json) da raiz apontando para o build do workspace principal (ex: `"build": "npm run build:admin"`), prevenindo falhas caso o Vercel ignore o `vercel.json` ou execute o comando padrão na raiz.
+*   **Diretório de Saída (`outputDirectory`)**: Certifique-se de que a propriedade `"outputDirectory"` no `vercel.json` mapeia corretamente para a pasta pública final do build gerado pelo Vite (ex: `apps/admin/dist/public`).
+
