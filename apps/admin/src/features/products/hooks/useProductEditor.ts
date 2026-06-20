@@ -553,7 +553,7 @@ export function useProductEditor() {
 
   async function handleSimpleFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
     const fileList = Array.from(event.target.files ?? []);
-    const nextImages = [];
+    const nextImages: { name: string; url: string; file: File }[] = [];
     let totalOriginalSize = 0;
     let totalOptimizedSize = 0;
     let optimizedAny = false;
@@ -586,7 +586,7 @@ export function useProductEditor() {
     if (!activeVariation) return;
 
     const fileList = Array.from(event.target.files ?? []);
-    const nextImages = [];
+    const nextImages: { name: string; url: string; file: File }[] = [];
     let totalOriginalSize = 0;
     let totalOptimizedSize = 0;
     let optimizedAny = false;

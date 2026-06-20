@@ -6,6 +6,7 @@ import { useProductEditor } from "@/features/products/hooks/useProductEditor";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductEditorModal } from "@/features/products/components/ProductEditorModal";
 import { ProductHistoryModal } from "@/features/products/components/ProductHistoryModal";
+import { ProductImageSearchModal } from "@/features/products/components/ProductImageSearchModal";
 import { useState } from "react";
 
 export default function Products() {
@@ -14,6 +15,7 @@ export default function Products() {
   const [historyProductGroupId, setHistoryProductGroupId] = useState<number | null>(null);
   const [historyProductGroupName, setHistoryProductGroupName] = useState("");
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [searchImageProduct, setSearchImageProduct] = useState<any | null>(null);
 
   return (
     <AppLayout>
@@ -52,6 +54,7 @@ export default function Products() {
           updatingPriceId={table.updatingPriceId}
           onUpdateStock={table.updateProductStock}
           updatingStockId={table.updatingStockId}
+          onSearchInternetImage={setSearchImageProduct}
         />
       </div>
 
@@ -61,6 +64,17 @@ export default function Products() {
         productGroupName={historyProductGroupName}
         isOpen={historyModalOpen}
         onOpenChange={setHistoryModalOpen}
+      />
+      <ProductImageSearchModal
+        productName={searchImageProduct?.name || ""}
+        barcode={searchImageProduct?.barcode}
+        isOpen={searchImageProduct !== null}
+        onOpenChange={(open) => !open && setSearchImageProduct(null)}
+        onSelectImage={async (imageUrl) => {
+          if (searchImageProduct) {
+            await table.saveWebImageAsPrincipal(searchImageProduct, imageUrl);
+          }
+        }}
       />
     </AppLayout>
   );

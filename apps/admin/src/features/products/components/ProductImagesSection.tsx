@@ -1,8 +1,9 @@
 import React from "react";
-import { Plus, Upload, X, HelpCircle } from "lucide-react";
+import { Plus, Upload, X, HelpCircle, Globe } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import type { LocalImage } from "../types";
-
+ 
 type ProductImagesSectionProps = {
   /** Array of currently uploaded or selected images in the frontend form */
   images: LocalImage[];
@@ -12,8 +13,12 @@ type ProductImagesSectionProps = {
   handleSimpleFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => void;
   /** Callback to update the sorting order of images (drag and drop) */
   reorderProductImage: (oldIndex: number, newIndex: number) => void;
+  /** O nome do produto, necessário para validar se a busca está habilitada */
+  productName: string;
+  /** Callback opcional para acionar a busca de imagens na web */
+  onSearchWebImage?: () => void;
 };
-
+ 
 /**
  * ProductImagesSection
  * 
@@ -23,12 +28,15 @@ type ProductImagesSectionProps = {
  * - Drag-and-drop image reordering to customize display order (first image is primary).
  * - Multi-file selection support.
  * - Single image deletion button.
+ * - Internet search integration.
  */
 export function ProductImagesSection({
   images,
   setImages,
   handleSimpleFileSelection,
   reorderProductImage,
+  productName,
+  onSearchWebImage,
 }: ProductImagesSectionProps) {
   return (
     <div className="space-y-3 border-t border-border/30 pt-4 mt-2">
@@ -46,6 +54,21 @@ export function ProductImagesSection({
             </Tooltip>
           </TooltipProvider>
         </div>
+
+        {onSearchWebImage && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onSearchWebImage}
+            disabled={!productName.trim()}
+            className="h-8 text-xs gap-1.5"
+            title={!productName.trim() ? "Preencha o nome do produto para habilitar a busca" : "Buscar imagens na internet"}
+          >
+            <Globe className="h-3.5 w-3.5" />
+            Buscar na Web
+          </Button>
+        )}
       </div>
 
       {images.length > 0 ? (

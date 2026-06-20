@@ -19,6 +19,9 @@ import { ProductImagesSection } from "./ProductImagesSection";
 import { ProductVariationsSection } from "./ProductVariationsSection";
 import { useToast } from "@/hooks/use-toast";
 import { optimizeImage } from "@/lib/imageOptimizer";
+import { ProductImageSearchModal } from "./ProductImageSearchModal";
+import { buildImageProxyUrl } from "@/services/images.service";
+import { getAuthSession } from "@workspace/api-client-react";
 
 type ProductEditorModalProps = {
   /** The hook controller containing form states, API mutations, and modal behaviors */
@@ -81,6 +84,7 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
   const [variationToDelete, setVariationToDelete] = useState<typeof variationDrafts[0] | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
   const [showOptionalFields, setShowOptionalFields] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   // Reset selected grades when gridModal opens
   useEffect(() => {
@@ -196,7 +200,7 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
       let totalOriginalSize = 0;
       let totalOptimizedSize = 0;
       let optimizedAny = false;
-      const nextImages = [];
+      const nextImages: { name: string; url: string; file: File }[] = [];
 
       for (let idx = 0; idx < pastedFiles.length; idx++) {
         const file = pastedFiles[idx];
@@ -628,6 +632,8 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
                 setImages={setImages}
                 handleSimpleFileSelection={handleSimpleFileSelection}
                 reorderProductImage={reorderProductImage}
+                productName={form.productGroupName}
+                onSearchWebImage={() => setSearchModalOpen(true)}
               />
             </div>
 
@@ -738,6 +744,44 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ProductImageSearchModal
+      productName={form.productGroupName}
+      barcode={productEditor.barcode}
+      isOpen={searchModalOpen}
+      onOpenChange={setSearchModalOpen}
+      onSelectImage={async (imageUrl) => {
+        const proxyUrl = buildImageProxyUrl(imageUrl);
+        const session = getAuthSession();
+        const headers: Record<string, string> = {};
+        if (session?.token.value) {
+          headers["Authorization"] = `Bearer ${session.token.value}`;
+        }
+        const response = await fetch(proxyUrl, { headers });
+        if (!response.ok) {
+          throw new Error(`Falha ao baixar imagem: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        const cleanName = (form.productGroupName || "produto").toLowerCase().replace(/[^a-z0-9]/g, "_");
+        const file = new File([blob], `${cleanName}.jpg`, { type: blob.type });
+
+        const optimizedResult = await optimizeImage(file);
+        if (optimizedResult.optimized) {
+          toast({
+            title: "Imagem otimizada",
+            description: `${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB reduzido para ${(optimizedResult.optimizedSize / 1024).toFixed(0)}KB (economizou ${Math.round((1 - optimizedResult.optimizedSize / optimizedResult.originalSize) * 100)}%)`,
+          });
+        }
+
+        const newLocalImage = {
+          name: optimizedResult.file.name.replace(/\.[^/.]+$/, ""),
+          url: URL.createObjectURL(optimizedResult.file),
+          file: optimizedResult.file,
+        };
+
+        setImages((current) => [...current, newLocalImage]);
+      }}
+    />
     </>
   );
 }

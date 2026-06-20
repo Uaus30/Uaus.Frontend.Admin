@@ -34,6 +34,7 @@ type ProductTableProps = {
   updatingPriceId?: number | null;
   onUpdateStock?: (product: EnrichedProduct, newStock: number) => Promise<void>;
   updatingStockId?: number | null;
+  onSearchInternetImage?: (product: EnrichedProduct) => void;
 };
 
 function CurrencyInputInline({ value, onSave, disabled }: { value: number, onSave: (val: number) => void, disabled?: boolean }) {
@@ -162,6 +163,7 @@ export function ProductTable({
   updatingPriceId,
   onUpdateStock,
   updatingStockId,
+  onSearchInternetImage,
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = useState<EnrichedProduct | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
@@ -214,29 +216,41 @@ export function ProductTable({
                     <ContextMenuTrigger asChild>
                       <tr className="border-b border-border/50 transition-colors hover:bg-muted/20">
                         <td className="px-6 py-4">
-                          {mainImage ? (
-                            <HoverCard openDelay={0} closeDelay={0}>
-                              <HoverCardTrigger asChild>
-                                <img
-                                  src={buildPublicImageUrl(mainImage.url)}
-                                  alt={mainImage.name}
-                                  className="h-10 w-10 rounded-lg border border-border/50 object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                  onClick={() => setSelectedImage({ url: mainImage.url, name: mainImage.name })}
-                                />
-                              </HoverCardTrigger>
-                              <HoverCardContent className="w-80 h-80 p-0 overflow-hidden border-border/50 shadow-2xl rounded-xl">
-                                <img
-                                  src={buildPublicImageUrl(mainImage.url)}
-                                  alt={mainImage.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </HoverCardContent>
-                            </HoverCard>
-                          ) : (
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
-                              <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
-                            </div>
-                          )}
+                          <div className="relative h-10 w-10 group/img w-max">
+                            {mainImage ? (
+                              <HoverCard openDelay={0} closeDelay={0}>
+                                <HoverCardTrigger asChild>
+                                  <img
+                                    src={buildPublicImageUrl(mainImage.url)}
+                                    alt={mainImage.name}
+                                    className="h-10 w-10 rounded-lg border border-border/50 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => setSelectedImage({ url: mainImage.url, name: mainImage.name })}
+                                  />
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80 h-80 p-0 overflow-hidden border-border/50 shadow-2xl rounded-xl">
+                                  <img
+                                    src={buildPublicImageUrl(mainImage.url)}
+                                    alt={mainImage.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </HoverCardContent>
+                              </HoverCard>
+                            ) : (
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                              </div>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSearchInternetImage?.(product);
+                              }}
+                              className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow hover:scale-110 active:scale-95 transition-transform"
+                              title="Buscar imagem na internet (pelo nome e código de barras)"
+                            >
+                              <Search className="h-3 w-3" />
+                            </button>
+                          </div>
                         </td>
                         <td
                           className="px-6 py-4 font-medium text-foreground cursor-pointer hover:text-primary hover:underline transition-colors"

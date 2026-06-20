@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getEnumOptions } from "@/services/core";
 import { buildProductCollections } from "@/services/mappers";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
-import { getAllImages } from "@/services/images.service";
+import { getAllImages, createImageFromFile, buildImageProxyUrl } from "@/services/images.service";
 import {
   getAllProducts,
   getAllProductImages,
@@ -12,8 +12,11 @@ import {
   getProductGroupsPage,
   upsertProduct,
   adjustProductStock,
+  syncProductImages,
 } from "@/services/products.service";
 import { getAllTags } from "@/services/tags.service";
+import { optimizeImage } from "@/lib/imageOptimizer";
+import { getAuthSession } from "@workspace/api-client-react";
 
 /**
  * useProductTable
@@ -230,6 +233,69 @@ export function useProductTable() {
     }
   };
 
+  /**
+   * Baixa, otimiza e associa uma imagem da web como a principal (índice 0) do produto,
+   * preservando as imagens atuais dele.
+   */
+  const saveWebImageAsPrincipal = async (product: any, webImageUrl: string) => {
+    const proxyUrl = buildImageProxyUrl(webImageUrl);
+    const session = getAuthSession();
+    const headers: Record<string, string> = {};
+    if (session?.token.value) {
+      headers["Authorization"] = `Bearer ${session.token.value}`;
+    }
+    const response = await fetch(proxyUrl, { headers });
+    if (!response.ok) {
+      throw new Error(`Falha ao baixar imagem: ${response.statusText}`);
+    }
+    const blob = await response.blob();
+    const cleanName = product.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    const file = new File([blob], `${cleanName}.jpg`, { type: blob.type });
+
+    const optimizedResult = await optimizeImage(file);
+    if (optimizedResult.optimized) {
+      toast({
+        title: "Imagem otimizada",
+        description: `${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB reduzido para ${(optimizedResult.optimizedSize / 1024).toFixed(0)}KB (economizou ${Math.round((1 - optimizedResult.optimizedSize / optimizedResult.originalSize) * 100)}%)`,
+      });
+    }
+
+    const uploadedImage = await createImageFromFile({
+      file: optimizedResult.file,
+      name: product.name,
+      type: 3,
+    });
+
+    const currentAssociations = productImages
+      .filter((pi) => pi.productId === product.id)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    const nextImages = [
+      { imageId: uploadedImage.id, displayOrder: 0 },
+      ...currentAssociations.map((pi, idx) => ({
+        imageId: pi.imageId,
+        displayOrder: idx + 1,
+      })),
+    ];
+
+    await syncProductImages({
+      productId: product.id,
+      currentAssociations,
+      nextImages,
+    });
+
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["product-images-all-for-products"] }),
+      queryClient.invalidateQueries({ queryKey: ["images-all-for-products"] }),
+      queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
+      queryClient.invalidateQueries({ queryKey: ["products-all-for-table"] }),
+    ]);
+
+    toast({
+      title: "Imagem principal atualizada com sucesso!",
+    });
+  };
+
   return {
     search,
     setSearch,
@@ -246,5 +312,6 @@ export function useProductTable() {
     updateProductPrice,
     updatingStockId,
     updateProductStock,
+    saveWebImageAsPrincipal,
   };
 }

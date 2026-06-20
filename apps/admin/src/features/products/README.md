@@ -11,6 +11,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 *   `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
 *   `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
 *   `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
+*   `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 *   `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
 *   `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e chamadas de mutations para edição rápida de preço/estoque.
 *   `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, geração da matriz cartesiana de variações, validações e persistência no banco.
@@ -37,3 +38,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 *   Por padrão, ao abrir a modal, os campos opcionais (**Descrição**, **Estoque mínimo/atual**, **Visibilidade** e **Etiquetas**) são ocultados para focar no fluxo principal do usuário.
 *   O clique no botão de olho (no topo esquerdo ao lado do título da modal) alterna a visibilidade desses campos.
 *   Os campos **Código de Barras** e **Imagens** permanecem sempre visíveis.
+
+### 5. Busca de Imagens na Internet
+*   **Pela Listagem**: Um ícone de lupa na imagem do produto abre o modal de pesquisa. Ao escolher uma imagem da internet, ela é baixada via proxy autenticado, otimizada localmente no frontend pelo motor de compressão e definida como a foto principal (índice 0) do produto, sem deletar as imagens existentes.
+*   **Pela Modal de Edição**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.

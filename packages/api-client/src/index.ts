@@ -364,7 +364,7 @@ export async function apiRequest<T>(
   const session = getAuthSession();
   const headers = new Headers(options?.headers);
 
-  if (options?.body != null && !headers.has("Content-Type")) {
+  if (options?.body != null && !headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
