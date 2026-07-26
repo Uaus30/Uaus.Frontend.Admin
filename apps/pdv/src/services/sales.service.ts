@@ -39,7 +39,14 @@ export type SalePaymentInput = {
 };
 
 export type RegisterSalePayload = {
-  cashRegisterSessionId: number;
+  /**
+   * Sessão de caixa da venda, ou `null` quando a loja não usa controle de caixa.
+   *
+   * O servidor tem a palavra final: `PdvService.ResolveSaleSessionAsync` ignora o
+   * que vier aqui quando a empresa não controla caixa, e exige caixa aberto
+   * quando controla.
+   */
+  cashRegisterSessionId: number | null;
   customerId?: number | null;
   /**
    * CPF/CNPJ informado no balcão; ignorado quando há `customerId`.
@@ -140,8 +147,14 @@ export class LocalStockError extends Error {
   }
 }
 
-/** Gera a chave de idempotência da venda. */
-function newClientReference(): string {
+/**
+ * Gera a chave de idempotência de um movimento do PDV (venda ou baixa).
+ *
+ * Exportada para a baixa de estoque reusar: as duas filas dependem da mesma
+ * garantia — a mesma referência nunca entra duas vezes no banco — e duas
+ * implementações do mesmo UUID seria uma a mais para manter.
+ */
+export function newClientReference(): string {
   // `randomUUID` exige contexto seguro; em HTTP simples caímos no plano B, que
   // é suficiente porque a unicidade só precisa valer dentro deste caixa.
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {

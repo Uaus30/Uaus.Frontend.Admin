@@ -105,7 +105,13 @@ export interface PendingSale {
   offlineNumber: number;
   /** Momento real da venda no balcão, em ISO. */
   occurredAt: string;
-  cashRegisterSessionId: number;
+  /**
+   * Sessão de caixa da venda, ou `null` quando a loja não usa controle de caixa.
+   *
+   * Guardada como veio no momento da venda: se a configuração mudar enquanto a
+   * venda espera na fila, o que sobe é o turno em que ela realmente aconteceu.
+   */
+  cashRegisterSessionId: number | null;
   customerId: number | null;
   /** CPF/CNPJ do consumidor. É a única identificação avulsa que o PDV coleta. */
   customerDocument: string | null;
@@ -129,6 +135,95 @@ export interface PendingSale {
    * snapshot. O `status` não serve para isso: reenfileirar volta para `pending`.
    */
   stockApplied: boolean;
+}
+
+/** Um produto e quanto sai dele numa baixa de estoque. */
+export interface PendingWriteOffItem {
+  productId: number;
+  quantity: number;
+  /** Nome do produto no momento da baixa, para a lista de pendências. */
+  productName: string;
+}
+
+/**
+ * Situação de uma baixa na fila local. Espelha `PendingSaleStatus` e pela mesma
+ * razão: uma recusa determinística não é retentada sozinha.
+ */
+export type PendingWriteOffStatus = "pending" | "failed";
+
+/**
+ * Uma baixa de estoque registrada offline, esperando sincronização.
+ *
+ * Ela mora numa store própria (`pendingWriteOffs`), e não na fila de vendas com
+ * um discriminador. Os motivos estão em `offline/pending-write-offs.ts`.
+ *
+ * Repare no que **não** existe aqui: pagamento, total, desconto, consumidor e
+ * número de cupom. Baixa não é venda — não tem dinheiro nem comprovante — e a
+ * sessão de caixa também fica de fora porque quem a resolve é o servidor, só
+ * quando a empresa usa controle de caixa (ver `docs/baixas-de-estoque.md`).
+ */
+export interface PendingWriteOff {
+  /** Chave de idempotência gerada no caixa (UUID). É a chave primária da store. */
+  clientReference: string;
+  /**
+   * Momento real da baixa no balcão, no horário da loja e sem fuso.
+   *
+   * É o campo que impede a baixa feita durante a queda de internet de entrar com
+   * o horário em que a conexão voltou.
+   */
+  occurredAt: string;
+  /** Enum `StockWriteOffReason` do backend: Consumo (1), Perda (2), Doação (3). */
+  reason: number;
+  notes: string | null;
+  items: PendingWriteOffItem[];
+  status: PendingWriteOffStatus;
+  /** Quantas vezes esta baixa já foi enviada. */
+  attempts: number;
+  /** Motivo da última recusa, quando `status` é `failed`. */
+  lastError: string | null;
+  /**
+   * O estoque local está debitado por esta baixa.
+   *
+   * Mesma mecânica (e mesmo motivo) do `stockApplied` da venda: nasce `true`,
+   * vira `false` na recusa junto com a devolução do saldo, e volta a debitar se
+   * a baixa acabar entrando num reenvio.
+   */
+  stockApplied: boolean;
+}
+
+/** Resumo de uma rodada de sincronização de baixas, para exibir ao operador. */
+export interface WriteOffSyncOutcome {
+  /**
+   * Baixas que o servidor confirmou nesta rodada.
+   *
+   * Inclui as que já estavam gravadas: `POST /StockWriteOffs` é idempotente por
+   * `clientReference` e devolve a baixa existente com o mesmo desfecho de uma
+   * nova, então o PDV não tem como (nem por que) distinguir as duas.
+   */
+  sent: number;
+  /** Baixas recusadas pelo servidor, que ficaram na fila marcadas com o motivo. */
+  rejected: number;
+  /** Baixas que continuam na fila (recusadas + as que nem chegaram a ser enviadas). */
+  remaining: number;
+}
+
+/** Resumo de uma rodada que drena as duas filas locais. */
+export interface QueueSyncOutcome {
+  sales: SyncOutcome;
+  writeOffs: WriteOffSyncOutcome;
+  /**
+   * Tudo que continua na fila local, vendas e baixas somadas.
+   *
+   * É o número que o fechamento de caixa consulta: qualquer movimento que o
+   * servidor ainda não conhece impede o fechamento.
+   */
+  remaining: number;
+}
+
+/** Configurações da empresa guardadas na base local. */
+export interface LocalCompanySettings {
+  /** A loja controla caixa (abertura e fechamento por turno). */
+  usesCashRegister: boolean;
 }
 
 /** Desfecho de uma venda no lote de sincronização, como a API devolve. */

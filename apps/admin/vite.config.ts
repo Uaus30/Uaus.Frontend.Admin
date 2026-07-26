@@ -26,7 +26,9 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "https://localhost:44398",
+        // O padrão é o IIS Express. A variável existe para apontar o dev server
+        // para uma API subida por `dotnet run`, que escuta em outra porta.
+        target: process.env.API_PROXY_TARGET ?? "https://localhost:44398",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ""),

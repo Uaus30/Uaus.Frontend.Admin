@@ -11,8 +11,9 @@ import { useOfflineStore } from "@/stores/use-offline-store";
  *
  * Responsabilidades:
  * - Manter `online` atualizado no store, sondando a API (não só `navigator.onLine`).
- * - Ao voltar a conexão: recarregar as consultas em cache e sincronizar a fila,
- *   nessa ordem, para o histórico já refletir as vendas que acabaram de subir.
+ * - Ao voltar a conexão: sincronizar as filas locais (vendas e baixas de
+ *   estoque) e só então recarregar as consultas em cache, para o histórico já
+ *   refletir o que acabou de subir.
  */
 export function useConnectivity() {
   const queryClient = useQueryClient();
@@ -36,9 +37,13 @@ export function useConnectivity() {
       if (!isReconnection) return;
 
       void syncNow().then((outcome) => {
+        if (!outcome) return;
+
         // Só invalida o cache quando algo mudou no servidor: invalidar a cada
-        // reconexão recarregaria o histórico sem motivo.
-        if (outcome && outcome.created > 0) {
+        // reconexão recarregaria o histórico sem motivo. A baixa de estoque
+        // entra na conta porque ela também mexe no saldo dos produtos.
+        const changedOnServer = outcome.sales.created + outcome.writeOffs.sent;
+        if (changedOnServer > 0) {
           void queryClient.invalidateQueries();
         }
       });

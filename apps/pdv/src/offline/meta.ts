@@ -1,5 +1,6 @@
 import { META_KEY, STORE, openLocalDatabase, type MetaRecord } from "./database";
 import { getByKey, put } from "./idb";
+import type { LocalCompanySettings } from "./types";
 
 /**
  * Metadados da base local: quando o snapshot foi baixado, em que formato, e o
@@ -62,6 +63,32 @@ export async function writeCachedCashRegisterSession(session: unknown | null): P
  */
 export function readCachedCashRegisterSession<T>(): Promise<T | null> {
   return readMeta<T>(META_KEY.cashRegisterSession);
+}
+
+/**
+ * Guarda as configurações da empresa como o servidor as devolveu.
+ *
+ * Elas decidem se o PDV exige abertura de caixa, e essa pergunta precisa de
+ * resposta na primeira tela — antes de qualquer requisição ter dado certo. Sem a
+ * cópia, um PDV aberto sem internet cairia no padrão em vez da configuração real
+ * da loja, e o operador veria um diálogo de abertura de caixa que a loja não usa
+ * (ou deixaria de vê-lo numa loja que usa).
+ *
+ * @param settings Configurações recebidas da API.
+ */
+export async function writeCachedCompanySettings(settings: LocalCompanySettings): Promise<void> {
+  await writeMeta(META_KEY.companySettings, settings);
+}
+
+/**
+ * Lê as configurações da empresa guardadas na base local.
+ *
+ * @returns As configurações guardadas, ou `null` quando o PDV nunca conseguiu
+ *   lê-las do servidor. Quem chama decide o padrão — ele é uma regra de produto,
+ *   não de persistência.
+ */
+export function readCachedCompanySettings(): Promise<LocalCompanySettings | null> {
+  return readMeta<LocalCompanySettings>(META_KEY.companySettings);
 }
 
 /**

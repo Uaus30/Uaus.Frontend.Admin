@@ -4,13 +4,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetMe,
   apiGet,
-  ApiError,
   useGetPaymentMethods,
   CASH_PAYMENT_METHOD_ID,
   PAYMENT_STATUS,
   enumCode,
   type ProductDto,
-  type BackendPagedResult,
   type PaymentMethodDto,
   type SaleDto,
 } from "@workspace/api-client-react";
@@ -27,9 +25,11 @@ import { ConsumerPicker } from "@/components/consumer-picker";
 import { FontSizeControl } from "@/components/font-size-control";
 import { HeldSalesDialog } from "@/components/held-sales-dialog";
 import { OfflineStatus } from "@/components/offline-status";
+import { StockWriteOffDialog } from "@/components/stock-write-off-dialog";
 import { useCashRegister } from "@/hooks/use-cash-register";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
-import { listLocalPaymentMethods, searchLocalProducts, type LocalProduct } from "@/offline";
+import { listLocalPaymentMethods } from "@/offline";
 import {
   cancelSale as cancelSaleRequest,
   getSaleItems,
@@ -38,6 +38,7 @@ import {
   LocalStockError,
 } from "@/services/sales.service";
 import { formatCurrency } from "@/lib/formatters";
+import { searchProducts } from "@/lib/product-search";
 import { computeCashSettlement, parseAmount } from "@/lib/checkout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,7 @@ import {
   FileText,
   Printer,
   PauseCircle,
+  PackageMinus,
   Calculator as CalculatorIcon,
   FileBarChart,
   DollarSign,
@@ -84,30 +86,6 @@ type CheckoutPayment = {
 
 /** Arredonda para duas casas evitando o erro de ponto flutuante do JavaScript. */
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
-
-/**
- * Converte produtos da base local no formato da API.
- *
- * A tela trabalha com `ProductDto`; o snapshot guarda só o que o balcão usa. Os
- * campos ausentes são preenchidos com valores neutros, e nenhum deles participa
- * da venda — custo, mínimo e datas ficam fora da base local de propósito.
- */
-const toProductDtos = (products: LocalProduct[]): ProductDto[] =>
-  products.map((product) => ({
-    id: product.id,
-    createdAt: "",
-    updatedAt: null,
-    productGroupId: product.productGroupId,
-    name: product.name,
-    description: null,
-    barcode: product.barcode,
-    price: product.price,
-    costPrice: 0,
-    stock: product.stock,
-    minStock: 0,
-    status: product.status,
-    canDelete: false,
-  }));
 
 /**
  * Tela do PDV: busca de produtos, carrinho, checkout com N formas de pagamento,
@@ -137,6 +115,7 @@ export default function Pdv() {
   const [discountType, setDiscountType] = useState<"value" | "percent">("value");
 
   const [isSandwichMenuOpen, setIsSandwichMenuOpen] = useState(false);
+  const [isStockWriteOffOpen, setIsStockWriteOffOpen] = useState(false);
   const [isFecharCaixaOpen, setIsFecharCaixaOpen] = useState(false);
   const [isSalesHistoryOpen, setIsSalesHistoryOpen] = useState(false);
   const [isHeldSalesOpen, setIsHeldSalesOpen] = useState(false);
@@ -155,6 +134,16 @@ export default function Pdv() {
   const [fechamentoObs, setFechamentoObs] = useState("");
   const [fechandoCaixa, setFechandoCaixa] = useState(false);
 
+  /**
+   * O que as configurações da empresa mudam aqui.
+   *
+   * `mode` responde as perguntas que a tela faz sobre controle de caixa. Hoje
+   * ele sempre exige sessão — o backend recusa venda sem `cashRegisterSessionId`
+   * —, mas todos os pontos que assumiam sessão obrigatória já passam por ele.
+   * Ver o bloqueio documentado em `lib/cash-register-mode.ts`.
+   */
+  const { mode } = useCompanySettings();
+
   const {
     session,
     sessionId,
@@ -166,9 +155,15 @@ export default function Pdv() {
     open: openCashRegister,
     close: closeCashRegister,
     refreshSales,
-  } = useCashRegister();
+  } = useCashRegister({ enabled: mode.requiresOpenSession });
 
-  const { online, queuedCount, hasLocalDatabase, sync: syncPendingSalesNow } = useOfflinePdv(sessionId);
+  const {
+    online,
+    queuedCount,
+    queuedSalesCount,
+    hasLocalDatabase,
+    sync: syncPendingQueuesNow,
+  } = useOfflinePdv(sessionId);
 
   const { data: dbPaymentMethodsData } = useGetPaymentMethods(
     { isActive: true, size: 100 },
@@ -323,9 +318,9 @@ export default function Pdv() {
    * Busca produtos por nome ou código de barras. Quando o termo casa exatamente
    * com um único código de barras, o item entra direto no carrinho (leitor).
    *
-   * Com a API fora do ar a busca vai para a base local — inclusive quando a queda
-   * acontece durante a requisição. A tela recebe o mesmo formato nos dois casos:
-   * o que importa aqui é nome, código, preço e estoque.
+   * A busca em si — e o fallback para a base local quando a API não responde —
+   * vive em `lib/product-search.ts`, compartilhada com o diálogo de baixa de
+   * estoque. O que fica aqui é o que é do balcão: carrinho e aviso na tela.
    */
   const executeSearch = useCallback(
     async (query: string) => {
@@ -335,8 +330,9 @@ export default function Pdv() {
         return;
       }
 
-      /** Aplica o resultado da busca e dispara o leitor de código de barras. */
-      const applyResults = (found: ProductDto[]) => {
+      setIsSearching(true);
+      try {
+        const found = await searchProducts(term, { online });
         setSearchResults(found);
 
         // Leitura de código de barras: match exato e único cai direto no carrinho.
@@ -346,43 +342,12 @@ export default function Pdv() {
           setSearchQuery("");
           setSearchResults([]);
         }
-      };
-
-      setIsSearching(true);
-      try {
-        if (!online) {
-          applyResults(toProductDtos(await searchLocalProducts(term)));
-          return;
-        }
-
-        const result = await apiGet<BackendPagedResult<ProductDto>>("/Products", {
-          search: term,
-          page: 1,
-          size: 20,
-        });
-        applyResults(result.items ?? []);
       } catch (error) {
-        // Falha de rede no meio da busca: cai para a base local em silêncio, que
-        // é o comportamento útil no balcão. Um erro da API (resposta HTTP) é
-        // mostrado, porque aí a busca falhou de verdade.
-        if (error instanceof ApiError) {
-          toast({
-            title: "Erro na busca",
-            description: error.message,
-            variant: "destructive",
-          });
-          return;
-        }
-
-        try {
-          applyResults(toProductDtos(await searchLocalProducts(term)));
-        } catch {
-          toast({
-            title: "Erro na busca",
-            description: "A API não respondeu e a base local não está disponível.",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Erro na busca",
+          description: error instanceof Error ? error.message : "Tente novamente.",
+          variant: "destructive",
+        });
       } finally {
         setIsSearching(false);
       }
@@ -630,8 +595,15 @@ export default function Pdv() {
    * caminhos debitam o estoque local, então a próxima venda já vê o saldo certo.
    */
   const handlePayment = async () => {
-    if (!sessionId) {
-      toast({ title: "Caixa fechado", description: "Abra o caixa para registrar vendas.", variant: "destructive" });
+    // Só a loja que controla caixa precisa de sessão. Sem controle, a venda não
+    // pertence a turno nenhum e o servidor grava a sessão como nula.
+    if (mode.saleRequiresSession && !sessionId) {
+      toast({
+        title: "Caixa fechado",
+        description: "Abra o caixa para registrar vendas.",
+        variant: "destructive",
+        duration: 4000,
+      });
       return;
     }
 
@@ -868,23 +840,27 @@ export default function Pdv() {
    * Fecha o caixa com o dinheiro contado na gaveta e encerra a sessão do operador.
    * A diferença apurada vem calculada do backend.
    *
-   * Venda pendente bloqueia o fechamento. O esperado em gaveta é calculado pelo
-   * servidor a partir das vendas que ele conhece: fechar com venda na fila
-   * produziria uma conferência que não fecha e, pior, o backend recusaria depois
-   * a venda numa sessão já encerrada. A tentativa dispara uma sincronização — se
-   * ela resolver, o operador segue direto.
+   * Movimento pendente bloqueia o fechamento — venda **ou** baixa de estoque. O
+   * esperado em gaveta é calculado pelo servidor a partir do que ele conhece:
+   * fechar com venda na fila produziria uma conferência que não fecha e, pior, o
+   * backend recusaria depois a venda numa sessão já encerrada. A baixa entra na
+   * mesma regra por outro motivo: ela é carimbada com a sessão aberta na hora em
+   * que sobe, e subir depois do fechamento a jogaria no turno seguinte.
+   *
+   * A tentativa dispara uma sincronização — se ela resolver, o operador segue
+   * direto.
    */
   const confirmFecharCaixa = async () => {
     if (queuedCount > 0) {
-      const outcome = online ? await syncPendingSalesNow() : null;
+      const outcome = online ? await syncPendingQueuesNow() : null;
       const stillQueued = outcome ? outcome.remaining : queuedCount;
 
       if (stillQueued > 0) {
         toast({
-          title: "Há vendas não sincronizadas",
+          title: "Há movimentos não sincronizados",
           description: online
-            ? `${stillQueued} venda(s) ainda não subiram para o servidor. Resolva a fila em "Operação offline" antes de fechar.`
-            : `${stillQueued} venda(s) offline aguardando conexão. O caixa só pode ser fechado depois que elas subirem.`,
+            ? `${stillQueued} venda(s)/baixa(s) ainda não subiram para o servidor. Resolva a fila em "Operação offline" antes de fechar.`
+            : `${stillQueued} movimento(s) offline aguardando conexão. O caixa só pode ser fechado depois que eles subirem.`,
           variant: "destructive",
           duration: 8000,
         });
@@ -1252,16 +1228,34 @@ export default function Pdv() {
                     transition={{ duration: 0.15 }}
                     className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover p-2 shadow-xl z-40"
                   >
+                    {/* Sem controle de caixa não há turno para encerrar; o item
+                        some em vez de ficar desabilitado para sempre. */}
+                    {mode.requiresOpenSession && (
+                      <button
+                        onClick={() => {
+                          setIsSandwichMenuOpen(false);
+                          setIsFecharCaixaOpen(true);
+                        }}
+                        disabled={!sessionId}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Lock className="w-4 h-4 text-primary" />
+                        Fechar Caixa
+                      </button>
+                    )}
+                    {/* A baixa de estoque entra aqui, e não no checkout: a tela
+                        de finalização não pode ganhar mais nada, e baixa não tem
+                        relação com pagamento. Também não exige caixa aberto —
+                        quem resolve a sessão dela é o servidor. */}
                     <button
                       onClick={() => {
                         setIsSandwichMenuOpen(false);
-                        setIsFecharCaixaOpen(true);
+                        setIsStockWriteOffOpen(true);
                       }}
-                      disabled={!sessionId}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer"
                     >
-                      <Lock className="w-4 h-4 text-primary" />
-                      Fechar Caixa
+                      <PackageMinus className="w-4 h-4 text-primary" />
+                      Baixa de Estoque
                     </button>
                     <button
                       onClick={() => {
@@ -1290,17 +1284,21 @@ export default function Pdv() {
                         </span>
                       )}
                     </button>
-                    <button
-                      onClick={() => {
-                        setIsSandwichMenuOpen(false);
-                        handlePrintSalesReport();
-                      }}
-                      disabled={!sessionId || printingReport}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <FileBarChart className="w-4 h-4 text-primary" />
-                      Relatório de Vendas
-                    </button>
+                    {/* O relatório é o consolidado de um turno; sem controle de
+                        caixa não existe turno para consolidar. */}
+                    {mode.requiresOpenSession && (
+                      <button
+                        onClick={() => {
+                          setIsSandwichMenuOpen(false);
+                          handlePrintSalesReport();
+                        }}
+                        disabled={!sessionId || printingReport}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <FileBarChart className="w-4 h-4 text-primary" />
+                        Relatório de Vendas
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setIsSandwichMenuOpen(false);
@@ -1629,7 +1627,7 @@ export default function Pdv() {
               </Button>
               <Button
                 className="h-14 font-bold text-sm tracking-widest bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-primary/20"
-                disabled={items.length === 0 || !sessionId}
+                disabled={items.length === 0 || (mode.saleRequiresSession && !sessionId)}
                 onClick={setCheckout}
               >
                 FINALIZAR
@@ -1666,8 +1664,13 @@ export default function Pdv() {
         </div>
       </main>
 
-      {/* ABRIR CAIXA — bloqueia o PDV enquanto não houver sessão */}
-      <Dialog open={!sessionId && !loadingSession} onOpenChange={() => undefined}>
+      {/* ABRIR CAIXA — bloqueia o PDV enquanto não houver sessão.
+          Numa loja sem controle de caixa o diálogo não aparece: não há turno a
+          abrir. Ver o bloqueio em `lib/cash-register-mode.ts`. */}
+      <Dialog
+        open={mode.requiresOpenSession && !sessionId && !loadingSession}
+        onOpenChange={() => undefined}
+      >
         <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-card border-border shadow-2xl [&>button]:hidden">
           <div className="bg-primary/10 p-6 border-b border-border/50">
             <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
@@ -2133,12 +2136,13 @@ export default function Pdv() {
             <DialogDescription className="text-muted-foreground">
               Vendas registradas neste caixa, das mais recentes para as mais antigas.
             </DialogDescription>
-            {queuedCount > 0 && (
+            {queuedSalesCount > 0 && (
               // O histórico vem do servidor; a venda offline ainda não está lá. Sem
-              // este aviso o operador acharia que a venda se perdeu.
+              // este aviso o operador acharia que a venda se perdeu. A contagem é
+              // só de vendas: baixa de estoque nunca apareceria neste histórico.
               <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                {queuedCount} venda(s) registrada(s) offline ainda não aparecem aqui — elas estão na
-                fila local. Consulte o indicador de conexão no topo da tela.
+                {queuedSalesCount} venda(s) registrada(s) offline ainda não aparecem aqui — elas
+                estão na fila local. Consulte o indicador de conexão no topo da tela.
               </p>
             )}
           </div>
@@ -2388,6 +2392,16 @@ export default function Pdv() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* BAIXA DE ESTOQUE — aberta pelo menu, nunca pelo checkout */}
+      <StockWriteOffDialog
+        open={isStockWriteOffOpen}
+        onOpenChange={setIsStockWriteOffOpen}
+        onRegistered={async () => {
+          // O saldo mudou no servidor: a próxima busca precisa ver o número novo.
+          await queryClient.invalidateQueries({ queryKey: ["pdv-products"] });
+        }}
+      />
 
       {/* VENDAS EM ESPERA */}
       <HeldSalesDialog

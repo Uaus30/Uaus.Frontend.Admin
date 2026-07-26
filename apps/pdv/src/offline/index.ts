@@ -19,7 +19,10 @@
  * - `catalog.ts` — busca de produtos e clientes na base local.
  * - `stock.ts` — projeção local do estoque: conferência, baixa e devolução.
  * - `pending-sales.ts` — a fila de vendas offline.
- * - `sync.ts` — envio da fila em lotes e aplicação dos desfechos.
+ * - `sync.ts` — envio da fila de vendas em lotes e aplicação dos desfechos.
+ * - `pending-write-offs.ts` — a fila de baixas de estoque offline.
+ * - `write-off-sync.ts` — envio das baixas, uma a uma.
+ * - `queues.ts` — as duas filas vistas como uma coisa só.
  * - `connectivity.ts` — se a API está respondendo (não só se há rede).
  */
 
@@ -27,8 +30,10 @@ export { closeLocalDatabase, openLocalDatabase } from "./database";
 export {
   nextOfflineSaleNumber,
   readCachedCashRegisterSession,
+  readCachedCompanySettings,
   readLocalDatabaseState,
   writeCachedCashRegisterSession,
+  writeCachedCompanySettings,
   type LocalDatabaseState,
 } from "./meta";
 
@@ -82,9 +87,30 @@ export {
   type PdvSaleRequestBody,
 } from "./sync";
 
+export {
+  listPendingWriteOffs,
+  listWriteOffsToSync,
+  markPendingWriteOffAttempted,
+  markPendingWriteOffFailed,
+  removePendingWriteOff,
+  retryPendingWriteOff,
+  savePendingWriteOff,
+  tallyPendingWriteOffs,
+  type PendingWriteOffsTally,
+} from "./pending-write-offs";
+
+export {
+  buildWriteOffRequestBody,
+  classifyWriteOffFailure,
+  syncPendingWriteOffs,
+} from "./write-off-sync";
+
+export { syncPendingQueues, tallyPendingQueues, type QueuesTally } from "./queues";
+
 export { probeApi, watchConnectivity, type ConnectivityListener } from "./connectivity";
 
 export type {
+  LocalCompanySettings,
   LocalCustomer,
   LocalPaymentMethod,
   LocalPaymentMethodInstallment,
@@ -94,7 +120,12 @@ export type {
   PendingSaleItem,
   PendingSalePayment,
   PendingSaleStatus,
+  PendingWriteOff,
+  PendingWriteOffItem,
+  PendingWriteOffStatus,
+  QueueSyncOutcome,
   SaleSyncResult,
   SyncOutcome,
   SyncSalesResponse,
+  WriteOffSyncOutcome,
 } from "./types";

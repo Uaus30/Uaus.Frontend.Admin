@@ -23,7 +23,10 @@ import Suppliers from "@/pages/suppliers";
 import Grades from "@/pages/grades";
 import StockEntries from "@/pages/stock-entries";
 import Inventory from "@/pages/inventory";
+import StockWriteOffs from "@/pages/stock-write-offs";
+import InventoryCount from "@/pages/inventory-count";
 import PaymentMethodsPage from "@/pages/payment-methods";
+import CompanySettings from "@/pages/settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +59,9 @@ function Router() {
       <Route path="/grades" component={Grades} />
       <Route path="/estoque/entradas" component={StockEntries} />
       <Route path="/estoque/inventario" component={Inventory} />
+      <Route path="/estoque/baixas" component={StockWriteOffs} />
+      <Route path="/estoque/contagem" component={InventoryCount} />
+      <Route path="/configuracoes" component={CompanySettings} />
       <Route component={NotFound} />
     </Switch>
   );

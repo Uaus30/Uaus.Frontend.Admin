@@ -32,7 +32,8 @@ import {
   ChevronDown,
   ClipboardList,
   Settings,
-  DollarSign
+  DollarSign,
+  Store
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -68,6 +69,8 @@ const navigation = [
     items: [
       { name: "Fornecedores", href: "/fornecedores" },
       { name: "Entradas", href: "/estoque/entradas" },
+      { name: "Baixas", href: "/estoque/baixas" },
+      { name: "Contagem", href: "/estoque/contagem" },
       { name: "Inventário", href: "/estoque/inventario" }
     ]
   },
@@ -81,6 +84,7 @@ const navigation = [
       { name: "Usuários", href: "/sistema/usuarios" }
     ]
   },
+  { name: "Configurações", href: "/configuracoes", icon: Store },
 ];
 
 const roleLabels: Record<number, string> = {

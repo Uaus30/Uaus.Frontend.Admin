@@ -344,3 +344,31 @@ describe("getSessionSales", () => {
     expect(sales).toEqual([{ id: 1 }]);
   });
 });
+
+describe("venda sem controle de caixa", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiPost.mockResolvedValue({
+      data: { id: 500, total: 50, createdAt: "2026-07-25T19:00:00", notes: null },
+      response: {},
+    });
+    checkLocalStock.mockResolvedValue([]);
+    nextOfflineSaleNumber.mockResolvedValue(1);
+  });
+
+  it("deve enviar sessão nula quando a loja não controla caixa", async () => {
+    // Quem resolve a sessão é o servidor: PdvService.ResolveSaleSessionAsync
+    // devolve nulo nesse modo e ignora o que o PDV mandar.
+    await registerSale(payload({ cashRegisterSessionId: null }));
+
+    expect(postBody(0).cashRegisterSessionId).toBeNull();
+  });
+
+  it("deve guardar sessão nula na fila offline", async () => {
+    // A fila precisa aceitar venda sem turno; senão o modo sem caixa funcionaria
+    // online e falharia justamente quando a internet cai.
+    await registerSale(payload({ cashRegisterSessionId: null }), { offline: true });
+
+    expect(queuedSale().cashRegisterSessionId).toBeNull();
+  });
+});

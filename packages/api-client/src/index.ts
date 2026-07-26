@@ -1480,3 +1480,346 @@ export async function cancelSale(id: number, reason?: string | null) {
   const response = await apiPost<SaleDto>(`/Sales/${id}/cancel`, { reason: reason ?? null });
   return response.data;
 }
+
+// ---------------------------------------------------------------------------
+// Baixas de estoque e configurações da empresa
+//
+// Contrato do backend em Uaus.Backend.Api/docs/baixas-de-estoque.md.
+// ---------------------------------------------------------------------------
+
+/** Motivos de baixa de estoque (enum StockWriteOffReason do backend). */
+export const STOCK_WRITE_OFF_REASON = {
+  None: 0,
+  Consumption: 1,
+  Loss: 2,
+  Donation: 3,
+  /** Gerado só pela importação da contagem; não aparece nos selects. */
+  Inventory: 4,
+} as const;
+
+/** Situação de uma baixa (enum StockWriteOffStatus do backend). */
+export const STOCK_WRITE_OFF_STATUS = {
+  None: 0,
+  Confirmed: 1,
+  Reversed: 2,
+} as const;
+
+/** Rótulos dos motivos, para telas e cupons. */
+export const STOCK_WRITE_OFF_REASON_LABEL: Record<number, string> = {
+  [STOCK_WRITE_OFF_REASON.Consumption]: "Consumo",
+  [STOCK_WRITE_OFF_REASON.Loss]: "Perda",
+  [STOCK_WRITE_OFF_REASON.Donation]: "Doação",
+  [STOCK_WRITE_OFF_REASON.Inventory]: "Inventário",
+};
+
+/**
+ * Motivos que o operador pode escolher.
+ *
+ * Inventário fica de fora de propósito: ele é gerado pela importação da contagem,
+ * que é o único caminho autorizado a baixar acima do saldo em lote.
+ */
+export const SELECTABLE_STOCK_WRITE_OFF_REASONS = [
+  STOCK_WRITE_OFF_REASON.Consumption,
+  STOCK_WRITE_OFF_REASON.Loss,
+  STOCK_WRITE_OFF_REASON.Donation,
+] as const;
+
+export interface StockWriteOffItemDto {
+  id: number;
+  productId: number;
+  productName: string | null;
+  barcode: string | null;
+  quantity: number;
+  totalCost: number;
+  unitCost: number;
+}
+
+export interface StockWriteOffDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  /** Enum StockWriteOffReason — pode vir como número ou nome; use `enumCode`. */
+  reason: EnumValue;
+  /** Enum StockWriteOffStatus — pode vir como número ou nome; use `enumCode`. */
+  status: EnumValue;
+  /** Momento real da baixa no balcão. */
+  occurredAt: string;
+  userId: number | null;
+  userName: string | null;
+  cashRegisterSessionId: number | null;
+  totalQuantity: number;
+  /** Custo FIFO congelado no momento da baixa. */
+  totalCost: number;
+  notes: string | null;
+  reversedAt: string | null;
+  reversedByUserName: string | null;
+  reversalNotes: string | null;
+  /** Preenchido apenas na consulta por ID. */
+  items: StockWriteOffItemDto[];
+}
+
+/** Um produto e quanto sai dele. */
+export interface StockWriteOffItemInput {
+  productId: number;
+  quantity: number;
+}
+
+export interface RegisterStockWriteOffInput {
+  reason: number;
+  items: StockWriteOffItemInput[];
+  notes?: string | null;
+  /**
+   * Chave de idempotência gerada pelo PDV. Reenviar a mesma referência devolve a
+   * baixa já gravada em vez de baixar o estoque duas vezes.
+   */
+  clientReference?: string | null;
+  /**
+   * Momento real da baixa, no horário da loja e sem fuso ("2026-07-25T17:34:12").
+   * Só o PDV preenche, e apenas ao subir o que ficou na fila offline.
+   */
+  occurredAt?: string | null;
+}
+
+/** Consolidado das baixas de um turno, para o fechamento de caixa. */
+export interface StockWriteOffSessionSummaryDto {
+  count: number;
+  totalQuantity: number;
+  totalCost: number;
+  byReason: Array<{
+    reason: EnumValue;
+    reasonName: string;
+    quantity: number;
+    totalCost: number;
+  }>;
+}
+
+export const getGetStockWriteOffsQueryKey = (): QueryKey => ["stock-write-offs"];
+
+export interface StockWriteOffFilters {
+  reason?: number | null;
+  status?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  userId?: number | null;
+  cashRegisterSessionId?: number | null;
+  page?: number;
+  limit?: number;
+}
+
+/** Lista as baixas, das mais recentes para as mais antigas. */
+export function useGetStockWriteOffs(
+  params?: StockWriteOffFilters,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<StockWriteOffDto>, ApiError, UiPagedResult<StockWriteOffDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<UiPagedResult<StockWriteOffDto>, ApiError, UiPagedResult<StockWriteOffDto>, QueryKey>({
+    queryKey: [...getGetStockWriteOffsQueryKey(), params ?? {}],
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<StockWriteOffDto>>("/StockWriteOffs", {
+        reason: params?.reason,
+        status: params?.status,
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+        userId: params?.userId,
+        cashRegisterSessionId: params?.cashRegisterSessionId,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+/** Detalha uma baixa com os itens. */
+export async function getStockWriteOff(id: number) {
+  return apiGet<StockWriteOffDto>(`/StockWriteOffs/${id}`);
+}
+
+/**
+ * Registra a baixa, consumindo lote por FIFO e reduzindo o saldo.
+ *
+ * @throws {ApiError} Quando algum item não tem saldo suficiente.
+ */
+export async function registerStockWriteOff(data: RegisterStockWriteOffInput) {
+  const response = await apiPost<StockWriteOffDto>("/StockWriteOffs", data);
+  return response.data;
+}
+
+/** Desfaz a baixa devolvendo aos lotes o que cada um cedeu. */
+export async function reverseStockWriteOff(id: number, reason?: string | null) {
+  const response = await apiPost<StockWriteOffDto>(`/StockWriteOffs/${id}/reverse`, {
+    reason: reason ?? null,
+  });
+  return response.data;
+}
+
+/** Consolidado das baixas de um turno. */
+export async function getStockWriteOffSessionSummary(cashRegisterSessionId: number) {
+  return apiGet<StockWriteOffSessionSummaryDto>(
+    `/StockWriteOffs/session/${cashRegisterSessionId}/summary`,
+  );
+}
+
+/** Opções de operação da empresa. */
+export interface CompanySettingsDto {
+  /**
+   * A loja controla caixa (abertura e fechamento por turno).
+   *
+   * Desligado, o PDV vende sem exigir abertura de caixa e as vendas e baixas
+   * ficam sem sessão vinculada.
+   */
+  usesCashRegister: boolean;
+}
+
+export const COMPANY_SETTINGS_QUERY_KEY = ["company-settings"] as const;
+
+/**
+ * Configurações da empresa.
+ *
+ * O backend nunca falha nesta leitura: sem a linha no banco ele devolve o padrão.
+ * Ainda assim o PDV precisa de um padrão local, porque offline a chamada não sai.
+ */
+export function useGetCompanySettings(options?: {
+  query?: Omit<
+    UseQueryOptions<CompanySettingsDto, ApiError, CompanySettingsDto, QueryKey>,
+    "queryKey" | "queryFn"
+  >;
+}) {
+  return useQuery<CompanySettingsDto, ApiError, CompanySettingsDto, QueryKey>({
+    queryKey: COMPANY_SETTINGS_QUERY_KEY,
+    queryFn: () => apiGet<CompanySettingsDto>("/CompanySettings"),
+    ...options?.query,
+  });
+}
+
+/** Grava as configurações da empresa. */
+export async function updateCompanySettings(data: CompanySettingsDto) {
+  const response = await apiPut<CompanySettingsDto>("/CompanySettings", data);
+  return response.data;
+}
+
+// ---------------------------------------------------------------------------
+// Contagem de estoque por planilha
+//
+// Contrato do backend em Uaus.Backend.Api/docs/contagem-de-estoque.md.
+// ---------------------------------------------------------------------------
+
+/** Uma diferença apurada entre o sistema e a prateleira. */
+export interface InventoryCountLineDto {
+  rowNumber: number;
+  productId: number;
+  productName: string;
+  barcode: string;
+  /** Saldo que estava na planilha quando ela foi exportada. */
+  stockAtExport: number;
+  /**
+   * Saldo agora.
+   *
+   * Exibido ao lado de `stockAtExport` para o dono enxergar que a diferença
+   * entre os dois é venda ocorrida depois da exportação, e não erro de contagem.
+   */
+  currentStock: number;
+  counted: number;
+  /** Contado menos o saldo da exportação. Negativo é falta, positivo é sobra. */
+  difference: number;
+  /** Saldo que o produto terá depois de aplicar. */
+  targetStock: number;
+}
+
+/** Uma linha que o sistema não conseguiu aproveitar. */
+export interface InventoryCountIssueDto {
+  rowNumber: number;
+  /** `PRODUTO_NAO_IDENTIFICADO`, `CONTAGEM_INVALIDA`, `PRODUTO_DUPLICADO` ou `SEM_LOTE_DE_REFERENCIA`. */
+  code: string;
+  message: string;
+}
+
+/**
+ * O que aconteceria (prévia) ou o que aconteceu (aplicação) com uma planilha.
+ *
+ * Prévia e resultado usam o mesmo formato de propósito: o dono confere a prévia
+ * e espera ver exatamente aquilo depois de aplicar.
+ */
+export interface InventoryCountResultDto {
+  /** Preenchido só na aplicação. */
+  inventoryImportId: number | null;
+  fileName: string;
+  countedRows: number;
+  /** Linhas com a célula em branco — não contadas. Em branco nunca é zero. */
+  notCountedRows: number;
+  shortages: InventoryCountLineDto[];
+  surpluses: InventoryCountLineDto[];
+  issues: InventoryCountIssueDto[];
+  shortageQuantity: number;
+  surplusQuantity: number;
+  hasNoChanges: boolean;
+  /** Impede a aplicação (hoje só produto duplicado no arquivo). */
+  isBlocked: boolean;
+  blockReason: string | null;
+}
+
+/**
+ * Baixa a planilha de contagem.
+ *
+ * Não usa `apiGet`: aquele caminho lê a resposta como texto e corromperia o
+ * .xlsx, que é binário.
+ *
+ * @returns O arquivo e o nome sugerido pelo servidor.
+ */
+export async function downloadInventoryCountSheet(): Promise<{ blob: Blob; fileName: string }> {
+  const session = getAuthSession();
+  const headers = new Headers();
+
+  if (session?.token.value) {
+    headers.set("Authorization", `Bearer ${session.token.value}`);
+  }
+
+  const response = await fetch(buildUrl("/InventoryCounts/export"), { method: "GET", headers });
+
+  if (!response.ok) {
+    throw new ApiError(
+      `Erro ${response.status} ao gerar a planilha de contagem`,
+      response.status,
+      null,
+      "GET",
+      "/InventoryCounts/export",
+    );
+  }
+
+  // O nome vem no Content-Disposition; o fallback cobre proxy que remove o header.
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+
+  return {
+    blob: await response.blob(),
+    fileName: match ? decodeURIComponent(match[1]) : "contagem-de-estoque.xlsx",
+  };
+}
+
+/** Envia a planilha preenchida sem gravar nada, só para ver o impacto. */
+export async function previewInventoryCount(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+
+  const response = await apiPost<InventoryCountResultDto>("/InventoryCounts/preview", form);
+  return response.data;
+}
+
+/**
+ * Aplica a contagem: baixa as faltas e dá entrada nas sobras.
+ *
+ * A mesma planilha não pode ser aplicada duas vezes — a trava é o índice único
+ * do hash do arquivo no banco.
+ */
+export async function applyInventoryCount(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+
+  const response = await apiPost<InventoryCountResultDto>("/InventoryCounts/apply", form);
+  return response.data;
+}

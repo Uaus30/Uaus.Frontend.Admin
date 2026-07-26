@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { STOCK_WRITE_OFF_REASON_LABEL } from "@workspace/api-client-react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -6,6 +7,7 @@ import {
   Cloud,
   Database,
   Loader2,
+  PackageMinus,
   RefreshCw,
   RotateCcw,
   Trash2,
@@ -15,8 +17,18 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
-import { listPendingSales, removePendingSale, retryPendingSale, type PendingSale } from "@/offline";
+import {
+  listPendingSales,
+  listPendingWriteOffs,
+  removePendingSale,
+  removePendingWriteOff,
+  retryPendingSale,
+  retryPendingWriteOff,
+  type PendingSale,
+  type PendingWriteOff,
+} from "@/offline";
 
 type OfflineStatusProps = {
   /** Sessão de caixa aberta, ou `null` com o caixa fechado. */
@@ -36,26 +48,37 @@ function formatTime(iso: string) {
 }
 
 /**
- * Indicador do estado offline no cabeçalho do PDV, e o painel da fila de vendas.
+ * Indicador do estado offline no cabeçalho do PDV, e o painel das filas locais.
  *
  * O operador precisa de três respostas à mão: o servidor está respondendo? tem
- * venda esperando para subir? de quando é a base local que estou usando? O chip
- * responde as duas primeiras de relance; o painel detalha as três e oferece as
- * ações — sincronizar agora, atualizar a base, e o que fazer com uma venda que o
- * servidor recusou.
+ * movimento esperando para subir? de quando é a base local que estou usando? O
+ * chip responde as duas primeiras de relance; o painel detalha as três e oferece
+ * as ações — sincronizar agora, atualizar a base, e o que fazer com uma venda ou
+ * baixa que o servidor recusou.
+ *
+ * As duas filas aparecem juntas de propósito: para quem está no balcão elas são
+ * a mesma preocupação — "o que ainda não chegou no servidor" — e é esse número
+ * que trava o fechamento do caixa.
  */
 export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
   const { toast } = useToast();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [queue, setQueue] = useState<PendingSale[]>([]);
+  const [writeOffQueue, setWriteOffQueue] = useState<PendingWriteOff[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState<string | null>(null);
+
+  const { mode } = useCompanySettings();
 
   const {
     online,
     connectionChecked,
     pendingCount,
     failedCount,
+    queuedSalesCount,
+    pendingWriteOffCount,
+    failedWriteOffCount,
+    queuedWriteOffCount,
     queuedCount,
     syncing,
     refreshingSnapshot,
@@ -70,9 +93,12 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
   const loadQueue = useCallback(async () => {
     setLoadingQueue(true);
     try {
-      setQueue(await listPendingSales());
+      const [sales, writeOffs] = await Promise.all([listPendingSales(), listPendingWriteOffs()]);
+      setQueue(sales);
+      setWriteOffQueue(writeOffs);
     } catch {
       setQueue([]);
+      setWriteOffQueue([]);
     } finally {
       setLoadingQueue(false);
     }
@@ -84,7 +110,7 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
     if (isPanelOpen) void loadQueue();
   }, [isPanelOpen, loadQueue]);
 
-  /** Sincroniza a fila e avisa o resultado. */
+  /** Sincroniza as duas filas e avisa o resultado. */
   const handleSync = async () => {
     const outcome = await sync();
 
@@ -92,27 +118,32 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
       toast({
         title: online ? "Nada a sincronizar" : "Sem conexão",
         description: online
-          ? "Não há vendas na fila aguardando envio."
+          ? "Não há vendas nem baixas na fila aguardando envio."
           : "A sincronização acontece automaticamente quando a conexão voltar.",
       });
       return;
     }
 
     await loadQueue();
-    if (outcome.created > 0) await onSynced?.();
+    // Só venda gravada muda o histórico e o resumo do caixa; a baixa não entra
+    // em nenhum dos dois.
+    if (outcome.sales.created > 0) await onSynced?.();
+
+    const rejected = outcome.sales.rejected + outcome.writeOffs.rejected;
 
     toast({
-      title: outcome.rejected > 0 ? "Sincronização com pendências" : "Vendas sincronizadas",
+      title: rejected > 0 ? "Sincronização com pendências" : "Fila sincronizada",
       description: [
-        outcome.created > 0 && `${outcome.created} enviada(s)`,
-        outcome.duplicated > 0 && `${outcome.duplicated} já constava(m) no servidor`,
-        outcome.rejected > 0 && `${outcome.rejected} recusada(s) — confira na fila`,
+        outcome.sales.created > 0 && `${outcome.sales.created} venda(s) enviada(s)`,
+        outcome.sales.duplicated > 0 && `${outcome.sales.duplicated} já constava(m) no servidor`,
+        outcome.writeOffs.sent > 0 && `${outcome.writeOffs.sent} baixa(s) enviada(s)`,
+        rejected > 0 && `${rejected} recusada(s) — confira na fila`,
       ]
         .filter(Boolean)
         .join(", "),
-      variant: outcome.rejected > 0 ? "destructive" : undefined,
+      variant: rejected > 0 ? "destructive" : undefined,
       duration: 6000,
-      className: outcome.rejected > 0 ? undefined : "bg-emerald-500 text-white border-none",
+      className: rejected > 0 ? undefined : "bg-emerald-500 text-white border-none",
     });
   };
 
@@ -161,6 +192,35 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
     toast({
       title: "Venda descartada",
       description: `A venda OFF-${sale.offlineNumber} foi removida da fila e não será gravada.`,
+      variant: "destructive",
+    });
+  };
+
+  /** Devolve uma baixa recusada para a fila de reenvio. */
+  const handleRetryWriteOff = async (writeOff: PendingWriteOff) => {
+    await retryPendingWriteOff(writeOff);
+    await refreshCounts();
+    await loadQueue();
+    toast({
+      title: "Baixa reenfileirada",
+      description: "Ela será enviada na próxima sincronização.",
+    });
+  };
+
+  /**
+   * Descarta uma baixa recusada.
+   *
+   * O estoque local **não** é devolvido aqui: a recusa já devolveu o saldo. Pelo
+   * mesmo motivo da venda, devolver de novo inflaria o estoque local.
+   */
+  const handleDiscardWriteOff = async (writeOff: PendingWriteOff) => {
+    await removePendingWriteOff(writeOff.clientReference);
+    await refreshCounts();
+    await loadQueue();
+    setConfirmingDiscard(null);
+    toast({
+      title: "Baixa descartada",
+      description: "Ela foi removida da fila e não será gravada.",
       variant: "destructive",
     });
   };
@@ -281,7 +341,7 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
                   <div>
                     <p className="text-sm font-bold leading-tight">
                       Fila de vendas offline
-                      {queuedCount > 0 && (
+                      {queuedSalesCount > 0 && (
                         <span className="ml-2 font-mono text-xs text-muted-foreground">
                           {pendingCount} a enviar
                           {failedCount > 0 && ` · ${failedCount} recusada(s)`}
@@ -290,15 +350,17 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {queuedCount === 0
-                        ? "Nenhuma venda pendente."
-                        : "O caixa não pode ser fechado com venda pendente."}
+                        ? "Nenhum movimento pendente."
+                        : mode.usesCashRegister
+                          ? "O caixa não pode ser fechado com movimento pendente."
+                          : "Movimento aguardando o servidor."}
                     </p>
                   </div>
                   <Button
                     size="sm"
                     className="shrink-0 gap-2 cursor-pointer"
                     onClick={handleSync}
-                    disabled={syncing || !online || pendingCount === 0}
+                    disabled={syncing || !online || pendingCount + pendingWriteOffCount === 0}
                   >
                     {syncing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -316,7 +378,7 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
                 ) : queue.length === 0 ? (
                   <div className="flex items-center justify-center gap-2 py-8 text-xs italic text-muted-foreground">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    Tudo sincronizado.
+                    Nenhuma venda pendente.
                   </div>
                 ) : (
                   <div className="mt-4 space-y-2">
@@ -414,6 +476,141 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
                                 variant="destructive"
                                 className="h-7 cursor-pointer text-xs"
                                 onClick={() => handleDiscard(sale)}
+                              >
+                                Descartar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Fila de baixas de estoque */}
+              <div className="rounded-xl border border-border/40 bg-background/50 p-4">
+                <div className="flex items-center gap-3">
+                  <PackageMinus
+                    className={`h-5 w-5 shrink-0 ${queuedWriteOffCount > 0 ? "text-amber-500" : "text-muted-foreground"}`}
+                  />
+                  <div>
+                    <p className="text-sm font-bold leading-tight">
+                      Fila de baixas de estoque
+                      {queuedWriteOffCount > 0 && (
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">
+                          {pendingWriteOffCount} a enviar
+                          {failedWriteOffCount > 0 && ` · ${failedWriteOffCount} recusada(s)`}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Consumo, perda e doação registrados sem conexão. O estoque local já está
+                      descontado.
+                    </p>
+                  </div>
+                </div>
+
+                {loadingQueue ? (
+                  <div className="py-8 text-center">
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : writeOffQueue.length === 0 ? (
+                  <div className="flex items-center justify-center gap-2 py-8 text-xs italic text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    Nenhuma baixa pendente.
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-2">
+                    {writeOffQueue.map((writeOff) => (
+                      <div
+                        key={writeOff.clientReference}
+                        className={`rounded-lg border p-3 ${
+                          writeOff.status === "failed"
+                            ? "border-destructive/30 bg-destructive/5"
+                            : "border-border/40 bg-card"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold">
+                                {STOCK_WRITE_OFF_REASON_LABEL[writeOff.reason] ?? "Baixa"}
+                              </span>
+                              <span className="font-mono text-[10px] text-muted-foreground">
+                                {formatTime(writeOff.occurredAt)}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                  writeOff.status === "failed"
+                                    ? "bg-destructive/15 text-destructive"
+                                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                }`}
+                              >
+                                {writeOff.status === "failed" ? "Recusada" : "A enviar"}
+                              </span>
+                            </div>
+                            <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                              {writeOff.items
+                                .map((item) => `${item.quantity}x ${item.productName}`)
+                                .join(", ")}
+                            </p>
+                            {writeOff.lastError && (
+                              <p className="mt-1 max-h-20 overflow-y-auto break-words text-[11px] font-medium text-destructive">
+                                {writeOff.lastError}
+                              </p>
+                            )}
+                          </div>
+
+                          {writeOff.status === "failed" && (
+                            <div className="flex shrink-0 items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-primary"
+                                title="Tentar enviar novamente"
+                                onClick={() => handleRetryWriteOff(writeOff)}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                                title="Descartar a baixa"
+                                onClick={() =>
+                                  setConfirmingDiscard(
+                                    confirmingDiscard === writeOff.clientReference
+                                      ? null
+                                      : writeOff.clientReference,
+                                  )
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {confirmingDiscard === writeOff.clientReference && (
+                          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-2">
+                            <span className="text-[11px] font-medium text-destructive">
+                              Descartar esta baixa? Ela não será gravada no servidor.
+                            </span>
+                            <div className="flex shrink-0 gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 cursor-pointer text-xs"
+                                onClick={() => setConfirmingDiscard(null)}
+                              >
+                                Manter
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-7 cursor-pointer text-xs"
+                                onClick={() => handleDiscardWriteOff(writeOff)}
                               >
                                 Descartar
                               </Button>

@@ -3,8 +3,8 @@ import { openDatabase, type StoreSchema } from "./idb";
 /**
  * Schema da base local do PDV.
  *
- * Quatro stores de cadastro, que são cópia descartável do servidor, e uma store
- * de fila, que contém venda que só existe aqui.
+ * Três stores de cadastro, que são cópia descartável do servidor, e duas stores
+ * de fila, que contêm movimento que só existe aqui: venda e baixa de estoque.
  */
 
 /** Nome do banco no navegador do caixa. */
@@ -16,8 +16,10 @@ const DATABASE_NAME = "uaus-pdv-offline";
  *
  * Não confunda com o `schemaVersion` do snapshot, que é o contrato do backend:
  * este é a estrutura do IndexedDB. Um pode mudar sem o outro.
+ *
+ * Histórico: v2 acrescentou `pendingWriteOffs` (fila de baixas de estoque).
  */
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 /** Nomes das stores, num só lugar para não haver string solta pelo código. */
 export const STORE = {
@@ -28,6 +30,8 @@ export const STORE = {
   customers: "customers",
   /** Vendas registradas offline, à espera de sincronização. */
   pendingSales: "pendingSales",
+  /** Baixas de estoque registradas offline, à espera de sincronização. */
+  pendingWriteOffs: "pendingWriteOffs",
 } as const;
 
 const STORES: StoreSchema[] = [
@@ -36,20 +40,21 @@ const STORES: StoreSchema[] = [
   { name: STORE.paymentMethods, keyPath: "id" },
   { name: STORE.customers, keyPath: "id" },
   { name: STORE.pendingSales, keyPath: "clientReference" },
+  { name: STORE.pendingWriteOffs, keyPath: "clientReference" },
 ];
 
 /**
  * Stores que a migração não pode apagar: as que guardam estado que **só** existe
  * aqui.
  *
- * A fila é o caso óbvio — perdê-la significa perder venda que o servidor nunca
- * viu. Os metadados entram pelo mesmo motivo: o sequencial dos cupons
- * provisórios (que voltaria a repetir números) e a sessão de caixa guardada (sem
- * a qual um recarregamento offline travaria o PDV) não têm de onde ser
- * recuperados. As marcas do snapshot que também moram ali são regravadas na
+ * As filas são o caso óbvio — perdê-las significa perder venda ou baixa que o
+ * servidor nunca viu. Os metadados entram pelo mesmo motivo: o sequencial dos
+ * cupons provisórios (que voltaria a repetir números) e a sessão de caixa
+ * guardada (sem a qual um recarregamento offline travaria o PDV) não têm de onde
+ * ser recuperados. As marcas do snapshot que também moram ali são regravadas na
  * próxima carga.
  */
-const PRESERVED_STORES: string[] = [STORE.meta, STORE.pendingSales];
+const PRESERVED_STORES: string[] = [STORE.meta, STORE.pendingSales, STORE.pendingWriteOffs];
 
 /** Stores de cadastro, substituídas por inteiro a cada snapshot. */
 export const CATALOG_STORES: string[] = [STORE.products, STORE.paymentMethods, STORE.customers];
@@ -72,6 +77,16 @@ export const META_KEY = {
    * o PDV não tem como perguntar qual é.
    */
   cashRegisterSession: "cashRegisterSession",
+  /**
+   * Configurações da empresa (`GET /CompanySettings`) como o servidor as
+   * devolveu pela última vez.
+   *
+   * Guardadas porque elas decidem se o PDV exige abertura de caixa — uma
+   * pergunta que precisa de resposta **antes** da primeira requisição dar certo.
+   * Sem a cópia, um PDV que abre sem internet cairia no padrão em vez da
+   * configuração real da loja.
+   */
+  companySettings: "companySettings",
 } as const;
 
 /** Um registro da store de metadados. */

@@ -25,15 +25,25 @@ import { getSessionSales } from "@/services/sales.service";
  *   sem internet — o caso da queda de energia.
  * - Carregar as vendas da sessão para o histórico.
  * - Abrir e fechar o caixa, invalidando o cache após cada operação.
+ *
+ * @param options `enabled: false` desliga a consulta inteira — é o modo sem
+ *   controle de caixa, em que não existe turno para consultar. Ver
+ *   `lib/cash-register-mode.ts`, inclusive para o bloqueio que mantém esse modo
+ *   desligado por enquanto.
  */
-export function useCashRegister() {
+export function useCashRegister(options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true;
   const queryClient = useQueryClient();
 
   const {
     data: session,
-    isLoading: loadingSession,
+    isLoading,
     refetch: refetchSession,
-  } = useGetCurrentCashRegisterSession({ query: { retry: false } });
+  } = useGetCurrentCashRegisterSession({ query: { retry: false, enabled } });
+
+  // Com a consulta desligada a tela não pode ficar esperando: não há sessão a
+  // carregar, e prender o PDV num spinner seria o oposto do que o modo pede.
+  const loadingSession = enabled && isLoading;
 
   /**
    * Sessão recuperada da base local.
@@ -47,6 +57,10 @@ export function useCashRegister() {
   const [cachedSession, setCachedSession] = useState<CashRegisterSessionDto | null>(null);
 
   useEffect(() => {
+    // Sem controle de caixa não há sessão a ressuscitar; ler a cópia só
+    // devolveria o turno de quando a loja ainda usava caixa.
+    if (!enabled) return;
+
     let active = true;
 
     void readCachedCashRegisterSession<CashRegisterSessionDto>()
@@ -58,7 +72,7 @@ export function useCashRegister() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
 
   // A cópia local acompanha o que o servidor confirmou: a sessão aberta é
   // guardada, e o caixa fechado (ou a ausência de sessão) apaga a cópia para não

@@ -20,8 +20,9 @@ metade que roda no navegador.
 │   produtos, formas de pagamento, clientes, estoque          │
 │   → faz o PDV **vender** sem internet                       │
 ├─────────────────────────────────────────────────────────────┤
-│ Fila de vendas pendentes (IndexedDB)                        │
-│   → faz a venda **chegar** ao servidor depois               │
+│ Filas de pendências (IndexedDB)                             │
+│   vendas · baixas de estoque                                │
+│   → fazem o movimento **chegar** ao servidor depois         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -65,6 +66,13 @@ que o resumo do caixa é o do último contato com o servidor.
 A cópia é apagada no fechamento do caixa, para que uma sessão encerrada não
 ressuscite num recarregamento offline.
 
+**As configurações da empresa também são guardadas** (`META_KEY.companySettings`,
+lidas por `hooks/use-company-settings.ts`). Elas decidem se o PDV exige abertura
+de caixa — uma decisão que a primeira tela toma, antes de qualquer requisição ter
+dado certo. Sem a cópia, um PDV que abre sem internet mostraria o comportamento
+padrão em vez do da loja. A leitura tem três degraus: servidor → cópia local →
+padrão (controle de caixa ligado, o mesmo do backend).
+
 ### 2. Venda no balcão
 
 ```
@@ -97,11 +105,53 @@ offline é bloqueada quando o saldo não cobre — a mesma regra do backend, que
 recusa estoque negativo. Deixar passar significaria descobrir o problema horas
 depois, com o cliente já fora da loja.
 
+### 2b. Baixa de estoque no balcão
+
+Saída de mercadoria **sem venda** — consumo interno, perda, doação. Mesmo
+desenho: `registerWriteOff` (em `services/stock-write-off.service.ts`) é o único
+caminho de escrita, grava no servidor quando há conexão, cai para a fila quando a
+rede falha, propaga o `ApiError` que o servidor respondeu, e debita o estoque
+local nos dois casos.
+
+O que muda em relação à venda:
+
+- **Nada é impresso.** Baixa não tem comprovante.
+- **A tela de finalização não ganha nada.** O acesso é pelo menu sanduíche, num
+  diálogo próprio (`components/stock-write-off-dialog.tsx`).
+- **Não vai sessão de caixa no corpo.** Quem a resolve é o servidor, e só quando
+  a empresa usa controle de caixa. Baixa não exige caixa aberto — é movimento de
+  estoque, não de dinheiro.
+- **Inventário não aparece na lista de motivos.** Ele é gerado só pela importação
+  da contagem, o único caminho autorizado a baixar acima do saldo em lote.
+
+#### Por que uma fila própria
+
+`pendingWriteOffs` é uma store separada, e não a fila de vendas com um
+discriminador. Três razões, detalhadas em `offline/pending-write-offs.ts`: o
+caminho de subida é outro (a baixa não tem endpoint de lote), os registros quase
+não se sobrepõem (baixa não tem pagamento, total, desconto nem cupom), e os
+desfechos são diferentes (a baixa é aceita ou recusada, sem
+`Created`/`Duplicated`/`Rejected` por item).
+
+O que as duas filas compartilham é a mecânica, de propósito: chave primária
+`clientReference` (UUID, que é a chave de idempotência da API), marcador
+`stockApplied`, recusa que não é retentada sozinha, e sobrevivência à migração
+do schema local.
+
 ### 3. Conexão volta → sincroniza
 
 `watchConnectivity` sonda `/Health` a cada 15s (5s quando está fora). Na
-transição para online, `syncPendingSales` envia a fila em lotes de 25 para
-`POST /Pdv/sales/sync`.
+transição para online, `syncPendingQueues` drena as duas filas: as vendas em
+lotes de 25 para `POST /Pdv/sales/sync`, depois as baixas uma a uma para
+`POST /StockWriteOffs`.
+
+A ordem não é acidental — se a conexão só aguentar metade da rodada, é melhor
+que a metade que subiu seja a que trava o fechamento do caixa.
+
+A baixa não tem endpoint de lote e não precisa: `POST /StockWriteOffs` é
+idempotente por `clientReference` e devolve a baixa já gravada em vez de baixar
+o estoque duas vezes. Recusa (`ApiError`) marca a baixa e devolve o saldo local;
+falha de rede para a drenagem e deixa o resto para a próxima rodada.
 
 Cada venda tem o seu próprio desfecho:
 
@@ -133,15 +183,22 @@ que já saiu da prateleira. `applySyncResults` usa o marcador para redebitar
 quando a venda finalmente entra, e para não devolver o mesmo saldo duas vezes
 numa recusa repetida.
 
+`PendingWriteOff` carrega o mesmo marcador, com a mesma mecânica e pelo mesmo
+motivo — `syncPendingWriteOffs` o consulta nos dois pontos.
+
 ### 4. Fechamento do caixa
 
-**Bloqueado enquanto houver venda pendente.** O esperado em gaveta é calculado
-pelo servidor a partir das vendas que ele conhece; fechar com venda na fila
-produziria conferência que não fecha — e o backend recusaria depois a venda numa
-sessão já encerrada.
+**Bloqueado enquanto houver movimento pendente** — venda **ou** baixa de estoque.
 
-A tentativa de fechar dispara uma sincronização. Se ela resolver a fila, o
-operador segue direto.
+Para a venda: o esperado em gaveta é calculado pelo servidor a partir das vendas
+que ele conhece; fechar com venda na fila produziria conferência que não fecha —
+e o backend recusaria depois a venda numa sessão já encerrada.
+
+Para a baixa, o motivo é outro: ela é carimbada com a sessão aberta **na hora em
+que sobe**, então subir depois do fechamento a jogaria no turno seguinte.
+
+A tentativa de fechar dispara uma sincronização das duas filas. Se ela resolver,
+o operador segue direto.
 
 > Esta regra tem duas metades: o bloqueio aqui e a recusa de venda em sessão
 > fechada no `PdvService`. Ao mexer numa, confira a outra.
@@ -152,46 +209,62 @@ operador segue direto.
 
 ```
 src/
-├── offline/                  ← dados e regras, sem React
-│   ├── idb.ts                wrapper de IndexedDB em Promises
-│   ├── database.ts           schema: stores, versão, chaves de metadados
-│   ├── meta.ts               data do snapshot, sequencial de cupom offline
-│   ├── snapshot.ts           baixa o cadastro e substitui a base local
-│   ├── catalog.ts            busca de produtos e clientes na base local
-│   ├── stock.ts              projeção local do estoque
-│   ├── pending-sales.ts      a fila
-│   ├── sync.ts               envio em lotes e aplicação dos desfechos
-│   ├── connectivity.ts       se a API responde (não só se há rede)
+├── offline/                     ← dados e regras, sem React
+│   ├── idb.ts                   wrapper de IndexedDB em Promises
+│   ├── database.ts              schema: stores, versão, chaves de metadados
+│   ├── meta.ts                  snapshot, sequencial de cupom, sessão, configurações
+│   ├── snapshot.ts              baixa o cadastro e substitui a base local
+│   ├── catalog.ts               busca de produtos e clientes na base local
+│   ├── stock.ts                 projeção local do estoque
+│   ├── pending-sales.ts         a fila de vendas
+│   ├── sync.ts                  envio em lotes e aplicação dos desfechos
+│   ├── pending-write-offs.ts    a fila de baixas de estoque
+│   ├── write-off-sync.ts        envio das baixas, uma a uma
+│   ├── queues.ts                as duas filas vistas como uma coisa só
+│   ├── connectivity.ts          se a API responde (não só se há rede)
 │   └── types.ts
+├── lib/
+│   ├── product-search.ts        busca de produtos (API → base local)
+│   ├── write-off-draft.ts       regras da lista de itens da baixa
+│   └── cash-register-mode.ts    o que as configurações da empresa mudam
 ├── stores/use-offline-store.ts   estado observável + ações assíncronas
 ├── hooks/
 │   ├── use-connectivity.ts       liga o monitor ao app (uma vez, na raiz)
+│   ├── use-company-settings.ts   configurações da loja: API → base local → padrão
 │   └── use-offline-pdv.ts        o que a tela precisa saber e disparar
-├── components/offline-status.tsx  indicador no cabeçalho + painel da fila
-└── services/sales.service.ts      registerSale: online e offline
+├── components/
+│   ├── offline-status.tsx        indicador no cabeçalho + painel das filas
+│   └── stock-write-off-dialog.tsx  a baixa, aberta pelo menu sanduíche
+└── services/
+    ├── sales.service.ts             registerSale: online e offline
+    └── stock-write-off.service.ts   registerWriteOff: online e offline
 ```
 
-**Nada em `offline/` conhece React.** As regras que valem a pena testar — relevância
-da busca, conferência de estoque, decisão sobre cada desfecho da sincronização —
-são funções puras (`filterProducts`, `findStockShortages`, `readSyncStatus`,
-`applySyncResults`), testáveis sem IndexedDB e sem DOM.
+**Nada em `offline/` conhece React.** As regras que valem a pena testar —
+relevância da busca, conferência de estoque, decisão sobre cada desfecho da
+sincronização — são funções puras (`filterProducts`, `findStockShortages`,
+`readSyncStatus`, `applySyncResults`, `classifyWriteOffFailure`), testáveis sem
+IndexedDB e sem DOM. As regras da tela que também são puras moram em `lib/`
+(`findDraftShortages`, `resolveCashRegisterMode`), pelo mesmo motivo.
 
 ### Stores do IndexedDB
 
-Banco `uaus-pdv-offline`, versão em `database.ts`:
+Banco `uaus-pdv-offline`, versão em `database.ts` (v2: entrou `pendingWriteOffs`):
 
-| Store            | Chave             | Conteúdo | Sobrevive à migração? |
-| ---------------- | ----------------- | -------- | --------------------- |
-| `meta`           | `key`             | data do snapshot, sequencial offline, sessão de caixa | **sim** |
-| `products`       | `id`              | catálogo + estoque local | recriada |
-| `paymentMethods` | `id`              | formas ativas com taxas | recriada |
-| `customers`      | `id`              | clientes cadastrados | recriada |
-| `pendingSales`   | `clientReference` | vendas offline | **sim** |
+| Store              | Chave             | Conteúdo | Sobrevive à migração? |
+| ------------------ | ----------------- | -------- | --------------------- |
+| `meta`             | `key`             | data do snapshot, sequencial offline, sessão de caixa, configurações da empresa | **sim** |
+| `products`         | `id`              | catálogo + estoque local | recriada |
+| `paymentMethods`   | `id`              | formas ativas com taxas | recriada |
+| `customers`        | `id`              | clientes cadastrados | recriada |
+| `pendingSales`     | `clientReference` | vendas offline | **sim** |
+| `pendingWriteOffs` | `clientReference` | baixas de estoque offline | **sim** |
 
-O critério é simples: sobrevive o que **só** existe aqui. A fila contém venda que
-o servidor nunca viu; os metadados guardam o sequencial dos cupons provisórios e a
-sessão de caixa, que também não têm de onde ser recuperados. O cadastro é cópia
-descartável — o próximo snapshot o repovoa.
+O critério é simples: sobrevive o que **só** existe aqui. As filas contêm
+movimento que o servidor nunca viu; os metadados guardam o sequencial dos cupons
+provisórios, a sessão de caixa e as configurações da empresa, que também não têm
+de onde ser recuperados sem internet. O cadastro é cópia descartável — o próximo
+snapshot o repovoa.
 
 ### Duas versões, não confunda
 
@@ -238,8 +311,13 @@ Depois, no navegador:
    "VENDA OFFLINE — Nº PROVISÓRIO".
 5. Recarregue a página ainda offline: o PDV deve abrir (service worker) e a venda
    deve continuar na fila (IndexedDB).
-6. Volte a rede. Em até 5s a sincronização roda sozinha e avisa o resultado.
-7. Confira no histórico da sessão que a venda apareceu com número definitivo.
+6. Ainda offline, abra o menu → **Baixa de Estoque**, escolha um motivo, busque um
+   produto e confirme. Ela entra na fila de baixas e o estoque local já cai.
+7. Volte a rede. Em até 5s a sincronização roda sozinha e avisa o resultado das
+   duas filas.
+8. Confira no histórico da sessão que a venda apareceu com número definitivo, e
+   no admin que a baixa entrou com a **hora em que foi feita**, não com a da
+   sincronização.
 
 Para inspecionar: DevTools → Application → IndexedDB → `uaus-pdv-offline`.
 
@@ -251,9 +329,13 @@ Para inspecionar: DevTools → Application → IndexedDB → `uaus-pdv-offline`.
 | ---------------------------------------------- | ------- |
 | Levar mais dados para a base local             | `PdvSnapshotDto` no backend, `offline/types.ts`, `offline/snapshot.ts` — e suba as duas versões |
 | Mudar a relevância da busca local              | `offline/catalog.ts` → `filterProducts` (tem teste) |
+| Mudar o fallback da busca de produtos          | `lib/product-search.ts` → `searchProducts` (tem teste) |
 | Mudar a regra de estoque offline               | `offline/stock.ts` → `findStockShortages` (tem teste) |
 | Mudar o que fazer com cada desfecho            | `offline/sync.ts` → `applySyncResults` (tem teste) |
 | Mudar o tamanho do lote                        | `offline/sync.ts` → `SYNC_BATCH_SIZE` (≤ 50, limite do backend) |
+| Mudar o que a baixa envia ao servidor          | `offline/write-off-sync.ts` → `buildWriteOffRequestBody` (tem teste) |
+| Mudar a regra da lista de itens da baixa       | `lib/write-off-draft.ts` (tem teste) |
+| Ligar o modo sem controle de caixa             | `lib/cash-register-mode.ts` — leia o bloqueio no topo do arquivo |
 | Mudar o intervalo de sondagem                  | `offline/connectivity.ts` |
 | Mudar o que o cupom offline mostra             | `packages/receipt/src/render.ts` (banner) e `types.ts` (`offline`) |
 | Mexer em data enviada à API                    | `services/sales.service.ts` → `toLocalTimestamp` (tem teste) — leia a nota abaixo |
@@ -278,6 +360,14 @@ A convenção completa, incluindo o fuso do contêiner da API, está em
 ## Limitações conscientes
 
 - **Abrir e fechar o caixa exigem internet.** Ver as justificativas acima.
+- **O modo sem controle de caixa está desligado.** `company_settings.uses_cash_register`
+  já é lido e guardado na base local, e toda a tela consulta
+  `lib/cash-register-mode.ts` em vez de assumir sessão obrigatória. Mas o modo não
+  liga enquanto `RegisterPdvSaleRequest.EnsureIsValid()` recusar
+  `cashRegisterSessionId` ≤ 0: esconder a abertura de caixa hoje trocaria um
+  diálogo por uma venda impossível de gravar. Quando o backend aceitar venda sem
+  sessão, vire `BACKEND_REQUIRES_SESSION_ON_SALE`. A **baixa de estoque** não tem
+  esse bloqueio e já funciona sem caixa aberto.
 - **Reeditar venda exige internet.** Fazer isso offline criaria duas versões da
   mesma venda para reconciliar; sem conexão, o caminho é cancelar depois e refazer.
 - **O histórico da sessão vem do servidor.** Vendas na fila não aparecem nele — o

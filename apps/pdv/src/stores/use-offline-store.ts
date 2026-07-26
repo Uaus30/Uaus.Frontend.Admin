@@ -2,11 +2,11 @@ import { create } from "zustand";
 import {
   readLocalDatabaseState,
   refreshLocalDatabase,
-  syncPendingSales,
-  tallyPendingSales,
+  syncPendingQueues,
+  tallyPendingQueues,
   type LocalDatabaseState,
+  type QueueSyncOutcome,
   type SnapshotInstallResult,
-  type SyncOutcome,
 } from "@/offline";
 
 /**
@@ -36,13 +36,18 @@ interface OfflineState {
   /** Vendas recusadas pelo servidor, à espera de decisão do operador. */
   failed: number;
 
+  /** Baixas de estoque que serão reenviadas na próxima sincronização. */
+  pendingWriteOffs: number;
+  /** Baixas recusadas pelo servidor, à espera de decisão do operador. */
+  failedWriteOffs: number;
+
   /** Estado da base local: quando foi baixada e em que formato. */
   snapshot: LocalDatabaseState | null;
   /** Motivo da última falha ao baixar o snapshot, ou `null`. */
   snapshotError: string | null;
 
   /** Resumo da última sincronização concluída. */
-  lastSync: (SyncOutcome & { at: string }) | null;
+  lastSync: (QueueSyncOutcome & { at: string }) | null;
 
   /**
    * Sessão de caixa cuja base local já foi baixada.
@@ -55,7 +60,7 @@ interface OfflineState {
 
   /** Registra o resultado da sondagem de conexão. */
   setOnline: (online: boolean) => void;
-  /** Recarrega a contagem da fila a partir da base local. */
+  /** Recarrega a contagem das duas filas a partir da base local. */
   refreshCounts: () => Promise<void>;
   /** Recarrega o estado da base local (quando o snapshot foi baixado). */
   refreshSnapshotState: () => Promise<void>;
@@ -70,12 +75,12 @@ interface OfflineState {
    */
   refreshSnapshot: (sessionId?: number | null) => Promise<SnapshotInstallResult | null>;
   /**
-   * Envia a fila de vendas offline.
+   * Envia as filas offline: vendas e baixas de estoque.
    *
    * @returns O resumo da rodada, ou `null` quando não havia o que fazer (sem
-   *   conexão, fila vazia, ou outra sincronização já em andamento).
+   *   conexão, filas vazias, ou outra sincronização já em andamento).
    */
-  syncNow: () => Promise<SyncOutcome | null>;
+  syncNow: () => Promise<QueueSyncOutcome | null>;
   /** Zera o estado ao encerrar a sessão do caixa. */
   reset: () => void;
 }
@@ -92,6 +97,8 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
   refreshingSnapshot: false,
   pending: 0,
   failed: 0,
+  pendingWriteOffs: 0,
+  failedWriteOffs: 0,
   snapshot: null,
   snapshotError: null,
   lastSync: null,
@@ -101,8 +108,13 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
 
   refreshCounts: async () => {
     try {
-      const tally = await tallyPendingSales();
-      set(() => ({ pending: tally.pending, failed: tally.failed }));
+      const tally = await tallyPendingQueues();
+      set(() => ({
+        pending: tally.sales.pending,
+        failed: tally.sales.failed,
+        pendingWriteOffs: tally.writeOffs.pending,
+        failedWriteOffs: tally.writeOffs.failed,
+      }));
     } catch {
       // Base local indisponível (navegador sem IndexedDB, aba duplicada). O
       // indicador fica como está em vez de derrubar a tela.
@@ -142,11 +154,13 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
     if (state.syncing || !state.online) return null;
 
     await state.refreshCounts();
-    if (get().pending === 0) return null;
+    // Só as `pending` disparam a rodada: as recusadas esperam decisão do
+    // operador e reenviá-las repetiria a mesma recusa a cada tentativa.
+    if (get().pending === 0 && get().pendingWriteOffs === 0) return null;
 
     set(() => ({ syncing: true }));
     try {
-      const outcome = await syncPendingSales();
+      const outcome = await syncPendingQueues();
       set(() => ({ lastSync: { ...outcome, at: new Date().toISOString() } }));
       await get().refreshCounts();
       return outcome;
@@ -161,6 +175,8 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       refreshingSnapshot: false,
       pending: 0,
       failed: 0,
+      pendingWriteOffs: 0,
+      failedWriteOffs: 0,
       snapshotError: null,
       lastSync: null,
       snapshotSessionId: null,
