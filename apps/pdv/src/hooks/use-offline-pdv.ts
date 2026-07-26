@@ -41,7 +41,6 @@ export function useOfflinePdv(sessionId: number | null) {
     void refreshSnapshotState();
   }, [refreshSnapshotState]);
 
-  const hasLocalDatabase = snapshot?.downloadedAt != null;
   const isSnapshotValid = snapshot?.downloadedAt
     ? new Date(snapshot.downloadedAt).toDateString() === new Date().toDateString()
     : false;
