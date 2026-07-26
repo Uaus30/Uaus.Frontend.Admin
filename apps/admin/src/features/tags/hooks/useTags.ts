@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { generateRandomTagColor } from "@/lib/tag-colors";
 import { createTag, deleteTag, getTagsPage, updateTag } from "@/services/tags.service";
-import { buildMockTagReport } from "@/lib/mock-data";
+import { getTagReport } from "@/services/reports.service";
 import type { TagForm, EnrichedTag, TagReport } from "../types";
 
 export type SortDir = "asc" | "desc";
@@ -18,7 +18,7 @@ export type SortBy = "name" | "productCount" | "createdAt";
  * Funcionalidades centrais:
  * - Paginação, busca textual e ordenação local da listagem.
  * - Gerenciamento de formulário de criação/edição.
- * - Exibição de relatórios analíticos de vendas por etiqueta (dados mockados).
+ * - Carregamento sob demanda do relatório de vendas da etiqueta selecionada.
  * - Deleção de etiquetas.
  */
 export function useTags() {
@@ -56,7 +56,7 @@ export function useTags() {
   const tagsWithCount = useMemo<EnrichedTag[]>(() => {
     const current = (tagPage?.data ?? []).map((tag: any) => ({
       ...tag,
-      productCount: 0,
+      productCount: tag.productCount ?? 0,
     }));
 
     current.sort((left, right) => {
@@ -76,13 +76,17 @@ export function useTags() {
     return current;
   }, [sortBy, sortDir, tagPage?.data]);
 
-  // Relatório mockado da etiqueta selecionada
-  const selectedReport = useMemo<TagReport | null>(() => {
-    if (!selectedTagId) return null;
-    const tag = tagsWithCount.find((item) => item.id === selectedTagId);
-    if (!tag) return null;
-    return buildMockTagReport(tag.name, tag.color);
-  }, [selectedTagId, tagsWithCount]);
+  // Relatório da etiqueta selecionada.
+  //
+  // Só dispara quando o modal é aberto: é uma agregação sobre os itens de venda
+  // do período, e carregá-la para todas as etiquetas da página seria pagar por um
+  // dado que o usuário pediu de uma.
+  const { data: selectedReport = null, isLoading: isReportLoading } = useQuery<TagReport>({
+    queryKey: ["tag-report", selectedTagId],
+    queryFn: () => getTagReport(selectedTagId as number),
+    enabled: !!selectedTagId && reportModalOpen,
+    staleTime: 5 * 60_000,
+  });
 
   /**
    * Altera ou inverte a coluna ativa de ordenação.
@@ -208,6 +212,7 @@ export function useTags() {
     isLoading,
     tagsWithCount,
     selectedReport,
+    isReportLoading,
     toggleSort,
     openModal,
     randomizeColor,

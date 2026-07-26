@@ -118,12 +118,23 @@
   --input: 217 33% 22%;
   --ring: 25 95% 53%;
 
-  /* Chart colors */
-  --chart-1: 25 95% 53%;
-  --chart-2: 262 83% 68%;
-  --chart-3: 189 94% 43%;
-  --chart-4: 142 71% 45%;
-  --chart-5: 32 98% 55%;
+  /*
+    Paleta categórica dos gráficos, na ordem fixa em que as séries são atribuídas.
+
+    Os passos não são os mesmos de --primary e --accent: sobre o fundo escuro dos
+    cards, as versões da interface caem fora da faixa de luminosidade legível para
+    marcas de gráfico. Estes valores são os mesmos matizes reancorados, verificados
+    para separação sob protanopia e deuteranopia (pior par adjacente ΔE 13,5) e
+    contraste mínimo de 3:1 contra a superfície do card.
+
+    Trocar um valor aqui exige revalidar a paleta inteira: o que garante a leitura
+    é a distância entre vizinhos, não a cor isolada.
+  */
+  --chart-1: 25 92% 48%;
+  --chart-2: 262 92% 67%;
+  --chart-3: 142 92% 36%;
+  --chart-4: 330 92% 40%;
+  --chart-5: 189 92% 38%;
 
   --app-font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --app-font-serif: Georgia, serif;

@@ -135,8 +135,8 @@ export function CategoryTable({
                     {category.description || "-"}
                   </td>
                   <td className="px-6 py-4 font-medium">
-                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-                      {category.productCountLabel}
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium tabular-nums text-muted-foreground">
+                      {category.productCount}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">

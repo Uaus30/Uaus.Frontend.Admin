@@ -24,6 +24,16 @@ export default function Sales() {
     salesPage,
     isLoading,
     customers,
+    search,
+    setSearch,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    paymentMethodFilter,
+    setPaymentMethodFilter,
+    paymentStatusFilter,
+    setPaymentStatusFilter,
     paymentMethods,
     paymentStatuses,
     paymentMethodById,
@@ -33,8 +43,12 @@ export default function Sales() {
     items,
     discount,
     setDiscount,
-    paymentMethod,
-    setPaymentMethod,
+    payments,
+    addPayment,
+    removePayment,
+    updatePayment,
+    paidAmount,
+    remainingAmount,
     paymentStatus,
     setPaymentStatus,
     notes,
@@ -45,6 +59,7 @@ export default function Sales() {
     setSelectedQty,
     savingSale,
     deletingSaleId,
+    printingSaleId,
     availableProducts,
     subtotal,
     total,
@@ -54,6 +69,7 @@ export default function Sales() {
     removeItem,
     handleCreateSubmit,
     handleDeleteSale,
+    handlePrintReceipt,
   } = useSales();
 
   return (
@@ -84,7 +100,21 @@ export default function Sales() {
           salesPage={salesPage}
           onViewDetails={setViewSaleId}
           onDelete={handleDeleteSale}
+          onPrintReceipt={handlePrintReceipt}
           deletingSaleId={deletingSaleId}
+          printingSaleId={printingSaleId}
+          search={search}
+          setSearch={setSearch}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          paymentMethodFilter={paymentMethodFilter}
+          setPaymentMethodFilter={setPaymentMethodFilter}
+          paymentStatusFilter={paymentStatusFilter}
+          setPaymentStatusFilter={setPaymentStatusFilter}
+          paymentMethods={paymentMethods}
+          paymentStatuses={paymentStatuses}
         />
       </div>
 
@@ -100,8 +130,12 @@ export default function Sales() {
         selectedQty={selectedQty}
         setSelectedQty={setSelectedQty}
         items={items}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
+        payments={payments}
+        onAddPayment={addPayment}
+        onRemovePayment={removePayment}
+        onUpdatePayment={updatePayment}
+        paidAmount={paidAmount}
+        remainingAmount={remainingAmount}
         paymentStatus={paymentStatus}
         setPaymentStatus={setPaymentStatus}
         paymentMethods={paymentMethods}
@@ -123,6 +157,8 @@ export default function Sales() {
         onOpenChange={(open) => !open && setViewSaleId(null)}
         saleToView={saleToView}
         paymentMethodById={paymentMethodById}
+        onPrintReceipt={handlePrintReceipt}
+        printingSaleId={printingSaleId}
       />
     </AppLayout>
   );

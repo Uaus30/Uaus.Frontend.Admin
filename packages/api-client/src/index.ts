@@ -66,6 +66,59 @@ export interface UiPagedResult<T> {
   totalPages: number;
 }
 
+/**
+ * A API serializa enums pelo nome do membro em C# ("Paid", "Active"), mas os
+ * filtros e os selects trabalham com o código numérico. Estes mapas e o helper
+ * `enumCode` normalizam os dois formatos.
+ */
+export type EnumValue = number | string | null | undefined;
+
+export const PAYMENT_STATUS = {
+  None: 0,
+  Pending: 1,
+  Paid: 2,
+  PartiallyPaid: 3,
+  Overdue: 4,
+  Cancelled: 5,
+} as const;
+
+export const PRODUCT_STATUS = {
+  None: 0,
+  Draft: 1,
+  Active: 2,
+  OutOfStock: 3,
+  Inactive: 4,
+} as const;
+
+export const USER_STATUS = {
+  None: 0,
+  Pending: 1,
+  Active: 2,
+  Bloqued: 3,
+  Inactive: 4,
+} as const;
+
+export const USER_ROLE = {
+  None: 0,
+  Admin: 1,
+  Seller: 2,
+} as const;
+
+export const SUPPLIER_STATUS = {
+  None: 0,
+  Active: 1,
+  Inactive: 2,
+} as const;
+
+/** Converte o valor de um enum vindo da API (número ou nome) para o código numérico. */
+export function enumCode(value: EnumValue, names: Record<string, number>): number {
+  if (typeof value === "number") return value;
+  if (typeof value !== "string") return 0;
+  if (value in names) return names[value];
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 export interface CustomerDto {
   id: number;
   createdAt: string;
@@ -92,6 +145,8 @@ export interface CategoryDto {
   departmentId: number;
   name: string;
   description: string | null;
+  /** Produtos ativos vinculados à categoria, contados pela própria listagem. */
+  productCount: number;
 }
 
 export interface ProductHistoryDto {
@@ -117,6 +172,95 @@ export interface ProductGroupDto {
   productHistories?: ProductHistoryDto[];
 }
 
+export interface PaymentMethodInstallmentDto {
+  id: number;
+  paymentMethodId: number;
+  installmentNumber: number;
+  feePercentage: number;
+  isActive: boolean;
+}
+
+export interface PaymentMethodDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  name: string;
+  isActive: boolean;
+  installments: PaymentMethodInstallmentDto[];
+}
+
+/** Sessão de caixa do PDV. */
+export interface CashRegisterSessionDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  userId: number;
+  userName?: string | null;
+  openedAt: string;
+  openingBalance: number;
+  openingNotes: string | null;
+  closedAt: string | null;
+  closedByUserId: number | null;
+  closedByUserName?: string | null;
+  countedAmount: number | null;
+  expectedAmount: number | null;
+  difference: number | null;
+  closingNotes: string | null;
+  /** 1 = Aberto, 2 = Fechado */
+  status: number;
+  summary?: CashRegisterSessionSummaryDto | null;
+}
+
+export interface CashRegisterSessionSummaryDto {
+  salesCount: number;
+  cancelledSalesCount: number;
+  revenue: number;
+  discounts: number;
+  itemsCount: number;
+  cashAmount: number;
+  nonCashAmount: number;
+  /** Fundo de troco + recebido em espécie. */
+  expectedCashAmount: number;
+  byPaymentMethod: Array<{
+    paymentMethodId: number;
+    paymentMethodName: string;
+    count: number;
+    amount: number;
+  }>;
+}
+
+export const CASH_REGISTER_SESSION_OPEN = 1;
+export const CASH_REGISTER_SESSION_CLOSED = 2;
+
+/** Forma de pagamento "Dinheiro" — a única que entra na conferência da gaveta. */
+export const CASH_PAYMENT_METHOD_ID = 1;
+
+export interface CreatePaymentMethodInstallmentRequest {
+  installmentNumber: number;
+  feePercentage: number;
+  isActive?: boolean;
+}
+
+export interface CreatePaymentMethodRequest {
+  name: string;
+  isActive?: boolean;
+  installments?: CreatePaymentMethodInstallmentRequest[];
+}
+
+export interface UpdatePaymentMethodInstallmentRequest {
+  id?: number;
+  installmentNumber: number;
+  feePercentage: number;
+  isActive?: boolean;
+}
+
+export interface UpdatePaymentMethodRequest {
+  id: number;
+  name: string;
+  isActive?: boolean;
+  installments?: UpdatePaymentMethodInstallmentRequest[];
+}
+
 export interface ProductDto {
   id: number;
   createdAt: string;
@@ -129,7 +273,8 @@ export interface ProductDto {
   costPrice: number;
   stock: number;
   minStock: number;
-  status: number;
+  /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
+  status: EnumValue;
   canDelete: boolean;
 }
 
@@ -140,6 +285,8 @@ export interface TagDto {
   name: string;
   color: string;
   isPublic: boolean;
+  /** Produtos ativos marcados com a etiqueta, contados pela própria listagem. */
+  productCount: number;
 }
 
 export interface ProductTagDto {
@@ -211,11 +358,45 @@ export interface SaleDto {
   createdAt: string;
   updatedAt: string | null;
   customerId: number | null;
+  /**
+   * Consumidor da venda: o nome do cliente cadastrado quando há um, senão o
+   * nome informado no balcão. Nulo em consumidor não identificado.
+   */
+  customerName?: string | null;
+  /** CPF/CNPJ do consumidor, do cadastro ou informado no balcão. */
+  customerDocument?: string | null;
+  /** Operador que registrou a venda. Nulo nas vendas migradas. */
+  userId?: number | null;
+  /** Nome completo do operador que registrou a venda. */
+  userName?: string | null;
+  /** Sessão de caixa da venda. Nulo nas vendas migradas e fora do PDV. */
+  cashRegisterSessionId?: number | null;
   total: number;
   discount: number;
-  paymentMethod: number;
-  paymentStatus: number;
+  paymentMethodId?: number | null;
+  paymentMethodInstallmentId?: number | null;
+  paymentMethodName?: string | null;
+  installments?: number;
+  transactionFee?: number;
+  /** Enum PaymentStatus — pode vir como número ou nome; use `enumCode`. */
+  paymentStatus: EnumValue;
   notes: string | null;
+  /** Formas de pagamento da venda (uma venda pode ter N formas). */
+  payments?: SalePaymentDto[];
+  items?: SaleItemDto[];
+}
+
+export interface SalePaymentDto {
+  id: number;
+  saleId: number;
+  paymentMethodId: number;
+  paymentMethodName?: string | null;
+  paymentMethodInstallmentId?: number | null;
+  /** Valor pago nesta forma. Nulo quando a origem não informou a divisão. */
+  amount: number | null;
+  installments: number;
+  transactionFee: number;
+  sequence: number;
 }
 
 export interface SaleItemDto {
@@ -224,9 +405,14 @@ export interface SaleItemDto {
   updatedAt: string | null;
   saleId: number;
   productId: number;
+  productName?: string | null;
+  /** Código de barras do produto, impresso no cupom para conferência. */
+  barcode?: string | null;
   quantity: number;
   unitPrice: number;
   subtotal: number;
+  /** Custo unitário praticado no momento da venda. */
+  unitCost: number;
   totalCost: number;
   profit: number;
 }
@@ -654,7 +840,15 @@ export function useDeleteCustomer(options?: {
 }
 
 export function useGetSales(
-  params?: { page?: number; limit?: number },
+  params?: {
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    paymentMethodId?: number;
+    paymentStatus?: number;
+    page?: number;
+    limit?: number;
+  },
   options?: {
     query?: Omit<UseQueryOptions<UiPagedResult<SaleDto>, ApiError, UiPagedResult<SaleDto>, QueryKey>, "queryKey" | "queryFn">;
   },
@@ -663,6 +857,11 @@ export function useGetSales(
     queryKey: [...getGetSalesQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGet<BackendPagedResult<SaleDto>>("/Sales", {
+        search: params?.search,
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+        paymentMethodId: params?.paymentMethodId,
+        paymentStatus: params?.paymentStatus,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,
       });
@@ -685,6 +884,43 @@ export function useDeleteSale(options?: {
     const response = await apiDelete<null>(`/Sales/${id}`);
     return response.data;
   }, options);
+}
+
+export function useGetSaleDetails(
+  id?: number,
+  options?: {
+    query?: Omit<UseQueryOptions<SaleDto, ApiError, SaleDto, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<SaleDto, ApiError, SaleDto, QueryKey>({
+    queryKey: ["sale-details", id ?? 0],
+    queryFn: async () => {
+      return await apiGet<SaleDto>(`/Sales/${id}`);
+    },
+    enabled: !!id,
+    ...options?.query,
+  });
+}
+
+export function useGetSaleItems(
+  params?: { saleId?: number; page?: number; limit?: number },
+  options?: {
+    query?: Omit<UseQueryOptions<UiPagedResult<SaleItemDto>, ApiError, UiPagedResult<SaleItemDto>, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<UiPagedResult<SaleItemDto>, ApiError, UiPagedResult<SaleItemDto>, QueryKey>({
+    queryKey: ["sale-items-by-sale-id", params?.saleId ?? 0, params?.page ?? 1, params?.limit ?? 100],
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<SaleItemDto>>("/SaleItems", {
+        saleId: params?.saleId,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 100,
+      });
+      return mapPagedResult(result);
+    },
+    enabled: !!params?.saleId,
+    ...options?.query,
+  });
 }
 
 export function useGetCategories(
@@ -1045,3 +1281,202 @@ export async function checkHealth(): Promise<boolean> {
   }
 }
 
+// Payment Methods Hooks
+
+export function getGetPaymentMethodsQueryKey(params?: { search?: string; isActive?: boolean; page?: number; size?: number }) {
+  return ["PaymentMethods", params] as const;
+}
+
+export function useGetPaymentMethods(
+  params?: { search?: string; isActive?: boolean; page?: number; size?: number },
+  options?: {
+    query?: Omit<UseQueryOptions<UiPagedResult<PaymentMethodDto>, ApiError, UiPagedResult<PaymentMethodDto>, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<UiPagedResult<PaymentMethodDto>, ApiError, UiPagedResult<PaymentMethodDto>, QueryKey>({
+    queryKey: getGetPaymentMethodsQueryKey(params),
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<PaymentMethodDto>>("/PaymentMethods", {
+        search: params?.search,
+        isActive: params?.isActive,
+        page: params?.page ?? 1,
+        size: params?.size ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+export function useGetPaymentMethodById(
+  id: number,
+  options?: {
+    query?: Omit<UseQueryOptions<PaymentMethodDto, ApiError, PaymentMethodDto, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<PaymentMethodDto, ApiError, PaymentMethodDto, QueryKey>({
+    queryKey: ["payment-method-details", id],
+    enabled: !isNaN(id) && id > 0,
+    queryFn: async () => {
+      return apiGet<PaymentMethodDto>(`/PaymentMethods/${id}`);
+    },
+    ...options?.query,
+  });
+}
+
+export function useCreatePaymentMethod(options?: {
+  mutation?: UseMutationOptions<PaymentMethodDto | null, ApiError, { data: CreatePaymentMethodRequest }>;
+}) {
+  return useCrudMutation(async ({ data }) => {
+    const response = await apiPost<PaymentMethodDto>("/PaymentMethods", data);
+    return response.data;
+  }, options);
+}
+
+export function useUpdatePaymentMethod(options?: {
+  mutation?: UseMutationOptions<PaymentMethodDto | null, ApiError, { data: UpdatePaymentMethodRequest }>;
+}) {
+  return useCrudMutation(async ({ data }) => {
+    const response = await apiPut<PaymentMethodDto>("/PaymentMethods", data);
+    return response.data;
+  }, options);
+}
+
+export function useDeletePaymentMethod(options?: {
+  mutation?: UseMutationOptions<null, ApiError, { id: number }>;
+}) {
+  return useCrudMutation(async ({ id }) => {
+    const response = await apiDelete<null>(`/PaymentMethods/${id}`);
+    return response.data;
+  }, options);
+}
+
+
+
+
+// Cash Register Sessions Hooks
+
+/** Chave de cache da listagem de sessões de caixa. */
+export function getGetCashRegisterSessionsQueryKey(params?: {
+  userId?: number;
+  status?: number;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  size?: number;
+}) {
+  return ["CashRegisterSessions", params] as const;
+}
+
+/** Chave de cache da sessão de caixa aberta do operador. */
+export const CURRENT_CASH_REGISTER_SESSION_QUERY_KEY = ["cash-register-session-current"] as const;
+
+/**
+ * Lista as sessões de caixa, das mais recentes para as mais antigas.
+ *
+ * @param params Filtros por operador, status, período e paginação.
+ */
+export function useGetCashRegisterSessions(
+  params?: { userId?: number; status?: number; startDate?: string; endDate?: string; page?: number; size?: number },
+  options?: {
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<CashRegisterSessionDto>, ApiError, UiPagedResult<CashRegisterSessionDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<UiPagedResult<CashRegisterSessionDto>, ApiError, UiPagedResult<CashRegisterSessionDto>, QueryKey>({
+    queryKey: getGetCashRegisterSessionsQueryKey(params),
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<CashRegisterSessionDto>>("/CashRegisterSessions", {
+        userId: params?.userId,
+        status: params?.status,
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+        page: params?.page ?? 1,
+        size: params?.size ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+/**
+ * Sessão de caixa aberta do operador autenticado.
+ * Retorna null quando o caixa está fechado (a API responde 204).
+ */
+export function useGetCurrentCashRegisterSession(options?: {
+  query?: Omit<
+    UseQueryOptions<CashRegisterSessionDto | null, ApiError, CashRegisterSessionDto | null, QueryKey>,
+    "queryKey" | "queryFn"
+  >;
+}) {
+  return useQuery<CashRegisterSessionDto | null, ApiError, CashRegisterSessionDto | null, QueryKey>({
+    queryKey: CURRENT_CASH_REGISTER_SESSION_QUERY_KEY,
+    queryFn: async () => {
+      const result = await apiRequest<CashRegisterSessionDto>("GET", "/CashRegisterSessions/current");
+      return result.data ?? null;
+    },
+    ...options?.query,
+  });
+}
+
+/**
+ * Detalha uma sessão de caixa com o resumo consolidado das vendas.
+ *
+ * @param id ID da sessão; a query fica desabilitada enquanto for indefinido.
+ */
+export function useGetCashRegisterSessionById(
+  id?: number,
+  options?: {
+    query?: Omit<UseQueryOptions<CashRegisterSessionDto, ApiError, CashRegisterSessionDto, QueryKey>, "queryKey" | "queryFn">;
+  },
+) {
+  return useQuery<CashRegisterSessionDto, ApiError, CashRegisterSessionDto, QueryKey>({
+    queryKey: ["cash-register-session-details", id ?? 0],
+    enabled: !!id,
+    queryFn: async () => apiGet<CashRegisterSessionDto>(`/CashRegisterSessions/${id}`),
+    ...options?.query,
+  });
+}
+
+/**
+ * Abre o caixa do operador autenticado.
+ *
+ * @param data Fundo de troco colocado na gaveta e observações da abertura.
+ * @returns A sessão recém-aberta.
+ */
+export async function openCashRegisterSession(data: { openingBalance: number; openingNotes?: string | null }) {
+  const response = await apiPost<CashRegisterSessionDto>("/CashRegisterSessions/open", data);
+  return response.data;
+}
+
+/**
+ * Fecha o caixa conferindo o dinheiro em gaveta contra o valor esperado
+ * (fundo de troco somado ao recebido em espécie).
+ *
+ * @param id ID da sessão aberta.
+ * @param data Valor contado na gaveta e observações do fechamento.
+ * @returns A sessão fechada, já com contado, esperado e diferença.
+ */
+export async function closeCashRegisterSession(
+  id: number,
+  data: { countedAmount: number; closingNotes?: string | null },
+) {
+  const response = await apiPost<CashRegisterSessionDto>(`/CashRegisterSessions/${id}/close`, data);
+  return response.data;
+}
+
+/**
+ * Cancela a venda devolvendo ao estoque os lotes consumidos pelos itens.
+ * A venda continua existindo, marcada como cancelada, para preservar o histórico.
+ *
+ * @param id ID da venda.
+ * @param reason Motivo do cancelamento, anexado à observação da venda.
+ * @returns A venda já cancelada.
+ */
+export async function cancelSale(id: number, reason?: string | null) {
+  const response = await apiPost<SaleDto>(`/Sales/${id}/cancel`, { reason: reason ?? null });
+  return response.data;
+}

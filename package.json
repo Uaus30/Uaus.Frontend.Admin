@@ -5,7 +5,8 @@
   "workspaces": [
     "apps/admin",
     "apps/pdv",
-    "packages/api-client"
+    "packages/api-client",
+    "packages/receipt"
   ],
   "scripts": {
     "build": "npm run build:admin",
@@ -13,8 +14,13 @@
     "dev:pdv": "npm run dev --workspace=@workspace/pdv",
     "build:admin": "npm run build --workspace=@workspace/admin",
     "build:pdv": "npm run build --workspace=@workspace/pdv",
-    "typecheck:admin": "npm run typecheck --workspace=@workspace/admin",
-    "typecheck:pdv": "npm run typecheck --workspace=@workspace/pdv"
+    "build:types": "tsc -b packages/api-client packages/receipt",
+    "typecheck:admin": "npm run build:types && npm run typecheck --workspace=@workspace/admin",
+    "typecheck:pdv": "npm run build:types && npm run typecheck --workspace=@workspace/pdv",
+    "test:admin": "npm run test --workspace=@workspace/admin",
+    "test:pdv": "npm run build:types && npm run test --workspace=@workspace/pdv",
+    "test:receipt": "npm run test --workspace=@workspace/receipt",
+    "test": "npm run test:admin && npm run test:pdv && npm run test:receipt"
   },
   "private": true,
   "devDependencies": {

@@ -61,6 +61,7 @@ export default function Categories() {
         isOpen={model.reportOpen}
         onOpenChange={model.setReportOpen}
         selectedReport={model.selectedReport}
+        isLoading={model.isReportLoading}
       />
     </AppLayout>
   );

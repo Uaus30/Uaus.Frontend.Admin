@@ -2,10 +2,9 @@ import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useState, useEffect, useRef } from "react";
-import { checkHealth } from "@workspace/api-client-react";
-import { WifiOff } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { CloudOff } from "lucide-react";
+import { useConnectivity } from "@/hooks/use-connectivity";
+import { useOfflineStore } from "@/stores/use-offline-store";
 import Login from "@/pages/login";
 import Pdv from "@/pages/pdv";
 
@@ -28,81 +27,60 @@ function Router() {
   );
 }
 
+/**
+ * Faixa de aviso do modo offline.
+ *
+ * O tom é deliberadamente calmo: sem internet o PDV **continua vendendo** contra
+ * a base local, então isto informa uma situação, não um erro. A faixa vermelha
+ * anterior dizia "servidor indisponível" e deixava o operador achando que o caixa
+ * havia parado.
+ */
+function OfflineBanner() {
+  const online = useOfflineStore((state) => state.online);
+  const connectionChecked = useOfflineStore((state) => state.connectionChecked);
+  const pending = useOfflineStore((state) => state.pending);
+
+  // Antes da primeira sondagem não há o que informar; acusar queda aqui faria a
+  // faixa piscar em toda abertura do PDV.
+  if (!connectionChecked || online) return null;
+
+  return (
+    <div className="z-[9999] flex h-10 shrink-0 items-center justify-center gap-2 bg-amber-500 px-4 text-center text-xs font-medium text-amber-950 shadow-md sm:text-sm">
+      <CloudOff className="h-4 w-4" />
+      <span>
+        Sem conexão com o servidor — o PDV está vendendo com a base local.
+        {pending > 0 && ` ${pending} venda(s) aguardando sincronização.`}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Casca do PDV: monitor de conexão, faixa do modo offline e o roteador.
+ *
+ * O monitor é montado aqui, uma única vez — ele é a fonte da verdade de `online`
+ * para todo o app, e duas instâncias sondariam a API em dobro.
+ */
+function Shell() {
+  useConnectivity();
+
+  return (
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+      <OfflineBanner />
+      <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <Router />
+        </WouterRouter>
+      </div>
+    </div>
+  );
+}
+
 function App() {
-  const { toast } = useToast();
-  const [isOffline, setIsOffline] = useState(false);
-  const [secondsRemaining, setSecondsRemaining] = useState(10);
-  const [isReconnecting, setIsReconnecting] = useState(false);
-  const wasOfflineRef = useRef(false);
-  const isOfflineRef = useRef(false);
-
-  useEffect(() => {
-    let countdownTimer: ReturnType<typeof setInterval> | null = null;
-
-    const performCheck = async () => {
-      setIsReconnecting(true);
-      const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 3000));
-      const okPromise = checkHealth();
-
-      const [_, ok] = await Promise.all([minDelayPromise, okPromise]);
-      const currentOffline = !ok;
-      
-      setIsOffline(currentOffline);
-      isOfflineRef.current = currentOffline;
-
-      if (wasOfflineRef.current && !currentOffline) {
-        // Reconnected!
-        queryClient.invalidateQueries();
-        toast({
-          title: "Conexão Restabelecida",
-          description: "A conexão com o servidor foi restabelecida com sucesso.",
-          className: "bg-emerald-500 text-white border-none",
-        });
-      }
-      wasOfflineRef.current = currentOffline;
-
-      const nextLimit = currentOffline ? 5 : 10;
-      setSecondsRemaining(nextLimit);
-      setIsReconnecting(false);
-    };
-
-    performCheck();
-
-    countdownTimer = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        if (prev <= 0) {
-          performCheck();
-          return isOfflineRef.current ? 5 : 10;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (countdownTimer) clearInterval(countdownTimer);
-    };
-  }, [toast]);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
-          {isOffline && (
-            <div className="bg-red-600 text-white h-10 px-4 text-center text-xs sm:text-sm font-medium flex items-center justify-center gap-2 z-[9999] shrink-0 shadow-md">
-              <WifiOff className="w-4 h-4 animate-bounce" />
-              <span>
-                {isReconnecting
-                  ? "Servidor indisponível no momento. Reconectando..."
-                  : `Servidor indisponível no momento. Tentando nova conexão em ${secondsRemaining}`}
-              </span>
-            </div>
-          )}
-          <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-          </div>
-        </div>
+        <Shell />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

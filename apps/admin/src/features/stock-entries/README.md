@@ -8,7 +8,7 @@ Este módulo gerencia o recebimento de mercadorias no estoque, permitindo o regi
 
 *   `components/StockEntriesTable.tsx`: Exibe o histórico de entradas de estoque registradas com suporte a filtragem por fornecedor e controles de paginação.
 *   `components/StockEntryDetailsModal.tsx`: Modal exibindo o espelho da nota fiscal, produtos recebidos com seus respectivos custos e preços, além do controle para exclusão de lançamento (cancelamento de entrada).
-*   `components/NewStockEntryModal.tsx`: Modal contendo formulário de cabeçalho da nota (fornecedor, NF, data, observações) e uma grade dinâmica onde o usuário pode adicionar, configurar e remover itens recebidos.
+*   `components/NewStockEntryModal.tsx`: Modal contendo formulário de cabeçalho da nota (fornecedor, NF, data, observações) e uma grade dinâmica onde o usuário pode adicionar, configurar e remover itens recebidos. A data usa o `DatePicker` do [padrão de calendário](../../components/ui/README.md); como ele abre num portal fora do modal, o `DialogContent` aplica `guardCalendarDismiss` para não fechar o formulário ao escolher um dia.
 *   `hooks/useStockEntries.ts`: Centraliza requisições paginadas (`useGetPurchaseEntries`), detalhes (`useGetPurchaseEntryDetails`), mutations de recebimento (`useReceivePurchaseEntry`), mutations de exclusão (`useDeletePurchaseEntry`), e sincronização de query strings.
 *   `types.ts`: Tipagens estruturadas locais.
 

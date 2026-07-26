@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { USER_STATUS, enumCode } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -96,7 +97,7 @@ export function UsersTable({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.status === 2 ? "default" : "secondary"}>
+                    <Badge variant={enumCode(user.status, USER_STATUS) === USER_STATUS.Active ? "default" : "secondary"}>
                       {statusLabels[user.status] ?? user.status}
                     </Badge>
                   </TableCell>

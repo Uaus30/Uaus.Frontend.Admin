@@ -36,6 +36,7 @@ export default function Tags() {
     isLoading,
     tagsWithCount,
     selectedReport,
+    isReportLoading,
     toggleSort,
     openModal,
     randomizeColor,
@@ -93,6 +94,7 @@ export default function Tags() {
         open={reportModalOpen}
         onOpenChange={setReportModalOpen}
         selectedReport={selectedReport}
+        isLoading={isReportLoading}
       />
     </AppLayout>
   );

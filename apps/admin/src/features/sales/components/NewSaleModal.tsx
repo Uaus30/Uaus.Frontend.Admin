@@ -1,11 +1,11 @@
 import React from "react";
-import { Loader2, Receipt, X } from "lucide-react";
+import { Loader2, Plus, Receipt, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
-import type { NewSaleDraftItem } from "../types";
+import type { NewSaleDraftItem, NewSaleDraftPayment } from "../types";
 
 type NewSaleModalProps = {
   /** Visibility status of the modal */
@@ -30,10 +30,18 @@ type NewSaleModalProps = {
   setSelectedQty: (qty: number) => void;
   /** List of items draft currently in the cart */
   items: NewSaleDraftItem[];
-  /** Selected payment method ID string */
-  paymentMethod: string;
-  /** Callback to update payment method ID */
-  setPaymentMethod: (val: string) => void;
+  /** Payment splits of the sale (a sale may have N payment methods) */
+  payments: NewSaleDraftPayment[];
+  /** Callback to append a payment split filled with the remaining amount */
+  onAddPayment: () => void;
+  /** Callback to drop a payment split by position */
+  onRemovePayment: (index: number) => void;
+  /** Callback to patch a payment split by position */
+  onUpdatePayment: (index: number, patch: Partial<NewSaleDraftPayment>) => void;
+  /** Amount already distributed across payment splits */
+  paidAmount: number;
+  /** Amount still to distribute (negative when overpaid) */
+  remainingAmount: number;
   /** Selected payment status ID string */
   paymentStatus: string;
   /** Callback to update payment status ID */
@@ -81,8 +89,12 @@ export function NewSaleModal({
   selectedQty,
   setSelectedQty,
   items,
-  paymentMethod,
-  setPaymentMethod,
+  payments,
+  onAddPayment,
+  onRemovePayment,
+  onUpdatePayment,
+  paidAmount,
+  remainingAmount,
   paymentStatus,
   setPaymentStatus,
   paymentMethods,
@@ -98,6 +110,10 @@ export function NewSaleModal({
   onRemoveItem,
   onSubmit,
 }: NewSaleModalProps) {
+  const activePaymentMethods = paymentMethods.filter(
+    (option) => option.isActive ?? option.allowSelect ?? true,
+  );
+
   return (
     <Dialog
       open={open}
@@ -207,24 +223,86 @@ export function NewSaleModal({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Método de Pagamento</label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods
-                    .filter((option) => option.allowSelect)
-                    .map((option) => (
-                      <SelectItem key={option.id} value={String(option.id)}>
-                        {option.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-3 rounded-xl border border-border/50 bg-background/50 p-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold">Formas de Pagamento</h4>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onAddPayment}
+                disabled={payments.length >= activePaymentMethods.length}
+              >
+                <Plus className="mr-1 h-4 w-4" /> Adicionar forma
+              </Button>
             </div>
+
+            {payments.map((payment, index) => (
+              <div key={index} className="flex items-end gap-2">
+                <div className="flex-1 space-y-1">
+                  {index === 0 && <label className="text-xs text-muted-foreground">Forma</label>}
+                  <Select
+                    value={String(payment.paymentMethodId)}
+                    onValueChange={(value) => onUpdatePayment(index, { paymentMethodId: Number(value) })}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activePaymentMethods
+                        .filter(
+                          (option) =>
+                            option.id === payment.paymentMethodId ||
+                            !payments.some((entry) => entry.paymentMethodId === option.id),
+                        )
+                        .map((option) => (
+                          <SelectItem key={option.id} value={String(option.id)}>
+                            {option.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-36 space-y-1">
+                  {index === 0 && <label className="text-xs text-muted-foreground">Valor (R$)</label>}
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={payment.amount}
+                    disabled={payments.length === 1}
+                    onChange={(event) => onUpdatePayment(index, { amount: Number(event.target.value) })}
+                    className="bg-background"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemovePayment(index)}
+                  disabled={payments.length === 1}
+                  className="mb-2 text-destructive hover:opacity-70 disabled:opacity-30"
+                  aria-label="Remover forma de pagamento"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+
+            {payments.length > 1 && (
+              <p
+                className={`text-xs ${
+                  Math.abs(remainingAmount) > 0.01 ? "text-destructive" : "text-muted-foreground"
+                }`}
+              >
+                Distribuído: {formatCurrency(paidAmount)} de {formatCurrency(total)}
+                {Math.abs(remainingAmount) > 0.01 &&
+                  (remainingAmount > 0
+                    ? ` — faltam ${formatCurrency(remainingAmount)}`
+                    : ` — ${formatCurrency(Math.abs(remainingAmount))} a mais`)}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Status do Pagamento</label>
               <Select value={paymentStatus} onValueChange={setPaymentStatus}>
@@ -281,7 +359,12 @@ export function NewSaleModal({
             </Button>
             <Button
               onClick={onSubmit}
-              disabled={savingSale || items.length === 0}
+              disabled={
+                savingSale ||
+                items.length === 0 ||
+                payments.length === 0 ||
+                Math.abs(remainingAmount) > 0.01
+              }
               className="hover-elevate"
             >
               {savingSale ? (

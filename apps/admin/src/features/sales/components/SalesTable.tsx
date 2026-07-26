@@ -1,7 +1,12 @@
 import React from "react";
-import { Eye, Loader2, Trash2 } from "lucide-react";
+import { Eye, Loader2, Printer, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { formatDateInput, parseDateInput } from "@/components/ui/date-field";
+import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { EnrichedSale } from "../types";
 
@@ -22,14 +27,46 @@ type SalesTableProps = {
   onViewDetails: (id: number) => void;
   /** Callback to delete specific sale by ID */
   onDelete: (id: number) => void;
+  /** Callback to reprint the receipt of a specific sale by ID */
+  onPrintReceipt: (id: number) => void;
   /** Active sale ID being deleted, or null */
   deletingSaleId: number | null;
+  /** Active sale ID having its receipt printed, or null */
+  printingSaleId: number | null;
+  /** Search string */
+  search: string;
+  /** Set search string */
+  setSearch: (val: string) => void;
+  /** Start date string */
+  startDate: string;
+  /** Set start date string */
+  setStartDate: (val: string) => void;
+  /** End date string */
+  endDate: string;
+  /** Set end date string */
+  setEndDate: (val: string) => void;
+  /** Payment method filter ID string */
+  paymentMethodFilter: string;
+  /** Set payment method filter ID string */
+  setPaymentMethodFilter: (val: string) => void;
+  /** Payment status filter ID string */
+  paymentStatusFilter: string;
+  /** Set payment status filter ID string */
+  setPaymentStatusFilter: (val: string) => void;
+  /** Payment methods options */
+  paymentMethods: any[];
+  /** Payment statuses options */
+  paymentStatuses: any[];
 };
+
+/** Rótulo dos campos de filtro — mesmo padrão da barra de filtros dos logs. */
+const FILTER_LABEL_CLASS =
+  "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 /**
  * SalesTable
- * 
- * Component rendering the grid table listing sales transactions and paging controls.
+ *
+ * Component rendering the grid table listing sales transactions, filter controls, and paging.
  */
 export function SalesTable({
   isLoading,
@@ -40,10 +77,115 @@ export function SalesTable({
   salesPage,
   onViewDetails,
   onDelete,
+  onPrintReceipt,
   deletingSaleId,
+  printingSaleId,
+  search,
+  setSearch,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
+  paymentMethodFilter,
+  setPaymentMethodFilter,
+  paymentStatusFilter,
+  setPaymentStatusFilter,
+  paymentMethods,
+  paymentStatuses,
 }: SalesTableProps) {
+  // O filtro trafega as datas como string (yyyy-MM-dd) até a API; o calendário
+  // trabalha com Date. A conversão fica na borda, sem mexer no hook.
+  const dateRange: DateRange = {
+    from: parseDateInput(startDate),
+    to: parseDateInput(endDate),
+  };
+
+  /** Aplica o período escolhido no calendário e volta para a primeira página. */
+  function handleDateRangeChange(range: DateRange) {
+    setStartDate(formatDateInput(range.from));
+    setEndDate(formatDateInput(range.to));
+    setPage(1);
+  }
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
+    <div className="space-y-4">
+      {/* Filter toolbar */}
+      <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
+          {/* Campo de Busca */}
+          <div className="flex flex-col gap-1.5 flex-1 min-w-[260px]">
+            <Label className={FILTER_LABEL_CLASS}>Busca</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, produto ou observação..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-9 bg-background"
+              />
+            </div>
+          </div>
+
+          {/* Período de Datas */}
+          <div className="flex flex-col gap-1.5 w-64">
+            <Label className={FILTER_LABEL_CLASS}>Período</Label>
+            <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+          </div>
+
+          {/* Forma de Pagamento */}
+          <div className="flex flex-col gap-1.5 w-[190px]">
+            <Label className={FILTER_LABEL_CLASS}>Forma de Pagamento</Label>
+            <Select
+              value={paymentMethodFilter}
+              onValueChange={(val) => {
+                setPaymentMethodFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Forma de Pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Formas Pagto</SelectItem>
+                {paymentMethods.map((pm) => (
+                  <SelectItem key={pm.id} value={String(pm.id)}>
+                    {pm.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status Pagamento */}
+          <div className="flex flex-col gap-1.5 w-[160px]">
+            <Label className={FILTER_LABEL_CLASS}>Status Pagamento</Label>
+            <Select
+              value={paymentStatusFilter}
+              onValueChange={(val) => {
+                setPaymentStatusFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Status Pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Status</SelectItem>
+                {paymentStatuses.map((ps) => (
+                  <SelectItem key={ps.id} value={String(ps.id)}>
+                    {ps.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
@@ -77,12 +219,35 @@ export function SalesTable({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{formatDate(sale.createdAt)}</td>
                   <td className="px-6 py-4 font-medium">
-                    {sale.customer?.name || <span className="text-muted-foreground">Consumidor Final</span>}
+                    {sale.customerName || sale.customer?.name ? (
+                      <div className="min-w-0">
+                        <p className="truncate">{sale.customerName || sale.customer?.name}</p>
+                        {sale.customerDocument && (
+                          <p className="truncate font-mono text-xs text-muted-foreground">
+                            {sale.customerDocument}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">Consumidor Final</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant="outline" className="border-border/50 font-normal">
-                      {paymentMethodById[sale.paymentMethod] ?? sale.paymentMethod}
-                    </Badge>
+                    <div className="flex flex-wrap gap-1">
+                      {(sale.payments?.length ?? 0) > 0 ? (
+                        sale.payments!.map((payment) => (
+                          <Badge key={payment.id} variant="outline" className="border-border/50 font-normal">
+                            {payment.paymentMethodName || paymentMethodById[payment.paymentMethodId] || "—"}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline" className="border-border/50 font-normal">
+                          {sale.paymentMethodName ||
+                            (sale.paymentMethodId ? paymentMethodById[sale.paymentMethodId] : null) ||
+                            "Não informado"}
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-primary">{formatCurrency(sale.total)}</td>
                   <td className="px-6 py-4 text-right">
@@ -94,6 +259,20 @@ export function SalesTable({
                         onClick={() => onViewDetails(sale.id)}
                       >
                         <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
+                        onClick={() => onPrintReceipt(sale.id)}
+                        disabled={printingSaleId === sale.id}
+                        title="Reimprimir cupom"
+                      >
+                        {printingSaleId === sale.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Printer className="h-4 w-4" />
+                        )}
                       </Button>
                       <Button
                         size="icon"
@@ -140,5 +319,6 @@ export function SalesTable({
         </div>
       </div>
     </div>
+  </div>
   );
 }

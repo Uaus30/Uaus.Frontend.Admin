@@ -1,7 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useGetSales, getGetSalesQueryKey } from "@workspace/api-client-react";
+import {
+  useGetSales,
+  useGetPaymentMethods,
+  getGetSalesQueryKey,
+  PAYMENT_STATUS,
+  PRODUCT_STATUS,
+  enumCode,
+} from "@workspace/api-client-react";
+import { buildReceiptFromSale, printReceipt } from "@workspace/receipt";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/formatters";
 import { getEnumOptions } from "@/services/core";
 import { buildEnrichedSales, buildProductCollections } from "@/services/mappers";
 import {
@@ -14,8 +23,8 @@ import { getAllCategories, getAllDepartments } from "@/services/categories.servi
 import { getAllTags } from "@/services/tags.service";
 import { getAllImages } from "@/services/images.service";
 import { getAllCustomers } from "@/services/customers.service";
-import { getAllSaleItems, createSaleWithItems, deleteSaleWithItems } from "@/services/sales.service";
-import type { NewSaleDraftItem, EnrichedSale } from "../types";
+import { createSaleWithItems, deleteSaleWithItems, getSaleItems } from "@/services/sales.service";
+import type { NewSaleDraftItem, EnrichedSale, NewSaleDraftPayment } from "../types";
 
 /**
  * useSales
@@ -30,20 +39,31 @@ export function useSales() {
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [viewSaleId, setViewSaleId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
 
-  // Query: Busca vendas paginadas
-  const { data: salesPage, isLoading } = useGetSales({ page, limit: 15 });
+  // Query: Busca vendas paginadas com filtros
+  const { data: salesPage, isLoading } = useGetSales({
+    search: search.trim() || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+    paymentMethodId: paymentMethodFilter !== "all" ? Number(paymentMethodFilter) : undefined,
+    paymentStatus: paymentStatusFilter !== "all" ? Number(paymentStatusFilter) : undefined,
+    page,
+    limit: 15,
+  });
 
-  // Query: Carrega todos os clientes
+  // Query: Carrega formas de pagamento cadastradas
+  const { data: dbPaymentMethodsData } = useGetPaymentMethods({ page: 1, size: 100 });
+  const dbPaymentMethods = dbPaymentMethodsData?.data ?? [];
+
+  // Query: Carrega todos os clientes para o select do checkout
   const { data: customers = [] } = useQuery({
     queryKey: ["customers-all-for-sales"],
     queryFn: () => getAllCustomers(),
-  });
-
-  // Query: Carrega enums de métodos de pagamento
-  const { data: paymentMethods = [] } = useQuery({
-    queryKey: ["payment-method-options"],
-    queryFn: () => getEnumOptions("/Sales/enums/payment-method"),
   });
 
   // Query: Carrega enums de status de pagamento
@@ -87,46 +107,46 @@ export function useSales() {
         productImages,
       }).enrichedProducts;
     },
-  });
-
-  // Query: Busca todos os itens de vendas no histórico
-  const { data: saleItems = [] } = useQuery({
-    queryKey: ["sale-items-all-for-sales"],
-    queryFn: () => getAllSaleItems(),
+    enabled: createModalOpen,
   });
 
   // Mapeador de métodos de pagamento por ID
   const paymentMethodById = useMemo(
-    () => Object.fromEntries(paymentMethods.map((item) => [item.id, item.name])),
-    [paymentMethods]
+    () => Object.fromEntries(dbPaymentMethods.map((item) => [item.id, item.name])),
+    [dbPaymentMethods]
   );
 
-  // Lista de vendas enriquecida com relacionamentos
+  // Lista de vendas enriquecida com cliente
   const saleDetails = useMemo<EnrichedSale[]>(() => {
     if (!salesPage) return [];
-    return buildEnrichedSales({
-      sales: salesPage.data,
-      saleItems,
-      customers,
-      enrichedProducts,
-    }) as EnrichedSale[];
-  }, [customers, enrichedProducts, saleItems, salesPage]);
+    const customersById = new Map(customers.map((item) => [item.id, item]));
+    return salesPage.data.map((sale) => ({
+      ...sale,
+      customer: sale.customerId ? customersById.get(sale.customerId) ?? null : null,
+      items: [],
+    })) as EnrichedSale[];
+  }, [customers, salesPage]);
 
   // Estados do formulário de Checkout
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [items, setItems] = useState<NewSaleDraftItem[]>([]);
   const [discount, setDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [payments, setPayments] = useState<NewSaleDraftPayment[]>([]);
   const [paymentStatus, setPaymentStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedProductId, setSelectedProductId] = useState<number | "">("");
   const [selectedQty, setSelectedQty] = useState(1);
   const [savingSale, setSavingSale] = useState(false);
   const [deletingSaleId, setDeletingSaleId] = useState<number | null>(null);
+  const [printingSaleId, setPrintingSaleId] = useState<number | null>(null);
 
   // Produtos disponíveis com estoque positivo
   const availableProducts = useMemo(
-    () => enrichedProducts.filter((product) => product.stock > 0 && product.status !== 4),
+    () =>
+      enrichedProducts.filter(
+        (product) =>
+          product.stock > 0 && enumCode(product.status, PRODUCT_STATUS) !== PRODUCT_STATUS.Inactive
+      ),
     [enrichedProducts]
   );
 
@@ -134,7 +154,11 @@ export function useSales() {
     setCustomerId(null);
     setItems([]);
     setDiscount(0);
-    setPaymentMethod(paymentMethods.find((item) => item.allowSelect)?.id.toString() ?? "");
+    setPayments(
+      dbPaymentMethods.length > 0
+        ? [{ paymentMethodId: dbPaymentMethods[0].id, amount: 0 }]
+        : []
+    );
     setPaymentStatus(paymentStatuses.find((item) => item.allowSelect)?.id.toString() ?? "");
     setNotes("");
     setSelectedProductId("");
@@ -184,8 +208,54 @@ export function useSales() {
   }, [items]);
 
   const total = useMemo(() => {
-    return Math.max(0, subtotal - discount);
+    return Math.max(0, Number((subtotal - discount).toFixed(2)));
   }, [subtotal, discount]);
+
+  const paidAmount = useMemo(
+    () => Number(payments.reduce((sum, payment) => sum + payment.amount, 0).toFixed(2)),
+    [payments]
+  );
+
+  const remainingAmount = useMemo(
+    () => Number((total - paidAmount).toFixed(2)),
+    [total, paidAmount]
+  );
+
+  // Com uma única forma de pagamento o valor acompanha o total automaticamente.
+  useEffect(() => {
+    if (payments.length !== 1 || payments[0].amount === total) return;
+    setPayments([{ ...payments[0], amount: total }]);
+  }, [total, payments]);
+
+  /**
+   * Adiciona uma forma de pagamento ainda não usada, já com o valor que falta
+   * distribuir. Não faz nada quando todas as formas cadastradas já estão na lista.
+   */
+  function addPayment() {
+    const used = new Set(payments.map((payment) => payment.paymentMethodId));
+    const next = dbPaymentMethods.find((method) => !used.has(method.id));
+    if (!next) return;
+
+    setPayments((current) => [
+      ...current,
+      { paymentMethodId: next.id, amount: Math.max(0, remainingAmount) },
+    ]);
+  }
+
+  /** Remove a forma de pagamento da posição informada. */
+  function removePayment(index: number) {
+    setPayments((current) => current.filter((_, position) => position !== index));
+  }
+
+  /**
+   * Altera a forma ou o valor de um pagamento. Com uma única forma na lista, o
+   * valor é reescrito pelo total da venda logo em seguida.
+   */
+  function updatePayment(index: number, patch: Partial<NewSaleDraftPayment>) {
+    setPayments((current) =>
+      current.map((payment, position) => (position === index ? { ...payment, ...patch } : payment))
+    );
+  }
 
   const saleToView = useMemo(() => {
     return saleDetails.find((sale) => sale.id === viewSaleId) ?? null;
@@ -205,9 +275,21 @@ export function useSales() {
       return;
     }
 
-    if (!paymentMethod || !paymentStatus) {
+    if (payments.length === 0 || !paymentStatus) {
       toast({
-        title: "Selecione o método e o status do pagamento.",
+        title: "Informe ao menos uma forma de pagamento e o status.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (Math.abs(remainingAmount) > 0.01) {
+      toast({
+        title: "Formas de pagamento não fecham com o total.",
+        description:
+          remainingAmount > 0
+            ? `Faltam ${formatCurrency(remainingAmount)} a distribuir.`
+            : `Há ${formatCurrency(Math.abs(remainingAmount))} a mais do que o total.`,
         variant: "destructive",
       });
       return;
@@ -218,7 +300,7 @@ export function useSales() {
       await createSaleWithItems({
         customerId,
         discount,
-        paymentMethod: Number(paymentMethod),
+        payments,
         paymentStatus: Number(paymentStatus),
         notes,
         items,
@@ -240,6 +322,40 @@ export function useSales() {
       });
     } finally {
       setSavingSale(false);
+    }
+  }
+
+  /**
+   * Reimprime o cupom de uma venda já registrada.
+   *
+   * A listagem não traz os itens, então eles são buscados na hora. Todo cupom
+   * saído do painel é segunda via — a primeira sai do PDV no ato da venda.
+   */
+  async function handlePrintReceipt(saleId: number) {
+    const sale = saleDetails.find((item) => item.id === saleId);
+    if (!sale) return;
+
+    setPrintingSaleId(saleId);
+    try {
+      const saleItems = await getSaleItems(saleId);
+      await printReceipt(
+        buildReceiptFromSale(sale, saleItems, {
+          // O consumidor não precisa de contexto: o cupom o identifica só pelo
+          // documento, e a venda já vem com ele resolvido pelo backend (do
+          // cadastro quando há cliente, senão o informado no balcão).
+          paymentMethodNameById: paymentMethodById,
+          reprint: true,
+          cancelled: enumCode(sale.paymentStatus, PAYMENT_STATUS) === PAYMENT_STATUS.Cancelled,
+        }),
+      );
+    } catch (error) {
+      toast({
+        title: "Erro ao gerar o cupom",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setPrintingSaleId(null);
     }
   }
 
@@ -274,7 +390,17 @@ export function useSales() {
     salesPage,
     isLoading,
     customers,
-    paymentMethods,
+    search,
+    setSearch,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    paymentMethodFilter,
+    setPaymentMethodFilter,
+    paymentStatusFilter,
+    setPaymentStatusFilter,
+    paymentMethods: dbPaymentMethods,
     paymentStatuses,
     paymentMethodById,
     saleDetails,
@@ -284,8 +410,13 @@ export function useSales() {
     setItems,
     discount,
     setDiscount,
-    paymentMethod,
-    setPaymentMethod,
+    payments,
+    setPayments,
+    addPayment,
+    removePayment,
+    updatePayment,
+    paidAmount,
+    remainingAmount,
     paymentStatus,
     setPaymentStatus,
     notes,
@@ -296,6 +427,7 @@ export function useSales() {
     setSelectedQty,
     savingSale,
     deletingSaleId,
+    printingSaleId,
     availableProducts,
     subtotal,
     total,
@@ -305,5 +437,6 @@ export function useSales() {
     removeItem,
     handleCreateSubmit,
     handleDeleteSale,
+    handlePrintReceipt,
   };
 }

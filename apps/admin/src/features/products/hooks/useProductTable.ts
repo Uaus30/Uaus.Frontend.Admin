@@ -36,45 +36,61 @@ export function useProductTable() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
 
-  // React Queries: Load full relation pools
+  // React Queries: Load full relation pools with cache window to prevent refetch loops
   const { data: departments = [] } = useQuery({
     queryKey: ["departments-all-for-products"],
     queryFn: () => getAllDepartments(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories-all-for-products"],
     queryFn: () => getAllCategories(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: allProducts = [] } = useQuery({
     queryKey: ["products-all-for-table"],
     queryFn: () => getAllProducts(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: tags = [] } = useQuery({
     queryKey: ["tags-all-for-products"],
     queryFn: () => getAllTags(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: productTags = [] } = useQuery({
     queryKey: ["product-tags-all-for-products"],
     queryFn: () => getAllProductTags(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: productImages = [] } = useQuery({
     queryKey: ["product-images-all-for-products"],
     queryFn: () => getAllProductImages(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: imagesCatalog = [] } = useQuery({
     queryKey: ["images-all-for-products"],
     queryFn: () => getAllImages(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: statusOptions = [] } = useQuery({
     queryKey: ["product-status-options"],
     queryFn: () => getEnumOptions("/Products/enums/product-status"),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Query: Paginated ProductGroup catalog

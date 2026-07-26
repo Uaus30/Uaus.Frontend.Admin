@@ -8,8 +8,8 @@ Este módulo gerencia a visualização, filtragem, criação, edição e visuali
 
 *   `components/CategoryTable.tsx`: Renderiza a listagem de categorias com pesquisa, filtro de departamento, contagem de produtos e controles de paginação.
 *   `components/CategoryEditorModal.tsx`: Modal com formulário para criação e edição de categorias de produtos.
-*   `components/CategoryReportModal.tsx`: Modal exibindo o relatório detalhado de faturamento e vendas por categoria (dados consolidados).
-*   `hooks/useCategories.ts`: Centraliza as consultas do TanStack Query, estados de paginação/busca, mutations para criação, edição e deleção de categorias, além da geração dos relatórios mockados.
+*   `components/CategoryReportModal.tsx`: Modal com o desempenho real de vendas dos produtos da categoria nos últimos 30 dias. O corpo é compartilhado com o relatório de etiquetas em `components/catalog-report-body.tsx`.
+*   `hooks/useCategories.ts`: Centraliza as consultas do TanStack Query, estados de paginação/busca, mutations para criação, edição e deleção de categorias, além do carregamento sob demanda do relatório (`GET /Categories/{id}/report`).
 *   `types.ts`: Definições de tipos TypeScript para formulários, filtros e relatórios.
 
 ---

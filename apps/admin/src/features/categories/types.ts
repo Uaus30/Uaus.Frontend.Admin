@@ -34,31 +34,8 @@ export type EnrichedCategory = {
   description?: string | null;
   /** Associated department object if fetched, otherwise null */
   department: Department | null;
-  /** Label indicating number of associated products (mocked representation) */
-  productCountLabel: string;
+  /** Produtos ativos vinculados, contados pela API na própria listagem */
+  productCount: number;
 };
 
-/**
- * Mock representation of category sales report data.
- */
-export type CategoryReportProduct = {
-  id: number;
-  name: string;
-  price: number;
-  stock: number;
-  totalSales: number;
-  totalRevenue: number;
-};
-
-/**
- * Mock representation of category sales report summary.
- */
-export type CategoryReport = {
-  category: {
-    name: string;
-  };
-  totalRevenue: number;
-  totalSales: number;
-  totalStock: number;
-  products: CategoryReportProduct[];
-};
+export type { CategoryReport, CatalogReportProduct as CategoryReportProduct } from "@/services/mappers";

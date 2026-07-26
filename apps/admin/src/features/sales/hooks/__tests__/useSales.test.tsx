@@ -57,7 +57,19 @@ vi.mock("@workspace/api-client-react", () => ({
     },
     isLoading: false,
   })),
+  useGetPaymentMethods: vi.fn(() => ({
+    data: {
+      data: [{ id: 1, name: "Pix", isActive: true, installments: [] }],
+      page: 1,
+      limit: 100,
+      total: 1,
+      totalPages: 1
+    },
+    isLoading: false,
+  })),
   getGetSalesQueryKey: () => ["sales-page"],
+  PRODUCT_STATUS: { None: 0, Draft: 1, Active: 2, OutOfStock: 3, Inactive: 4 },
+  enumCode: (value: unknown) => (typeof value === "number" ? value : 0),
 }));
 
 // Mock the toast hook
@@ -89,6 +101,11 @@ describe("useSales Hook", () => {
     const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
 
     expect(result.current.page).toBe(1);
+    expect(result.current.search).toBe("");
+    expect(result.current.startDate).toBe("");
+    expect(result.current.endDate).toBe("");
+    expect(result.current.paymentMethodFilter).toBe("all");
+    expect(result.current.paymentStatusFilter).toBe("all");
     expect(result.current.createModalOpen).toBe(false);
     expect(result.current.viewSaleId).toBeNull();
     expect(result.current.items).toEqual([]);
@@ -99,6 +116,10 @@ describe("useSales Hook", () => {
 
   it("should handle cart modifications", async () => {
     const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.setCreateModalOpen(true);
+    });
 
     // Wait for the async product collections query to load
     await waitFor(() => expect(result.current.availableProducts.length).toBeGreaterThan(0));
@@ -125,5 +146,66 @@ describe("useSales Hook", () => {
     });
     expect(result.current.items).toEqual([]);
     expect(result.current.total).toBe(0);
+  });
+
+  it("should keep a single payment in sync with the sale total", async () => {
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.setCreateModalOpen(true);
+    });
+    await waitFor(() => expect(result.current.availableProducts.length).toBeGreaterThan(0));
+
+    act(() => {
+      result.current.resetSaleForm();
+    });
+    await waitFor(() => expect(result.current.payments).toHaveLength(1));
+
+    act(() => {
+      result.current.setSelectedProductId(1);
+      result.current.setSelectedQty(2);
+    });
+    act(() => {
+      result.current.addItem();
+    });
+
+    await waitFor(() => expect(result.current.payments[0].amount).toBe(200));
+    expect(result.current.remainingAmount).toBe(0);
+  });
+
+  it("should not let a lone payment drift away from the total", async () => {
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.setCreateModalOpen(true);
+    });
+    await waitFor(() => expect(result.current.availableProducts.length).toBeGreaterThan(0));
+
+    act(() => {
+      result.current.resetSaleForm();
+    });
+    await waitFor(() => expect(result.current.payments).toHaveLength(1));
+
+    act(() => {
+      result.current.setSelectedProductId(1);
+      result.current.setSelectedQty(1);
+    });
+    act(() => {
+      result.current.addItem();
+    });
+    await waitFor(() => expect(result.current.payments[0].amount).toBe(100));
+
+    // Com uma única forma, o valor sempre volta a acompanhar o total da venda.
+    act(() => {
+      result.current.updatePayment(0, { amount: 60 });
+    });
+    await waitFor(() => expect(result.current.payments[0].amount).toBe(100));
+    expect(result.current.remainingAmount).toBe(0);
+
+    // O mock só tem uma forma de pagamento cadastrada, então não há o que dividir.
+    act(() => {
+      result.current.addPayment();
+    });
+    expect(result.current.payments).toHaveLength(1);
   });
 });

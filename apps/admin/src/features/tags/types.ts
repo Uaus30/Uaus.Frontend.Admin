@@ -24,41 +24,8 @@ export type EnrichedTag = {
   isPublic: boolean;
   /** Data de criação da etiqueta */
   createdAt: string;
-  /** Quantidade de produtos associados (mockado temporariamente) */
+  /** Produtos ativos marcados com a etiqueta, contados pela API na própria listagem */
   productCount: number;
 };
 
-/**
- * Representa o produto retornado no relatório da etiqueta.
- */
-export type TagReportProduct = {
-  /** ID do produto */
-  id: number;
-  /** Nome do produto */
-  name: string;
-  /** Quantidade em estoque */
-  stock: number;
-  /** Quantidade total vendida */
-  totalSales: number;
-  /** Faturamento total gerado */
-  totalRevenue: number;
-};
-
-/**
- * Representa a estrutura do relatório consolidado de vendas de uma etiqueta.
- */
-export type TagReport = {
-  /** Informações básicas da etiqueta */
-  tag: {
-    name: string;
-    color: string;
-  };
-  /** Faturamento total de todos os produtos com esta etiqueta */
-  totalRevenue: number;
-  /** Total de itens vendidos com esta etiqueta */
-  totalSales: number;
-  /** Estoque total consolidado com esta etiqueta */
-  totalStock: number;
-  /** Lista de produtos associados com suas respectivas métricas */
-  products: TagReportProduct[];
-};
+export type { TagReport, CatalogReportProduct as TagReportProduct } from "@/services/mappers";

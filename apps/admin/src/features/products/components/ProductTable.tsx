@@ -1,5 +1,6 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -303,8 +304,8 @@ export function ProductTable({
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge variant={product.status === 2 ? "default" : "outline"}>
-                            {statusOptions.find((option) => option.id === product.status)?.name ?? product.status}
+                          <Badge variant={enumCode(product.status, PRODUCT_STATUS) === PRODUCT_STATUS.Active ? "default" : "outline"}>
+                            {statusOptions.find((option) => option.id === enumCode(product.status, PRODUCT_STATUS))?.name ?? "—"}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right">

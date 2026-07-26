@@ -31,7 +31,8 @@ import {
   Truck,
   ChevronDown,
   ClipboardList,
-  Settings
+  Settings,
+  DollarSign
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -54,6 +55,14 @@ const navigation = [
     ]
   },
   { 
+    name: "Financeiro", 
+    icon: DollarSign,
+    items: [
+      { name: "Vendas", href: "/vendas" },
+      { name: "Formas de Pagamento", href: "/financeiro/formas-pagamento" }
+    ]
+  },
+  { 
     name: "Estoque", 
     icon: ClipboardList,
     items: [
@@ -63,7 +72,6 @@ const navigation = [
     ]
   },
   { name: "Mídia", href: "/imagens", icon: ImageIcon },
-  { name: "Vendas", href: "/vendas", icon: ShoppingCart },
   { name: "Clientes", href: "/clientes", icon: Users },
   { 
     name: "Sistema", 

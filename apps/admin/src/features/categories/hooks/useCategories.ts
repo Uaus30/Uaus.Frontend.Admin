@@ -8,7 +8,7 @@ import {
   getCategoriesPage, 
   updateCategory 
 } from "@/services/categories.service";
-import { buildMockCategoryReport } from "@/lib/mock-data";
+import { getCategoryReport } from "@/services/reports.service";
 import { getGetCategoriesQueryKey } from "@workspace/api-client-react";
 import type { CategoryForm, EnrichedCategory, Department, CategoryReport } from "../types";
 
@@ -24,7 +24,7 @@ import type { CategoryForm, EnrichedCategory, Department, CategoryReport } from 
  * - Pagination categories querying with search/department filters.
  * - Mapping categories with their departments.
  * - Creating, updating, and deleting categories with query validation.
- * - Fetching mock category analytics reports.
+ * - Carregamento sob demanda do relatório de vendas da categoria selecionada.
  */
 export function useCategories() {
   const queryClient = useQueryClient();
@@ -88,17 +88,21 @@ export function useCategories() {
     return (categoriesPage?.data ?? []).map((category: any) => ({
       ...category,
       department: departmentsById.get(category.departmentId) ?? null,
-      productCountLabel: "Mockado",
+      productCount: category.productCount ?? 0,
     }));
   }, [categoriesPage?.data, departments]);
 
-  // Derived: Active category sales report summary
-  const selectedReport = useMemo<CategoryReport | null>(() => {
-    if (!selectedCatId) return null;
-    const category = categoriesWithDepartment.find((item) => item.id === selectedCatId);
-    if (!category) return null;
-    return buildMockCategoryReport(category.name);
-  }, [categoriesWithDepartment, selectedCatId]);
+  // Query: relatório da categoria selecionada.
+  //
+  // Só dispara quando o modal é aberto: é uma agregação sobre os itens de venda
+  // do período, e carregá-la para todas as categorias da página seria pagar por
+  // um dado que o usuário pediu de uma.
+  const { data: selectedReport = null, isLoading: isReportLoading } = useQuery<CategoryReport>({
+    queryKey: ["category-report", selectedCatId],
+    queryFn: () => getCategoryReport(selectedCatId as number),
+    enabled: !!selectedCatId && reportOpen,
+    staleTime: 5 * 60_000,
+  });
 
   /**
    * Opens the Category editor dialog in Create or Edit mode.
@@ -124,8 +128,8 @@ export function useCategories() {
   }
 
   /**
-   * Opens the mock category sales report dialog.
-   * @param categoryId Category ID to load report analytics for.
+   * Abre o relatório de vendas da categoria, disparando a consulta.
+   * @param categoryId ID da categoria analisada.
    */
   function openReport(categoryId: number) {
     setSelectedCatId(categoryId);
@@ -206,6 +210,7 @@ export function useCategories() {
     categoriesPage,
     categoriesWithDepartment,
     selectedReport,
+    isReportLoading,
     openModal,
     openReport,
     handleSubmit,

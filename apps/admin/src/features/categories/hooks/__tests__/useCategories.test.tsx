@@ -80,7 +80,7 @@ describe("useCategories Hook", () => {
       name: "Cat 10",
       description: "Desc 10",
       department: { id: 1, name: "Dep 1" },
-      productCountLabel: "Mockado",
+      productCount: 4,
     };
 
     act(() => {

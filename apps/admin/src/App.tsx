@@ -23,6 +23,7 @@ import Suppliers from "@/pages/suppliers";
 import Grades from "@/pages/grades";
 import StockEntries from "@/pages/stock-entries";
 import Inventory from "@/pages/inventory";
+import PaymentMethodsPage from "@/pages/payment-methods";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,8 @@ function Router() {
       <Route path="/categorias" component={Categories} />
       <Route path="/etiquetas" component={Tags} />
       <Route path="/vendas" component={Sales} />
+      <Route path="/financeiro/formas-pagamento" component={PaymentMethodsPage} />
+      <Route path="/formas-pagamento" component={PaymentMethodsPage} />
       <Route path="/clientes" component={Customers} />
       <Route path="/fornecedores" component={Suppliers} />
       <Route path="/sistema/usuarios" component={Users} />

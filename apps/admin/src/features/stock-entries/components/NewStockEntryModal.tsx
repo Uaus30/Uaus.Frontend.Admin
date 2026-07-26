@@ -1,6 +1,8 @@
 import React from "react";
 import { FileText, PlusCircle, Receipt, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DatePicker } from "@/components/ui/date-picker";
+import { formatDateInput, guardCalendarDismiss, parseDateInput } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -74,7 +76,16 @@ export function NewStockEntryModal({
 }: NewStockEntryModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
+      {/*
+        O calendário abre num portal fora do modal; sem as guardas abaixo, o
+        Radix trataria o clique num dia como interação externa e fecharia o
+        formulário inteiro.
+      */}
+      <DialogContent
+        className="max-w-4xl overflow-y-auto max-h-[90vh]"
+        onInteractOutside={guardCalendarDismiss}
+        onFocusOutside={guardCalendarDismiss}
+      >
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Receipt className="h-5 w-5 text-primary" />
@@ -119,12 +130,12 @@ export function NewStockEntryModal({
               <label className="text-xs font-semibold text-muted-foreground uppercase">
                 Data da Entrada <span className="text-red-500">*</span>
               </label>
-              <Input
-                type="date"
-                value={entryDate}
-                onChange={(e) => setEntryDate(e.target.value)}
-                className="h-10 bg-background"
-                required
+              <DatePicker
+                value={parseDateInput(entryDate)}
+                onChange={(date) => setEntryDate(formatDateInput(date))}
+                placeholder="Selecionar data"
+                clearable={false}
+                className="h-10"
               />
             </div>
           </div>

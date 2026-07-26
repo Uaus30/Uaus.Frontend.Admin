@@ -7,18 +7,41 @@ import {
   type SaleItemDto,
 } from "@workspace/api-client-react";
 
+/** Forma de pagamento enviada ao registrar uma venda. */
+export type SalePaymentInput = {
+  paymentMethodId: number;
+  paymentMethodInstallmentId?: number | null;
+  amount: number;
+  installments?: number;
+  transactionFee?: number;
+};
+
+/** Carrega todas as vendas percorrendo a paginação da API. */
 export async function getAllSales() {
   return fetchAllPages<SaleDto>("/Sales");
 }
 
+/** Carrega todos os itens de venda do sistema percorrendo a paginação da API. */
 export async function getAllSaleItems() {
   return fetchAllPages<SaleItemDto>("/SaleItems");
 }
 
+/** Carrega os itens de uma venda específica. */
+export async function getSaleItems(saleId: number) {
+  return fetchAllPages<SaleItemDto>("/SaleItems", { saleId });
+}
+
+/**
+ * Registra a venda e depois lança cada item, que é quem baixa o estoque por FIFO
+ * no backend. O total é calculado aqui a partir dos itens menos o desconto.
+ *
+ * @param payload Cliente, desconto, itens e formas de pagamento da venda.
+ * @returns O ID da venda criada.
+ */
 export async function createSaleWithItems(payload: {
   customerId: number | null;
   discount: number;
-  paymentMethod: number;
+  payments: SalePaymentInput[];
   paymentStatus: number;
   notes?: string | null;
   items: Array<{
@@ -27,16 +50,23 @@ export async function createSaleWithItems(payload: {
     unitPrice: number;
   }>;
 }) {
-  const total = payload.items.reduce(
+  const subtotal = payload.items.reduce(
     (sum, item) => sum + item.quantity * item.unitPrice,
     0,
-  ) - payload.discount;
+  );
+  const total = Math.max(0, Number((subtotal - payload.discount).toFixed(2)));
 
   const saleResponse = await apiPost<null>("/Sales", {
     customerId: payload.customerId,
-    total: Math.max(0, total),
+    total,
     discount: payload.discount,
-    paymentMethod: payload.paymentMethod,
+    payments: payload.payments.map((payment) => ({
+      paymentMethodId: payment.paymentMethodId,
+      paymentMethodInstallmentId: payment.paymentMethodInstallmentId ?? null,
+      amount: payment.amount,
+      installments: payment.installments ?? 1,
+      transactionFee: payment.transactionFee ?? 0,
+    })),
     paymentStatus: payload.paymentStatus,
     notes: payload.notes?.trim() || null,
   });
@@ -58,9 +88,12 @@ export async function createSaleWithItems(payload: {
   return saleId;
 }
 
+/**
+ * Apaga a venda e os seus itens. Remover os itens primeiro devolve ao estoque
+ * os lotes que eles haviam consumido.
+ */
 export async function deleteSaleWithItems(saleId: number) {
-  const saleItems = await getAllSaleItems();
-  const relatedItems = saleItems.filter((item) => item.saleId === saleId);
+  const relatedItems = await getSaleItems(saleId);
 
   for (const item of relatedItems) {
     await apiDelete<null>(`/SaleItems/${item.id}`);

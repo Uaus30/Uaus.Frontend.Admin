@@ -1,119 +1,130 @@
 import React from "react";
-import { CalendarRange } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatDateInput, parseDateInput } from "@/components/ui/date-field";
+import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
+import { cn } from "@/lib/utils";
 import type { PeriodMode, PeriodPreset } from "../types";
+import { PERIOD_PRESETS } from "../utils";
+
+/** Rótulo dos campos de filtro — mesmo padrão da barra de filtros dos logs. */
+const FILTER_LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 type PeriodSelectorProps = {
-  /** Selected period selection mode */
   periodMode: PeriodMode;
-  /** Callback to change period selection mode */
-  setPeriodMode: (mode: PeriodMode) => void;
-  /** Selected preset value */
-  period: PeriodPreset;
-  /** Current start date input value for custom range */
-  customStart: string;
-  /** Callback to change start date value */
-  setCustomStart: (val: string) => void;
-  /** Current end date input value for custom range */
-  customEnd: string;
-  /** Callback to change end date value */
-  setCustomEnd: (val: string) => void;
-  /** Indicates if custom date popover is open */
-  popoverOpen: boolean;
-  /** Callback to toggle popover visibility */
-  setPopoverOpen: (open: boolean) => void;
-  /** Description label of the active period */
+  preset: PeriodPreset;
+  /** Rótulo do período em vigor, exibido abaixo do título. */
   periodLabel: string;
-  /** Callback to submit and apply custom date range */
-  handleApplyCustom: () => void;
-  /** Callback to update period when preset is selected */
+  customStart: string;
+  setCustomStart: (value: string) => void;
+  customEnd: string;
+  setCustomEnd: (value: string) => void;
+  handleApplyCustom: (start?: string, end?: string) => void;
   handleSelectPreset: (value: string) => void;
+  handleClearCustom: () => void;
+  isFetching: boolean;
+  onRefresh: () => void;
 };
 
 /**
  * PeriodSelector
- * 
- * Renders selectors for predefined periods (7 days, 30 days, etc) or custom calendar ranges.
+ *
+ * Cabeçalho do painel: título, período em vigor e os controles que o mudam.
+ *
+ * O intervalo personalizado usa o `DateRangePicker` padrão — o próprio calendário
+ * já é a camada flutuante, por isso não há popover em volta. O período é aplicado
+ * assim que as duas pontas são escolhidas, e por isso `handleApplyCustom` recebe
+ * as datas explicitamente: nesse instante o estado do rascunho ainda guarda o
+ * valor anterior.
  */
 export function PeriodSelector({
   periodMode,
-  setPeriodMode,
-  period,
+  preset,
+  periodLabel,
   customStart,
   setCustomStart,
   customEnd,
   setCustomEnd,
-  popoverOpen,
-  setPopoverOpen,
-  periodLabel,
   handleApplyCustom,
   handleSelectPreset,
+  handleClearCustom,
+  isFetching,
+  onRefresh,
 }: PeriodSelectorProps) {
+  const customRange: DateRange = {
+    from: parseDateInput(customStart),
+    to: parseDateInput(customEnd),
+  };
+
+  /** Guarda o rascunho e aplica assim que as duas pontas existem. */
+  function handleCustomRangeChange(range: DateRange) {
+    const start = formatDateInput(range.from);
+    const end = formatDateInput(range.to);
+    setCustomStart(start);
+    setCustomEnd(end);
+    if (start && end) handleApplyCustom(start, end);
+  }
+
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h1 className="text-3xl font-display font-bold">Visão Geral</h1>
-        <p className="mt-1 text-muted-foreground">Acompanhe os principais indicadores da sua empresa.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">Visão geral</h1>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+            {periodLabel}
+          </span>
+          {periodMode === "custom" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearCustom}
+              className="h-6 px-2 text-xs text-muted-foreground"
+            >
+              <X className="mr-1 h-3 w-3" />
+              Limpar
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Select value={periodMode === "preset" ? period : ""} onValueChange={handleSelectPreset}>
-          <SelectTrigger className="h-10 w-44 bg-card">
-            <SelectValue placeholder={periodMode === "custom" ? "Período personalizado" : "Selecione"} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
-            <SelectItem value="90d">Últimos 90 dias</SelectItem>
-            <SelectItem value="1y">Último ano</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex w-44 flex-col gap-1.5">
+          <Label className={FILTER_LABEL_CLASS}>Período</Label>
+          <Select value={periodMode === "preset" ? preset : ""} onValueChange={handleSelectPreset}>
+            <SelectTrigger className="h-10 w-full bg-card">
+              <SelectValue placeholder={periodMode === "custom" ? "Personalizado" : "Selecione"} />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(PERIOD_PRESETS).map(([value, config]) => (
+                <SelectItem key={value} value={value}>
+                  {config.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button variant={periodMode === "custom" ? "default" : "outline"} size="sm" className="h-10 gap-2 text-sm">
-              <CalendarRange className="h-4 w-4" />
-              {periodMode === "custom" && customStart
-                ? periodLabel
-                : "Período personalizado"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 border-border bg-card p-4" align="end">
-            <p className="mb-3 text-sm font-semibold">Selecionar período</p>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Data inicial</Label>
-                <Input
-                  type="date"
-                  value={customStart}
-                  onChange={(event) => setCustomStart(event.target.value)}
-                  className="h-9 bg-background text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Data final</Label>
-                <Input
-                  type="date"
-                  value={customEnd}
-                  onChange={(event) => setCustomEnd(event.target.value)}
-                  max={new Date().toISOString().split("T")[0]}
-                  className="h-9 bg-background text-sm"
-                />
-              </div>
-              <Button
-                className="h-9 w-full"
-                onClick={handleApplyCustom}
-                disabled={!customStart || !customEnd || customStart > customEnd}
-              >
-                Aplicar período
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <div className="flex w-64 flex-col gap-1.5">
+          <Label className={FILTER_LABEL_CLASS}>Período personalizado</Label>
+          <DateRangePicker
+            value={customRange}
+            onChange={handleCustomRangeChange}
+            maxDate={new Date()}
+            className="h-10 bg-card"
+          />
+        </div>
+
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onRefresh}
+          aria-label="Atualizar indicadores"
+          className="h-10 w-10 bg-card"
+        >
+          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+        </Button>
       </div>
     </div>
   );

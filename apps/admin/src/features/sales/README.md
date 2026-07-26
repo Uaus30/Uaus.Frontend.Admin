@@ -6,7 +6,7 @@ Este módulo gerencia o histórico de faturamento e registro de novas vendas (Ch
 
 ## 📂 Estrutura de Arquivos
 
-*   `components/SalesTable.tsx`: Lista o histórico de vendas realizadas, exibindo o ID da nota, data, cliente, badge do método de pagamento e valor total.
+*   `components/SalesTable.tsx`: Lista o histórico de vendas realizadas, exibindo o ID da nota, data, cliente, badge do método de pagamento e valor total. A barra de filtros (busca, período, forma e status de pagamento) usa o `DateRangePicker` do [padrão de calendário](../../components/ui/README.md) e filtra na hora, sem botão de buscar.
 *   `components/NewSaleModal.tsx`: Interface de checkout contendo formulário para selecionar cliente, campo de pesquisa e adição dinâmica de produtos com cálculo de subtotal, descontos, seleção de método/status de pagamento e observações.
 *   `components/SaleDetailsModal.tsx`: Visualizador contendo o espelho de faturamento da venda, observações e tabela com detalhamento de itens.
 *   `hooks/useSales.ts`: Gerencia o fluxo de checkout, seleção de produtos e quantidades, remoção de itens, cálculo de totais, mutations de inserção e exclusão, além de consultas TanStack Query para carregar clientes, métodos de pagamento, enums de status e produtos enriquecidos.

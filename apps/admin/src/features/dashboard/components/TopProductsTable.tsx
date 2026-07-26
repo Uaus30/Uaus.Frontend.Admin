@@ -1,79 +1,103 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
-
-type TopProductItem = {
-  id: number;
-  name: string;
-  totalSales: number;
-  totalRevenue: number;
-  stock: number;
-};
+import type { DashboardTopProduct } from "../types";
+import { ChartCard, ChartEmptyState } from "./chart-primitives";
 
 type TopProductsTableProps = {
-  /** List of top-selling products */
-  topProducts: TopProductItem[];
+  products: DashboardTopProduct[];
+  periodLabel: string;
+  isLoading: boolean;
 };
 
-function MockBadge() {
+/**
+ * Etiqueta do nível de estoque.
+ *
+ * O limiar é o estoque mínimo cadastrado no produto, não um número fixo: cinco
+ * unidades é confortável para um item que vende um por semana e é ruptura para
+ * outro que vende dez por dia.
+ */
+function StockBadge({ stock, minStock }: { stock: number; minStock: number }) {
+  const isOut = stock <= 0;
+  const isLow = minStock > 0 ? stock <= minStock : stock < 5;
+
   return (
-    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-      Dados mockados
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
+        isOut
+          ? "bg-destructive/15 text-destructive"
+          : isLow
+            ? "bg-amber-500/15 text-amber-300"
+            : "bg-emerald-500/15 text-emerald-300",
+      )}
+    >
+      {stock} un
     </span>
   );
 }
 
 /**
  * TopProductsTable
- * 
- * Component rendering the top-selling products table with Framer Motion entry effects.
+ *
+ * Produtos que mais faturaram no período, com margem e estoque ao lado.
+ *
+ * É uma tabela e não um gráfico porque são cinco medidas por linha: qualquer
+ * codificação visual de tantas dimensões perderia para a leitura direta dos
+ * números.
  */
-export function TopProductsTable({ topProducts }: TopProductsTableProps) {
+export function TopProductsTable({ products, periodLabel, isLoading }: TopProductsTableProps) {
+  if (isLoading) {
+    return <Skeleton className="h-[360px] rounded-xl" />;
+  }
+
   return (
-    <Card className="border-border/50 p-6 shadow-lg shadow-black/5">
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <h3 className="text-lg font-bold">Produtos Mais Vendidos</h3>
-        <MockBadge />
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="rounded-tl-lg rounded-tr-lg border-b border-border bg-muted/50 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3">Produto</th>
-              <th className="px-4 py-3">Vendas</th>
-              <th className="px-4 py-3">Faturamento</th>
-              <th className="px-4 py-3">Estoque Atual</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topProducts.map((product, index) => (
-              <motion.tr
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                key={product.id}
-                className="border-b border-border/50 transition-colors hover:bg-muted/30"
-              >
-                <td className="px-4 py-4 font-medium">{product.name}</td>
-                <td className="px-4 py-4">{product.totalSales} un</td>
-                <td className="px-4 py-4 font-medium text-primary">{formatCurrency(product.totalRevenue)}</td>
-                <td className="px-4 py-4">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      product.stock < 10
-                        ? "bg-destructive/20 text-destructive"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    }`}
-                  >
-                    {product.stock} un
-                  </span>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+    <ChartCard title="Produtos mais vendidos" description={periodLabel}>
+      {products.length === 0 ? (
+        <ChartEmptyState message="Nenhum produto vendido no período selecionado." />
+      ) : (
+        <div className="-mx-1 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-border/60 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <th className="px-2 pb-2 font-medium">Produto</th>
+                <th className="px-2 pb-2 text-right font-medium">Qtd.</th>
+                <th className="px-2 pb-2 text-right font-medium">Faturamento</th>
+                <th className="px-2 pb-2 text-right font-medium">Lucro</th>
+                <th className="px-2 pb-2 text-right font-medium">Margem</th>
+                <th className="px-2 pb-2 text-right font-medium">Estoque</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr
+                  key={product.id}
+                  className="border-b border-border/40 transition-colors last:border-0 hover:bg-muted/30"
+                >
+                  <td className="max-w-[220px] px-2 py-3">
+                    <p className="truncate font-medium text-foreground" title={product.name}>
+                      {product.name}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{product.categoryName}</p>
+                  </td>
+                  <td className="px-2 py-3 text-right tabular-nums">{product.quantitySold}</td>
+                  <td className="px-2 py-3 text-right font-medium tabular-nums">
+                    {formatCurrency(product.revenue)}
+                  </td>
+                  <td className="px-2 py-3 text-right tabular-nums">{formatCurrency(product.profit)}</td>
+                  <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">
+                    {product.marginPercentage.toFixed(1).replace(".", ",")}%
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <StockBadge stock={product.stock} minStock={product.minStock} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </ChartCard>
   );
 }

@@ -43,63 +43,47 @@ export type CustomerStats = {
   purchaseCount: number;
 };
 
-export type CategoryReport = {
-  category: CategoryDto;
-  totalRevenue: number;
-  totalSales: number;
-  totalStock: number;
-  products: Array<{
-    id: number;
-    name: string;
-    price: number;
-    stock: number;
-    totalSales: number;
-    totalRevenue: number;
-  }>;
-};
-
-export type TagReport = {
-  tag: TagDto;
-  totalRevenue: number;
-  totalSales: number;
-  totalStock: number;
-  products: Array<{
-    id: number;
-    name: string;
-    stock: number;
-    totalSales: number;
-    totalRevenue: number;
-  }>;
-};
-
-export type DashboardMetrics = {
-  totalRevenue: number;
-  revenueGrowth: number;
-  totalSales: number;
-  salesGrowth: number;
-  averageTicket: number;
-  ticketGrowth: number;
-  totalProfit: number;
-  profitGrowth: number;
-};
-
-export type DashboardChartPoint = {
-  date: string;
-  revenue: number;
-  profit: number;
-};
-
-export type DashboardCategorySlice = {
-  categoryName: string;
-  totalRevenue: number;
-};
-
-export type TopProduct = {
+/** Linha de produto dentro de um relatório de categoria ou etiqueta. */
+export type CatalogReportProduct = {
   id: number;
   name: string;
+  barcode: string;
+  price: number;
   stock: number;
-  totalSales: number;
+  /** Unidades vendidas no período do relatório. */
+  quantitySold: number;
+  revenue: number;
+  profit: number;
+  marginPercentage: number;
+};
+
+/**
+ * Corpo comum dos relatórios de catálogo.
+ *
+ * Produtos sem venda no período vêm zerados em vez de ausentes: o relatório
+ * também serve para descobrir o que está parado na prateleira.
+ */
+export type CatalogReport = {
+  startDate: string;
+  endDate: string;
   totalRevenue: number;
+  totalProfit: number;
+  marginPercentage: number;
+  /** Vendas distintas que levaram ao menos um produto do recorte. */
+  totalSales: number;
+  totalQuantitySold: number;
+  totalStock: number;
+  /** Produtos ativos no recorte, tenham vendido ou não. */
+  productCount: number;
+  products: CatalogReportProduct[];
+};
+
+export type CategoryReport = CatalogReport & {
+  category: CategoryDto;
+};
+
+export type TagReport = CatalogReport & {
+  tag: TagDto;
 };
 
 export function getDisplayName(user: Pick<UserDto | UserListDto, "firstName" | "lastName">) {
