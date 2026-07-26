@@ -51,16 +51,19 @@ export function filterProducts(
   if (!raw) return [];
 
   const needle = normalizeForSearch(raw);
+  const cleanTermDigits = raw.replace(/\D/g, "");
 
   const scored: Array<{ product: LocalProduct; rank: number }> = [];
 
   for (const product of products) {
+    const pBarcode = (product.barcode ?? "").trim();
+    const pBarcodeDigits = pBarcode.replace(/\D/g, "");
     let rank: number;
 
-    if (product.barcode === raw) rank = 0;
+    if (pBarcode === raw || (cleanTermDigits.length >= 4 && pBarcodeDigits === cleanTermDigits)) rank = 0;
     else if (product.searchName.startsWith(needle)) rank = 1;
     else if (product.searchName.includes(needle)) rank = 2;
-    else if (product.barcode.includes(raw)) rank = 3;
+    else if (pBarcode && pBarcode.includes(raw)) rank = 3;
     else continue;
 
     scored.push({ product, rank });

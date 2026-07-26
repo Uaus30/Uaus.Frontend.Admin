@@ -336,11 +336,20 @@ export default function Pdv() {
         setSearchResults(found);
 
         // Leitura de código de barras: match exato e único cai direto no carrinho.
-        const exact = found.filter((product) => product.barcode === term);
+        const exact = found.filter((product) => product.barcode === term || (product.barcode ?? "").trim() === term);
         if (exact.length === 1) {
           addProductToCart(exact[0]);
           setSearchQuery("");
           setSearchResults([]);
+        } else if (found.length === 0) {
+          toast({
+            title: "Produto não encontrado",
+            description: online
+              ? `Nenhum produto encontrado para "${term}".`
+              : `Nenhum produto com "${term}" na base local. Verifique no badge OFFLINE se o catálogo foi baixado.`,
+            variant: "destructive",
+            duration: 4000,
+          });
         }
       } catch (error) {
         toast({

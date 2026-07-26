@@ -41,17 +41,22 @@ export function useOfflinePdv(sessionId: number | null) {
     void refreshSnapshotState();
   }, [refreshSnapshotState]);
 
+  const hasLocalDatabase = snapshot?.downloadedAt != null;
+  const isSnapshotValid = snapshot?.downloadedAt
+    ? new Date(snapshot.downloadedAt).toDateString() === new Date().toDateString()
+    : false;
+
   useEffect(() => {
-    if (sessionId === null) return;
-    if (snapshotSessionId === sessionId) return;
-
-    // Sem conexão não há snapshot a baixar; a base local do turno anterior é o
-    // que o caixa tem, e continua servindo. A data em que ela foi baixada fica
-    // visível no painel para o operador julgar.
     if (!online) return;
+    if (sessionId !== null && snapshotSessionId === sessionId) return;
 
-    void refreshSnapshot(sessionId);
-  }, [sessionId, snapshotSessionId, online, refreshSnapshot]);
+    // Garante que o catálogo local seja baixado/atualizado se:
+    // 1. A base local está desatualizada (não é de hoje).
+    // 2. Existe uma sessão de caixa aberta que ainda não sincronizou nesta execução.
+    if (sessionId !== null || !isSnapshotValid) {
+      void refreshSnapshot(sessionId);
+    }
+  }, [sessionId, snapshotSessionId, online, isSnapshotValid, refreshSnapshot]);
 
   /**
    * Sincroniza as filas agora, a pedido do operador.
