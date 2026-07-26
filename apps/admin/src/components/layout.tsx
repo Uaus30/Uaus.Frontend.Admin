@@ -80,11 +80,11 @@ const navigation = [
     name: "Sistema", 
     icon: Settings,
     items: [
+      { name: "Configurações", href: "/configuracoes" },
       { name: "Logs", href: "/sistema/logs" },
       { name: "Usuários", href: "/sistema/usuarios" }
     ]
   },
-  { name: "Configurações", href: "/configuracoes", icon: Store },
 ];
 
 const roleLabels: Record<number, string> = {
