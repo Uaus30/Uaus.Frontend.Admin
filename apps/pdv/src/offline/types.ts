@@ -224,6 +224,22 @@ export interface QueueSyncOutcome {
 export interface LocalCompanySettings {
   /** A loja controla caixa (abertura e fechamento por turno). */
   usesCashRegister: boolean;
+  /**
+   * Nome fantasia impresso no cabeçalho do cupom.
+   *
+   * Os cinco campos de identidade são opcionais porque uma cópia gravada por
+   * uma versão anterior do PDV não os tem — nesse caso o cupom cai nos valores
+   * padrão embutidos (`resolveStoreInfo`, no pacote de cupom).
+   */
+  storeName?: string;
+  /** Endereço da loja em linha única, como sai impresso no cupom. */
+  addressLine?: string;
+  /** Telefone de contato, impresso exatamente como cadastrado. */
+  phone?: string;
+  /** CNPJ cru, sem rótulo — é o cupom que imprime o prefixo "CNPJ: ". */
+  document?: string;
+  /** Mensagem de agradecimento impressa no rodapé de todo cupom. */
+  receiptFooterMessage?: string;
 }
 
 /** Desfecho de uma venda no lote de sincronização, como a API devolve. */

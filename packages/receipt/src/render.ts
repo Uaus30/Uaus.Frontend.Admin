@@ -11,7 +11,6 @@ import {
   storeHeader,
   wrapPrintDocument,
 } from "./document";
-import { RECEIPT_FOOTER_MESSAGE } from "./store-info";
 import type { ReceiptData, ReceiptItem } from "./types";
 
 export { formatReceiptCurrency } from "./document";
@@ -118,7 +117,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
   <div class="meta-line"><span>Cupom: ${data.saleId}</span><span>${formatReceiptDateTime(data.createdAt)}</span></div>
   ${operatorBlock}
 
-  <div class="footer">${RECEIPT_FOOTER_MESSAGE}</div>
+  <div class="footer">${escapeHtml(store.footerMessage)}</div>
   <div class="fine-print">Documento sem valor fiscal</div>`,
   );
 }

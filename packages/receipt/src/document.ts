@@ -1,6 +1,12 @@
 import { STORE_LOGO_DATA_URI } from "./logo";
-import { STORE_INFO } from "./store-info";
-import type { ReceiptStore } from "./types";
+import {
+  RECEIPT_FOOTER_MESSAGE,
+  STORE_INFO,
+  isStoreInfo,
+  resolveStoreInfo,
+  toReceiptStore,
+} from "./store-info";
+import type { ReceiptStore, StoreInfo } from "./types";
 
 /** Largura do papel da bobina térmica. */
 const PAPER_WIDTH_MM = 80;
@@ -128,9 +134,25 @@ export function storeHeader(store: ReceiptStore) {
   ${lines}`;
 }
 
-/** Mescla os dados padrão da loja com o que o impresso sobrescreveu. */
-export function resolveStore(overrides?: Partial<ReceiptStore>): ReceiptStore {
-  return { ...STORE_INFO, ...overrides };
+/** Identidade pronta para impressão: cabeçalho e rodapé já resolvidos. */
+export interface ResolvedStore extends ReceiptStore {
+  /** Mensagem de agradecimento impressa no rodapé. */
+  footerMessage: string;
+}
+
+/**
+ * Mescla os dados padrão da loja com o que o impresso sobrescreveu.
+ *
+ * Aceita as duas formas de sobrescrita: a identidade completa do cadastro
+ * (`StoreInfo`, que passa de novo por `resolveStoreInfo` para garantir o
+ * fallback de campo vazio) e a sobrescrita avulsa por campo do cabeçalho.
+ */
+export function resolveStore(overrides?: Partial<ReceiptStore> | StoreInfo): ResolvedStore {
+  if (overrides && isStoreInfo(overrides)) {
+    const info = resolveStoreInfo(overrides);
+    return { ...toReceiptStore(info), footerMessage: info.receiptFooterMessage };
+  }
+  return { ...STORE_INFO, footerMessage: RECEIPT_FOOTER_MESSAGE, ...overrides };
 }
 
 /**

@@ -1916,6 +1916,23 @@ export interface CompanySettingsDto {
    * ficam sem sessão vinculada.
    */
   usesCashRegister: boolean;
+  /**
+   * Nome fantasia impresso em destaque no cabeçalho do cupom.
+   *
+   * Os cinco campos de identidade são opcionais por segurança de versão: um
+   * backend anterior a eles responde sem os campos e o cupom cai nos valores
+   * padrão embutidos (`resolveStoreInfo`, no pacote de cupom). No backend
+   * atual eles sempre vêm — as colunas são `NOT NULL DEFAULT ''`.
+   */
+  storeName?: string;
+  /** Endereço da loja em linha única, como sai impresso no cupom. */
+  addressLine?: string;
+  /** Telefone de contato, impresso exatamente como informado (rótulo incluso, se desejado). */
+  phone?: string;
+  /** CNPJ cru, sem rótulo — é o cupom que imprime o prefixo "CNPJ: ". */
+  document?: string;
+  /** Mensagem de agradecimento impressa no rodapé de todo cupom. */
+  receiptFooterMessage?: string;
 }
 
 export const COMPANY_SETTINGS_QUERY_KEY = ["company-settings"] as const;

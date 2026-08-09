@@ -3,12 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useGetSales,
   useGetPaymentMethods,
+  useGetCompanySettings,
   getGetSalesQueryKey,
   PAYMENT_STATUS,
   PRODUCT_STATUS,
   enumCode,
 } from "@workspace/api-client-react";
-import { buildReceiptFromSale, printReceipt } from "@workspace/receipt";
+import { buildReceiptFromSale, printReceipt, resolveStoreInfo } from "@workspace/receipt";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import { getEnumOptions } from "@/services/core";
@@ -62,6 +63,12 @@ export function useSales() {
   // Query: Carrega formas de pagamento cadastradas
   const { data: dbPaymentMethodsData } = useGetPaymentMethods({ page: 1, size: 100 });
   const dbPaymentMethods = dbPaymentMethodsData?.data ?? [];
+
+  // Query: Identidade da loja para o cabeçalho do cupom reimpresso. Compartilha
+  // a COMPANY_SETTINGS_QUERY_KEY com a tela de configurações — salvar lá já
+  // invalida aqui. Enquanto (ou se) a leitura não chega, `resolveStoreInfo`
+  // imprime os padrões embutidos.
+  const { data: companySettings } = useGetCompanySettings();
 
   // Query: Carrega todos os clientes para o select do checkout
   const { data: customers = [] } = useQuery({
@@ -349,6 +356,9 @@ export function useSales() {
           paymentMethodNameById: paymentMethodById,
           reprint: true,
           cancelled: enumCode(sale.paymentStatus, PAYMENT_STATUS) === PAYMENT_STATUS.Cancelled,
+          // Identidade do cadastro da empresa; campo vazio cai no padrão
+          // embutido — o mesmo caminho do cupom original do PDV.
+          store: resolveStoreInfo(companySettings),
         }),
       );
     } catch (error) {

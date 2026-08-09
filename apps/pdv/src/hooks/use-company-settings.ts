@@ -20,6 +20,10 @@ import {
  * energia com a rede ainda fora), sem a cópia o operador veria o comportamento
  * padrão em vez do da loja dele.
  *
+ * A identidade da loja impressa nos cupons (nome, endereço, CNPJ, rodapé) vem
+ * nas mesmas configurações e percorre os mesmos degraus: no último, o cupom
+ * imprime os valores padrão embutidos (`resolveStoreInfo`, no pacote de cupom).
+ *
  * O backend nunca falha nesta leitura — sem a linha no banco ele devolve o
  * padrão —, então o degrau do meio só entra em cena quando a requisição não sai.
  */

@@ -7,8 +7,16 @@ import { useCompanySettings } from "@/features/company-settings/hooks/useCompany
  * Página de Configurações da Empresa.
  */
 export default function CompanySettings() {
-  const { usesCashRegister, setUsesCashRegister, isDirty, isLoading, isSaving, handleSubmit } =
-    useCompanySettings();
+  const {
+    usesCashRegister,
+    setUsesCashRegister,
+    identity,
+    setIdentityField,
+    isDirty,
+    isLoading,
+    isSaving,
+    handleSubmit,
+  } = useCompanySettings();
 
   return (
     <AppLayout>
@@ -19,13 +27,16 @@ export default function CompanySettings() {
             <h1 className="text-3xl font-display font-bold text-foreground">Configurações</h1>
           </div>
           <p className="mt-1 text-muted-foreground">
-            Opções de operação da loja. Elas valem para todos os terminais.
+            Identidade impressa nos cupons e opções de operação da loja. Elas valem para todos os
+            terminais.
           </p>
         </div>
 
         <CompanySettingsForm
           usesCashRegister={usesCashRegister}
           onUsesCashRegisterChange={setUsesCashRegister}
+          identity={identity}
+          onIdentityChange={setIdentityField}
           isDirty={isDirty}
           isLoading={isLoading}
           isSaving={isSaving}

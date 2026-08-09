@@ -74,6 +74,9 @@ export function readCachedCashRegisterSession<T>(): Promise<T | null> {
  * da loja, e o operador veria um diálogo de abertura de caixa que a loja não usa
  * (ou deixaria de vê-lo numa loja que usa).
  *
+ * A identidade da loja (nome, endereço, CNPJ, rodapé) viaja na mesma cópia: é
+ * ela que mantém o cabeçalho do cupom correto num PDV vendendo offline.
+ *
  * @param settings Configurações recebidas da API.
  */
 export async function writeCachedCompanySettings(settings: LocalCompanySettings): Promise<void> {

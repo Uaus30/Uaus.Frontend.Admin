@@ -17,6 +17,7 @@ import {
   buildReceiptFromSale,
   printReceipt,
   printSalesReport,
+  resolveStoreInfo,
   type ReceiptData,
 } from "@workspace/receipt";
 import { usePdvStore, type HeldSale, type PdvItem } from "@/stores/use-pdv-store";
@@ -145,8 +146,12 @@ export default function Pdv() {
    * ele sempre exige sessão — o backend recusa venda sem `cashRegisterSessionId`
    * —, mas todos os pontos que assumiam sessão obrigatória já passam por ele.
    * Ver o bloqueio documentado em `lib/cash-register-mode.ts`.
+   *
+   * `settings` também carrega a identidade da loja que sai impressa nos cupons
+   * — resolvida com fallback por `resolveStoreInfo` em cada ponto de impressão,
+   * porque a cópia local pode ser de uma versão sem os campos.
    */
-  const { mode } = useCompanySettings();
+  const { settings: companySettings, mode } = useCompanySettings();
 
   const {
     session,
@@ -812,6 +817,8 @@ export default function Pdv() {
         notes: saved.notes,
         reprint: Boolean(editingSaleId),
         offline: saved.offline,
+        // Identidade do cadastro da empresa; campo vazio cai no padrão embutido.
+        store: resolveStoreInfo(companySettings),
       };
 
       finishSale();
@@ -1127,6 +1134,8 @@ export default function Pdv() {
             .map((payment) => payment.paymentMethodName || paymentMethodNameById[payment.paymentMethodId])
             .filter((name): name is string => Boolean(name)),
         })),
+        // Identidade do cadastro da empresa; campo vazio cai no padrão embutido.
+        store: resolveStoreInfo(companySettings),
       });
     } catch (error) {
       toast({
@@ -1153,6 +1162,8 @@ export default function Pdv() {
           paymentMethodNameById,
           reprint: true,
           cancelled: enumCode(sale.paymentStatus, PAYMENT_STATUS) === PAYMENT_STATUS.Cancelled,
+          // Identidade do cadastro da empresa; campo vazio cai no padrão embutido.
+          store: resolveStoreInfo(companySettings),
         }),
       );
     } catch (error) {

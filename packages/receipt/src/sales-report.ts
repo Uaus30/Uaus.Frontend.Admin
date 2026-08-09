@@ -11,7 +11,7 @@ import {
   wrapPrintDocument,
 } from "./document";
 import { printReceiptHtml } from "./print";
-import type { ReceiptStore } from "./types";
+import type { ReceiptStore, StoreInfo } from "./types";
 
 /** Total recebido em uma forma de pagamento dentro da sessão. */
 export interface SalesReportPaymentTotal {
@@ -60,7 +60,8 @@ export interface SalesReportData {
   summary: SalesReportSummary;
   /** Vendas da sessão, das mais recentes para as mais antigas. */
   sales: SalesReportSale[];
-  store?: Partial<ReceiptStore>;
+  /** Identidade da loja: a do cadastro (`resolveStoreInfo`) ou sobrescrita avulsa. */
+  store?: Partial<ReceiptStore> | StoreInfo;
 }
 
 /**

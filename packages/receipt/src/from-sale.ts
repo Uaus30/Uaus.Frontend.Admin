@@ -1,4 +1,4 @@
-import type { ReceiptData, ReceiptStore } from "./types";
+import type { ReceiptData, ReceiptStore, StoreInfo } from "./types";
 
 /** Recorte de uma venda da API com o que o cupom precisa. */
 export interface SaleLike {
@@ -51,7 +51,8 @@ export interface SaleReceiptContext {
   /** Marca o cupom como segunda via. */
   reprint?: boolean;
   cancelled?: boolean;
-  store?: Partial<ReceiptStore>;
+  /** Identidade da loja: a do cadastro (`resolveStoreInfo`) ou sobrescrita avulsa. */
+  store?: Partial<ReceiptStore> | StoreInfo;
 }
 
 /**

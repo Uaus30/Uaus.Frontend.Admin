@@ -4,10 +4,31 @@ export interface ReceiptStore {
   name: string;
   /** Endereço quebrado em linhas já prontas para impressão. */
   addressLines: string[];
-  /** Telefone de contato, sem rótulo. */
+  /** Telefone de contato, impresso como está (rótulo incluso, se houver). */
   phone?: string;
-  /** CNPJ ou CPF do estabelecimento, sem rótulo. */
+  /** Documento do estabelecimento, impresso como está (rótulo incluso, se houver). */
   document?: string;
+}
+
+/**
+ * Identidade da loja no formato do cadastro da empresa (`CompanySettings`).
+ *
+ * É o que os apps passam em `ReceiptData.store` depois de `resolveStoreInfo`:
+ * os nomes dos campos espelham o contrato da API, e a conversão para o formato
+ * de impressão (`ReceiptStore`) — endereço em linhas, rótulo "CNPJ: " — fica
+ * por conta do próprio cupom.
+ */
+export interface StoreInfo {
+  /** Nome fantasia impresso em destaque no cabeçalho. */
+  storeName: string;
+  /** Endereço em linha única, como cadastrado. */
+  addressLine: string;
+  /** Telefone de contato, impresso exatamente como cadastrado. */
+  phone: string;
+  /** CNPJ cru, sem rótulo — o cupom imprime com o prefixo "CNPJ: ". */
+  document: string;
+  /** Mensagem de agradecimento impressa no rodapé de todo cupom. */
+  receiptFooterMessage: string;
 }
 
 /** Uma linha de produto do cupom. */
@@ -75,6 +96,11 @@ export interface ReceiptData {
    * Avisa o operador de que aquele cupom ainda depende de sincronização.
    */
   offline?: boolean;
-  /** Sobrescreve os dados da loja para este cupom. */
-  store?: Partial<ReceiptStore>;
+  /**
+   * Sobrescreve os dados da loja para este cupom.
+   *
+   * Aceita a identidade completa vinda do cadastro (`StoreInfo`, resolvida por
+   * `resolveStoreInfo`) ou a sobrescrita avulsa por campo do cabeçalho.
+   */
+  store?: Partial<ReceiptStore> | StoreInfo;
 }

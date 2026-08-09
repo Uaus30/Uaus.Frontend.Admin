@@ -68,6 +68,8 @@ vi.mock("@workspace/api-client-react", () => ({
     },
     isLoading: false,
   })),
+  // Identidade da loja para o cupom reimpresso; sem dado, o cupom cai no padrão.
+  useGetCompanySettings: vi.fn(() => ({ data: undefined, isLoading: false })),
   getGetSalesQueryKey: () => ["sales-page"],
   PRODUCT_STATUS: { None: 0, Draft: 1, Active: 2, OutOfStock: 3, Inactive: 4 },
   enumCode: (value: unknown) => (typeof value === "number" ? value : 0),

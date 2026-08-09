@@ -1,13 +1,19 @@
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import type { StoreIdentityFields } from "../hooks/useCompanySettings";
 
 type CompanySettingsFormProps = {
   usesCashRegister: boolean;
   onUsesCashRegisterChange: (value: boolean) => void;
+  /** Identidade da loja impressa nos cupons. */
+  identity: StoreIdentityFields;
+  onIdentityChange: (field: keyof StoreIdentityFields, value: string) => void;
   /** Há alteração pendente de gravação. */
   isDirty: boolean;
   isLoading: boolean;
@@ -15,15 +21,41 @@ type CompanySettingsFormProps = {
   onSubmit: (event: React.FormEvent) => void;
 };
 
+/** Campos de texto da identidade, na ordem em que saem impressos no cupom. */
+const IDENTITY_INPUTS: Array<{
+  field: keyof StoreIdentityFields;
+  label: string;
+  placeholder: string;
+  hint?: string;
+}> = [
+  { field: "storeName", label: "Nome da loja", placeholder: "MÁXIMO 30" },
+  { field: "addressLine", label: "Endereço", placeholder: "RUA PARANAGUÁ, 663" },
+  {
+    field: "phone",
+    label: "Telefone",
+    placeholder: "Cel: (44) 99137-2305",
+    hint: "Impresso exatamente como digitado, rótulo incluso.",
+  },
+  {
+    field: "document",
+    label: "CNPJ",
+    placeholder: "64.958.682/0001-22",
+    hint: "Só o número — o cupom imprime o rótulo \"CNPJ:\" sozinho.",
+  },
+];
+
 /**
  * CompanySettingsForm
  *
- * Opções de operação da loja. Cada opção explica a consequência prática de
- * desligá-la, porque o efeito acontece no PDV e não nesta tela.
+ * Identidade impressa nos cupons e opções de operação da loja. Cada opção
+ * explica a consequência prática, porque o efeito acontece no PDV e não nesta
+ * tela.
  */
 export function CompanySettingsForm({
   usesCashRegister,
   onUsesCashRegisterChange,
+  identity,
+  onIdentityChange,
   isDirty,
   isLoading,
   isSaving,
@@ -38,7 +70,53 @@ export function CompanySettingsForm({
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Identidade da loja</CardTitle>
+          <CardDescription>
+            O que sai impresso no cabeçalho e no rodapé dos cupons. Campo em branco usa o valor
+            padrão mostrado como exemplo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {IDENTITY_INPUTS.map(({ field, label, placeholder, hint }) => (
+              <div key={field} className="space-y-1.5">
+                <Label htmlFor={`identity-${field}`} className="text-sm font-medium">
+                  {label}
+                </Label>
+                <Input
+                  id={`identity-${field}`}
+                  value={identity[field]}
+                  onChange={(event) => onIdentityChange(field, event.target.value)}
+                  placeholder={placeholder}
+                  disabled={isSaving}
+                />
+                {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="identity-receiptFooterMessage" className="text-sm font-medium">
+              Mensagem de rodapé
+            </Label>
+            <Textarea
+              id="identity-receiptFooterMessage"
+              value={identity.receiptFooterMessage}
+              onChange={(event) => onIdentityChange("receiptFooterMessage", event.target.value)}
+              placeholder="Obrigado pela preferência!"
+              rows={2}
+              disabled={isSaving}
+            />
+            <p className="text-xs text-muted-foreground">
+              Agradecimento impresso no fim de todo cupom.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Operação de caixa</CardTitle>
@@ -62,22 +140,22 @@ export function CompanySettingsForm({
               disabled={isSaving}
             />
           </div>
-
-          <div className="flex items-center justify-end gap-3">
-            {isDirty && (
-              <span className="text-xs text-muted-foreground">Há alterações não salvas.</span>
-            )}
-            <Button type="submit" disabled={!isDirty || isSaving} className="hover-elevate">
-              {isSaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              Salvar
-            </Button>
-          </div>
         </CardContent>
       </Card>
+
+      <div className="flex items-center justify-end gap-3">
+        {isDirty && (
+          <span className="text-xs text-muted-foreground">Há alterações não salvas.</span>
+        )}
+        <Button type="submit" disabled={!isDirty || isSaving} className="hover-elevate">
+          {isSaving ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          Salvar
+        </Button>
+      </div>
     </form>
   );
 }
