@@ -26,6 +26,7 @@ import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import { Calculator } from "@/components/calculator";
 import { ConsumerPicker } from "@/components/consumer-picker";
+import { DiscountDialog } from "@/components/discount-dialog";
 import { FontSizeControl } from "@/components/font-size-control";
 import { HeldSalesDialog } from "@/components/held-sales-dialog";
 import { OfflineStatus } from "@/components/offline-status";
@@ -117,8 +118,6 @@ export default function Pdv() {
 
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [discountTarget, setDiscountTarget] = useState<{ type: "global" | "item"; id?: string }>({ type: "global" });
-  const [discountValue, setDiscountValue] = useState("");
-  const [discountType, setDiscountType] = useState<"value" | "percent">("value");
 
   const [isSandwichMenuOpen, setIsSandwichMenuOpen] = useState(false);
   const [isStockWriteOffOpen, setIsStockWriteOffOpen] = useState(false);
@@ -500,66 +499,10 @@ export default function Pdv() {
   /** Abre o diálogo de desconto já preenchido com o valor atual do alvo. */
   const handleApplyDiscount = (type: "global" | "item", id?: string) => {
     setDiscountTarget({ type, id });
-    setDiscountType("value");
-
-    if (type === "global") {
-      setDiscountValue(globalDiscount > 0 ? globalDiscount.toFixed(2).replace(".", ",") : "");
-    } else if (id) {
-      const item = items.find((i) => i.id === id);
-      setDiscountValue(item && item.discount > 0 ? item.discount.toFixed(2).replace(".", ",") : "");
-    } else {
-      setDiscountValue("");
-    }
-
     setDiscountDialogOpen(true);
   };
 
-  /** Aplica o desconto digitado, em reais ou percentual, recusando valores acima do preço. */
-  const confirmDiscount = () => {
-    const val = parseAmount(discountValue);
-    if (isNaN(val)) return;
 
-    // Desconto negativo AUMENTA o total: "-5" digitado por engano numa venda de
-    // R$ 50 cobraria R$ 55 do cliente — e, offline, o servidor só recusaria a
-    // venda horas depois, na sincronização. Vale para os dois alvos e os dois
-    // tipos (valor e percentual).
-    if (val < 0) {
-      toast({
-        title: "Desconto Inválido",
-        description: "O desconto não pode ser negativo.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (discountTarget.type === "global") {
-      const finalValue = discountType === "percent" ? (subtotal * val) / 100 : val;
-      if (finalValue > subtotal) {
-        toast({
-          title: "Desconto Inválido",
-          description: "O desconto não pode ser maior que o subtotal da venda.",
-          variant: "destructive",
-        });
-        return;
-      }
-      applyGlobalDiscount(round2(finalValue));
-    } else if (discountTarget.id) {
-      const item = items.find((i) => i.id === discountTarget.id);
-      if (item) {
-        const finalValue = discountType === "percent" ? (item.price * val) / 100 : val;
-        if (finalValue > item.price) {
-          toast({
-            title: "Desconto Inválido",
-            description: "O desconto não pode ser maior que o preço original do item.",
-            variant: "destructive",
-          });
-          return;
-        }
-        applyItemDiscount(discountTarget.id, round2(finalValue));
-      }
-    }
-    setDiscountDialogOpen(false);
-  };
 
   /**
    * Permite digitar o preço unitário direto na linha do carrinho. A diferença
@@ -2055,72 +1998,16 @@ export default function Pdv() {
       </Dialog>
 
       {/* DISCOUNT DIALOG */}
-      <Dialog open={discountDialogOpen} onOpenChange={setDiscountDialogOpen}>
-        <DialogContent className="sm:max-w-[400px] p-6 bg-card border-border shadow-2xl">
-          <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <Tag className="w-5 h-5 text-primary" />
-            Conceder Desconto {discountTarget.type === "item" ? "(Item)" : "Total"}
-          </DialogTitle>
-          <div className="mt-6 space-y-6">
-            <div className="flex gap-2">
-              <Button
-                variant={discountType === "value" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setDiscountType("value")}
-              >
-                R$ Valor
-              </Button>
-              <Button
-                variant={discountType === "percent" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setDiscountType("percent")}
-              >
-                % Porcentagem
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Quanto de desconto?</Label>
-              <Input
-                type="text"
-                placeholder={discountType === "value" ? "R$ 0,00" : "0 %"}
-                className="h-12 text-lg font-mono"
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                autoFocus
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button variant="ghost" className="flex-1" onClick={() => setDiscountDialogOpen(false)}>
-                Cancelar
-              </Button>
-              {((discountTarget.type === "global" && globalDiscount > 0) ||
-                (discountTarget.type === "item" &&
-                  (items.find((i) => i.id === discountTarget.id)?.discount ?? 0) > 0)) && (
-                <Button
-                  variant="outline"
-                  className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20 cursor-pointer"
-                  onClick={() => {
-                    if (discountTarget.type === "global") {
-                      applyGlobalDiscount(0);
-                    } else if (discountTarget.id) {
-                      applyItemDiscount(discountTarget.id, 0);
-                    }
-                    toast({ title: "Desconto Removido", duration: 2000 });
-                    setDiscountDialogOpen(false);
-                  }}
-                >
-                  Remover
-                </Button>
-              )}
-              <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white" onClick={confirmDiscount}>
-                Aplicar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DiscountDialog
+        open={discountDialogOpen}
+        onOpenChange={setDiscountDialogOpen}
+        target={discountTarget}
+        globalDiscount={globalDiscount}
+        items={items}
+        subtotal={subtotal}
+        applyGlobalDiscount={applyGlobalDiscount}
+        applyItemDiscount={applyItemDiscount}
+      />
 
       {/* FECHAR CAIXA DIALOG */}
       <Dialog open={isFecharCaixaOpen} onOpenChange={setIsFecharCaixaOpen}>
@@ -2533,5 +2420,6 @@ export default function Pdv() {
     </div>
   );
 }
+
 
 
