@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,11 +34,12 @@ type ProductSearchPickerProps = {
 export function ProductSearchPicker({ onSelect, selectedIds, disabled }: ProductSearchPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
   const { data: productsPage, isFetching } = useQuery({
-    queryKey: ["products-search-for-write-offs", search],
+    queryKey: ["products-search-for-write-offs", debouncedSearch],
     enabled: open,
-    queryFn: () => getProductsPage({ search: search.trim() || undefined, limit: 20 }),
+    queryFn: () => getProductsPage({ search: debouncedSearch.trim() || undefined, limit: 20 }),
   });
 
   const options: ProductSearchOption[] = (productsPage?.data ?? []).map((product) => ({

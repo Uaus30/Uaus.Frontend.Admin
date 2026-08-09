@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useGetGrades, type GradeDto } from "@workspace/api-client-react";
 import { createGrade, updateGrade, deleteGrade } from "@/services/grades.service";
 import { getEnumOptions } from "@/services/core";
@@ -36,6 +37,7 @@ export function useGrades() {
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
   // Busca opções de tipo de grade dinamicamente
   const { data: gradeTypeOptions = [] } = useQuery({
@@ -115,6 +117,7 @@ export function useGrades() {
   const [variants, setVariants] = useState<GradeVariant[]>([]);
   const [saving, setSaving] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+  const debouncedCategorySearch = useDebounce(categorySearch, 300);
 
   // Estado para drag & drop de variantes
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -125,8 +128,9 @@ export function useGrades() {
 
   // Filtra as grades pela busca textual
   const filteredGrades = useMemo(() => {
-    return grades.filter((g: Grade) => g.name.toLowerCase().includes(search.toLowerCase()));
-  }, [grades, search]);
+    if (!debouncedSearch.trim()) return grades;
+    return grades.filter((g: Grade) => g.name.toLowerCase().includes(debouncedSearch.toLowerCase()));
+  }, [grades, debouncedSearch]);
 
   /**
    * Abre o modal de cadastro ou edição de grade.
@@ -331,7 +335,9 @@ export function useGrades() {
 
   // Filtra as categorias associadas pelo termo de busca local (nome ou departamento)
   const filteredCategories = useMemo(() => {
-    const q = categorySearch.toLowerCase().trim();
+    const baseList = [...categories];
+    if (!debouncedCategorySearch.trim()) return baseList;
+    const q = debouncedCategorySearch.toLowerCase().trim();
     const matched = q
       ? categories.filter((cat: any) => {
           const catName = cat.name.toLowerCase();
@@ -348,7 +354,7 @@ export function useGrades() {
       if (!aChecked && bChecked) return 1;
       return a.name.localeCompare(b.name);
     });
-  }, [categories, categorySearch, departmentMap, selectedCategoryIds]);
+  }, [categories, debouncedCategorySearch, departmentMap, selectedCategoryIds]);
 
   const hasCategories = selectedCategoryIds.length > 0;
   const hasOptions = variants.length > 0 || ghostValue.trim().length > 0;

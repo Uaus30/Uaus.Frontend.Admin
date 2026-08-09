@@ -2,37 +2,38 @@ import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { checkHealth } from "@workspace/api-client-react";
-import { WifiOff } from "lucide-react";
+import { WifiOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import NotFound from "@/pages/not-found";
-import Login from "@/pages/login";
-import Dashboard from "@/pages/dashboard";
-import Products from "@/pages/products";
-import Departments from "@/pages/departments";
-import Categories from "@/pages/categories";
-import Tags from "@/pages/tags";
-import Sales from "@/pages/sales";
-import Customers from "@/pages/customers";
-import Users from "@/pages/users";
-import Logs from "@/pages/logs";
-import LogDetails from "@/pages/log-details";
-import Images from "@/pages/images";
-import Suppliers from "@/pages/suppliers";
-import Grades from "@/pages/grades";
-import StockEntries from "@/pages/stock-entries";
-import Inventory from "@/pages/inventory";
-import StockWriteOffs from "@/pages/stock-write-offs";
-import InventoryCount from "@/pages/inventory-count";
-import GondolaLabels from "@/pages/gondola-labels";
-import PaymentMethodsPage from "@/pages/payment-methods";
-import CompanySettings from "@/pages/settings";
-import CashRegisterSessions from "@/pages/cash-register-sessions";
-import FinancialReports from "@/pages/financial-reports";
-import FinancialClosings from "@/pages/financial-closings";
-import FixedCosts from "@/pages/fixed-costs";
-import Partners from "@/pages/partners";
+
+const NotFound = lazy(() => import("@/pages/not-found"));
+const Login = lazy(() => import("@/pages/login"));
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const Products = lazy(() => import("@/pages/products"));
+const Departments = lazy(() => import("@/pages/departments"));
+const Categories = lazy(() => import("@/pages/categories"));
+const Tags = lazy(() => import("@/pages/tags"));
+const Sales = lazy(() => import("@/pages/sales"));
+const Customers = lazy(() => import("@/pages/customers"));
+const Users = lazy(() => import("@/pages/users"));
+const Logs = lazy(() => import("@/pages/logs"));
+const LogDetails = lazy(() => import("@/pages/log-details"));
+const Images = lazy(() => import("@/pages/images"));
+const Suppliers = lazy(() => import("@/pages/suppliers"));
+const Grades = lazy(() => import("@/pages/grades"));
+const StockEntries = lazy(() => import("@/pages/stock-entries"));
+const Inventory = lazy(() => import("@/pages/inventory"));
+const StockWriteOffs = lazy(() => import("@/pages/stock-write-offs"));
+const InventoryCount = lazy(() => import("@/pages/inventory-count"));
+const GondolaLabels = lazy(() => import("@/pages/gondola-labels"));
+const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods"));
+const CompanySettings = lazy(() => import("@/pages/settings"));
+const CashRegisterSessions = lazy(() => import("@/pages/cash-register-sessions"));
+const FinancialReports = lazy(() => import("@/pages/financial-reports"));
+const FinancialClosings = lazy(() => import("@/pages/financial-closings"));
+const FixedCosts = lazy(() => import("@/pages/fixed-costs"));
+const Partners = lazy(() => import("@/pages/partners"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,9 +44,16 @@ const queryClient = new QueryClient({
   },
 });
 
+const PageFallback = () => (
+  <div className="flex h-screen w-full items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
+
 function Router() {
   return (
-    <Switch>
+    <Suspense fallback={<PageFallback />}>
+      <Switch>
       <Route path="/" component={() => <Redirect to="/dashboard" />} />
       <Route path="/login" component={Login} />
       <Route path="/dashboard" component={Dashboard} />
@@ -75,7 +83,8 @@ function Router() {
       <Route path="/estoque/contagem" component={InventoryCount} />
       <Route path="/configuracoes" component={CompanySettings} />
       <Route component={NotFound} />
-    </Switch>
+      </Switch>
+    </Suspense>
   );
 }
 

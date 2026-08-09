@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useGetInventoryReport, apiGet } from "@workspace/api-client-react";
@@ -17,18 +18,23 @@ export function useInventory() {
 
   // Estados dos filtros e paginação
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [stockStatus, setStockStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   // Escala de zoom visual da tabela
   const [zoomScale, setZoomScale] = useState(1.0);
 
   // Query: Busca o relatório de inventário paginado e filtrado
   const { data: report, isLoading, isFetching, isError, error } = useGetInventoryReport({
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     supplierId: selectedSupplier !== "all" ? Number(selectedSupplier) : undefined,
     categoryId: selectedCategory !== "all" ? Number(selectedCategory) : undefined,
     stockStatus: stockStatus !== "all" ? stockStatus : undefined,

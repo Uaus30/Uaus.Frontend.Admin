@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetCustomersQueryKey,
@@ -22,7 +23,7 @@ export function useCustomers() {
   const { toast } = useToast();
 
   const [searchVal, setSearchVal] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebounce(searchVal, 300);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -35,15 +36,10 @@ export function useCustomers() {
     address: "",
   });
 
-  // Debounce da busca
+  // Reseta a página ao buscar
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setSearch(searchVal);
-      setPage(1);
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [searchVal]);
+    setPage(1);
+  }, [search]);
 
   // Query de busca paginada de clientes
   const { data: customersPage, isLoading } = useGetCustomers({ search, page, limit: 15 });

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PRODUCT_LABEL_TYPE,
@@ -30,13 +31,14 @@ export function useLabelComposer() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [description, setDescription] = useState("");
   const [items, setItems] = useState<LabelDraftItem[]>([]);
   const [printing, setPrinting] = useState(false);
 
   const { data: productPage, isLoading: isSearching } = useQuery({
-    queryKey: ["gondola-labels-product-search", { search }],
-    queryFn: () => getProductsPage({ search, page: 1, limit: 8 }),
+    queryKey: ["gondola-labels-product-search", { search: debouncedSearch }],
+    queryFn: () => getProductsPage({ search: debouncedSearch, page: 1, limit: 8 }),
   });
 
   const searchResults = productPage?.data ?? [];

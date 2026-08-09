@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   createDepartment,
   deleteDepartment,
@@ -28,6 +29,11 @@ export function useDepartments() {
   // Pagination and search filters
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Modal editor dialog states
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,10 +46,10 @@ export function useDepartments() {
 
   // Query: Paginated departments page list
   const { data: departmentsPage, isLoading } = useQuery({
-    queryKey: ["departments-page", { search, page }],
+    queryKey: ["departments-page", { search: debouncedSearch, page }],
     queryFn: () =>
       getDepartmentsPage({
-        search,
+        search: debouncedSearch,
         page,
         limit: 20,
       }),

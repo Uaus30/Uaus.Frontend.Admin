@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { buildPublicImageUrl, getEnumOptions } from "@/services/core";
@@ -23,9 +24,14 @@ export function useImages() {
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Estados dos modais
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -61,17 +67,19 @@ export function useImages() {
   // passam a ser locais, refletindo o filtro de verdade.
   const typeFilterActive = typeFilter !== "all";
 
-  // Query: Carregar imagens paginadas no servidor (sem filtro de tipo)
+  // Query: Busca as imagens paginadas do backend
   const { data: serverPage, isLoading: isLoadingServerPage } = useQuery({
-    queryKey: ["images-page", { search, page, limit }],
-    queryFn: () => getImagesPage({ search, page, limit }),
+    queryKey: ["images-page", { search: debouncedSearch, page, limit, typeFilter }],
+    queryFn: () =>
+      getImagesPage({
+        search: debouncedSearch, page, limit }),
     enabled: !typeFilterActive,
   });
 
   // Query: Catálogo completo, usado apenas enquanto há filtro de tipo ativo
   const { data: allImages = [], isLoading: isLoadingAllImages } = useQuery({
-    queryKey: ["images-all-by-type", { search }],
-    queryFn: () => getAllImages({ search: search || undefined }),
+    queryKey: ["images-all-by-type", { search: debouncedSearch }],
+    queryFn: () => getAllImages({ search: debouncedSearch || undefined }),
     enabled: typeFilterActive,
   });
 

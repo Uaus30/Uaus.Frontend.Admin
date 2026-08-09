@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   createPartner,
   deletePartner,
@@ -56,21 +57,16 @@ export function usePartners() {
 
   // ---------------------------------------------------------------- Cadastro
   const [searchVal, setSearchVal] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebounce(searchVal, 300);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<PartnerDto | null>(null);
   const [form, setForm] = useState<PartnerFormValues>(EMPTY_FORM);
 
-  // Debounce da busca (padrão useSuppliers): digitado → aplicado + volta à página 1.
+  // Reseta a página ao buscar
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setSearch(searchVal);
-      setPage(1);
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [searchVal]);
+    setPage(1);
+  }, [search]);
 
   const { data: partnersPage, isLoading } = useGetPartners({
     includeInactive: true,

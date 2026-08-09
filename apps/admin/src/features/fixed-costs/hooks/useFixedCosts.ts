@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createFixedCost,
@@ -84,17 +85,12 @@ export function useFixedCosts() {
   // Busca com debounce de 300ms (padrão useSuppliers): o texto digitado só
   // vira filtro aplicado depois da pausa, e toda busca volta para a página 1.
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebounce(searchInput, 300);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [searchInput]);
+    setPage(1);
+  }, [search]);
 
   const { data: pagedData, isLoading } = useGetFixedCosts({
     search: search.trim() || undefined,

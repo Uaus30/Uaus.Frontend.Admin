@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,7 +30,12 @@ export function usePaymentMethods() {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [isActiveFilter, setIsActiveFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -42,7 +48,7 @@ export function usePaymentMethods() {
   const parsedIsActive = isActiveFilter === "all" ? undefined : isActiveFilter === "true";
 
   const { data: pagedData, isLoading, refetch } = useGetPaymentMethods({
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     isActive: parsedIsActive,
     page,
     size: 10

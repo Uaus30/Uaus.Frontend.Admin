@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { getEnumOptions } from "@/services/core";
@@ -54,7 +55,7 @@ export function useSuppliers() {
   const { toast } = useToast();
 
   const [searchVal, setSearchVal] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebounce(searchVal, 300);
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -77,15 +78,10 @@ export function useSuppliers() {
     description: "",
   });
 
-  // Debounce da busca
+  // Reseta a página ao buscar
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setSearch(searchVal);
-      setPage(1);
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [searchVal]);
+    setPage(1);
+  }, [search]);
 
   // Consulta das opções de status
   const { data: statusOptions = [] } = useQuery({

@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { generateRandomTagColor } from "@/lib/tag-colors";
@@ -27,10 +28,15 @@ export function useTags() {
 
   // Estados de busca, ordenação e paginação
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Estados dos Modais
   const [modalOpen, setModalOpen] = useState(false);
@@ -48,8 +54,8 @@ export function useTags() {
 
   // Query do TanStack Query para carregar a página de etiquetas
   const { data: tagPage, isLoading } = useQuery({
-    queryKey: ["tags-page", { search, page, limit }],
-    queryFn: () => getTagsPage({ search, page, limit }),
+    queryKey: ["tags-page", { search: debouncedSearch, page, limit }],
+    queryFn: () => getTagsPage({ search: debouncedSearch, page, limit }),
   });
 
   // Lista de etiquetas enriquecidas e ordenadas localmente

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   useGetSales,
   useGetPaymentMethods,
@@ -41,17 +42,22 @@ export function useSales() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [viewSaleId, setViewSaleId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Query: Busca vendas paginadas com filtros
   // O backend compara `CreatedAt <= endDate` com hora; enviar só "yyyy-MM-dd"
   // (meia-noite) excluiria o último dia inteiro do período. O fim do dia vai no
   // fuso LOCAL, sem toISOString (ver docs/fuso-horario.md do backend).
   const { data: salesPage, isLoading } = useGetSales({
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     startDate: startDate || undefined,
     endDate: endDate ? `${endDate}T23:59:59` : undefined,
     paymentMethodId: paymentMethodFilter !== "all" ? Number(paymentMethodFilter) : undefined,

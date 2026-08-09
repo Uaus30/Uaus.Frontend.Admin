@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
 import { 
   createCategory, 
@@ -33,7 +34,12 @@ export function useCategories() {
   // Search, Pagination, and Filters states
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [departmentFilter, setDepartmentFilter] = useState("all");
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Modal Dialog states
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,10 +63,10 @@ export function useCategories() {
 
   // Query: Paginated and filtered categories
   const { data: categoriesPage, isLoading, isError, error } = useQuery({
-    queryKey: [...getGetCategoriesQueryKey(), { search, departmentFilter, page }],
+    queryKey: [...getGetCategoriesQueryKey(), { search: debouncedSearch, departmentFilter, page }],
     queryFn: () =>
       getCategoriesPage({
-        search,
+        search: debouncedSearch,
         departmentId: departmentFilter === "all" ? undefined : Number(departmentFilter),
         page,
         limit: 20,

@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { getEnumOptions } from "@/services/core";
 import { buildProductCollections } from "@/services/mappers";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
-import { getAllImages, createImageFromFile, buildImageProxyUrl } from "@/services/images.service";
+import { getAllImages, createImageFromFile, buildImageProxyUrl, getImagesPage } from "@/services/images.service";
 import {
   getAllProducts,
   getAllProductImages,
@@ -16,7 +17,7 @@ import {
 } from "@/services/products.service";
 import { getAllTags } from "@/services/tags.service";
 import { optimizeImage } from "@/lib/imageOptimizer";
-import { getAuthSession } from "@workspace/api-client-react";
+import { getAuthSession, apiGet, type ImageDto } from "@workspace/api-client-react";
 
 /**
  * useProductTable
@@ -33,10 +34,14 @@ import { getAuthSession } from "@workspace/api-client-react";
 export function useProductTable() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
 
-  // React Queries: Load full relation pools with cache window to prevent refetch loops
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   const { data: departments = [] } = useQuery({
     queryKey: ["departments-all-for-products"],
     queryFn: () => getAllDepartments(),
@@ -51,37 +56,9 @@ export function useProductTable() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: allProducts = [] } = useQuery({
-    queryKey: ["products-all-for-table"],
-    queryFn: () => getAllProducts(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
   const { data: tags = [] } = useQuery({
     queryKey: ["tags-all-for-products"],
     queryFn: () => getAllTags(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: productTags = [] } = useQuery({
-    queryKey: ["product-tags-all-for-products"],
-    queryFn: () => getAllProductTags(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: productImages = [] } = useQuery({
-    queryKey: ["product-images-all-for-products"],
-    queryFn: () => getAllProductImages(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: imagesCatalog = [] } = useQuery({
-    queryKey: ["images-all-for-products"],
-    queryFn: () => getAllImages(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -94,10 +71,60 @@ export function useProductTable() {
   });
 
   // Query: Paginated ProductGroup catalog
-  const { data: groupPage, isLoading } = useQuery({
-    queryKey: ["product-groups-page", { search, page, limit }],
-    queryFn: () => getProductGroupsPage({ search, page, limit }),
+  const { data: groupPage, isLoading: isGroupLoading } = useQuery({
+    queryKey: ["product-groups-page", { search: debouncedSearch, page, limit }],
+    queryFn: () => getProductGroupsPage({ search: debouncedSearch, page, limit }),
   });
+
+  const pageGroups = groupPage?.data ?? [];
+  const groupIds = pageGroups.map((g) => g.id);
+
+  const productsQueries = useQueries({
+    queries: groupIds.map((id) => ({
+      queryKey: ["products-by-group", id],
+      queryFn: () => getAllProducts({ productGroupId: id }),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const allProducts = productsQueries.flatMap((q) => q.data ?? []);
+  const productIds = allProducts.map((p) => p.id);
+
+  const productTagsQueries = useQueries({
+    queries: productIds.map((id) => ({
+      queryKey: ["tags-by-product", id],
+      queryFn: () => getAllProductTags({ productId: id }),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const productTags = productTagsQueries.flatMap((q) => q.data ?? []);
+
+  const productImagesQueries = useQueries({
+    queries: productIds.map((id) => ({
+      queryKey: ["images-by-product", id],
+      queryFn: () => getAllProductImages({ productId: id }),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const productImages = productImagesQueries.flatMap((q) => q.data ?? []);
+  const imageIds = Array.from(new Set(productImages.map((pi) => pi.imageId)));
+
+  const imagesCatalogQueries = useQueries({
+    queries: imageIds.map((id) => ({
+      queryKey: ["image-by-id", id],
+      queryFn: () => apiGet<ImageDto>(`/Images/${id}`).then((res) => res.data).catch(() => null),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const imagesCatalog = imagesCatalogQueries
+    .map((q) => q.data)
+    .filter((img): img is ImageDto => img !== null && img !== undefined);
+
+  const isLoading =
+    isGroupLoading ||
+    productsQueries.some((q) => q.isLoading) ||
+    productTagsQueries.some((q) => q.isLoading) ||
+    productImagesQueries.some((q) => q.isLoading) ||
+    imagesCatalogQueries.some((q) => q.isLoading);
 
   /**
    * Enriches list of product groups to build display model representation.
