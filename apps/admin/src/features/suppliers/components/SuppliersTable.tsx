@@ -1,14 +1,14 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
+} from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import { formatPhone } from "@/lib/utils";
 import { Edit2, Search, Trash2 } from "lucide-react";
@@ -282,3 +282,5 @@ export function SuppliersTable({
     </div>
   );
 }
+
+

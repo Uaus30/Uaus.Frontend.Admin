@@ -1,9 +1,9 @@
 import React from "react";
 import { Loader2, RefreshCcw } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Switch } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import type { TagForm } from "../types";
 
 type TagEditorModalProps = {
@@ -103,3 +103,5 @@ export function TagEditorModal({
     </Dialog>
   );
 }
+
+

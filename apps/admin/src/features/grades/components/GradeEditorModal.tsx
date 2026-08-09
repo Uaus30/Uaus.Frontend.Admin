@@ -1,11 +1,11 @@
 import React, { useRef } from "react";
 import { GripVertical, Info, Loader2, Plus, Search, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import type { GradeType, GradeVariant } from "../types";
 
 type GradeEditorModalProps = {
@@ -421,3 +421,5 @@ export function GradeEditorModal({
     </Dialog>
   );
 }
+
+

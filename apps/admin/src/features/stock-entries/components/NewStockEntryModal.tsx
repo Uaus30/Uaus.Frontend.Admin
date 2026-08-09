@@ -1,13 +1,13 @@
 import React from "react";
 import { FileText, PlusCircle, Receipt, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DatePicker } from "@/components/ui/date-picker";
-import { formatDateInput, guardCalendarDismiss, parseDateInput } from "@/components/ui/date-field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
+import { DatePicker } from "@workspace/ui";
+import { formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import type { NewEntryItem } from "../types";
 
 type NewStockEntryModalProps = {
@@ -289,3 +289,5 @@ export function NewStockEntryModal({
     </Dialog>
   );
 }
+
+

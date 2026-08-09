@@ -8,12 +8,12 @@ import {
   type UiPagedResult,
   type UserListDto,
 } from "@workspace/api-client-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { formatDateInput, parseDateInput } from "@/components/ui/date-field";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { formatDateInput, parseDateInput } from "@workspace/ui";
+import { DateRangePicker, type DateRange } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { formatCurrency, formatDate, formatQuantity } from "@/lib/formatters";
 import {
   ALL_FILTER_VALUE,
@@ -275,3 +275,5 @@ export function StockWriteOffsTable({
     </div>
   );
 }
+
+

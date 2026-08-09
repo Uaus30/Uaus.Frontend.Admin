@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { SupplierEditorModal } from "@/features/suppliers/components/SupplierEditorModal";
 import { SuppliersTable } from "@/features/suppliers/components/SuppliersTable";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
@@ -85,3 +85,5 @@ export default function Suppliers() {
     </AppLayout>
   );
 }
+
+

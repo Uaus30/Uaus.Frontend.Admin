@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { LogsFilterBar } from "@/features/logs/components/LogsFilterBar";
 import { LogsTable } from "@/features/logs/components/LogsTable";
 import { useLogs } from "@/features/logs/hooks/useLogs";
@@ -85,3 +85,5 @@ export default function Logs() {
     </AppLayout>
   );
 }
+
+

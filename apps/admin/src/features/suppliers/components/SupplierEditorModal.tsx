@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Loader2, Phone, RefreshCw } from "lucide-react";
 import { cleanPhone, formatPhone } from "@/lib/utils";
 import { UF_LIST, randomColor } from "../hooks/useSuppliers";
@@ -309,3 +309,5 @@ export function SupplierEditorModal({
     </Dialog>
   );
 }
+
+

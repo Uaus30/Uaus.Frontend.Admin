@@ -1,8 +1,8 @@
 import React from "react";
 import { Lightbulb } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Skeleton } from "@workspace/ui";
 import type { useSalesIntelligence } from "../hooks/useSalesIntelligence";
 import { INTELLIGENCE_WINDOWS, type IntelligenceWindow } from "../hooks/useSalesIntelligence";
 import { formatBrazilianDate } from "../utils";
@@ -129,3 +129,5 @@ export function IntelligencePanel({
     </ChartCard>
   );
 }
+
+

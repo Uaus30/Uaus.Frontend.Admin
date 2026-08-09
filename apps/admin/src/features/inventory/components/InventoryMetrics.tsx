@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@workspace/ui";
 import type { InventoryReport } from "../types";
 
 type InventoryMetricsProps = {
@@ -102,3 +102,5 @@ export function InventoryMetrics({
     </div>
   );
 }
+
+

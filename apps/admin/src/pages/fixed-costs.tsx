@@ -2,8 +2,8 @@ import { AppLayout } from "@/components/layout";
 import { PAGE_SIZE, useFixedCosts } from "@/features/fixed-costs/hooks/useFixedCosts";
 import { FixedCostsTable } from "@/features/fixed-costs/components/FixedCostsTable";
 import { FixedCostEditorModal } from "@/features/fixed-costs/components/FixedCostEditorModal";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import { Plus, ReceiptText, Search } from "lucide-react";
 
 /** Página de custos fixos (rota futura /financeiro/custos-fixos). */
@@ -117,3 +117,5 @@ export default function FixedCostsPage() {
     </AppLayout>
   );
 }
+
+

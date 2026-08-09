@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { Plus } from "lucide-react";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
@@ -79,3 +79,5 @@ export default function Products() {
     </AppLayout>
   );
 }
+
+

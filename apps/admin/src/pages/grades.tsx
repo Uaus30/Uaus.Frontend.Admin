@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useGrades } from "@/features/grades/hooks/useGrades";
 import { GradeTable } from "@/features/grades/components/GradeTable";
 import { GradeEditorModal } from "@/features/grades/components/GradeEditorModal";
@@ -118,3 +118,5 @@ export default function Grades() {
     </AppLayout>
   );
 }
+
+

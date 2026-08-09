@@ -1,7 +1,7 @@
 import React from "react";
 import { FileSpreadsheet } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useInventory } from "@/features/inventory/hooks/useInventory";
 import { InventoryMetrics } from "@/features/inventory/components/InventoryMetrics";
 import { CategorySummary } from "@/features/inventory/components/CategorySummary";
@@ -101,3 +101,5 @@ export default function Inventory() {
     </AppLayout>
   );
 }
+
+

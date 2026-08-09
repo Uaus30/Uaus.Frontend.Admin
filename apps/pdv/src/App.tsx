@@ -1,7 +1,7 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@workspace/ui";
+import { TooltipProvider } from "@workspace/ui";
 import { CloudOff } from "lucide-react";
 import { useConnectivity } from "@/hooks/use-connectivity";
 import { useOfflineStore } from "@/stores/use-offline-store";
@@ -88,3 +88,5 @@ function App() {
 }
 
 export default App;
+
+

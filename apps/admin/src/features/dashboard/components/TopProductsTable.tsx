@@ -1,5 +1,5 @@
 import React from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@workspace/ui";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import type { DashboardTopProduct } from "../types";
@@ -101,3 +101,5 @@ export function TopProductsTable({ products, periodLabel, isLoading }: TopProduc
     </ChartCard>
   );
 }
+
+

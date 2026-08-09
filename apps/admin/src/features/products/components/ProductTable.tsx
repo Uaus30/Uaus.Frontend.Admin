@@ -1,19 +1,19 @@
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@workspace/ui";
+import { Badge } from "@workspace/ui";
 import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import { buildPublicImageUrl } from "@/services/core";
 import { Edit2, ImageIcon, Loader2, Search, Trash2, AlertTriangle, MoreVertical, Package, History } from "lucide-react";
 import type { EnrichedProduct } from "@/services/mappers";
 import React, { useState } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@workspace/ui";
+import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@workspace/ui";
 import { useLocation } from "wouter";
 
 type ProductTableProps = {
@@ -471,3 +471,5 @@ export function ProductTable({
     </div>
   );
 }
+
+

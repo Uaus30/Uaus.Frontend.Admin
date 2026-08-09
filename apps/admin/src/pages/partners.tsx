@@ -3,8 +3,8 @@ import { PAGE_SIZE, usePartners } from "@/features/partners/hooks/usePartners";
 import { PartnersTable } from "@/features/partners/components/PartnersTable";
 import { PartnerEditorModal } from "@/features/partners/components/PartnerEditorModal";
 import { ProfitSharesCard } from "@/features/partners/components/ProfitSharesCard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import { Plus, Search, Handshake } from "lucide-react";
 
 /**
@@ -149,3 +149,5 @@ export default function PartnersPage() {
     </AppLayout>
   );
 }
+
+

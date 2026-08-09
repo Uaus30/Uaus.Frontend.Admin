@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useTags } from "@/features/tags/hooks/useTags";
 import { TagTable } from "@/features/tags/components/TagTable";
 import { TagEditorModal } from "@/features/tags/components/TagEditorModal";
@@ -99,3 +99,5 @@ export default function Tags() {
     </AppLayout>
   );
 }
+
+

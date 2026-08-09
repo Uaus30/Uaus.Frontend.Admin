@@ -1,9 +1,9 @@
 import React from "react";
 import { Check, Copy, ExternalLink, ImageIcon, Loader2, Pencil, Search, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Badge } from "@workspace/ui";
 import { buildPublicImageUrl } from "@/services/core";
 import type { CatalogImage } from "../types";
 
@@ -221,3 +221,5 @@ export function ImageCatalog({
     </div>
   );
 }
+
+

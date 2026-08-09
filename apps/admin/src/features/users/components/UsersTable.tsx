@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@workspace/ui";
 import { USER_STATUS, enumCode } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import {
   Table,
   TableBody,
@@ -8,7 +8,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@workspace/ui";
 import { getDisplayName } from "@/services/mappers";
 import { Loader2, Pencil, ShieldCheck, Trash2, User, UserCog } from "lucide-react";
 
@@ -125,3 +125,5 @@ export function UsersTable({
     </div>
   );
 }
+
+

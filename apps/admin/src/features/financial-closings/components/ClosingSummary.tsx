@@ -5,7 +5,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
+} from "@workspace/ui";
 import { AlertTriangle, Handshake, ReceiptText } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/lib/formatters";
 import type { ClosingNumbers, FinancialReportFixedCostItemDto } from "../types";
@@ -183,3 +183,5 @@ export function ClosingSummary({ closing, fixedCostItems, warnings }: ClosingSum
     </div>
   );
 }
+
+

@@ -5,16 +5,16 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
+} from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
+import { DateRangePicker, type DateRange } from "@workspace/ui";
 import {
   formatDateInput,
   guardCalendarDismiss,
   parseDateInput,
-} from "@/components/ui/date-field";
+} from "@workspace/ui";
 import { ArrowLeft, CalendarRange, Loader2, Lock } from "lucide-react";
 import { ClosingSummary } from "./ClosingSummary";
 import type { FinancialClosingPreviewDto, NewClosingStep } from "../types";
@@ -198,3 +198,5 @@ export function NewClosingDialog({
     </Dialog>
   );
 }
+
+

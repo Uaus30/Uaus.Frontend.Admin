@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import {
   Command,
   CommandEmpty,
@@ -10,8 +10,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "@workspace/ui";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
 import { formatQuantity } from "@/lib/formatters";
 import { getProductsPage } from "@/services/products.service";
 import type { ProductSearchOption } from "../types";
@@ -107,3 +107,5 @@ export function ProductSearchPicker({ onSelect, selectedIds, disabled }: Product
     </Popover>
   );
 }
+
+

@@ -1,9 +1,9 @@
 import React from "react";
 import { CalendarDays, Receipt, Trash2, Truck } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Spinner } from "@/components/ui/spinner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import type { StockEntryDetails } from "../types";
 
 type StockEntryDetailsModalProps = {
@@ -156,3 +156,5 @@ export function StockEntryDetailsModal({
     </Dialog>
   );
 }
+
+

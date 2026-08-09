@@ -8,8 +8,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Spinner } from "@/components/ui/spinner";
+} from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import type { ProductLabelBatchDto } from "@workspace/api-client-react";
 
 interface LabelBatchDeleteDialogProps {
@@ -58,3 +58,5 @@ export function LabelBatchDeleteDialog({
     </AlertDialog>
   );
 }
+
+

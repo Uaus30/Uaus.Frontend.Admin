@@ -1,7 +1,7 @@
 import React from "react";
 import { BarChart3, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { CatalogReportBody } from "@/components/catalog-report-body";
 import type { TagReport } from "../types";
 
@@ -66,3 +66,5 @@ export function TagReportModal({
     </Dialog>
   );
 }
+
+

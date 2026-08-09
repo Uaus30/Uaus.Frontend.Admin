@@ -1,14 +1,14 @@
-import { Button } from "@/components/ui/button";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@workspace/ui";
+import { DateRangePicker, type DateRange } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@workspace/ui";
 import { Loader2, Search } from "lucide-react";
 import type { LogTypeOption } from "../types";
 
@@ -128,3 +128,5 @@ export function LogsFilterBar({
     </div>
   );
 }
+
+

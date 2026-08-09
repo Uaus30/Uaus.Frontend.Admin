@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@workspace/ui";
 import { cn } from "@/lib/utils";
 import { formatSignedPercent } from "../utils";
 
@@ -138,3 +138,5 @@ export function StatTile({
     </Card>
   );
 }
+
+

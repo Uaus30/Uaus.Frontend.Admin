@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui";
 import type { InventoryReport } from "../types";
 
 type CategorySummaryProps = {
@@ -97,3 +97,5 @@ export function CategorySummary({
     </div>
   );
 }
+
+

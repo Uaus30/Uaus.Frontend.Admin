@@ -1,5 +1,5 @@
 import React from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import type { DashboardBreakdown } from "../types";
 import { ChartCard, ChartEmptyState } from "./chart-primitives";
@@ -96,3 +96,5 @@ export function RevenueBreakdownCard({
     </ChartCard>
   );
 }
+
+

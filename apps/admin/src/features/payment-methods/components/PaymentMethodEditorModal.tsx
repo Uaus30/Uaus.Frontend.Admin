@@ -6,11 +6,11 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+} from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Switch } from "@workspace/ui";
 import { Plus, Trash2, Percent } from "lucide-react";
 import type { PaymentMethodFormValues, InstallmentFormValue } from "../types";
 
@@ -175,3 +175,5 @@ export function PaymentMethodEditorModal({
     </Dialog>
   );
 }
+
+

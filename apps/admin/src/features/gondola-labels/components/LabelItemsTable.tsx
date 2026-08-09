@@ -1,15 +1,15 @@
 import { Eraser, Printer, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@workspace/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
+} from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import { LABEL_TYPE_INFOS, type LabelDraftItem, type LabelTypeCode } from "../types";
 
 interface LabelItemsTableProps {
@@ -181,3 +181,5 @@ export function LabelItemsTable({
     </Card>
   );
 }
+
+

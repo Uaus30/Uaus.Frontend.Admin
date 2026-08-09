@@ -1,12 +1,12 @@
 import React from "react";
 import { Eye, Loader2, Printer, Search, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { formatDateInput, parseDateInput } from "@/components/ui/date-field";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@workspace/ui";
+import { Badge } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { formatDateInput, parseDateInput } from "@workspace/ui";
+import { DateRangePicker, type DateRange } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { EnrichedSale } from "../types";
 
@@ -322,3 +322,5 @@ export function SalesTable({
   </div>
   );
 }
+
+

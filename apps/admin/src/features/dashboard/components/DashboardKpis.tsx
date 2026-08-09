@@ -1,6 +1,6 @@
 import React from "react";
 import { Receipt, ShoppingCart, TrendingUp, Wallet } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import type { DashboardOverview } from "../types";
 import { growth } from "../utils";
@@ -76,3 +76,5 @@ export function DashboardKpis({ overview, isLoading }: DashboardKpisProps) {
     </div>
   );
 }
+
+

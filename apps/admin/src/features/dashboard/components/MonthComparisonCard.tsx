@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@workspace/ui";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import type { DashboardMonthly } from "../types";
@@ -178,3 +178,5 @@ export function MonthComparisonCard({ monthly, comparison, isLoading }: MonthCom
     </ChartCard>
   );
 }
+
+

@@ -2,9 +2,9 @@ import { AppLayout } from "@/components/layout";
 import { usePaymentMethods } from "@/features/payment-methods/hooks/usePaymentMethods";
 import { PaymentMethodsTable } from "@/features/payment-methods/components/PaymentMethodsTable";
 import { PaymentMethodEditorModal } from "@/features/payment-methods/components/PaymentMethodEditorModal";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Plus, Search, CreditCard, RefreshCw } from "lucide-react";
 
 export default function PaymentMethodsPage() {
@@ -148,3 +148,5 @@ export default function PaymentMethodsPage() {
     </AppLayout>
   );
 }
+
+

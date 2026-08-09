@@ -9,9 +9,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
 import { formatCurrency, formatDate, formatQuantity } from "@/lib/formatters";
 
 type ReverseStockWriteOffDialogProps = {
@@ -96,3 +96,5 @@ export function ReverseStockWriteOffDialog({
     </AlertDialog>
   );
 }
+
+

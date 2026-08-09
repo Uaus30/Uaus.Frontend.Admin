@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, RefreshCw } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Skeleton } from "@workspace/ui";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import type { DashboardToday } from "../types";
@@ -219,3 +219,5 @@ export function LiveTodayCard({ today, isLoading, isFetching, updatedAt, onRefre
     </Card>
   );
 }
+
+

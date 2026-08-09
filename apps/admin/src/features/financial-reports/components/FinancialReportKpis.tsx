@@ -9,8 +9,8 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@workspace/ui";
+import { Skeleton } from "@workspace/ui";
 import { formatCurrency, formatPercentage, formatQuantity } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { FinancialReportSummaryDto } from "../types";
@@ -128,3 +128,5 @@ export function FinancialReportKpis({ summary, isLoading }: FinancialReportKpisP
     </div>
   );
 }
+
+

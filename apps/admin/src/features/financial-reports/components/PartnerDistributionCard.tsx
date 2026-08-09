@@ -1,5 +1,5 @@
 import { Handshake } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import {
   Table,
   TableBody,
@@ -7,7 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@workspace/ui";
 import { formatCurrency, formatPercentage } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { PartnerDistributionItemDto } from "../types";
@@ -93,3 +93,5 @@ export function PartnerDistributionCard({
     </Card>
   );
 }
+
+

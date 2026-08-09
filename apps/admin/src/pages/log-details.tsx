@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@workspace/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui";
 import { useGetLog } from "@workspace/api-client-react";
 import { 
   ArrowLeft, 
@@ -241,3 +241,5 @@ export default function LogDetails() {
     </AppLayout>
   );
 }
+
+

@@ -1,16 +1,16 @@
 import { AlertTriangle, Loader2, PackageMinus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
 import { formatQuantity } from "@/lib/formatters";
 import { SELECTABLE_STOCK_WRITE_OFF_REASON_OPTIONS } from "@/services/stock-write-offs.service";
 import { ProductSearchPicker } from "./ProductSearchPicker";
@@ -196,3 +196,5 @@ export function RegisterStockWriteOffModal({
     </Dialog>
   );
 }
+
+

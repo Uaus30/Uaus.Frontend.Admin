@@ -6,7 +6,8 @@
     "apps/admin",
     "apps/pdv",
     "packages/api-client",
-    "packages/receipt"
+    "packages/receipt",
+    "packages/ui"
   ],
   "scripts": {
     "build": "npm run build:admin",

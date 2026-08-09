@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useSales } from "@/features/sales/hooks/useSales";
 import { SalesTable } from "@/features/sales/components/SalesTable";
 import { NewSaleModal } from "@/features/sales/components/NewSaleModal";
@@ -158,3 +158,5 @@ export default function Sales() {
     </AppLayout>
   );
 }
+
+

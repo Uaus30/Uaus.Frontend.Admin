@@ -1,10 +1,10 @@
 import React, { useRef } from "react";
 import { Loader2, Upload } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 
 type ImageUploadModalProps = {
   /** Visibility status of the modal */
@@ -119,3 +119,5 @@ export function ImageUploadModal({
     </Dialog>
   );
 }
+
+

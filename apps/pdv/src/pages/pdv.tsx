@@ -46,11 +46,11 @@ import {
 import { formatCurrency } from "@/lib/formatters";
 import { searchProducts } from "@/lib/product-search";
 import { computeCashSettlement, parseAmount } from "@/lib/checkout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@workspace/ui";
+import { ScrollArea } from "@workspace/ui";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search,
@@ -2533,3 +2533,5 @@ export default function Pdv() {
     </div>
   );
 }
+
+

@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
 import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
 
@@ -153,3 +153,5 @@ export function CustomersTable({
     </div>
   );
 }
+
+

@@ -5,9 +5,9 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@workspace/ui";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { Edit2, Trash2, Handshake } from "lucide-react";
 import { formatPercentage } from "@/lib/formatters";
 import type { PartnerDto } from "../types";
@@ -119,3 +119,5 @@ export function PartnersTable({
     </div>
   );
 }
+
+

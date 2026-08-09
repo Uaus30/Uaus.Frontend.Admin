@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, CheckCircle2, Info } from "lucide-react";
 import type { InventoryCountLineDto, InventoryCountResultDto } from "@workspace/api-client-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@workspace/ui";
 import { formatQuantity } from "@/lib/formatters";
 
 type InventoryCountResultProps = {
@@ -208,3 +208,5 @@ function Callout({ tone, icon: Icon, title, children }: CalloutProps) {
     </div>
   );
 }
+
+

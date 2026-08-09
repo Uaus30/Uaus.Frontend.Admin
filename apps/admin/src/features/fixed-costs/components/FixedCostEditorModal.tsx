@@ -6,11 +6,11 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
 import type { FixedCostForm } from "../types";
 
 interface FixedCostEditorModalProps {
@@ -126,3 +126,5 @@ export function FixedCostEditorModal({
     </Dialog>
   );
 }
+
+

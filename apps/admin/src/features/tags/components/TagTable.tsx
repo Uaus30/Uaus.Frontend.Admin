@@ -1,8 +1,8 @@
 import React from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Edit2, Loader2, Search, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import type { EnrichedTag } from "../types";
 import type { SortBy, SortDir } from "../hooks/useTags";
 
@@ -237,3 +237,5 @@ export function TagTable({
     </div>
   );
 }
+
+

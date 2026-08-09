@@ -5,7 +5,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
+} from "@workspace/ui";
 import { Lock } from "lucide-react";
 import { formatCurrency, formatDate, formatShortDate } from "@/lib/formatters";
 import type { FinancialClosingDto } from "../types";
@@ -98,3 +98,5 @@ export function FinancialClosingsTable({
     </div>
   );
 }
+
+

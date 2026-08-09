@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@workspace/ui";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
 import { UserEditorModal } from "@/features/users/components/UserEditorModal";
 import { UsersTable } from "@/features/users/components/UsersTable";
 import { useUsers } from "@/features/users/hooks/useUsers";
@@ -99,3 +99,5 @@ export default function Users() {
     </AppLayout>
   );
 }
+
+

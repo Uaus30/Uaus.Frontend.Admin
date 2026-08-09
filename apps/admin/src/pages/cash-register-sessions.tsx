@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import {
   PAGE_SIZE,
   useCashRegisterSessions,
@@ -110,3 +110,5 @@ export default function CashRegisterSessionsPage() {
     </AppLayout>
   );
 }
+
+

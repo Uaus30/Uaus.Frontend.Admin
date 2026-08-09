@@ -1,7 +1,7 @@
 import React from "react";
 import { Building2, Edit2, FolderTree, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import { Loader2 } from "lucide-react";
 import type { EnrichedDepartment } from "../types";
 
@@ -163,3 +163,5 @@ export function DepartmentTable({
     </div>
   );
 }
+
+

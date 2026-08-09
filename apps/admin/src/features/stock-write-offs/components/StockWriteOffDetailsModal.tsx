@@ -6,8 +6,8 @@ import {
   STOCK_WRITE_OFF_STATUS,
   type StockWriteOffDto,
 } from "@workspace/api-client-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Spinner } from "@/components/ui/spinner";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+} from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatDate, formatQuantity } from "@/lib/formatters";
 import { STOCK_WRITE_OFF_STATUS_LABEL } from "@/services/stock-write-offs.service";
 import { isReversibleWriteOff } from "../hooks/useStockWriteOffs";
@@ -190,3 +190,5 @@ export function StockWriteOffDetailsModal({
     </Dialog>
   );
 }
+
+

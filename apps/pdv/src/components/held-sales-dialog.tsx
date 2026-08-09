@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { PauseCircle, Play, ShoppingCart, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@workspace/ui";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
+import { ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
 
@@ -202,3 +202,5 @@ export function HeldSalesDialog({
     </Dialog>
   );
 }
+
+

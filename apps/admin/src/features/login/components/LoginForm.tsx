@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2 } from "lucide-react";
 
@@ -110,3 +110,5 @@ export function LoginForm({
     </motion.div>
   );
 }
+
+

@@ -5,8 +5,8 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { Loader2, Lock, Trash2 } from "lucide-react";
 import { formatDate, formatShortDate } from "@/lib/formatters";
 import { ClosingSummary } from "./ClosingSummary";
@@ -104,3 +104,5 @@ export function ClosingDetailsDialog({
     </Dialog>
   );
 }
+
+

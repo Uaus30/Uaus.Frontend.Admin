@@ -1,14 +1,14 @@
 import { Eye, Printer, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@workspace/ui";
+import { Card, CardContent } from "@workspace/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
+} from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import { formatDate } from "@/lib/formatters";
 import type { ProductLabelBatchDto, UiPagedResult } from "@workspace/api-client-react";
 
@@ -176,3 +176,5 @@ export function LabelBatchHistoryTable({
     </Card>
   );
 }
+
+

@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { CustomerEditorModal } from "@/features/customers/components/CustomerEditorModal";
 import { CustomersTable } from "@/features/customers/components/CustomersTable";
 import { useCustomers } from "@/features/customers/hooks/useCustomers";
@@ -65,3 +65,5 @@ export default function Customers() {
     </AppLayout>
   );
 }
+
+

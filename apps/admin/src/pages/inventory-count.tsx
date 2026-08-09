@@ -1,6 +1,6 @@
 import { ClipboardCheck, Loader2, RotateCcw } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useInventoryCount } from "@/features/inventory-count/hooks/useInventoryCount";
 import { InventoryCountSteps } from "@/features/inventory-count/components/InventoryCountSteps";
 import { InventoryCountResult } from "@/features/inventory-count/components/InventoryCountResult";
@@ -77,3 +77,5 @@ export default function InventoryCount() {
     </AppLayout>
   );
 }
+
+

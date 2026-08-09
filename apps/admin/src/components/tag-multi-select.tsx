@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { TagDto } from "@workspace/api-client-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import {
   Command,
   CommandEmpty,
@@ -10,8 +10,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "@workspace/ui";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
 import { useToast } from "@/hooks/use-toast";
 import { generateRandomTagColor } from "@/lib/tag-colors";
 import { createTag, searchTags } from "@/services/tags.service";
@@ -211,3 +211,5 @@ export function TagMultiSelect({
     </div>
   );
 }
+
+

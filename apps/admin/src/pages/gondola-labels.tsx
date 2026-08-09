@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { LabelBatchDeleteDialog } from "@/features/gondola-labels/components/LabelBatchDeleteDialog";
 import { LabelBatchDetailsModal } from "@/features/gondola-labels/components/LabelBatchDetailsModal";
 import { LabelBatchHistoryTable } from "@/features/gondola-labels/components/LabelBatchHistoryTable";
@@ -105,3 +105,5 @@ export default function GondolaLabels() {
     </AppLayout>
   );
 }
+
+

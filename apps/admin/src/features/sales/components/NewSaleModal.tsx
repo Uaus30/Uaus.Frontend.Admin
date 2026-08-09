@@ -1,9 +1,9 @@
 import React from "react";
 import { Loader2, Plus, Receipt, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import type { NewSaleDraftItem, NewSaleDraftPayment } from "../types";
 
@@ -354,3 +354,5 @@ export function NewSaleModal({
     </Dialog>
   );
 }
+
+

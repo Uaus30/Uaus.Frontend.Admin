@@ -1,9 +1,9 @@
 import { FormEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@workspace/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import { Loader2, Percent, Save } from "lucide-react";
 import type { PartnerProfitShareItemDto } from "../types";
 
@@ -131,3 +131,5 @@ export function ProfitSharesCard({
     </Card>
   );
 }
+
+

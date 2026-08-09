@@ -1,7 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@workspace/ui";
+import { ScrollArea } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Badge } from "@workspace/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProductGroupById } from "@/services/products.service";
 import { getEnumOptions } from "@/services/core";
@@ -243,3 +243,5 @@ export function ProductHistoryModal({
     </Dialog>
   );
 }
+
+

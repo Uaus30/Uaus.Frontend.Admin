@@ -1,8 +1,8 @@
 import { Plus, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@workspace/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import type { ProductDto } from "@workspace/api-client-react";
 
@@ -77,3 +77,5 @@ export function LabelProductSearch({
     </Card>
   );
 }
+
+

@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useImages } from "@/features/images/hooks/useImages";
 import { ImageCatalog } from "@/features/images/components/ImageCatalog";
 import { ImageUploadModal } from "@/features/images/components/ImageUploadModal";
@@ -124,3 +124,5 @@ export default function Images() {
     </AppLayout>
   );
 }
+
+

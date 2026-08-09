@@ -1,11 +1,11 @@
 import { Loader2, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@workspace/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
+import { Switch } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
 import type { StoreIdentityFields } from "../hooks/useCompanySettings";
 
 type CompanySettingsFormProps = {
@@ -184,3 +184,5 @@ export function CompanySettingsForm({
     </form>
   );
 }
+
+

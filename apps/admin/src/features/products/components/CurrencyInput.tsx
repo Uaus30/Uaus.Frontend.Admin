@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 
 type CurrencyInputProps = {
@@ -73,3 +73,5 @@ export function CurrencyInput({ id, value, onChange, className }: CurrencyInputP
     />
   );
 }
+
+

@@ -1,5 +1,5 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@workspace/ui";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -174,3 +174,5 @@ export function ChartEmptyState({ message }: { message: string }) {
     </div>
   );
 }
+
+

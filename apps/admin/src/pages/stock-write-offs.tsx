@@ -1,6 +1,6 @@
 import { PackageMinus, Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useStockWriteOffs } from "@/features/stock-write-offs/hooks/useStockWriteOffs";
 import { StockWriteOffsTable } from "@/features/stock-write-offs/components/StockWriteOffsTable";
 import { StockWriteOffDetailsModal } from "@/features/stock-write-offs/components/StockWriteOffDetailsModal";
@@ -120,3 +120,5 @@ export default function StockWriteOffs() {
     </AppLayout>
   );
 }
+
+

@@ -1,10 +1,10 @@
 import React from "react";
 import { Calendar, Eye, Receipt, Truck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@workspace/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 
 type StockEntriesTableProps = {
   /** The paginated entries data returned from API */
@@ -159,3 +159,5 @@ export function StockEntriesTable({
     </Card>
   );
 }
+
+

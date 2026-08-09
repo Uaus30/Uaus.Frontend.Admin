@@ -1,7 +1,7 @@
 import React from "react";
 import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import type { Grade, GradeVariant } from "../types";
 
 type GradeTableProps = {
@@ -127,3 +127,5 @@ export function GradeTable({
     </div>
   );
 }
+
+

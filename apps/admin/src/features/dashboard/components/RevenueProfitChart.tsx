@@ -1,6 +1,6 @@
 import React from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@workspace/ui";
 import type { DashboardSeriesPoint } from "../types";
 import { compactCurrency, formatAxisDate, formatBrazilianDate } from "../utils";
 import {
@@ -100,3 +100,5 @@ export function RevenueProfitChart({ series, periodLabel, isLoading }: RevenuePr
     </ChartCard>
   );
 }
+
+

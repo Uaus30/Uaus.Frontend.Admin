@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import { Loader2, Users } from "lucide-react";
 import { cleanPhone, formatPhone } from "@/lib/utils";
 import type { CustomerForm } from "../types";
@@ -134,3 +134,5 @@ export function CustomerEditorModal({
     </Dialog>
   );
 }
+
+

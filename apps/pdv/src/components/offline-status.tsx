@@ -12,9 +12,9 @@ import {
   RotateCcw,
   Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@workspace/ui";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
+import { ScrollArea } from "@workspace/ui";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import { useCompanySettings } from "@/hooks/use-company-settings";
@@ -635,3 +635,5 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
     </>
   );
 }
+
+

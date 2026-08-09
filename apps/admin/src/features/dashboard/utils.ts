@@ -1,4 +1,4 @@
-import { formatDateInput } from "@/components/ui/date-field";
+import { formatDateInput } from "@workspace/ui";
 import type { PeriodPreset, ResolvedPeriod } from "./types";
 
 /**
@@ -89,3 +89,5 @@ export function formatSignedPercent(value: number): string {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1).replace(".", ",")}%`;
 }
+
+

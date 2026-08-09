@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@workspace/ui";
 import { 
   AlertCircle, 
   AlertTriangle, 
@@ -152,3 +152,5 @@ export function LogsTable({
     </div>
   );
 }
+
+

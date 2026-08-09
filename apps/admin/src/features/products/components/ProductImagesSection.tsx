@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus, Upload, X, HelpCircle, Globe } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import type { LocalImage } from "../types";
  
 type ProductImagesSectionProps = {
@@ -142,3 +142,5 @@ export function ProductImagesSection({
     </div>
   );
 }
+
+

@@ -1,5 +1,5 @@
 import { PackageX } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import {
   Table,
   TableBody,
@@ -7,7 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@workspace/ui";
 import { formatCurrency, formatQuantity } from "@/lib/formatters";
 import type { FinancialReportWriteOffsDto } from "../types";
 
@@ -75,3 +75,5 @@ export function WriteOffsByReasonCard({ writeOffs }: WriteOffsByReasonCardProps)
     </Card>
   );
 }
+
+

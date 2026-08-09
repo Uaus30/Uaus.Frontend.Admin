@@ -1,8 +1,8 @@
 import React from "react";
 import { Loader2, Printer, Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { CurrencyInput } from "./CurrencyInput";
 import type { VariationDraft, Grade } from "../types";
 
@@ -299,3 +299,5 @@ export function ProductVariationsSection({
     </div>
   );
 }
+
+

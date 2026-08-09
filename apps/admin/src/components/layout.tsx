@@ -15,7 +15,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton
-} from "@/components/ui/sidebar";
+} from "@workspace/ui";
 import { 
   LayoutDashboard, 
   Building2,
@@ -39,8 +39,8 @@ import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 import { getDisplayName } from "@/services/mappers";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Spinner } from "@/components/ui/spinner";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -282,3 +282,5 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+
+

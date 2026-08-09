@@ -1,6 +1,6 @@
 import React from "react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { Plus } from "lucide-react";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { CategoryTable } from "@/features/categories/components/CategoryTable";
@@ -66,3 +66,5 @@ export default function Categories() {
     </AppLayout>
   );
 }
+
+

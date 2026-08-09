@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IdCard, Loader2, Search, UserCheck, X } from "lucide-react";
 import { apiGet, type BackendPagedResult, type CustomerDto } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
 import { searchLocalCustomers } from "@/offline";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import { EMPTY_CONSUMER, type PdvConsumer } from "@/stores/use-pdv-store";
@@ -192,3 +192,5 @@ export function ConsumerPicker({ consumer, onChange }: ConsumerPickerProps) {
     </div>
   );
 }
+
+

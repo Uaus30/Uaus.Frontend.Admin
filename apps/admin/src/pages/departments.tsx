@@ -1,6 +1,6 @@
 import React from "react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { Plus } from "lucide-react";
 import { useDepartments } from "@/features/departments/hooks/useDepartments";
 import { DepartmentTable } from "@/features/departments/components/DepartmentTable";
@@ -53,3 +53,5 @@ export default function Departments() {
     </AppLayout>
   );
 }
+
+

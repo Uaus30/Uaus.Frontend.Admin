@@ -1,12 +1,12 @@
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Switch } from "@workspace/ui";
+import { Checkbox } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { TagMultiSelect } from "@/components/tag-multi-select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { formatCurrency } from "@/lib/formatters";
 import { Loader2, Plus, Save, Grid3X3, AlertTriangle, HelpCircle, Printer, Package, Eye, EyeOff } from "lucide-react";
 import React, { useState, useEffect } from "react";
@@ -785,3 +785,5 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
     </>
   );
 }
+
+

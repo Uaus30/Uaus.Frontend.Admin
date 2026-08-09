@@ -1,8 +1,8 @@
 import React from "react";
 import { Loader2, Printer, Receipt } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useGetSaleDetails } from "@workspace/api-client-react";
 import type { EnrichedSale } from "../types";
@@ -208,3 +208,5 @@ export function SaleDetailsModal({
     </Dialog>
   );
 }
+
+

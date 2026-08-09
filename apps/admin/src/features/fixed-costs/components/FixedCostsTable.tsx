@@ -5,9 +5,9 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@workspace/ui";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { CalendarOff, Edit2, ReceiptText, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { formatMonth, isFixedCostActive } from "../hooks/useFixedCosts";
@@ -144,3 +144,5 @@ export function FixedCostsTable({
     </div>
   );
 }
+
+

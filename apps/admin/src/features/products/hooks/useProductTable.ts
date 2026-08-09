@@ -111,7 +111,7 @@ export function useProductTable() {
   const imagesCatalogQueries = useQueries({
     queries: imageIds.map((id) => ({
       queryKey: ["image-by-id", id],
-      queryFn: () => apiGet<ImageDto>(`/Images/${id}`).then((res) => res.data).catch(() => null),
+      queryFn: () => apiGet<ImageDto>(`/Images/${id}`).catch(() => null),
       staleTime: 5 * 60 * 1000,
     })),
   });

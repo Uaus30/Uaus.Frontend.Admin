@@ -1,9 +1,9 @@
 import { AlertTriangle, ChartColumn, RefreshCw } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { formatDateInput, parseDateInput } from "@/components/ui/date-field";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
+import { Button } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { formatDateInput, parseDateInput } from "@workspace/ui";
+import { DateRangePicker, type DateRange } from "@workspace/ui";
 import { describeApiError } from "@/lib/api-error";
 import { cn } from "@/lib/utils";
 import { useFinancialReports } from "@/features/financial-reports/hooks/useFinancialReports";
@@ -129,3 +129,5 @@ export default function FinancialReportsPage() {
     </AppLayout>
   );
 }
+
+

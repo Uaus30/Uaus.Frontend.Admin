@@ -1,4 +1,4 @@
-import type { DateRange } from "@/components/ui/date-range-picker";
+import type { DateRange } from "@workspace/ui";
 import type { SystemLogDto } from "@workspace/api-client-react";
 
 export type { DateRange, SystemLogDto };
@@ -12,3 +12,5 @@ export interface LogTypeOption {
   value: string;
   allowSelect: boolean;
 }
+
+

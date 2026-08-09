@@ -1,8 +1,8 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Button } from "@workspace/ui";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Input } from "@workspace/ui";
 import type { DepartmentForm } from "../types";
 
 type DepartmentEditorModalProps = {
@@ -79,3 +79,5 @@ export function DepartmentEditorModal({
     </Dialog>
   );
 }
+
+

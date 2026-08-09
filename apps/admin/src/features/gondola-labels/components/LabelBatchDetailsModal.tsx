@@ -1,5 +1,5 @@
 import { Printer } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import {
   Dialog,
   DialogContent,
@@ -7,8 +7,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Spinner } from "@/components/ui/spinner";
+} from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import { formatDate } from "@/lib/formatters";
 import type { ProductLabelBatchDto } from "@workspace/api-client-react";
 import { batchToPrintableLabels } from "../hooks/useLabelBatchHistory";
@@ -84,3 +84,5 @@ export function LabelBatchDetailsModal({
     </Dialog>
   );
 }
+
+

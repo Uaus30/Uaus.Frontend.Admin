@@ -1,9 +1,9 @@
 import React from "react";
 import { BarChart3, Edit2, Folder, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import type { EnrichedCategory, Department } from "../types";
 
 type CategoryTableProps = {
@@ -206,3 +206,5 @@ export function CategoryTable({
     </div>
   );
 }
+
+

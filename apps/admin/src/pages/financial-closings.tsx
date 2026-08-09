@@ -1,8 +1,8 @@
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
-import { formatDateInput, parseDateInput } from "@/components/ui/date-field";
+import { Button } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { DateRangePicker, type DateRange } from "@workspace/ui";
+import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { Lock, Plus, RefreshCw } from "lucide-react";
 import { PAGE_SIZE, useFinancialClosings } from "@/features/financial-closings/hooks/useFinancialClosings";
 import { FinancialClosingsTable } from "@/features/financial-closings/components/FinancialClosingsTable";
@@ -165,3 +165,5 @@ export default function FinancialClosingsPage() {
     </AppLayout>
   );
 }
+
+

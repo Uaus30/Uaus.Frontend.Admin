@@ -1,7 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { ScrollArea } from "@workspace/ui";
 import { Loader2, Search, Globe, AlertTriangle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { searchInternetImages, type ImageSearchResult } from "@/services/images.service";
@@ -224,3 +224,5 @@ export function ProductImageSearchModal({
     </Dialog>
   );
 }
+
+

@@ -7,9 +7,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@workspace/ui";
+import { Badge } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { CashRegisterSessionDto } from "../types";
 
@@ -227,3 +227,5 @@ export function CashRegisterSessionDetailsDialog({
     </Dialog>
   );
 }
+
+

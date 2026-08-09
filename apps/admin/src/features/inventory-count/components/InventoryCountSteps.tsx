@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 
 type InventoryCountStepsProps = {
   file: File | null;
@@ -104,3 +104,5 @@ function Step({ number, title, description, children }: StepProps) {
     </div>
   );
 }
+
+

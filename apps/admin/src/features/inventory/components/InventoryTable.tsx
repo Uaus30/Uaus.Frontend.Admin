@@ -1,11 +1,11 @@
 import React from "react";
 import { Filter, Maximize2, Search, ZoomIn, ZoomOut } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Button } from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
+import { Spinner } from "@workspace/ui";
 import type { InventoryReport } from "../types";
 
 type InventoryTableProps = {
@@ -266,3 +266,5 @@ export function InventoryTable({
     </Card>
   );
 }
+
+

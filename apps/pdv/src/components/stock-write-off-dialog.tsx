@@ -7,11 +7,11 @@ import {
   type ProductPdvSearchDto,
 } from "@workspace/api-client-react";
 import { AlertTriangle, FileText, Loader2, Minus, PackageMinus, Plus, Search, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@workspace/ui";
+import { Input } from "@workspace/ui";
+import { Label } from "@workspace/ui";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
+import { ScrollArea } from "@workspace/ui";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
 import { searchProducts } from "@/lib/product-search";
@@ -478,3 +478,5 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
     </Dialog>
   );
 }
+
+

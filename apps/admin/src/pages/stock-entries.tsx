@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@workspace/ui";
 import { useStockEntries } from "@/features/stock-entries/hooks/useStockEntries";
 import { StockEntriesTable } from "@/features/stock-entries/components/StockEntriesTable";
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
@@ -120,3 +120,5 @@ export default function StockEntries() {
     </AppLayout>
   );
 }
+
+
