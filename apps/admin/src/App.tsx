@@ -25,6 +25,7 @@ import StockEntries from "@/pages/stock-entries";
 import Inventory from "@/pages/inventory";
 import StockWriteOffs from "@/pages/stock-write-offs";
 import InventoryCount from "@/pages/inventory-count";
+import GondolaLabels from "@/pages/gondola-labels";
 import PaymentMethodsPage from "@/pages/payment-methods";
 import CompanySettings from "@/pages/settings";
 import CashRegisterSessions from "@/pages/cash-register-sessions";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/departamentos" component={Departments} />
       <Route path="/categorias" component={Categories} />
       <Route path="/etiquetas" component={Tags} />
+      <Route path="/etiquetas-gondola" component={GondolaLabels} />
       <Route path="/vendas" component={Sales} />
       <Route path="/financeiro/formas-pagamento" component={PaymentMethodsPage} />
       <Route path="/formas-pagamento" component={PaymentMethodsPage} />
@@ -77,7 +79,7 @@ function Router() {
   );
 }
 
-function App() {
+function OfflineBanner() {
   const { toast } = useToast();
   const [isOffline, setIsOffline] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(10);
@@ -132,26 +134,34 @@ function App() {
     };
   }, [toast]);
 
+  if (!isOffline) return null;
+
+  return (
+    <>
+      <style>{`
+        [data-slot="sidebar-container"] {
+          top: 40px !important;
+          height: calc(100vh - 40px) !important;
+        }
+      `}</style>
+      <div className="bg-red-600 text-white h-10 px-4 text-center text-xs sm:text-sm font-medium flex items-center justify-center gap-2 z-[9999] shrink-0 shadow-md">
+        <WifiOff className="w-4 h-4 animate-bounce" />
+        <span>
+          {isReconnecting
+            ? "Servidor indisponível no momento. Reconectando..."
+            : `Servidor indisponível no momento. Tentando nova conexão em ${secondsRemaining}`}
+        </span>
+      </div>
+    </>
+  );
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className={`flex flex-col h-screen w-full overflow-hidden bg-background ${isOffline ? "is-offline" : ""}`}>
-          <style>{`
-            .is-offline [data-slot="sidebar-container"] {
-              top: 40px !important;
-              height: calc(100vh - 40px) !important;
-            }
-          `}</style>
-          {isOffline && (
-            <div className="bg-red-600 text-white h-10 px-4 text-center text-xs sm:text-sm font-medium flex items-center justify-center gap-2 z-[9999] shrink-0 shadow-md">
-              <WifiOff className="w-4 h-4 animate-bounce" />
-              <span>
-                {isReconnecting
-                  ? "Servidor indisponível no momento. Reconectando..."
-                  : `Servidor indisponível no momento. Tentando nova conexão em ${secondsRemaining}`}
-              </span>
-            </div>
-          )}
+        <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
+          <OfflineBanner />
           <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <Router />

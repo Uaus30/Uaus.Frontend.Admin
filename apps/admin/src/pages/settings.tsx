@@ -10,6 +10,8 @@ export default function CompanySettings() {
   const {
     usesCashRegister,
     setUsesCashRegister,
+    maxSellerDiscountPercentage,
+    setMaxSellerDiscountPercentage,
     identity,
     setIdentityField,
     isDirty,
@@ -35,6 +37,8 @@ export default function CompanySettings() {
         <CompanySettingsForm
           usesCashRegister={usesCashRegister}
           onUsesCashRegisterChange={setUsesCashRegister}
+          maxSellerDiscountPercentage={maxSellerDiscountPercentage}
+          onMaxSellerDiscountPercentageChange={setMaxSellerDiscountPercentage}
           identity={identity}
           onIdentityChange={setIdentityField}
           isDirty={isDirty}

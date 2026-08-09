@@ -1,8 +1,8 @@
 import {
-  apiPost,
   apiDelete,
-  extractCreatedId,
+  createCompleteSale,
   fetchAllPages,
+  type CreateCompleteSalePayload,
   type SaleDto,
   type SaleItemDto,
 } from "@workspace/api-client-react";
@@ -31,60 +31,13 @@ export async function getSaleItems(saleId: number) {
   return fetchAllPages<SaleItemDto>("/SaleItems", { saleId });
 }
 
-/**
- * Registra a venda e depois lança cada item, que é quem baixa o estoque por FIFO
- * no backend. O total é calculado aqui a partir dos itens menos o desconto.
- *
- * @param payload Cliente, desconto, itens e formas de pagamento da venda.
- * @returns O ID da venda criada.
- */
-export async function createSaleWithItems(payload: {
-  customerId: number | null;
-  discount: number;
-  payments: SalePaymentInput[];
-  paymentStatus: number;
-  notes?: string | null;
-  items: Array<{
-    productId: number;
-    quantity: number;
-    unitPrice: number;
-  }>;
-}) {
-  const subtotal = payload.items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0,
-  );
-  const total = Math.max(0, Number((subtotal - payload.discount).toFixed(2)));
-
-  const saleResponse = await apiPost<null>("/Sales", {
-    customerId: payload.customerId,
-    total,
-    discount: payload.discount,
-    payments: payload.payments.map((payment) => ({
-      paymentMethodId: payment.paymentMethodId,
-      paymentMethodInstallmentId: payment.paymentMethodInstallmentId ?? null,
-      amount: payment.amount,
-      installments: payment.installments ?? 1,
-      transactionFee: payment.transactionFee ?? 0,
-    })),
-    paymentStatus: payload.paymentStatus,
-    notes: payload.notes?.trim() || null,
-  });
-
-  const saleId = extractCreatedId(saleResponse.response);
+export async function createSaleWithItems(
+  payload: CreateCompleteSalePayload,
+) {
+  const saleId = await createCompleteSale(payload);
   if (!saleId) {
     throw new Error("Não foi possível identificar a venda criada.");
   }
-
-  for (const item of payload.items) {
-    await apiPost<null>("/SaleItems", {
-      saleId,
-      productId: item.productId,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-    });
-  }
-
   return saleId;
 }
 

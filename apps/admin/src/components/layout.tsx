@@ -52,7 +52,8 @@ const navigation = [
       { name: "Departamentos", href: "/departamentos" },
       { name: "Categorias", href: "/categorias" },
       { name: "Grades", href: "/grades" },
-      { name: "Etiquetas", href: "/etiquetas" }
+      { name: "Etiquetas", href: "/etiquetas" },
+      { name: "Etiquetas de Gôndola", href: "/etiquetas-gondola" }
     ]
   },
   { 

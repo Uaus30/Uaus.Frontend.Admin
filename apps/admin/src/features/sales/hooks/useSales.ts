@@ -142,7 +142,6 @@ export function useSales() {
   const [items, setItems] = useState<NewSaleDraftItem[]>([]);
   const [discount, setDiscount] = useState(0);
   const [payments, setPayments] = useState<NewSaleDraftPayment[]>([]);
-  const [paymentStatus, setPaymentStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedProductId, setSelectedProductId] = useState<number | "">("");
   const [selectedQty, setSelectedQty] = useState(1);
@@ -169,7 +168,6 @@ export function useSales() {
         ? [{ paymentMethodId: dbPaymentMethods[0].id, amount: 0 }]
         : []
     );
-    setPaymentStatus(paymentStatuses.find((item) => item.allowSelect)?.id.toString() ?? "");
     setNotes("");
     setSelectedProductId("");
     setSelectedQty(1);
@@ -183,6 +181,18 @@ export function useSales() {
 
     const product = availableProducts.find((item) => item.id === Number(selectedProductId));
     if (!product) return;
+
+    const existingItem = items.find((item) => item.productId === product.id);
+    const nextQty = (existingItem?.quantity || 0) + selectedQty;
+
+    if (nextQty > product.stock) {
+      toast({
+        title: "Estoque insuficiente",
+        description: `Há apenas ${product.stock} unidades disponíveis no estoque.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setItems((current) => {
       const existing = current.find((item) => item.productId === product.id);
@@ -285,9 +295,10 @@ export function useSales() {
       return;
     }
 
-    if (payments.length === 0 || !paymentStatus) {
+    if (payments.length === 0) {
       toast({
-        title: "Informe ao menos uma forma de pagamento e o status.",
+        title: "Atenção",
+        description: "Adicione as formas de pagamento para finalizar a venda.",
         variant: "destructive",
       });
       return;
@@ -311,7 +322,6 @@ export function useSales() {
         customerId,
         discount,
         payments,
-        paymentStatus: Number(paymentStatus),
         notes,
         items,
       });
@@ -430,8 +440,6 @@ export function useSales() {
     updatePayment,
     paidAmount,
     remainingAmount,
-    paymentStatus,
-    setPaymentStatus,
     notes,
     setNotes,
     selectedProductId,

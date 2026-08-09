@@ -49,9 +49,11 @@ export function useCompanySettings() {
 
   const { data: settings, isLoading } = useGetCompanySettings();
   const [usesCashRegister, setUsesCashRegister] = useState(DEFAULT_USES_CASH_REGISTER);
+  const [maxSellerDiscountPercentage, setMaxSellerDiscountPercentage] = useState(0);
   const [identity, setIdentity] = useState<StoreIdentityFields>(EMPTY_IDENTITY);
 
   const serverValue = settings?.usesCashRegister;
+  const serverMaxSellerDiscount = settings ? (settings.maxSellerDiscountPercentage ?? 0) : undefined;
   // Um backend anterior aos campos de identidade responde sem eles; o `?? ""`
   // deixa o formulário editável do mesmo jeito (a gravação simplesmente envia
   // campos que aquele backend ignora).
@@ -68,6 +70,11 @@ export function useCompanySettings() {
     if (serverValue == null) return;
     setUsesCashRegister(serverValue);
   }, [serverValue]);
+
+  useEffect(() => {
+    if (serverMaxSellerDiscount == null) return;
+    setMaxSellerDiscountPercentage(serverMaxSellerDiscount);
+  }, [serverMaxSellerDiscount]);
 
   useEffect(() => {
     if (serverStoreName == null) return;
@@ -94,7 +101,10 @@ export function useCompanySettings() {
       identity.document !== serverDocument ||
       identity.receiptFooterMessage !== serverFooterMessage);
 
-  const isDirty = (serverValue != null && serverValue !== usesCashRegister) || isIdentityDirty;
+  const isDirty =
+    (serverValue != null && serverValue !== usesCashRegister) ||
+    (serverMaxSellerDiscount != null && serverMaxSellerDiscount !== maxSellerDiscountPercentage) ||
+    isIdentityDirty;
 
   const saveMutation = useMutation({
     // O PUT leva o objeto completo — configurações são uma linha única, não um
@@ -103,6 +113,7 @@ export function useCompanySettings() {
     mutationFn: () =>
       updateCompanySettings({
         usesCashRegister,
+        maxSellerDiscountPercentage,
         storeName: identity.storeName.trim(),
         addressLine: identity.addressLine.trim(),
         phone: identity.phone.trim(),
@@ -137,6 +148,8 @@ export function useCompanySettings() {
   return {
     usesCashRegister,
     setUsesCashRegister,
+    maxSellerDiscountPercentage,
+    setMaxSellerDiscountPercentage,
     identity,
     setIdentityField,
     isDirty,

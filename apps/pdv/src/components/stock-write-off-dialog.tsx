@@ -4,7 +4,7 @@ import {
   SELECTABLE_STOCK_WRITE_OFF_REASONS,
   STOCK_WRITE_OFF_REASON,
   STOCK_WRITE_OFF_REASON_LABEL,
-  type ProductDto,
+  type ProductPdvSearchDto,
 } from "@workspace/api-client-react";
 import { AlertTriangle, FileText, Loader2, Minus, PackageMinus, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
   const [saving, setSaving] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<ProductDto[]>([]);
+  const [searchResults, setSearchResults] = useState<ProductPdvSearchDto[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   /**
@@ -104,7 +104,7 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
   );
 
   /** Acrescenta o produto à lista e limpa a busca. */
-  const pickProduct = useCallback((product: ProductDto) => {
+  const pickProduct = useCallback((product: ProductPdvSearchDto) => {
     setItems((current) => addDraftItem(current, product));
     setSearchQuery("");
     setSearchResults([]);

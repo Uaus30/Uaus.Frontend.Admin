@@ -42,14 +42,8 @@ type NewSaleModalProps = {
   paidAmount: number;
   /** Amount still to distribute (negative when overpaid) */
   remainingAmount: number;
-  /** Selected payment status ID string */
-  paymentStatus: string;
-  /** Callback to update payment status ID */
-  setPaymentStatus: (val: string) => void;
   /** Payment method options list */
   paymentMethods: any[];
-  /** Payment status options list */
-  paymentStatuses: any[];
   /** Cash discount amount in Reais (R$) */
   discount: number;
   /** Callback to update cash discount amount */
@@ -95,10 +89,7 @@ export function NewSaleModal({
   onUpdatePayment,
   paidAmount,
   remainingAmount,
-  paymentStatus,
-  setPaymentStatus,
   paymentMethods,
-  paymentStatuses,
   discount,
   setDiscount,
   notes,
@@ -303,23 +294,6 @@ export function NewSaleModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status do Pagamento</label>
-              <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentStatuses
-                    .filter((option) => option.allowSelect)
-                    .map((option) => (
-                      <SelectItem key={option.id} value={String(option.id)}>
-                        {option.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Desconto (R$)</label>
               <Input

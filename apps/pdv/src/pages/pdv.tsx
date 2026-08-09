@@ -10,6 +10,7 @@ import {
   PAYMENT_STATUS,
   enumCode,
   type ProductDto,
+  type ProductPdvSearchDto,
   type PaymentMethodDto,
   type SaleDto,
 } from "@workspace/api-client-react";
@@ -106,7 +107,7 @@ export default function Pdv() {
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<ProductDto[]>([]);
+  const [searchResults, setSearchResults] = useState<ProductPdvSearchDto[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   const [payments, setPayments] = useState<CheckoutPayment[]>([]);
@@ -289,7 +290,7 @@ export default function Pdv() {
    * acima do estoque disponível.
    */
   const addProductToCart = useCallback(
-    (product: ProductDto) => {
+    (product: ProductPdvSearchDto) => {
       if (product.stock <= 0) {
         toast({
           title: "Produto sem estoque",
@@ -1193,12 +1194,13 @@ export default function Pdv() {
 
       const cartItems: PdvItem[] = saleItems.map((item) => {
         const product = productById.get(item.productId);
-        const price = product?.price ?? item.unitPrice;
+        const originalPriceFromSale = item.unitPrice + (item.discount ?? 0);
+        const price = product?.price ?? originalPriceFromSale;
         return {
           id: `${item.id}`,
           productId: item.productId,
           name: item.productName || product?.name || `Produto #${item.productId}`,
-          barcode: product?.barcode,
+          barcode: product?.barcode || item.barcode || undefined,
           price,
           quantity: item.quantity,
           discount: Math.max(0, round2(price - item.unitPrice)),

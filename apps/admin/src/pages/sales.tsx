@@ -49,8 +49,6 @@ export default function Sales() {
     updatePayment,
     paidAmount,
     remainingAmount,
-    paymentStatus,
-    setPaymentStatus,
     notes,
     setNotes,
     selectedProductId,
@@ -136,10 +134,7 @@ export default function Sales() {
         onUpdatePayment={updatePayment}
         paidAmount={paidAmount}
         remainingAmount={remainingAmount}
-        paymentStatus={paymentStatus}
-        setPaymentStatus={setPaymentStatus}
         paymentMethods={paymentMethods}
-        paymentStatuses={paymentStatuses}
         discount={discount}
         setDiscount={setDiscount}
         notes={notes}

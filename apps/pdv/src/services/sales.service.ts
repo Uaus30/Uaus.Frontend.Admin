@@ -1,10 +1,11 @@
 import {
   ApiError,
-  apiDelete,
   apiGet,
   apiPost,
-  apiPut,
   cancelSale,
+  getPdvSessionSales,
+  updatePdvSale,
+  type RegisterPdvSalePayload,
   type SaleDto,
   type SaleItemDto,
   type BackendPagedResult,
@@ -25,6 +26,8 @@ export type SaleItemInput = {
   quantity: number;
   /** Preço já líquido do desconto aplicado no item. */
   unitPrice: number;
+  /** Desconto concedido neste item. */
+  discount?: number;
   /** Nome do produto, guardado na fila offline para o cupom e a lista de pendências. */
   productName?: string;
 };
@@ -61,10 +64,9 @@ export type RegisterSalePayload = {
   items: SaleItemInput[];
   payments: SalePaymentInput[];
   notes?: string | null;
+  managerLogin?: string | null;
+  managerPassword?: string | null;
 };
-
-/** Status de pagamento "Pago" (enum PaymentStatus do backend). */
-const PAYMENT_STATUS_PAID = 2;
 
 /** Endpoint da venda completa atômica. Ver `Uaus.Backend.Api/docs/pdv-offline.md`. */
 const PDV_SALE_PATH = "/Pdv/sales";
@@ -165,13 +167,12 @@ export function newClientReference(): string {
   return `pdv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
-/** Monta o corpo que `POST /Pdv/sales` e o lote de sincronização esperam. */
 function buildRequestBody(
   payload: RegisterSalePayload,
   clientReference: string,
   occurredAt: string,
   total: number,
-) {
+): RegisterPdvSalePayload {
   return {
     clientReference,
     occurredAt,
@@ -181,10 +182,13 @@ function buildRequestBody(
     total,
     discount: payload.discount,
     notes: payload.notes?.trim() || null,
+    managerLogin: payload.managerLogin || null,
+    managerPassword: payload.managerPassword || null,
     items: payload.items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      discount: item.discount ?? 0,
     })),
     payments: payload.payments.map((payment) => ({
       paymentMethodId: payment.paymentMethodId,
@@ -311,6 +315,7 @@ async function enqueueSale(
       productId: item.productId,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      discount: item.discount ?? 0,
       productName: item.productName ?? `Produto #${item.productId}`,
     })),
     payments: payload.payments.map((payment) => ({
@@ -360,41 +365,13 @@ async function enqueueSale(
  */
 export async function updateSale(saleId: number, payload: RegisterSalePayload) {
   const total = computeSaleTotal(payload.items, payload.discount);
+  
+  const requestBody = buildRequestBody(payload, "", "", total);
+  const updatedSale = await updatePdvSale(saleId, requestBody);
+  
+  if (!updatedSale) throw new Error("Falha ao atualizar a venda");
 
-  const current = await getSale(saleId);
-
-  await apiPut<SaleDto>("/Sales", {
-    id: saleId,
-    customerId: payload.customerId ?? null,
-    customerDocument: payload.customerDocument?.trim() || null,
-    total,
-    discount: payload.discount,
-    paymentStatus: PAYMENT_STATUS_PAID,
-    notes: payload.notes?.trim() ?? current.notes,
-    payments: payload.payments.map((payment) => ({
-      paymentMethodId: payment.paymentMethodId,
-      paymentMethodInstallmentId: payment.paymentMethodInstallmentId ?? null,
-      amount: payment.amount,
-      installments: payment.installments ?? 1,
-      transactionFee: payment.transactionFee ?? 0,
-    })),
-  });
-
-  const existingItems = await getSaleItems(saleId);
-  for (const item of existingItems) {
-    await apiDelete<null>(`/SaleItems/${item.id}`);
-  }
-
-  for (const item of payload.items) {
-    await apiPost<null>("/SaleItems", {
-      saleId,
-      productId: item.productId,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-    });
-  }
-
-  return getSale(saleId);
+  return updatedSale;
 }
 
 /** Busca a venda com as formas de pagamento e os itens. */
@@ -435,12 +412,7 @@ export async function restoreCancelledSaleStock(saleId: number): Promise<void> {
  * @param cashRegisterSessionId Sessão de caixa aberta.
  */
 export async function getSessionSales(cashRegisterSessionId: number) {
-  const result = await apiGet<BackendPagedResult<SaleDto>>("/Sales", {
-    cashRegisterSessionId,
-    page: 1,
-    size: 200,
-  });
-  return result.items;
+  return getPdvSessionSales(cashRegisterSessionId);
 }
 
 export { cancelSale };

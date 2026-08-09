@@ -1,8 +1,7 @@
 import {
   ApiError,
-  apiGet,
-  type BackendPagedResult,
-  type ProductDto,
+  searchPdvProducts,
+  type ProductPdvSearchDto,
 } from "@workspace/api-client-react";
 import { searchLocalProducts, type LocalProduct } from "@/offline";
 
@@ -28,21 +27,15 @@ const SEARCH_LIMIT = 20;
  * participa da venda ou da baixa — custo, mínimo e datas ficam fora da base
  * local de propósito.
  */
-export function toProductDtos(products: LocalProduct[]): ProductDto[] {
+export function toProductPdvSearchDtos(products: LocalProduct[]): ProductPdvSearchDto[] {
   return products.map((product) => ({
     id: product.id,
-    createdAt: "",
-    updatedAt: null,
-    productGroupId: product.productGroupId,
     name: product.name,
-    description: null,
     barcode: product.barcode,
     price: product.price,
-    costPrice: 0,
     stock: product.stock,
-    minStock: 0,
-    status: product.status,
-    canDelete: false,
+    groupName: null,
+    imageUrl: null,
   }));
 }
 
@@ -72,19 +65,14 @@ export class ProductSearchUnavailableError extends Error {
 export async function searchProducts(
   term: string,
   options: { online: boolean },
-): Promise<ProductDto[]> {
+): Promise<ProductPdvSearchDto[]> {
   const query = term.trim();
   if (!query) return [];
 
   if (!options.online) return searchLocally(query);
 
   try {
-    const result = await apiGet<BackendPagedResult<ProductDto>>("/Products", {
-      search: query,
-      page: 1,
-      size: SEARCH_LIMIT,
-    });
-    return result.items ?? [];
+    return await searchPdvProducts(query, SEARCH_LIMIT);
   } catch (error) {
     if (error instanceof ApiError) throw error;
     return searchLocally(query);
@@ -92,9 +80,9 @@ export async function searchProducts(
 }
 
 /** Busca na base local, traduzindo a indisponibilidade dela num erro próprio. */
-async function searchLocally(term: string): Promise<ProductDto[]> {
+async function searchLocally(term: string): Promise<ProductPdvSearchDto[]> {
   try {
-    return toProductDtos(await searchLocalProducts(term, SEARCH_LIMIT));
+    return toProductPdvSearchDtos(await searchLocalProducts(term, SEARCH_LIMIT));
   } catch {
     throw new ProductSearchUnavailableError();
   }
