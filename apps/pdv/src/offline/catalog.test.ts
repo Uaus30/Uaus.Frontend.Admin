@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { filterCustomers, filterProducts } from "./catalog";
+import { filterCustomers, filterProducts, normalizeForSearch } from "./catalog";
 import type { LocalCustomer, LocalProduct } from "./types";
-import { normalizeForSearch } from "./snapshot";
 
 /** Monta um produto da base local com o campo de busca já normalizado. */
 function product(id: number, name: string, barcode: string, stock = 10): LocalProduct {

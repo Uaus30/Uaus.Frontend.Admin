@@ -1,6 +1,5 @@
 import { STORE, openLocalDatabase } from "./database";
 import { getAll, getByKey } from "./idb";
-import { normalizeForSearch } from "./snapshot";
 import type { LocalCustomer, LocalPaymentMethod, LocalProduct } from "./types";
 
 /**
@@ -15,6 +14,20 @@ import type { LocalCustomer, LocalPaymentMethod, LocalProduct } from "./types";
 
 /** Quantos resultados a busca devolve, alinhado com o `size` da busca online. */
 const SEARCH_LIMIT = 20;
+
+/** Marcas de acento que a normalização NFD separa das letras. */
+const DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
+
+/**
+ * Normaliza o texto para a busca local: minúsculas e sem acento.
+ *
+ * O operador digita "cafe" e espera achar "Café". Fazer isso na leitura custaria
+ * uma normalização por produto a cada tecla; a instalação do snapshot grava o
+ * texto já normalizado, uma vez, na carga.
+ */
+export function normalizeForSearch(value: string): string {
+  return value.toLowerCase().normalize("NFD").replace(DIACRITICS, "");
+}
 
 /** Todos os produtos da base local. */
 export function listLocalProducts(): Promise<LocalProduct[]> {

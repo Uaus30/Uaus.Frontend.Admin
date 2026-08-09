@@ -75,6 +75,23 @@ describe("classifyWriteOffFailure", () => {
     expect(classifyWriteOffFailure(new ApiError("Estoque insuficiente!"))).toBe("rejected");
   });
 
+  it.each([400, 404, 409, 422])("deve tratar %i como recusa de regra de negócio", (status) => {
+    expect(classifyWriteOffFailure(new ApiError("Recusada!", status))).toBe("rejected");
+  });
+
+  it.each([401, 408, 429, 500, 502, 503, 504])(
+    "deve tratar %i como transiente e manter a baixa na fila",
+    (status) => {
+      // Regressão: qualquer ApiError era tratado como recusa permanente. Um 401
+      // (token expirado no meio da rodada) ou um 502 do proxy marcava a baixa
+      // como "Recusada" e devolvia ao estoque local mercadoria que de fato saiu
+      // da prateleira — o servidor nem chegou a avaliar a baixa.
+      expect(classifyWriteOffFailure(new ApiError("Falha de infraestrutura", status))).toBe(
+        "retry",
+      );
+    },
+  );
+
   it("deve tratar falha de rede como reenviável", () => {
     expect(classifyWriteOffFailure(new TypeError("Failed to fetch"))).toBe("retry");
   });
@@ -212,6 +229,24 @@ describe("syncPendingWriteOffs", () => {
     expect(markPendingWriteOffAttempted).toHaveBeenCalledWith(first);
     expect(registerStockWriteOff).toHaveBeenCalledTimes(1);
     expect(markPendingWriteOffFailed).not.toHaveBeenCalled();
+  });
+
+  it("deve parar num erro transiente do servidor sem marcar recusa nem devolver estoque", async () => {
+    // Regressão: um 401 no meio da drenagem marcava as baixas como "Recusada"
+    // e devolvia o saldo local — o PDV voltava a vender offline produto que já
+    // tinha sido jogado fora.
+    const first = pendingWriteOff("ref-1");
+    listWriteOffsToSync.mockResolvedValue([first, pendingWriteOff("ref-2")]);
+    registerStockWriteOff.mockRejectedValue(new ApiError("Unauthorized", 401));
+    tallyPendingWriteOffs.mockResolvedValue({ pending: 2, failed: 0 });
+
+    const outcome = await syncPendingWriteOffs();
+
+    expect(outcome).toMatchObject({ sent: 0, rejected: 0, remaining: 2 });
+    expect(markPendingWriteOffAttempted).toHaveBeenCalledWith(first);
+    expect(registerStockWriteOff).toHaveBeenCalledTimes(1);
+    expect(markPendingWriteOffFailed).not.toHaveBeenCalled();
+    expect(restoreLocalStock).not.toHaveBeenCalled();
   });
 
   it("deve usar mensagem padrão quando a recusa vem sem texto", async () => {

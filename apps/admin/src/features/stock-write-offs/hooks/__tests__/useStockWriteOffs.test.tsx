@@ -114,9 +114,11 @@ describe("useStockWriteOffs", () => {
     act(() => result.current.setPage(2));
     act(() => result.current.setPeriod("2026-07-01", "2026-07-31"));
 
+    // A data final vai com o fim do dia LOCAL para incluir o último dia do
+    // período (o backend compara `OccurredAt <= endDate` com hora).
     expect(lastQuery()).toMatchObject({
       startDate: "2026-07-01",
-      endDate: "2026-07-31",
+      endDate: "2026-07-31T23:59:59",
       page: 1,
     });
   });

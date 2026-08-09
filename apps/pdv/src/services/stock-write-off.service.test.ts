@@ -90,6 +90,21 @@ describe("registerWriteOff online", () => {
     expect(sentBody()).not.toHaveProperty("cashRegisterSessionId");
   });
 
+  it("deve reutilizar a chave de idempotência informada em todas as tentativas", async () => {
+    // Regressão: a chave era gerada a cada chamada, então a retentativa manual
+    // (após um 504 do proxy com a baixa já gravada) subia com chave nova e o
+    // servidor baixava o estoque duas vezes.
+    registerStockWriteOffRequest.mockRejectedValueOnce(new ApiError("Gateway Timeout", 504));
+
+    await expect(
+      registerWriteOff(payload(), { clientReference: "chave-do-rascunho" }),
+    ).rejects.toThrow("Gateway Timeout");
+    await registerWriteOff(payload(), { clientReference: "chave-do-rascunho" });
+
+    expect(sentBody(0).clientReference).toBe("chave-do-rascunho");
+    expect(sentBody(1).clientReference).toBe("chave-do-rascunho");
+  });
+
   it("deve enviar a chave de idempotência e o momento local da baixa", async () => {
     await registerWriteOff(payload());
 

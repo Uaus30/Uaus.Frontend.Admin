@@ -3,13 +3,30 @@ import { useQuery } from "@tanstack/react-query";
 import { useGetLogs } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { getEnumOptions } from "@/services/core";
-import { subDays, startOfDay, endOfDay } from "date-fns";
+import { subDays, startOfDay, endOfDay, format } from "date-fns";
 import type { DateRange } from "../types";
 
-export const DEFAULT_DATE_RANGE: DateRange = {
-  from: startOfDay(subDays(new Date(), 7)),
-  to: endOfDay(new Date()),
-};
+/**
+ * Período padrão calculado NO MOMENTO da chamada — uma constante de módulo
+ * congelaria o "hoje" no primeiro import e, após a virada do dia, o filtro
+ * padrão deixaria de incluir os logs do dia corrente até um F5.
+ */
+export function getDefaultDateRange(): DateRange {
+  return {
+    from: startOfDay(subDays(new Date(), 7)),
+    to: endOfDay(new Date()),
+  };
+}
+
+/**
+ * Formata a data para a API no fuso LOCAL (`yyyy-MM-dd'T'HH:mm:ss`, sem `Z`).
+ * `toISOString()` produziria UTC e deslocaria a janela do filtro em 3 horas,
+ * porque o backend grava e compara em horário de Brasília sem fuso declarado
+ * (ver `docs/fuso-horario.md` do backend).
+ */
+function toLocalApiTimestamp(date: Date): string {
+  return format(date, "yyyy-MM-dd'T'HH:mm:ss");
+}
 
 /**
  * Hook customizado que gerencia a busca, paginação, filtros e lógica de listagem de Logs do Sistema.
@@ -20,12 +37,12 @@ export function useLogs() {
   // --- Draft state (editado pelo usuário) ---
   const [draftSearch, setDraftSearch] = useState("");
   const [draftType, setDraftType] = useState<string>("all");
-  const [draftDateRange, setDraftDateRange] = useState<DateRange | undefined>(DEFAULT_DATE_RANGE);
+  const [draftDateRange, setDraftDateRange] = useState<DateRange | undefined>(() => getDefaultDateRange());
 
   // --- Applied state (usado na query de API) ---
   const [appliedSearch, setAppliedSearch] = useState("");
   const [appliedType, setAppliedType] = useState<string>("all");
-  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | undefined>(DEFAULT_DATE_RANGE);
+  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | undefined>(() => getDefaultDateRange());
 
   const [page, setPage] = useState(1);
   const limit = 25;
@@ -41,19 +58,19 @@ export function useLogs() {
     [logTypeOptions],
   );
 
-  const startDateISO = appliedDateRange?.from
-    ? startOfDay(appliedDateRange.from).toISOString()
+  const startDateLocal = appliedDateRange?.from
+    ? toLocalApiTimestamp(startOfDay(appliedDateRange.from))
     : undefined;
-  const endDateISO = appliedDateRange?.to
-    ? endOfDay(appliedDateRange.to).toISOString()
+  const endDateLocal = appliedDateRange?.to
+    ? toLocalApiTimestamp(endOfDay(appliedDateRange.to))
     : undefined;
 
   // Consulta paginada dos logs
   const { data, isLoading, isError, error } = useGetLogs({
     search: appliedSearch || undefined,
     type: appliedType !== "all" ? appliedType : undefined,
-    startDate: startDateISO,
-    endDate: endDateISO,
+    startDate: startDateLocal,
+    endDate: endDateLocal,
     page,
     limit,
   });

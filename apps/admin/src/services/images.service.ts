@@ -10,8 +10,8 @@ import {
 } from "@workspace/api-client-react";
 import { getPaged } from "./core";
 
-export async function getAllImages() {
-  return fetchAllPages<ImageDto>("/Images");
+export async function getAllImages(params?: { search?: string }) {
+  return fetchAllPages<ImageDto>("/Images", params);
 }
 
 export async function getAllProductImages() {

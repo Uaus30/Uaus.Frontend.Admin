@@ -9,6 +9,7 @@ const EMPTY = {
   editingSaleId: null,
   consumer: EMPTY_CONSUMER,
   heldSales: [],
+  saleClientReference: null,
 };
 
 /** Produto de referência: R$ 10,00 com 20 unidades em estoque. */
@@ -166,6 +167,63 @@ describe("usePdvStore", () => {
 
       expect(usePdvStore.getState().items).toHaveLength(0);
       expect(usePdvStore.getState().status).toBe("IDLE");
+    });
+  });
+
+  describe("chave de idempotência da venda", () => {
+    it("deve gerar a chave uma vez e reutilizá-la nas retentativas", () => {
+      // Regressão da venda duplicada: cada clique em "Confirmar" gerava chave
+      // nova, então a retentativa após um 504 (com a venda já gravada no
+      // servidor) criava uma SEGUNDA venda que o índice único não barrava. A
+      // chave é do checkout: a mesma em toda tentativa da mesma venda.
+      const generate = vi.fn(() => `chave-${generate.mock.calls.length}`);
+
+      const first = usePdvStore.getState().ensureSaleClientReference(generate);
+      const second = usePdvStore.getState().ensureSaleClientReference(generate);
+
+      expect(first).toBe("chave-1");
+      expect(second).toBe(first);
+      expect(generate).toHaveBeenCalledTimes(1);
+    });
+
+    it("deve descartar a chave quando a venda confirma", () => {
+      const generate = vi.fn(() => `chave-${generate.mock.calls.length}`);
+
+      const before = usePdvStore.getState().ensureSaleClientReference(generate);
+      usePdvStore.getState().finishSale();
+      const after = usePdvStore.getState().ensureSaleClientReference(generate);
+
+      expect(after).not.toBe(before);
+    });
+
+    it("deve descartar a chave quando a venda é cancelada", () => {
+      const generate = vi.fn(() => `chave-${generate.mock.calls.length}`);
+
+      usePdvStore.getState().ensureSaleClientReference(generate);
+      usePdvStore.getState().cancelSale();
+
+      expect(usePdvStore.getState().saleClientReference).toBeNull();
+    });
+
+    it("deve descartar a chave ao pausar a venda", () => {
+      // A chave pertence à venda pausada; mantê-la faria a próxima venda nova
+      // reutilizar a chave de outra venda e ser engolida como "duplicada".
+      const generate = vi.fn(() => `chave-${generate.mock.calls.length}`);
+
+      usePdvStore.getState().addItem(product());
+      usePdvStore.getState().ensureSaleClientReference(generate);
+      usePdvStore.getState().holdSale();
+
+      expect(usePdvStore.getState().saleClientReference).toBeNull();
+    });
+
+    it("deve descartar a chave ao encerrar a sessão", () => {
+      const generate = vi.fn(() => `chave-${generate.mock.calls.length}`);
+
+      usePdvStore.getState().ensureSaleClientReference(generate);
+      usePdvStore.getState().clearSession();
+
+      expect(usePdvStore.getState().saleClientReference).toBeNull();
     });
   });
 

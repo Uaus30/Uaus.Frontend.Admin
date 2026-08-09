@@ -38,6 +38,8 @@ export {
 } from "./meta";
 
 export {
+  clearLocalCatalog,
+  collectPendingStockDebits,
   downloadSnapshot,
   installSnapshot,
   normalizeForSearch,

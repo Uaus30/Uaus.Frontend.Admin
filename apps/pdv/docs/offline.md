@@ -45,7 +45,19 @@ desaparecer do caixa, e reconciliar diferenças abriria uma classe de bugs de
 estado parcial por um ganho de desempenho que ninguém pediu.
 
 A fila de vendas pendentes **não** é tocada — ela contém venda que o servidor
-ainda não conhece.
+ainda não conhece. E é por isso que a instalação tem duas proteções:
+
+1. **A fila sobe antes.** `refreshSnapshot` dispara uma sincronização e só
+   depois baixa o snapshot — o estoque do servidor só fica correto depois que
+   as vendas/baixas presas no navegador chegarem lá.
+2. **Os débitos pendentes são re-aplicados.** O que não subiu (recusada, rede
+   caiu de novo, corrida entre o GET do snapshot e o POST do lote) já debitou a
+   projeção local, e o estoque que veio do servidor não sabe disso.
+   `installSnapshot` re-aplica os débitos de tudo que está na fila com
+   `stockApplied ≠ false` (ver `collectPendingStockDebits`). Sem isso, instalar
+   o snapshot com fila pendente ressuscitava saldo que já saiu do balcão, e a
+   venda offline seguinte era recusada na sincronização — com o cliente já fora
+   da loja.
 
 Se a API estiver fora nesse momento, o snapshot não é baixado e a base do turno
 anterior continua valendo. A data em que ela foi baixada aparece no painel
@@ -100,6 +112,16 @@ Nos dois caminhos o **estoque local é debitado**. Sem isso, o caixa venderia
 offline o mesmo produto até o infinito e todas as vendas excedentes seriam
 recusadas na sincronização.
 
+A chave de idempotência (`clientReference`) é **do checkout, não da
+tentativa**: gerada no primeiro clique em "Confirmar" e reutilizada em toda
+retentativa daquela venda (o estado mora em `use-pdv-store.ts`,
+`saleClientReference`). Se o POST chegou ao servidor mas a resposta voltou como
+erro — um 504 do proxy depois do commit —, o clique seguinte reenvia a mesma
+chave e o índice único devolve a venda já gravada em vez de criar uma segunda.
+A chave só é descartada quando a venda confirma (`finishSale`) ou é abandonada
+(`cancelSale`, pausa, logout). A baixa de estoque segue a mesma regra, com a
+chave presa ao rascunho do diálogo.
+
 A conferência de estoque local acontece **antes** de qualquer gravação, e a venda
 offline é bloqueada quando o saldo não cobre — a mesma regra do backend, que
 recusa estoque negativo. Deixar passar significaria descobrir o problema horas
@@ -140,18 +162,29 @@ do schema local.
 
 ### 3. Conexão volta → sincroniza
 
-`watchConnectivity` sonda `/Health` a cada 15s (5s quando está fora). Na
-transição para online, `syncPendingQueues` drena as duas filas: as vendas em
-lotes de 25 para `POST /Pdv/sales/sync`, depois as baixas uma a uma para
-`POST /StockWriteOffs`.
+`watchConnectivity` sonda `/Health` a cada 15s (5s quando está fora). Em toda
+sondagem que dá online — **inclusive a primeira** —, `syncPendingQueues` drena
+as duas filas: as vendas em lotes de 25 para `POST /Pdv/sales/sync`, depois as
+baixas uma a uma para `POST /StockWriteOffs`.
+
+A primeira sondagem conta de propósito: se o PDV abre já online com fila de uma
+queda anterior (energia e internet voltaram antes do reboot, F5, crash do
+navegador), não existe "reconexão" para disparar a subida. O custo é nulo na
+abertura normal — `syncNow` é no-op com a fila vazia. E `syncNow` é serializado
+por uma promise única: dois gatilhos quase simultâneos (o watcher e o
+fechamento de caixa, por exemplo) compartilham a mesma rodada em vez de drenar
+a fila duas vezes em paralelo.
 
 A ordem não é acidental — se a conexão só aguentar metade da rodada, é melhor
 que a metade que subiu seja a que trava o fechamento do caixa.
 
 A baixa não tem endpoint de lote e não precisa: `POST /StockWriteOffs` é
 idempotente por `clientReference` e devolve a baixa já gravada em vez de baixar
-o estoque duas vezes. Recusa (`ApiError`) marca a baixa e devolve o saldo local;
-falha de rede para a drenagem e deixa o resto para a próxima rodada.
+o estoque duas vezes. A falha é classificada pelo **status HTTP**
+(`classifyWriteOffFailure`): recusa de regra de negócio (400/404/409/422...)
+marca a baixa e devolve o saldo local; 401/408/429/5xx são transientes — o
+servidor não avaliou a baixa — e param a rodada deixando-a na fila, como uma
+falha de rede.
 
 Cada venda tem o seu próprio desfecho:
 
@@ -202,6 +235,14 @@ o operador segue direto.
 
 > Esta regra tem duas metades: o bloqueio aqui e a recusa de venda em sessão
 > fechada no `PdvService`. Ao mexer numa, confira a outra.
+
+O fechamento (e o botão "Sair", que também é bloqueado por fila pendente) faz
+**logout de verdade**: `clearAuthSession()` tira o token do navegador e
+`clearLocalCatalog()` apaga o cadastro local — produtos, formas de pagamento e
+clientes, que carregam nome/CPF/telefone. As filas e os metadados que só
+existem aqui (sequencial de cupom, configurações da empresa) **não** são
+tocados; a fila só chega vazia nesse ponto porque a saída é bloqueada enquanto
+houver pendência.
 
 ---
 

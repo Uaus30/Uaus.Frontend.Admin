@@ -61,6 +61,7 @@ export async function createOrReuseProductGroup(payload: {
   name: string;
   description?: string | null;
   hasVariations?: boolean;
+  showOnSite?: boolean;
   existingGroups: ProductGroupDto[];
 }) {
   const existing = payload.existingGroups.find(
@@ -76,6 +77,8 @@ export async function createOrReuseProductGroup(payload: {
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     hasVariations: payload.hasVariations ?? false,
+    // Omitir o campo faria o backend desserializar false; o padrão do sistema é visível.
+    showOnSite: payload.showOnSite ?? true,
   });
 
   if (response.data) {
@@ -95,6 +98,7 @@ export async function createOrReuseProductGroup(payload: {
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     hasVariations: payload.hasVariations ?? false,
+    showOnSite: payload.showOnSite ?? true,
     canDelete: true,
   } satisfies ProductGroupDto;
 }
@@ -104,12 +108,14 @@ export async function createProductGroup(payload: {
   name: string;
   description?: string | null;
   hasVariations: boolean;
+  showOnSite?: boolean;
 }) {
   const response = await apiPost<ProductGroupDto>("/ProductGroups", {
     categoryId: payload.categoryId,
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     hasVariations: payload.hasVariations,
+    showOnSite: payload.showOnSite ?? true,
   });
 
   if (response.data) {
@@ -129,6 +135,7 @@ export async function createProductGroup(payload: {
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     hasVariations: payload.hasVariations,
+    showOnSite: payload.showOnSite ?? true,
     canDelete: true,
   } satisfies ProductGroupDto;
 }
@@ -139,6 +146,7 @@ export async function updateProductGroup(payload: {
   name: string;
   description?: string | null;
   hasVariations: boolean;
+  showOnSite?: boolean;
 }) {
   const response = await apiPut<ProductGroupDto>("/ProductGroups", {
     id: payload.id,
@@ -146,6 +154,9 @@ export async function updateProductGroup(payload: {
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     hasVariations: payload.hasVariations,
+    // O PUT do backend aplica o campo incondicionalmente: omitir desserializa
+    // false e esconderia o grupo do site a cada salvamento.
+    showOnSite: payload.showOnSite ?? true,
   });
 
   if (!response.data) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { watchConnectivity } from "@/offline";
 import { useOfflineStore } from "@/stores/use-offline-store";
@@ -11,9 +11,16 @@ import { useOfflineStore } from "@/stores/use-offline-store";
  *
  * Responsabilidades:
  * - Manter `online` atualizado no store, sondando a API (não só `navigator.onLine`).
- * - Ao voltar a conexão: sincronizar as filas locais (vendas e baixas de
- *   estoque) e só então recarregar as consultas em cache, para o histórico já
- *   refletir o que acabou de subir.
+ * - Em toda sondagem que dá online — inclusive a primeira: sincronizar as filas
+ *   locais (vendas e baixas de estoque) e só então recarregar as consultas em
+ *   cache, para o histórico já refletir o que acabou de subir.
+ *
+ * A primeira sondagem conta de propósito: se o PDV abre já online com fila de
+ * uma queda anterior (queda de energia com a internet de volta antes do reboot,
+ * F5, crash do navegador), não haverá "reconexão" para disparar a subida — sem
+ * este gatilho as vendas ficariam presas no navegador o turno inteiro. E o
+ * `syncNow` já é no-op com a fila vazia, então a abertura normal não paga nada
+ * além de uma contagem no IndexedDB.
  */
 export function useConnectivity() {
   const queryClient = useQueryClient();
@@ -21,20 +28,13 @@ export function useConnectivity() {
   const syncNow = useOfflineStore((state) => state.syncNow);
   const refreshCounts = useOfflineStore((state) => state.refreshCounts);
 
-  // A primeira notificação do monitor é o estado inicial, não uma reconexão:
-  // sincronizar ali seria disparar uma rodada a cada abertura do PDV.
-  const hadFirstResult = useRef(false);
-
   useEffect(() => {
     void refreshCounts();
 
     const stop = watchConnectivity((online) => {
       setOnline(online);
 
-      const isReconnection = hadFirstResult.current && online;
-      hadFirstResult.current = true;
-
-      if (!isReconnection) return;
+      if (!online) return;
 
       void syncNow().then((outcome) => {
         if (!outcome) return;

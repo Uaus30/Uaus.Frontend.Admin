@@ -109,7 +109,9 @@ export function useInventory() {
         size: 100000,
       });
 
-      const items = result.items || result.Items?.items || [];
+      // GET /Inventory devolve InventoryReportDto: o campo `items` é um
+      // PagedResult ({ items: [...], pagination: {...} }), não um array.
+      const items = Array.isArray(result.items) ? result.items : result.items?.items ?? [];
       if (items.length === 0) {
         toast({
           title: "Erro na exportação",
@@ -134,7 +136,8 @@ export function useInventory() {
         const totalCost = stock * unitCost;
         const mercadoria = stock * unitSale;
         const estProfit = mercadoria - totalCost;
-        const margin = unitSale > 0 ? (estProfit / mercadoria) * 100 : 0;
+        // A margem divide por mercadoria; com mercadoria 0 o resultado seria NaN.
+        const margin = mercadoria > 0 ? (estProfit / mercadoria) * 100 : 0;
 
         csvContent +=
           `"${name.replace(/"/g, '""')}";` +

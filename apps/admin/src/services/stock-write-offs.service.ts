@@ -73,6 +73,11 @@ export const STOCK_WRITE_OFF_STATUS_OPTIONS: StockWriteOffSelectOption[] = [
  * `"all"` e datas em branco viram `undefined` para não irem na query string —
  * mandar `reason=all` faria o backend receber um enum inválido.
  *
+ * A data final ganha o fim do dia (`T23:59:59`, fuso LOCAL — nunca
+ * `toISOString`, ver `docs/fuso-horario.md` do backend): o backend compara
+ * `OccurredAt <= endDate` com hora, e mandar só `yyyy-MM-dd` (meia-noite)
+ * excluiria as baixas do último dia do período.
+ *
  * @param filters Estado dos controles de filtro.
  * @param pagination Página corrente e tamanho de página.
  * @returns Parâmetros aceitos por `useGetStockWriteOffs`.
@@ -85,7 +90,7 @@ export function buildStockWriteOffQuery(
     reason: parseFilterId(filters.reason),
     status: parseFilterId(filters.status),
     startDate: filters.startDate || undefined,
-    endDate: filters.endDate || undefined,
+    endDate: filters.endDate ? `${filters.endDate}T23:59:59` : undefined,
     userId: parseFilterId(filters.userId),
     page: pagination.page,
     limit: pagination.limit,

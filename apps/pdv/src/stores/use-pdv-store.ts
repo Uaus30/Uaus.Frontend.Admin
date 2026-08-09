@@ -77,6 +77,18 @@ interface PdvState {
   heldSales: HeldSale[];
   /** ID da venda sendo reeditada, ou null numa venda nova. */
   editingSaleId: number | null;
+  /**
+   * Chave de idempotência da venda em andamento, gerada na primeira tentativa
+   * de pagamento e reutilizada nas retentativas.
+   *
+   * É o que impede a venda duplicada no servidor: se o POST chegou lá mas a
+   * resposta voltou como erro (um 504 do proxy, por exemplo), o operador clica
+   * de novo em "Confirmar" e o reenvio com a MESMA chave é reconhecido pelo
+   * índice único de `ClientReference` — com chave nova a cada clique, o servidor
+   * gravaria uma segunda venda idêntica. Descartada só quando a venda confirma
+   * (`finishSale`) ou é abandonada (`cancelSale`, `holdSale`, `clearSession`).
+   */
+  saleClientReference: string | null;
 
   /** Adiciona o produto ao carrinho, somando a quantidade se ele já estiver lá. */
   addItem: (item: Omit<PdvItem, "id">) => void;
@@ -98,6 +110,14 @@ interface PdvState {
   cancelSale: () => void;
   /** Limpa o carrinho depois que a venda foi gravada com sucesso. */
   finishSale: () => void;
+  /**
+   * Devolve a chave de idempotência da venda em andamento, gerando-a na
+   * primeira chamada.
+   *
+   * @param generate Fábrica da chave (`newClientReference` do serviço de
+   *   vendas); injetada para o store não depender do serviço.
+   */
+  ensureSaleClientReference: (generate: () => string) => string;
 
   /**
    * Guarda a venda em andamento na fila de espera e libera o caixa.
@@ -219,6 +239,7 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   globalDiscount: 0,
   consumer: EMPTY_CONSUMER,
   editingSaleId: null,
+  saleClientReference: null,
   theme: initialTheme,
   autoPrintReceipt: initialAutoPrintReceipt,
   fontScaleIndex: initialFontScaleIndex,
@@ -274,6 +295,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       editingSaleId: null,
+      // A venda foi abandonada: a chave morre com ela. Reutilizá-la numa venda
+      // futura faria o servidor engolir a nova como "duplicada" da antiga.
+      saleClientReference: null,
     })),
 
   finishSale: () =>
@@ -283,7 +307,18 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       editingSaleId: null,
+      // Venda confirmada: a próxima venda precisa de chave própria.
+      saleClientReference: null,
     })),
+
+  ensureSaleClientReference: (generate) => {
+    const current = get().saleClientReference;
+    if (current) return current;
+
+    const reference = generate();
+    set(() => ({ saleClientReference: reference }));
+    return reference;
+  },
 
   holdSale: () => {
     const state = get();
@@ -310,6 +345,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       editingSaleId: null,
+      // A chave pertence à venda pausada, não ao caixa: mantê-la faria a
+      // próxima venda nova reutilizar a chave de outra venda.
+      saleClientReference: null,
     }));
 
     return held;
@@ -385,6 +423,7 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       editingSaleId: null,
+      saleClientReference: null,
     })),
 
   getSubtotal: () =>

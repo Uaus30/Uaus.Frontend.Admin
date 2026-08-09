@@ -1,8 +1,11 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useProductEditor } from "../useProductEditor";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { updateProductGroup, syncProductImages } from "@/services/products.service";
+import { getGradesByCategoryId, getAllGrades } from "@/services/grades.service";
+import { createImageFromFile } from "@/services/images.service";
 
 // Mock services and utilities
 vi.mock("@/services/products.service", () => ({
@@ -27,6 +30,7 @@ vi.mock("@/services/categories.service", () => ({
 
 vi.mock("@/services/grades.service", () => ({
   getAllGrades: vi.fn(() => Promise.resolve([])),
+  getGradesByCategoryId: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("@/services/tags.service", () => ({
@@ -35,7 +39,7 @@ vi.mock("@/services/tags.service", () => ({
 
 vi.mock("@/services/images.service", () => ({
   getAllImages: vi.fn(() => Promise.resolve([])),
-  createImageFromFile: vi.fn(() => Promise.resolve({ id: 1, url: "img.png" })),
+  createImageFromFile: vi.fn(() => Promise.resolve({ id: 99, url: "img.png" })),
 }));
 
 vi.mock("@/services/core", () => ({
@@ -100,7 +104,7 @@ describe("useProductEditor Hook", () => {
         name: "COPO",
         description: "Desc",
         hasVariations: false,
-        isPublic: true,
+        showOnSite: true,
       },
       tags: [],
       images: [],
@@ -125,5 +129,197 @@ describe("useProductEditor Hook", () => {
 
     expect(result.current.form.hasVariations).toBe(true);
     expect(result.current.variationDrafts.length).toBe(0);
+  });
+
+  it("deve persistir descrição e visibilidade (showOnSite) do grupo ao salvar", async () => {
+    // Regressão: persistGroup não enviava description (o PUT mandava null e o
+    // backend apagava a descrição do banco) nem a visibilidade do switch.
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    const mockProduct = {
+      id: 10,
+      name: "COPO VERDE",
+      description: "",
+      price: 15.5,
+      stock: 2,
+      minStock: 0,
+      status: 2,
+      barcode: "123456",
+      department: { id: 2 },
+      category: { id: 5 },
+      productGroup: {
+        id: 1,
+        name: "COPO",
+        description: "Descrição original",
+        hasVariations: false,
+        showOnSite: false,
+      },
+      tags: [],
+      images: [],
+    };
+
+    act(() => {
+      result.current.openModal(mockProduct);
+    });
+
+    // O formulário carrega os valores persistidos do grupo
+    expect(result.current.form.description).toBe("Descrição original");
+    expect(result.current.form.isPublic).toBe(false);
+
+    await act(async () => {
+      await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
+    });
+
+    expect(updateProductGroup).toHaveBeenCalledWith({
+      id: 1,
+      categoryId: 5,
+      name: "COPO",
+      description: "Descrição original",
+      hasVariations: false,
+      showOnSite: false,
+    });
+  });
+
+  it("deve preservar a posição escolhida para imagens novas ao salvar", async () => {
+    // Regressão: as imagens recém-enviadas eram concatenadas no FIM da lista,
+    // ignorando a ordem definida por drag-and-drop (a capa "pulava" de lugar).
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    const mockProduct = {
+      id: 10,
+      name: "COPO VERDE",
+      description: "",
+      price: 15.5,
+      stock: 2,
+      minStock: 0,
+      status: 2,
+      barcode: "123456",
+      department: { id: 2 },
+      category: { id: 5 },
+      productGroup: { id: 1, name: "COPO", description: "", hasVariations: false, showOnSite: true },
+      tags: [],
+      images: [],
+    };
+
+    act(() => {
+      result.current.openModal(mockProduct);
+    });
+
+    // Usuário adiciona a imagem nova "C" e a arrasta para a primeira posição
+    act(() => {
+      result.current.setImages([
+        { name: "C", url: "blob:c", file: new File(["c"], "c.png", { type: "image/png" }) },
+        { imageId: 1, associationId: 100, name: "A", url: "a.png" },
+        { imageId: 2, associationId: 101, name: "B", url: "b.png" },
+      ]);
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
+    });
+
+    expect(createImageFromFile).toHaveBeenCalledTimes(1);
+    expect(syncProductImages).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nextImages: [
+          { imageId: 99, displayOrder: 0 },
+          { imageId: 1, displayOrder: 1 },
+          { imageId: 2, displayOrder: 2 },
+        ],
+      }),
+    );
+  });
+
+  it("não deve regenerar a matriz de variações sobre drafts reais em modo de edição", async () => {
+    // Regressão: o efeito de grades por categoria substituía o draft real (com
+    // id) por drafts temporários da matriz cartesiana (sem id, estoque 0);
+    // salvar nesse estado criava variações duplicadas.
+    const sizeGrade = {
+      id: 50,
+      name: "Tamanho",
+      type: 1,
+      categoryIds: [5],
+      variants: [
+        { id: 501, value: "P" },
+        { id: 502, value: "M" },
+      ],
+    };
+    vi.mocked(getGradesByCategoryId).mockResolvedValue([sizeGrade] as any);
+    vi.mocked(getAllGrades).mockResolvedValue([sizeGrade] as any);
+
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    const variationProduct = {
+      id: 10,
+      name: "CAMISETA P",
+      description: "",
+      price: 10,
+      stock: 3,
+      minStock: 0,
+      status: 2,
+      barcode: "",
+      department: { id: 2 },
+      category: { id: 5 },
+      productGroup: { id: 1, name: "CAMISETA", description: "", hasVariations: true, showOnSite: true },
+      tags: [],
+      images: [],
+    };
+
+    act(() => {
+      result.current.openModal(variationProduct);
+    });
+
+    expect(result.current.variationDrafts).toHaveLength(1);
+    expect(result.current.variationDrafts[0].id).toBe(10);
+
+    // Aguarda as grades da categoria resolverem (gatilho do efeito com bug)
+    await waitFor(() => expect(result.current.categoryGrades.length).toBeGreaterThan(0));
+
+    // O draft real permanece — nada de matriz temporária por cima dele
+    expect(result.current.variationDrafts).toHaveLength(1);
+    expect(result.current.variationDrafts[0].id).toBe(10);
+  });
+
+  it("não deve ressuscitar a matriz ao apagar variações até sobrar uma (criação)", async () => {
+    const sizeGrade = {
+      id: 50,
+      name: "Tamanho",
+      type: 1,
+      categoryIds: [5],
+      variants: [
+        { id: 501, value: "P" },
+        { id: 502, value: "M" },
+      ],
+    };
+    vi.mocked(getGradesByCategoryId).mockResolvedValue([sizeGrade] as any);
+    vi.mocked(getAllGrades).mockResolvedValue([sizeGrade] as any);
+
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openModal();
+    });
+    act(() => {
+      result.current.setForm((current) => ({
+        ...current,
+        departmentId: "2",
+        categoryId: "5",
+        productGroupName: "CAMISETA",
+      }));
+    });
+    act(() => {
+      result.current.toggleHasVariations(true);
+    });
+
+    // A matriz P/M é gerada automaticamente para a categoria selecionada
+    await waitFor(() => expect(result.current.variationDrafts).toHaveLength(2));
+
+    // Usuário apaga uma variação (sem id, remoção local)
+    await act(async () => {
+      await result.current.handleDeleteVariation(result.current.variationDrafts[0]);
+    });
+
+    // A matriz completa não pode reaparecer sozinha
+    expect(result.current.variationDrafts).toHaveLength(1);
   });
 });

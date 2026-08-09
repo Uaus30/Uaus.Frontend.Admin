@@ -88,14 +88,17 @@ function totalQuantityOf(items: WriteOffItemInput[]): number {
  *
  * @param payload Baixa montada no diálogo.
  * @param options `offline: true` grava direto na fila, sem tentar a rede.
+ *   `clientReference` reutiliza a chave de idempotência de uma tentativa
+ *   anterior da MESMA baixa — igual à venda: sem ela, uma retentativa após um
+ *   502/504 (com a baixa já gravada) baixaria o estoque do servidor duas vezes.
  * @throws {LocalStockError} Quando a baixa offline não cabe no estoque local.
  * @throws {ApiError} Quando o servidor recusa a baixa.
  */
 export async function registerWriteOff(
   payload: RegisterWriteOffPayload,
-  options: { offline?: boolean } = {},
+  options: { offline?: boolean; clientReference?: string } = {},
 ): Promise<RegisteredWriteOff> {
-  const clientReference = newClientReference();
+  const clientReference = options.clientReference ?? newClientReference();
   // O momento real da baixa, capturado agora e não na hora de subir: uma baixa
   // feita durante a queda de internet não pode entrar com o horário em que a
   // conexão voltou. Formato local sem fuso — `toISOString()` a deixaria três

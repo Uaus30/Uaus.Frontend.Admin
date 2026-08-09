@@ -168,6 +168,8 @@ export interface ProductGroupDto {
   name: string;
   description: string | null;
   hasVariations: boolean;
+  /** Visibilidade pública do grupo (campo ShowOnSite do backend). */
+  showOnSite: boolean;
   canDelete: boolean;
   productHistories?: ProductHistoryDto[];
 }
@@ -961,8 +963,10 @@ export function useLogin(options?: {
 }) {
   return useCrudMutation(async ({ data }) => {
     const login = data.login ?? data.username ?? data.email ?? "";
+    // Credenciais vão no CORPO JSON, nunca em params: querystring com senha fica
+    // gravada em logs de acesso (proxy/gateway) e no histórico do navegador.
     const authResponse = await apiRequest<AuthenticatedUserDto>("POST", "/Users/authenticate", {
-      params: {
+      body: {
         login,
         password: data.password,
       },

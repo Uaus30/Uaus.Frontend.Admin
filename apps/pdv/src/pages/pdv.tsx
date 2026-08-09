@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetMe,
   apiGet,
+  clearAuthSession,
   useGetPaymentMethods,
   CASH_PAYMENT_METHOD_ID,
   PAYMENT_STATUS,
@@ -20,6 +21,7 @@ import {
 } from "@workspace/receipt";
 import { usePdvStore, type HeldSale, type PdvItem } from "@/stores/use-pdv-store";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
+import { useOfflineStore } from "@/stores/use-offline-store";
 import { Calculator } from "@/components/calculator";
 import { ConsumerPicker } from "@/components/consumer-picker";
 import { FontSizeControl } from "@/components/font-size-control";
@@ -29,11 +31,13 @@ import { StockWriteOffDialog } from "@/components/stock-write-off-dialog";
 import { useCashRegister } from "@/hooks/use-cash-register";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
-import { listLocalPaymentMethods } from "@/offline";
+import { clearLocalCatalog, closeLocalDatabase, listLocalPaymentMethods } from "@/offline";
 import {
   cancelSale as cancelSaleRequest,
   getSaleItems,
+  newClientReference,
   registerSale,
+  restoreCancelledSaleStock,
   updateSale,
   LocalStockError,
 } from "@/services/sales.service";
@@ -231,6 +235,7 @@ export default function Pdv() {
     backToSelling,
     cancelSale,
     finishSale,
+    ensureSaleClientReference,
     getSubtotal,
     getTotal,
     theme,
@@ -383,9 +388,23 @@ export default function Pdv() {
     return () => clearTimeout(timer);
   }, [searchQuery, executeSearch]);
 
-  // Ao abrir o checkout, começa com uma forma de pagamento cobrindo o total.
+  // O pagamento só é inicializado UMA vez por checkout. Sem o guard, qualquer
+  // refetch de /PaymentMethods em segundo plano (foco na janela, reconexão
+  // invalidando o cache) trocava a identidade do array `paymentMethods`, o
+  // efeito rodava de novo e a seleção do operador (cartão, parcelas, divisão,
+  // valor recebido) era silenciosamente trocada pela primeira forma da lista.
+  const checkoutInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (status !== "CHECKOUT" || paymentMethods.length === 0) return;
+    if (status !== "CHECKOUT") {
+      // Saiu do checkout: o próximo abre zerado de novo.
+      checkoutInitializedRef.current = false;
+      return;
+    }
+
+    if (checkoutInitializedRef.current || paymentMethods.length === 0) return;
+    checkoutInitializedRef.current = true;
+
     setPayments([{ paymentMethodId: paymentMethods[0].id, amount: round2(total), installmentNumber: 1 }]);
     setSplitPayment(false);
     setAmountReceived("");
@@ -493,6 +512,19 @@ export default function Pdv() {
   const confirmDiscount = () => {
     const val = parseAmount(discountValue);
     if (isNaN(val)) return;
+
+    // Desconto negativo AUMENTA o total: "-5" digitado por engano numa venda de
+    // R$ 50 cobraria R$ 55 do cliente — e, offline, o servidor só recusaria a
+    // venda horas depois, na sincronização. Vale para os dois alvos e os dois
+    // tipos (valor e percentual).
+    if (val < 0) {
+      toast({
+        title: "Desconto Inválido",
+        description: "O desconto não pode ser negativo.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (discountTarget.type === "global") {
       const finalValue = discountType === "percent" ? (subtotal * val) / 100 : val;
@@ -714,7 +746,15 @@ export default function Pdv() {
             customerDocument: sale.customerDocument,
             offline: false,
           }))
-        : await registerSale(payload, { offline: !online }).then((sale) => ({
+        : await registerSale(payload, {
+            offline: !online,
+            // A chave é do CHECKOUT, não da tentativa: gerada no primeiro
+            // clique e reutilizada nas retentativas, para que um reenvio após
+            // um 502/504 (com a venda já gravada no servidor) seja reconhecido
+            // como duplicado em vez de virar uma segunda venda. `finishSale`
+            // e o descarte da venda é que a liberam.
+            clientReference: ensureSaleClientReference(newClientReference),
+          }).then((sale) => ({
             receiptNumber: sale.receiptNumber,
             createdAt: sale.occurredAt,
             total: sale.total,
@@ -907,9 +947,7 @@ export default function Pdv() {
       setIsFecharCaixaOpen(false);
       setFechamentoDinheiro("");
       setFechamentoObs("");
-      clearSession();
-      queryClient.clear();
-      setLocation("/login");
+      await performLogout();
     } catch (error) {
       toast({
         title: "Não foi possível fechar o caixa",
@@ -921,7 +959,37 @@ export default function Pdv() {
     }
   };
 
-  /** Sai do PDV. Bloqueia a saída enquanto o caixa estiver aberto. */
+  /**
+   * Encerra a sessão do operador de verdade: token, cadastros locais e stores.
+   *
+   * Antes, "sair" só zerava o carrinho e o cache de consultas — o JWT continuava
+   * no localStorage (navegar de volta para "/" reautenticava o operador
+   * anterior) e a base local seguia legível com nome/CPF/telefone de clientes.
+   *
+   * As filas offline **nunca** são apagadas aqui: quem chama garante que não há
+   * pendência (a saída é bloqueada enquanto houver), e `clearLocalCatalog` só
+   * toca o cadastro.
+   */
+  const performLogout = async () => {
+    // O token sai primeiro: mesmo que a limpeza da base local falhe, a sessão
+    // não pode continuar reutilizável.
+    clearAuthSession();
+    clearSession();
+    useOfflineStore.getState().reset();
+
+    try {
+      await clearLocalCatalog();
+    } catch {
+      // Navegador sem IndexedDB ou base bloqueada por outra aba: não há
+      // cadastro a limpar (ou não dá para limpar agora) — a saída segue.
+    }
+
+    closeLocalDatabase();
+    queryClient.clear();
+    setLocation("/login");
+  };
+
+  /** Sai do PDV. Bloqueia a saída com caixa aberto ou com movimento pendente. */
   const handleExitClick = () => {
     if (sessionId) {
       toast({
@@ -933,9 +1001,22 @@ export default function Pdv() {
       return;
     }
 
-    clearSession();
-    queryClient.clear();
-    setLocation("/login");
+    // Sair com fila pendente deixaria venda/baixa presa neste navegador — e o
+    // logout limpa o cadastro local, então o operador seguinte nem saberia da
+    // pendência. Sincronizar primeiro é obrigatório.
+    if (queuedCount > 0) {
+      toast({
+        title: "Há movimentos não sincronizados",
+        description: online
+          ? `${queuedCount} venda(s)/baixa(s) ainda não subiram para o servidor. Resolva a fila em "Operação offline" antes de sair.`
+          : `${queuedCount} movimento(s) offline aguardando conexão. Saia somente depois que eles subirem.`,
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
+    }
+
+    void performLogout();
   };
 
   /** Cancela uma venda da sessão, devolvendo ao estoque os itens já baixados. */
@@ -943,6 +1024,18 @@ export default function Pdv() {
     setBusySaleId(sale.id);
     try {
       await cancelSaleRequest(sale.id, "Cancelada no PDV");
+
+      // O servidor devolveu o estoque dele; a projeção local precisa acompanhar,
+      // senão a base local fica subestimada até o próximo snapshot e o PDV
+      // recusa venda offline de produto que está na prateleira.
+      try {
+        await restoreCancelledSaleStock(sale.id);
+        await queryClient.invalidateQueries({ queryKey: ["pdv-products"] });
+      } catch {
+        // A venda foi cancelada; se a devolução local falhar (base indisponível),
+        // a projeção se corrige no próximo snapshot.
+      }
+
       await refreshSales();
       toast({ title: "Venda cancelada", description: `A venda #${sale.id} foi cancelada e o estoque devolvido.` });
     } catch (error) {

@@ -12,6 +12,15 @@ import {
 import type { PaymentMethodFormValues, InstallmentFormValue } from "../types";
 
 /**
+ * Prefixo da chave de cache da listagem. A invalidação usa só o prefixo de
+ * propósito: `getGetPaymentMethodsQueryKey()` sem argumentos devolve
+ * `["PaymentMethods", undefined]`, que NÃO casa com as queries parametrizadas
+ * (`["PaymentMethods", { search, page, ... }]`) no React Query v5 — a lista
+ * nunca era atualizada após criar/editar/excluir.
+ */
+const PAYMENT_METHODS_KEY_PREFIX = [getGetPaymentMethodsQueryKey()[0]];
+
+/**
  * Hook customizado para gerenciar o estado e operações de CRUD das Formas de Pagamento.
  */
 export function usePaymentMethods() {
@@ -157,7 +166,7 @@ export function usePaymentMethods() {
         toast({ title: "Sucesso", description: "Forma de pagamento cadastrada com sucesso!" });
       }
 
-      queryClient.invalidateQueries({ queryKey: getGetPaymentMethodsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: PAYMENT_METHODS_KEY_PREFIX });
       closeModal();
     } catch (err: any) {
       toast({
@@ -174,7 +183,7 @@ export function usePaymentMethods() {
     try {
       await deleteMutation.mutateAsync({ id });
       toast({ title: "Sucesso", description: "Forma de pagamento excluída com sucesso!" });
-      queryClient.invalidateQueries({ queryKey: getGetPaymentMethodsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: PAYMENT_METHODS_KEY_PREFIX });
     } catch (err: any) {
       toast({
         title: "Erro ao excluir",

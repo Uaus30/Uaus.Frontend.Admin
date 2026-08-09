@@ -13,6 +13,7 @@ import {
   checkLocalStock,
   consumeLocalStock,
   nextOfflineSaleNumber,
+  restoreLocalStock,
   savePendingSale,
   type PendingSale,
   type StockShortage,
@@ -215,15 +216,26 @@ function toStockMovements(items: SaleItemInput[]) {
  *
  * @param payload Venda fechada no checkout.
  * @param options `offline: true` grava direto na fila, sem tentar a rede.
+ *   `clientReference` reutiliza a chave de idempotência de uma tentativa
+ *   anterior do MESMO checkout — sem ela, cada clique em "Confirmar" geraria
+ *   uma chave nova e uma retentativa após um 502/504 (com a venda já gravada no
+ *   servidor) criaria uma SEGUNDA venda que o índice único não tem como barrar.
  * @throws {LocalStockError} Quando a venda offline não cabe no estoque local.
  * @throws {ApiError} Quando o servidor recusa a venda.
  */
 export async function registerSale(
   payload: RegisterSalePayload,
-  options: { offline?: boolean } = {},
+  options: { offline?: boolean; clientReference?: string } = {},
 ): Promise<RegisteredSale> {
+  // Desconto negativo AUMENTARIA o total. Online o servidor recusa, mas a fila
+  // offline só descobriria na sincronização — com o cliente já tendo pago o
+  // valor inflado. A recusa precisa acontecer aqui, antes de qualquer gravação.
+  if (payload.discount < 0) {
+    throw new Error("O desconto da venda não pode ser negativo.");
+  }
+
   const total = computeSaleTotal(payload.items, payload.discount);
-  const clientReference = newClientReference();
+  const clientReference = options.clientReference ?? newClientReference();
   const occurredAt = toLocalTimestamp();
 
   if (options.offline) {
@@ -398,6 +410,23 @@ export async function getSaleItems(saleId: number) {
     size: 200,
   });
   return result.items;
+}
+
+/**
+ * Devolve à projeção local o estoque dos itens de uma venda cancelada.
+ *
+ * O cancelamento na API devolve o estoque **no servidor**; sem este passo a
+ * base local ficava subestimada até o próximo snapshot, e o PDV recusava venda
+ * offline de produto que estava na prateleira. É a outra metade do contrato
+ * documentado em `offline/stock.ts`: venda debita, cancelamento devolve.
+ *
+ * @param saleId Venda que acabou de ser cancelada com sucesso.
+ */
+export async function restoreCancelledSaleStock(saleId: number): Promise<void> {
+  const items = await getSaleItems(saleId);
+  await restoreLocalStock(
+    items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+  );
 }
 
 /**

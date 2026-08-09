@@ -46,10 +46,13 @@ export function useSales() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
 
   // Query: Busca vendas paginadas com filtros
+  // O backend compara `CreatedAt <= endDate` com hora; enviar só "yyyy-MM-dd"
+  // (meia-noite) excluiria o último dia inteiro do período. O fim do dia vai no
+  // fuso LOCAL, sem toISOString (ver docs/fuso-horario.md do backend).
   const { data: salesPage, isLoading } = useGetSales({
     search: search.trim() || undefined,
     startDate: startDate || undefined,
-    endDate: endDate || undefined,
+    endDate: endDate ? `${endDate}T23:59:59` : undefined,
     paymentMethodId: paymentMethodFilter !== "all" ? Number(paymentMethodFilter) : undefined,
     paymentStatus: paymentStatusFilter !== "all" ? Number(paymentStatusFilter) : undefined,
     page,

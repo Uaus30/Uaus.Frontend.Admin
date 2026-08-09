@@ -28,12 +28,14 @@ vi.mock("@workspace/api-client-react", () => ({
 
 const checkLocalStock = vi.fn();
 const consumeLocalStock = vi.fn();
+const restoreLocalStock = vi.fn();
 const savePendingSale = vi.fn();
 const nextOfflineSaleNumber = vi.fn();
 
 vi.mock("@/offline", () => ({
   checkLocalStock: (...args: unknown[]) => checkLocalStock(...args),
   consumeLocalStock: (...args: unknown[]) => consumeLocalStock(...args),
+  restoreLocalStock: (...args: unknown[]) => restoreLocalStock(...args),
   savePendingSale: (...args: unknown[]) => savePendingSale(...args),
   nextOfflineSaleNumber: (...args: unknown[]) => nextOfflineSaleNumber(...args),
 }));
@@ -41,6 +43,7 @@ vi.mock("@/offline", () => ({
 const {
   computeSaleTotal,
   registerSale,
+  restoreCancelledSaleStock,
   updateSale,
   getSessionSales,
   toLocalTimestamp,
@@ -231,6 +234,34 @@ describe("registerSale online", () => {
     expect(saved).toMatchObject({ id: null, receiptNumber: "OFF-3", offline: true });
     expect(savePendingSale).toHaveBeenCalledTimes(1);
   });
+
+  it("deve reutilizar a chave de idempotência informada em todas as tentativas", async () => {
+    // Regressão: a chave era gerada a cada chamada, então a retentativa manual
+    // do operador (após um 504 do proxy com a venda já gravada) subia com chave
+    // NOVA e o servidor gravava uma segunda venda idêntica — o índice único de
+    // ClientReference não tinha como barrar.
+    apiPost.mockRejectedValueOnce(new ApiError("Gateway Timeout", 504));
+
+    await expect(
+      registerSale(payload(), { clientReference: "chave-do-checkout" }),
+    ).rejects.toThrow("Gateway Timeout");
+    await registerSale(payload(), { clientReference: "chave-do-checkout" });
+
+    expect(postBody(0).clientReference).toBe("chave-do-checkout");
+    expect(postBody(1).clientReference).toBe("chave-do-checkout");
+  });
+
+  it("deve recusar desconto negativo antes de qualquer gravação", async () => {
+    // Desconto negativo AUMENTA o total: "-5" numa venda de R$ 50 cobraria
+    // R$ 55. Online o servidor recusa; offline a fila só descobriria horas
+    // depois, na sincronização.
+    await expect(registerSale(payload({ discount: -5 }))).rejects.toThrow(
+      "não pode ser negativo",
+    );
+
+    expect(apiPost).not.toHaveBeenCalled();
+    expect(savePendingSale).not.toHaveBeenCalled();
+  });
 });
 
 describe("registerSale offline", () => {
@@ -304,6 +335,46 @@ describe("registerSale offline", () => {
     await registerSale(payload(), { offline: true });
 
     expect(queuedSale(0).clientReference).not.toBe(queuedSale(1).clientReference);
+  });
+
+  it("deve enfileirar com a chave do checkout quando ela é informada", async () => {
+    // A mesma garantia do caminho online: a fila é idempotente pela chave, e a
+    // chave é da venda, não da tentativa.
+    await registerSale(payload(), { offline: true, clientReference: "chave-do-checkout" });
+
+    expect(queuedSale().clientReference).toBe("chave-do-checkout");
+  });
+
+  it("deve recusar desconto negativo também offline", async () => {
+    await expect(registerSale(payload({ discount: -1 }), { offline: true })).rejects.toThrow(
+      "não pode ser negativo",
+    );
+
+    expect(savePendingSale).not.toHaveBeenCalled();
+    expect(consumeLocalStock).not.toHaveBeenCalled();
+  });
+});
+
+describe("restoreCancelledSaleStock", () => {
+  it("deve devolver à base local o estoque dos itens da venda cancelada", async () => {
+    // Regressão: o cancelamento devolvia o estoque só no servidor; a projeção
+    // local ficava subestimada até o próximo snapshot e o PDV recusava venda
+    // offline de produto que estava na prateleira.
+    vi.clearAllMocks();
+    apiGet.mockResolvedValue({
+      items: [
+        { id: 900, productId: 1, quantity: 4 },
+        { id: 901, productId: 2, quantity: 1 },
+      ],
+    });
+
+    await restoreCancelledSaleStock(500);
+
+    expect(apiGet).toHaveBeenCalledWith("/SaleItems", { saleId: 500, page: 1, size: 200 });
+    expect(restoreLocalStock).toHaveBeenCalledWith([
+      { productId: 1, quantity: 4 },
+      { productId: 2, quantity: 1 },
+    ]);
   });
 });
 

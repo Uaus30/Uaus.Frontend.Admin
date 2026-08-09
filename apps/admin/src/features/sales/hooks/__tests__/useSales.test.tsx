@@ -3,6 +3,7 @@ import { useSales } from "../useSales";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useGetSales } from "@workspace/api-client-react";
 
 // Mock the services
 vi.mock("@/services/core", () => ({
@@ -112,6 +113,36 @@ describe("useSales Hook", () => {
     expect(result.current.discount).toBe(0);
     expect(result.current.subtotal).toBe(0);
     expect(result.current.total).toBe(0);
+  });
+
+  it("deve enviar o fim do dia LOCAL no endDate para incluir o último dia do período", () => {
+    // Regressão: o backend compara `CreatedAt <= endDate` com hora; enviar a
+    // data crua (meia-noite) fazia as vendas do último dia sumirem do filtro.
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.setStartDate("2026-08-07");
+      result.current.setEndDate("2026-08-07");
+    });
+
+    const calls = vi.mocked(useGetSales).mock.calls;
+    const lastParams = calls[calls.length - 1][0] as Record<string, unknown>;
+
+    expect(lastParams.startDate).toBe("2026-08-07");
+    expect(lastParams.endDate).toBe("2026-08-07T23:59:59");
+    // Sem `Z`: o backend grava e compara em horário local (docs/fuso-horario.md).
+    expect(String(lastParams.endDate)).not.toContain("Z");
+  });
+
+  it("não deve enviar endDate quando o filtro de período está vazio", () => {
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    const calls = vi.mocked(useGetSales).mock.calls;
+    const lastParams = calls[calls.length - 1][0] as Record<string, unknown>;
+
+    expect(result.current.endDate).toBe("");
+    expect(lastParams.endDate).toBeUndefined();
+    expect(lastParams.startDate).toBeUndefined();
   });
 
   it("should handle cart modifications", async () => {

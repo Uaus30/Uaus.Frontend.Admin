@@ -90,6 +90,19 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : "Falha inesperada.";
 }
 
+/**
+ * Rodada de sincronização em voo, compartilhada entre chamadores concorrentes.
+ *
+ * A guarda por `get().syncing` sozinha tinha uma corrida TOCTOU: dois chamadores
+ * (o watcher de reconexão e o fechamento de caixa, por exemplo) liam
+ * `syncing=false`, o primeiro suspendia num `await` antes de marcar a flag, e as
+ * duas rodadas drenavam a mesma fila em paralelo — duplicando os efeitos locais
+ * (devolução ou débito de estoque em dobro). Com a promise única, quem chegar
+ * durante uma rodada recebe a MESMA promise, e a decisão é síncrona: não há
+ * `await` entre conferir e reservar.
+ */
+let syncInFlight: Promise<QueueSyncOutcome | null> | null = null;
+
 export const useOfflineStore = create<OfflineState>((set, get) => ({
   online: true,
   connectionChecked: false,
@@ -135,6 +148,12 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
 
     set(() => ({ refreshingSnapshot: true, snapshotError: null }));
     try {
+      // A fila pendente sobe ANTES de o snapshot ser baixado: o estoque do
+      // servidor só fica correto depois que as vendas/baixas presas no
+      // navegador chegarem lá. O que não subir (recusada, rede caiu de novo)
+      // tem o débito re-aplicado pela própria instalação do snapshot.
+      await get().syncNow();
+
       const result = await refreshLocalDatabase();
       // O estado exibido vem da base local, não do que acabou de ser baixado:
       // é ela que carrega a marca de atualização gravada pela instalação.
@@ -149,24 +168,34 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
     }
   },
 
-  syncNow: async () => {
+  syncNow: () => {
     const state = get();
-    if (state.syncing || !state.online) return null;
-
-    await state.refreshCounts();
-    // Só as `pending` disparam a rodada: as recusadas esperam decisão do
-    // operador e reenviá-las repetiria a mesma recusa a cada tentativa.
-    if (get().pending === 0 && get().pendingWriteOffs === 0) return null;
+    if (!state.online) return Promise.resolve(null);
+    // Rodada em andamento: quem chegar agora recebe a mesma promise em vez de
+    // abrir uma segunda drenagem sobre a mesma fila. A conferência é síncrona
+    // de propósito — um `await` antes dela reabriria a corrida.
+    if (syncInFlight) return syncInFlight;
 
     set(() => ({ syncing: true }));
-    try {
-      const outcome = await syncPendingQueues();
-      set(() => ({ lastSync: { ...outcome, at: new Date().toISOString() } }));
-      await get().refreshCounts();
-      return outcome;
-    } finally {
-      set(() => ({ syncing: false }));
-    }
+
+    syncInFlight = (async () => {
+      try {
+        await get().refreshCounts();
+        // Só as `pending` disparam a rodada: as recusadas esperam decisão do
+        // operador e reenviá-las repetiria a mesma recusa a cada tentativa.
+        if (get().pending === 0 && get().pendingWriteOffs === 0) return null;
+
+        const outcome = await syncPendingQueues();
+        set(() => ({ lastSync: { ...outcome, at: new Date().toISOString() } }));
+        await get().refreshCounts();
+        return outcome;
+      } finally {
+        set(() => ({ syncing: false }));
+        syncInFlight = null;
+      }
+    })();
+
+    return syncInFlight;
   },
 
   reset: () =>

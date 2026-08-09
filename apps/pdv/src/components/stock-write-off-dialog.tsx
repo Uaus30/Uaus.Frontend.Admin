@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError,
   SELECTABLE_STOCK_WRITE_OFF_REASONS,
@@ -24,7 +24,7 @@ import {
   totalDraftQuantity,
   type WriteOffDraftItem,
 } from "@/lib/write-off-draft";
-import { LocalStockError } from "@/services/sales.service";
+import { LocalStockError, newClientReference } from "@/services/sales.service";
 import { registerWriteOff } from "@/services/stock-write-off.service";
 
 type StockWriteOffDialogProps = {
@@ -65,6 +65,17 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
   const [searchResults, setSearchResults] = useState<ProductDto[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  /**
+   * Chave de idempotência da baixa em andamento, gerada na primeira tentativa e
+   * reutilizada nas retentativas do mesmo rascunho.
+   *
+   * Igual à venda: se o POST chegou ao servidor mas a resposta voltou como erro
+   * (504 do proxy), o clique seguinte em "Confirmar" reenvia a MESMA chave e o
+   * servidor devolve a baixa já gravada em vez de baixar o estoque duas vezes.
+   * Descartada quando a baixa confirma ou o rascunho é abandonado.
+   */
+  const writeOffReferenceRef = useRef<string | null>(null);
+
   const shortages = findDraftShortages(items);
 
   /**
@@ -83,6 +94,8 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
         setNotes("");
         setSearchQuery("");
         setSearchResults([]);
+        // O rascunho morreu; a chave morre com ele.
+        writeOffReferenceRef.current = null;
       }
 
       onOpenChange(next);
@@ -178,9 +191,13 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
 
     setSaving(true);
     try {
+      // A chave é do rascunho, não da tentativa: reutilizada num reenvio após
+      // erro de gateway para o servidor reconhecer a baixa já gravada.
+      writeOffReferenceRef.current ??= newClientReference();
+
       const saved = await registerWriteOff(
         { reason, items: toWriteOffItems(items), notes },
-        { offline: !online },
+        { offline: !online, clientReference: writeOffReferenceRef.current },
       );
 
       await refreshCounts();

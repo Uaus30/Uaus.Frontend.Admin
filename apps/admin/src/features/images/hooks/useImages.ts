@@ -5,6 +5,7 @@ import { buildPublicImageUrl, getEnumOptions } from "@/services/core";
 import {
   createImageFromFile,
   deleteImage,
+  getAllImages,
   getImagesPage,
   updateImageRecord,
 } from "@/services/images.service";
@@ -53,18 +54,58 @@ export function useImages() {
 
   const selectableTypes = useMemo(() => imageTypes.filter((item) => item.allowSelect), [imageTypes]);
 
-  // Query: Carregar imagens paginadas
-  const { data: imagePage, isLoading } = useQuery({
+  // O endpoint GET /Images só aceita search/page/size — não há filtro de tipo
+  // no servidor. Filtrar no cliente apenas a página corrente mentia: a grade
+  // ficava vazia com o total/paginação do conjunto SEM filtro. Com um tipo
+  // selecionado, o catálogo completo é carregado e o recorte + paginação
+  // passam a ser locais, refletindo o filtro de verdade.
+  const typeFilterActive = typeFilter !== "all";
+
+  // Query: Carregar imagens paginadas no servidor (sem filtro de tipo)
+  const { data: serverPage, isLoading: isLoadingServerPage } = useQuery({
     queryKey: ["images-page", { search, page, limit }],
     queryFn: () => getImagesPage({ search, page, limit }),
+    enabled: !typeFilterActive,
   });
 
-  // Filtra as imagens locais pelo tipo selecionado
+  // Query: Catálogo completo, usado apenas enquanto há filtro de tipo ativo
+  const { data: allImages = [], isLoading: isLoadingAllImages } = useQuery({
+    queryKey: ["images-all-by-type", { search }],
+    queryFn: () => getAllImages({ search: search || undefined }),
+    enabled: typeFilterActive,
+  });
+
+  // Recorte completo por tipo (todas as páginas)
+  const typeFilteredImages = useMemo(
+    () => (allImages as CatalogImage[]).filter((item) => String(item.type) === typeFilter),
+    [allImages, typeFilter],
+  );
+
+  // Página corrente exibida na grade
   const filteredImages = useMemo(() => {
-    const base = imagePage?.data ?? [];
-    if (typeFilter === "all") return base;
-    return base.filter((item) => String(item.type) === typeFilter);
-  }, [imagePage?.data, typeFilter]);
+    if (!typeFilterActive) return serverPage?.data ?? [];
+    const startIndex = (page - 1) * limit;
+    return typeFilteredImages.slice(startIndex, startIndex + limit);
+  }, [limit, page, serverPage?.data, typeFilterActive, typeFilteredImages]);
+
+  // Página "virtual" com total honesto quando o filtro de tipo está ativo
+  const imagePage = useMemo(() => {
+    if (!typeFilterActive) return serverPage;
+    return {
+      data: filteredImages,
+      total: typeFilteredImages.length,
+      page,
+      limit,
+    };
+  }, [filteredImages, limit, page, serverPage, typeFilterActive, typeFilteredImages.length]);
+
+  const isLoading = typeFilterActive ? isLoadingAllImages : isLoadingServerPage;
+
+  /** Troca o tipo filtrado voltando para a primeira página (o recorte muda por inteiro). */
+  function handleTypeFilterChange(value: string) {
+    setTypeFilter(value);
+    setPage(1);
+  }
 
   /**
    * Reseta os estados do formulário de upload para valores padrões.
@@ -113,7 +154,10 @@ export function useImages() {
         type: Number(formType),
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["images-page"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["images-page"] }),
+        queryClient.invalidateQueries({ queryKey: ["images-all-by-type"] }),
+      ]);
       toast({ title: "Imagem salva com sucesso." });
       setUploadOpen(false);
       resetUploadForm();
@@ -151,7 +195,10 @@ export function useImages() {
         type: renameImage.type,
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["images-page"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["images-page"] }),
+        queryClient.invalidateQueries({ queryKey: ["images-all-by-type"] }),
+      ]);
       toast({ title: "Nome atualizado." });
       setRenameOpen(false);
     } catch (error) {
@@ -171,7 +218,10 @@ export function useImages() {
   async function handleDelete(id: number) {
     try {
       await deleteImage(id);
-      await queryClient.invalidateQueries({ queryKey: ["images-page"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["images-page"] }),
+        queryClient.invalidateQueries({ queryKey: ["images-all-by-type"] }),
+      ]);
       toast({ title: "Imagem removida." });
     } catch (error) {
       toast({
@@ -197,7 +247,7 @@ export function useImages() {
     search,
     setSearch,
     typeFilter,
-    setTypeFilter,
+    setTypeFilter: handleTypeFilterChange,
     page,
     setPage,
     limit,

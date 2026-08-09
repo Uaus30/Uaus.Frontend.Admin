@@ -1,5 +1,5 @@
 import { META_KEY, STORE, openLocalDatabase, type MetaRecord } from "./database";
-import { getByKey, put } from "./idb";
+import { getByKey, put, updateMany } from "./idb";
 import type { LocalCompanySettings } from "./types";
 
 /**
@@ -98,11 +98,22 @@ export function readCachedCompanySettings(): Promise<LocalCompanySettings | null
  * existe para o cupom impresso ter uma identificação, e sai marcado como
  * provisório justamente para ninguém confundir com o número definitivo.
  *
+ * A leitura e a gravação acontecem numa **única transação readwrite**
+ * (`updateMany`): ler numa transação e gravar em outra abria uma janela em que
+ * duas reservas concorrentes liam o mesmo valor e imprimiam o mesmo `OFF-n` em
+ * cupons diferentes.
+ *
  * @returns O número reservado, começando em 1.
  */
 export async function nextOfflineSaleNumber(): Promise<number> {
-  const current = (await readMeta<number>(META_KEY.offlineSaleSequence)) ?? 0;
-  const next = current + 1;
-  await writeMeta(META_KEY.offlineSaleSequence, next);
+  const db = await openLocalDatabase();
+
+  let next = 0;
+  await updateMany<MetaRecord>(db, STORE.meta, [META_KEY.offlineSaleSequence], (current) => {
+    const value = typeof current?.value === "number" ? current.value : 0;
+    next = value + 1;
+    return { key: META_KEY.offlineSaleSequence, value: next };
+  });
+
   return next;
 }

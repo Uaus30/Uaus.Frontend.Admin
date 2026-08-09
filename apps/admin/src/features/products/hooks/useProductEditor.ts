@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { getEnumOptions, buildPublicImageUrl } from "@/services/core";
@@ -134,6 +134,13 @@ export function useProductEditor() {
   const [productEditor, setProductEditor] = useState<ProductEditorForm>(createEmptyProductEditor());
   const [variationDrafts, setVariationDrafts] = useState<VariationDraft[]>([]);
   const [activeGrades, setActiveGrades] = useState<Grade[]>([]);
+
+  /**
+   * Categoria para a qual a matriz de variações já foi gerada automaticamente.
+   * Evita que o efeito de grades regenere a matriz (descartando drafts reais ou
+   * recém-editados) quando a lista de drafts encolhe até 1 item.
+   */
+  const matrixGeneratedForCategoryRef = useRef<string | null>(null);
 
   // React Queries: Option sets & catalog resources
   const { data: departments = [] } = useQuery({
@@ -361,6 +368,7 @@ export function useProductEditor() {
     setEditingGroupId(null);
     setLoadedGroupId(null);
     setActiveVariationKey(null);
+    matrixGeneratedForCategoryRef.current = null;
     setForm({
       departmentId: "",
       categoryId: "",
@@ -384,7 +392,8 @@ export function useProductEditor() {
         productGroupName: product.productGroup?.name ?? "",
         description: product.productGroup?.description || "",
         hasVariations: product.productGroup?.hasVariations ?? false,
-        isPublic: product.productGroup?.isPublic ?? true,
+        // O backend expõe a visibilidade como showOnSite (ProductGroupDto).
+        isPublic: product.productGroup?.showOnSite ?? true,
       });
 
       if (product.productGroup?.hasVariations) {
@@ -422,6 +431,8 @@ export function useProductEditor() {
     setVariationDrafts([]);
     setActiveVariationKey(null);
     setActiveGrades([]);
+    // Religar as variações deve poder gerar a matriz de novo para a categoria atual.
+    matrixGeneratedForCategoryRef.current = null;
   }
 
   /**
@@ -511,11 +522,37 @@ export function useProductEditor() {
       return;
     }
     setActiveGrades(categoryGrades);
+
+    // A geração automática da matriz vale apenas para o fluxo de CRIAÇÃO:
+    // em edição os drafts reais (com id) chegam da API e não podem ser
+    // substituídos por combinações vazias.
+    if (editingGroupId != null) return;
+
+    // Aguarda o catálogo geral de grades: generateVariationsMatrix resolve as
+    // grades selecionadas em gradesList — com ele vazio a matriz sairia errada.
+    if (gradesList.length === 0) return;
+
+    // Nunca regenerar sobre drafts já persistidos, e gerar no máximo UMA vez
+    // por categoria selecionada — apagar variações até sobrar 1 não pode
+    // ressuscitar a matriz completa.
+    const hasPersistedDraft = variationDrafts.some((draft) => draft.id != null);
+    if (hasPersistedDraft) return;
+    if (matrixGeneratedForCategoryRef.current === form.categoryId) return;
+
     if (form.hasVariations && variationDrafts.length <= 1) {
+      matrixGeneratedForCategoryRef.current = form.categoryId;
       const gradeIds = categoryGrades.map((g: Grade) => g.id);
       generateVariationsMatrix(gradeIds);
     }
-  }, [categoryGrades, form.hasVariations, modalOpen, categoryGrades.length, variationDrafts.length]);
+  }, [
+    categoryGrades,
+    editingGroupId,
+    form.categoryId,
+    form.hasVariations,
+    gradesList.length,
+    modalOpen,
+    variationDrafts,
+  ]);
 
   // Side Effect: Load active group variations into edit layout when retrieved from API
   useEffect(() => {
@@ -645,7 +682,9 @@ export function useProductEditor() {
         id: editingGroupId,
         categoryId: Number(form.categoryId),
         name: form.productGroupName,
+        description: form.description,
         hasVariations: form.hasVariations,
+        showOnSite: form.isPublic,
       });
       return updatedGroup;
     }
@@ -653,7 +692,9 @@ export function useProductEditor() {
     const createdGroup = await createProductGroup({
       categoryId: Number(form.categoryId),
       name: form.productGroupName,
+      description: form.description,
       hasVariations: form.hasVariations,
+      showOnSite: form.isPublic,
     });
     setEditingGroupId(createdGroup.id);
     return createdGroup;
@@ -672,24 +713,27 @@ export function useProductEditor() {
       nextTagIds: tagIds,
     });
 
-    const persistedNewImages = [];
+    // Percorre na ordem definida pelo usuário (drag-and-drop/setas): imagens
+    // novas são criadas no catálogo e entram na MESMA posição em que estão na
+    // lista — concatenar as novas no fim corrompia o displayOrder escolhido.
+    const normalizedImages: LocalImage[] = [];
     for (const image of sourceImages) {
-      if (image.imageId || !image.file) continue;
+      if (image.imageId) {
+        normalizedImages.push(image);
+        continue;
+      }
+      if (!image.file) continue;
       const created = await createImageFromFile({
         file: image.file,
         name: image.name,
         type: 3,
       });
-      persistedNewImages.push({
+      normalizedImages.push({
         ...image,
         imageId: created.id,
         url: buildPublicImageUrl(created.url),
       });
     }
-
-    const normalizedImages = sourceImages
-      .filter((image) => image.imageId)
-      .concat(persistedNewImages);
 
     const nextImages = normalizedImages.map((image, index) => ({
       imageId: image.imageId as number,

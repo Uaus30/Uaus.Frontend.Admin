@@ -178,15 +178,19 @@ export function useProductTable() {
   const updateProductPrice = async (product: any, newPrice: number) => {
     setUpdatingPriceId(product.id);
     try {
+      // `product` vem de enrichedProducts, que troca o nome pelo nome do GRUPO
+      // para exibição; enviar esse nome no PUT renomearia o produto (com
+      // registro no histórico). O nome verdadeiro sai de allProducts.
+      const original = allProducts.find((item) => item.id === product.id);
       await upsertProduct({
         id: product.id,
         productGroupId: product.productGroupId,
-        name: product.name,
-        description: product.description,
-        barcode: product.barcode,
+        name: original?.name ?? product.name,
+        description: original?.description ?? product.description,
+        barcode: original?.barcode ?? product.barcode,
         price: newPrice,
-        minStock: product.minStock,
-        status: getStatusNumber(product.status),
+        minStock: original?.minStock ?? product.minStock,
+        status: getStatusNumber(original?.status ?? product.status),
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["products-all-for-table"] }),

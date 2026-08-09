@@ -44,17 +44,32 @@ export function buildWriteOffRequestBody(writeOff: PendingWriteOff) {
 }
 
 /**
+ * Status HTTP que não avaliaram a baixa e por isso são transientes mesmo tendo
+ * vindo numa resposta do servidor: sessão expirada (401), timeout do
+ * proxy/servidor (408) e limitação de taxa (429). Os 5xx entram pela faixa.
+ */
+const TRANSIENT_HTTP_STATUSES = new Set([401, 408, 429]);
+
+/**
  * Decide o que fazer com a falha de uma baixa.
  *
  * Pura, para poder ser testada sem rede: é a mesma distinção que `registerSale`
  * faz e a regra mais importante das duas filas.
  *
- * @returns `"rejected"` quando o servidor **respondeu** recusando (regra de
- *   negócio — insistir só repetiria o mesmo "não"), `"retry"` quando a falha é
- *   de rede e a baixa continua valendo.
+ * Nem todo `ApiError` é recusa: um 401 (token expirado no meio da rodada), 408,
+ * 429 ou 5xx significa que o servidor **não avaliou** a baixa — tratá-los como
+ * recusa marcaria a baixa como "Recusada" e devolveria ao estoque local uma
+ * mercadoria que de fato saiu da prateleira. Recusa de verdade é o 4xx de regra
+ * de negócio (400/404/409/422...), em que insistir só repetiria o mesmo "não".
+ *
+ * @returns `"rejected"` quando o servidor **avaliou e recusou** (regra de
+ *   negócio), `"retry"` quando a falha é de rede ou de infraestrutura e a baixa
+ *   continua valendo.
  */
 export function classifyWriteOffFailure(error: unknown): "rejected" | "retry" {
-  return error instanceof ApiError ? "rejected" : "retry";
+  if (!(error instanceof ApiError)) return "retry";
+  if (TRANSIENT_HTTP_STATUSES.has(error.status) || error.status >= 500) return "retry";
+  return "rejected";
 }
 
 /** Mensagem legível de uma recusa do servidor. */

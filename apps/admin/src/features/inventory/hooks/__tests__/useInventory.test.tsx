@@ -1,8 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { useInventory } from "../useInventory";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { apiGet } from "@workspace/api-client-react";
 
 // Mock the services
 vi.mock("@/services/suppliers.service", () => ({
@@ -98,5 +99,101 @@ describe("useInventory Hook", () => {
       result.current.handleResetZoom();
     });
     expect(result.current.zoomScale).toBe(1.0);
+  });
+});
+
+describe("useInventory handleExportExcel", () => {
+  let capturedBlob: Blob | null = null;
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalAnchorClick = HTMLAnchorElement.prototype.click;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedBlob = null;
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      capturedBlob = blob;
+      return "blob:mock";
+    }) as typeof URL.createObjectURL;
+    HTMLAnchorElement.prototype.click = vi.fn();
+  });
+
+  afterEach(() => {
+    URL.createObjectURL = originalCreateObjectURL;
+    HTMLAnchorElement.prototype.click = originalAnchorClick;
+  });
+
+  it("deve exportar lendo o objeto paginado da API (result.items.items)", async () => {
+    // Regressão: GET /Inventory devolve InventoryReportDto cujo `items` é um
+    // PagedResult ({ items: [...], pagination }), não um array — ler
+    // `result.items` como array quebrava a exportação com TypeError.
+    vi.mocked(apiGet).mockResolvedValue({
+      metrics: {},
+      categorySummaries: [],
+      items: {
+        items: [
+          {
+            productName: "Produto X",
+            barcode: "789",
+            supplierName: "Fornecedor A",
+            categoryName: "Categoria B",
+            stock: 2,
+            unitCost: 5,
+            unitSale: 10,
+          },
+          {
+            productName: "Sem Estoque",
+            barcode: "",
+            supplierName: "Fornecedor A",
+            categoryName: "Categoria B",
+            stock: 0,
+            unitCost: 5,
+            unitSale: 10,
+          },
+        ],
+        pagination: { page: 1, size: 100000, totalItems: 2, filteredItems: 2 },
+      },
+    });
+
+    const { result } = renderHook(() => useInventory(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.handleExportExcel();
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Exportado" }),
+    );
+    expect(capturedBlob).not.toBeNull();
+
+    const csv = await capturedBlob!.text();
+    expect(csv).toContain("Produto;Cód. Barras;Fornecedor;Categoria");
+    // mercadoria=20, custo=10, lucro=10 -> margem 50,0%
+    expect(csv).toContain('"Produto X"');
+    expect(csv).toContain("50,0%");
+    // Regressão da margem: com estoque zerado a divisão dava NaN%.
+    expect(csv).toContain('"Sem Estoque"');
+    expect(csv).not.toContain("NaN");
+  });
+
+  it("deve avisar quando o filtro não retorna registros, sem gerar arquivo", async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      metrics: {},
+      categorySummaries: [],
+      items: { items: [], pagination: { page: 1, size: 100000, totalItems: 0, filteredItems: 0 } },
+    });
+
+    const { result } = renderHook(() => useInventory(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.handleExportExcel();
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Erro na exportação",
+        description: "Não há registros correspondentes aos filtros selecionados para exportar.",
+      }),
+    );
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
 });

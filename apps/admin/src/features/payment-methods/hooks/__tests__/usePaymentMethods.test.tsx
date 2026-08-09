@@ -42,7 +42,8 @@ vi.mock("@workspace/api-client-react", () => ({
     mutateAsync: vi.fn(() => Promise.resolve()),
     isPending: false
   })),
-  getGetPaymentMethodsQueryKey: () => ["PaymentMethods"]
+  // Mesmo shape do factory real: sem argumentos devolve ["PaymentMethods", undefined]
+  getGetPaymentMethodsQueryKey: (params?: unknown) => ["PaymentMethods", params]
 }));
 
 const createWrapper = () => {
@@ -101,5 +102,33 @@ describe("usePaymentMethods Hook", () => {
 
     expect(result.current.formData.installments).toHaveLength(2);
     expect(result.current.formData.installments[1].installmentNumber).toBe(2);
+  });
+
+  it("deve invalidar as listagens parametrizadas por PREFIXO após excluir", async () => {
+    // Regressão: `getGetPaymentMethodsQueryKey()` sem argumentos devolve
+    // ["PaymentMethods", undefined], que NÃO casa com as queries parametrizadas
+    // (["PaymentMethods", { ... }]) no React Query v5 — a lista nunca atualizava.
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const parametrizedKey = ["PaymentMethods", { search: undefined, isActive: undefined, page: 1, size: 10 }];
+    queryClient.setQueryData(parametrizedKey, { data: [], page: 1, limit: 10, total: 0, totalPages: 1 });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    try {
+      const { result } = renderHook(() => usePaymentMethods(), { wrapper });
+
+      await act(async () => {
+        await result.current.handleDelete(1);
+      });
+
+      expect(queryClient.getQueryState(parametrizedKey)?.isInvalidated).toBe(true);
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 });

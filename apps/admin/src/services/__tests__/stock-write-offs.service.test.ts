@@ -69,11 +69,26 @@ describe("buildStockWriteOffQuery", () => {
       reason: 2,
       status: 1,
       startDate: "2026-07-01",
-      endDate: "2026-07-31",
+      endDate: "2026-07-31T23:59:59",
       userId: 7,
       page: 3,
       limit: 15,
     });
+  });
+
+  it("deve enviar o fim do dia LOCAL na data final para incluir o último dia do período", () => {
+    // Regressão: o backend compara `OccurredAt <= endDate` com hora; a data
+    // crua (meia-noite) excluía todas as baixas do último dia selecionado.
+    const query = buildStockWriteOffQuery(
+      { ...EMPTY_STOCK_WRITE_OFF_FILTERS, startDate: "2026-08-07", endDate: "2026-08-07" },
+      { page: 1, limit: 15 },
+    );
+
+    // Início do dia permanece date-only (meia-noite) e o fim ganha 23:59:59,
+    // sem `Z` — o backend grava e compara em horário local (docs/fuso-horario.md).
+    expect(query.startDate).toBe("2026-08-07");
+    expect(query.endDate).toBe("2026-08-07T23:59:59");
+    expect(query.endDate).not.toContain("Z");
   });
 
   it("deve descartar valor de filtro que não é número", () => {
