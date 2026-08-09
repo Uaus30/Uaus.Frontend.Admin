@@ -33,6 +33,7 @@ import { HeldSalesDialog } from "@/components/held-sales-dialog";
 import { OfflineStatus } from "@/components/offline-status";
 import { StockWriteOffDialog } from "@/components/stock-write-off-dialog";
 import { useCashRegister } from "@/hooks/use-cash-register";
+import { OpenCashRegisterDialog, CloseCashRegisterDialog } from "@/components/cash-register-dialogs";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
 import { clearLocalCatalog, closeLocalDatabase, listLocalPaymentMethods } from "@/offline";
@@ -115,6 +116,7 @@ export default function Pdv() {
     const [isSalesHistoryOpen, setIsSalesHistoryOpen] = useState(false);
   const [isHeldSalesOpen, setIsHeldSalesOpen] = useState(false);
   const [printingReport, setPrintingReport] = useState(false);
+  const [isFecharCaixaOpen, setIsFecharCaixaOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [isConfirmDiscardOpen, setIsConfirmDiscardOpen] = useState(false);
   const [pendingSaleToEdit, setPendingSaleToEdit] = useState<SaleDto | null>(null);
@@ -150,7 +152,7 @@ export default function Pdv() {
     loadingSession,
     loadingSales,
     open: openCashRegister,
-    // close: closeCashRegister,
+    close: closeCashRegister,
     refreshSales,
   } = useCashRegister({ enabled: mode.requiresOpenSession });
 
@@ -1739,9 +1741,27 @@ export default function Pdv() {
         open={isStockWriteOffOpen}
         onOpenChange={setIsStockWriteOffOpen}
         onRegistered={async () => {
-          // O saldo mudou no servidor: a próxima busca precisa ver o número novo.
           await queryClient.invalidateQueries({ queryKey: ["pdv-products"] });
         }}
+      />
+
+      <OpenCashRegisterDialog
+        requiresOpenSession={mode.requiresOpenSession}
+        sessionId={sessionId}
+        loadingSession={loadingSession}
+        onOpenRegister={openCashRegister}
+        onLogout={() => {
+          queryClient.clear();
+          setLocation("/login");
+        }}
+      />
+
+      <CloseCashRegisterDialog
+        open={isFecharCaixaOpen}
+        onOpenChange={setIsFecharCaixaOpen}
+        summary={summary}
+        session={session}
+        onCloseRegister={closeCashRegister}
       />
 
       {/* VENDAS EM ESPERA */}
@@ -1759,6 +1779,9 @@ export default function Pdv() {
     </div>
   );
 }
+
+
+
 
 
 
