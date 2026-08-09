@@ -6,6 +6,7 @@ import {
   apiGet,
   clearAuthSession,
   useGetPaymentMethods,
+  CASH_PAYMENT_METHOD_ID,
   PAYMENT_STATUS,
   enumCode,
   type ProductDto,
@@ -21,11 +22,10 @@ import {
   type ReceiptData,
 } from "@workspace/receipt";
 import { usePdvStore, type HeldSale, type PdvItem } from "@/stores/use-pdv-store";
-import { useCheckout, type CheckoutPayment } from "@/hooks/use-checkout";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import { Calculator } from "@/components/calculator";
-import { CheckoutDialog } from "@/components/checkout-dialog";
+import { ConsumerPicker } from "@/components/consumer-picker";
 import { DiscountDialog } from "@/components/discount-dialog";
 import { SalesHistoryDialog } from "@/components/sales-history-dialog";
 import { FontSizeControl } from "@/components/font-size-control";
@@ -47,7 +47,7 @@ import {
 } from "@/services/sales.service";
 import { formatCurrency } from "@/lib/formatters";
 import { searchProducts } from "@/lib/product-search";
-import { parseAmount, round2 } from "@/lib/checkout";
+import { computeCashSettlement, parseAmount } from "@/lib/checkout";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
@@ -62,6 +62,8 @@ import {
   User,
   ShoppingCart,
   Tag,
+  CreditCard,
+  Banknote,
   LogOut,
   Loader2,
   Menu as MenuIcon,
@@ -78,12 +80,19 @@ import {
   FileBarChart,
   DollarSign,
   Unlock,
-  } from "lucide-react";
+  Split,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 /** Uma das formas de pagamento escolhidas no checkout. */
+type CheckoutPayment = {
+  paymentMethodId: number;
+  amount: number;
+  installmentNumber: number;
+};
 
 /** Arredonda para duas casas evitando o erro de ponto flutuante do JavaScript. */
+const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 /**
  * Tela do PDV: busca de produtos, carrinho, checkout com N formas de pagamento,
@@ -102,9 +111,9 @@ export default function Pdv() {
   const [searchResults, setSearchResults] = useState<ProductPdvSearchDto[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-
-
-
+  const [payments, setPayments] = useState<CheckoutPayment[]>([]);
+  const [splitPayment, setSplitPayment] = useState(false);
+  const [amountReceived, setAmountReceived] = useState("");
   const [savingSale, setSavingSale] = useState(false);
 
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
@@ -112,7 +121,8 @@ export default function Pdv() {
 
   const [isSandwichMenuOpen, setIsSandwichMenuOpen] = useState(false);
   const [isStockWriteOffOpen, setIsStockWriteOffOpen] = useState(false);
-    const [isSalesHistoryOpen, setIsSalesHistoryOpen] = useState(false);
+  const [isFecharCaixaOpen, setIsFecharCaixaOpen] = useState(false);
+  const [isSalesHistoryOpen, setIsSalesHistoryOpen] = useState(false);
   const [isHeldSalesOpen, setIsHeldSalesOpen] = useState(false);
   const [printingReport, setPrintingReport] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
@@ -124,9 +134,10 @@ export default function Pdv() {
   const [aberturaObs, setAberturaObs] = useState("");
   const [abrindoCaixa, setAbrindoCaixa] = useState(false);
 
-  // const [fechamentoDinheiro, setFechamentoDinheiro] = useState("");
-  // const [fechamentoObs, setFechamentoObs] = useState("");
-  
+  const [fechamentoDinheiro, setFechamentoDinheiro] = useState("");
+  const [fechamentoObs, setFechamentoObs] = useState("");
+  const [fechandoCaixa, setFechandoCaixa] = useState(false);
+
   /**
    * O que as configurações da empresa mudam aqui.
    *
@@ -150,7 +161,7 @@ export default function Pdv() {
     loadingSession,
     loadingSales,
     open: openCashRegister,
-    // close: closeCashRegister,
+    close: closeCashRegister,
     refreshSales,
   } = useCashRegister({ enabled: mode.requiresOpenSession });
 
@@ -159,7 +170,7 @@ export default function Pdv() {
     queuedCount,
     queuedSalesCount,
     hasLocalDatabase,
-    // sync: syncPendingQueuesNow,
+    sync: syncPendingQueuesNow,
   } = useOfflinePdv(sessionId);
 
   const { data: dbPaymentMethodsData } = useGetPaymentMethods(
@@ -271,8 +282,6 @@ export default function Pdv() {
 
   const subtotal = getSubtotal();
   const total = getTotal();
-
-  const checkout = useCheckout(subtotal, paymentMethods);
 
   /**
    * Adiciona o produto ao carrinho recusando produto zerado ou quantidade
@@ -400,11 +409,91 @@ export default function Pdv() {
     if (checkoutInitializedRef.current || paymentMethods.length === 0) return;
     checkoutInitializedRef.current = true;
 
-    checkout.setPayments([{ paymentMethodId: paymentMethods[0].id, amount: round2(total), installmentNumber: 1 }]);
-    checkout.setSplitPayment(false);
-    checkout.setAmountReceived("");
+    setPayments([{ paymentMethodId: paymentMethods[0].id, amount: round2(total), installmentNumber: 1 }]);
+    setSplitPayment(false);
+    setAmountReceived("");
   }, [status, paymentMethods, total]);
 
+  const paidAmount = round2(payments.reduce((sum, p) => sum + (p.amount || 0), 0));
+  const remainingAmount = round2(total - paidAmount);
+
+  const feeAmount = round2(
+    payments.reduce((sum, payment) => {
+      const method = paymentMethods.find((pm) => pm.id === payment.paymentMethodId);
+      const installment = method?.installments.find(
+        (i) => i.installmentNumber === payment.installmentNumber && i.isActive,
+      );
+      return sum + (payment.amount || 0) * ((installment?.feePercentage ?? 0) / 100);
+    }, 0),
+  );
+
+  const cashPayment = payments.find((p) => p.paymentMethodId === CASH_PAYMENT_METHOD_ID);
+
+  /**
+   * Conferência do dinheiro em mãos contra a parte em dinheiro da venda.
+   *
+   * `change` e `cashShortfall` são excludentes: um deles é sempre zero. A falta
+   * bloqueia a finalização — a regra e o porquê estão em `lib/checkout.ts`.
+   */
+  const {
+    received: receivedAmount,
+    change,
+    shortfall: cashShortfall,
+  } = computeCashSettlement(cashPayment?.amount ?? null, amountReceived);
+
+  /**
+   * Seleciona uma forma de pagamento. Fora do modo dividido, troca a forma única;
+   * no modo dividido, inclui ou remove a forma da lista.
+   */
+  function togglePaymentMethod(methodId: number) {
+    setPayments((current) => {
+      if (!splitPayment) {
+        return [{ paymentMethodId: methodId, amount: round2(total), installmentNumber: 1 }];
+      }
+
+      const existing = current.find((p) => p.paymentMethodId === methodId);
+      if (existing) {
+        if (current.length === 1) return current;
+        return current.filter((p) => p.paymentMethodId !== methodId);
+      }
+
+      const used = round2(current.reduce((sum, p) => sum + (p.amount || 0), 0));
+      return [
+        ...current,
+        { paymentMethodId: methodId, amount: Math.max(0, round2(total - used)), installmentNumber: 1 },
+      ];
+    });
+  }
+
+  /** Altera o valor atribuído a uma das formas de pagamento (só no modo dividido). */
+  function updatePaymentAmount(methodId: number, amount: number) {
+    setPayments((current) =>
+      current.map((p) => (p.paymentMethodId === methodId ? { ...p, amount } : p)),
+    );
+  }
+
+  /** Altera o parcelamento de uma das formas de pagamento, o que muda a taxa da operadora. */
+  function updatePaymentInstallment(methodId: number, installmentNumber: number) {
+    setPayments((current) =>
+      current.map((p) => (p.paymentMethodId === methodId ? { ...p, installmentNumber } : p)),
+    );
+  }
+
+  /**
+   * Liga e desliga o pagamento dividido. Ao voltar para forma única, mantém apenas
+   * a primeira forma e devolve a ela o total da venda.
+   */
+  function toggleSplitPayment() {
+    setSplitPayment((current) => {
+      const next = !current;
+      if (!next) {
+        setPayments((list) =>
+          list.length > 0 ? [{ ...list[0], amount: round2(total) }] : list,
+        );
+      }
+      return next;
+    });
+  }
 
   /** Abre o diálogo de desconto já preenchido com o valor atual do alvo. */
   const handleApplyDiscount = (type: "global" | "item", id?: string) => {
@@ -494,18 +583,71 @@ export default function Pdv() {
    * conexão, ela entra na fila local e o cupom sai com número provisório. Os dois
    * caminhos debitam o estoque local, então a próxima venda já vê o saldo certo.
    */
-  const handleConfirmPayment = async () => {
-    const { payments, receivedAmount, change } = checkout;
+  const handlePayment = async () => {
+    // Só a loja que controla caixa precisa de sessão. Sem controle, a venda não
+    // pertence a turno nenhum e o servidor grava a sessão como nula.
     if (mode.saleRequiresSession && !sessionId) {
-      toast({ title: "Caixa fechado", description: "Abra o caixa para registrar vendas.", variant: "destructive" });
+      toast({
+        title: "Caixa fechado",
+        description: "Abra o caixa para registrar vendas.",
+        variant: "destructive",
+        duration: 4000,
+      });
       return;
     }
+
+    // Reedição mexe numa venda que já existe no servidor; sem conexão não há como
+    // fazê-la sem criar duas versões da mesma venda para reconciliar depois.
     if (editingSaleId && !online) {
-      toast({ title: "Sem conexão para editar", variant: "destructive" });
+      toast({
+        title: "Sem conexão para editar",
+        description: "A reedição exige servidor. Sem conexão, cancele a venda depois e refaça.",
+        variant: "destructive",
+        duration: 6000,
+      });
       return;
     }
+
     if (!online && !hasLocalDatabase) {
-      toast({ title: "Base local indisponível", variant: "destructive" });
+      toast({
+        title: "Base local indisponível",
+        description:
+          "O PDV nunca baixou a base local neste navegador e não pode vender offline. Aguarde a conexão voltar.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
+    }
+
+    if (payments.length === 0) {
+      toast({ title: "Selecione a forma de pagamento", variant: "destructive" });
+      return;
+    }
+
+    if (Math.abs(remainingAmount) > 0.01) {
+      toast({
+        title: "Pagamento não fecha com o total",
+        description:
+          remainingAmount > 0
+            ? `Faltam ${formatCurrency(remainingAmount)} a distribuir.`
+            : `Há ${formatCurrency(Math.abs(remainingAmount))} a mais do que o total.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // O dinheiro em mãos precisa cobrir a parte em dinheiro da venda. Sem esta
+    // conferência, informar um valor recebido menor apenas zerava o troco e a
+    // venda era finalizada com o caixa recebendo menos do que cobrou.
+    if (cashShortfall > 0.01 && cashPayment) {
+      toast({
+        title: "Valor recebido menor que o cobrado",
+        description:
+          `Faltam ${formatCurrency(cashShortfall)} para cobrir os ` +
+          `${formatCurrency(cashPayment.amount)} em dinheiro. Confira o valor recebido do cliente.`,
+        variant: "destructive",
+        duration: 6000,
+      });
       return;
     }
 
@@ -522,7 +664,7 @@ export default function Pdv() {
         // precisam dele, e a base local pode ter mudado quando a venda subir.
         productName: item.name,
       })),
-      payments: payments.map((payment: CheckoutPayment) => {
+      payments: payments.map((payment) => {
         const method = paymentMethods.find((pm) => pm.id === payment.paymentMethodId);
         const installment = method?.installments.find(
           (i) => i.installmentNumber === payment.installmentNumber && i.isActive,
@@ -623,8 +765,8 @@ export default function Pdv() {
       };
 
       finishSale();
-      checkout.setPayments([]);
-      checkout.setAmountReceived("");
+      setPayments([]);
+      setAmountReceived("");
       setSearchResults([]);
       setSearchQuery("");
 
@@ -707,6 +849,65 @@ export default function Pdv() {
    * A tentativa dispara uma sincronização — se ela resolver, o operador segue
    * direto.
    */
+  const confirmFecharCaixa = async () => {
+    if (queuedCount > 0) {
+      const outcome = online ? await syncPendingQueuesNow() : null;
+      const stillQueued = outcome ? outcome.remaining : queuedCount;
+
+      if (stillQueued > 0) {
+        toast({
+          title: "Há movimentos não sincronizados",
+          description: online
+            ? `${stillQueued} venda(s)/baixa(s) ainda não subiram para o servidor. Resolva a fila em "Operação offline" antes de fechar.`
+            : `${stillQueued} movimento(s) offline aguardando conexão. O caixa só pode ser fechado depois que eles subirem.`,
+          variant: "destructive",
+          duration: 8000,
+        });
+        return;
+      }
+
+      await refreshSales();
+    }
+
+    const cashVal = parseAmount(fechamentoDinheiro);
+    if (isNaN(cashVal) || cashVal < 0) {
+      toast({
+        title: "Valor Inválido",
+        description: "Por favor, informe um valor em dinheiro válido para a gaveta do caixa.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFechandoCaixa(true);
+    try {
+      const closed = await closeCashRegister(cashVal, fechamentoObs);
+      const diff = closed?.difference ?? 0;
+
+      toast({
+        title: "Caixa fechado com sucesso!",
+        description:
+          Math.abs(diff) < 0.01
+            ? "Gaveta conferida sem diferença. Encerrando sessão..."
+            : `Diferença de ${formatCurrency(Math.abs(diff))} (${diff > 0 ? "sobra" : "falta"}). Encerrando sessão...`,
+        duration: 4000,
+        className: "bg-emerald-500 text-white border-none",
+      });
+
+      setIsFecharCaixaOpen(false);
+      setFechamentoDinheiro("");
+      setFechamentoObs("");
+      await performLogout();
+    } catch (error) {
+      toast({
+        title: "Não foi possível fechar o caixa",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setFechandoCaixa(false);
+    }
+  };
 
   /**
    * Encerra a sessão do operador de verdade: token, cadastros locais e stores.
@@ -803,8 +1004,8 @@ export default function Pdv() {
     const held = holdSale();
     if (!held) return;
 
-    checkout.setPayments([]);
-    checkout.setAmountReceived("");
+    setPayments([]);
+    setAmountReceived("");
     setSearchResults([]);
     setSearchQuery("");
 
@@ -817,8 +1018,8 @@ export default function Pdv() {
 
   /** Volta uma venda em espera para o carrinho e devolve o foco à busca. */
   const handleResumedHeldSale = (held: HeldSale) => {
-    checkout.setPayments([]);
-    checkout.setAmountReceived("");
+    setPayments([]);
+    setAmountReceived("");
     setSearchResults([]);
     setSearchQuery("");
 
@@ -1090,7 +1291,7 @@ export default function Pdv() {
                       <button
                         onClick={() => {
                           setIsSandwichMenuOpen(false);
-                          void(0);
+                          setIsFecharCaixaOpen(true);
                         }}
                         disabled={!sessionId}
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1594,17 +1795,208 @@ export default function Pdv() {
       </Dialog>
 
       {/* CHECKOUT MODAL */}
-      <CheckoutDialog
-        open={status === "CHECKOUT"}
-        onOpenChange={(open) => !open && backToSelling()}
-        consumer={consumer}
-        setConsumer={setConsumer}
-        total={subtotal}
-        checkout={checkout}
-        savingSale={savingSale}
-        onConfirmPayment={handleConfirmPayment}
-      />
+      <Dialog open={status === "CHECKOUT"} onOpenChange={(open) => !open && backToSelling()}>
+        <DialogContent className="sm:max-w-[680px] max-h-[92vh] p-0 overflow-y-auto bg-card border-border shadow-2xl">
+          <div className="bg-primary/10 p-6 border-b border-border/50">
+            <DialogTitle className="text-2xl font-display font-bold flex items-center gap-2">
+              <Banknote className="w-6 h-6 text-primary" /> Pagamento
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Selecione a forma de pagamento para finalizar a venda.
+            </DialogDescription>
+          </div>
 
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <ConsumerPicker consumer={consumer} onChange={setConsumer} />
+
+              <div className="h-px bg-border/60" />
+
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                  Forma de Pagamento
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[11px] gap-1.5 cursor-pointer"
+                  onClick={toggleSplitPayment}
+                >
+                  <Split className="w-3.5 h-3.5" />
+                  {splitPayment ? "Pagamento único" : "Dividir"}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2.5 max-h-[240px] overflow-y-auto pr-1">
+                {paymentMethods.map((pm) => {
+                  const selected = payments.find((p) => p.paymentMethodId === pm.id);
+                  const activeInstallments = pm.installments.filter((i) => i.isActive);
+
+                  return (
+                    <div
+                      key={pm.id}
+                      className={`rounded-xl border transition-all ${
+                        selected ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => togglePaymentMethod(pm.id)}
+                        className="w-full text-left p-3.5 flex items-center justify-between cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <CreditCard className={`w-5 h-5 shrink-0 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                          <div>
+                            <p className={`font-medium text-sm leading-none ${selected ? "text-primary" : "text-foreground"}`}>
+                              {pm.name}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              {activeInstallments.length > 1
+                                ? `${activeInstallments.length} opções de parcela`
+                                : "À vista (1x)"}
+                            </p>
+                          </div>
+                        </div>
+                        {selected && splitPayment && (
+                          <span className="font-mono text-xs font-bold text-primary">
+                            {formatCurrency(selected.amount)}
+                          </span>
+                        )}
+                      </button>
+
+                      {selected && splitPayment && (
+                        <div className="px-3.5 pb-3 flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground font-semibold">R$</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="h-8 text-xs font-mono"
+                            value={selected.amount}
+                            onChange={(e) => updatePaymentAmount(pm.id, Number(e.target.value))}
+                          />
+                        </div>
+                      )}
+
+                      {selected && activeInstallments.length > 1 && (
+                        <div className="px-3.5 pb-3 grid grid-cols-3 gap-1.5">
+                          {activeInstallments.map((inst) => (
+                            <button
+                              key={inst.id}
+                              type="button"
+                              onClick={() => updatePaymentInstallment(pm.id, inst.installmentNumber)}
+                              className={`p-1.5 text-[11px] rounded-md border text-left transition-all cursor-pointer ${
+                                selected.installmentNumber === inst.installmentNumber
+                                  ? "border-primary bg-primary/15 text-primary font-bold"
+                                  : "border-border hover:bg-muted/40 text-foreground"
+                              }`}
+                            >
+                              <span className="block">{inst.installmentNumber}x</span>
+                              <span className="block text-[9px] text-muted-foreground font-mono">
+                                {inst.feePercentage.toFixed(2)}%
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {splitPayment && (
+                <p className={`text-xs ${Math.abs(remainingAmount) > 0.01 ? "text-destructive" : "text-muted-foreground"}`}>
+                  Distribuído: {formatCurrency(paidAmount)} de {formatCurrency(total)}
+                  {Math.abs(remainingAmount) > 0.01 &&
+                    (remainingAmount > 0
+                      ? ` — faltam ${formatCurrency(remainingAmount)}`
+                      : ` — ${formatCurrency(Math.abs(remainingAmount))} a mais`)}
+                </p>
+              )}
+            </div>
+
+            <div className="bg-background rounded-2xl p-6 border border-border/50 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total da Venda</p>
+                  <p className="text-4xl font-mono font-bold text-primary">{formatCurrency(total)}</p>
+                  {feeAmount > 0 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-2">
+                      Taxa de cartão da loja: {formatCurrency(feeAmount)}
+                    </p>
+                  )}
+                  {payments.some((p) => p.installmentNumber > 1) && (
+                    <p className="text-xs text-muted-foreground mt-1 font-mono font-semibold">
+                      {payments
+                        .filter((p) => p.installmentNumber > 1)
+                        .map(
+                          (p) =>
+                            `${p.installmentNumber}x de ${formatCurrency(p.amount / p.installmentNumber)}`,
+                        )
+                        .join(" + ")}
+                    </p>
+                  )}
+                </div>
+
+                {cashPayment && (
+                  <div className="mt-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label>Valor Recebido em Dinheiro</Label>
+                      <Input
+                        type="text"
+                        placeholder="R$ 0,00"
+                        className="h-12 text-lg font-mono"
+                        value={amountReceived}
+                        onChange={(e) => setAmountReceived(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    {/* A falta aparece no lugar do troco, com o mesmo destaque:
+                        o operador precisa vê-la antes de tentar confirmar. */}
+                    {cashShortfall > 0 ? (
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                        <p className="text-xs font-semibold uppercase text-destructive">
+                          Falta receber
+                        </p>
+                        <p className="font-mono text-2xl font-bold text-destructive">
+                          {formatCurrency(cashShortfall)}
+                        </p>
+                      </div>
+                    ) : (
+                      change > 0 && (
+                        <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase">Troco</p>
+                          <p className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(change)}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <Button
+                size="lg"
+                className="w-full h-14 mt-6 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={handlePayment}
+                disabled={
+                  savingSale ||
+                  payments.length === 0 ||
+                  Math.abs(remainingAmount) > 0.01 ||
+                  cashShortfall > 0.01
+                }
+              >
+                {savingSale ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                Confirmar Pagamento
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DISCOUNT DIALOG */}
       <DiscountDialog
         open={discountDialogOpen}
         onOpenChange={setDiscountDialogOpen}
@@ -1615,6 +2007,125 @@ export default function Pdv() {
         applyGlobalDiscount={applyGlobalDiscount}
         applyItemDiscount={applyItemDiscount}
       />
+
+      {/* FECHAR CAIXA DIALOG */}
+      <Dialog open={isFecharCaixaOpen} onOpenChange={setIsFecharCaixaOpen}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-card border-border shadow-2xl">
+          <div className="bg-primary/10 p-6 border-b border-border/50">
+            <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" /> Fechamento de Caixa
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Confirme os valores da sessão antes de encerrar o caixa.
+            </DialogDescription>
+          </div>
+
+          <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/30">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total de Vendas</p>
+                <p className="text-xl font-bold font-mono text-foreground">{summary?.salesCount ?? 0}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Faturamento</p>
+                <p className="text-xl font-bold font-mono text-primary">{formatCurrency(summary?.revenue ?? 0)}</p>
+              </div>
+              <div className="col-span-2 h-px bg-border/40 my-1" />
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold">Fundo de Troco</p>
+                <p className="text-sm font-semibold font-mono">{formatCurrency(session?.openingBalance ?? 0)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold">Recebido em Dinheiro</p>
+                <p className="text-sm font-semibold font-mono">{formatCurrency(summary?.cashAmount ?? 0)}</p>
+              </div>
+              <div className="col-span-2 rounded-lg bg-primary/5 border border-primary/20 p-3">
+                <p className="text-xs text-primary uppercase font-bold">Esperado na Gaveta</p>
+                <p className="text-lg font-bold font-mono text-primary">
+                  {formatCurrency(summary?.expectedCashAmount ?? 0)}
+                </p>
+              </div>
+
+              {(summary?.byPaymentMethod.length ?? 0) > 0 && (
+                <div className="col-span-2 space-y-1 pt-1">
+                  <p className="text-xs text-muted-foreground uppercase font-bold">Por Forma de Pagamento</p>
+                  {summary!.byPaymentMethod.map((entry) => (
+                    <div key={entry.paymentMethodId} className="flex justify-between text-xs font-mono">
+                      <span className="text-muted-foreground">
+                        {entry.paymentMethodName} ({entry.count})
+                      </span>
+                      <span className="font-semibold">{formatCurrency(entry.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(summary?.cancelledSalesCount ?? 0) > 0 && (
+                <p className="col-span-2 text-[11px] text-muted-foreground">
+                  {summary!.cancelledSalesCount} venda(s) cancelada(s) não entram no faturamento.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fechamentoDinheiro" className="text-sm font-semibold flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 text-primary" /> Dinheiro em Espécie na Gaveta
+                </Label>
+                <Input
+                  id="fechamentoDinheiro"
+                  type="text"
+                  placeholder="R$ 0,00"
+                  className="h-12 text-lg font-mono"
+                  value={fechamentoDinheiro}
+                  onChange={(e) => setFechamentoDinheiro(e.target.value)}
+                  autoFocus
+                />
+                {(() => {
+                  const counted = parseAmount(fechamentoDinheiro);
+                  if (isNaN(counted)) return null;
+                  const diff = round2(counted - (summary?.expectedCashAmount ?? 0));
+                  if (Math.abs(diff) < 0.01) {
+                    return <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Confere com o esperado.</p>;
+                  }
+                  return (
+                    <p className="text-xs text-destructive font-semibold">
+                      {diff > 0 ? "Sobra" : "Falta"} de {formatCurrency(Math.abs(diff))}.
+                    </p>
+                  );
+                })()}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fechamentoObs" className="text-sm font-semibold flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-primary" /> Observações
+                </Label>
+                <textarea
+                  id="fechamentoObs"
+                  placeholder="Explique qualquer evento ou divergência ocorrida na sessão (opcional)..."
+                  className="w-full min-h-[80px] p-3 rounded-lg border border-input bg-background/50 focus-visible:ring-primary/50 text-sm outline-none focus:border-primary transition-colors resize-none"
+                  value={fechamentoObs}
+                  onChange={(e) => setFechamentoObs(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="ghost" className="flex-1 cursor-pointer" onClick={() => setIsFecharCaixaOpen(false)}>
+                Voltar
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-primary to-orange-600 font-bold hover:scale-105 active:scale-95 transition-transform cursor-pointer text-white border-none"
+                onClick={confirmFecharCaixa}
+                disabled={fechandoCaixa}
+              >
+                {fechandoCaixa ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Confirmar Fechamento
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* HISTÓRICO DE VENDAS DIALOG */}
       <SalesHistoryDialog
@@ -1750,8 +2261,8 @@ export default function Pdv() {
         onOpenChange={setIsHeldSalesOpen}
         onResumed={handleResumedHeldSale}
         onHeldToMakeRoom={() => {
-          checkout.setPayments([]);
-          checkout.setAmountReceived("");
+          setPayments([]);
+          setAmountReceived("");
         }}
       />
 
@@ -1759,26 +2270,6 @@ export default function Pdv() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
