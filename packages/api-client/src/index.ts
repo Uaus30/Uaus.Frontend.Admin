@@ -417,6 +417,244 @@ export interface SaleItemDto {
   profit: number;
 }
 
+// ---------------------------------------------------------------------------
+// DTOs do módulo financeiro (custos fixos, sócios, relatório e fechamentos).
+// Contrato do backend em Uaus.Backend.Api/docs/financeiro.md.
+//
+// Nota: o backend serializa com WhenWritingNull — campos null são OMITIDOS do
+// JSON e chegam aqui como undefined. Compare com == null ou use ??.
+// ---------------------------------------------------------------------------
+
+/** Custo fixo mensal (aluguel, contador, energia...). */
+export interface FixedCostDto {
+  id: number;
+  createdAt: string;
+  updatedAt?: string | null;
+  name: string;
+  /** Valor mensal cheio. Entra por competência: cada mês tocado lança o valor inteiro, sem pró-rata. */
+  monthlyAmount: number;
+  /** Início da vigência, normalizado pelo backend para o dia 1 do mês (competência mensal). */
+  startsOn: string;
+  /** Fim da vigência (também dia 1 do mês). Null/omitido = custo ainda vigente. */
+  endsOn?: string | null;
+  notes?: string | null;
+}
+
+/** Dados enviados ao criar/editar um custo fixo (SaveFixedCostRequest do backend). */
+export interface SaveFixedCostPayload {
+  name: string;
+  /** Deve ser maior que zero. */
+  monthlyAmount: number;
+  /** Data no formato "yyyy-MM-01" — o backend normaliza para o dia 1 do mês. */
+  startsOn: string;
+  /** "yyyy-MM-01" ou null/omitido para custo vigente; deve ser >= startsOn. */
+  endsOn?: string | null;
+  notes?: string | null;
+}
+
+/** Sócio da empresa, dono de um percentual do lucro líquido. */
+export interface PartnerDto {
+  id: number;
+  createdAt: string;
+  updatedAt?: string | null;
+  name: string;
+  /**
+   * Percentual do lucro líquido (0–100). A soma entre os sócios ATIVOS deve ser
+   * 100,00 para permitir um fechamento. Desativar o sócio zera o percentual.
+   */
+  profitSharePercentage: number;
+  isActive: boolean;
+}
+
+/** Dados enviados ao criar um sócio (nasce ativo, com percentual 0). */
+export interface CreatePartnerPayload {
+  name: string;
+}
+
+/** Dados enviados ao editar um sócio. Desativar zera o percentual no backend. */
+export interface UpdatePartnerPayload {
+  name: string;
+  isActive: boolean;
+}
+
+/** Percentual atual de um sócio na tela de distribuição de lucros. */
+export interface PartnerProfitShareItemDto {
+  partnerId: number;
+  partnerName: string;
+  percentage: number;
+  isActive: boolean;
+}
+
+/** Distribuição de lucros vigente entre os sócios. */
+export interface PartnerProfitSharesDto {
+  /** Soma dos percentuais; precisa estar em 100,00 (entre ativos) para fechar um período. */
+  totalPercentage: number;
+  shares: PartnerProfitShareItemDto[];
+}
+
+/** Novos percentuais: deve conter EXATAMENTE todos os sócios ativos e somar 100,00. */
+export interface UpdatePartnerProfitSharesPayload {
+  shares: Array<{ partnerId: number; percentage: number }>;
+}
+
+/** Totais de vendas do período — mesma conta do Dashboard (fonte única no backend). */
+export interface FinancialPeriodTotalsDto {
+  revenue: number;
+  cost: number;
+  /** Lucro bruto = Σ lucro dos itens − descontos de cabeçalho, vendas canceladas excluídas. */
+  profit: number;
+  discount: number;
+  marginPercentage: number;
+  salesCount: number;
+  cancelledSalesCount: number;
+  itemsCount: number;
+  averageTicket: number;
+  startDate: string;
+  endDate: string;
+}
+
+/** Perdas agrupadas por motivo (baixas de estoque confirmadas no período). */
+export interface FinancialReportWriteOffByReasonDto {
+  /** Enum StockWriteOffReason — pode vir como número ou nome; use `enumCode`. */
+  reason: EnumValue;
+  reasonName: string;
+  totalCost: number;
+  totalQuantity: number;
+}
+
+/** Perdas do período — INFORMATIVAS: não entram no lucro líquido (o CMV já cobre o custo vendido). */
+export interface FinancialReportWriteOffsDto {
+  totalCost: number;
+  totalQuantity: number;
+  byReason: FinancialReportWriteOffByReasonDto[];
+}
+
+/** Quanto um custo fixo pesou no período (meses de competência × valor mensal). */
+export interface FinancialReportFixedCostItemDto {
+  fixedCostId: number;
+  name: string;
+  monthlyAmount: number;
+  /** Meses-calendário tocados pelo período em que o custo estava vigente — sem pró-rata. */
+  monthsCount: number;
+  total: number;
+}
+
+/** Custos fixos consolidados do período. */
+export interface FinancialReportFixedCostsDto {
+  total: number;
+  items: FinancialReportFixedCostItemDto[];
+}
+
+/** Distribuição prevista para um sócio, calculada com os percentuais atuais. */
+export interface PartnerDistributionItemDto {
+  partnerId: number;
+  partnerName: string;
+  percentage: number;
+  /**
+   * Round(lucro líquido × percentual / 100, 2). O resíduo de arredondamento vai
+   * para o sócio de maior percentual. Lucro negativo distribui prejuízo.
+   */
+  amount: number;
+}
+
+/** Relatório financeiro do período — PRÉVIA calculada ao vivo; o documento oficial é o fechamento. */
+export interface FinancialReportSummaryDto {
+  startDate: string;
+  endDate: string;
+  sales: FinancialPeriodTotalsDto;
+  /** Compras do período — informativas, não entram no lucro líquido. */
+  purchasesTotal: number;
+  writeOffs: FinancialReportWriteOffsDto;
+  fixedCosts: FinancialReportFixedCostsDto;
+  /** = sales.profit. */
+  grossProfit: number;
+  /** = grossProfit − fixedCosts.total. */
+  netProfit: number;
+  /** Sócios ativos com os percentuais atuais; vazio se a distribuição não foi configurada. */
+  partnerDistribution: PartnerDistributionItemDto[];
+  /** Avisos como período parcial de mês ou distribuição não configurada. */
+  warnings: string[];
+}
+
+/**
+ * Rateio de um sócio dentro de um fechamento. Nome, percentual e valor são
+ * CONGELADOS na confirmação: editar o sócio depois não altera este registro.
+ */
+export interface FinancialClosingShareDto {
+  partnerId: number;
+  partnerName: string;
+  percentage: number;
+  /** Valor congelado; o resíduo de arredondamento já foi aplicado ao sócio de maior percentual. */
+  amount: number;
+}
+
+/**
+ * Fechamento financeiro de um período. Todos os números são CONGELADOS na
+ * confirmação — recalculados no servidor, nunca vindos do cliente.
+ */
+export interface FinancialClosingDto {
+  id: number;
+  createdAt: string;
+  periodStart: string;
+  /** Fim do período, inclusivo. */
+  periodEnd: string;
+  revenue: number;
+  discounts: number;
+  cogsCost: number;
+  grossProfit: number;
+  /** Compras do período — informativas, não entram no lucro líquido. */
+  purchasesTotal: number;
+  /** Custo FIFO das baixas confirmadas — informativo, não entra no lucro líquido. */
+  writeOffLossesTotal: number;
+  /** Total por competência mensal (valor cheio de cada mês tocado, sem pró-rata). */
+  fixedCostsTotal: number;
+  netProfit: number;
+  salesCount: number;
+  notes?: string | null;
+  closedByUserId: number;
+  closedByUserName?: string | null;
+  shares: FinancialClosingShareDto[];
+}
+
+/**
+ * Prévia de fechamento: mesmos números do fechamento, sem persistir nada.
+ * Soma de percentuais ≠ 100 vira warning aqui (a confirmação é que recusa).
+ */
+export interface FinancialClosingPreviewDto {
+  periodStart: string;
+  /** Fim do período, inclusivo. */
+  periodEnd: string;
+  revenue: number;
+  discounts: number;
+  cogsCost: number;
+  grossProfit: number;
+  purchasesTotal: number;
+  writeOffLossesTotal: number;
+  fixedCostsTotal: number;
+  netProfit: number;
+  salesCount: number;
+  shares: FinancialClosingShareDto[];
+  /** Detalhamento dos custos fixos considerados no período. */
+  fixedCosts: FinancialReportFixedCostsDto;
+  /** Avisos como período parcial de mês ou soma de percentuais ≠ 100. */
+  warnings: string[];
+}
+
+/** Período enviado para calcular a prévia do fechamento. */
+export interface PreviewFinancialClosingPayload {
+  periodStart: string;
+  /** Inclusivo. */
+  periodEnd: string;
+}
+
+/** Dados enviados ao confirmar um fechamento (o servidor recalcula tudo). */
+export interface CreateFinancialClosingPayload {
+  periodStart: string;
+  /** Inclusivo. */
+  periodEnd: string;
+  notes?: string | null;
+}
+
 export interface AuthSession {
   user: UserDto;
   token: TokenDto;
@@ -1822,4 +2060,437 @@ export async function applyInventoryCount(file: File) {
 
   const response = await apiPost<InventoryCountResultDto>("/InventoryCounts/apply", form);
   return response.data;
+}
+
+// ---------------------------------------------------------------------------
+// Financeiro — custos fixos, sócios, relatório e fechamentos
+//
+// Contrato do backend em Uaus.Backend.Api/docs/financeiro.md.
+// ---------------------------------------------------------------------------
+
+/** Chave de cache da listagem de custos fixos. */
+export function getGetFixedCostsQueryKey(params?: {
+  search?: string;
+  activeInMonth?: string;
+  page?: number;
+  limit?: number;
+}) {
+  return ["FixedCosts", params] as const;
+}
+
+/**
+ * Lista os custos fixos.
+ *
+ * @param params `activeInMonth` ("yyyy-MM-01") filtra os vigentes naquele mês.
+ */
+export function useGetFixedCosts(
+  params?: { search?: string; activeInMonth?: string; page?: number; limit?: number },
+  options?: {
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<FixedCostDto>, ApiError, UiPagedResult<FixedCostDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<UiPagedResult<FixedCostDto>, ApiError, UiPagedResult<FixedCostDto>, QueryKey>({
+    queryKey: getGetFixedCostsQueryKey(params),
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<FixedCostDto>>("/FixedCosts", {
+        search: params?.search,
+        activeInMonth: params?.activeInMonth,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+/**
+ * Cria um custo fixo.
+ *
+ * @returns O ID criado (do header Location) ou null se o header não vier.
+ */
+export async function createFixedCost(data: SaveFixedCostPayload): Promise<number | null> {
+  const response = await apiPost<FixedCostDto>("/FixedCosts", data);
+  return extractCreatedId(response.response);
+}
+
+/** Atualiza um custo fixo. "Encerrar" um custo = preencher `endsOn` (hard delete só para lançado errado). */
+export async function updateFixedCost(
+  id: number,
+  data: SaveFixedCostPayload,
+): Promise<FixedCostDto | null> {
+  const response = await apiPut<FixedCostDto>(`/FixedCosts/${id}`, data);
+  return response.data;
+}
+
+/**
+ * Exclui um custo fixo de vez. Fechamentos existentes não mudam: eles congelam
+ * os totais na confirmação e não dependem desta linha.
+ */
+export async function deleteFixedCost(id: number): Promise<void> {
+  await apiDelete<null>(`/FixedCosts/${id}`);
+}
+
+/** Chave de cache da listagem de sócios. */
+export function getGetPartnersQueryKey(params?: {
+  includeInactive?: boolean;
+  page?: number;
+  limit?: number;
+}) {
+  return ["Partners", params] as const;
+}
+
+/** Lista os sócios (a API devolve todos; a UI decide filtrar inativos). */
+export function useGetPartners(
+  params?: { includeInactive?: boolean; page?: number; limit?: number },
+  options?: {
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<PartnerDto>, ApiError, UiPagedResult<PartnerDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<UiPagedResult<PartnerDto>, ApiError, UiPagedResult<PartnerDto>, QueryKey>({
+    queryKey: getGetPartnersQueryKey(params),
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<PartnerDto>>("/Partners", {
+        includeInactive: params?.includeInactive,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+/** Chave de cache da distribuição de lucros entre os sócios. */
+export const PARTNER_PROFIT_SHARES_QUERY_KEY = ["partner-profit-shares"] as const;
+
+/** Distribuição de lucros vigente (percentual de cada sócio e a soma). */
+export function useGetPartnerProfitShares(options?: {
+  query?: Omit<
+    UseQueryOptions<PartnerProfitSharesDto, ApiError, PartnerProfitSharesDto, QueryKey>,
+    "queryKey" | "queryFn"
+  >;
+}) {
+  return useQuery<PartnerProfitSharesDto, ApiError, PartnerProfitSharesDto, QueryKey>({
+    queryKey: PARTNER_PROFIT_SHARES_QUERY_KEY,
+    queryFn: () => apiGet<PartnerProfitSharesDto>("/Partners/profit-shares"),
+    ...options?.query,
+  });
+}
+
+/**
+ * Cria um sócio — nasce ativo, com percentual 0 (ajuste na distribuição de lucros).
+ *
+ * @returns O ID criado (do header Location) ou null se o header não vier.
+ */
+export async function createPartner(data: CreatePartnerPayload): Promise<number | null> {
+  const response = await apiPost<PartnerDto>("/Partners", data);
+  return extractCreatedId(response.response);
+}
+
+/** Atualiza um sócio. Desativar zera o percentual — rebalanceie antes do próximo fechamento. */
+export async function updatePartner(
+  id: number,
+  data: UpdatePartnerPayload,
+): Promise<PartnerDto | null> {
+  const response = await apiPut<PartnerDto>(`/Partners/${id}`, data);
+  return response.data;
+}
+
+/**
+ * Exclui um sócio.
+ *
+ * @throws {ApiError} Quando o sócio aparece no rateio de algum fechamento —
+ * nesse caso o caminho certo é desativá-lo.
+ */
+export async function deletePartner(id: number): Promise<void> {
+  await apiDelete<null>(`/Partners/${id}`);
+}
+
+/**
+ * Grava os novos percentuais da distribuição de lucros.
+ * Deve conter EXATAMENTE todos os sócios ativos e somar 100,00.
+ *
+ * Fechamentos existentes não mudam: o rateio deles foi congelado na confirmação.
+ */
+export async function updatePartnerProfitShares(
+  data: UpdatePartnerProfitSharesPayload,
+): Promise<PartnerProfitSharesDto | null> {
+  const response = await apiPut<PartnerProfitSharesDto>("/Partners/profit-shares", data);
+  return response.data;
+}
+
+/** Chave de cache do relatório financeiro do período. */
+export function getFinancialReportSummaryQueryKey(params?: {
+  startDate?: string;
+  endDate?: string;
+}) {
+  return ["financial-report-summary", params] as const;
+}
+
+/**
+ * Relatório financeiro do período — prévia calculada ao vivo, nada é persistido.
+ *
+ * @param params Datas opcionais (o backend assume os últimos 30 dias).
+ */
+export function useGetFinancialReportSummary(
+  params?: { startDate?: string; endDate?: string },
+  options?: {
+    query?: Omit<
+      UseQueryOptions<FinancialReportSummaryDto, ApiError, FinancialReportSummaryDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<FinancialReportSummaryDto, ApiError, FinancialReportSummaryDto, QueryKey>({
+    queryKey: getFinancialReportSummaryQueryKey(params),
+    queryFn: () =>
+      apiGet<FinancialReportSummaryDto>("/FinancialReports/summary", {
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+      }),
+    ...options?.query,
+  });
+}
+
+/** Chave de cache da listagem de fechamentos financeiros. */
+export function getGetFinancialClosingsQueryKey(params?: {
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+}) {
+  return ["FinancialClosings", params] as const;
+}
+
+/** Lista os fechamentos (filtro sobre o início do período; mais recentes primeiro). */
+export function useGetFinancialClosings(
+  params?: { startDate?: string; endDate?: string; page?: number; limit?: number },
+  options?: {
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>({
+    queryKey: getGetFinancialClosingsQueryKey(params),
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<FinancialClosingDto>>("/FinancialClosings", {
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+/**
+ * Detalha um fechamento com o rateio congelado por sócio.
+ *
+ * @param id ID do fechamento; a query fica desabilitada enquanto for indefinido.
+ */
+export function useGetFinancialClosingById(
+  id?: number,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<FinancialClosingDto, ApiError, FinancialClosingDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<FinancialClosingDto, ApiError, FinancialClosingDto, QueryKey>({
+    queryKey: ["financial-closing-details", id ?? 0],
+    enabled: !!id,
+    queryFn: async () => apiGet<FinancialClosingDto>(`/FinancialClosings/${id}`),
+    ...options?.query,
+  });
+}
+
+/**
+ * Calcula a prévia de um fechamento SEM persistir nada.
+ * Soma de percentuais ≠ 100, período parcial de mês e sobreposição com
+ * fechamento existente viram warnings.
+ */
+export async function previewFinancialClosing(
+  data: PreviewFinancialClosingPayload,
+): Promise<FinancialClosingPreviewDto | null> {
+  const response = await apiPost<FinancialClosingPreviewDto>("/FinancialClosings/preview", data);
+  return response.data;
+}
+
+/**
+ * Confirma o fechamento: o servidor RECALCULA tudo e congela números e rateio.
+ *
+ * @throws {ApiError} Período inválido, sobreposição com fechamento existente ou
+ * soma dos percentuais dos sócios ativos ≠ 100.
+ * @returns O ID criado (do header Location) ou null se o header não vier.
+ */
+export async function createFinancialClosing(
+  data: CreateFinancialClosingPayload,
+): Promise<number | null> {
+  const response = await apiPost<FinancialClosingDto>("/FinancialClosings", data);
+  return extractCreatedId(response.response);
+}
+
+/**
+ * Exclui um fechamento para permitir refazê-lo.
+ * Ação destrutiva de documento — o backend registra em log quem excluiu.
+ */
+export async function deleteFinancialClosing(id: number): Promise<void> {
+  await apiDelete<null>(`/FinancialClosings/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Etiquetas de gôndola — lotes de impressão em A4 com histórico
+//
+// Contrato do backend em Uaus.Backend.Api/docs/etiquetas-de-gondola.md.
+// ---------------------------------------------------------------------------
+
+/**
+ * Tipo visual da etiqueta de gôndola (enum ProductLabelType do backend).
+ * Define a cor de fundo na impressão: Normal = branca, Promotion = amarela,
+ * Clearance (queima de estoque) = vermelha.
+ */
+export const PRODUCT_LABEL_TYPE = {
+  None: 0,
+  Normal: 1,
+  Promotion: 2,
+  Clearance: 3,
+} as const;
+
+/** Um lote de etiquetas do histórico de impressão. */
+export interface ProductLabelBatchDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  /** Identificação livre do lote (ex.: "Promoção da semana"). */
+  description: string | null;
+  userId: number | null;
+  /** Nome completo de quem gerou o lote. */
+  userName: string | null;
+  /** Produtos distintos no lote. */
+  totalProducts: number;
+  /** Etiquetas que o lote imprime (soma das quantidades). */
+  totalLabels: number;
+  /** Itens. Preenchidos apenas na consulta por ID e na resposta da geração. */
+  items: ProductLabelBatchItemDto[];
+}
+
+/**
+ * Uma etiqueta do lote. Nome, código de barras e preço são congelados na
+ * geração: a reimpressão reproduz o papel original mesmo que o cadastro do
+ * produto mude depois.
+ */
+export interface ProductLabelBatchItemDto {
+  id: number;
+  productId: number;
+  productName: string;
+  barcode: string | null;
+  /** Preço impresso — na promoção, o valor da oferta. */
+  price: number;
+  /** Enum ProductLabelType — pode vir como número ou nome; use `enumCode`. */
+  labelType: EnumValue;
+  /** Descrição do tipo em português, pronta para exibição. */
+  labelTypeName: string;
+  /** Cópias desta etiqueta no lote. */
+  quantity: number;
+}
+
+/** Item enviado na geração de um lote. */
+export interface CreateProductLabelBatchItemPayload {
+  productId: number;
+  /** Código numérico de PRODUCT_LABEL_TYPE (1, 2 ou 3). */
+  labelType: number;
+  /** Preço que sai impresso — na promoção, o valor da oferta. */
+  price: number;
+  /** Cópias da etiqueta (mínimo 1). */
+  quantity: number;
+}
+
+/** Dados enviados ao gerar um lote de etiquetas. */
+export interface CreateProductLabelBatchPayload {
+  description?: string | null;
+  items: CreateProductLabelBatchItemPayload[];
+}
+
+/** Chave de cache da listagem de lotes de etiquetas. */
+export function getGetProductLabelBatchesQueryKey(params?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  return ["ProductLabelBatches", params] as const;
+}
+
+/**
+ * Lista os lotes de etiquetas do histórico, dos mais recentes para os mais
+ * antigos.
+ *
+ * @param params `search` filtra pela identificação do lote.
+ */
+export function useGetProductLabelBatches(
+  params?: { search?: string; page?: number; limit?: number },
+  options?: {
+    query?: Omit<
+      UseQueryOptions<
+        UiPagedResult<ProductLabelBatchDto>,
+        ApiError,
+        UiPagedResult<ProductLabelBatchDto>,
+        QueryKey
+      >,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<
+    UiPagedResult<ProductLabelBatchDto>,
+    ApiError,
+    UiPagedResult<ProductLabelBatchDto>,
+    QueryKey
+  >({
+    queryKey: getGetProductLabelBatchesQueryKey(params),
+    queryFn: async () => {
+      const result = await apiGet<BackendPagedResult<ProductLabelBatchDto>>("/ProductLabelBatches", {
+        search: params?.search,
+        page: params?.page ?? 1,
+        size: params?.limit ?? 20,
+      });
+      return mapPagedResult(result);
+    },
+    ...options?.query,
+  });
+}
+
+/** Detalha um lote com os itens congelados, para exibição e reimpressão. */
+export async function getProductLabelBatchById(id: number): Promise<ProductLabelBatchDto> {
+  return apiGet<ProductLabelBatchDto>(`/ProductLabelBatches/${id}`);
+}
+
+/**
+ * Gera um lote de etiquetas. O backend congela nome e código de barras a
+ * partir do cadastro; o preço vai no payload porque a oferta pode sair com
+ * valor diferente do preço de venda.
+ *
+ * @returns O lote criado, já com os itens congelados.
+ */
+export async function createProductLabelBatch(
+  data: CreateProductLabelBatchPayload,
+): Promise<ProductLabelBatchDto | null> {
+  const response = await apiPost<ProductLabelBatchDto>("/ProductLabelBatches", data);
+  return response.data;
+}
+
+/** Remove um lote do histórico. Não afeta estoque nem produtos. */
+export async function deleteProductLabelBatch(id: number): Promise<void> {
+  await apiDelete<null>(`/ProductLabelBatches/${id}`);
 }

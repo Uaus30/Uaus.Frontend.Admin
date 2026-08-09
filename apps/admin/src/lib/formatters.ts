@@ -17,6 +17,21 @@ export function formatQuantity(value: number): string {
   }).format(value);
 }
 
+/**
+ * Percentual no formato pt-BR com duas casas fixas — "12,50%".
+ *
+ * Duas casas de propósito: os percentuais financeiros (margem, distribuição de
+ * lucros e rateio dos fechamentos) usam a precisão do backend (numeric(5,2)),
+ * e a soma entre os sócios precisa bater 100,00.
+ */
+export function formatPercentage(value: number): string {
+  const formatted = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+  return `${formatted}%`;
+}
+
 export function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('pt-BR', {

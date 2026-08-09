@@ -27,6 +27,11 @@ import StockWriteOffs from "@/pages/stock-write-offs";
 import InventoryCount from "@/pages/inventory-count";
 import PaymentMethodsPage from "@/pages/payment-methods";
 import CompanySettings from "@/pages/settings";
+import CashRegisterSessions from "@/pages/cash-register-sessions";
+import FinancialReports from "@/pages/financial-reports";
+import FinancialClosings from "@/pages/financial-closings";
+import FixedCosts from "@/pages/fixed-costs";
+import Partners from "@/pages/partners";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +55,11 @@ function Router() {
       <Route path="/vendas" component={Sales} />
       <Route path="/financeiro/formas-pagamento" component={PaymentMethodsPage} />
       <Route path="/formas-pagamento" component={PaymentMethodsPage} />
+      <Route path="/financeiro/caixas" component={CashRegisterSessions} />
+      <Route path="/financeiro/relatorios" component={FinancialReports} />
+      <Route path="/financeiro/fechamentos" component={FinancialClosings} />
+      <Route path="/financeiro/custos-fixos" component={FixedCosts} />
+      <Route path="/financeiro/socios" component={Partners} />
       <Route path="/clientes" component={Customers} />
       <Route path="/fornecedores" component={Suppliers} />
       <Route path="/sistema/usuarios" component={Users} />

@@ -60,6 +60,11 @@ const navigation = [
     icon: DollarSign,
     items: [
       { name: "Vendas", href: "/vendas" },
+      { name: "Caixas", href: "/financeiro/caixas" },
+      { name: "Relatórios", href: "/financeiro/relatorios" },
+      { name: "Fechamentos", href: "/financeiro/fechamentos" },
+      { name: "Custos Fixos", href: "/financeiro/custos-fixos" },
+      { name: "Sócios", href: "/financeiro/socios" },
       { name: "Formas de Pagamento", href: "/financeiro/formas-pagamento" }
     ]
   },
