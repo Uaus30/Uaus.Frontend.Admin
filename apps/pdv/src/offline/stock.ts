@@ -1,6 +1,6 @@
 import { STORE, openLocalDatabase } from "./database";
 import { updateMany } from "./idb";
-import { listLocalProducts } from "./catalog";
+import { listLocalProducts, invalidateProductsCache } from "./catalog";
 import type { LocalProduct } from "./types";
 
 /**
@@ -116,6 +116,7 @@ async function applyStockMovement(movements: StockMovement[], direction: -1 | 1)
       return { ...current, stock };
     },
   );
+  invalidateProductsCache();
 }
 
 /**
@@ -133,3 +134,7 @@ export function consumeLocalStock(movements: StockMovement[]): Promise<void> {
 export function restoreLocalStock(movements: StockMovement[]): Promise<void> {
   return applyStockMovement(movements, 1);
 }
+
+
+
+

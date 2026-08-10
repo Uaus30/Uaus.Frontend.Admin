@@ -29,9 +29,19 @@ export function normalizeForSearch(value: string): string {
   return value.toLowerCase().normalize("NFD").replace(DIACRITICS, "");
 }
 
-/** Todos os produtos da base local. */
+let _cachedProducts: LocalProduct[] | null = null;
+
+export function invalidateProductsCache() {
+  _cachedProducts = null;
+}
+
+/** Todos os produtos da base local (com cache em memória para não gargalar a busca). */
 export function listLocalProducts(): Promise<LocalProduct[]> {
-  return openLocalDatabase().then((db) => getAll<LocalProduct>(db, STORE.products));
+  if (_cachedProducts) return Promise.resolve(_cachedProducts);
+  return openLocalDatabase().then((db) => getAll<LocalProduct>(db, STORE.products)).then((products) => {
+    _cachedProducts = products;
+    return products;
+  });
 }
 
 /** Um produto da base local pelo ID, ou `null`. */
@@ -137,3 +147,4 @@ export async function searchLocalCustomers(term: string, limit = 8): Promise<Loc
   const db = await openLocalDatabase();
   return filterCustomers(await getAll<LocalCustomer>(db, STORE.customers), term, limit);
 }
+

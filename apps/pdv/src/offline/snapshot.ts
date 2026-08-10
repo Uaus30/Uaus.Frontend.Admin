@@ -3,6 +3,7 @@ import { normalizeForSearch } from "./catalog";
 import { CATALOG_STORES, META_KEY, STORE, openLocalDatabase } from "./database";
 import { clearAll, putAll, remove } from "./idb";
 import { writeMeta } from "./meta";
+import { invalidateProductsCache } from "./catalog";
 import { listPendingSales } from "./pending-sales";
 import { listPendingWriteOffs } from "./pending-write-offs";
 import { consumeLocalStock, type StockMovement } from "./stock";
@@ -137,6 +138,7 @@ export async function installSnapshot(snapshot: PdvSnapshot): Promise<SnapshotIn
 
   await clearAll(db, CATALOG_STORES);
   await putAll(db, STORE.products, products);
+  invalidateProductsCache();
   await putAll(db, STORE.paymentMethods, paymentMethods);
   await putAll(db, STORE.customers, customers);
 
@@ -199,3 +201,7 @@ export async function clearLocalCatalog(): Promise<void> {
   await remove(db, STORE.meta, META_KEY.snapshotGeneratedAt);
   await remove(db, STORE.meta, META_KEY.snapshotSchemaVersion);
 }
+
+
+
+

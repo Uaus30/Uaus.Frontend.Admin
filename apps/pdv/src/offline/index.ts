@@ -55,6 +55,7 @@ export {
   listLocalProducts,
   searchLocalCustomers,
   searchLocalProducts,
+  invalidateProductsCache,
 } from "./catalog";
 
 export {
@@ -131,3 +132,4 @@ export type {
   SyncSalesResponse,
   WriteOffSyncOutcome,
 } from "./types";
+
