@@ -169,10 +169,9 @@ export function ProductImageSearchModal({
                         : "border-border/50 hover:border-primary/50"
                     }`}
                   >
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={img.thumbnailUrl}
                       alt={img.title}
-                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
                         // Fallback em caso de erro na URL direta
@@ -224,5 +223,8 @@ export function ProductImageSearchModal({
     </Dialog>
   );
 }
+
+
+
 
 

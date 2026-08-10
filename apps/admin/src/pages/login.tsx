@@ -19,7 +19,7 @@ export default function Login() {
     <div className="min-h-screen w-full flex bg-background text-foreground relative overflow-hidden">
       {/* Imagem de fundo e gradientes de overlay decorativos */}
       <div className="absolute inset-0 z-0">
-        <img 
+        <img loading="lazy" decoding="async" 
           src={`${import.meta.env.BASE_URL}images/login-bg.png`} 
           alt="Login background" 
           className="w-full h-full object-cover opacity-40 mix-blend-overlay"
@@ -42,3 +42,4 @@ export default function Login() {
     </div>
   );
 }
+

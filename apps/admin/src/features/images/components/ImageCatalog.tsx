@@ -118,7 +118,7 @@ export function ImageCatalog({
               className="group relative overflow-hidden rounded-xl border border-border/50 bg-background transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
             >
               <div className="flex aspect-square items-center justify-center overflow-hidden bg-muted/30">
-                <img
+                <img loading="lazy" decoding="async"
                   src={buildPublicImageUrl(image.url)}
                   alt={image.name}
                   className="h-full w-full object-cover"
@@ -221,5 +221,6 @@ export function ImageCatalog({
     </div>
   );
 }
+
 
 

@@ -1003,7 +1003,7 @@ export default function Pdv() {
       {/* HEADER */}
       <header className="relative h-20 border-b border-border/50 bg-card/50 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-4">
-          <img src="/images/logo-icon.png" alt="Logo" className="w-12 h-12 object-contain" />
+          <img loading="lazy" decoding="async" src="/images/logo-icon.png" alt="Logo" className="w-12 h-12 object-contain" />
           <div>
             <h1 className="font-display font-bold leading-none text-xl tracking-tight">Uaus! Máximo 30</h1>
             {session && (
@@ -1774,6 +1774,7 @@ export default function Pdv() {
     </div>
   );
 }
+
 
 
 

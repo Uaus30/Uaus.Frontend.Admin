@@ -57,7 +57,7 @@ export default function Login() {
         >
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center">
-              <img 
+              <img loading="lazy" decoding="async" 
                 src={`${import.meta.env.BASE_URL}images/logo-icon.png`} 
                 alt="Uaus" 
                 className="w-12 h-12 object-contain"
@@ -130,5 +130,6 @@ export default function Login() {
     </div>
   );
 }
+
 
 

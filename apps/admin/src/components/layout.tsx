@@ -151,7 +151,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <Sidebar className="border-r border-border/50 bg-card">
           <SidebarHeader className="p-6">
             <div className="flex items-center gap-3">
-              <img 
+              <img loading="lazy" decoding="async" 
                 src={`${import.meta.env.BASE_URL}images/logo-icon.png`} 
                 alt="Uaus" 
                 className="w-8 h-8 object-contain"
@@ -282,5 +282,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+
 
 

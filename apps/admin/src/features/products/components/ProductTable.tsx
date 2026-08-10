@@ -221,7 +221,7 @@ export function ProductTable({
                             {mainImage ? (
                               <HoverCard openDelay={0} closeDelay={0}>
                                 <HoverCardTrigger asChild>
-                                  <img
+                                  <img loading="lazy" decoding="async"
                                     src={buildPublicImageUrl(mainImage.url)}
                                     alt={mainImage.name}
                                     className="h-10 w-10 rounded-lg border border-border/50 object-cover cursor-pointer hover:opacity-80 transition-opacity"
@@ -229,7 +229,7 @@ export function ProductTable({
                                   />
                                 </HoverCardTrigger>
                                 <HoverCardContent className="w-80 h-80 p-0 overflow-hidden border-border/50 shadow-2xl rounded-xl">
-                                  <img
+                                  <img loading="lazy" decoding="async"
                                     src={buildPublicImageUrl(mainImage.url)}
                                     alt={mainImage.name}
                                     className="w-full h-full object-cover"
@@ -459,7 +459,7 @@ export function ProductTable({
           <DialogTitle className="sr-only">Visualizar Imagem</DialogTitle>
           {selectedImage && (
             <div className="relative w-full h-full flex items-center justify-center p-8">
-              <img
+              <img loading="lazy" decoding="async"
                 src={buildPublicImageUrl(selectedImage.url)}
                 alt={selectedImage.name}
                 className="max-h-[500px] max-w-[500px] rounded-lg object-contain shadow-2xl w-auto h-auto"
@@ -471,5 +471,6 @@ export function ProductTable({
     </div>
   );
 }
+
 
 

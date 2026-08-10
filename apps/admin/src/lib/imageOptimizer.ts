@@ -137,8 +137,11 @@ export async function optimizeImage(
 
         // Obter qualidade (dinâmica ou parametrizada)
         const quality = options.quality ?? getDynamicQuality(file.size);
+        
+        const isPng = file.type === "image/png";
+        const newType = isPng ? "image/webp" : "image/jpeg";
 
-        // Converter para JPEG (excelente taxa de compressão para web)
+        // Converter para WebP (preserva transparência) ou JPEG
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -146,10 +149,11 @@ export async function optimizeImage(
               return;
             }
 
-            // Normalizar o nome do arquivo para extensão jpeg se convertido
+            // Normalizar o nome do arquivo
             let newName = file.name;
-            const newType = "image/jpeg";
-            if (!file.type.includes("jpeg") && !file.type.includes("jpg")) {
+            if (isPng) {
+              newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+            } else if (!file.type.includes("jpeg") && !file.type.includes("jpg")) {
               newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
             }
 
@@ -187,3 +191,5 @@ export async function optimizeImage(
     return resultFallback;
   }
 }
+
+

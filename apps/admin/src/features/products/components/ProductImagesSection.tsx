@@ -94,7 +94,7 @@ export function ProductImagesSection({
                 }
               }}
             >
-              <img
+              <img loading="lazy" decoding="async"
                 src={image.url}
                 alt={image.name}
                 className="aspect-square w-full object-cover pointer-events-none"
@@ -142,5 +142,6 @@ export function ProductImagesSection({
     </div>
   );
 }
+
 
 

@@ -47,7 +47,7 @@ export function ImageRenameModal({
         <div className="space-y-4 py-4">
           {renameImage && (
             <div className="flex items-center gap-3 rounded-xl bg-muted/30 p-3">
-              <img
+              <img loading="lazy" decoding="async"
                 src={buildPublicImageUrl(renameImage.url)}
                 alt={renameImage.name}
                 className="h-12 w-12 flex-shrink-0 rounded-lg border border-border/50 object-cover"
@@ -90,5 +90,6 @@ export function ImageRenameModal({
     </Dialog>
   );
 }
+
 
 
