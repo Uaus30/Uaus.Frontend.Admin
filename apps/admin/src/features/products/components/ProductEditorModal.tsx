@@ -22,7 +22,10 @@ import { optimizeImage } from "@/lib/imageOptimizer";
 import { ProductImageSearchModal } from "./ProductImageSearchModal";
 import { buildImageProxyUrl } from "@/services/images.service";
 import { getAuthSession } from "@workspace/api-client-react";
-
+import { ProductBasicInfo } from "./editor/ProductBasicInfo";
+import { ProductPricingAndStock } from "./editor/ProductPricingAndStock";
+import { ProductImageGallery } from "./editor/ProductImageGallery";
+import { ProductVariationsManager } from "./editor/ProductVariationsManager";
 type ProductEditorModalProps = {
   /** The hook controller containing form states, API mutations, and modal behaviors */
   editor: ReturnType<typeof useProductEditor>;
@@ -407,247 +410,36 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
           <div className="flex-1 space-y-6 overflow-y-auto py-4 pr-2">
             <div className="space-y-6 rounded-2xl border border-border/50 bg-background/40 p-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <div className="flex items-center gap-1">
-                    <label className="text-sm font-medium">Código de barras</label>
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip>
-                        <TooltipTrigger type="button" tabIndex={-1}>
-                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Deixe vazio para geração automática do código de barras caso deseje.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Input 
-                      value={productEditor.barcode || ""} 
-                      onChange={(event) => setProductEditor((current) => ({ ...current, barcode: event.target.value }))} 
-                      className={`bg-background flex-1 font-mono transition-all duration-300 ${flashSuccess ? "animate-border-flash" : ""}`} 
-                      placeholder="Ex: 7891234567890" 
-                    />
-                    <div className={`flex items-center bg-white px-2 py-1 rounded border transition-all duration-300 ${currentBarcode.length === 0 ? "opacity-40 grayscale" : "opacity-100"}`}>
-                      <Barcode 
-                        value={displayBarcode} 
-                        format={displayBarcode.length === 8 ? "EAN8" : "EAN13"} 
-                        height={30} width={1.5} fontSize={12} margin={0} background="transparent" 
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0"
-                      onClick={() => handlePrintBarcode(displayBarcode)}
-                      title="Imprimir etiqueta (80mm)"
-                      disabled={currentBarcode.length === 0}
-                    >
-                      <Printer className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <ProductBasicInfo
+                  editor={editor}
+                  validationErrors={validationErrors}
+                  setValidationErrors={setValidationErrors}
+                  showOptionalFields={showOptionalFields}
+                  displayBarcode={displayBarcode}
+                  currentBarcode={currentBarcode}
+                  flashSuccess={flashSuccess}
+                  handlePrintBarcode={handlePrintBarcode}
+                />
 
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-medium">Nome <span className="text-red-500">*</span></label>
-                  <Input 
-                    id="input-name"
-                    value={form.productGroupName} 
-                    onChange={(event) => {
-                      const value = event.target.value.toUpperCase();
-                      setForm((current) => ({ ...current, productGroupName: value }));
-                      setProductEditor((current) => ({ ...current, name: value }));
-                      if (validationErrors.name) setValidationErrors(prev => ({ ...prev, name: false }));
-                    }} 
-                    className={`bg-background uppercase ${validationErrors.name ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500" : ""}`} 
-                    placeholder="EX: COPO TÉRMICO 500ML" 
-                  />
-                  {validationErrors.name && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
-                </div>
-                
-                {showOptionalFields && (
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-medium">Descrição</label>
-                    <Input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="bg-background" />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Departamento <span className="text-red-500">*</span></label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={form.departmentId}
-                      onValueChange={(value) => {
-                        setForm((current) => ({ ...current, departmentId: value, categoryId: "" }));
-                        if (validationErrors.department) setValidationErrors(prev => ({ ...prev, department: false }));
-                      }}
-                    >
-                      <SelectTrigger id="select-department" className={`bg-background flex-1 ${validationErrors.department ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.map((department) => (
-                          <SelectItem key={department.id} value={department.id.toString()}>
-                            {department.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" variant="outline" size="icon" onClick={() => window.open('/departamentos', '_blank')}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {validationErrors.department && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Categoria <span className="text-red-500">*</span></label>
-                  <div className="flex gap-2">
-                    <Select value={form.categoryId} onValueChange={(value) => {
-                      setForm((current) => ({ ...current, categoryId: value }));
-                      if (validationErrors.category) setValidationErrors(prev => ({ ...prev, category: false }));
-                    }}>
-                      <SelectTrigger id="select-category" className={`bg-background flex-1 ${validationErrors.category ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredCategories.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" variant="outline" size="icon" onClick={() => window.open('/categorias', '_blank')}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {validationErrors.category && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
-                </div>
-
-                {!form.hasVariations && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Preço de venda (R$) <span className="text-red-500">*</span></label>
-                      <CurrencyInput 
-                        id="input-price"
-                        value={productEditor.price} 
-                        onChange={(val) => {
-                          setProductEditor((current) => ({ ...current, price: val }));
-                          if (validationErrors.price) setValidationErrors(prev => ({ ...prev, price: false }));
-                        }} 
-                        className={`bg-background w-full ${validationErrors.price ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`} 
-                      />
-                      {validationErrors.price && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Status <span className="text-red-500">*</span></label>
-                      <Select 
-                        value={productEditor.status} 
-                        onValueChange={(value) => {
-                          setProductEditor((current) => ({ ...current, status: value }));
-                          if (validationErrors.status) setValidationErrors(prev => ({ ...prev, status: false }));
-                        }}
-                      >
-                        <SelectTrigger id="select-status" className={`bg-background w-full ${validationErrors.status ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}>
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectableStatusOptions.map((status) => (
-                            <SelectItem key={status.id} value={status.id.toString()}>
-                              {status.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {validationErrors.status && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
-                    </div>
-                  </>
-                )}
-
-                {showOptionalFields && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1">
-                        <label className="text-sm font-medium">Estoque mínimo</label>
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger type="button" tabIndex={-1}>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Defina um valor maior que zero para controlar o estoque deste produto.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <Input type="number" min="0" value={productEditor.minStock} onChange={(event) => setProductEditor((current) => ({ ...current, minStock: Number(event.target.value) }))} className="bg-background" required />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1">
-                        <label className="text-sm font-medium">Estoque atual</label>
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger type="button" tabIndex={-1}>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Calculado automaticamente com base nas entradas de estoque.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <Input type="number" value={productEditor.stock} readOnly className="bg-muted/30 text-muted-foreground cursor-not-allowed" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Visibilidade</label>
-                      <label className="flex items-center gap-2 text-sm cursor-pointer border border-border/50 rounded-md px-3 h-10 bg-card hover:bg-muted/50 transition-colors w-full justify-between">
-                        <span className="font-medium shrink-0">Exibir no site</span>
-                        <Switch checked={form.isPublic} onCheckedChange={(checked) => setForm(current => ({ ...current, isPublic: checked === true }))} />
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {showOptionalFields && (
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-medium">Etiquetas</label>
-                    <TagMultiSelect
-                      allTags={tags}
-                      selectedIds={productEditor.tagIds}
-                      onChange={(tagIds) => setProductEditor((current) => ({ ...current, tagIds }))}
-                      onTagCreated={registerTag}
-                      placeholder="Selecione ou crie uma nova etiqueta"
-                    />
-                  </div>
-                )}
+                <ProductPricingAndStock
+                  editor={editor}
+                  validationErrors={validationErrors}
+                  setValidationErrors={setValidationErrors}
+                  showOptionalFields={showOptionalFields}
+                />
               </div>
 
-              <ProductImagesSection
-                images={images}
-                setImages={setImages}
-                handleSimpleFileSelection={handleSimpleFileSelection}
-                reorderProductImage={reorderProductImage}
-                productName={form.productGroupName}
-                onSearchWebImage={() => setSearchModalOpen(true)}
+              <ProductImageGallery
+                editor={editor}
+                setSearchModalOpen={setSearchModalOpen}
               />
             </div>
 
-            <ProductVariationsSection
-              variationDrafts={variationDrafts}
-              activeGrades={activeGrades}
-              isFetchingGroupProducts={isFetchingGroupProducts}
-              selectableStatusOptions={selectableStatusOptions}
+            <ProductVariationsManager
+              editor={editor}
               validationErrors={validationErrors}
-              updateVariationDraft={updateVariationDraft}
               handlePrintBarcode={handlePrintBarcode}
               setVariationToDelete={setVariationToDelete}
-              handleDeleteVariation={handleDeleteVariation}
-              addVariationDraft={addVariationDraft}
             />
 
             <DialogFooter className="pt-4 flex sm:justify-between items-center border-t border-border/40 mt-4">
