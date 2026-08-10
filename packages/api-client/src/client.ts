@@ -296,21 +296,38 @@ export async function fetchAllPages<T>(
   params?: Record<string, unknown>,
   size = 200,
 ) {
-  const allItems: T[] = [];
-  let page = 1;
+  // Fetch first page to get total count
+  const firstPage = await apiGet<BackendPagedResult<T>>(path, {
+    ...params,
+    page: 1,
+    size,
+  });
 
-  while (true) {
-    const paged = await apiGet<BackendPagedResult<T>>(path, {
-      ...params,
-      page,
-      size,
-    });
+  const allItems: T[] = [...firstPage.items];
+  const total = firstPage.pagination.filteredItems ?? allItems.length;
 
+  if (allItems.length >= total || firstPage.items.length === 0) {
+    return allItems;
+  }
+
+  // Calculate remaining pages and fetch them in parallel
+  const totalPages = Math.ceil(total / size);
+  const remainingPromises = [];
+  
+  for (let page = 2; page <= totalPages; page++) {
+    remainingPromises.push(
+      apiGet<BackendPagedResult<T>>(path, {
+        ...params,
+        page,
+        size,
+      })
+    );
+  }
+
+  const remainingResults = await Promise.all(remainingPromises);
+  
+  for (const paged of remainingResults) {
     allItems.push(...paged.items);
-
-    const total = paged.pagination.filteredItems ?? allItems.length;
-    if (allItems.length >= total || paged.items.length === 0) break;
-    page += 1;
   }
 
   return allItems;
@@ -327,6 +344,7 @@ export function useCrudMutation<TData, TVariables>(
     ...options?.mutation,
   });
 }
+
 
 
 
