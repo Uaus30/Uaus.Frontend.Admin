@@ -21,6 +21,7 @@ import {
   type ReceiptData,
 } from "@workspace/receipt";
 import { usePdvStore, type HeldSale, type PdvItem } from "@/stores/use-pdv-store";
+import { useShallow } from "zustand/react/shallow";
 import { useCheckout, type CheckoutPayment } from "@/hooks/use-checkout";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { useOfflineStore } from "@/stores/use-offline-store";
@@ -31,6 +32,7 @@ import { SalesHistoryDialog } from "@/components/sales-history-dialog";
 import { FontSizeControl } from "@/components/font-size-control";
 import { HeldSalesDialog } from "@/components/held-sales-dialog";
 import { OfflineStatus } from "@/components/offline-status";
+import { Clock } from "@/components/clock";
 import { StockWriteOffDialog } from "@/components/stock-write-off-dialog";
 import { useCashRegister } from "@/hooks/use-cash-register";
 import { OpenCashRegisterDialog, CloseCashRegisterDialog } from "@/components/cash-register-dialogs";
@@ -98,7 +100,7 @@ export default function Pdv() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [currentTime, setCurrentTime] = useState(new Date());
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ProductPdvSearchDto[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -244,7 +246,7 @@ export default function Pdv() {
     editingSaleId,
     loadSaleForEditing,
     clearSession,
-  } = usePdvStore();
+  } = usePdvStore(useShallow((state) => state));
 
   const toggleCalculator = useCalculatorStore((state) => state.toggleOpen);
 
@@ -266,9 +268,6 @@ export default function Pdv() {
 
   useEffect(() => {
     if (!isLoading && !user) setLocation("/login");
-
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
   }, [isLoading, user, setLocation]);
 
   const subtotal = getSubtotal();
@@ -1039,11 +1038,7 @@ export default function Pdv() {
 
           <OfflineStatus sessionId={sessionId} onSynced={refreshSales} />
 
-          <div className="flex items-center text-primary bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(var(--primary),0.2)]">
-            <span className="font-mono text-lg font-bold tracking-wider">
-              {currentTime.toLocaleTimeString("pt-BR")}
-            </span>
-          </div>
+          <Clock />
         </div>
 
         <div className="flex items-center gap-4">
@@ -1779,6 +1774,12 @@ export default function Pdv() {
     </div>
   );
 }
+
+
+
+
+
+
 
 
 
