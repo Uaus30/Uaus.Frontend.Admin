@@ -169,15 +169,18 @@ export function usePdvSessionActions({
   /**
    * Saída pelo diálogo de abertura de caixa, antes de o turno começar.
    *
-   * Limpa só o cache de consultas — **não** o token nem o cadastro local, ao
-   * contrário de {@link exit}. A diferença é anterior a esta extração e está
-   * preservada como estava; o comportamento das duas saídas precisa ser
-   * decidido junto, não aqui.
+   * Faz o MESMO logout de {@link exit} — token, cadastro local e stores. Até
+   * ago/2026 esta saída limpava só o cache de consultas: o JWT continuava no
+   * localStorage (voltar para "/" reautenticava o operador anterior) e a base
+   * local seguia legível com nome, CPF e telefone de clientes, no navegador de
+   * um caixa que costuma ser compartilhado entre turnos.
+   *
+   * Não há checagem de caixa aberto nem de fila: este caminho só existe quando
+   * NÃO há sessão, e a fila offline não é apagada pelo logout.
    */
   const leaveWithoutSession = useCallback(() => {
-    queryClient.clear();
-    setLocation("/login");
-  }, [queryClient, setLocation]);
+    void logout();
+  }, [logout]);
 
   return {
     openRegister,
