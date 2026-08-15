@@ -673,3 +673,73 @@ export interface ApiResponse<T> {
   response: Response;
 }
 
+
+// ---------------------------------------------------------------------------
+// Desempenho da loja — resumo consumido pela modal do PDV e pelo painel.
+// Contrato do backend em Uaus.Backend.Api, DashboardService.Performance.cs.
+// ---------------------------------------------------------------------------
+
+/** Faturamento de um dia específico. */
+export interface PerformanceDayDto {
+  /** Data do dia, em ISO. */
+  date: string;
+  revenue: number;
+  salesCount: number;
+  averageTicket: number;
+}
+
+/**
+ * Acumulado de um período contra o anterior equivalente.
+ *
+ * O anterior é recortado no MESMO avanço pelo servidor: comparar os dez dias
+ * corridos do mês atual com os trinta e um dias fechados do anterior mostraria
+ * uma queda que é só o calendário.
+ */
+export interface PerformanceRangeDto {
+  revenue: number;
+  salesCount: number;
+  previousRevenue: number;
+  /**
+   * Variação percentual sobre o anterior.
+   *
+   * `null` quando não houve base de comparação — "não há com o que comparar" é
+   * diferente de "não variou", e a tela precisa distinguir os dois.
+   */
+  changePercentage: number | null;
+}
+
+/** Um dia da semana com as duas semanas sobrepostas. */
+export interface WeekdayComparisonDto {
+  /** 0 = segunda … 6 = domingo. A semana da loja começa na segunda. */
+  weekday: number;
+  date: string;
+  revenue: number;
+  previousRevenue: number;
+  /**
+   * O dia ainda não aconteceu nesta semana.
+   *
+   * Separa "vendeu zero" de "ainda não chegou" — sem isso o gráfico desenha os
+   * dias futuros como queda a zero.
+   */
+  isFuture: boolean;
+}
+
+/**
+ * Resumo de desempenho da loja.
+ *
+ * A comparação é com o último dia que teve VENDA, não com ontem: numa segunda o
+ * dia anterior é o domingo fechado, e a variação seria sempre +100%.
+ *
+ * Não traz custo, lucro nem margem — o endpoint é liberado para o papel Seller.
+ */
+export interface StorePerformanceDto {
+  referenceDate: string;
+  /** Momento em que o servidor respondeu, para a tela mostrar a hora do dado. */
+  serverTime: string;
+  today: PerformanceDayDto;
+  /** `null` quando a loja nunca vendeu antes de hoje. */
+  previousSalesDay: PerformanceDayDto | null;
+  week: PerformanceRangeDto;
+  month: PerformanceRangeDto;
+  weekdayComparison: WeekdayComparisonDto[];
+}

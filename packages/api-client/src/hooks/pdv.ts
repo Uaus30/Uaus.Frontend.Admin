@@ -5,9 +5,12 @@
  * pública não mudou: tudo continua saindo de `@workspace/api-client-react`.
  */
 
-import { apiGet, apiPost, apiPut, extractCreatedId } from "../client";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { ApiError, apiGet, apiGetOrThrow, apiPost, apiPut, extractCreatedId } from "../client";
 import type {
+  QueryKey,
   SaleDto,
+  StorePerformanceDto,
 } from "../models";
 
 // ---------------------------------------------------------------------------
@@ -200,4 +203,35 @@ export async function createCompleteSale(
 ): Promise<number | null> {
   const response = await apiPost<SaleDto>("/Sales/complete", payload);
   return extractCreatedId(response.response);
+}
+
+// ---------------------------------------------------------------------------
+// Desempenho da loja — a espiada rápida pelo balcão
+// ---------------------------------------------------------------------------
+
+/** Chave de cache do resumo de desempenho. */
+export const getGetStorePerformanceQueryKey = (): QueryKey => ["PdvPerformance"];
+
+/**
+ * Resumo de desempenho da loja para a modal do PDV.
+ *
+ * Vive sob `/Pdv` e não sob `/Dashboard` por causa da autorização: o painel
+ * inteiro é restrito a Admin, e o operador de caixa é Seller — ele tomaria 403
+ * em qualquer endpoint de lá. Este é liberado para os dois papéis e não devolve
+ * custo, lucro nem margem.
+ *
+ * A comparação vem pronta do servidor contra o último dia que teve VENDA, não
+ * contra ontem.
+ */
+export function useGetStorePerformance(options?: {
+  query?: Omit<
+    UseQueryOptions<StorePerformanceDto, ApiError, StorePerformanceDto, QueryKey>,
+    "queryKey" | "queryFn"
+  >;
+}) {
+  return useQuery<StorePerformanceDto, ApiError, StorePerformanceDto, QueryKey>({
+    queryKey: [...getGetStorePerformanceQueryKey(), {}],
+    queryFn: () => apiGetOrThrow<StorePerformanceDto>("/Pdv/performance"),
+    ...options?.query,
+  });
 }

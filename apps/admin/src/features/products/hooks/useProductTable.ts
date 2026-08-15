@@ -31,9 +31,24 @@ import { getAuthSession, apiGet, type ImageDto } from "@workspace/api-client-rea
  * - Exposing inline cell editors for Price (`updateProductPrice`) and Stock (`updateProductStock`).
  * - Validating state edits and invalidating queries on completion.
  */
+/**
+ * Termo de busca vindo da URL (`/produtos?busca=...`).
+ *
+ * Existe para o PDV poder abrir esta tela já filtrada no produto que o operador
+ * quer corrigir — sem isso, o link do balcão cairia numa lista sem filtro e a
+ * pessoa teria que buscar de novo.
+ *
+ * Lido uma única vez, na montagem: depois disso quem manda é o campo de busca.
+ * Reagir à URL continuamente desfaria o que o usuário digitasse.
+ */
+function initialSearchFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("busca")?.trim() ?? "";
+}
+
 export function useProductTable() {
   const { toast } = useToast();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearchFromUrl);
   const debouncedSearch = useDebounce(search, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);

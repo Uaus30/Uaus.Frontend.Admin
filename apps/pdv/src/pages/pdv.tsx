@@ -50,6 +50,8 @@ import {
 } from "@/services/sales.service";
 import { computeDiscount, describeApiError, formatCurrency, parseAmount, round2 } from "@workspace/core";
 import { canCloseRegister } from "@/lib/cash-register";
+import { adminHomeUrl, adminProductSearchUrl, openInNewTab } from "@/lib/admin-links";
+import { PerformanceDialog } from "@/components/performance-dialog";
 import { searchProducts } from "@/lib/product-search";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -79,13 +81,12 @@ import {
   PackageMinus,
   Calculator as CalculatorIcon,
   FileBarChart,
-
-  } from "lucide-react";
+  BarChart3,
+  Pencil,
+  LayoutDashboard,
+  ExternalLink,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-/** Uma das formas de pagamento escolhidas no checkout. */
-
-/** Arredonda para duas casas evitando o erro de ponto flutuante do JavaScript. */
 
 /**
  * Tela do PDV: busca de produtos, carrinho, checkout com N formas de pagamento,
@@ -114,6 +115,7 @@ export default function Pdv() {
   const [isHeldSalesOpen, setIsHeldSalesOpen] = useState(false);
   const [printingReport, setPrintingReport] = useState(false);
   const [isFecharCaixaOpen, setIsFecharCaixaOpen] = useState(false);
+  const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [isConfirmDiscardOpen, setIsConfirmDiscardOpen] = useState(false);
   const [pendingSaleToEdit, setPendingSaleToEdit] = useState<SaleDto | null>(null);
@@ -1144,6 +1146,16 @@ export default function Pdv() {
                     <button
                       onClick={() => {
                         setIsSandwichMenuOpen(false);
+                        setIsPerformanceOpen(true);
+                      }}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer"
+                    >
+                      <BarChart3 className="w-4 h-4 text-primary" />
+                      Desempenho
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsSandwichMenuOpen(false);
                         setIsHeldSalesOpen(true);
                       }}
                       className="flex items-center justify-between gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer"
@@ -1192,6 +1204,21 @@ export default function Pdv() {
                     >
                       <Settings className="w-4 h-4 text-primary" />
                       Preferências
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsSandwichMenuOpen(false);
+                        openInNewTab(adminHomeUrl());
+                      }}
+                      className="flex items-center justify-between gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer"
+                    >
+                      <span className="flex items-center gap-3">
+                        <LayoutDashboard className="w-4 h-4 text-primary" />
+                        Painel Administrativo
+                      </span>
+                      {/* Nova aba, não navegação: o caixa pode estar com venda em
+                          andamento, e sair da tela a perderia. */}
+                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
                     <div className="h-px bg-border my-1" />
                     <button
@@ -1277,13 +1304,33 @@ export default function Pdv() {
                                 {product.barcode} · Estoque: {product.stock}
                               </p>
                             </div>
-                            <div className="text-right">
-                              <p className="text-xl font-mono font-bold text-primary">
-                                {formatCurrency(product.price)}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground uppercase font-bold group-hover:text-primary transition-colors">
-                                {outOfStock ? "Sem estoque" : "Clique para adicionar"}
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className="text-xl font-mono font-bold text-primary">
+                                  {formatCurrency(product.price)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold group-hover:text-primary transition-colors">
+                                  {outOfStock ? "Sem estoque" : "Clique para adicionar"}
+                                </p>
+                              </div>
+                              {/* Atalho para corrigir o cadastro sem sair do caixa —
+                                  preço errado e estoque furado aparecem justamente
+                                  aqui, na hora de vender. O stopPropagation impede
+                                  que o clique também adicione o item ao carrinho. */}
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openInNewTab(
+                                    adminProductSearchUrl(product.barcode || product.name),
+                                  );
+                                }}
+                                title="Editar no painel administrativo (abre em nova aba)"
+                                aria-label={`Editar ${product.name} no painel administrativo`}
+                                className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
                             </div>
                           </motion.div>
                         );
@@ -1703,6 +1750,8 @@ export default function Pdv() {
         session={session}
         onCloseRegister={closeCashRegister}
       />
+
+      <PerformanceDialog open={isPerformanceOpen} onOpenChange={setIsPerformanceOpen} />
 
       {/* VENDAS EM ESPERA */}
       <HeldSalesDialog
