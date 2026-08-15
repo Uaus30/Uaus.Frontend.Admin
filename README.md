@@ -6,7 +6,7 @@ Este é o repositório central dos aplicativos Frontend da Uaus. Ele é estrutur
 
 - `apps/admin`: Painel de administração central (Retaguarda).
 - `apps/pdv`: Ponto de Venda.
-- `packages/api-client`: SDK gerado (Orval) e utilitários para integração com a API.
+- `packages/api-client`: cliente HTTP e hooks React Query **escritos à mão** (`src/models.ts`, `src/client.ts`, `src/hooks.ts`). Não é gerado — todo endpoint novo é adicionado manualmente aqui.
 - `packages/receipt`: Lógica e templates para impressão de recibos.
 - `packages/ui`: Biblioteca de componentes de UI compartilhados (Shadcn/Lucide).
 
@@ -21,4 +21,4 @@ Este é o repositório central dos aplicativos Frontend da Uaus. Ele é estrutur
 
 ## Diretrizes de Agentes e IA
 
-Consulte as regras locais em [.agents/AGENTS.md](./.agents/AGENTS.md) antes de realizar manutenções autônomas neste repositório.
+As regras obrigatórias estão em [CLAUDE.md](./CLAUDE.md), na raiz — leia antes de realizar manutenções autônomas neste repositório.

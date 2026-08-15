@@ -92,10 +92,13 @@ direita ou embaixo — filtros costumam ficar colados na borda da tela.
 
 ## 🔄 Admin e PDV
 
-Os três arquivos são **idênticos** nos dois apps (`apps/admin` e `apps/pdv`),
-seguindo a convenção do repositório de cada app manter sua própria pasta
-`components/ui`. Alterou de um lado, replique no outro — junto com o bloco
-`.uaus-rdp-dark` do `index.css`.
+Estes componentes vivem **só aqui**. Admin e PDV os consomem por
+`import { ... } from "@workspace/ui"` — nenhum dos dois apps mantém cópia
+própria, e a pasta `components/ui` por app não existe mais. Alterou aqui,
+valeu para os dois.
+
+A única parte que continua duplicada é o bloco `.uaus-rdp-dark` do
+`index.css` de cada app, porque é estilo global e não componente.
 
 ## 🧪 Testes
 
