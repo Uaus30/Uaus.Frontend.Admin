@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardToday } from "@/services/dashboard.service";
+import { getDashboardToday } from "@/features/dashboard/api";
 import type { DashboardToday } from "../types";
 
 /**

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardMonthly } from "@/services/dashboard.service";
+import { getDashboardMonthly } from "@/features/dashboard/api";
 import type { DashboardMonthly } from "../types";
 import { growth } from "../utils";
 

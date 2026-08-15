@@ -5,7 +5,7 @@
  * pública não mudou: tudo continua saindo de `@workspace/api-client-react`.
  */
 
-import { apiPost, ApiError, buildUrl, getAuthSession } from "../client";
+import { apiGetBlob, apiPost, type ApiBlob } from "../client";
 
 // ---------------------------------------------------------------------------
 // Contagem de estoque por planilha
@@ -75,34 +75,11 @@ export interface InventoryCountResultDto {
  *
  * @returns O arquivo e o nome sugerido pelo servidor.
  */
-export async function downloadInventoryCountSheet(): Promise<{ blob: Blob; fileName: string }> {
-  const session = getAuthSession();
-  const headers = new Headers();
-
-  if (session?.token.value) {
-    headers.set("Authorization", `Bearer ${session.token.value}`);
-  }
-
-  const response = await fetch(buildUrl("/InventoryCounts/export"), { method: "GET", headers });
-
-  if (!response.ok) {
-    throw new ApiError(
-      `Erro ${response.status} ao gerar a planilha de contagem`,
-      response.status,
-      null,
-      "GET",
-      "/InventoryCounts/export",
-    );
-  }
-
-  // O nome vem no Content-Disposition; o fallback cobre proxy que remove o header.
-  const disposition = response.headers.get("Content-Disposition") ?? "";
-  const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-
-  return {
-    blob: await response.blob(),
-    fileName: match ? decodeURIComponent(match[1]) : "contagem-de-estoque.xlsx",
-  };
+export async function downloadInventoryCountSheet(): Promise<ApiBlob> {
+  // Passa pelo apiGetBlob para o 401 ser tratado no mesmo lugar que o resto do
+  // app: montando o header aqui, um token vencido produzia um erro genérico e
+  // deixava o usuário numa tela morta em vez de levá-lo ao login.
+  return apiGetBlob("/InventoryCounts/export", "contagem-de-estoque.xlsx");
 }
 
 /** Envia a planilha preenchida sem gravar nada, só para ver o impacto. */

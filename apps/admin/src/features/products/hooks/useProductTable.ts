@@ -6,7 +6,7 @@ import { describeApiError } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import { buildProductCollections } from "@/services/mappers";
 
-import { createImageFromFile, buildImageProxyUrl } from "@/services/images.service";
+import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.service";
 import {
   getAllProducts,
   getAllProductImages,
@@ -18,7 +18,7 @@ import {
 } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
-import { getAuthSession, apiGet, type ImageDto } from "@workspace/api-client-react";
+import { apiGet, type ImageDto } from "@workspace/api-client-react";
 import { CATALOG_KEYS, useAllDepartments, useAllCategories, useAllTags } from "@/hooks/use-catalog";
 
 /**
@@ -294,19 +294,9 @@ export function useProductTable() {
    * preservando as imagens atuais dele.
    */
   const saveWebImageAsPrincipal = async (product: any, webImageUrl: string) => {
-    const proxyUrl = buildImageProxyUrl(webImageUrl);
-    const session = getAuthSession();
-    const headers: Record<string, string> = {};
-    if (session?.token.value) {
-      headers["Authorization"] = `Bearer ${session.token.value}`;
-    }
-    const response = await fetch(proxyUrl, { headers });
-    if (!response.ok) {
-      throw new Error(`Falha ao baixar imagem: ${response.statusText}`);
-    }
-    const blob = await response.blob();
-    const cleanName = product.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
-    const file = new File([blob], `${cleanName}.jpg`, { type: blob.type });
+    // O download passa pelo services/images: o proxy e o tratamento de 401
+    // ficam num lugar só, em vez de repetidos aqui e no editor.
+    const file = await downloadWebImageAsFile(webImageUrl, product.name);
 
     const optimizedResult = await optimizeImage(file);
     if (optimizedResult.optimized) {

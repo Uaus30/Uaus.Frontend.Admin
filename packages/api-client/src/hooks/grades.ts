@@ -10,6 +10,7 @@ import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation } 
 import type {
   GradeDto,
   QueryKey,
+  SaveGradePayload,
 } from "../models";
 
 export const getGetGradesQueryKey = (): QueryKey => ["grades"];
@@ -27,7 +28,7 @@ export function useGetGrades(options?: {
 }
 
 export function useCreateGrade(options?: {
-  mutation?: UseMutationOptions<GradeDto, ApiError, { data: unknown }>;
+  mutation?: UseMutationOptions<GradeDto, ApiError, { data: SaveGradePayload }>;
 }) {
   return useCrudMutation(async ({ data }) => {
     const response = await apiPost<GradeDto>("/Grades", data);
@@ -37,7 +38,7 @@ export function useCreateGrade(options?: {
 }
 
 export function useUpdateGrade(options?: {
-  mutation?: UseMutationOptions<GradeDto, ApiError, { data: unknown }>;
+  mutation?: UseMutationOptions<GradeDto, ApiError, { data: SaveGradePayload }>;
 }) {
   return useCrudMutation(async ({ data }) => {
     const response = await apiPut<GradeDto>("/Grades", data);

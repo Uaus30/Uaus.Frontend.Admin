@@ -182,6 +182,11 @@ export function useUsers() {
         email: formPayload.email.trim(),
         password: formPayload.password,
         role: Number(formPayload.role),
+        // O `status` faltava aqui: a modal de cadastro oferece o campo e já o
+        // preenche com o padrão, mas o valor escolhido era descartado no envio —
+        // quem criava um usuário inativo recebia um usuário ativo. A edição
+        // sempre mandou. Descoberto ao trocar `data: unknown` pelo tipo real.
+        status: Number(formPayload.status),
       },
     });
   }

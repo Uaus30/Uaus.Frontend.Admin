@@ -13,7 +13,7 @@ import type {
   StockWriteOffDraftItem,
   StockWriteOffFilterState,
   StockWriteOffSelectOption,
-} from "@/features/stock-write-offs/types";
+} from "./types";
 
 /**
  * Baixa de estoque: saída de mercadoria sem venda (consumo, perda, doação e a

@@ -6,7 +6,7 @@ import type {
   DashboardPatterns,
   DashboardPatternsRefresh,
   DashboardToday,
-} from "@/features/dashboard/types";
+} from "./types";
 
 /**
  * Acesso aos indicadores do painel (`/Dashboard` no backend).

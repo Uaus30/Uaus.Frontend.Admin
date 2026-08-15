@@ -31,7 +31,7 @@ const {
   isSelectableWriteOffReason,
   submitStockWriteOff,
   submitStockWriteOffReversal,
-} = await import("../stock-write-offs.service");
+} = await import("../domain");
 
 /** Linha de rascunho mínima, só com o que o payload realmente usa. */
 function draftItem(productId: number, quantity: number) {

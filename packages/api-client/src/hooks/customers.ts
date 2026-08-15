@@ -9,9 +9,11 @@ import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tansta
 import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
+  CreateCustomerPayload,
   CustomerDto,
   QueryKey,
   UiPagedResult,
+  UpdateCustomerPayload,
 } from "../models";
 
 export const getGetCustomersQueryKey = (): QueryKey => ["customers"];
@@ -37,7 +39,7 @@ export function useGetCustomers(
 }
 
 export function useCreateCustomer(options?: {
-  mutation?: UseMutationOptions<null, ApiError, { data: unknown }>;
+  mutation?: UseMutationOptions<null, ApiError, { data: CreateCustomerPayload }>;
 }) {
   return useCrudMutation(async ({ data }) => {
     const response = await apiPost<null>("/Customers", data);
@@ -46,7 +48,7 @@ export function useCreateCustomer(options?: {
 }
 
 export function useUpdateCustomer(options?: {
-  mutation?: UseMutationOptions<CustomerDto | null, ApiError, { id: number; data: unknown }>;
+  mutation?: UseMutationOptions<CustomerDto | null, ApiError, { id: number; data: UpdateCustomerPayload }>;
 }) {
   return useCrudMutation(async ({ id, data }) => {
     const response = await apiPut<CustomerDto>("/Customers", { id, ...(data as object) });

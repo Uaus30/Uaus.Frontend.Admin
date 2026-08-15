@@ -1,5 +1,6 @@
 import {
   apiDelete,
+  apiGetBlob,
   apiGetOrThrow,
   apiPost,
   apiPut,
@@ -85,4 +86,25 @@ export async function searchInternetImages(query: string, limit: number = 15): P
  */
 export function buildImageProxyUrl(url: string): string {
   return `${API_BASE_URL}/Images/proxy?url=${encodeURIComponent(url)}`;
+}
+
+/**
+ * Baixa uma imagem da web pelo proxy do backend e a devolve como `File`.
+ *
+ * O proxy existe porque a imagem vem de domínio de terceiro e o navegador
+ * bloquearia a leitura por CORS. Passa por `apiGetBlob` para o 401 cair no
+ * tratamento central — os dois pontos que faziam isso montavam o header
+ * `Authorization` na mão e ficavam de fora dele.
+ *
+ * @param webImageUrl URL pública da imagem escolhida na busca.
+ * @param baseName Nome do produto, usado para batizar o arquivo.
+ */
+export async function downloadWebImageAsFile(
+  webImageUrl: string,
+  baseName: string,
+): Promise<File> {
+  const { blob } = await apiGetBlob(buildImageProxyUrl(webImageUrl), "imagem.jpg");
+  const cleanName = baseName.toLowerCase().replace(/[^a-z0-9]/g, "_") || "produto";
+
+  return new File([blob], `${cleanName}.jpg`, { type: blob.type });
 }

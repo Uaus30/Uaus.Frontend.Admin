@@ -14,7 +14,7 @@
   },
   "apps/admin/src/features/categories/hooks/useCategories.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 2
+      "count": 1
     },
     "react-hooks/set-state-in-effect": {
       "count": 1

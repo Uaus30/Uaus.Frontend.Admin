@@ -89,6 +89,26 @@ export default defineConfig([
     },
   },
   {
+    // `src/services` é camada baixa: ela não pode depender de `src/features`,
+    // que é camada alta. Dois services importavam tipos de features, invertendo
+    // a dependência e impedindo que qualquer um dos dois fosse movido sozinho.
+    files: ['apps/admin/src/services/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/*'],
+              message:
+                'services não pode depender de features. Se o tipo é da feature, o arquivo pertence a ela.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Configs de build rodam em Node, não no navegador.
     files: ['**/*.config.{ts,js}'],
     languageOptions: {

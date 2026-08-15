@@ -6,7 +6,7 @@ import { useDashboard } from "../useDashboard";
 
 const getDashboardOverview = vi.fn();
 
-vi.mock("@/services/dashboard.service", () => ({
+vi.mock("@/features/dashboard/api", () => ({
   getDashboardOverview: (...args: unknown[]) => getDashboardOverview(...args),
 }));
 

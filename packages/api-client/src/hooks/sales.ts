@@ -5,10 +5,9 @@
  * pública não mudou: tudo continua saindo de `@workspace/api-client-react`.
  */
 
-import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
 import type {
-  ApiResponse,
   BackendPagedResult,
   QueryKey,
   SaleDto,
@@ -50,20 +49,9 @@ export function useGetSales(
   });
 }
 
-export function useCreateSale(options?: {
-  mutation?: UseMutationOptions<ApiResponse<null>, ApiError, { data: unknown }>;
-}) {
-  return useCrudMutation(async ({ data }) => apiPost<null>("/Sales", data), options);
-}
-
-export function useDeleteSale(options?: {
-  mutation?: UseMutationOptions<null, ApiError, { id: number }>;
-}) {
-  return useCrudMutation(async ({ id }) => {
-    const response = await apiDelete<null>(`/Sales/${id}`);
-    return response.data;
-  }, options);
-}
+// useCreateSale e useDeleteSale foram removidos: nenhum consumidor nos dois apps.
+// A venda pelo painel usa createSaleWithItems, que lanca os itens junto; a do
+// balcao usa POST /Pdv/sales. Tipar `data: unknown` neles seria arrumar codigo morto.
 
 export function useGetSaleDetails(
   id?: number,

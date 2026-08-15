@@ -743,3 +743,32 @@ export interface StorePerformanceDto {
   month: PerformanceRangeDto;
   weekdayComparison: WeekdayComparisonDto[];
 }
+
+// ---------------------------------------------------------------------------
+// Payloads de escrita
+//
+// Nove mutations recebiam `data: unknown`, o que anulava a verificação de tipo
+// exatamente onde ela mais vale: no que é ENVIADO ao servidor. Campo com nome
+// errado ou faltando passava batido no front e voltava como 400 em produção.
+//
+// Os payloads derivam dos DTOs com Omit dos campos que o servidor gera — assim
+// um campo novo no DTO aparece aqui sozinho.
+// ---------------------------------------------------------------------------
+
+/** Campos que o servidor preenche e o cliente nunca envia. */
+type CamposDoServidor = "id" | "createdAt" | "updatedAt";
+
+export type CreateCategoryPayload = Omit<CategoryDto, CamposDoServidor | "productCount">;
+export type UpdateCategoryPayload = CreateCategoryPayload;
+
+export type CreateCustomerPayload = Omit<CustomerDto, CamposDoServidor>;
+export type UpdateCustomerPayload = CreateCustomerPayload;
+
+export type CreateUserPayload = Omit<UserDto, CamposDoServidor> & {
+  /** Só no cadastro; a troca de senha tem endpoint próprio. */
+  password?: string;
+};
+export type UpdateUserPayload = Omit<UserDto, CamposDoServidor>;
+
+/** Grade de variação. O `values` é a lista de opções (P, M, G). */
+export type SaveGradePayload = Omit<GradeDto, CamposDoServidor>;

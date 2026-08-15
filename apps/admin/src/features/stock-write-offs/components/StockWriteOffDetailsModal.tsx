@@ -19,7 +19,7 @@ import {
 import { Spinner } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatDate, formatQuantity } from "@workspace/core";
-import { STOCK_WRITE_OFF_STATUS_LABEL } from "@/services/stock-write-offs.service";
+import { STOCK_WRITE_OFF_STATUS_LABEL } from "@/features/stock-write-offs/domain";
 import { isReversibleWriteOff } from "../hooks/useStockWriteOffs";
 
 type StockWriteOffDetailsModalProps = {

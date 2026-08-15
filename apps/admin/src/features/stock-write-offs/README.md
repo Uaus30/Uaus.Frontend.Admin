@@ -13,7 +13,7 @@ Saída de mercadoria **sem venda**: consumo interno, perda, doação e a falta a
 *   `components/ReverseStockWriteOffDialog.tsx`: Confirmação do estorno, com o campo de motivo.
 *   `hooks/useStockWriteOffs.ts`: Listagem (`useGetStockWriteOffs`), detalhes, rascunho do registro e as mutations de registro e estorno.
 *   `types.ts`: Estado dos filtros, rascunho de item e opção de produto.
-*   Acesso a dados e montagem de payload: [`@/services/stock-write-offs.service.ts`](../../services/stock-write-offs.service.ts).
+*   Acesso a dados e montagem de payload: [`@/features/stock-write-offs/domain.ts`](../../services/stock-write-offs.service.ts).
 
 ---
 

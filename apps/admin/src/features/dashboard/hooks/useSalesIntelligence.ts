@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardIntelligence } from "@/services/dashboard.service";
+import { getDashboardIntelligence } from "@/features/dashboard/api";
 import type { DashboardIntelligence } from "../types";
 
 /** Janelas de análise oferecidas no painel de inteligência, em dias. */

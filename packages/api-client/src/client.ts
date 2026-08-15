@@ -275,6 +275,68 @@ export async function apiGetOrThrow<T>(
   return data;
 }
 
+/** Arquivo baixado da API, com o nome sugerido pelo servidor. */
+export interface ApiBlob {
+  blob: Blob;
+  /** Nome vindo do `Content-Disposition`, ou o padrão informado. */
+  fileName: string;
+}
+
+/**
+ * GET de arquivo binário — planilha, imagem, PDF.
+ *
+ * Existe porque três pontos do admin montavam `fetch` com o header
+ * `Authorization` NA MÃO para baixar binário. Além da duplicação, isso os
+ * deixava fora do tratamento centralizado de 401: o token vencia, a requisição
+ * falhava com um erro genérico e o usuário continuava numa tela morta em vez de
+ * ser levado ao login.
+ *
+ * @param path Caminho no backend, ou URL absoluta (o proxy de imagem já vem pronto).
+ * @param fallbackFileName Nome usado quando o servidor não manda `Content-Disposition`.
+ */
+export async function apiGetBlob(
+  path: string,
+  fallbackFileName: string,
+  options?: { params?: Record<string, unknown> },
+): Promise<ApiBlob> {
+  const session = getAuthSession();
+  const headers = new Headers();
+
+  if (session?.token.value) {
+    headers.set("Authorization", `Bearer ${session.token.value}`);
+  }
+
+  // A URL pode vir absoluta (proxy de imagem) ou como caminho do backend.
+  const url = path.startsWith("http") ? path : buildUrl(path, options?.params);
+  const response = await fetch(url, { method: "GET", headers });
+
+  if (!response.ok) {
+    if (response.status === 401) handleUnauthorized();
+
+    throw new ApiError(
+      `Erro ${response.status} ao baixar ${path}`,
+      response.status,
+      null,
+      "GET",
+      path,
+    );
+  }
+
+  return {
+    blob: await response.blob(),
+    fileName: fileNameFromResponse(response) ?? fallbackFileName,
+  };
+}
+
+/** Lê o nome do arquivo do cabeçalho `Content-Disposition`, se houver. */
+function fileNameFromResponse(response: Response): string | null {
+  const disposition = response.headers.get("Content-Disposition");
+  if (!disposition) return null;
+
+  const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export async function apiPost<T>(
   path: string,
   body?: unknown,

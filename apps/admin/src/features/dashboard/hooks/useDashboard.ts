@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDashboardOverview } from "@/services/dashboard.service";
+import { getDashboardOverview } from "@/features/dashboard/api";
 import type { DashboardOverview, PeriodMode, PeriodPreset } from "../types";
 import { DEFAULT_PERIOD, resolveCustom, resolvePreset } from "../utils";
 

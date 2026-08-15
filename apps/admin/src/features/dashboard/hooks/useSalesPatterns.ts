@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { getDashboardPatterns, refreshDashboardPatterns } from "@/services/dashboard.service";
+import { getDashboardPatterns, refreshDashboardPatterns } from "@/features/dashboard/api";
 import type { DashboardPatterns } from "../types";
 
 /** Janelas oferecidas no seletor do painel de padrões. */

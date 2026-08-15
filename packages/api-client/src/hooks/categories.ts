@@ -10,8 +10,10 @@ import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, m
 import type {
   BackendPagedResult,
   CategoryDto,
+  CreateCategoryPayload,
   QueryKey,
   UiPagedResult,
+  UpdateCategoryPayload,
 } from "../models";
 
 export const getGetCategoriesQueryKey = (): QueryKey => ["categories"];
@@ -38,7 +40,7 @@ export function useGetCategories(
 }
 
 export function useCreateCategory(options?: {
-  mutation?: UseMutationOptions<null, ApiError, { data: unknown }>;
+  mutation?: UseMutationOptions<null, ApiError, { data: CreateCategoryPayload }>;
 }) {
   return useCrudMutation(async ({ data }) => {
     const response = await apiPost<null>("/Categories", data);
@@ -47,7 +49,7 @@ export function useCreateCategory(options?: {
 }
 
 export function useUpdateCategory(options?: {
-  mutation?: UseMutationOptions<CategoryDto | null, ApiError, { id: number; data: unknown }>;
+  mutation?: UseMutationOptions<CategoryDto | null, ApiError, { id: number; data: UpdateCategoryPayload }>;
 }) {
   return useCrudMutation(async ({ id, data }) => {
     const response = await apiPut<CategoryDto>("/Categories", { id, ...(data as object) });

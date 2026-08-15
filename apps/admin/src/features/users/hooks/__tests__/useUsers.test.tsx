@@ -140,6 +140,11 @@ describe("useUsers Hook", () => {
         email: "pedro@test.com",
         password: "initial-password",
         role: 1,
+        // REGRESSÃO: o cadastro NÃO enviava o status. A modal oferece o campo e
+        // já o preenche com o padrão, mas o valor escolhido era descartado —
+        // criar um usuário inativo produzia um usuário ativo. A edição sempre
+        // mandou. Apareceu ao trocar `data: unknown` pelo tipo real do payload.
+        status: 1,
       },
     });
   });

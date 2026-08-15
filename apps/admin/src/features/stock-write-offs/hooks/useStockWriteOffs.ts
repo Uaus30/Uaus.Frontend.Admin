@@ -16,7 +16,7 @@ import {
   fetchStockWriteOffDetails,
   submitStockWriteOff,
   submitStockWriteOffReversal,
-} from "@/services/stock-write-offs.service";
+} from "@/features/stock-write-offs/domain";
 import type {
   ProductSearchOption,
   StockWriteOffDraftItem,

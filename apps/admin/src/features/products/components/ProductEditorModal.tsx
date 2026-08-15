@@ -20,8 +20,7 @@ import { ProductVariationsSection } from "./ProductVariationsSection";
 import { useToast } from "@workspace/ui";
 import { optimizeImage } from "@/lib/imageOptimizer";
 import { ProductImageSearchModal } from "./ProductImageSearchModal";
-import { buildImageProxyUrl } from "@/services/images.service";
-import { getAuthSession } from "@workspace/api-client-react";
+import { downloadWebImageAsFile } from "@/services/images.service";
 import { ProductBasicInfo } from "./editor/ProductBasicInfo";
 import { ProductPricingAndStock } from "./editor/ProductPricingAndStock";
 import { ProductImageGallery } from "./editor/ProductImageGallery";
@@ -543,19 +542,9 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
       isOpen={searchModalOpen}
       onOpenChange={setSearchModalOpen}
       onSelectImage={async (imageUrl) => {
-        const proxyUrl = buildImageProxyUrl(imageUrl);
-        const session = getAuthSession();
-        const headers: Record<string, string> = {};
-        if (session?.token.value) {
-          headers["Authorization"] = `Bearer ${session.token.value}`;
-        }
-        const response = await fetch(proxyUrl, { headers });
-        if (!response.ok) {
-          throw new Error(`Falha ao baixar imagem: ${response.statusText}`);
-        }
-        const blob = await response.blob();
-        const cleanName = (form.productGroupName || "produto").toLowerCase().replace(/[^a-z0-9]/g, "_");
-        const file = new File([blob], `${cleanName}.jpg`, { type: blob.type });
+        // O download passa pelo services/images: o proxy e o tratamento de
+        // 401 ficam num lugar só, em vez de repetidos aqui e no editor.
+        const file = await downloadWebImageAsFile(imageUrl, form.productGroupName || "produto");
 
         const optimizedResult = await optimizeImage(file);
         if (optimizedResult.optimized) {

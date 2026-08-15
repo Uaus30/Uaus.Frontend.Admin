@@ -20,7 +20,7 @@ import {
   STOCK_WRITE_OFF_REASON_FILTER_OPTIONS,
   STOCK_WRITE_OFF_STATUS_LABEL,
   STOCK_WRITE_OFF_STATUS_OPTIONS,
-} from "@/services/stock-write-offs.service";
+} from "@/features/stock-write-offs/domain";
 import { isReversibleWriteOff } from "../hooks/useStockWriteOffs";
 import type { StockWriteOffFilterState } from "../types";
 
