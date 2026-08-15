@@ -8,7 +8,7 @@ import { useSuppliers } from "../useSuppliers";
 const mockCreateSupplier = vi.fn();
 const mockUpdateSupplier = vi.fn();
 const mockDeleteSupplier = vi.fn();
-const mockGetSuppliersPage = vi.fn(() => Promise.resolve({
+const mockGetSuppliersPage = vi.fn((..._params: unknown[]) => Promise.resolve({
   data: [
     { id: 10, name: "Supplier A", minimumPurchaseValue: 100, status: 1, avatarColor: "#6366f1" }
   ],
@@ -18,7 +18,8 @@ const mockGetSuppliersPage = vi.fn(() => Promise.resolve({
 }));
 
 vi.mock("@/services/suppliers.service", () => ({
-  getSuppliersPage: () => mockGetSuppliersPage(),
+  // Recebe os params para o teste poder afirmar o que foi ao servidor.
+  getSuppliersPage: (params: unknown) => mockGetSuppliersPage(params),
   createSupplier: (payload: any) => mockCreateSupplier(payload),
   updateSupplier: (payload: any) => mockUpdateSupplier(payload),
   deleteSupplier: (id: number) => mockDeleteSupplier(id),
@@ -54,6 +55,53 @@ const createWrapper = () => {
 describe("useSuppliers Hook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("filtro por status", () => {
+    it("envia o status ao SERVIDOR, atravessando todas as páginas", async () => {
+      // REGRESSÃO: o filtro era aplicado depois, sobre a página já recortada.
+      // Numa base de 200 fornecedores, filtrar por "Inativo" mostrava só os
+      // inativos que por acaso caíram nos 20 da página corrente — e o contador
+      // de páginas continuava contando todos, produzindo páginas vazias.
+      const { result } = renderHook(() => useSuppliers(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        result.current.setStatusFilter("2");
+      });
+
+      await vi.waitFor(() => {
+        expect(mockGetSuppliersPage).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 2 }),
+        );
+      });
+    });
+
+    it('não envia status quando o filtro é "all"', async () => {
+      const { result } = renderHook(() => useSuppliers(), { wrapper: createWrapper() });
+
+      await vi.waitFor(() => expect(mockGetSuppliersPage).toHaveBeenCalled());
+
+      expect(result.current.statusFilter).toBe("all");
+      expect(mockGetSuppliersPage).toHaveBeenCalledWith(
+        expect.objectContaining({ status: undefined }),
+      );
+    });
+
+    it("volta para a primeira página ao trocar o filtro", async () => {
+      // A página 3 do conjunto anterior pode nem existir no novo.
+      const { result } = renderHook(() => useSuppliers(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        result.current.setPage(3);
+      });
+      expect(result.current.page).toBe(3);
+
+      await act(async () => {
+        result.current.setStatusFilter("2");
+      });
+
+      await vi.waitFor(() => expect(result.current.page).toBe(1));
+    });
   });
 
   it("deve inicializar com os estados padrão corretos", () => {

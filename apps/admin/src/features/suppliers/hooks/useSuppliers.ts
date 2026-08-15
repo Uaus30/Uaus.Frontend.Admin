@@ -60,7 +60,19 @@ export function useSuppliers() {
 
   const [searchVal, setSearchVal] = useState("");
   const search = useDebounce(searchVal, 300);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilterState] = useState("all");
+
+  /**
+   * Troca o filtro de status e volta para a primeira página.
+   *
+   * O reset acontece AQUI, e não num efeito: a página 3 do conjunto anterior
+   * pode nem existir no novo, e resolver isso reagindo à mudança encadearia uma
+   * renderização a mais — é o que a regra `set-state-in-effect` alerta.
+   */
+  function setStatusFilter(next: string) {
+    setStatusFilterState(next);
+    setPage(1);
+  }
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
@@ -124,11 +136,17 @@ export function useSuppliers() {
     });
   }, [activeStatusValue, modalOpen, selectableSupplierStatusOptions]);
 
-  // Consulta paginada dos fornecedores
+  // O status vai para o SERVIDOR e entra na queryKey. Antes ele era aplicado
+  // depois, sobre a página já paginada: filtrar por "Inativo" numa base de 200
+  // fornecedores mostrava só os inativos que por acaso caíram nos 20 da página
+  // corrente, e o contador de páginas continuava contando todos.
+  const statusParam = statusFilter === "all" ? undefined : Number(statusFilter);
+
   const { data: suppliersPage, isLoading, isError, error } = useQuery({
-    queryKey: ["suppliers-page", { search, page, limit }],
-    queryFn: () => getSuppliersPage({ search, page, limit }),
+    queryKey: ["suppliers-page", { search, status: statusParam, page, limit }],
+    queryFn: () => getSuppliersPage({ search, status: statusParam, page, limit }),
   });
+
 
   // Notifica caso o servidor esteja indisponível
   useEffect(() => {
@@ -144,11 +162,8 @@ export function useSuppliers() {
     }
   }, [isError, error, toast]);
 
-  // Filtra fornecedores pelo status no client-side se um filtro diferente de "all" for selecionado
-  const suppliers = useMemo(() => {
-    if (statusFilter === "all") return suppliersPage?.data ?? [];
-    return (suppliersPage?.data ?? []).filter((item) => String(item.status) === statusFilter);
-  }, [statusFilter, suppliersPage?.data]);
+  // O filtro já foi aplicado pelo servidor — aqui só se lê o que veio.
+  const suppliers = suppliersPage?.data ?? [];
 
   /**
    * Abre a modal de cadastro/edição de fornecedor.

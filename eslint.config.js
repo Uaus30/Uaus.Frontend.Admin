@@ -46,6 +46,14 @@ export default defineConfig([
       // legítimos de omitir uma, e cada um precisa de comentário explicando o
       // porquê. Como erro, o caminho fácil seria o eslint-disable.
       'react-hooks/exhaustive-deps': 'warn',
+      // O prefixo `_` é a forma de declarar "existe na assinatura, não uso" —
+      // acontece em callback cuja posição do parâmetro importa e em dublê de
+      // teste. Sem isto, a saída era apagar o parâmetro e perder a documentação
+      // da assinatura.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
     },
   },
   {

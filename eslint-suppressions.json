@@ -1,9 +1,4 @@
 {
-  "apps/admin/src/App.tsx": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
   "apps/admin/src/components/layout.tsx": {
     "@typescript-eslint/no-unused-vars": {
       "count": 7
@@ -151,11 +146,6 @@
   },
   "apps/admin/src/features/logs/components/LogsTable.tsx": {
     "react-refresh/only-export-components": {
-      "count": 1
-    }
-  },
-  "apps/admin/src/features/logs/hooks/__tests__/useLogs.test.tsx": {
-    "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
   },
@@ -369,7 +359,7 @@
       "count": 4
     },
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "apps/admin/src/features/tags/components/TagTable.tsx": {
@@ -450,9 +440,6 @@
   },
   "packages/ui/src/components/toaster.tsx": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unused-vars": {
       "count": 2
     }
   }

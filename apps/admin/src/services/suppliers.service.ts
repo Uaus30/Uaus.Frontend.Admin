@@ -13,11 +13,14 @@ export async function getAllSuppliers() {
 
 export async function getSuppliersPage(params?: {
   search?: string;
+  /** Código do status. Filtra no SERVIDOR — filtrar depois só veria a página atual. */
+  status?: number;
   page?: number;
   limit?: number;
 }) {
   return getPaged<SupplierDto>("/Suppliers", {
     search: params?.search,
+    status: params?.status,
     page: params?.page ?? 1,
     size: params?.limit ?? 20,
   });
