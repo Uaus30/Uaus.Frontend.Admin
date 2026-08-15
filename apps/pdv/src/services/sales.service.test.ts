@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const apiGet = vi.fn();
+const apiGetOrThrow = vi.fn();
 const apiPost = vi.fn();
 const apiPut = vi.fn();
 const apiDelete = vi.fn();
@@ -20,7 +20,7 @@ class ApiError extends Error {
 
 vi.mock("@workspace/api-client-react", () => ({
   ApiError,
-  apiGet: (...args: unknown[]) => apiGet(...args),
+  apiGetOrThrow: (...args: unknown[]) => apiGetOrThrow(...args),
   apiPost: (...args: unknown[]) => apiPost(...args),
   apiPut: (...args: unknown[]) => apiPut(...args),
   apiDelete: (...args: unknown[]) => apiDelete(...args),
@@ -405,7 +405,7 @@ describe("restoreCancelledSaleStock", () => {
     // local ficava subestimada até o próximo snapshot e o PDV recusava venda
     // offline de produto que estava na prateleira.
     vi.clearAllMocks();
-    apiGet.mockResolvedValue({
+    apiGetOrThrow.mockResolvedValue({
       items: [
         { id: 900, productId: 1, quantity: 4 },
         { id: 901, productId: 2, quantity: 1 },
@@ -414,7 +414,7 @@ describe("restoreCancelledSaleStock", () => {
 
     await restoreCancelledSaleStock(500);
 
-    expect(apiGet).toHaveBeenCalledWith("/SaleItems", { saleId: 500, page: 1, size: 200 });
+    expect(apiGetOrThrow).toHaveBeenCalledWith("/SaleItems", { saleId: 500, page: 1, size: 200 });
     expect(restoreLocalStock).toHaveBeenCalledWith([
       { productId: 1, quantity: 4 },
       { productId: 2, quantity: 1 },
@@ -426,7 +426,7 @@ describe("updateSale", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updatePdvSale.mockResolvedValue({ id: 500, total: 50 });
-    apiGet.mockResolvedValue({ id: 500, notes: "Venda anterior" });
+    apiGetOrThrow.mockResolvedValue({ id: 500, notes: "Venda anterior" });
   });
 
   it("deve regravar a venda inteira em uma única requisição atômica", async () => {
@@ -460,7 +460,7 @@ describe("updateSale", () => {
     await updateSale(500, payload({ notes: "  Troca de tamanho  " }));
 
     expect((updatePdvSale.mock.calls[0][1] as Record<string, unknown>).notes).toBe("Troca de tamanho");
-    expect(apiGet).not.toHaveBeenCalled();
+    expect(apiGetOrThrow).not.toHaveBeenCalled();
   });
 });
 
