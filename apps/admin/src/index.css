@@ -2,6 +2,16 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+/*
+ * O @workspace/ui entra por symlink dentro de node_modules, e o autodetect de
+ * fontes do Tailwind v4 ignora node_modules. Sem esta linha, nenhuma classe que
+ * exista SÓ nos componentes do pacote é gerada — foi o que deixou o menu lateral
+ * sem largura e sem posicionamento, já que o Sidebar depende inteiramente das
+ * próprias classes internas (bg-sidebar, w-[var(--sidebar-width)],
+ * group-data-[collapsible=icon], peer-data-*).
+ */
+@source "../../../packages/ui/src";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
