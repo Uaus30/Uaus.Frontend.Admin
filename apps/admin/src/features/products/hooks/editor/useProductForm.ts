@@ -192,7 +192,6 @@ export function useProductForm({
         queryClient.invalidateQueries({ queryKey: ["products-page"] }),
         queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
         queryClient.invalidateQueries({ queryKey: ["products-by-group", productGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ["products-all-for-table"] }),
         queryClient.invalidateQueries({ queryKey: ["product-group-history", productGroupId] }),
       ]);
       toast({ title: "Produto removido com sucesso." });

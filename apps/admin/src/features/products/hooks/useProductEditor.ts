@@ -107,7 +107,6 @@ export function useProductEditor() {
       queryClient.invalidateQueries({ queryKey: ["images-all-for-products"] }),
       queryClient.invalidateQueries({ queryKey: ["products-by-group", groupId ?? editingGroupId] }),
       queryClient.invalidateQueries({ queryKey: ["tags-all-for-products"] }),
-      queryClient.invalidateQueries({ queryKey: ["products-all-for-table"] }),
       queryClient.invalidateQueries({ queryKey: ["product-group-history", groupId ?? editingGroupId] }),
     ]);
   }

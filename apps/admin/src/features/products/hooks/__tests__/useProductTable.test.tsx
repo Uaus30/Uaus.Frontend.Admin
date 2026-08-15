@@ -178,9 +178,9 @@ describe("useProductTable Hook", () => {
     const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.enrichedProducts).toHaveLength(1));
-    // Garante que a lista completa de produtos (fonte do nome real) carregou
+    // Garante que os produtos do grupo (fonte do nome real) carregaram
     await waitFor(() =>
-      expect(queryClient.getQueryData(["products-all-for-table"])).toBeTruthy(),
+      expect(queryClient.getQueryData(["products-by-group", productGroup.id])).toBeTruthy(),
     );
 
     const rowProduct = result.current.enrichedProducts[0];
@@ -199,5 +199,27 @@ describe("useProductTable Hook", () => {
         price: 29.9,
       }),
     );
+  });
+
+  it.each([
+    ["preço", (r: any) => r.updateProductPrice(r.enrichedProducts[0], 29.9)],
+    ["estoque", (r: any) => r.updateProductStock(r.enrichedProducts[0], 10)],
+  ])("deve invalidar products-by-group na edição inline de %s", async (_label, mutate) => {
+    // Regressão: a linha da tabela lê preço/estoque de ["products-by-group"],
+    // que tem staleTime de 5 min. Invalidar apenas o grupo paginado não
+    // refazia essa query (os ids não mudam), então a linha continuava
+    // mostrando o valor antigo depois de salvar.
+    const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.enrichedProducts).toHaveLength(1));
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    await act(async () => {
+      await mutate(result.current);
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["products-by-group", productGroup.id],
+    });
   });
 });

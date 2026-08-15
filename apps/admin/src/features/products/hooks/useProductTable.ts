@@ -220,7 +220,10 @@ export function useProductTable() {
         status: getStatusNumber(original?.status ?? product.status),
       });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["products-all-for-table"] }),
+        // A linha da tabela lê preço/estoque de ["products-by-group"], não do
+        // grupo paginado; sem invalidar essa chave o valor editado só aparecia
+        // depois do staleTime de 5 min.
+        queryClient.invalidateQueries({ queryKey: ["products-by-group", product.productGroupId] }),
         queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
         queryClient.invalidateQueries({ queryKey: ["product-group-history", product.productGroupId] }),
       ]);
@@ -260,7 +263,10 @@ export function useProductTable() {
     try {
       await adjustProductStock(product.id, newStock);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["products-all-for-table"] }),
+        // A linha da tabela lê preço/estoque de ["products-by-group"], não do
+        // grupo paginado; sem invalidar essa chave o valor editado só aparecia
+        // depois do staleTime de 5 min.
+        queryClient.invalidateQueries({ queryKey: ["products-by-group", product.productGroupId] }),
         queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
         queryClient.invalidateQueries({ queryKey: ["product-group-history", product.productGroupId] }),
       ]);
@@ -335,7 +341,7 @@ export function useProductTable() {
       queryClient.invalidateQueries({ queryKey: ["product-images-all-for-products"] }),
       queryClient.invalidateQueries({ queryKey: ["images-all-for-products"] }),
       queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
-      queryClient.invalidateQueries({ queryKey: ["products-all-for-table"] }),
+      queryClient.invalidateQueries({ queryKey: ["images-by-product", product.id] }),
     ]);
 
     toast({
