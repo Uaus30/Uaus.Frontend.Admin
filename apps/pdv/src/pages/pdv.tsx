@@ -391,6 +391,11 @@ export default function Pdv() {
   // valor recebido) era silenciosamente trocada pela primeira forma da lista.
   const checkoutInitializedRef = useRef(false);
 
+  // Setters de useState têm identidade estável, então declará-los nas deps
+  // satisfaz o exhaustive-deps sem reintroduzir o disparo extra que o objeto
+  // `checkout` inteiro causaria (ele é recriado a cada render).
+  const { setPayments, setSplitPayment, setAmountReceived } = checkout;
+
   useEffect(() => {
     if (status !== "CHECKOUT") {
       // Saiu do checkout: o próximo abre zerado de novo.
@@ -401,10 +406,10 @@ export default function Pdv() {
     if (checkoutInitializedRef.current || paymentMethods.length === 0) return;
     checkoutInitializedRef.current = true;
 
-    checkout.setPayments([{ paymentMethodId: paymentMethods[0].id, amount: round2(total), installmentNumber: 1 }]);
-    checkout.setSplitPayment(false);
-    checkout.setAmountReceived("");
-  }, [status, paymentMethods, total]);
+    setPayments([{ paymentMethodId: paymentMethods[0].id, amount: round2(total), installmentNumber: 1 }]);
+    setSplitPayment(false);
+    setAmountReceived("");
+  }, [status, paymentMethods, total, setPayments, setSplitPayment, setAmountReceived]);
 
 
   /** Abre o diálogo de desconto já preenchido com o valor atual do alvo. */

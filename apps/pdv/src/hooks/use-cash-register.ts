@@ -80,15 +80,17 @@ export function useCashRegister(options: { enabled?: boolean } = {}) {
   useEffect(() => {
     if (session === undefined) return;
 
-    setCachedSession(session ?? null);
     void writeCachedCashRegisterSession(session ?? null).catch(() => undefined);
   }, [session]);
 
-  const activeSession = session ?? cachedSession;
+  // A cópia local só entra quando a API não respondeu (`undefined`). Um `null` é
+  // resposta do servidor — "não há caixa aberto" — e precisa vencer a cópia,
+  // senão um caixa já fechado ressuscitaria a cada render.
+  const activeSession = session === undefined ? cachedSession : session;
   const sessionId = activeSession?.id ?? null;
 
   /** A sessão em uso veio da base local porque a API não respondeu. */
-  const isSessionFromCache = session == null && cachedSession != null;
+  const isSessionFromCache = session === undefined && cachedSession != null;
 
   const { data: sales = [], isLoading: loadingSales } = useQuery({
     queryKey: ["pdv-session-sales", sessionId],

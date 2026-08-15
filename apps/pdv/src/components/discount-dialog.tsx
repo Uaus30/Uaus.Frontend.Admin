@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Tag } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
 import { Button, Input, Label } from "@workspace/ui";
@@ -36,29 +36,29 @@ export function DiscountDialog({
   const [discountValue, setDiscountValue] = useState("");
   const [discountType, setDiscountType] = useState<"value" | "percent">("value");
 
-  // Reset local state when dialog opens
-  useEffect(() => {
-    if (open) {
-      if (target.type === "global") {
-        setDiscountType("value");
-        if (globalDiscount > 0) {
-          setDiscountValue(globalDiscount.toString());
-        } else {
-          setDiscountValue("");
-        }
-      } else if (target.id) {
-        const item = items.find((i) => i.id === target.id);
-        setDiscountType("value");
-        if (item && item.discount && item.discount > 0) {
-          setDiscountValue(item.discount.toString());
-        } else {
-          setDiscountValue("");
-        }
-      } else {
-        setDiscountValue("");
-      }
+  /** Desconto já aplicado no alvo, que o campo mostra quando o diálogo abre. */
+  const discountInForce = () => {
+    if (target.type === "global") {
+      return globalDiscount > 0 ? globalDiscount.toString() : "";
     }
-  }, [open, target, globalDiscount, items]);
+    if (target.id) {
+      const item = items.find((i) => i.id === target.id);
+      return item?.discount && item.discount > 0 ? item.discount.toString() : "";
+    }
+    return "";
+  };
+
+  // Reset feito durante a renderização, não num efeito: o campo já sai com o
+  // valor certo no primeiro paint. O efeito anterior reagia também a `items` e
+  // `globalDiscount`, então qualquer mexida no carrinho com o diálogo aberto
+  // apagava o que o operador estava digitando.
+  const openedFor = open ? `${target.type}:${target.id ?? ""}` : null;
+  const [resetFor, setResetFor] = useState<string | null>(null);
+  if (openedFor !== null && openedFor !== resetFor) {
+    setResetFor(openedFor);
+    setDiscountType("value");
+    setDiscountValue(discountInForce());
+  }
 
   const confirmDiscount = () => {
     const val = parseAmount(discountValue);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { STOCK_WRITE_OFF_REASON_LABEL } from "@workspace/api-client-react";
 import {
   AlertTriangle,
@@ -105,10 +105,13 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
   }, []);
 
   // A fila só é carregada com o painel aberto: são dados que ninguém olha o tempo
-  // todo, e a contagem do chip já vem do store.
-  useEffect(() => {
-    if (isPanelOpen) void loadQueue();
-  }, [isPanelOpen, loadQueue]);
+  // todo, e a contagem do chip já vem do store. A carga sai do clique que abre o
+  // painel, não de um efeito — abrir é um evento do usuário, e disparar a busca
+  // ali evita o render extra que o efeito causava.
+  const openPanel = () => {
+    setIsPanelOpen(true);
+    void loadQueue();
+  };
 
   /** Sincroniza as duas filas e avisa o resultado. */
   const handleSync = async () => {
@@ -232,7 +235,7 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
       {showChip && (
         <button
           type="button"
-          onClick={() => setIsPanelOpen(true)}
+          onClick={openPanel}
           title="Estado da conexão e fila de vendas offline"
           className={`relative flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wider transition-transform hover:scale-105 active:scale-95 cursor-pointer ${
             online
