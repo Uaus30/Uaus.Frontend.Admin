@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@workspace/ui";

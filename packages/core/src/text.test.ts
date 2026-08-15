@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSearchText } from "./text";
+import { escapeHtml, normalizeSearchText } from "./text";
 
 describe("normalizeSearchText", () => {
   it("remove acentos", () => {
@@ -31,5 +31,29 @@ describe("normalizeSearchText", () => {
     const cadastro = normalizeSearchText("Café Torrado");
 
     expect(cadastro.includes(normalizeSearchText("cafe"))).toBe(true);
+  });
+});
+
+describe("escapeHtml", () => {
+  it("escapa os caracteres que quebram o HTML", () => {
+    expect(escapeHtml("<b>")).toBe("&lt;b&gt;");
+    expect(escapeHtml("A & B")).toBe("A &amp; B");
+  });
+
+  it("escapa aspa dupla E aspa simples", () => {
+    // A aspa simples é a diferença que motivou a unificação: a versão do cupom
+    // não a escapava, então o mesmo nome saía seguro na etiqueta e inseguro no
+    // cupom.
+    expect(escapeHtml('Caneca "P"')).toBe("Caneca &quot;P&quot;");
+    expect(escapeHtml("Caneca 'P'")).toBe("Caneca &#39;P&#39;");
+  });
+
+  it("escapa o & primeiro, para não escapar duas vezes", () => {
+    // Ordem errada transformaria "<" em "&amp;lt;".
+    expect(escapeHtml("&<")).toBe("&amp;&lt;");
+  });
+
+  it("deixa texto comum intacto", () => {
+    expect(escapeHtml("Café Torrado 500g")).toBe("Café Torrado 500g");
   });
 });

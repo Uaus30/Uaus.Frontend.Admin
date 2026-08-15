@@ -82,6 +82,11 @@ describe("useCategories Hook", () => {
       description: "Desc 10",
       department: { id: 1, name: "Dep 1" },
       productCount: 4,
+      // Campos de auditoria do DTO. Faltavam no fixture porque o tipo local era
+      // escrito à mão e não os declarava — o mesmo descolamento que produzia o
+      // `map((category: any))` no hook.
+      createdAt: "2026-08-01T10:00:00",
+      updatedAt: null,
     };
 
     act(() => {

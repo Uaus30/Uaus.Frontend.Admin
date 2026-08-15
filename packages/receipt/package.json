@@ -13,5 +13,8 @@
   "devDependencies": {
     "@types/node": "^24.12.2"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "dependencies": {
+    "@workspace/core": "file:../core"
+  }
 }

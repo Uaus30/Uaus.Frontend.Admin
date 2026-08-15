@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
 import { createCategory, deleteCategory, getCategoriesPage, updateCategory } from "@/services/categories.service";
 import { getCategoryReport } from "@/services/reports.service";
@@ -83,7 +83,7 @@ export function useCategories() {
   const categoriesWithDepartment = useMemo<EnrichedCategory[]>(() => {
     const departmentsById = new Map(departments.map((d) => [d.id, d]));
 
-    return (categoriesPage?.data ?? []).map((category: any) => ({
+    return (categoriesPage?.data ?? []).map((category) => ({
       ...category,
       department: departmentsById.get(category.departmentId) ?? null,
       productCount: category.productCount ?? 0,

@@ -16,12 +16,6 @@ export interface SupplierForm {
   description: string;
 }
 
-/**
- * Interface de opção do enum carregado via API.
- */
-export interface EnumOption {
-  id: number;
-  name: string;
-  value: string;
-  allowSelect: boolean;
-}
+// O DTO já existe no contrato — redeclará-lo aqui criava duas verdades sobre a
+// mesma resposta do servidor, e as duas features tinham a sua cópia.
+export type { EnumOptionDto as EnumOption } from "@workspace/api-client-react";

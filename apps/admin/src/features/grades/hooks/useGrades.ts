@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { useGetGrades, type GradeDto } from "@workspace/api-client-react";
 import { createGrade, updateGrade, deleteGrade } from "@/services/grades.service";
 import { getEnumOptions } from "@/services/core";

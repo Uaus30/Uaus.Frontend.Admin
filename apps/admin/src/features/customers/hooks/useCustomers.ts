@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCustomersQueryKey,

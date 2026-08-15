@@ -1,3 +1,4 @@
+import { escapeHtml } from "@workspace/core";
 import { STORE_LOGO_DATA_URI } from "./logo";
 import {
   RECEIPT_FOOTER_MESSAGE,
@@ -91,14 +92,10 @@ export function toDate(value: string | Date) {
   return value instanceof Date ? value : new Date(value);
 }
 
-/** Escapa texto vindo do cadastro para não quebrar o HTML impresso. */
-export function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+// A implementação vive em @workspace/core: havia duas no repositório e esta NÃO
+// escapava aspa simples, então o mesmo nome de produto saía seguro na etiqueta
+// de gôndola e inseguro no cupom.
+export { escapeHtml };
 
 /** Uma linha "rótulo à esquerda, valor à direita". */
 export function row(label: string, value: string, className = "") {

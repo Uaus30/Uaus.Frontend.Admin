@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { createDepartment, deleteDepartment, getDepartmentsPage, updateDepartment } from "@/services/categories.service";
 import type { DepartmentForm, EnrichedDepartment } from "../types";
 import { RESOURCE_KEYS, useAllCategories } from "@/hooks/use-catalog";

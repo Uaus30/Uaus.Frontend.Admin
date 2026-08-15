@@ -13,9 +13,4 @@ export interface UserForm {
 /**
  * Interface para opções de enums da API.
  */
-export interface EnumOption {
-  id: number;
-  name: string;
-  value: string;
-  allowSelect: boolean;
-}
+export type { EnumOptionDto as EnumOption } from "@workspace/api-client-react";

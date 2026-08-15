@@ -3,7 +3,7 @@
  * In a variation setup, these fields apply to all variations under the group.
  */
 export type ProductGroupForm = {
-  /** Selected department ID */
+  /** ID do departamento escolhido. */
   departmentId: string;
   /** Selected category ID */
   categoryId: string;
@@ -59,7 +59,7 @@ export type LocalImage = {
 };
 
 /**
- * Represents a dynamic variation draft row in the editor table.
+ * Estrutura de dynamic variation draft row in the editor table.
  */
 export type VariationDraft = ProductEditorForm & {
   /** Local unique row key (e.g., `temp-123` or `product-456`) */
@@ -90,7 +90,7 @@ export type GradeVariant = {
 export type GradeType = "Cor" | "Tamanho" | "Modelo" | "Estampa";
 
 /**
- * Represents a product grade category containing variants.
+ * Estrutura de product grade category containing variants.
  */
 export type Grade = {
   /** Grade Database ID */

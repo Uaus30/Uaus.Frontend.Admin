@@ -48,3 +48,4 @@ export * from "./lib/utils";
 // o build sem nada apontando o motivo.
 export * from "./hooks/use-mobile";
 export * from "./hooks/use-toast";
+export * from "./hooks/use-debounce";

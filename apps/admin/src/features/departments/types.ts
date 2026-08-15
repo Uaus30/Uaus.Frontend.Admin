@@ -1,32 +1,32 @@
 /**
- * Represents a single Category item in the catalog.
+ * Estrutura de single Category item in the catalog.
  */
 export type Category = {
-  /** Category Database ID */
+  /** ID da categoria no banco. */
   id: number;
   /** Category display name */
   name: string;
-  /** Associated department ID */
+  /** ID do departamento vinculado. */
   departmentId: number;
 };
 
 /**
- * Represents the form values for creating or editing a Department.
+ * Valores do formulário de cadastro/edição de Department.
  */
 export type DepartmentForm = {
-  /** Department name */
+  /** Nome do departamento. */
   name: string;
   /** Optional department description */
   description: string;
 };
 
 /**
- * Represents a Department model enriched with child statistics values.
+ * Estrutura de Department model enriched with child statistics values.
  */
 export type EnrichedDepartment = {
-  /** Department Database ID */
+  /** ID do departamento no banco. */
   id: number;
-  /** Department name */
+  /** Nome do departamento. */
   name: string;
   /** Optional department description */
   description?: string | null;

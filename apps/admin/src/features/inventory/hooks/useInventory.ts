@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 
 import { useToast } from "@workspace/ui";
 import { useGetInventoryReport, apiGetOrThrow } from "@workspace/api-client-react";

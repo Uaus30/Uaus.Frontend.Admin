@@ -1,6 +1,6 @@
 import { RESOURCE_KEYS } from "@/hooks/use-catalog";
 import { useState, useMemo, useEffect } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { generateRandomTagColor } from "@/lib/tag-colors";

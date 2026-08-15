@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createFixedCost,

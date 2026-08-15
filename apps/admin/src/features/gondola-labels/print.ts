@@ -1,3 +1,4 @@
+import { escapeHtml } from "@workspace/core";
 import { printReceiptHtml } from "@workspace/receipt";
 import { buildBarcodeSvg } from "./barcode";
 import { getLabelTypeInfo, type PrintableLabel } from "./types";
@@ -72,15 +73,8 @@ export function formatLabelPrice(value: number): string {
   }).format(value);
 }
 
-/** Escapa texto interpolado no HTML de impressão (nomes de produto são livres). */
-export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+// Reexportado de @workspace/core, onde a implementação é única.
+export { escapeHtml };
 
 /**
  * Monta o documento A4 do lote. Cada item vira `quantity` células idênticas,

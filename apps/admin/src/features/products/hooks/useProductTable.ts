@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@workspace/ui";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
@@ -24,14 +24,17 @@ import { CATALOG_KEYS, useAllDepartments, useAllCategories, useAllTags } from "@
 /**
  * useProductTable
  * 
- * Orchestrator hook for managing the state, search queries, pagination, 
- * data mapping, and inline catalog modifications of the Product Table grid.
- * 
- * Core responsibilities:
- * - Querying product groups page dynamically by search, page index, and limits.
- * - Loading and mapping relational attributes (Departments, Categories, Tags, Images).
- * - Exposing inline cell editors for Price (`updateProductPrice`) and Stock (`updateProductStock`).
- * - Validating state edits and invalidating queries on completion.
+ * Hook controlador da tabela de produtos: listagem paginada com busca, os
+ * atributos relacionados (departamento, categoria, etiqueta, imagem) e a edição
+ * de preço e estoque direto na célula.
+ *
+ * A edição inline existe porque corrigir preço é a operação mais frequente da
+ * tela, e abrir a modal do produto para trocar um número era o maior atrito do
+ * dia a dia.
+ *
+ * ATENÇÃO ao custo: os atributos relacionados são carregados em cascata a partir
+ * dos ids da página, o que produz muitas requisições numa página cheia. Trocar
+ * isso por um endpoint agregado é o item 4.1 do plano de refatoração.
  */
 /**
  * Termo de busca vindo da URL (`/produtos?busca=...`).
