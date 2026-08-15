@@ -5,14 +5,26 @@ import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Unlock, DollarSign, FileText, Loader2, Lock } from "lucide-react";
 import { parseAmount, round2 } from "@/lib/checkout";
+import { parseCashAmount } from "@/lib/cash-register";
 import { formatCurrency } from "@workspace/core";
+import { useToast } from "@/hooks/use-toast";
 import type { CashRegisterSessionDto, CashRegisterSessionSummaryDto } from "@workspace/api-client-react";
+
+/** Mensagem de recusa do campo de dinheiro, conforme o motivo. */
+const CASH_ERROR_MESSAGE = {
+  invalido: "Digite um valor válido, como 150,00.",
+  negativo: "O valor não pode ser negativo.",
+} as const;
 
 interface OpenCashRegisterDialogProps {
   requiresOpenSession: boolean;
   sessionId: number | null;
   loadingSession: boolean;
-  onOpenRegister: (value: number, obs: string) => Promise<void>;
+  /**
+   * Abre o caixa. Devolve `true` quando deu certo — só então os campos são
+   * limpos, para o operador não ter que redigitar o valor depois de uma falha.
+   */
+  onOpenRegister: (value: number, obs: string) => Promise<boolean>;
   onLogout: () => void;
 }
 
@@ -23,14 +35,27 @@ export function OpenCashRegisterDialog({
   onOpenRegister,
   onLogout,
 }: OpenCashRegisterDialogProps) {
+  const { toast } = useToast();
   const [aberturaValor, setAberturaValor] = useState("");
   const [aberturaObs, setAberturaObs] = useState("");
   const [abrindoCaixa, setAbrindoCaixa] = useState(false);
 
   const handleAbrirCaixa = async () => {
+    // Sem esta validação, campo vazio virava NaN e ia inteiro para a API.
+    const amount = parseCashAmount(aberturaValor);
+    if ("error" in amount) {
+      toast({
+        title: "Fundo de troco inválido",
+        description: CASH_ERROR_MESSAGE[amount.error],
+        variant: "destructive",
+      });
+      return;
+    }
+
     setAbrindoCaixa(true);
     try {
-      await onOpenRegister(parseAmount(aberturaValor), aberturaObs);
+      const aberto = await onOpenRegister(amount.value, aberturaObs);
+      if (!aberto) return;
       setAberturaValor("");
       setAberturaObs("");
     } finally {
@@ -116,14 +141,27 @@ export function CloseCashRegisterDialog({
   session,
   onCloseRegister,
 }: CloseCashRegisterDialogProps) {
+  const { toast } = useToast();
   const [fechamentoDinheiro, setFechamentoDinheiro] = useState("");
   const [fechamentoObs, setFechamentoObs] = useState("");
   const [fechandoCaixa, setFechandoCaixa] = useState(false);
 
   const confirmFecharCaixa = async () => {
+    // Mesma armadilha da abertura: gaveta vazia é um fechamento legítimo, mas
+    // parseAmount("") devolve NaN — e era esse NaN que ia para o servidor.
+    const amount = parseCashAmount(fechamentoDinheiro);
+    if ("error" in amount) {
+      toast({
+        title: "Valor contado inválido",
+        description: CASH_ERROR_MESSAGE[amount.error],
+        variant: "destructive",
+      });
+      return;
+    }
+
     setFechandoCaixa(true);
     try {
-      await onCloseRegister(parseAmount(fechamentoDinheiro), fechamentoObs);
+      await onCloseRegister(amount.value, fechamentoObs);
       setFechamentoDinheiro("");
       setFechamentoObs("");
       onOpenChange(false);

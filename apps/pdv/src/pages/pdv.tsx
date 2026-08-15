@@ -49,6 +49,7 @@ import {
   LocalStockError,
 } from "@/services/sales.service";
 import { computeDiscount, describeApiError, formatCurrency, parseAmount, round2 } from "@workspace/core";
+import { canCloseRegister } from "@/lib/cash-register";
 import { searchProducts } from "@/lib/product-search";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -72,14 +73,13 @@ import {
   Lock,
   Sun,
   Moon,
-  FileText,
+
   Printer,
   PauseCircle,
   PackageMinus,
   Calculator as CalculatorIcon,
   FileBarChart,
-  DollarSign,
-  Unlock,
+
   } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -99,13 +99,9 @@ export default function Pdv() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ProductPdvSearchDto[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-
-
-
 
   const [savingSale, setSavingSale] = useState(false);
 
@@ -123,11 +119,6 @@ export default function Pdv() {
   const [pendingSaleToEdit, setPendingSaleToEdit] = useState<SaleDto | null>(null);
   const [busySaleId, setBusySaleId] = useState<number | null>(null);
 
-  const [aberturaValor, setAberturaValor] = useState("");
-  const [aberturaObs, setAberturaObs] = useState("");
-  const [abrindoCaixa, setAbrindoCaixa] = useState(false);
-
-  // const [fechamentoDinheiro, setFechamentoDinheiro] = useState("");
   // const [fechamentoObs, setFechamentoObs] = useState("");
   
   /**
@@ -162,7 +153,7 @@ export default function Pdv() {
     queuedCount,
     queuedSalesCount,
     hasLocalDatabase,
-    // sync: syncPendingQueuesNow,
+    sync: syncPendingQueuesNow,
   } = useOfflinePdv(sessionId);
 
   const { data: dbPaymentMethodsData } = useGetPaymentMethods(
@@ -413,14 +404,11 @@ export default function Pdv() {
     setAmountReceived("");
   }, [status, paymentMethods, total, setPayments, setSplitPayment, setAmountReceived]);
 
-
   /** Abre o diálogo de desconto já preenchido com o valor atual do alvo. */
   const handleApplyDiscount = (type: "global" | "item", id?: string) => {
     setDiscountTarget({ type, id });
     setDiscountDialogOpen(true);
   };
-
-
 
   /**
    * Permite digitar o preço unitário direto na linha do carrinho. A diferença
@@ -676,53 +664,71 @@ export default function Pdv() {
     }
   };
 
-  /** Abre o caixa com o fundo de troco informado, liberando o PDV para vender. */
-  const handleAbrirCaixa = async () => {
-    const value = aberturaValor.trim() === "" ? 0 : parseAmount(aberturaValor);
-    if (isNaN(value) || value < 0) {
-      toast({
-        title: "Valor inválido",
-        description: "Informe o fundo de troco colocado na gaveta.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAbrindoCaixa(true);
+  /**
+   * Abre o caixa com o fundo de troco já validado pelo diálogo.
+   *
+   * @returns `true` quando o caixa abriu — é o que autoriza o diálogo a limpar
+   *   os campos. Em caso de falha eles ficam como estão, para o operador não ter
+   *   que redigitar o valor contado.
+   */
+  const handleAbrirCaixa = async (value: number, obs: string): Promise<boolean> => {
     try {
-      await openCashRegister(value, aberturaObs);
-      setAberturaValor("");
-      setAberturaObs("");
+      await openCashRegister(value, obs);
       toast({
         title: "Caixa aberto!",
         description: `Fundo de troco: ${formatCurrency(value)}`,
         className: "bg-emerald-500 text-white border-none",
       });
+      return true;
     } catch (error) {
       toast({
         title: "Não foi possível abrir o caixa",
         description: describeApiError(error),
         variant: "destructive",
       });
-    } finally {
-      setAbrindoCaixa(false);
+      return false;
     }
   };
 
   /**
-   * Fecha o caixa com o dinheiro contado na gaveta e encerra a sessão do operador.
-   * A diferença apurada vem calculada do backend.
+   * Abre o diálogo de fechamento, se o caixa puder ser fechado agora.
    *
-   * Movimento pendente bloqueia o fechamento — venda **ou** baixa de estoque. O
-   * esperado em gaveta é calculado pelo servidor a partir do que ele conhece:
-   * fechar com venda na fila produziria uma conferência que não fecha e, pior, o
-   * backend recusaria depois a venda numa sessão já encerrada. A baixa entra na
-   * mesma regra por outro motivo: ela é carimbada com a sessão aberta na hora em
-   * que sobe, e subir depois do fechamento a jogaria no turno seguinte.
-   *
-   * A tentativa dispara uma sincronização — se ela resolver, o operador segue
-   * direto.
+   * Movimento pendente bloqueia o fechamento — a regra e os dois motivos estão
+   * em `lib/cash-register.ts`, com teste. Antes de recusar, tenta sincronizar:
+   * na maioria das vezes a fila sobe e o operador segue direto.
    */
+  const handleFecharCaixaClick = async () => {
+    setIsSandwichMenuOpen(false);
+
+    if (queuedCount > 0 && online) {
+      await syncPendingQueuesNow();
+    }
+
+    // Reconsulta o store: a sincronização acima pode ter esvaziado a fila. As
+    // recusadas contam junto — elas também são movimento que o servidor não
+    // conhece, e é isso que o fechamento precisa saber.
+    const fila = useOfflineStore.getState();
+    const pendentes = fila.pending + fila.failed + fila.pendingWriteOffs + fila.failedWriteOffs;
+    const check = canCloseRegister({ sessionId, queuedCount: pendentes });
+
+    if (!check.allowed) {
+      toast({
+        title:
+          check.reason === "fila-pendente"
+            ? "Há movimentos não sincronizados"
+            : "Nenhum caixa aberto",
+        description:
+          check.reason === "fila-pendente"
+            ? `${pendentes} movimento(s) ainda não subiram para o servidor. O fechamento contaria uma gaveta que o servidor não conhece — resolva a fila em "Operação offline" primeiro.`
+            : "Não há sessão de caixa aberta para fechar.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
+    }
+
+    setIsFecharCaixaOpen(true);
+  };
 
   /**
    * Encerra a sessão do operador de verdade: token, cadastros locais e stores.
@@ -1103,10 +1109,7 @@ export default function Pdv() {
                         some em vez de ficar desabilitado para sempre. */}
                     {mode.requiresOpenSession && (
                       <button
-                        onClick={() => {
-                          setIsSandwichMenuOpen(false);
-                          void(0);
-                        }}
+                        onClick={() => void handleFecharCaixaClick()}
                         disabled={!sessionId}
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
@@ -1532,79 +1535,6 @@ export default function Pdv() {
         </div>
       </main>
 
-      {/* ABRIR CAIXA — bloqueia o PDV enquanto não houver sessão.
-          Numa loja sem controle de caixa o diálogo não aparece: não há turno a
-          abrir. Ver o bloqueio em `lib/cash-register-mode.ts`. */}
-      <Dialog
-        open={mode.requiresOpenSession && !sessionId && !loadingSession}
-        onOpenChange={() => undefined}
-      >
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-card border-border shadow-2xl [&>button]:hidden">
-          <div className="bg-primary/10 p-6 border-b border-border/50">
-            <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
-              <Unlock className="w-5 h-5 text-primary" /> Abertura de Caixa
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Informe o fundo de troco para começar a vender.
-            </DialogDescription>
-          </div>
-
-          <div className="p-6 space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="aberturaValor" className="text-sm font-semibold flex items-center gap-1.5">
-                <DollarSign className="w-4 h-4 text-primary" /> Fundo de Troco
-              </Label>
-              <Input
-                id="aberturaValor"
-                type="text"
-                placeholder="R$ 0,00"
-                className="h-12 text-lg font-mono"
-                value={aberturaValor}
-                onChange={(e) => setAberturaValor(e.target.value)}
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">
-                Dinheiro em espécie deixado na gaveta no início do turno.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="aberturaObs" className="text-sm font-semibold flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-primary" /> Observações
-              </Label>
-              <textarea
-                id="aberturaObs"
-                placeholder="Opcional..."
-                className="w-full min-h-[70px] p-3 rounded-lg border border-input bg-background/50 focus-visible:ring-primary/50 text-sm outline-none focus:border-primary transition-colors resize-none"
-                value={aberturaObs}
-                onChange={(e) => setAberturaObs(e.target.value)}
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                className="flex-1 cursor-pointer"
-                onClick={() => {
-                  queryClient.clear();
-                  setLocation("/login");
-                }}
-              >
-                Sair
-              </Button>
-              <Button
-                className="flex-1 bg-gradient-to-r from-primary to-orange-600 font-bold text-white border-none cursor-pointer"
-                onClick={handleAbrirCaixa}
-                disabled={abrindoCaixa}
-              >
-                {abrindoCaixa ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Abrir Caixa
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* CHECKOUT MODAL */}
       <CheckoutDialog
         open={status === "CHECKOUT"}
@@ -1759,7 +1689,7 @@ export default function Pdv() {
         requiresOpenSession={mode.requiresOpenSession}
         sessionId={sessionId}
         loadingSession={loadingSession}
-        onOpenRegister={openCashRegister}
+        onOpenRegister={handleAbrirCaixa}
         onLogout={() => {
           queryClient.clear();
           setLocation("/login");
@@ -1789,37 +1719,4 @@ export default function Pdv() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
