@@ -1,6 +1,6 @@
 import {
   apiDelete,
-  apiGet,
+  apiGetOrThrow,
   apiPost,
   apiPut,
   API_BASE_URL,
@@ -76,7 +76,7 @@ export interface ImageSearchResult {
  * Busca imagens relacionadas a um termo na internet.
  */
 export async function searchInternetImages(query: string, limit: number = 15): Promise<ImageSearchResult[]> {
-  const result = await apiGet<ImageSearchResult[]>("/Images/search-internet", { q: query, limit });
+  const result = await apiGetOrThrow<ImageSearchResult[]>("/Images/search-internet", { q: query, limit });
   return result || [];
 }
 

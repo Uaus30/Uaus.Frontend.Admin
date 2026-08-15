@@ -1,4 +1,4 @@
-import { apiGet } from "@workspace/api-client-react";
+import { apiGetOrThrow } from "@workspace/api-client-react";
 import { normalizeForSearch } from "./catalog";
 import { CATALOG_STORES, META_KEY, STORE, openLocalDatabase } from "./database";
 import { clearAll, putAll, remove } from "./idb";
@@ -37,9 +37,15 @@ import type {
 /** Endpoint do snapshot. Contrato em `Uaus.Backend.Api/docs/pdv-offline.md`. */
 const SNAPSHOT_PATH = "/Pdv/snapshot";
 
-/** Baixa o snapshot da API. */
+/**
+ * Baixa o snapshot da API.
+ *
+ * Usa `apiGetOrThrow` porque snapshot vazio não é resposta: instalar `null`
+ * apagaria o catálogo local e deixaria o caixa sem produtos para vender offline.
+ * Melhor falhar aqui e manter a base anterior.
+ */
 export function downloadSnapshot(): Promise<PdvSnapshot> {
-  return apiGet<PdvSnapshot>(SNAPSHOT_PATH);
+  return apiGetOrThrow<PdvSnapshot>(SNAPSHOT_PATH);
 }
 
 // `normalizeForSearch` mora em `catalog.ts` (quem faz a busca); a reexportação

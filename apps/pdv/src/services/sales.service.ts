@@ -1,6 +1,6 @@
 import {
   ApiError,
-  apiGet,
+  apiGetOrThrow,
   apiPost,
   cancelSale,
   getPdvSessionSales,
@@ -388,14 +388,19 @@ export async function updateSale(saleId: number, payload: RegisterSalePayload) {
   return updatedSale;
 }
 
-/** Busca a venda com as formas de pagamento e os itens. */
+/**
+ * Busca a venda com as formas de pagamento e os itens.
+ *
+ * `apiGetOrThrow`: quem chama já tem o id de uma venda existente (veio da
+ * listagem do turno), então corpo vazio é falha do servidor, não "não achei".
+ */
 export async function getSale(saleId: number) {
-  return apiGet<SaleDto>(`/Sales/${saleId}`);
+  return apiGetOrThrow<SaleDto>(`/Sales/${saleId}`);
 }
 
 /** Lista os itens de uma venda. */
 export async function getSaleItems(saleId: number) {
-  const result = await apiGet<BackendPagedResult<SaleItemDto>>("/SaleItems", {
+  const result = await apiGetOrThrow<BackendPagedResult<SaleItemDto>>("/SaleItems", {
     saleId,
     page: 1,
     size: 200,

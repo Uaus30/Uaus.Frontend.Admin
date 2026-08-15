@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut, apiDelete, ApiError, mapPagedResult, extractCreatedId } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, mapPagedResult, extractCreatedId } from "../client";
 import type {
   BackendPagedResult,
   CreateFinancialClosingPayload,
@@ -51,7 +51,7 @@ export function useGetFixedCosts(
   return useQuery<UiPagedResult<FixedCostDto>, ApiError, UiPagedResult<FixedCostDto>, QueryKey>({
     queryKey: [...getGetFixedCostsQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<FixedCostDto>>("/FixedCosts", {
+      const result = await apiGetOrThrow<BackendPagedResult<FixedCostDto>>("/FixedCosts", {
         search: params?.search,
         activeInMonth: params?.activeInMonth,
         page: params?.page ?? 1,
@@ -106,7 +106,7 @@ export function useGetPartners(
   return useQuery<UiPagedResult<PartnerDto>, ApiError, UiPagedResult<PartnerDto>, QueryKey>({
     queryKey: [...getGetPartnersQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<PartnerDto>>("/Partners", {
+      const result = await apiGetOrThrow<BackendPagedResult<PartnerDto>>("/Partners", {
         includeInactive: params?.includeInactive,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,
@@ -129,7 +129,7 @@ export function useGetPartnerProfitShares(options?: {
 }) {
   return useQuery<PartnerProfitSharesDto, ApiError, PartnerProfitSharesDto, QueryKey>({
     queryKey: PARTNER_PROFIT_SHARES_QUERY_KEY,
-    queryFn: () => apiGet<PartnerProfitSharesDto>("/Partners/profit-shares"),
+    queryFn: () => apiGetOrThrow<PartnerProfitSharesDto>("/Partners/profit-shares"),
     ...options?.query,
   });
 }
@@ -196,7 +196,7 @@ export function useGetFinancialReportSummary(
   return useQuery<FinancialReportSummaryDto, ApiError, FinancialReportSummaryDto, QueryKey>({
     queryKey: [...getFinancialReportSummaryQueryKey(), params ?? {}],
     queryFn: () =>
-      apiGet<FinancialReportSummaryDto>("/FinancialReports/summary", {
+      apiGetOrThrow<FinancialReportSummaryDto>("/FinancialReports/summary", {
         startDate: params?.startDate,
         endDate: params?.endDate,
       }),
@@ -220,7 +220,7 @@ export function useGetFinancialClosings(
   return useQuery<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>({
     queryKey: [...getGetFinancialClosingsQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<FinancialClosingDto>>("/FinancialClosings", {
+      const result = await apiGetOrThrow<BackendPagedResult<FinancialClosingDto>>("/FinancialClosings", {
         startDate: params?.startDate,
         endDate: params?.endDate,
         page: params?.page ?? 1,
@@ -249,7 +249,7 @@ export function useGetFinancialClosingById(
   return useQuery<FinancialClosingDto, ApiError, FinancialClosingDto, QueryKey>({
     queryKey: ["financial-closing-details", id ?? 0],
     enabled: !!id,
-    queryFn: async () => apiGet<FinancialClosingDto>(`/FinancialClosings/${id}`),
+    queryFn: async () => apiGetOrThrow<FinancialClosingDto>(`/FinancialClosings/${id}`),
     ...options?.query,
   });
 }

@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   QueryKey,
@@ -129,7 +129,7 @@ export function useGetPurchaseEntries(
   return useQuery<UiPagedResult<PurchaseEntryDto>, ApiError, UiPagedResult<PurchaseEntryDto>, QueryKey>({
     queryKey: ["purchase-entries", params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<PurchaseEntryDto>>("/PurchaseEntries", {
+      const result = await apiGetOrThrow<BackendPagedResult<PurchaseEntryDto>>("/PurchaseEntries", {
         supplierId: params?.supplierId,
         productId: params?.productId,
         barcode: params?.barcode,
@@ -154,7 +154,7 @@ export function useGetPurchaseEntryDetails(
     queryKey: ["purchase-entry-details", id],
     enabled: !!id,
     queryFn: async () => {
-      return apiGet<ReceivedPurchaseEntryDto>(`/PurchaseEntries/${id}/details`);
+      return apiGetOrThrow<ReceivedPurchaseEntryDto>(`/PurchaseEntries/${id}/details`);
     },
     ...options?.query,
   });
@@ -188,7 +188,7 @@ export function useGetInventoryReport(
   return useQuery<InventoryReportDto, ApiError, InventoryReportDto, QueryKey>({
     queryKey: ["inventory-report", params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendInventoryReportDto>("/Inventory", {
+      const result = await apiGetOrThrow<BackendInventoryReportDto>("/Inventory", {
         search: params?.search,
         supplierId: params?.supplierId,
         categoryId: params?.categoryId,

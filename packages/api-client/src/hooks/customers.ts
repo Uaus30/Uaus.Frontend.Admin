@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   CustomerDto,
@@ -25,7 +25,7 @@ export function useGetCustomers(
   return useQuery<UiPagedResult<CustomerDto>, ApiError, UiPagedResult<CustomerDto>, QueryKey>({
     queryKey: [...getGetCustomersQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<CustomerDto>>("/Customers", {
+      const result = await apiGetOrThrow<BackendPagedResult<CustomerDto>>("/Customers", {
         search: params?.search,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,

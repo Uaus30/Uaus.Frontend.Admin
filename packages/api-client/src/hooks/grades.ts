@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut, apiDelete, ApiError, useCrudMutation } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation } from "../client";
 import type {
   GradeDto,
   QueryKey,
@@ -20,7 +20,7 @@ export function useGetGrades(options?: {
   return useQuery<GradeDto[], ApiError, GradeDto[], QueryKey>({
     queryKey: getGetGradesQueryKey(),
     queryFn: async () => {
-      return apiGet<GradeDto[]>("/Grades");
+      return apiGetOrThrow<GradeDto[]>("/Grades");
     },
     ...options?.query,
   });

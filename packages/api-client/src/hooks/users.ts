@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   QueryKey,
@@ -26,7 +26,7 @@ export function useGetUsers(
   return useQuery<UiPagedResult<UserListDto>, ApiError, UiPagedResult<UserListDto>, QueryKey>({
     queryKey: [...getGetUsersQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<UserListDto>>("/Users", {
+      const result = await apiGetOrThrow<BackendPagedResult<UserListDto>>("/Users", {
         search: params?.search,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,

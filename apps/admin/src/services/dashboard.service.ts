@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "@workspace/api-client-react";
+import { apiGetOrThrow, apiPost } from "@workspace/api-client-react";
 import type {
   DashboardIntelligence,
   DashboardMonthly,
@@ -27,7 +27,7 @@ export async function getDashboardOverview(params: {
   endDate: string;
   topProducts?: number;
 }) {
-  return apiGet<DashboardOverview>("/Dashboard/overview", {
+  return apiGetOrThrow<DashboardOverview>("/Dashboard/overview", {
     startDate: params.startDate,
     endDate: params.endDate,
     topProducts: params.topProducts ?? 8,
@@ -39,7 +39,7 @@ export async function getDashboardOverview(params: {
  * Pensado para ser consultado repetidamente enquanto a loja vende.
  */
 export async function getDashboardToday() {
-  return apiGet<DashboardToday>("/Dashboard/today");
+  return apiGetOrThrow<DashboardToday>("/Dashboard/today");
 }
 
 /**
@@ -48,7 +48,7 @@ export async function getDashboardToday() {
  * @param months Meses no histórico, incluindo o corrente.
  */
 export async function getDashboardMonthly(months = 12) {
-  return apiGet<DashboardMonthly>("/Dashboard/monthly", { months });
+  return apiGetOrThrow<DashboardMonthly>("/Dashboard/monthly", { months });
 }
 
 /**
@@ -60,7 +60,7 @@ export async function getDashboardMonthly(months = 12) {
  * @param months Janela analisada, em meses.
  */
 export async function getDashboardPatterns(months = 12) {
-  return apiGet<DashboardPatterns>("/Dashboard/patterns", { months });
+  return apiGetOrThrow<DashboardPatterns>("/Dashboard/patterns", { months });
 }
 
 /**
@@ -85,7 +85,7 @@ export async function getDashboardIntelligence(params?: {
   lookbackDays?: number;
   take?: number;
 }) {
-  return apiGet<DashboardIntelligence>("/Dashboard/intelligence", {
+  return apiGetOrThrow<DashboardIntelligence>("/Dashboard/intelligence", {
     lookbackDays: params?.lookbackDays ?? 90,
     take: params?.take ?? 10,
   });

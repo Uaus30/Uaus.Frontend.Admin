@@ -38,7 +38,9 @@ async function searchConsumers(term: string, online: boolean): Promise<ConsumerO
         page: 1,
         size: 8,
       });
-      return result.items ?? [];
+      // Sem corpo, cai para a base local junto com os erros de rede: no balcão,
+      // busca vazia e busca que falhou têm o mesmo desfecho útil.
+      if (result) return result.items ?? [];
     } catch {
       // Cai para a base local: a queda pode acontecer com o checkout já aberto.
     }

@@ -3,7 +3,7 @@ import { useInventory } from "../useInventory";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { apiGet } from "@workspace/api-client-react";
+import { apiGetOrThrow } from "@workspace/api-client-react";
 
 // Mock the services
 vi.mock("@/services/suppliers.service", () => ({
@@ -42,7 +42,7 @@ vi.mock("@workspace/api-client-react", () => ({
     isError: false,
     error: null,
   })),
-  apiGet: vi.fn(() => Promise.resolve({ items: [] })),
+  apiGetOrThrow: vi.fn(() => Promise.resolve({ items: [] })),
 }));
 
 // Mock the toast hook
@@ -126,7 +126,7 @@ describe("useInventory handleExportExcel", () => {
     // Regressão: GET /Inventory devolve InventoryReportDto cujo `items` é um
     // PagedResult ({ items: [...], pagination }), não um array — ler
     // `result.items` como array quebrava a exportação com TypeError.
-    vi.mocked(apiGet).mockResolvedValue({
+    vi.mocked(apiGetOrThrow).mockResolvedValue({
       metrics: {},
       categorySummaries: [],
       items: {
@@ -176,7 +176,7 @@ describe("useInventory handleExportExcel", () => {
   });
 
   it("deve avisar quando o filtro não retorna registros, sem gerar arquivo", async () => {
-    vi.mocked(apiGet).mockResolvedValue({
+    vi.mocked(apiGetOrThrow).mockResolvedValue({
       metrics: {},
       categorySummaries: [],
       items: { items: [], pagination: { page: 1, size: 100000, totalItems: 0, filteredItems: 0 } },

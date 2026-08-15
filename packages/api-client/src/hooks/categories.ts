@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   CategoryDto,
@@ -25,7 +25,7 @@ export function useGetCategories(
   return useQuery<UiPagedResult<CategoryDto>, ApiError, UiPagedResult<CategoryDto>, QueryKey>({
     queryKey: [...getGetCategoriesQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<CategoryDto>>("/Categories", {
+      const result = await apiGetOrThrow<BackendPagedResult<CategoryDto>>("/Categories", {
         search: params?.search,
         departmentId: params?.departmentId,
         page: params?.page ?? 1,

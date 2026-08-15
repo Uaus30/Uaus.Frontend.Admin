@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGet, ApiError, mapPagedResult } from "../client";
+import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   QueryKey,
@@ -40,7 +40,7 @@ export function useGetLogs(
   return useQuery<UiPagedResult<SystemLogDto>, ApiError, UiPagedResult<SystemLogDto>, QueryKey>({
     queryKey: [...getGetLogsQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<SystemLogDto>>("/Logs", {
+      const result = await apiGetOrThrow<BackendPagedResult<SystemLogDto>>("/Logs", {
         search: params?.search,
         type: params?.type,
         startDate: params?.startDate,
@@ -64,7 +64,7 @@ export function useGetLog(
     queryKey: ["log-details", id],
     enabled: !isNaN(id) && id > 0,
     queryFn: async () => {
-      return apiGet<SystemLogDto>(`/Logs/${id}`);
+      return apiGetOrThrow<SystemLogDto>(`/Logs/${id}`);
     },
     ...options?.query,
   });

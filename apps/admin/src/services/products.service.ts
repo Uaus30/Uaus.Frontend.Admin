@@ -1,6 +1,6 @@
 import {
   apiDelete,
-  apiGet,
+  apiGetOrThrow,
   apiPost,
   apiPut,
   extractCreatedId,
@@ -313,5 +313,5 @@ export async function syncProductImages(payload: {
 }
 
 export async function getProductGroupById(id: number) {
-  return apiGet<ProductGroupDto>(`/ProductGroups/${id}`);
+  return apiGetOrThrow<ProductGroupDto>(`/ProductGroups/${id}`);
 }

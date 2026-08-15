@@ -1,4 +1,4 @@
-import { apiGet } from "@workspace/api-client-react";
+import { apiGetOrThrow } from "@workspace/api-client-react";
 import type { CategoryReport, TagReport } from "./mappers";
 
 /**
@@ -13,7 +13,7 @@ export async function getCategoryReport(
   categoryId: number,
   params?: { startDate?: string; endDate?: string },
 ) {
-  return apiGet<CategoryReport>(`/Categories/${categoryId}/report`, {
+  return apiGetOrThrow<CategoryReport>(`/Categories/${categoryId}/report`, {
     startDate: params?.startDate,
     endDate: params?.endDate,
   });
@@ -21,7 +21,7 @@ export async function getCategoryReport(
 
 /** Desempenho dos produtos marcados com uma etiqueta no intervalo. */
 export async function getTagReport(tagId: number, params?: { startDate?: string; endDate?: string }) {
-  return apiGet<TagReport>(`/Tags/${tagId}/report`, {
+  return apiGetOrThrow<TagReport>(`/Tags/${tagId}/report`, {
     startDate: params?.startDate,
     endDate: params?.endDate,
   });

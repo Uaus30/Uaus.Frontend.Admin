@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   CreatePaymentMethodRequest,
@@ -31,7 +31,7 @@ export function useGetPaymentMethods(
   return useQuery<UiPagedResult<PaymentMethodDto>, ApiError, UiPagedResult<PaymentMethodDto>, QueryKey>({
     queryKey: [...getGetPaymentMethodsQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<PaymentMethodDto>>("/PaymentMethods", {
+      const result = await apiGetOrThrow<BackendPagedResult<PaymentMethodDto>>("/PaymentMethods", {
         search: params?.search,
         isActive: params?.isActive,
         page: params?.page ?? 1,
@@ -53,7 +53,7 @@ export function useGetPaymentMethodById(
     queryKey: ["payment-method-details", id],
     enabled: !isNaN(id) && id > 0,
     queryFn: async () => {
-      return apiGet<PaymentMethodDto>(`/PaymentMethods/${id}`);
+      return apiGetOrThrow<PaymentMethodDto>(`/PaymentMethods/${id}`);
     },
     ...options?.query,
   });

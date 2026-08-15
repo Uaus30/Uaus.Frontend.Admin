@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, ApiError, apiRequest, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, ApiError, apiRequest, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   CashRegisterSessionDto,
@@ -41,7 +41,7 @@ export function useGetCashRegisterSessions(
   return useQuery<UiPagedResult<CashRegisterSessionDto>, ApiError, UiPagedResult<CashRegisterSessionDto>, QueryKey>({
     queryKey: [...getGetCashRegisterSessionsQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<CashRegisterSessionDto>>("/CashRegisterSessions", {
+      const result = await apiGetOrThrow<BackendPagedResult<CashRegisterSessionDto>>("/CashRegisterSessions", {
         userId: params?.userId,
         status: params?.status,
         startDate: params?.startDate,
@@ -89,7 +89,7 @@ export function useGetCashRegisterSessionById(
   return useQuery<CashRegisterSessionDto, ApiError, CashRegisterSessionDto, QueryKey>({
     queryKey: ["cash-register-session-details", id ?? 0],
     enabled: !!id,
-    queryFn: async () => apiGet<CashRegisterSessionDto>(`/CashRegisterSessions/${id}`),
+    queryFn: async () => apiGetOrThrow<CashRegisterSessionDto>(`/CashRegisterSessions/${id}`),
     ...options?.query,
   });
 }

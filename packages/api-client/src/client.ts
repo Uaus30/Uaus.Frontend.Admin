@@ -219,17 +219,60 @@ export async function apiRequest<T>(
   };
 }
 
+/**
+ * GET que pode não trazer corpo.
+ *
+ * Devolve `null` em HTTP 204 e em resposta com corpo vazio — que é o que o
+ * backend faz quando o recurso não existe. A assinatura antes mentia (`as T`),
+ * apagando a nulidade que o próprio `apiRequest` produz, e o resultado é que a
+ * tela recebia `undefined` onde o tipo prometia um objeto e quebrava ao ler um
+ * campo. Havia até `?? []` em call sites que o TypeScript considerava código
+ * morto, prova de que o autor sabia e contornava caso a caso.
+ *
+ * Use este quando a ausência é uma resposta legítima — busca por código,
+ * consulta de um recurso que pode não existir. Quando a ausência é erro do
+ * servidor (listagem paginada, por exemplo), use `apiGetOrThrow`.
+ */
 export async function apiGet<T>(
   path: string,
   params?: Record<string, unknown>,
   options?: { auth?: boolean; headers?: HeadersInit },
-) {
+): Promise<T | null> {
   const result = await apiRequest<T>("GET", path, {
     params,
     auth: options?.auth,
     headers: options?.headers,
   });
-  return result.data as T;
+  return result.data;
+}
+
+/**
+ * GET para endpoints em que corpo vazio é erro, não resposta.
+ *
+ * Uma listagem paginada que volta sem corpo é falha do servidor, e propagar
+ * `null` dali só empurra o problema para dentro da tela. Aqui ele vira `ApiError`
+ * na hora, com o path na mensagem.
+ *
+ * @throws {ApiError} Quando a resposta vem sem corpo.
+ */
+export async function apiGetOrThrow<T>(
+  path: string,
+  params?: Record<string, unknown>,
+  options?: { auth?: boolean; headers?: HeadersInit },
+): Promise<T> {
+  const data = await apiGet<T>(path, params, options);
+
+  if (data == null) {
+    throw new ApiError(
+      `A resposta de ${path} veio sem conteúdo.`,
+      204,
+      null,
+      "GET",
+      path,
+    );
+  }
+
+  return data;
 }
 
 export async function apiPost<T>(
@@ -297,7 +340,7 @@ export async function fetchAllPages<T>(
   size = 200,
 ) {
   // Fetch first page to get total count
-  const firstPage = await apiGet<BackendPagedResult<T>>(path, {
+  const firstPage = await apiGetOrThrow<BackendPagedResult<T>>(path, {
     ...params,
     page: 1,
     size,
@@ -316,7 +359,7 @@ export async function fetchAllPages<T>(
   
   for (let page = 2; page <= totalPages; page++) {
     remainingPromises.push(
-      apiGet<BackendPagedResult<T>>(path, {
+      apiGetOrThrow<BackendPagedResult<T>>(path, {
         ...params,
         page,
         size,

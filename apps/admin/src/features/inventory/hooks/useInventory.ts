@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useGetInventoryReport, apiGet } from "@workspace/api-client-react";
+import { useGetInventoryReport, apiGetOrThrow } from "@workspace/api-client-react";
 import { getAllSuppliers } from "@/services/suppliers.service";
 import { getAllCategories } from "@/services/categories.service";
 import type { InventoryReport } from "../types";
@@ -106,7 +106,7 @@ export function useInventory() {
       toast({ title: "Preparando exportação", description: "Buscando todos os registros filtrados..." });
 
       // Busca todos os registros sem limite de paginação (tamanho estendido)
-      const result = await apiGet<any>("/Inventory", {
+      const result = await apiGetOrThrow<any>("/Inventory", {
         search: search || undefined,
         supplierId: selectedSupplier !== "all" ? Number(selectedSupplier) : undefined,
         categoryId: selectedCategory !== "all" ? Number(selectedCategory) : undefined,

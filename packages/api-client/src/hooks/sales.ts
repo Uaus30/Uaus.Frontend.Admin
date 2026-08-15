@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
 import type {
   ApiResponse,
   BackendPagedResult,
@@ -35,7 +35,7 @@ export function useGetSales(
   return useQuery<UiPagedResult<SaleDto>, ApiError, UiPagedResult<SaleDto>, QueryKey>({
     queryKey: [...getGetSalesQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<SaleDto>>("/Sales", {
+      const result = await apiGetOrThrow<BackendPagedResult<SaleDto>>("/Sales", {
         search: params?.search,
         startDate: params?.startDate,
         endDate: params?.endDate,
@@ -74,7 +74,7 @@ export function useGetSaleDetails(
   return useQuery<SaleDto, ApiError, SaleDto, QueryKey>({
     queryKey: ["sale-details", id ?? 0],
     queryFn: async () => {
-      return await apiGet<SaleDto>(`/Sales/${id}`);
+      return await apiGetOrThrow<SaleDto>(`/Sales/${id}`);
     },
     enabled: !!id,
     ...options?.query,
@@ -90,7 +90,7 @@ export function useGetSaleItems(
   return useQuery<UiPagedResult<SaleItemDto>, ApiError, UiPagedResult<SaleItemDto>, QueryKey>({
     queryKey: ["sale-items-by-sale-id", params?.saleId ?? 0, params?.page ?? 1, params?.limit ?? 100],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<SaleItemDto>>("/SaleItems", {
+      const result = await apiGetOrThrow<BackendPagedResult<SaleItemDto>>("/SaleItems", {
         saleId: params?.saleId,
         page: params?.page ?? 1,
         size: params?.limit ?? 100,

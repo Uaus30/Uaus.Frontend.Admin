@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiDelete, ApiError, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiDelete, ApiError, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   EnumValue,
@@ -118,7 +118,7 @@ export function useGetProductLabelBatches(
   >({
     queryKey: [...getGetProductLabelBatchesQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<ProductLabelBatchDto>>("/ProductLabelBatches", {
+      const result = await apiGetOrThrow<BackendPagedResult<ProductLabelBatchDto>>("/ProductLabelBatches", {
         search: params?.search,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,
@@ -131,7 +131,7 @@ export function useGetProductLabelBatches(
 
 /** Detalha um lote com os itens congelados, para exibição e reimpressão. */
 export async function getProductLabelBatchById(id: number): Promise<ProductLabelBatchDto> {
-  return apiGet<ProductLabelBatchDto>(`/ProductLabelBatches/${id}`);
+  return apiGetOrThrow<ProductLabelBatchDto>(`/ProductLabelBatches/${id}`);
 }
 
 /**

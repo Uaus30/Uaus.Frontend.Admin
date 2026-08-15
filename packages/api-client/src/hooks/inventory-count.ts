@@ -70,7 +70,7 @@ export interface InventoryCountResultDto {
 /**
  * Baixa a planilha de contagem.
  *
- * Não usa `apiGet`: aquele caminho lê a resposta como texto e corromperia o
+ * Não usa `apiGetOrThrow`: aquele caminho lê a resposta como texto e corromperia o
  * .xlsx, que é binário.
  *
  * @returns O arquivo e o nome sugerido pelo servidor.

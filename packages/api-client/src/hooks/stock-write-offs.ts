@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   EnumValue,
@@ -152,7 +152,7 @@ export function useGetStockWriteOffs(
   return useQuery<UiPagedResult<StockWriteOffDto>, ApiError, UiPagedResult<StockWriteOffDto>, QueryKey>({
     queryKey: [...getGetStockWriteOffsQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGet<BackendPagedResult<StockWriteOffDto>>("/StockWriteOffs", {
+      const result = await apiGetOrThrow<BackendPagedResult<StockWriteOffDto>>("/StockWriteOffs", {
         reason: params?.reason,
         status: params?.status,
         startDate: params?.startDate,
@@ -170,7 +170,7 @@ export function useGetStockWriteOffs(
 
 /** Detalha uma baixa com os itens. */
 export async function getStockWriteOff(id: number) {
-  return apiGet<StockWriteOffDto>(`/StockWriteOffs/${id}`);
+  return apiGetOrThrow<StockWriteOffDto>(`/StockWriteOffs/${id}`);
 }
 
 /**
@@ -193,7 +193,7 @@ export async function reverseStockWriteOff(id: number, reason?: string | null) {
 
 /** Consolidado das baixas de um turno. */
 export async function getStockWriteOffSessionSummary(cashRegisterSessionId: number) {
-  return apiGet<StockWriteOffSessionSummaryDto>(
+  return apiGetOrThrow<StockWriteOffSessionSummaryDto>(
     `/StockWriteOffs/session/${cashRegisterSessionId}/summary`,
   );
 }
@@ -255,7 +255,7 @@ export function useGetCompanySettings(options?: {
 }) {
   return useQuery<CompanySettingsDto, ApiError, CompanySettingsDto, QueryKey>({
     queryKey: COMPANY_SETTINGS_QUERY_KEY,
-    queryFn: () => apiGet<CompanySettingsDto>("/CompanySettings"),
+    queryFn: () => apiGetOrThrow<CompanySettingsDto>("/CompanySettings"),
     ...options?.query,
   });
 }

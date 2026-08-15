@@ -1,5 +1,5 @@
 import {
-  apiGet,
+  apiGetOrThrow,
   API_BASE_URL,
   mapPagedResult,
   type BackendPagedResult,
@@ -7,11 +7,11 @@ import {
 } from "@workspace/api-client-react";
 
 export async function getEnumOptions(path: string) {
-  return apiGet<EnumOptionDto[]>(path, undefined, { auth: false });
+  return apiGetOrThrow<EnumOptionDto[]>(path, undefined, { auth: false });
 }
 
 export async function getPaged<T>(path: string, params?: Record<string, unknown>) {
-  const result = await apiGet<BackendPagedResult<T>>(path, params);
+  const result = await apiGetOrThrow<BackendPagedResult<T>>(path, params);
   return mapPagedResult(result);
 }
 

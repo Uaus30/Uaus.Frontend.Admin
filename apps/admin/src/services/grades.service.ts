@@ -1,6 +1,6 @@
 import {
   apiDelete,
-  apiGet,
+  apiGetOrThrow,
   apiPost,
   apiPut,
   fetchAllPages,
@@ -13,7 +13,7 @@ export async function getAllGrades() {
 }
 
 export async function getGradesByCategoryId(categoryId: number) {
-  return apiGet<GradeDto[]>(`/Grades/category/${categoryId}`);
+  return apiGetOrThrow<GradeDto[]>(`/Grades/category/${categoryId}`);
 }
 
 export async function getGradesPage(params?: {
