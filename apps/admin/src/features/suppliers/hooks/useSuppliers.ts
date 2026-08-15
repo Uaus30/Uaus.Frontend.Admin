@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { normalizeSearchText } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import {

@@ -65,11 +65,27 @@ export default defineConfig([
     },
   },
   {
-    // Os packages não são componentes de tela; a regra do Fast Refresh não se
-    // aplica a um barrel de utilitários nem a um kit que exporta variantes.
     files: ['packages/**/*.{ts,tsx}'],
     rules: {
+      // Os packages não são componentes de tela; a regra do Fast Refresh não se
+      // aplica a um barrel de utilitários nem a um kit que exporta variantes.
       'react-refresh/only-export-components': 'off',
+      // O alias `@/` só resolve DENTRO de um app. Um package que o usa só
+      // compila por acidente — porque cada app mantém um arquivo com o nome
+      // exato no caminho exato — e apagar esse arquivo quebra o build sem nada
+      // apontando o motivo. Foi o que aconteceu com use-mobile e use-toast.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/*'],
+              message:
+                'Package não pode importar do app. Mova o que falta para dentro do próprio package.',
+            },
+          ],
+        },
+      ],
     },
   },
   {

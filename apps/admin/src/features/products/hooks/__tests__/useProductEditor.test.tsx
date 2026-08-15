@@ -47,7 +47,8 @@ vi.mock("@/services/core", () => ({
   buildPublicImageUrl: vi.fn((url) => url),
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
   useToast: () => ({
     toast: vi.fn(),
   }),

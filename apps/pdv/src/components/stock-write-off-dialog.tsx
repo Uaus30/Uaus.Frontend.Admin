@@ -12,7 +12,7 @@ import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
 import { searchProducts } from "@/lib/product-search";
 import {

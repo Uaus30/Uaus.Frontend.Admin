@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { getDashboardPatterns, refreshDashboardPatterns } from "@/services/dashboard.service";
 import type { DashboardPatterns } from "../types";
 

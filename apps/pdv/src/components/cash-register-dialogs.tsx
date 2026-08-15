@@ -7,7 +7,7 @@ import { Unlock, DollarSign, FileText, Loader2, Lock } from "lucide-react";
 import { parseAmount, round2 } from "@/lib/checkout";
 import { parseCashAmount } from "@/lib/cash-register";
 import { formatCurrency } from "@workspace/core";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import type { CashRegisterSessionDto, CashRegisterSessionSummaryDto } from "@workspace/api-client-react";
 
 /** Mensagem de recusa do campo de dinheiro, conforme o motivo. */

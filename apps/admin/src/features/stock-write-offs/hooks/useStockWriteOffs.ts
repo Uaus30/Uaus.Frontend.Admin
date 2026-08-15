@@ -8,7 +8,7 @@ import {
   useGetUsers,
   type StockWriteOffDto,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import {
   buildStockWriteOffQuery,

@@ -6,7 +6,7 @@ import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Loader2, ArrowRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { motion } from "framer-motion";
 
 export default function Login() {

@@ -25,7 +25,8 @@ vi.mock("@workspace/api-client-react", () => ({
   STOCK_WRITE_OFF_STATUS: { None: 0, Confirmed: 1, Reversed: 2 },
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
   useToast: () => ({ toast: mocks.toast }),
 }));
 

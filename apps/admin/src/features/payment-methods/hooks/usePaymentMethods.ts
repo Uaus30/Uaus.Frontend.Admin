@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import {
   useGetPaymentMethods,
   useCreatePaymentMethod,

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { generateRandomTagColor } from "@/lib/tag-colors";
 import { createTag, deleteTag, getTagsPage, updateTag } from "@/services/tags.service";
 import { getTagReport } from "@/services/reports.service";

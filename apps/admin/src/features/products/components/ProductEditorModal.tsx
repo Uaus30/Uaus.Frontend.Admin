@@ -17,7 +17,7 @@ import { useLocation } from "wouter";
 import { CurrencyInput } from "./CurrencyInput";
 import { ProductImagesSection } from "./ProductImagesSection";
 import { ProductVariationsSection } from "./ProductVariationsSection";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { optimizeImage } from "@/lib/imageOptimizer";
 import { ProductImageSearchModal } from "./ProductImageSearchModal";
 import { buildImageProxyUrl } from "@/services/images.service";

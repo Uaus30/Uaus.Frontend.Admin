@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import {
   useGetPurchaseEntries,
   useGetPurchaseEntryDetails,

@@ -10,7 +10,7 @@ import {
   type FixedCostDto,
   type SaveFixedCostPayload,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import type { FixedCostForm } from "../types";
 

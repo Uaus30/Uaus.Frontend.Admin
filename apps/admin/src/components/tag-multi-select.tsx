@@ -12,7 +12,7 @@ import {
   CommandList,
 } from "@workspace/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { generateRandomTagColor } from "@/lib/tag-colors";
 import { createTag, searchTags } from "@/services/tags.service";
 import { Check, ChevronsUpDown, Plus, X } from "lucide-react";

@@ -19,7 +19,8 @@ vi.mock("@/services/tags.service", () => ({
 
 // Mock the toast hook
 const mockToast = vi.fn();
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
   useToast: () => ({ toast: mockToast }),
 }));
 

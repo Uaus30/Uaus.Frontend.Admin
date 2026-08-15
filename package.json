@@ -24,10 +24,11 @@
     "test:receipt": "npm run test --workspace=@workspace/receipt",
     "test:api-client": "npm run test --workspace=@workspace/api-client-react",
     "test:core": "npm run test --workspace=@workspace/core",
-    "test": "npm run test:core && npm run test:admin && npm run test:pdv && npm run test:receipt && npm run test:api-client",
+    "test": "npm run test:core && npm run test:admin && npm run test:pdv && npm run test:receipt && npm run test:api-client && npm run test:ui",
     "lint": "eslint .",
     "lint:suppress": "eslint . --suppress-all",
-    "lint:prune": "eslint . --prune-suppressions"
+    "lint:prune": "eslint . --prune-suppressions",
+    "test:ui": "npm run test --workspace=@workspace/ui"
   },
   "private": true,
   "engines": {

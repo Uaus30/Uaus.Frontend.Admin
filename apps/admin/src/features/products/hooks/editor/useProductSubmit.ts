@@ -1,4 +1,4 @@
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { buildPublicImageUrl } from "@/services/core";
 import {
   createProductGroup,

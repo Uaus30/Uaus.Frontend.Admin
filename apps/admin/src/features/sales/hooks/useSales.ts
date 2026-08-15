@@ -11,7 +11,7 @@ import {
   enumCode,
 } from "@workspace/api-client-react";
 import { buildReceiptFromSale, printReceipt, resolveStoreInfo } from "@workspace/receipt";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { computeSaleTotals, formatCurrency, round2 } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import { buildEnrichedSales, buildProductCollections } from "@/services/mappers";

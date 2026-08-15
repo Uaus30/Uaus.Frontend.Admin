@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { useGetInventoryReport, apiGetOrThrow } from "@workspace/api-client-react";
 import { getAllSuppliers } from "@/services/suppliers.service";
 import { getAllCategories } from "@/services/categories.service";

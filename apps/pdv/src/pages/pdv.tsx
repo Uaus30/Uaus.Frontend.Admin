@@ -58,7 +58,7 @@ import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import {
   Search,
   Trash2,

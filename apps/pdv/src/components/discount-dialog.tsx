@@ -3,7 +3,7 @@ import { Tag } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
 import { Button, Input, Label } from "@workspace/ui";
 import { computeDiscount, parseAmount } from "@workspace/core";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import type { PdvItem } from "@/stores/use-pdv-store";
 
 export type DiscountTarget = { type: "global" | "item"; id?: string };

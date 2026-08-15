@@ -7,7 +7,8 @@ import {
   useGetProductLabelBatches,
   type ProductLabelBatchDto,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
+import { describeApiError } from "@workspace/core";
 import { printLabelSheet } from "../print";
 import { labelTypeFromEnum, type PrintableLabel } from "../types";
 
@@ -62,9 +63,8 @@ export function useLabelBatchHistory() {
       console.error("Erro ao reimprimir lote de etiquetas:", error);
       toast({
         title: "Erro ao reimprimir lote",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
-        error,
       });
     } finally {
       setReprintingId(null);
@@ -85,9 +85,8 @@ export function useLabelBatchHistory() {
       console.error("Erro ao excluir lote de etiquetas:", error);
       toast({
         title: "Erro ao excluir lote",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
-        error,
       });
     } finally {
       setDeleting(false);

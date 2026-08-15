@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 
 /**
  * Hook customizado para gerenciar a lógica de autenticação (Login) no painel.

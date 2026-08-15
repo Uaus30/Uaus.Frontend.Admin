@@ -5,7 +5,7 @@ import { ScrollArea } from "@workspace/ui";
 import { Loader2, Search, Globe, AlertTriangle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { searchInternetImages, type ImageSearchResult } from "@/services/images.service";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 
 /**
  * Propriedades para o componente ProductImageSearchModal.

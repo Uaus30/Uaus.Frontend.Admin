@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useGetLogs } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
 import type { DateRange } from "../types";

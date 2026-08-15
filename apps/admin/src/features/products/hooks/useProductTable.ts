@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
+import { describeApiError } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import { buildProductCollections } from "@/services/mappers";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
@@ -249,9 +250,8 @@ export function useProductTable() {
       console.error("Erro ao atualizar preco:", error);
       toast({
         title: "Erro ao atualizar preço",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
-        error,
       });
     } finally {
       setUpdatingPriceId(null);
@@ -292,9 +292,8 @@ export function useProductTable() {
       console.error("Erro ao atualizar estoque:", error);
       toast({
         title: "Erro ao atualizar estoque",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
-        error,
       });
     } finally {
       setUpdatingStockId(null);

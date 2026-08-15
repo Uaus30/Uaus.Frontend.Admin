@@ -5,7 +5,7 @@ import {
   useGetCashRegisterSessionById,
   useGetCashRegisterSessions,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import type { CashRegisterSessionStatusFilter } from "../types";
 

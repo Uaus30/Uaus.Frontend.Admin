@@ -8,7 +8,8 @@ import {
   type ProductDto,
 } from "@workspace/api-client-react";
 import { getProductsPage } from "@/services/products.service";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
+import { describeApiError } from "@workspace/core";
 import { printLabelSheet } from "../print";
 import {
   draftToPrintable,
@@ -176,9 +177,8 @@ export function useLabelComposer() {
       console.error("Erro ao gerar lote de etiquetas:", error);
       toast({
         title: "Erro ao gerar etiquetas",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
-        error,
       });
     } finally {
       setPrinting(false);

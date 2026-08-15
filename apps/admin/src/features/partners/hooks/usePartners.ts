@@ -12,7 +12,7 @@ import {
   useGetPartners,
   type PartnerDto,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { describeApiError, normalizeSearchText, round2 } from "@workspace/core";
 import type { PartnerFormValues } from "../types";
 

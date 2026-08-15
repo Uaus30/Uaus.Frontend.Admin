@@ -16,7 +16,8 @@ vi.mock("@workspace/api-client-react", () => ({
   CASH_REGISTER_SESSION_CLOSED: 2,
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
   useToast: () => ({ toast: mocks.toast }),
 }));
 

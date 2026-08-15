@@ -5,7 +5,7 @@ import { TooltipProvider } from "@workspace/ui";
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { checkHealth } from "@workspace/api-client-react";
 import { WifiOff, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Login = lazy(() => import("@/pages/login"));

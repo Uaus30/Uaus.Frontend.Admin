@@ -6,7 +6,7 @@ import {
   useGetUsers,
   useUpdateUser,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 import { getDisplayName, splitFullName, usernameFromEmail } from "@/services/mappers";
 import type { UserForm } from "../types";

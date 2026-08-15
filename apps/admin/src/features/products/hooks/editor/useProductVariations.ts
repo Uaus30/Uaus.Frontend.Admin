@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { deleteProduct } from "@/services/products.service";
 import { createVariationDraft } from "./utils";
 import type { VariationDraft, Grade, ProductGroupForm, ProductEditorForm } from "../../types";

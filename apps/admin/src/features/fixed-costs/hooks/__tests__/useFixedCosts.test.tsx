@@ -19,7 +19,8 @@ vi.mock("@workspace/api-client-react", () => ({
   getGetFixedCostsQueryKey: (params?: unknown) => ["FixedCosts", params] as const,
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
   useToast: () => ({ toast: mocks.toast }),
 }));
 

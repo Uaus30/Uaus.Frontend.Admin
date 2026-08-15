@@ -1,4 +1,4 @@
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { optimizeImage } from "@/lib/imageOptimizer";
 import { reorderItems, moveItemTo } from "./utils";
 import { buildPublicImageUrl } from "@/services/core";

@@ -15,7 +15,7 @@ import {
   Globe,
   Tag
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { getLogTypeBadge } from "@/features/logs/components/LogsTable";
 import { formatDateTime } from "@/features/logs/hooks/useLogs";
 

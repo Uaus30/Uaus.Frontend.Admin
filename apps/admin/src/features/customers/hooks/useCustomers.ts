@@ -8,7 +8,7 @@ import {
   useGetCustomers,
   useUpdateCustomer,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { buildCustomerStats } from "@/services/mappers";
 import { getAllSales } from "@/services/sales.service";
 import type { CustomerForm } from "../types";

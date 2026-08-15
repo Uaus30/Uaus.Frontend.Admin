@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
 import { getGradesByCategoryId, getAllGrades } from "@/services/grades.service";
