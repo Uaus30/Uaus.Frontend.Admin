@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { createCoverageOptions } from "../../vitest.shared.mts";
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
@@ -82,8 +83,20 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
   },
+  /**
+   * O admin não tem `vitest.config.ts` próprio: o Vitest cai neste arquivo, e é
+   * por isso que a configuração de teste mora junto da de build.
+   *
+   * `main.tsx` fica fora da cobertura porque é só o `createRoot` que pendura o
+   * App no DOM — não há nada ali para asseverar, e mantê-lo na conta só
+   * empurraria o número para baixo sem apontar teste nenhum que valesse a pena
+   * escrever. `src/services/` continua DENTRO: está congelado, mas roda em
+   * produção, e o relatório existe justamente para mostrar quanto código vivo
+   * ninguém cobre.
+   */
   test: {
     globals: true,
     environment: "jsdom",
+    coverage: createCoverageOptions("admin", ["src/main.tsx"]),
   },
 });

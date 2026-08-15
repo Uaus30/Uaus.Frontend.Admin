@@ -1,0 +1,69 @@
+# O que o Prettier NAO toca.
+#
+# ------------------------------------------------------------------------
+# COMO A CONFIGURACAO DO .prettierrc.json FOI DERIVADA
+# ------------------------------------------------------------------------
+# O .prettierrc.json e JSON estrito e nao aceita comentario (testado: o
+# Prettier 3.9.6 recusa o arquivo com "JSON Error" e para de formatar).
+# Por isso o "porque" de cada valor mora aqui.
+#
+# Nada foi escolhido por gosto. Cada candidato foi aplicado EM MEMORIA aos
+# 454 arquivos .ts/.tsx do repo e o vencedor foi o que menos briga com o
+# codigo que ja existe (linhas alteradas, menor e melhor):
+#
+#   printWidth 110, trailingComma all ....  8.299   <- escolhido
+#   printWidth 100, trailingComma all ....  8.615
+#   printWidth 120, trailingComma all ....  9.053
+#   printWidth 100, trailingComma es5 ....  9.059
+#   printWidth  90, trailingComma all .... 12.118
+#   printWidth  80, trailingComma all .... 16.970   (padrao do Prettier)
+#   singleQuote: true .................... 22.921
+#   semi: false .......................... 36.589
+#
+# Leitura dos numeros:
+#   - aspas DUPLAS: 99,1% dos imports do repo ja usam. Ligar singleQuote
+#     quase triplicaria o diff.
+#   - PONTO E VIRGULA: 93,2% dos imports terminam com ";". Desligar semi
+#     reescreveria 57% das linhas do repositorio.
+#   - trailingComma "all": o repo ja escreve virgula final em lista de
+#     parametro multilinha (ver packages/api-client/src/client.ts).
+#   - printWidth 110 ganha DUAS vezes. Alem do menor diff, e o unico valor
+#     que nao cria warning novo de `max-lines` (teto de 300 do CLAUDE.md):
+#         printWidth  80 -> +11 arquivos novos acima de 300 linhas
+#         printWidth 100 -> +3 arquivos novos
+#         printWidth 110 -> 0 arquivo novo (e ainda tira 1 do teto)
+#     Quebrar linha cria linha; um printWidth apertado transforma o teto de
+#     tamanho de arquivo num alarme falso.
+#   - endOfLine "lf": o disco ja tem 346 arquivos so-LF contra 40 so-CRLF,
+#     e o git guarda LF. Ver a pendencia do .gitattributes no relatorio.
+#
+# Conferido tambem que o eslint.config.js da raiz NAO tem nenhuma regra
+# estilistica (quotes, semi, indent, comma-dangle, max-len). Nao ha conflito
+# com o Prettier e o eslint-config-prettier NAO e necessario.
+# ------------------------------------------------------------------------
+
+# Dependencias e saida de build
+node_modules/
+dist/
+build/
+out-tsc/
+coverage/
+*.tsbuildinfo
+.vercel/
+
+# Artefatos de ferramenta: quem escreve nao e humano, e reformatar so cria
+# conflito de merge. O eslint-suppressions.json e reescrito por
+# `npm run lint:prune`; o package-lock.json, pelo proprio npm.
+package-lock.json
+eslint-suppressions.json
+.claude/
+
+# Assets publicos (binario e SVG vendorizado). Espelha o globalIgnores do
+# eslint.config.js para que lint e format enxerguem a mesma arvore.
+apps/*/public/
+
+# Documentos de planejamento — gerados e vivos. Sao reescritos a cada onda e
+# formata-los so poluiria o diff da entrega. O PLANO-CUPONS-CAMPANHAS.md em
+# especial esta sendo editado agora.
+PLANO-*.md
+PENDENCIAS-*.md

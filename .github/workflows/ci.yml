@@ -2,42 +2,447 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+
+# Dois pushes seguidos no mesmo PR disparavam dois pipelines inteiros, e o mais
+# antigo — cujo veredito já não interessa a ninguém — continuava ocupando runner
+# e atrasando o feedback do commit novo. Em `main` não cancelamos: cada commit da
+# branch protegida precisa do próprio veredito, senão fica um commit sem CI.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# O pipeline só lê o repositório. Sem declarar isto o token nasce com permissão
+# de escrita, e qualquer action de terceiro atualizada por baixo passaria a ter
+# acesso de push com o nosso crachá.
+permissions:
+  contents: read
+
+env:
+  # Só ruído no log e latência de rede; não muda o resultado de nenhum portão.
+  NPM_CONFIG_FUND: "false"
 
 jobs:
-  build-and-test:
+  # ---------------------------------------------------------------------------
+  # Portão do baseline de supressões do ESLint.
+  #
+  # Este é o único portão que o `npm run lint` NÃO consegue dar. O lint reprova
+  # violação nova (a supressão registra uma contagem, e o que passa dela é erro)
+  # e reprova baseline inflado com supressão que não ocorre mais (sai com código
+  # 2 pedindo `--prune-suppressions`). O buraco é outro: basta rodar
+  # `npm run lint:suppress` depois de escrever o `any` novo e commitar o arquivo
+  # maior — o lint volta a passar e a regressão entra em silêncio.
+  #
+  # Comparar contra a base fecha esse buraco. A soma é POR REGRA, não por
+  # arquivo: agregada por regra ela sobrevive a mover/renomear arquivo (refactor
+  # legítimo não acusa crescimento falso) e ainda pega a troca disfarçada —
+  # corrigir três `no-unused-vars` e introduzir três `no-explicit-any` mantém o
+  # total geral igual, mas o débito piorou.
+  #
+  # Roda sozinho, sem npm ci: compara dois JSON. É o portão mais barato e o que
+  # dá o veredito mais cedo.
+  # ---------------------------------------------------------------------------
+  baseline-eslint:
+    name: Baseline do ESLint só encolhe
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 5
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-        cache: 'npm'
+      # O único job que precisa de mais de um commit: sem histórico não existe
+      # base com que comparar. O clone inteiro custa hoje 13 MB, mais barato do
+      # que buscar um commit avulso por SHA e ficar dependendo de o servidor
+      # permitir esse tipo de busca.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install dependencies
-      run: npm ci
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
 
-    - name: Typecheck
-      run: npm run typecheck:admin && npm run typecheck:pdv
+      - name: Extrair o baseline da base
+        id: base
+        env:
+          # No PR o alvo é a branch de destino; no push é o commit anterior de
+          # `main`. Vai por env, não interpolado no shell, para que o valor nunca
+          # seja interpretado como comando.
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          ZERO=0000000000000000000000000000000000000000
+          if [ -z "${BASE_SHA:-}" ] || [ "$BASE_SHA" = "$ZERO" ]; then
+            echo "Sem commit de referência (branch nova ou primeiro push). Portão não se aplica."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Portão que não acha a base tem que reprovar ruidosamente; passar por
+          # omissão é como não ter portão.
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo "Commit de referência $BASE_SHA não está no clone." >&2
+            exit 1
+          fi
+          # Baseline ausente na base = o arquivo nasceu neste PR; vale como zero.
+          git show "$BASE_SHA:eslint-suppressions.json" > "$RUNNER_TEMP/base-suppressions.json" 2>/dev/null \
+            || echo '{}' > "$RUNNER_TEMP/base-suppressions.json"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
-    # Um comando para o monorepo inteiro: o admin ficou sem lint por muito tempo
-    # e acumulou 126 `any` que ninguem viu. As violacoes legadas estao em
-    # eslint-suppressions.json, entao aqui so falha o que for regressao nova.
-    - name: Lint
-      run: npm run lint
+      - name: Comparar o baseline com o da base
+        if: steps.base.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/compare-baseline.cjs" <<'CJS'
+          const fs = require("node:fs");
 
-    - name: Run Tests
-      run: npm test
+          const [basePath, headPath] = process.argv.slice(2);
 
-    # O pipeline so rodava typecheck e teste, entao um build quebrado passava
-    # batido — inclusive o do PDV, que nem e publicado pela Vercel.
-    - name: Build Admin
-      run: npm run build:admin
+          /** Arquivo ausente ou ilegível vale como "não havia supressão nenhuma". */
+          function read(file) {
+            try {
+              return JSON.parse(fs.readFileSync(file, "utf8"));
+            } catch {
+              return {};
+            }
+          }
 
-    - name: Build PDV
-      run: npm run build:pdv
+          /**
+           * Agrega por regra e ignora o arquivo de propósito: mover uma feature de
+           * pasta não pode acusar regressão, mas trocar uma regra por outra tem que
+           * acusar.
+           */
+          function countByRule(baseline) {
+            const totals = new Map();
+            for (const rules of Object.values(baseline)) {
+              for (const [rule, entry] of Object.entries(rules ?? {})) {
+                const count = Number(entry?.count ?? 0);
+                totals.set(rule, (totals.get(rule) ?? 0) + count);
+              }
+            }
+            return totals;
+          }
+
+          const sum = (totals) => [...totals.values()].reduce((a, b) => a + b, 0);
+
+          const base = countByRule(read(basePath));
+          const head = countByRule(read(headPath));
+
+          const grew = [];
+          for (const rule of new Set([...base.keys(), ...head.keys()])) {
+            const before = base.get(rule) ?? 0;
+            const after = head.get(rule) ?? 0;
+            if (after > before) grew.push({ rule, before, after });
+          }
+          grew.sort((a, b) => b.after - b.before - (a.after - a.before));
+
+          const delta = sum(head) - sum(base);
+          console.log(`Supressões na base: ${sum(base)}`);
+          console.log(`Supressões neste commit: ${sum(head)} (${delta > 0 ? "+" : ""}${delta})`);
+
+          const summary = process.env.GITHUB_STEP_SUMMARY;
+          if (summary) {
+            const linhas = grew.map((g) => `| \`${g.rule}\` | ${g.before} | ${g.after} |`);
+            fs.appendFileSync(
+              summary,
+              [
+                "### Baseline do ESLint",
+                "",
+                `Base: **${sum(base)}** · Este commit: **${sum(head)}** (${delta > 0 ? "+" : ""}${delta})`,
+                ...(linhas.length
+                  ? ["", "| Regra que cresceu | Antes | Agora |", "| --- | --- | --- |", ...linhas]
+                  : []),
+                "",
+              ].join("\n"),
+            );
+          }
+
+          if (grew.length === 0) {
+            console.log("OK: nenhuma regra cresceu.");
+            process.exit(0);
+          }
+
+          console.error("");
+          console.error("eslint-suppressions.json CRESCEU. O arquivo só pode encolher.");
+          for (const g of grew) {
+            console.error(`  ${g.rule}: ${g.before} -> ${g.after} (+${g.after - g.before})`);
+          }
+          console.error("");
+          console.error("Suprimir a violação nova não é a saída: `npm run lint:suppress` serve");
+          console.error("para congelar o legado, não para abrir espaço para código novo.");
+          console.error("Corrija a violação e, depois, rode `npm run lint:prune` para travar o ganho.");
+          process.exit(1);
+          CJS
+          node "$RUNNER_TEMP/compare-baseline.cjs" \
+            "$RUNNER_TEMP/base-suppressions.json" \
+            eslint-suppressions.json
+
+  # ---------------------------------------------------------------------------
+  # Instala uma vez e compila os .d.ts dos packages uma vez.
+  #
+  # `typecheck:admin`, `typecheck:pdv` e `test:pdv` chamam `build:types` por
+  # dentro. Sem compartilhar o resultado, os quatro jobs abaixo pagariam o mesmo
+  # `tsc -b` do zero. Com o dist publicado como artifact, o `tsc -b` de cada um
+  # acha a saída mais nova que a fonte e vira no-op — e continua sendo a rede de
+  # segurança se o artifact vier torto.
+  # ---------------------------------------------------------------------------
+  setup:
+    name: Dependências e tipos dos packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          # Só aqui: é o único job que roda `npm ci` no caminho normal. Nos
+          # outros, restaurar o cache do npm seria baixar tarball para não
+          # instalar nada.
+          cache: npm
+
+      # Guardar o node_modules pronto poupa o `npm ci` inteiro nos outros jobs.
+      # A chave amarra no lockfile e na versão do Node porque binário nativo
+      # (esbuild, rollup) é compilado por versão.
+      - name: Cache do node_modules
+        id: modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('.nvmrc', 'package-lock.json') }}
+
+      - name: Instalar dependências
+        if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Compilar os tipos dos packages
+        run: npm run build:types
+
+      # Artifact e não cache de propósito: o cache restaura a data de
+      # modificação original, o que faria o `tsc -b` julgar a saída mais velha
+      # que a fonte recém-clonada e recompilar tudo de novo. O download do
+      # artifact carimba a hora atual, que é o que mantém o build incremental.
+      - name: Publicar os .d.ts para os outros jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-types
+          path: |
+            packages/*/dist
+            packages/*/tsconfig.tsbuildinfo
+          if-no-files-found: error
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # O admin ficou sem lint por muito tempo e acumulou 126 `any` que ninguém viu.
+  # O legado está registrado em eslint-suppressions.json, então aqui só reprova
+  # regressão nova — e também baseline com supressão que já não ocorre, caso em
+  # que o próprio ESLint sai com erro pedindo `--prune-suppressions`.
+  #
+  # Não baixa os .d.ts: o eslint.config.js não liga nenhuma regra que precise de
+  # tipo, então lint não depende de `build:types`.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Restaurar node_modules
+        id: modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('.nvmrc', 'package-lock.json') }}
+
+      # Só acontece se o cache tiver sido despejado entre um job e outro. É a
+      # diferença entre um job lento e um job vermelho por motivo errado.
+      - name: Instalar dependências (só se o cache falhar)
+        if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+  # ---------------------------------------------------------------------------
+  # `vite build` do admin não checa tipo nenhum — ele só transpila. Sem este job,
+  # erro de tipo no admin passaria batido mesmo com o build verde.
+  #
+  # packages/ui entra aqui porque não entra em lugar nenhum: `build:types` cobre
+  # core, api-client e receipt, e o tsconfig do ui é standalone, com `strict`,
+  # `noUnusedLocals` e `noUnusedParameters` próprios que nunca eram exercidos.
+  # O único typecheck que tocava esse código usava as opções do admin e do PDV.
+  # ---------------------------------------------------------------------------
+  typecheck:
+    name: Typecheck
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Restaurar node_modules
+        id: modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('.nvmrc', 'package-lock.json') }}
+
+      - name: Instalar dependências (só se o cache falhar)
+        if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Baixar os .d.ts do job setup
+        uses: actions/download-artifact@v4
+        with:
+          name: package-types
+          path: packages
+
+      - name: Typecheck do admin
+        run: npm run typecheck:admin
+
+      - name: Typecheck do PDV
+        run: npm run typecheck:pdv
+
+      - name: Typecheck do packages/ui
+        run: npm run typecheck --workspace=@workspace/ui
+
+  # ---------------------------------------------------------------------------
+  # Os seis workspaces em cadeia: core, admin, pdv, receipt, api-client e ui.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Testes
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Restaurar node_modules
+        id: modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('.nvmrc', 'package-lock.json') }}
+
+      - name: Instalar dependências (só se o cache falhar)
+        if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      # `test:pdv` roda `build:types` por dentro; com o dist já baixado vira
+      # no-op em vez de recompilar os três packages.
+      - name: Baixar os .d.ts do job setup
+        uses: actions/download-artifact@v4
+        with:
+          name: package-types
+          path: packages
+
+      - name: Testes
+        run: npm test
+
+  # ---------------------------------------------------------------------------
+  # O pipeline já rodou muito tempo só com typecheck e teste, e build quebrado
+  # passava batido — inclusive o do PDV, que a Vercel nem publica, então ninguém
+  # descobriria pelo deploy.
+  #
+  # Matriz porque os dois builds são independentes e o do admin é o mais lento
+  # do pipeline; em série eles somam, em paralelo custam o maior dos dois.
+  # `fail-fast: false` para que o admin quebrado não esconda o PDV quebrado.
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.app }}
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [admin, pdv]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Restaurar node_modules
+        id: modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('.nvmrc', 'package-lock.json') }}
+
+      - name: Instalar dependências (só se o cache falhar)
+        if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      # O build do PDV é `tsc -b && vite build` e precisa dos .d.ts. O do admin
+      # não precisa (o Vite resolve os packages pela condição `workspace`, que
+      # aponta para a fonte), mas baixar nos dois mantém a matriz simétrica e
+      # custa poucos KB.
+      - name: Baixar os .d.ts do job setup
+        uses: actions/download-artifact@v4
+        with:
+          name: package-types
+          path: packages
+
+      - name: Build
+        run: npm run build:${{ matrix.app }}
+
+  # ---------------------------------------------------------------------------
+  # Um nome só para a proteção de branch exigir. Sem isto seria preciso listar
+  # cada job — e cada linha da matriz — na configuração do repositório, que é
+  # justamente o lugar onde ninguém lembra de mexer quando um job novo entra:
+  # o job nasceria opcional sem ninguém perceber.
+  #
+  # `if: always()` porque o job precisa rodar mesmo com um dependente vermelho —
+  # é ele quem transforma o resultado dos outros em veredito.
+  # ---------------------------------------------------------------------------
+  ci:
+    name: CI
+    needs: [baseline-eslint, setup, lint, typecheck, test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Conferir o resultado dos portões
+        env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -euo pipefail
+          echo "Portões: $RESULTADOS"
+          # `skipped` conta como reprovado: nenhum job aqui é opcional, então a
+          # única forma de um deles ser pulado é uma dependência ter quebrado —
+          # e é exatamente esse o caso em que o veredito não pode sair verde.
+          case " $RESULTADOS " in
+            *" failure "* | *" cancelled "* | *" skipped "*)
+              echo "Algum portão do CI não passou."
+              exit 1
+              ;;
+          esac

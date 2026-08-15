@@ -1,0 +1,50 @@
+# EditorConfig — o acordo de formatacao que vale ANTES do Prettier rodar.
+#
+# Por que os dois arquivos existem: o Prettier so age quando alguem roda o
+# comando (ou salva com a extensao ligada). O EditorConfig age enquanto o
+# desenvolvedor DIGITA, e e respeitado nativamente por VS Code, Visual Studio,
+# Rider e JetBrains. Sem ele, o editor cria a linha com o padrao dele e o
+# Prettier so conserta depois — o que produz exatamente o diff de fim de linha
+# que ja aconteceu neste repo (dois componentes de packages/ui ficaram "dirty"
+# com diff vazio, so porque foram reescritos com CRLF).
+#
+# Os valores NAO foram escolhidos por gosto: foram medidos no codigo que ja
+# existe (455 arquivos .ts/.tsx varridos). Ver o cabecalho do .prettierignore
+# para os numeros e o metodo.
+
+root = true
+
+[*]
+charset = utf-8
+# Medido: 346 arquivos so-LF contra 40 so-CRLF, e o git guarda LF no index
+# (core.autocrlf=true converte na entrada/saida). Fixar LF faz o disco bater
+# com o index e mata a categoria de "arquivo modificado com diff vazio".
+end_of_line = lf
+# Medido: 0 arquivos usam tab para indentar. Indentacao de 2 espacos e a
+# unanime no repo.
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+# Espelha o printWidth do .prettierrc.json para o editor mostrar a regua no
+# mesmo lugar em que o Prettier vai quebrar.
+max_line_length = 110
+
+# Em Markdown, duas linhas em branco no fim da linha SAO a quebra de linha
+# ("hard break"). Aparar espaco a direita aqui apagaria formatacao de verdade.
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Arquivos que uma ferramenta escreve. O formato e problema dela, nao nosso.
+[{package-lock.json,eslint-suppressions.json}]
+indent_style = unset
+indent_size = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+max_line_length = off
+
+# YAML nao aceita tab para indentar — a regra e do formato, nao uma preferencia.
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2

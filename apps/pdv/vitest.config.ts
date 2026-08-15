@@ -1,6 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { createCoverageOptions } from "../../vitest.shared.mts";
 
 const workspaceRoot = path.resolve(import.meta.dirname, "../..");
 
@@ -26,5 +27,12 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
+    /**
+     * `main.tsx` e `sw-register.ts` ficam de fora: são o `createRoot` e o
+     * registro do service worker, código que só existe para pendurar o app no
+     * navegador. Não há o que asseverar neles, e mantê-los na conta empurraria o
+     * número para baixo sem apontar um teste que valesse a pena escrever.
+     */
+    coverage: createCoverageOptions("pdv", ["src/main.tsx", "src/sw-register.ts"]),
   },
 });

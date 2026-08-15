@@ -1,0 +1,28 @@
+# Fim de linha normalizado no repositório.
+#
+# O time desenvolve em Windows, onde o `core.autocrlf=true` grava CRLF no disco
+# ao clonar. O `.prettierrc.json` fixa `endOfLine: "lf"` — e sem este arquivo os
+# dois brigam: um clone novo escreve CRLF, o `npm run format:check` reprova TODO
+# arquivo do repositório, e o desenvolvedor vê o portão falhar sem ter mexido em
+# nada. `text=auto eol=lf` faz o checkout sair com LF independentemente da
+# configuração local de cada máquina, então o que está no disco é o que o
+# Prettier e o CI esperam.
+#
+# Também apaga o ruído de "LF will be replaced by CRLF" que hoje aparece em todo
+# `git add` e esconde o aviso que importaria.
+* text=auto eol=lf
+
+# Binário: nunca normalizar, ou o arquivo corrompe.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# O lockfile é gerado pelo npm e diffs dele não se resolvem à mão.
+package-lock.json -diff linguist-generated=true
