@@ -187,11 +187,11 @@ export function useStockEntries() {
   function handleSaveEntry(e: React.FormEvent) {
     e.preventDefault();
     if (!supplierId) {
-      toast({ title: "Atenção", description: "Selecione um fornecedor.", variant: "warning" as any });
+      toast({ title: "Atenção", description: "Selecione um fornecedor.", variant: "warning" });
       return;
     }
     if (items.length === 0) {
-      toast({ title: "Atenção", description: "Adicione pelo menos um produto.", variant: "warning" as any });
+      toast({ title: "Atenção", description: "Adicione pelo menos um produto.", variant: "warning" });
       return;
     }
 
@@ -202,7 +202,7 @@ export function useStockEntries() {
       toast({
         title: "Atenção",
         description: "Verifique se todos os produtos foram selecionados e se os valores são válidos.",
-        variant: "warning" as any,
+        variant: "warning",
       });
       return;
     }

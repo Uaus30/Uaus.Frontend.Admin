@@ -62,7 +62,7 @@ export interface ProductLabelBatchItemDto {
   barcode: string | null;
   /** Preço impresso — na promoção, o valor da oferta. */
   price: number;
-  /** Enum ProductLabelType — pode vir como número ou nome; use ``. */
+  /** Enum ProductLabelType — pode vir como número ou nome; normalize com `enumCode()`. */
   labelType: EnumValue;
   /** Descrição do tipo em português, pronta para exibição. */
   labelTypeName: string;

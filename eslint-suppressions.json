@@ -130,7 +130,7 @@
   },
   "apps/admin/src/features/inventory/hooks/useInventory.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 5
+      "count": 4
     },
     "@typescript-eslint/no-unused-vars": {
       "count": 2
@@ -196,9 +196,6 @@
   "apps/admin/src/features/products/components/ProductTable.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 4
     },
     "react-hooks/set-state-in-effect": {
       "count": 2
@@ -325,7 +322,7 @@
   },
   "apps/admin/src/features/stock-entries/hooks/useStockEntries.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 7
+      "count": 4
     },
     "react-hooks/set-state-in-effect": {
       "count": 1

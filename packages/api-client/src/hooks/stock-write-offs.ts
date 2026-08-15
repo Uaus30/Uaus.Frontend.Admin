@@ -71,9 +71,9 @@ export interface StockWriteOffDto {
   id: number;
   createdAt: string;
   updatedAt: string | null;
-  /** Enum StockWriteOffReason — pode vir como número ou nome; use ``. */
+  /** Enum StockWriteOffReason — pode vir como número ou nome; normalize com `enumCode()`. */
   reason: EnumValue;
-  /** Enum StockWriteOffStatus — pode vir como número ou nome; use ``. */
+  /** Enum StockWriteOffStatus — pode vir como número ou nome; normalize com `enumCode()`. */
   status: EnumValue;
   /** Momento real da baixa no balcão. */
   occurredAt: string;

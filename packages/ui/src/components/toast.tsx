@@ -30,6 +30,20 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
+        /**
+         * Aviso: a ação foi recusada, mas nada quebrou nem se perdeu.
+         *
+         * É o caso de "selecione um fornecedor" ou "nenhum registro para
+         * exportar". Existe separado de `destructive` porque vermelho de erro
+         * numa validação de formulário treina o usuário a ignorar o vermelho —
+         * e quando algo realmente falhar, ele não vai olhar.
+         *
+         * Âmbar declarado nos dois temas em vez de token novo: o `--warning`
+         * teria que ser acrescentado ao index.css dos dois apps, que hoje já
+         * carregam blocos duplicados.
+         */
+        warning:
+          "warning group border-amber-500/60 bg-amber-50 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950 dark:text-amber-50",
       },
     },
     defaultVariants: {

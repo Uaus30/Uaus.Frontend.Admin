@@ -111,8 +111,13 @@ function OfflineBanner() {
       isOfflineRef.current = currentOffline;
 
       if (wasOfflineRef.current && !currentOffline) {
-        // Reconnected!
-        queryClient.invalidateQueries();
+        // Reconectou: o que está NA TELA pode ter envelhecido durante a queda.
+        //
+        // `type: "active"` limita a invalidação às queries com observador vivo.
+        // Sem ele, todo o cache inativo era ressuscitado de uma vez — e como
+        // invalidação ignora staleTime, a reconexão virava o pior momento
+        // possível para uma tempestade de requisições.
+        queryClient.invalidateQueries({ type: "active" });
         toast({
           title: "Conexão Restabelecida",
           description: "A conexão com o servidor foi restabelecida com sucesso.",

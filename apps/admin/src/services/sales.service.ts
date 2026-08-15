@@ -21,11 +21,6 @@ export async function getAllSales() {
   return fetchAllPages<SaleDto>("/Sales");
 }
 
-/** Carrega todos os itens de venda do sistema percorrendo a paginação da API. */
-export async function getAllSaleItems() {
-  return fetchAllPages<SaleItemDto>("/SaleItems");
-}
-
 /** Carrega os itens de uma venda específica. */
 export async function getSaleItems(saleId: number) {
   return fetchAllPages<SaleItemDto>("/SaleItems", { saleId });

@@ -9,7 +9,6 @@ import { buildPublicImageUrl } from "@/services/core";
 import { Edit2, ImageIcon, Loader2, Search, Trash2, AlertTriangle, MoreVertical, Package, History } from "lucide-react";
 import type { EnrichedProduct } from "@/services/mappers";
 import React, { useState } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@workspace/ui";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";

@@ -42,7 +42,6 @@ vi.mock("@/services/customers.service", () => ({
 }));
 
 vi.mock("@/services/sales.service", () => ({
-  getAllSaleItems: vi.fn(() => Promise.resolve([])),
   createSaleWithItems: vi.fn(() => Promise.resolve({ id: 99 })),
   deleteSaleWithItems: vi.fn(() => Promise.resolve()),
 }));

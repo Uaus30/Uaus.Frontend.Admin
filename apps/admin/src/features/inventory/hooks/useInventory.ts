@@ -122,7 +122,7 @@ export function useInventory() {
         toast({
           title: "Erro na exportação",
           description: "Não há registros correspondentes aos filtros selecionados para exportar.",
-          variant: "warning" as any,
+          variant: "warning",
         });
         return;
       }

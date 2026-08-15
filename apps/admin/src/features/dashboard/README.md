@@ -18,14 +18,14 @@ não tem nenhum dado simulado: todos os números vêm de vendas reais.
 ### Componentes
 
 *   `components/PeriodSelector.tsx`: cabeçalho com o período em vigor e os controles que o mudam (ver [padrão de calendário](../../components/ui/README.md)).
-*   `components/StatTile.tsx` / `DashboardKpis.tsx`: cards de faturamento, lucro, vendas e ticket médio.
+*   `components/StatTile.tsx` / `components/DashboardKpis.tsx`: cards de faturamento, lucro, vendas e ticket médio.
 *   `components/LiveTodayCard.tsx`: número em destaque do dia, comparativos e faturamento por hora.
 *   `components/RevenueProfitChart.tsx`: faturamento e lucro dia a dia no período.
 *   `components/MonthComparisonCard.tsx`: curva acumulada do mês atual contra o anterior.
 *   `components/RevenueBreakdownCard.tsx`: quebra do faturamento por categoria e por forma de pagamento.
 *   `components/TopProductsTable.tsx`: ranking de produtos com margem e estoque.
-*   `components/PatternsPanel.tsx` + `PatternChart.tsx`: padrões por dia da semana, hora do dia e dia do mês.
-*   `components/IntelligencePanel.tsx` + `RestockList.tsx` + `BasketInsights.tsx`: inteligência comercial.
+*   `components/PatternsPanel.tsx` + `components/PatternChart.tsx`: padrões por dia da semana, hora do dia e dia do mês.
+*   `components/IntelligencePanel.tsx` + `components/RestockList.tsx` + `components/BasketInsights.tsx`: inteligência comercial.
 *   `components/chart-primitives.tsx`: moldura, tooltip, legenda e especificações visuais compartilhadas.
 
 ### Apoio

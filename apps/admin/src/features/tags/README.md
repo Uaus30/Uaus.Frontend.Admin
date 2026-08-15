@@ -8,7 +8,7 @@ Este módulo gerencia a visualização, ordenação, criação, edição e relat
 
 *   `components/TagTable.tsx`: Renderiza a listagem de etiquetas com pesquisa, cabeçalhos clicáveis para ordenação por nome, quantidade de produtos ou data de cadastro, controles de paginação e botões de ação (editar, deletar, abrir relatório).
 *   `components/TagEditorModal.tsx`: Modal contendo o formulário para criação e edição de etiquetas, incluindo picker de cor e opção de definir como pública.
-*   `components/TagReportModal.tsx`: Modal com o desempenho real de vendas dos produtos da etiqueta nos últimos 30 dias (`GET /Tags/{id}/report`). O corpo é compartilhado com o relatório de categorias em `components/catalog-report-body.tsx`.
+*   `components/TagReportModal.tsx`: Modal com o desempenho real de vendas dos produtos da etiqueta nos últimos 30 dias (`GET /Tags/{id}/report`). O corpo é compartilhado com o relatório de categorias em `@/components/catalog-report-body.tsx`.
 *   `hooks/useTags.ts`: Centraliza as consultas do TanStack Query, estados de paginação, busca e ordenação, mutations para salvar e remover etiquetas, além do gerenciamento de exibição do relatório.
 *   `types.ts`: Definições de tipos TypeScript para formulários, etiquetas e relatórios.
 

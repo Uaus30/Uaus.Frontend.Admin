@@ -13,7 +13,7 @@ Saída de mercadoria **sem venda**: consumo interno, perda, doação e a falta a
 *   `components/ReverseStockWriteOffDialog.tsx`: Confirmação do estorno, com o campo de motivo.
 *   `hooks/useStockWriteOffs.ts`: Listagem (`useGetStockWriteOffs`), detalhes, rascunho do registro e as mutations de registro e estorno.
 *   `types.ts`: Estado dos filtros, rascunho de item e opção de produto.
-*   Acesso a dados e montagem de payload: [`services/stock-write-offs.service.ts`](../../services/stock-write-offs.service.ts).
+*   Acesso a dados e montagem de payload: [`@/services/stock-write-offs.service.ts`](../../services/stock-write-offs.service.ts).
 
 ---
 
@@ -33,4 +33,4 @@ Saída de mercadoria **sem venda**: consumo interno, perda, doação e a falta a
 *   `totalCost` é o custo FIFO do momento da baixa, não o custo atual do produto: `stock_lots.unit_cost` é mutável e editar uma entrada de compra o reescreve.
 
 ### 4. Erros da API
-*   Toda falha passa por `describeApiError` ([`lib/api-error.ts`](../../lib/api-error.ts)), que prefere as frases de `ValidationProblemDetails` ao título genérico do ASP.NET. É assim que "Estoque insuficiente para baixa do produto #5" chega ao toast.
+*   Toda falha passa por `describeApiError` (de `@workspace/core`), que prefere as frases de `ValidationProblemDetails` ao título genérico do ASP.NET. É assim que "Estoque insuficiente para baixa do produto #5" chega ao toast.

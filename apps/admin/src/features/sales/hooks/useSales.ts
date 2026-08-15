@@ -341,7 +341,6 @@ export function useSales() {
       });
 
       await queryClient.invalidateQueries({ queryKey: getGetSalesQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: ["sale-items-all-for-sales"] });
       await queryClient.invalidateQueries({ queryKey: ["customers-all-for-sales"] });
       await queryClient.invalidateQueries({ queryKey: ["products-enriched-for-sales"] });
 
@@ -404,7 +403,6 @@ export function useSales() {
     try {
       await deleteSaleWithItems(saleId);
       await queryClient.invalidateQueries({ queryKey: getGetSalesQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: ["sale-items-all-for-sales"] });
       toast({ title: "Venda removida." });
     } catch (error) {
       toast({

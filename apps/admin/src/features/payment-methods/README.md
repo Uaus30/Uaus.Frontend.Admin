@@ -8,7 +8,7 @@ Este módulo é responsável pela administração das Formas de Pagamento e suas
 - `hooks/usePaymentMethods.ts`: Hook customizado responsável pela busca paginada, filtros, formulário de adição/edição de parcelas e envio das mutations do React Query.
 - `components/PaymentMethodsTable.tsx`: Tabela de exibição das formas de pagamento cadastradas, badges de parcelas com taxas e ações rápidas.
 - `components/PaymentMethodEditorModal.tsx`: Modal para cadastro e edição de formas de pagamento com inclusão e remoção dinâmica de parcelas (com taxa percentual).
-- `hooks/__tests__/usePaymentMethods.test.ts`: Testes unitários do hook controlador usando Vitest e React Testing Library.
+- `hooks/__tests__/usePaymentMethods.test.tsx`: Testes unitários do hook controlador usando Vitest e React Testing Library.
 
 ## Regras de Negócio
 - Todo cadastro de forma de pagamento exige um nome válido.

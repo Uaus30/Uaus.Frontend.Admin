@@ -16,4 +16,4 @@ Consulta dos turnos de caixa do PDV no painel administrativo. A tela é **soment
 - O status trafega como código numérico (`1` = Aberto, `2` = Fechado — constantes `CASH_REGISTER_SESSION_OPEN`/`CASH_REGISTER_SESSION_CLOSED` do api-client); o Select da tela trabalha com as chaves legíveis `all`/`open`/`closed` e a conversão fica em `statusFilterToCode`.
 - **Diferença = contado − esperado**, calculada pelo backend no fechamento do turno. Badge verde quando a gaveta bateu (zero) e `destructive` quando houve sobra ou falta; turnos abertos ainda não têm diferença ("—").
 - Só o **dinheiro em espécie** entra na conferência da gaveta: o esperado é o fundo de troco somado ao recebido em dinheiro (`summary.expectedCashAmount`); as demais formas de pagamento aparecem no resumo apenas para consulta.
-- As datas do filtro trafegam como string `yyyy-MM-dd` no hook; a conversão para `Date` (e vice-versa) fica no componente, com `parseDateInput`/`formatDateInput` de `@/components/ui/date-field`.
+- As datas do filtro trafegam como string `yyyy-MM-dd` no hook; a conversão para `Date` (e vice-versa) fica no componente, com `parseDateInput`/`formatDateInput` de `@workspace/ui`.

@@ -52,6 +52,6 @@ dois a divergir.
 
 ## Testes
 
-`services/__tests__/inventory-count.service.test.ts` cobre a validação do
+`@/services/__tests__/inventory-count.service.test.ts` cobre a validação do
 arquivo, a regra de quando dá para aplicar (bloqueio e ausência de diferença) e o
 download com liberação do object URL.

@@ -48,7 +48,7 @@ reimpressão.
 - `hooks/useLabelBatchHistory.ts` — listagem paginada, detalhes, reimpressão e
   exclusão.
 - `components/` — subcomponentes puros ligados pela página
-  `pages/gondola-labels.tsx` (rota `/etiquetas-gondola`).
+  `@/pages/gondola-labels.tsx` (rota `/etiquetas-gondola`).
 - Contratos da API em `@workspace/api-client-react` (módulo "Etiquetas de
   gôndola"); desenho do backend em
   `Uaus.Backend.Api/docs/etiquetas-de-gondola.md`.

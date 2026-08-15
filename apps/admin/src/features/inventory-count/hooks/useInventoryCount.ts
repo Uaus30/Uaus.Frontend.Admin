@@ -12,6 +12,23 @@ import {
 } from "@/services/inventory-count.service";
 
 /**
+ * O que a contagem de estoque invalida.
+ *
+ * Todas as chaves aqui são registradas por algum `useQuery` do app — invalidar
+ * chave que ninguém registra é gesto morto, e o repositório já tinha dois desses
+ * em `useSales`.
+ */
+const AFFECTED_QUERY_KEYS = [
+  ["product-groups-page"],
+  ["products-page"],
+  ["products-all"],
+  ["products-by-group"],
+  ["inventory-report"],
+  ["stock-write-offs"],
+  ["dashboard"],
+] as const;
+
+/**
  * useInventoryCount
  *
  * Orquestra o ciclo da contagem: exportar a planilha, conferir a prévia e
@@ -102,8 +119,15 @@ export function useInventoryCount() {
       setResult(applied);
 
       // A contagem mexe no saldo de muitos produtos de uma vez: produtos,
-      // inventário e baixas passam a mostrar números diferentes.
-      await queryClient.invalidateQueries();
+      // inventário, baixas e dashboard passam a mostrar números diferentes.
+      //
+      // A invalidação é DIRIGIDA a esses conjuntos. `invalidateQueries()` sem
+      // argumento derrubava o cache inteiro do app — e como invalidação ignora
+      // staleTime, com a tela de produtos montada isso reativava a cascata de
+      // ~200 requisições dela.
+      await Promise.all(
+        AFFECTED_QUERY_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      );
 
       toast({
         title: "Contagem aplicada",
