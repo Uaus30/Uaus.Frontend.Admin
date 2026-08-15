@@ -67,9 +67,12 @@ fora do padrão quebra o teste sem ninguém precisar lembrar de cobri-la.
   redirecionamento quando várias queries respondem 401 juntas, isenta o caminho
   de autenticação e preserva o `BASE_URL` do deploy. Não replique isso nas
   features.
-- **`fetchAllPages` não tem teto.** Ele dispara todas as páginas num
-  `Promise.all`. Em tabela grande isso é uma tempestade de requisições — prefira
-  paginação de verdade.
+- **`fetchAllPages` serve a catálogo, não a tabela que cresce.** Ele pede as
+  páginas restantes numa janela de 6 por vez e **lança** ao passar de 20 mil
+  itens (`FETCH_ALL_PAGES_MAX_ITEMS`), em vez de devolver a lista cortada — meia
+  lista não parece quebrada, parece que o registro não existe. Se você bateu no
+  teto, o endereço precisa de filtro ou agregação no servidor; aumentar o teto só
+  adia. `useAllSales` no admin é o caso que vai bater primeiro.
 
 ## Testes
 

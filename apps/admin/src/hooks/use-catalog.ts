@@ -182,6 +182,18 @@ export function useAllProductImages(options?: CatalogOptions) {
  *
  * Sem `staleTime` de catálogo: venda entra o tempo todo, e um cache de cinco
  * minutos mostraria a tela de clientes desatualizada logo depois de uma venda.
+ *
+ * ATENÇÃO — este é o único `useAll*` que varre uma tabela que cresce SEM LIMITE.
+ * Os outros são catálogo (departamento, categoria, etiqueta): estabilizam em
+ * dezenas ou centenas de linhas. Venda não estabiliza nunca, e a tela de
+ * clientes usa isto só para somar quanto cada cliente já comprou — uma conta que
+ * pertence ao servidor, não ao navegador. `fetchAllPages` lança ao passar de
+ * `FETCH_ALL_PAGES_MAX_ITEMS`, então esta tela tem prazo de validade: ela para
+ * de abrir quando a loja chegar a 20 mil vendas.
+ *
+ * A correção definitiva é o backend devolver o consolidado junto do cliente
+ * (total comprado, número de compras, data da última). Está registrado como
+ * item 4.1 do plano de refatoração.
  */
 export function useAllSales(options?: CatalogOptions) {
   return useQuery({

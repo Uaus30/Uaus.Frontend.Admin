@@ -396,12 +396,68 @@ export function mapPagedResult<T>(result: BackendPagedResult<T>): UiPagedResult<
   };
 }
 
+/**
+ * Teto de itens que `fetchAllPages` aceita varrer.
+ *
+ * É rede de segurança contra catástrofe, não regra de estilo — por isso o número
+ * é alto. O teto foi posto onde o NAVEGADOR desiste, não onde o desenho começa a
+ * ficar feio: 20 mil linhas de venda passam de 100 páginas e dezenas de MB de
+ * JSON vivo na aba. Abaixo disso a varredura é lenta mas funciona, e derrubar a
+ * tela de quem tem 6 mil vendas seria trocar um problema de performance por um
+ * problema de disponibilidade.
+ *
+ * Passar daqui não é "muitos dados": é a varredura completa ter deixado de ser a
+ * ferramenta certa para aquele endpoint. Quem chega neste ponto precisa de
+ * filtro ou agregação no servidor.
+ */
+export const FETCH_ALL_PAGES_MAX_ITEMS = 20000;
+
+/**
+ * Quantas páginas são pedidas ao mesmo tempo.
+ *
+ * A versão anterior montava um `Promise.all` com TODAS as páginas restantes. Em
+ * `/Sales`, que cresce para sempre, dois anos de operação viram centenas de
+ * requisições disparadas no mesmo tick: o navegador enfileira (6 por origem) e
+ * as demais ficam pendentes segurando memória, enquanto a API leva a rajada
+ * inteira de uma vez. Seis é o que o próprio navegador executaria em paralelo —
+ * o resto era fila disfarçada de concorrência.
+ */
+const FETCH_ALL_PAGES_CONCURRENCY = 6;
+
+export interface FetchAllPagesOptions {
+  /** Sobrescreve {@link FETCH_ALL_PAGES_MAX_ITEMS} para um caso específico. */
+  maxItems?: number;
+}
+
+/**
+ * Varre todas as páginas de um endpoint paginado e devolve os itens somados.
+ *
+ * Serve para os catálogos pequenos e estáveis que a tela precisa inteiros —
+ * departamentos, categorias, etiquetas — onde paginar na interface só
+ * atrapalharia.
+ *
+ * **Falha em vez de truncar.** Passando do teto, a função lança. Devolver os
+ * primeiros N seria a pior saída possível: o resultado alimenta combo de seleção
+ * e soma de relatório, e uma lista cortada pela metade não parece quebrada —
+ * parece que o cliente não existe, que a venda não aconteceu, que o faturamento
+ * caiu. Erro na tela o desenvolvedor conserta; número errado com cara de certo
+ * ninguém percebe.
+ *
+ * @param path Caminho do endpoint paginado.
+ * @param params Filtros repassados em toda página.
+ * @param size Tamanho da página pedida ao servidor.
+ * @param options Teto de itens, quando o padrão não serve.
+ * @throws Se o total informado pelo servidor passar do teto.
+ */
 export async function fetchAllPages<T>(
   path: string,
   params?: Record<string, unknown>,
   size = 200,
-) {
-  // Fetch first page to get total count
+  options?: FetchAllPagesOptions,
+): Promise<T[]> {
+  const maxItems = options?.maxItems ?? FETCH_ALL_PAGES_MAX_ITEMS;
+
+  // A primeira página traz o total: é ela que diz se vale continuar.
   const firstPage = await apiGetOrThrow<BackendPagedResult<T>>(path, {
     ...params,
     page: 1,
@@ -411,28 +467,46 @@ export async function fetchAllPages<T>(
   const allItems: T[] = [...firstPage.items];
   const total = firstPage.pagination.filteredItems ?? allItems.length;
 
+  if (total > maxItems) {
+    throw new Error(
+      `${path} tem ${total} itens e passou do teto de ${maxItems} da varredura completa. ` +
+        `Esta lista precisa de filtro ou paginação no servidor — carregá-la inteira ` +
+        `no navegador deixou de ser viável.`,
+    );
+  }
+
   if (allItems.length >= total || firstPage.items.length === 0) {
     return allItems;
   }
 
-  // Calculate remaining pages and fetch them in parallel
+  // As páginas restantes vão numa janela fixa. A ordem do resultado segue a das
+  // páginas porque cada uma escreve na sua posição, não na ordem em que chega —
+  // sem isso a lista sairia embaralhada conforme a latência de cada requisição.
   const totalPages = Math.ceil(total / size);
-  const remainingPromises = [];
-  
-  for (let page = 2; page <= totalPages; page++) {
-    remainingPromises.push(
-      apiGetOrThrow<BackendPagedResult<T>>(path, {
-        ...params,
-        page,
-        size,
-      })
-    );
-  }
+  const pages: number[] = [];
+  for (let page = 2; page <= totalPages; page++) pages.push(page);
 
-  const remainingResults = await Promise.all(remainingPromises);
-  
-  for (const paged of remainingResults) {
-    allItems.push(...paged.items);
+  const collected: T[][] = new Array(pages.length);
+  let next = 0;
+
+  const worker = async () => {
+    while (next < pages.length) {
+      const index = next++;
+      const paged = await apiGetOrThrow<BackendPagedResult<T>>(path, {
+        ...params,
+        page: pages[index],
+        size,
+      });
+      collected[index] = paged.items;
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(FETCH_ALL_PAGES_CONCURRENCY, pages.length) }, worker),
+  );
+
+  for (const items of collected) {
+    if (items) allItems.push(...items);
   }
 
   return allItems;

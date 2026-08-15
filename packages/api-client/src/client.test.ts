@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiGet, apiGetOrThrow, buildUrl, extractCreatedId, mapPagedResult } from "./client";
+import {
+  ApiError,
+  apiGet,
+  apiGetOrThrow,
+  buildUrl,
+  extractCreatedId,
+  fetchAllPages,
+  FETCH_ALL_PAGES_MAX_ITEMS,
+  mapPagedResult,
+} from "./client";
 
 /** Resposta de sucesso com o corpo informado, ou 204 quando o corpo é `null`. */
 function mockResponse(body: unknown, status = 200) {
@@ -139,5 +148,118 @@ describe("extractCreatedId", () => {
     const response = { headers: new Headers() } as unknown as Response;
 
     expect(extractCreatedId(response)).toBeNull();
+  });
+});
+
+describe("fetchAllPages", () => {
+  /**
+   * Servidor paginado de mentira: devolve a fatia pedida de `items` e o total
+   * declarado, que pode ser MAIOR que a lista — é assim que se simula o catálogo
+   * grande sem materializar 6.000 objetos no teste.
+   */
+  function stubPagedApi(items: unknown[], declaredTotal = items.length) {
+    const calls: { page: number; size: number; concurrent: number }[] = [];
+    let inFlight = 0;
+    let peak = 0;
+
+    const fetchMock = vi.fn(async (url: string) => {
+      const query = new URL(url, "http://local").searchParams;
+      const page = Number(query.get("page") ?? 1);
+      const size = Number(query.get("size") ?? 200);
+
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      calls.push({ page, size, concurrent: inFlight });
+
+      // Cede o event loop para as requisições realmente se sobreporem: sem isso
+      // cada uma resolveria antes da próxima começar e o pico seria sempre 1.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inFlight--;
+
+      return mockResponse({
+        items: items.slice((page - 1) * size, page * size),
+        pagination: { page, size, filteredItems: declaredTotal },
+      });
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+    return { calls, peak: () => peak };
+  }
+
+  it("junta as páginas na ordem das páginas, não na ordem de resposta", async () => {
+    // O resultado alimenta combo de seleção; ordem instável faria a mesma lista
+    // aparecer embaralhada a cada carregamento.
+    const items = Array.from({ length: 25 }, (_, index) => ({ id: index + 1 }));
+    stubPagedApi(items);
+
+    await expect(fetchAllPages<{ id: number }>("/Categorias", undefined, 10)).resolves.toEqual(
+      items,
+    );
+  });
+
+  it("não pede a segunda página quando a primeira já trouxe tudo", async () => {
+    const { calls } = stubPagedApi([{ id: 1 }, { id: 2 }]);
+
+    await fetchAllPages("/Departamentos", undefined, 10);
+
+    expect(calls).toHaveLength(1);
+  });
+
+  it("repassa os filtros em TODAS as páginas", async () => {
+    // Mandar o filtro só na primeira página traria o catálogo inteiro da segunda
+    // em diante — e a tela mostraria itens que o filtro deveria ter escondido.
+    const items = Array.from({ length: 30 }, (_, index) => ({ id: index }));
+    const { calls } = stubPagedApi(items);
+    const fetchMock = vi.mocked(globalThis.fetch);
+
+    await fetchAllPages("/ProductTags", { productId: 7 }, 10);
+
+    expect(calls).toHaveLength(3);
+    for (const [url] of fetchMock.mock.calls as unknown as [string][]) {
+      expect(url).toContain("productId=7");
+    }
+  });
+
+  it("limita quantas páginas vão ao servidor ao mesmo tempo", async () => {
+    // REGRESSÃO: a versão anterior montava um Promise.all com todas as páginas
+    // restantes — 40 requisições no mesmo tick, das quais o navegador executava
+    // 6 e as outras 34 ficavam pendentes segurando memória.
+    const items = Array.from({ length: 410 }, (_, index) => ({ id: index }));
+    const { calls, peak } = stubPagedApi(items);
+
+    await fetchAllPages("/Sales", undefined, 10);
+
+    expect(calls).toHaveLength(41);
+    expect(peak()).toBeLessThanOrEqual(6);
+  });
+
+  it("lança quando o total passa do teto, em vez de devolver a lista cortada", async () => {
+    // Devolver os primeiros N pareceria uma lista legítima: o cliente sumido
+    // viraria "cliente não cadastrado" e a venda faltante, faturamento menor.
+    stubPagedApi([{ id: 1 }], FETCH_ALL_PAGES_MAX_ITEMS + 1);
+
+    await expect(fetchAllPages("/Customers")).rejects.toThrow(/teto/);
+  });
+
+  it("o erro do teto nomeia o endereço e o total encontrado", async () => {
+    stubPagedApi([{ id: 1 }], 123456);
+
+    await expect(fetchAllPages("/Sales")).rejects.toThrow(/\/Sales.*123456/);
+  });
+
+  it("aceita teto próprio quando o padrão não serve", async () => {
+    stubPagedApi([{ id: 1 }], 10);
+
+    await expect(fetchAllPages("/Images", undefined, 200, { maxItems: 5 })).rejects.toThrow(
+      /teto de 5/,
+    );
+  });
+
+  it("aceita exatamente o total do teto", async () => {
+    // Fronteira: o teto é inclusivo — 5.000 passa, 5.001 não.
+    const items = Array.from({ length: 3 }, (_, index) => ({ id: index }));
+    stubPagedApi(items, 3);
+
+    await expect(fetchAllPages("/Tags", undefined, 200, { maxItems: 3 })).resolves.toHaveLength(3);
   });
 });
