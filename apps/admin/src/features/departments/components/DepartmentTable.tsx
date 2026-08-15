@@ -1,6 +1,7 @@
 import React from "react";
 import { Building2, Edit2, FolderTree, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Loader2 } from "lucide-react";
 import type { EnrichedDepartment } from "../types";
@@ -42,6 +43,12 @@ export function DepartmentTable({
   onOpenModal,
   onDelete,
 }: DepartmentTableProps) {
+  // A confirmação guarda o departamento inteiro, não só o id: o diálogo precisa
+  // do nome e da contagem de categorias para dizer o que exatamente se perde.
+  const [departmentToDelete, setDepartmentToDelete] = React.useState<EnrichedDepartment | null>(
+    null,
+  );
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       {/* Search Input bar */}
@@ -118,11 +125,7 @@ export function DepartmentTable({
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                        onClick={() => {
-                          if (confirm("Remover este departamento?")) {
-                            onDelete(department.id);
-                          }
-                        }}
+                        onClick={() => setDepartmentToDelete(department)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -160,6 +163,23 @@ export function DepartmentTable({
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={departmentToDelete !== null}
+        onOpenChange={(open) => !open && setDepartmentToDelete(null)}
+        title="Remover este departamento?"
+        itemName={departmentToDelete?.name}
+        description={
+          departmentToDelete && departmentToDelete.categoriesCount > 0
+            ? `O departamento sai do cadastro e ${departmentToDelete.categoriesCount === 1 ? "1 categoria ligada a ele fica" : `${departmentToDelete.categoriesCount} categorias ligadas a ele ficam`} sem departamento, sumindo dos filtros e relatórios por departamento até serem reclassificadas. A ação não pode ser desfeita.`
+            : "O departamento sai do cadastro. A ação não pode ser desfeita."
+        }
+        confirmLabel="Sim, remover"
+        destructive
+        onConfirm={() => {
+          if (departmentToDelete) onDelete(departmentToDelete.id);
+        }}
+      />
     </div>
   );
 }

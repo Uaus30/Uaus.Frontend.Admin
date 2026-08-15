@@ -2,6 +2,7 @@ import React from "react";
 import { CalendarDays, Receipt, Trash2, Truck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import type { StockEntryDetails } from "../types";
@@ -40,6 +41,11 @@ export function StockEntryDetailsModal({
   formatShortDate,
   onDelete,
 }: StockEntryDetailsModalProps) {
+  // O cancelamento mexe em estoque de verdade — recalcula saldo de produto.
+  // A confirmação vira estado para poder ser lida e testada, em vez de um
+  // window.confirm que trava a aba enquanto o operador decide.
+  const [cancelConfirmOpen, setCancelConfirmOpen] = React.useState(false);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
@@ -133,15 +139,7 @@ export function StockEntryDetailsModal({
                   type="button"
                   variant="destructive"
                   className="gap-2 mr-auto"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Tem certeza que deseja cancelar esta entrada? Isto removerá os lotes de estoque associados e recalculará o estoque atual dos produtos."
-                      )
-                    ) {
-                      onDelete({ id: entryDetails.id });
-                    }
-                  }}
+                  onClick={() => setCancelConfirmOpen(true)}
                 >
                   <Trash2 className="h-4 w-4" /> Cancelar Entrada
                 </Button>
@@ -150,6 +148,17 @@ export function StockEntryDetailsModal({
                 Fechar
               </Button>
             </DialogFooter>
+
+            <ConfirmDialog
+              open={cancelConfirmOpen}
+              onOpenChange={setCancelConfirmOpen}
+              title="Cancelar esta entrada de estoque?"
+              itemName={`Entrada #${entryDetails.id} — ${entryDetails.supplierName} — ${formatCurrency(entryDetails.total)}`}
+              description="Isto removerá os lotes de estoque associados e recalculará o estoque atual dos produtos. Os itens recebidos nesta nota deixam de contar no saldo. A ação não pode ser desfeita."
+              confirmLabel="Sim, cancelar entrada"
+              destructive
+              onConfirm={() => onDelete({ id: entryDetails.id })}
+            />
           </div>
         )}
       </DialogContent>

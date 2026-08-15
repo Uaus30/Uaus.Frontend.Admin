@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, Copy, ExternalLink, ImageIcon, Loader2, Pencil, Search, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
@@ -71,6 +72,11 @@ export function ImageCatalog({
   onRenameOpen,
   onDelete,
 }: ImageCatalogProps) {
+  // Guarda a imagem inteira porque no grid de miniaturas o alvo do clique é
+  // pequeno: mostrar o nome no diálogo é a única chance do operador perceber
+  // que pegou a miniatura vizinha.
+  const [imageToDelete, setImageToDelete] = React.useState<CatalogImage | null>(null);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <div className="flex flex-col gap-3 border-b border-border/50 p-4 sm:flex-row">
@@ -164,11 +170,7 @@ export function ImageCatalog({
                   <Pencil className="h-3 w-3" />
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm("Remover esta imagem?")) {
-                      void onDelete(image.id);
-                    }
-                  }}
+                  onClick={() => setImageToDelete(image)}
                   className="rounded-lg border border-border/50 bg-card/90 p-1.5 backdrop-blur-sm transition-colors hover:border-destructive/50 hover:bg-destructive/20 hover:text-destructive"
                   title="Remover"
                 >
@@ -218,6 +220,19 @@ export function ImageCatalog({
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={imageToDelete !== null}
+        onOpenChange={(open) => !open && setImageToDelete(null)}
+        title="Remover esta imagem?"
+        itemName={imageToDelete?.name}
+        description="O arquivo sai do catálogo e a URL pública para de responder. Qualquer produto ou banner que ainda aponte para ela fica com a imagem quebrada. A ação não pode ser desfeita."
+        confirmLabel="Sim, remover"
+        destructive
+        onConfirm={() => {
+          if (imageToDelete) void onDelete(imageToDelete.id);
+        }}
+      />
     </div>
   );
 }

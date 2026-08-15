@@ -1,6 +1,7 @@
 import React from "react";
 import { BarChart3, Edit2, Folder, Plus, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
@@ -55,6 +56,10 @@ export function CategoryTable({
   onOpenReport,
   onDelete,
 }: CategoryTableProps) {
+  // Guarda a categoria inteira porque o diálogo mostra o nome e a quantidade de
+  // produtos ligados — é o que transforma "Tem certeza?" em informação.
+  const [categoryToDelete, setCategoryToDelete] = React.useState<EnrichedCategory | null>(null);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       {/* Filters bar */}
@@ -161,11 +166,7 @@ export function CategoryTable({
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                        onClick={() => {
-                          if (confirm("Remover esta categoria?")) {
-                            onDelete(category.id);
-                          }
-                        }}
+                        onClick={() => setCategoryToDelete(category)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -203,6 +204,23 @@ export function CategoryTable({
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={categoryToDelete !== null}
+        onOpenChange={(open) => !open && setCategoryToDelete(null)}
+        title="Remover esta categoria?"
+        itemName={categoryToDelete?.name}
+        description={
+          categoryToDelete && categoryToDelete.productCount > 0
+            ? `A categoria sai do cadastro e ${categoryToDelete.productCount === 1 ? "1 produto ligado a ela fica" : `${categoryToDelete.productCount} produtos ligados a ela ficam`} sem categoria, sumindo dos filtros e relatórios por categoria. A ação não pode ser desfeita.`
+            : "A categoria sai do cadastro. A ação não pode ser desfeita."
+        }
+        confirmLabel="Sim, remover"
+        destructive
+        onConfirm={() => {
+          if (categoryToDelete) onDelete(categoryToDelete.id);
+        }}
+      />
     </div>
   );
 }

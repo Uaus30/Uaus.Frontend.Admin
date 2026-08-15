@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Edit2, Loader2, Search, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import type { EnrichedTag } from "../types";
@@ -80,6 +81,10 @@ export function TagTable({
   onOpenReport,
   onDelete,
 }: TagTableProps) {
+  // A etiqueta inteira, e não só o id, porque o diálogo precisa dizer qual
+  // etiqueta e quantos produtos deixam de tê-la.
+  const [tagToDelete, setTagToDelete] = React.useState<EnrichedTag | null>(null);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <div className="flex gap-3 border-b border-border/50 p-4">
@@ -179,11 +184,7 @@ export function TagTable({
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                        onClick={() => {
-                          if (confirm("Remover esta etiqueta?")) {
-                            void onDelete(tag.id);
-                          }
-                        }}
+                        onClick={() => setTagToDelete(tag)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -234,6 +235,23 @@ export function TagTable({
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={tagToDelete !== null}
+        onOpenChange={(open) => !open && setTagToDelete(null)}
+        title="Remover esta etiqueta?"
+        itemName={tagToDelete?.name}
+        description={
+          tagToDelete && tagToDelete.productCount > 0
+            ? `A etiqueta sai do cadastro e é retirada ${tagToDelete.productCount === 1 ? "do 1 produto que a usa" : `dos ${tagToDelete.productCount} produtos que a usam`}${tagToDelete.isPublic ? ", inclusive na vitrine do site" : ""}. A ação não pode ser desfeita.`
+            : "A etiqueta sai do cadastro. A ação não pode ser desfeita."
+        }
+        confirmLabel="Sim, remover"
+        destructive
+        onConfirm={() => {
+          if (tagToDelete) void onDelete(tagToDelete.id);
+        }}
+      />
     </div>
   );
 }

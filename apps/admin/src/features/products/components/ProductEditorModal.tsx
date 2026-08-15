@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Switch } from "@workspace/ui";
 import { Checkbox } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -87,6 +88,10 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  // Regerar a matriz apaga rascunho de variação que o operador digitou à mão
+  // (preço, SKU, estoque por variação). O aviso vira estado para poder mostrar
+  // QUANTAS variações se perdem, em vez de só gritar em caixa alta.
+  const [matrixConfirmOpen, setMatrixConfirmOpen] = useState(false);
 
   // Reset selected grades when gridModal opens
   useEffect(() => {
@@ -107,12 +112,8 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
     );
   };
 
-  const handleGenerateMatrix = () => {
-    if (variationDrafts.length > 0) {
-      const confirm = window.confirm("Atenção! Gerar uma nova matriz de grades irá APAGAR TODAS as variações atuais que você configurou. Tem certeza de que deseja continuar?");
-      if (!confirm) return;
-    }
-    
+  /** Gera a matriz e leva o operador até a tabela recém-criada. */
+  const applyGenerateMatrix = () => {
     generateVariationsMatrix(selectedGradesInModal);
     setGridModalOpen(false);
 
@@ -122,6 +123,17 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 150);
+  };
+
+  const handleGenerateMatrix = () => {
+    // Só há o que perder quando já existe matriz configurada. Sem rascunho, a
+    // confirmação seria um clique a mais sem informação nenhuma.
+    if (variationDrafts.length > 0) {
+      setMatrixConfirmOpen(true);
+      return;
+    }
+
+    applyGenerateMatrix();
   };
 
   const handleLocalSubmit = async (e: React.FormEvent) => {
@@ -496,7 +508,17 @@ export function ProductEditorModal({ editor }: ProductEditorModalProps) {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-    
+
+    <ConfirmDialog
+      open={matrixConfirmOpen}
+      onOpenChange={setMatrixConfirmOpen}
+      title="Gerar uma nova matriz de grades?"
+      description={`As ${variationDrafts.length} variações que você configurou nesta tela serão apagadas e substituídas pela matriz nova — preço, código de barras e estoque digitados em cada uma se perdem junto. A ação não pode ser desfeita.`}
+      confirmLabel="Sim, gerar nova matriz"
+      destructive
+      onConfirm={applyGenerateMatrix}
+    />
+
     <Dialog open={gridModalOpen} onOpenChange={setGridModalOpen}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>

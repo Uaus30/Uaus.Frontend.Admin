@@ -2,6 +2,7 @@ import React from "react";
 import { Eye, Loader2, Printer, Search, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
@@ -93,6 +94,11 @@ export function SalesTable({
   paymentMethods,
   paymentStatuses,
 }: SalesTableProps) {
+  // Guarda a venda inteira: o diálogo precisa do número, do valor e da
+  // quantidade de itens para o operador conferir que é a linha certa antes de
+  // apagar um lançamento que os relatórios do período já contam.
+  const [saleToDelete, setSaleToDelete] = React.useState<EnrichedSale | null>(null);
+
   // O filtro trafega as datas como string (yyyy-MM-dd) até a API; o calendário
   // trabalha com Date. A conversão fica na borda, sem mexer no hook.
   const dateRange: DateRange = {
@@ -278,11 +284,7 @@ export function SalesTable({
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                        onClick={() => {
-                          if (confirm("Remover esta venda e seus itens?")) {
-                            onDelete(sale.id);
-                          }
-                        }}
+                        onClick={() => setSaleToDelete(sale)}
                       >
                         {deletingSaleId === sale.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -318,6 +320,24 @@ export function SalesTable({
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={saleToDelete !== null}
+        onOpenChange={(open) => !open && setSaleToDelete(null)}
+        title="Remover esta venda e seus itens?"
+        itemName={
+          saleToDelete
+            ? `Venda #${saleToDelete.id} — ${formatDate(saleToDelete.createdAt)} — ${formatCurrency(saleToDelete.total)}`
+            : undefined
+        }
+        description={`A venda sai do histórico junto com ${saleToDelete?.items.length ?? 0} ${saleToDelete?.items.length === 1 ? "item" : "itens"}. Ela deixa de contar no faturamento, no lucro e nos relatórios do período. A ação não pode ser desfeita.`}
+        confirmLabel="Sim, remover venda"
+        destructive
+        loading={saleToDelete !== null && deletingSaleId === saleToDelete.id}
+        onConfirm={() => {
+          if (saleToDelete) onDelete(saleToDelete.id);
+        }}
+      />
     </div>
   </div>
   );
