@@ -5,8 +5,8 @@ import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import { buildProductCollections } from "@/services/mappers";
-import { getAllCategories, getAllDepartments } from "@/services/categories.service";
-import { getAllImages, createImageFromFile, buildImageProxyUrl, getImagesPage } from "@/services/images.service";
+
+import { createImageFromFile, buildImageProxyUrl } from "@/services/images.service";
 import {
   getAllProducts,
   getAllProductImages,
@@ -16,9 +16,10 @@ import {
   adjustProductStock,
   syncProductImages,
 } from "@/services/products.service";
-import { getAllTags } from "@/services/tags.service";
+
 import { optimizeImage } from "@/lib/imageOptimizer";
 import { getAuthSession, apiGet, type ImageDto } from "@workspace/api-client-react";
+import { CATALOG_KEYS, useAllDepartments, useAllCategories, useAllTags } from "@/hooks/use-catalog";
 
 /**
  * useProductTable
@@ -58,26 +59,11 @@ export function useProductTable() {
     setPage(1);
   }, [debouncedSearch]);
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ["departments-all-for-products"],
-    queryFn: () => getAllDepartments(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { data: departments = [] } = useAllDepartments();
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories-all-for-products"],
-    queryFn: () => getAllCategories(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { data: categories = [] } = useAllCategories();
 
-  const { data: tags = [] } = useQuery({
-    queryKey: ["tags-all-for-products"],
-    queryFn: () => getAllTags(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { data: tags = [] } = useAllTags();
 
   const { data: statusOptions = [] } = useQuery({
     queryKey: ["product-status-options"],
@@ -352,8 +338,8 @@ export function useProductTable() {
     });
 
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["product-images-all-for-products"] }),
-      queryClient.invalidateQueries({ queryKey: ["images-all-for-products"] }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productImages }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.images }),
       queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
       queryClient.invalidateQueries({ queryKey: ["images-by-product", product.id] }),
     ]);

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProductsPage, getAllProductGroups, getAllProductImages } from "@/services/products.service";
-import { getAllImages } from "@/services/images.service";
+import { getProductsPage } from "@/services/products.service";
+
 import { buildProductCollections } from "@/services/mappers";
 import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft, Grade } from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
@@ -10,6 +10,7 @@ import { useProductForm } from "./editor/useProductForm";
 import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
 import { useProductSubmit } from "./editor/useProductSubmit";
+import { CATALOG_KEYS, useAllImages, useAllProductImages } from "@/hooks/use-catalog";
 
 export function useProductEditor() {
   const queryClient = useQueryClient();
@@ -64,15 +65,9 @@ export function useProductEditor() {
       }),
   });
 
-  const { data: imagesCatalog = [] } = useQuery({
-    queryKey: ["images-all-for-products"],
-    queryFn: () => getAllImages(),
-  });
+  const { data: imagesCatalog = [] } = useAllImages();
 
-  const { data: productImagesAll = [] } = useQuery({
-    queryKey: ["product-images-all-for-products"],
-    queryFn: () => getAllProductImages(),
-  });
+  const { data: productImagesAll = [] } = useAllProductImages();
 
   const enrichedGroupProducts = useMemo(() => {
     const groupProducts = groupProductsPage?.data ?? [];
@@ -100,13 +95,13 @@ export function useProductEditor() {
   async function invalidateProductQueries(groupId?: number | null) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["products-page"] }),
-      queryClient.invalidateQueries({ queryKey: ["product-groups-all-for-products"] }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroups }),
       queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
-      queryClient.invalidateQueries({ queryKey: ["product-tags-all-for-products"] }),
-      queryClient.invalidateQueries({ queryKey: ["product-images-all-for-products"] }),
-      queryClient.invalidateQueries({ queryKey: ["images-all-for-products"] }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productTags }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productImages }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.images }),
       queryClient.invalidateQueries({ queryKey: ["products-by-group", groupId ?? editingGroupId] }),
-      queryClient.invalidateQueries({ queryKey: ["tags-all-for-products"] }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.tags }),
       queryClient.invalidateQueries({ queryKey: ["product-group-history", groupId ?? editingGroupId] }),
     ]);
   }

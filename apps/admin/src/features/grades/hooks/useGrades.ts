@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useGetGrades, type GradeDto } from "@workspace/api-client-react";
 import { createGrade, updateGrade, deleteGrade } from "@/services/grades.service";
 import { getEnumOptions } from "@/services/core";
-import { getAllCategories, getAllDepartments } from "@/services/categories.service";
+
 import type { Grade, GradeVariant, GradeType } from "../types";
+import { useAllDepartments, useAllCategories } from "@/hooks/use-catalog";
 
 /**
  * Converte um GradeDto retornado da API para o modelo Grade da aplicação.
@@ -93,15 +94,9 @@ export function useGrades() {
   const grades = useMemo(() => apiGrades.map((g) => mapDtoToGrade(g, typeMapFromApi)), [apiGrades, typeMapFromApi]);
 
   // Busca categorias e departamentos para vinculação
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories-all-for-grades"],
-    queryFn: () => getAllCategories(),
-  });
+  const { data: categories = [] } = useAllCategories();
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ["departments-all-for-grades"],
-    queryFn: () => getAllDepartments(),
-  });
+  const { data: departments = [] } = useAllDepartments();
 
   const departmentMap = useMemo(() => {
     return new Map(departments.map((d) => [d.id, d.name]));

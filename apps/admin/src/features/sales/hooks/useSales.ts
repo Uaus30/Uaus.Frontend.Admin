@@ -14,7 +14,7 @@ import { buildReceiptFromSale, printReceipt, resolveStoreInfo } from "@workspace
 import { useToast } from "@workspace/ui";
 import { computeSaleTotals, formatCurrency, round2 } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
-import { buildEnrichedSales, buildProductCollections } from "@/services/mappers";
+import { buildProductCollections } from "@/services/mappers";
 import {
   getAllProducts,
   getAllProductGroups,
@@ -24,9 +24,10 @@ import {
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
 import { getAllTags } from "@/services/tags.service";
 import { getAllImages } from "@/services/images.service";
-import { getAllCustomers } from "@/services/customers.service";
+
 import { createSaleWithItems, deleteSaleWithItems, getSaleItems } from "@/services/sales.service";
 import type { NewSaleDraftItem, EnrichedSale, NewSaleDraftPayment } from "../types";
+import { CATALOG_KEYS, useAllCustomers } from "@/hooks/use-catalog";
 
 /**
  * useSales
@@ -77,10 +78,7 @@ export function useSales() {
   const { data: companySettings } = useGetCompanySettings();
 
   // Query: Carrega todos os clientes para o select do checkout
-  const { data: customers = [] } = useQuery({
-    queryKey: ["customers-all-for-sales"],
-    queryFn: () => getAllCustomers(),
-  });
+  const { data: customers = [] } = useAllCustomers();
 
   // Query: Carrega enums de status de pagamento
   const { data: paymentStatuses = [] } = useQuery({
@@ -341,7 +339,7 @@ export function useSales() {
       });
 
       await queryClient.invalidateQueries({ queryKey: getGetSalesQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: ["customers-all-for-sales"] });
+      await queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.customers });
       await queryClient.invalidateQueries({ queryKey: ["products-enriched-for-sales"] });
 
       toast({ title: "Venda registrada com sucesso." });

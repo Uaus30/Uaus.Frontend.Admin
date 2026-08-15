@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCustomersQueryKey,
   useCreateCustomer,
@@ -10,8 +10,9 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { buildCustomerStats } from "@/services/mappers";
-import { getAllSales } from "@/services/sales.service";
+
 import type { CustomerForm } from "../types";
+import { useAllSales } from "@/hooks/use-catalog";
 
 /**
  * Hook customizado para gerenciar a lógica de negócios, consultas e mutações da feature de Clientes.
@@ -45,10 +46,7 @@ export function useCustomers() {
   const { data: customersPage, isLoading } = useGetCustomers({ search, page, limit: 15 });
 
   // Query de vendas para calcular estatísticas
-  const { data: allSales = [] } = useQuery({
-    queryKey: ["sales-all-for-customers"],
-    queryFn: () => getAllSales(),
-  });
+  const { data: allSales = [] } = useAllSales();
 
   // Cálculo das estatísticas consolidadas de compras por cliente
   const statsByCustomerId = useMemo(() => buildCustomerStats(allSales), [allSales]);

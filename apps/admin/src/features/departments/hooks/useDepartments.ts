@@ -2,14 +2,9 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { useDebounce } from "@/hooks/use-debounce";
-import {
-  createDepartment,
-  deleteDepartment,
-  getAllCategories,
-  getDepartmentsPage,
-  updateDepartment,
-} from "@/services/categories.service";
-import type { DepartmentForm, EnrichedDepartment, Category } from "../types";
+import { createDepartment, deleteDepartment, getDepartmentsPage, updateDepartment } from "@/services/categories.service";
+import type { DepartmentForm, EnrichedDepartment } from "../types";
+import { RESOURCE_KEYS, useAllCategories } from "@/hooks/use-catalog";
 
 /**
  * useDepartments
@@ -46,7 +41,7 @@ export function useDepartments() {
 
   // Query: Paginated departments page list
   const { data: departmentsPage, isLoading } = useQuery({
-    queryKey: ["departments-page", { search: debouncedSearch, page }],
+    queryKey: [...RESOURCE_KEYS.departments, "page", { search: debouncedSearch, page }],
     queryFn: () =>
       getDepartmentsPage({
         search: debouncedSearch,
@@ -56,10 +51,7 @@ export function useDepartments() {
   });
 
   // Query: Fetch all categories to compute stats
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["categories-all-for-departments"],
-    queryFn: () => getAllCategories(),
-  });
+  const { data: categories = [] } = useAllCategories();
 
   // Derived: Department list mapped with dynamic category counts
   const departmentsWithStats = useMemo<EnrichedDepartment[]>(() => {
@@ -112,11 +104,15 @@ export function useDepartments() {
         toast({ title: "Departamento criado." });
       }
 
-      // Invalidate queries to trigger UI refresh
+      // Invalida os RECURSOS, não chaves específicas: a listagem desta tela, o
+      // catálogo que as outras features leem e qualquer busca ficam sob o mesmo
+      // prefixo. Antes a lista de `-for-products` ficava de fora, e criar um
+      // departamento não o fazia aparecer no editor de produtos.
+      //
+      // Categorias entram junto porque exibem o nome do departamento.
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["departments-page"] }),
-        queryClient.invalidateQueries({ queryKey: ["departments-all-for-categories"] }),
-        queryClient.invalidateQueries({ queryKey: ["categories-all-for-departments"] }),
+        queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.departments }),
+        queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.categories }),
       ]);
       setModalOpen(false);
     } catch (error) {
@@ -137,8 +133,8 @@ export function useDepartments() {
     try {
       await deleteDepartment(departmentId);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["departments-page"] }),
-        queryClient.invalidateQueries({ queryKey: ["departments-all-for-categories"] }),
+        queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.departments }),
+        queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.categories }),
       ]);
       toast({ title: "Departamento removido." });
     } catch (error) {

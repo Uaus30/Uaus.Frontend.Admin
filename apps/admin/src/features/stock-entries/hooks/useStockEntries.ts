@@ -8,9 +8,10 @@ import {
   useReceivePurchaseEntry,
   useDeletePurchaseEntry,
 } from "@workspace/api-client-react";
-import { getAllSuppliers } from "@/services/suppliers.service";
+
 import { getAllProducts } from "@/services/products.service";
 import type { NewEntryItem } from "../types";
+import { CATALOG_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 
 /**
  * useStockEntries
@@ -74,14 +75,11 @@ export function useStockEntries() {
   );
 
   // Query: Carrega fornecedores ativos para listagem/formulário
-  const { data: suppliers = [] } = useQuery({
-    queryKey: ["suppliers-all-for-entries"],
-    queryFn: () => getAllSuppliers(),
-  });
+  const { data: suppliers = [] } = useAllSuppliers();
 
   // Query: Carrega todos os produtos para seleção rápida na nota
   const { data: products = [] } = useQuery({
-    queryKey: ["products-all-for-entries"],
+    queryKey: CATALOG_KEYS.products,
     queryFn: () => getAllProducts(),
   });
 

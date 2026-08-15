@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useQuery } from "@tanstack/react-query";
+
 import { useToast } from "@workspace/ui";
 import { useGetInventoryReport, apiGetOrThrow } from "@workspace/api-client-react";
-import { getAllSuppliers } from "@/services/suppliers.service";
-import { getAllCategories } from "@/services/categories.service";
-import type { InventoryReport } from "../types";
+
+
+import { useAllCategories, useAllSuppliers } from "@/hooks/use-catalog";
 
 /**
  * useInventory
@@ -57,16 +57,10 @@ export function useInventory() {
   }, [isError, error, toast]);
 
   // Query: Carrega lista completa de fornecedores para filtros
-  const { data: suppliers = [] } = useQuery({
-    queryKey: ["suppliers-all-for-inventory"],
-    queryFn: () => getAllSuppliers(),
-  });
+  const { data: suppliers = [] } = useAllSuppliers();
 
   // Query: Carrega lista completa de categorias para filtros
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories-all-for-inventory"],
-    queryFn: () => getAllCategories(),
-  });
+  const { data: categories = [] } = useAllCategories();
 
   // Funções de manipulação do zoom da tabela
   function handleZoomIn() {

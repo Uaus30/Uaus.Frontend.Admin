@@ -1,14 +1,16 @@
+import { RESOURCE_KEYS } from "@/hooks/use-catalog";
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
-import { getAllCategories, getAllDepartments } from "@/services/categories.service";
-import { getGradesByCategoryId, getAllGrades } from "@/services/grades.service";
-import { getAllTags } from "@/services/tags.service";
-import { getAllProductTags, deleteProductGroup } from "@/services/products.service";
+
+import { getGradesByCategoryId } from "@/services/grades.service";
+
+import { deleteProductGroup } from "@/services/products.service";
 import { mapDtoToGrade, createEmptyProductEditor } from "./utils";
 import type { ProductGroupForm, ProductEditorForm, Grade, LocalImage } from "../../types";
 import type { TagDto } from "@workspace/api-client-react";
+import { useAllDepartments, useAllCategories, useAllGrades, useAllTags, useAllProductTags, useAllProductGroups, CATALOG_KEYS } from "@/hooks/use-catalog";
 
 export interface UseProductFormProps {
   form: ProductGroupForm;
@@ -40,10 +42,7 @@ export function useProductForm({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ["departments-all-for-products"],
-    queryFn: () => getAllDepartments(),
-  });
+  const { data: departments = [] } = useAllDepartments();
 
   const { data: gradeTypeOptions = [] } = useQuery({
     queryKey: ["grade-type-options"],
@@ -64,16 +63,10 @@ export function useProductForm({
     return map;
   }, [gradeTypeOptions]);
 
-  const { data: apiGrades = [] } = useQuery({
-    queryKey: ["grades-all-for-products"],
-    queryFn: () => getAllGrades(),
-  });
+  const { data: apiGrades = [] } = useAllGrades();
   const gradesList = useMemo(() => apiGrades.map((g: any) => mapDtoToGrade(g, typeMapFromApi)), [apiGrades, typeMapFromApi]);
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories-all-for-products"],
-    queryFn: () => getAllCategories(),
-  });
+  const { data: categories = [] } = useAllCategories();
 
   const { data: categoryGradesRaw = [] } = useQuery({
     queryKey: ["grades-by-category", form.categoryId],
@@ -85,20 +78,11 @@ export function useProductForm({
     return categoryGradesRaw.map((g: any) => mapDtoToGrade(g, typeMapFromApi));
   }, [categoryGradesRaw, typeMapFromApi]);
 
-  const { data: productGroups = [] } = useQuery({
-    queryKey: ["product-groups-all-for-products"],
-    queryFn: () => import("@/services/products.service").then(m => m.getAllProductGroups()),
-  });
+  const { data: productGroups = [] } = useAllProductGroups();
 
-  const { data: tags = [] } = useQuery({
-    queryKey: ["tags-all-for-products"],
-    queryFn: () => getAllTags(),
-  });
+  const { data: tags = [] } = useAllTags();
 
-  const { data: productTags = [] } = useQuery({
-    queryKey: ["product-tags-all-for-products"],
-    queryFn: () => getAllProductTags(),
-  });
+  const { data: productTags = [] } = useAllProductTags();
 
   const { data: statusOptions = [] } = useQuery({
     queryKey: ["product-status-options"],
@@ -155,7 +139,9 @@ export function useProductForm({
       if (next.some((tag) => tag.id === createdTag.id)) return next;
       return [...next, createdTag];
     });
-    queryClient.invalidateQueries({ queryKey: ["tags-page"] });
+    // Invalida o RECURSO inteiro: a listagem da feature de etiquetas, o catálogo
+    // e a busca do autocomplete desta mesma tela ficam sob o mesmo prefixo.
+    queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.tags });
   }
 
   function resetForm() {
@@ -188,7 +174,7 @@ export function useProductForm({
     try {
       await deleteProductGroup(productGroupId);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["product-groups-all-for-products"] }),
+        queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroups }),
         queryClient.invalidateQueries({ queryKey: ["products-page"] }),
         queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
         queryClient.invalidateQueries({ queryKey: ["products-by-group", productGroupId] }),

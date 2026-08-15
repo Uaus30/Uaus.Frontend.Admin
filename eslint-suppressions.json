@@ -76,9 +76,6 @@
   "apps/admin/src/features/grades/hooks/useGrades.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
     }
   },
   "apps/admin/src/features/images/components/ImageCatalog.tsx": {
@@ -126,9 +123,6 @@
   "apps/admin/src/features/inventory/hooks/useInventory.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 2
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -251,9 +245,6 @@
     "@typescript-eslint/no-explicit-any": {
       "count": 4
     },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
       "count": 4
     }
@@ -261,9 +252,6 @@
   "apps/admin/src/features/products/hooks/useProductTable.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 2
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -285,9 +273,6 @@
     }
   },
   "apps/admin/src/features/sales/hooks/useSales.ts": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
       "count": 2
     }

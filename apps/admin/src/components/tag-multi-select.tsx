@@ -1,3 +1,4 @@
+import { RESOURCE_KEYS } from "@/hooks/use-catalog";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { TagDto } from "@workspace/api-client-react";
@@ -42,7 +43,7 @@ export function TagMultiSelect({
   const [creating, setCreating] = useState(false);
 
   const { data: searchPage, isFetching } = useQuery({
-    queryKey: ["tags-search", search],
+    queryKey: [...RESOURCE_KEYS.tags, "search", search],
     enabled: open,
     queryFn: () => searchTags({ search, limit: 20 }),
   });

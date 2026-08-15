@@ -1,3 +1,4 @@
+import { RESOURCE_KEYS } from "@/hooks/use-catalog";
 import { useState, useMemo, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,7 +55,7 @@ export function useTags() {
 
   // Query do TanStack Query para carregar a página de etiquetas
   const { data: tagPage, isLoading } = useQuery({
-    queryKey: ["tags-page", { search: debouncedSearch, page, limit }],
+    queryKey: [...RESOURCE_KEYS.tags, "page", { search: debouncedSearch, page, limit }],
     queryFn: () => getTagsPage({ search: debouncedSearch, page, limit }),
   });
 
@@ -164,7 +165,7 @@ export function useTags() {
         toast({ title: "Etiqueta criada." });
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["tags-page"] });
+      await queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.tags });
       setModalOpen(false);
     } catch (error) {
       toast({
@@ -184,7 +185,7 @@ export function useTags() {
   async function handleDelete(tagId: number) {
     try {
       await deleteTag(tagId);
-      await queryClient.invalidateQueries({ queryKey: ["tags-page"] });
+      await queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.tags });
       toast({ title: "Etiqueta removida." });
     } catch (error) {
       toast({

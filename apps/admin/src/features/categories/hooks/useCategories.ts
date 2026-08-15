@@ -2,16 +2,11 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@workspace/ui";
-import { 
-  createCategory, 
-  deleteCategory, 
-  getAllDepartments, 
-  getCategoriesPage, 
-  updateCategory 
-} from "@/services/categories.service";
+import { createCategory, deleteCategory, getCategoriesPage, updateCategory } from "@/services/categories.service";
 import { getCategoryReport } from "@/services/reports.service";
 import { getGetCategoriesQueryKey } from "@workspace/api-client-react";
-import type { CategoryForm, EnrichedCategory, Department, CategoryReport } from "../types";
+import type { CategoryForm, EnrichedCategory, CategoryReport } from "../types";
+import { useAllDepartments } from "@/hooks/use-catalog";
 
 /**
  * useCategories
@@ -56,10 +51,7 @@ export function useCategories() {
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
 
   // Query: Fetch all departments
-  const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["departments-all-for-categories"],
-    queryFn: () => getAllDepartments(),
-  });
+  const { data: departments = [] } = useAllDepartments();
 
   // Query: Paginated and filtered categories
   const { data: categoriesPage, isLoading, isError, error } = useQuery({
