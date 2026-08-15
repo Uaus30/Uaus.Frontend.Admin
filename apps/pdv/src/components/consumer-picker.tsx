@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IdCard, Loader2, Search, UserCheck, X } from "lucide-react";
 import { apiGet, type BackendPagedResult, type CustomerDto } from "@workspace/api-client-react";
@@ -8,14 +8,12 @@ import { Label } from "@workspace/ui";
 import { searchLocalCustomers } from "@/offline";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import { EMPTY_CONSUMER, type PdvConsumer } from "@/stores/use-pdv-store";
+import { MIN_SEARCH_LENGTH, useDebouncedValue } from "@/features/pdv/hooks/use-debounced-value";
 
 type ConsumerPickerProps = {
   consumer: PdvConsumer;
   onChange: (consumer: PdvConsumer) => void;
 };
-
-/** Caracteres mínimos antes de bater na API de clientes. */
-const MIN_SEARCH_LENGTH = 2;
 
 /** Resultado da busca de clientes, no mínimo que a tela usa. */
 type ConsumerOption = Pick<CustomerDto, "id" | "name" | "document">;
@@ -62,12 +60,11 @@ async function searchConsumers(term: string, online: boolean): Promise<ConsumerO
  */
 export function ConsumerPicker({ consumer, onChange }: ConsumerPickerProps) {
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 400);
-    return () => clearTimeout(timer);
-  }, [search]);
+  // Campo vazio zera a busca na hora, sem esperar o debounce: quem apaga o termo
+  // (ou remove o cliente escolhido) não pode continuar vendo a lista anterior.
+  const debouncedTerm = useDebouncedValue(search.trim());
+  const debouncedSearch = search.trim() === "" ? "" : debouncedTerm;
 
   const online = useOfflineStore((state) => state.online);
 
@@ -82,7 +79,6 @@ export function ConsumerPicker({ consumer, onChange }: ConsumerPickerProps) {
 
   const clear = () => {
     setSearch("");
-    setDebouncedSearch("");
     onChange(EMPTY_CONSUMER);
   };
 
