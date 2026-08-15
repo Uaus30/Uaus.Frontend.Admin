@@ -106,7 +106,7 @@ interface CloseCashRegisterDialogProps {
   onOpenChange: (open: boolean) => void;
   summary: CashRegisterSessionSummaryDto | null;
   session: CashRegisterSessionDto | null;
-  onCloseRegister: (value: number, obs: string) => Promise<any>;
+  onCloseRegister: (value: number, obs: string) => Promise<unknown>;
 }
 
 export function CloseCashRegisterDialog({
@@ -173,7 +173,7 @@ export function CloseCashRegisterDialog({
             {(summary?.byPaymentMethod.length ?? 0) > 0 && (
               <div className="col-span-2 space-y-1 pt-1">
                 <p className="text-xs text-muted-foreground uppercase font-bold">Por Forma de Pagamento</p>
-                {summary!.byPaymentMethod.map((entry: any) => (
+                {summary!.byPaymentMethod.map((entry) => (
                   <div key={entry.paymentMethodId} className="flex justify-between text-xs font-mono">
                     <span className="text-muted-foreground">
                       {entry.paymentMethodName} ({entry.count})

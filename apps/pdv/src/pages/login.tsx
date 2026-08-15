@@ -19,10 +19,10 @@ export default function Login() {
   const { mutate: login, isPending } = useLogin({
     mutation: {
       onSuccess: (data) => {
-        queryClient.setQueryData(getGetMeQueryKey(), (data as any).user ?? data);
+        queryClient.setQueryData(getGetMeQueryKey(), data.user);
         setLocation("/");
       },
-      onError: (err: any) => {
+      onError: (err) => {
         toast({
           title: "Erro ao entrar",
           description: err?.message || "Credenciais inválidas. Tente novamente.",

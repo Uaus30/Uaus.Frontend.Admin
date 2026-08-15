@@ -73,12 +73,12 @@ function payload(overrides: Record<string, unknown> = {}) {
 
 /** Corpo enviado na chamada de número `index` do apiPost. */
 function postBody(index: number) {
-  return apiPost.mock.calls[index][1] as Record<string, any>;
+  return apiPost.mock.calls[index][1] as Record<string, unknown>;
 }
 
 /** Venda gravada na fila offline na chamada de número `index`. */
 function queuedSale(index = 0) {
-  return savePendingSale.mock.calls[index][0] as Record<string, any>;
+  return savePendingSale.mock.calls[index][0] as Record<string, unknown>;
 }
 
 describe("computeSaleTotal", () => {
