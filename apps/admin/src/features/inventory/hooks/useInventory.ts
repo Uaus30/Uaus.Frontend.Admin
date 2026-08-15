@@ -6,6 +6,8 @@ import { useGetInventoryReport, apiGetOrThrow } from "@workspace/api-client-reac
 
 
 import { useAllCategories, useAllSuppliers } from "@/hooks/use-catalog";
+import { describeApiError } from "@workspace/core";
+import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 /**
  * useInventory
@@ -42,19 +44,8 @@ export function useInventory() {
     limit,
   });
 
-  // Tratamento de erros de indisponibilidade do servidor
-  useEffect(() => {
-    if (isError && error) {
-      const apiError = error as any;
-      if (apiError.status >= 500) {
-        toast({
-          title: "Servidor indisponível",
-          description: "O servidor está indisponível no momento. Por favor, tente novamente mais tarde.",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [isError, error, toast]);
+  // O aviso de servidor fora do ar é o mesmo em toda tela — mora num hook só.
+  useApiErrorToast(isError, error);
 
   // Query: Carrega lista completa de fornecedores para filtros
   const { data: suppliers = [] } = useAllSuppliers();
@@ -164,10 +155,10 @@ export function useInventory() {
       document.body.removeChild(link);
 
       toast({ title: "Exportado", description: "Planilha gerada com sucesso!" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erro na exportação",
-        description: err?.message || "Erro desconhecido.",
+        description: describeApiError(err, "Erro desconhecido."),
         variant: "destructive",
       });
     }

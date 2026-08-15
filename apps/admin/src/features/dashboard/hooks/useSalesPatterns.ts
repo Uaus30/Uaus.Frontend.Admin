@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { getDashboardPatterns, refreshDashboardPatterns } from "@/features/dashboard/api";
 import type { DashboardPatterns } from "../types";
+import { describeApiError } from "@workspace/core";
 
 /** Janelas oferecidas no seletor do painel de padrões. */
 export const PATTERN_WINDOWS = [3, 6, 12, 24] as const;
@@ -55,7 +56,7 @@ export function useSalesPatterns() {
     onError: (error: unknown) => {
       toast({
         title: "Não foi possível recalcular",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     },

@@ -17,6 +17,7 @@ import { useToast } from "@workspace/ui";
 import { generateRandomTagColor } from "@/lib/tag-colors";
 import { createTag, searchTags } from "@/services/tags.service";
 import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
+import { describeApiError } from "@workspace/core";
 
 type TagMultiSelectProps = {
   allTags: TagDto[];
@@ -113,7 +114,7 @@ export function TagMultiSelect({
     } catch (error) {
       toast({
         title: "Erro ao criar etiqueta",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {

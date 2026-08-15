@@ -10,6 +10,7 @@ import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 import { getDisplayName, splitFullName, usernameFromEmail } from "@/services/mappers";
 import type { UserForm } from "../types";
+import { describeApiError } from "@workspace/core";
 
 export const emptyForm: UserForm = {
   fullName: "",
@@ -74,7 +75,7 @@ export function useUsers() {
       onError: (error) =>
         toast({
           title: "Erro ao criar usuário",
-          description: error.message,
+          description: describeApiError(error),
           variant: "destructive",
         }),
     },
@@ -90,7 +91,7 @@ export function useUsers() {
       onError: (error) =>
         toast({
           title: "Erro ao atualizar usuário",
-          description: error.message,
+          description: describeApiError(error),
           variant: "destructive",
         }),
     },
@@ -106,7 +107,7 @@ export function useUsers() {
       onError: (error) =>
         toast({
           title: "Erro ao remover usuário",
-          description: error.message,
+          description: describeApiError(error),
           variant: "destructive",
         }),
     },

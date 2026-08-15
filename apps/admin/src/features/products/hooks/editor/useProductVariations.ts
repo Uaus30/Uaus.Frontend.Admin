@@ -4,6 +4,7 @@ import { useToast } from "@workspace/ui";
 import { deleteProduct } from "@/services/products.service";
 import { createVariationDraft } from "./utils";
 import type { VariationDraft, Grade, ProductGroupForm, ProductEditorForm } from "../../types";
+import { describeApiError } from "@workspace/core";
 
 export interface UseProductVariationsProps {
   form: ProductGroupForm;
@@ -153,7 +154,7 @@ export function useProductVariations({
     } catch (error) {
       toast({
         title: "Erro ao remover variação",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     }

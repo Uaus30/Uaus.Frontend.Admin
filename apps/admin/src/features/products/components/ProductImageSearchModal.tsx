@@ -6,6 +6,7 @@ import { Loader2, Search, Globe, AlertTriangle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { searchInternetImages, type ImageSearchResult } from "@/services/images.service";
 import { useToast } from "@workspace/ui";
+import { describeApiError } from "@workspace/core";
 
 /**
  * Propriedades para o componente ProductImageSearchModal.
@@ -101,7 +102,7 @@ export function ProductImageSearchModal({
       console.error("Erro ao selecionar imagem:", error);
       toast({
         title: "Erro ao processar imagem",
-        description: error instanceof Error ? error.message : "Erro desconhecido.",
+        description: describeApiError(error, "Erro desconhecido."),
         variant: "destructive",
       });
       setSelectedUrl(null);

@@ -11,6 +11,7 @@ import { mapDtoToGrade, createEmptyProductEditor } from "./utils";
 import type { ProductGroupForm, ProductEditorForm, Grade, LocalImage } from "../../types";
 import type { TagDto } from "@workspace/api-client-react";
 import { useAllDepartments, useAllCategories, useAllGrades, useAllTags, useAllProductTags, useAllProductGroups, CATALOG_KEYS } from "@/hooks/use-catalog";
+import { describeApiError } from "@workspace/core";
 
 export interface UseProductFormProps {
   form: ProductGroupForm;
@@ -184,7 +185,7 @@ export function useProductForm({
     } catch (error) {
       toast({
         title: "Erro ao remover produto",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     }

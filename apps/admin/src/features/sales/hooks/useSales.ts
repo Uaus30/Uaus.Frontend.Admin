@@ -12,7 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { buildReceiptFromSale, printReceipt, resolveStoreInfo } from "@workspace/receipt";
 import { useToast } from "@workspace/ui";
-import { computeSaleTotals, formatCurrency, round2 } from "@workspace/core";
+import { describeApiError, computeSaleTotals, formatCurrency, round2 } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import { buildProductCollections } from "@/services/mappers";
 import {
@@ -348,7 +348,7 @@ export function useSales() {
     } catch (error) {
       toast({
         title: "Erro ao registrar venda",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -385,7 +385,7 @@ export function useSales() {
     } catch (error) {
       toast({
         title: "Erro ao gerar o cupom",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -405,7 +405,7 @@ export function useSales() {
     } catch (error) {
       toast({
         title: "Erro ao remover venda",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {

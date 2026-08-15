@@ -11,6 +11,7 @@ import {
   type PaymentMethodDto
 } from "@workspace/api-client-react";
 import type { PaymentMethodFormValues, InstallmentFormValue } from "../types";
+import { describeApiError } from "@workspace/core";
 
 /**
  * Hook customizado para gerenciar o estado e operações de CRUD das Formas de Pagamento.
@@ -165,10 +166,10 @@ export function usePaymentMethods() {
 
       queryClient.invalidateQueries({ queryKey: getGetPaymentMethodsQueryKey() });
       closeModal();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erro ao salvar",
-        description: err?.message || "Ocorreu um erro ao salvar a forma de pagamento.",
+        description: describeApiError(err, "Ocorreu um erro ao salvar a forma de pagamento."),
         variant: "destructive"
       });
     }
@@ -181,10 +182,10 @@ export function usePaymentMethods() {
       await deleteMutation.mutateAsync({ id });
       toast({ title: "Sucesso", description: "Forma de pagamento excluída com sucesso!" });
       queryClient.invalidateQueries({ queryKey: getGetPaymentMethodsQueryKey() });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erro ao excluir",
-        description: err?.message || "Ocorreu um erro ao excluir a forma de pagamento.",
+        description: describeApiError(err, "Ocorreu um erro ao excluir a forma de pagamento."),
         variant: "destructive"
       });
     }

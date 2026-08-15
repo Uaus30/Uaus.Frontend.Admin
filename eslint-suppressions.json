@@ -13,9 +13,6 @@
     }
   },
   "apps/admin/src/features/categories/hooks/useCategories.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
@@ -122,7 +119,7 @@
   },
   "apps/admin/src/features/inventory/hooks/useInventory.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 4
+      "count": 2
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -130,7 +127,7 @@
   },
   "apps/admin/src/features/login/hooks/useLoginFeature.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 2
+      "count": 1
     }
   },
   "apps/admin/src/features/logs/components/LogsTable.tsx": {
@@ -150,7 +147,7 @@
   },
   "apps/admin/src/features/payment-methods/hooks/usePaymentMethods.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 3
+      "count": 1
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -302,7 +299,7 @@
   },
   "apps/admin/src/features/stock-entries/hooks/useStockEntries.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 4
+      "count": 1
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -333,7 +330,7 @@
   },
   "apps/admin/src/features/suppliers/hooks/useSuppliers.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 4
+      "count": 3
     },
     "react-hooks/set-state-in-effect": {
       "count": 1

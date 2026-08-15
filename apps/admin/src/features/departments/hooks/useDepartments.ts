@@ -5,6 +5,7 @@ import { useDebounce } from "@workspace/ui";
 import { createDepartment, deleteDepartment, getDepartmentsPage, updateDepartment } from "@/services/categories.service";
 import type { DepartmentForm, EnrichedDepartment } from "../types";
 import { RESOURCE_KEYS, useAllCategories } from "@/hooks/use-catalog";
+import { describeApiError } from "@workspace/core";
 
 /**
  * useDepartments
@@ -118,7 +119,7 @@ export function useDepartments() {
     } catch (error) {
       toast({
         title: "Erro ao salvar departamento",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -140,7 +141,7 @@ export function useDepartments() {
     } catch (error) {
       toast({
         title: "Erro ao remover departamento",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     }

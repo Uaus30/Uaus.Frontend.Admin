@@ -7,6 +7,7 @@ import { generateRandomTagColor } from "@/lib/tag-colors";
 import { createTag, deleteTag, getTagsPage, updateTag } from "@/services/tags.service";
 import { getTagReport } from "@/services/reports.service";
 import type { TagForm, EnrichedTag, TagReport } from "../types";
+import { describeApiError } from "@workspace/core";
 
 export type SortDir = "asc" | "desc";
 export type SortBy = "name" | "productCount" | "createdAt";
@@ -170,7 +171,7 @@ export function useTags() {
     } catch (error) {
       toast({
         title: "Erro ao salvar etiqueta",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -190,7 +191,7 @@ export function useTags() {
     } catch (error) {
       toast({
         title: "Erro ao remover etiqueta",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     }

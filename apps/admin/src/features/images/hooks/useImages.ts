@@ -12,6 +12,7 @@ import {
 } from "@/services/images.service";
 import type { CatalogImage } from "../types";
 import { optimizeImage } from "@/lib/imageOptimizer";
+import { describeApiError } from "@workspace/core";
 
 /**
  * useImages
@@ -172,7 +173,7 @@ export function useImages() {
     } catch (error) {
       toast({
         title: "Erro no upload",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -212,7 +213,7 @@ export function useImages() {
     } catch (error) {
       toast({
         title: "Erro ao renomear",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -234,7 +235,7 @@ export function useImages() {
     } catch (error) {
       toast({
         title: "Erro ao remover imagem",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     }

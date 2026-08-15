@@ -18,6 +18,7 @@ import {
 import { useToast } from "@workspace/ui";
 import { getLogTypeBadge } from "@/features/logs/components/LogsTable";
 import { formatDateTime } from "@/features/logs/hooks/useLogs";
+import { describeApiError } from "@workspace/core";
 
 /**
  * Página de Detalhes de um Registro de Log específico.
@@ -35,7 +36,7 @@ export default function LogDetails() {
     if (isError && error) {
       toast({
         title: "Erro ao carregar detalhes do log",
-        description: error.message || "Log não encontrado.",
+        description: describeApiError(error, "Log não encontrado."),
         variant: "destructive",
       });
       setLocation("/sistema/logs");

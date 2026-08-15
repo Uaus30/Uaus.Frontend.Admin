@@ -7,6 +7,8 @@ import { getCategoryReport } from "@/services/reports.service";
 import { getGetCategoriesQueryKey } from "@workspace/api-client-react";
 import type { CategoryForm, EnrichedCategory, CategoryReport } from "../types";
 import { useAllDepartments } from "@/hooks/use-catalog";
+import { describeApiError } from "@workspace/core";
+import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 /**
  * useCategories
@@ -65,19 +67,8 @@ export function useCategories() {
       }),
   });
 
-  // Side Effect: Server error toast notification
-  useEffect(() => {
-    if (isError && error) {
-      const apiError = error as any;
-      if (apiError.status >= 500) {
-        toast({
-          title: "Servidor indisponível",
-          description: "O servidor está indisponível no momento. Por favor, tente novamente mais tarde.",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [isError, error, toast]);
+  // O aviso de servidor fora do ar é o mesmo em toda tela — mora num hook só.
+  useApiErrorToast(isError, error);
 
   // Derived: Enriched category list with department objects
   const categoriesWithDepartment = useMemo<EnrichedCategory[]>(() => {
@@ -162,7 +153,7 @@ export function useCategories() {
     } catch (error) {
       toast({
         title: "Erro ao salvar categoria",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -181,7 +172,7 @@ export function useCategories() {
     } catch (error) {
       toast({
         title: "Erro ao remover categoria",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     }

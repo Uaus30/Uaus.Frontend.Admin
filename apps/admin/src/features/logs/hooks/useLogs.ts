@@ -5,6 +5,7 @@ import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
 import type { DateRange } from "../types";
+import { describeApiError } from "@workspace/core";
 
 /**
  * Período padrão calculado NO MOMENTO da chamada — uma constante de módulo
@@ -80,7 +81,7 @@ export function useLogs() {
     if (isError && error) {
       toast({
         title: "Erro ao carregar logs",
-        description: error.message || "Não foi possível conectar com o servidor.",
+        description: describeApiError(error, "Não foi possível conectar com o servidor."),
         variant: "destructive",
       });
     }

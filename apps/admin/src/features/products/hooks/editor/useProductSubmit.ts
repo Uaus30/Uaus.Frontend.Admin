@@ -9,6 +9,7 @@ import {
 } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
 import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft, Grade } from "../../types";
+import { describeApiError } from "@workspace/core";
 
 export interface UseProductSubmitProps {
   form: ProductGroupForm;
@@ -247,7 +248,7 @@ export function useProductSubmit({
     } catch (error) {
       toast({
         title: "Erro ao salvar produto",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {

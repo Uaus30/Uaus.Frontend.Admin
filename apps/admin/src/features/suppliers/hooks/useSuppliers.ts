@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@workspace/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { normalizeSearchText } from "@workspace/core";
+import { describeApiError, normalizeSearchText } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import {
   createSupplier,
@@ -11,6 +11,7 @@ import {
   updateSupplier,
 } from "@/services/suppliers.service";
 import type { SupplierForm } from "../types";
+import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 export const AVATAR_COLORS = [
   "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
@@ -147,20 +148,8 @@ export function useSuppliers() {
     queryFn: () => getSuppliersPage({ search, status: statusParam, page, limit }),
   });
 
-
-  // Notifica caso o servidor esteja indisponível
-  useEffect(() => {
-    if (isError && error) {
-      const apiError = error as any;
-      if (apiError.status >= 500) {
-        toast({
-          title: "Servidor indisponível",
-          description: "O servidor está indisponível no momento. Por favor, tente novamente mais tarde.",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [isError, error, toast]);
+  // O aviso de servidor fora do ar é o mesmo em toda tela — mora num hook só.
+  useApiErrorToast(isError, error);
 
   // O filtro já foi aplicado pelo servidor — aqui só se lê o que veio.
   const suppliers = suppliersPage?.data ?? [];
@@ -271,7 +260,7 @@ export function useSuppliers() {
     } catch (error: any) {
       toast({
         title: "Erro ao salvar fornecedor",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -294,7 +283,7 @@ export function useSuppliers() {
       } catch (error: any) {
         toast({
           title: "Erro ao remover fornecedor",
-          description: error instanceof Error ? error.message : "Tente novamente.",
+          description: describeApiError(error, "Tente novamente."),
           variant: "destructive",
         });
       }

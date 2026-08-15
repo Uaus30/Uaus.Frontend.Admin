@@ -12,6 +12,8 @@ import {
 import { getAllProducts } from "@/services/products.service";
 import type { NewEntryItem } from "../types";
 import { CATALOG_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
+import { describeApiError } from "@workspace/core";
+import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 /**
  * useStockEntries
@@ -50,19 +52,8 @@ export function useStockEntries() {
     supplierId: selectedSupplierFilter !== "all" ? Number(selectedSupplierFilter) : undefined,
   });
 
-  // Tratamento de erros do servidor
-  useEffect(() => {
-    if (isError && error) {
-      const apiError = error as any;
-      if (apiError.status >= 500) {
-        toast({
-          title: "Servidor indisponível",
-          description: "O servidor está indisponível no momento. Por favor, tente novamente mais tarde.",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [isError, error, toast]);
+  // O aviso de servidor fora do ar é o mesmo em toda tela — mora num hook só.
+  useApiErrorToast(isError, error);
 
   // Query: Busca detalhes da entrada selecionada
   const { data: entryDetails, isLoading: isLoadingDetails } = useGetPurchaseEntryDetails(
@@ -113,10 +104,10 @@ export function useStockEntries() {
         resetNewEntryForm();
         refetchEntries();
       },
-      onError: (err: any) => {
+      onError: (err: unknown) => {
         toast({
           title: "Erro ao registrar entrada",
-          description: err?.message || "Ocorreu um erro no processamento.",
+          description: describeApiError(err, "Ocorreu um erro no processamento."),
           variant: "destructive",
         });
       },
@@ -132,10 +123,10 @@ export function useStockEntries() {
         setSelectedEntryId(null);
         refetchEntries();
       },
-      onError: (err: any) => {
+      onError: (err: unknown) => {
         toast({
           title: "Erro ao excluir entrada",
-          description: err?.message || "O estoque desta entrada já pode ter sido consumido.",
+          description: describeApiError(err, "O estoque desta entrada já pode ter sido consumido."),
           variant: "destructive",
         });
       },

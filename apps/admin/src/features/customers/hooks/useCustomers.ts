@@ -13,6 +13,7 @@ import { buildCustomerStats } from "@/services/mappers";
 
 import type { CustomerForm } from "../types";
 import { useAllSales } from "@/hooks/use-catalog";
+import { describeApiError } from "@workspace/core";
 
 /**
  * Hook customizado para gerenciar a lógica de negócios, consultas e mutações da feature de Clientes.
@@ -62,7 +63,7 @@ export function useCustomers() {
       onError: (error) =>
         toast({
           title: "Erro ao cadastrar cliente",
-          description: error.message,
+          description: describeApiError(error),
           variant: "destructive",
         }),
     },
@@ -79,7 +80,7 @@ export function useCustomers() {
       onError: (error) =>
         toast({
           title: "Erro ao atualizar cliente",
-          description: error.message,
+          description: describeApiError(error),
           variant: "destructive",
         }),
     },
@@ -95,7 +96,7 @@ export function useCustomers() {
       onError: (error) =>
         toast({
           title: "Erro ao remover cliente",
-          description: error.message,
+          description: describeApiError(error),
           variant: "destructive",
         }),
     },

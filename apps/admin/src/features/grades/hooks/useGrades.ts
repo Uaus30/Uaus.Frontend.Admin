@@ -8,6 +8,7 @@ import { getEnumOptions } from "@/services/core";
 
 import type { Grade, GradeVariant, GradeType } from "../types";
 import { useAllDepartments, useAllCategories } from "@/hooks/use-catalog";
+import { describeApiError } from "@workspace/core";
 
 /**
  * Converte um GradeDto retornado da API para o modelo Grade da aplicação.
@@ -301,7 +302,7 @@ export function useGrades() {
     } catch (error) {
       toast({
         title: "Erro ao salvar grade",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
     } finally {
@@ -321,7 +322,7 @@ export function useGrades() {
       } catch (error) {
         toast({
           title: "Erro ao remover grade",
-          description: error instanceof Error ? error.message : "Tente novamente.",
+          description: describeApiError(error, "Tente novamente."),
           variant: "destructive",
         });
       }
