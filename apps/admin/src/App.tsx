@@ -2,38 +2,13 @@ import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@workspace/ui";
 import { TooltipProvider } from "@workspace/ui";
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { checkHealth } from "@workspace/api-client-react";
 import { WifiOff, Loader2 } from "lucide-react";
 import { useToast } from "@workspace/ui";
+import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
+import { AuthGate, RequireRole } from "@/components/route-guards";
 
-const NotFound = lazy(() => import("@/pages/not-found"));
-const Login = lazy(() => import("@/pages/login"));
-const Dashboard = lazy(() => import("@/pages/dashboard"));
-const Products = lazy(() => import("@/pages/products"));
-const Departments = lazy(() => import("@/pages/departments"));
-const Categories = lazy(() => import("@/pages/categories"));
-const Tags = lazy(() => import("@/pages/tags"));
-const Sales = lazy(() => import("@/pages/sales"));
-const Customers = lazy(() => import("@/pages/customers"));
-const Users = lazy(() => import("@/pages/users"));
-const Logs = lazy(() => import("@/pages/logs"));
-const LogDetails = lazy(() => import("@/pages/log-details"));
-const Images = lazy(() => import("@/pages/images"));
-const Suppliers = lazy(() => import("@/pages/suppliers"));
-const Grades = lazy(() => import("@/pages/grades"));
-const StockEntries = lazy(() => import("@/pages/stock-entries"));
-const Inventory = lazy(() => import("@/pages/inventory"));
-const StockWriteOffs = lazy(() => import("@/pages/stock-write-offs"));
-const InventoryCount = lazy(() => import("@/pages/inventory-count"));
-const GondolaLabels = lazy(() => import("@/pages/gondola-labels"));
-const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods"));
-const CompanySettings = lazy(() => import("@/pages/settings"));
-const CashRegisterSessions = lazy(() => import("@/pages/cash-register-sessions"));
-const FinancialReports = lazy(() => import("@/pages/financial-reports"));
-const FinancialClosings = lazy(() => import("@/pages/financial-closings"));
-const FixedCosts = lazy(() => import("@/pages/fixed-costs"));
-const Partners = lazy(() => import("@/pages/partners"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,39 +25,44 @@ const PageFallback = () => (
   </div>
 );
 
+/**
+ * Rotas derivadas de `src/routes.tsx`, a fonte única.
+ *
+ * Nenhum caminho é escrito aqui: menu e rota saíam de duas listas mantidas à mão
+ * em sincronia, e já divergiam — a tela de formas de pagamento respondia em dois
+ * caminhos e só um aparecia no menu.
+ *
+ * Toda rota privada passa pelo `AuthGate`; as que declaram `roles` ganham o
+ * `RequireRole` por cima. Antes a proteção dependia de cada página lembrar de
+ * renderizar o `<AppLayout>`.
+ */
 function Router() {
   return (
     <Suspense fallback={<PageFallback />}>
       <Switch>
-      <Route path="/" component={() => <Redirect to="/dashboard" />} />
-      <Route path="/login" component={Login} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/produtos" component={Products} />
-      <Route path="/departamentos" component={Departments} />
-      <Route path="/categorias" component={Categories} />
-      <Route path="/etiquetas" component={Tags} />
-      <Route path="/etiquetas-gondola" component={GondolaLabels} />
-      <Route path="/vendas" component={Sales} />
-      <Route path="/financeiro/formas-pagamento" component={PaymentMethodsPage} />
-      <Route path="/formas-pagamento" component={PaymentMethodsPage} />
-      <Route path="/financeiro/caixas" component={CashRegisterSessions} />
-      <Route path="/financeiro/relatorios" component={FinancialReports} />
-      <Route path="/financeiro/fechamentos" component={FinancialClosings} />
-      <Route path="/financeiro/custos-fixos" component={FixedCosts} />
-      <Route path="/financeiro/socios" component={Partners} />
-      <Route path="/clientes" component={Customers} />
-      <Route path="/fornecedores" component={Suppliers} />
-      <Route path="/sistema/usuarios" component={Users} />
-      <Route path="/sistema/logs" component={Logs} />
-      <Route path="/sistema/logs/:id" component={LogDetails} />
-      <Route path="/imagens" component={Images} />
-      <Route path="/grades" component={Grades} />
-      <Route path="/estoque/entradas" component={StockEntries} />
-      <Route path="/estoque/inventario" component={Inventory} />
-      <Route path="/estoque/baixas" component={StockWriteOffs} />
-      <Route path="/estoque/contagem" component={InventoryCount} />
-      <Route path="/configuracoes" component={CompanySettings} />
-      <Route component={NotFound} />
+        <Route path="/" component={() => <Redirect to="/dashboard" />} />
+        {ROUTES.map((route) => {
+          const Page = route.component;
+
+          return (
+            <Route key={route.path} path={route.path}>
+              {route.publica ? (
+                <Page />
+              ) : (
+                <AuthGate>
+                  {route.roles ? (
+                    <RequireRole route={route}>
+                      <Page />
+                    </RequireRole>
+                  ) : (
+                    <Page />
+                  )}
+                </AuthGate>
+              )}
+            </Route>
+          );
+        })}
+        <Route component={NOT_FOUND_COMPONENT} />
       </Switch>
     </Suspense>
   );

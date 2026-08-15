@@ -16,87 +16,24 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton
 } from "@workspace/ui";
-import { 
-  LayoutDashboard, 
-  Building2,
-  Package, 
-  Folder, 
-  Tags, 
-  ShoppingCart, 
-  Users, 
-  UserCog, 
-  LogOut,
-  Loader2,
-  ImageIcon,
-  Truck,
-  ChevronDown,
-  ClipboardList,
-  Settings,
-  DollarSign,
-  Store
-} from "lucide-react";
+import { ChevronDown, Loader2, LogOut } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 import { getDisplayName } from "@/services/mappers";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
+import { ROLE_LABELS, buildMenu, type RoleCode } from "@/routes";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { 
-    name: "Produtos", 
-    icon: Package,
-    items: [
-      { name: "Lista de Produtos", href: "/produtos" },
-      { name: "Departamentos", href: "/departamentos" },
-      { name: "Categorias", href: "/categorias" },
-      { name: "Grades", href: "/grades" },
-      { name: "Etiquetas", href: "/etiquetas" },
-      { name: "Etiquetas de Gôndola", href: "/etiquetas-gondola" }
-    ]
-  },
-  { 
-    name: "Financeiro", 
-    icon: DollarSign,
-    items: [
-      { name: "Vendas", href: "/vendas" },
-      { name: "Caixas", href: "/financeiro/caixas" },
-      { name: "Relatórios", href: "/financeiro/relatorios" },
-      { name: "Fechamentos", href: "/financeiro/fechamentos" },
-      { name: "Custos Fixos", href: "/financeiro/custos-fixos" },
-      { name: "Sócios", href: "/financeiro/socios" },
-      { name: "Formas de Pagamento", href: "/financeiro/formas-pagamento" }
-    ]
-  },
-  { 
-    name: "Estoque", 
-    icon: ClipboardList,
-    items: [
-      { name: "Fornecedores", href: "/fornecedores" },
-      { name: "Entradas", href: "/estoque/entradas" },
-      { name: "Baixas", href: "/estoque/baixas" },
-      { name: "Contagem", href: "/estoque/contagem" },
-      { name: "Inventário", href: "/estoque/inventario" }
-    ]
-  },
-  { name: "Mídia", href: "/imagens", icon: ImageIcon },
-  { name: "Clientes", href: "/clientes", icon: Users },
-  { 
-    name: "Sistema", 
-    icon: Settings,
-    items: [
-      { name: "Configurações", href: "/configuracoes" },
-      { name: "Logs", href: "/sistema/logs" },
-      { name: "Usuários", href: "/sistema/usuarios" }
-    ]
-  },
-];
-
-const roleLabels: Record<number, string> = {
-  1: "Administrador",
-  2: "Vendedor",
-};
+/**
+ * O menu vem de `src/routes.tsx`, a mesma fonte do <Switch> do App.
+ *
+ * Enquanto eram duas listas mantidas a mao em sincronia, elas divergiam: a tela
+ * de formas de pagamento respondia em dois caminhos e so um aparecia aqui.
+ *
+ * O menu tambem passa a esconder o que o papel do usuario nao pode abrir — antes
+ * um Vendedor via (e clicava em) Socios e Usuarios.
+ */
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -138,7 +75,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const displayName = getDisplayName(user);
   const initials = displayName.charAt(0).toUpperCase();
-  const roleLabel = roleLabels[user.role] ?? "Usuário";
+  const roleLabel = ROLE_LABELS[user.role as RoleCode] ?? "Usuário";
+  const navigation = buildMenu(user.role);
 
   const style = {
     "--sidebar-width": "18rem",
