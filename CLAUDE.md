@@ -152,10 +152,25 @@ O CI roda typecheck, lint, testes e build dos dois apps. Rode `npm test` e
 4. **Migração do IndexedDB do PDV apaga as stores de catálogo.** Só suba
    `DATABASE_VERSION` se o esquema realmente mudou — acrescentar campo a um
    objeto não muda. Ver `apps/pdv/docs/offline.md`.
-5. **Não existe autorização por papel no admin.** Nenhuma rota tem guard e
-   `USER_ROLE` não é lido em lugar nenhum. "Só Admin faz X" é feature nova.
-6. **Rota e menu se ligam por string solta** entre `App.tsx` e `layout.tsx`.
-   Divergência de uma letra dá 404 silencioso.
+5. **`toISOString()` também estraga instante com hora.** A armadilha 2 vale para
+   data de calendário; para "23:59:59 do dia escolhido" não existe helper no
+   `packages/core` ainda — o único conversor do repo é o `toLocalTimestamp` de
+   `apps/pdv/src/services/sales.service.ts`, preso dentro do PDV. Precisando de
+   instante local no admin, mova esse helper para o `core` antes; não copie.
+6. **Data de fim de vigência é o caso clássico:** gravar `2026-09-30T23:59:59`
+   como UTC faz a validade acabar às 20:59 do dia 30 no Brasil, e a recusa cita
+   uma hora que o cliente não tem como conferir.
+
+> Duas armadilhas antigas **deixaram de valer** e estão registradas aqui para
+> ninguém orçar de novo o que já existe:
+>
+> - **Autorização por papel existe.** `apps/admin/src/routes.ts` declara
+>   `roles?: RoleCode[]` por rota (8 já usam `SO_ADMIN`), `podeAcessar` e
+>   `buildMenu` derivam menu e acesso dos mesmos dados, e `RequireRole` em
+>   `src/components/route-guards.tsx` redireciona quem não tem o papel. "Só Admin
+>   faz X" é **uma linha** na rota, não feature nova.
+> - **Rota e menu não divergem mais.** `routes.ts` é a fonte única; `App.tsx` e o
+>   menu do `layout.tsx` são derivados dela. Não há mais string solta para errar.
 
 ---
 
