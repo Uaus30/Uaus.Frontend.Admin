@@ -66,7 +66,8 @@ function isCanvasSupported(): boolean {
  * Otimiza um arquivo de imagem no frontend para reduzir o seu tamanho físico em bytes.
  * 
  * Se a imagem for muito grande ou pesada, ela será redimensionada respeitando as proporções
- * originais e comprimida no formato JPEG com uma taxa de qualidade dinâmica ou pré-definida.
+ * originais e comprimida com uma taxa de qualidade dinâmica ou pré-definida. PNG vira WebP
+ * (preserva a transparência); os demais formatos viram JPEG.
  *
  * @param file O arquivo File original selecionado pelo usuário.
  * @param options Configurações adicionais de otimização (maxWidth, maxHeight, quality, minSizeToCompress).
@@ -174,7 +175,7 @@ export async function optimizeImage(
               });
             }
           },
-          "image/jpeg",
+          newType,
           quality
         );
       };

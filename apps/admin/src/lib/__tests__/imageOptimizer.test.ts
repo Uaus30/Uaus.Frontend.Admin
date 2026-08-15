@@ -57,8 +57,9 @@ describe("imageOptimizer", () => {
       width: 0,
       height: 0,
       getContext: vi.fn().mockReturnValue(mockContext),
-      toBlob: vi.fn().mockImplementation((callback) => {
-        const mockBlob = new Blob([new ArrayBuffer(150 * 1024)], { type: "image/jpeg" });
+      // Espelha o navegador: o blob sai no MIME type que foi pedido.
+      toBlob: vi.fn().mockImplementation((callback, type: string) => {
+        const mockBlob = new Blob([new ArrayBuffer(150 * 1024)], { type });
         callback(mockBlob);
       }),
     };
@@ -99,8 +100,16 @@ describe("imageOptimizer", () => {
     expect(result.optimized).toBe(true);
     expect(result.originalSize).toBe(300 * 1024);
     expect(result.optimizedSize).toBe(150 * 1024);
-    expect(result.file.name).toBe("foto.jpg"); // png convertido para jpg
-    expect(result.file.type).toBe("image/jpeg");
+    expect(result.file.name).toBe("foto.webp"); // png convertido para webp
+    expect(result.file.type).toBe("image/webp");
+    // Regressão: o encode precisa ser pedido em WebP de fato. Já houve o caso de
+    // rotular o File como image/webp enquanto o canvas gerava bytes JPEG, o que
+    // perdia a transparência do PNG e ainda entregava um arquivo mal rotulado.
+    expect(mockCanvas.toBlob).toHaveBeenCalledWith(
+      expect.any(Function),
+      "image/webp",
+      expect.any(Number),
+    );
     expect(mockCanvas.width).toBe(1000); // Proporção 2000x2000 reduzida para 1000x1000
     expect(mockCanvas.height).toBe(1000);
 
