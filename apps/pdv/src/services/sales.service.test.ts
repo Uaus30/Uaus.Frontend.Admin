@@ -4,6 +4,8 @@ const apiGet = vi.fn();
 const apiPost = vi.fn();
 const apiPut = vi.fn();
 const apiDelete = vi.fn();
+const updatePdvSale = vi.fn();
+const getPdvSessionSales = vi.fn();
 
 /** Erro que o cliente HTTP lança quando o servidor **respondeu** recusando. */
 class ApiError extends Error {
@@ -24,6 +26,8 @@ vi.mock("@workspace/api-client-react", () => ({
   apiDelete: (...args: unknown[]) => apiDelete(...args),
   extractCreatedId: vi.fn(),
   cancelSale: vi.fn(),
+  updatePdvSale: (...args: unknown[]) => updatePdvSale(...args),
+  getPdvSessionSales: (...args: unknown[]) => getPdvSessionSales(...args),
 }));
 
 const checkLocalStock = vi.fn();
@@ -145,9 +149,11 @@ describe("registerSale online", () => {
     // Antes eram 1 + N requisições, com desfazer manual quando um item falhava.
     expect(apiPost).toHaveBeenCalledTimes(1);
     expect(apiPost.mock.calls[0][0]).toBe("/Pdv/sales");
+    // O desconto por item vai junto: não entra na validação de totais, mas o
+    // servidor usa para auditoria e para o limite de desconto do vendedor.
     expect(postBody(0).items).toEqual([
-      { productId: 1, quantity: 2, unitPrice: 10 },
-      { productId: 2, quantity: 1, unitPrice: 30 },
+      { productId: 1, quantity: 2, unitPrice: 10, discount: 0 },
+      { productId: 2, quantity: 1, unitPrice: 30, discount: 0 },
     ]);
   });
 
@@ -381,37 +387,53 @@ describe("restoreCancelledSaleStock", () => {
 describe("updateSale", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    apiPut.mockResolvedValue({ data: { id: 500 }, response: {} });
-    apiPost.mockResolvedValue({ data: null, response: {} });
-    apiGet
-      .mockResolvedValueOnce({ id: 500, notes: "Venda anterior" })
-      .mockResolvedValueOnce({ items: [{ id: 900 }] })
-      .mockResolvedValue({ id: 500, total: 50 });
+    updatePdvSale.mockResolvedValue({ id: 500, total: 50 });
+    apiGet.mockResolvedValue({ id: 500, notes: "Venda anterior" });
   });
 
-  it("deve apagar os itens antigos antes de lançar os novos", async () => {
+  it("deve regravar a venda inteira em uma única requisição atômica", async () => {
+    // Antes era PUT no cabeçalho + N DELETE/POST de itens, sem transação: uma
+    // falha no meio deixava a venda pela metade. Agora o servidor devolve o
+    // estoque dos itens antigos e consome o dos novos em uma transação só.
     await updateSale(500, payload());
 
-    expect(apiDelete).toHaveBeenCalledWith("/SaleItems/900");
-    expect(apiPost).toHaveBeenCalledTimes(2);
-    expect(apiPost.mock.calls[0][0]).toBe("/SaleItems");
+    expect(updatePdvSale).toHaveBeenCalledTimes(1);
+    expect(updatePdvSale.mock.calls[0][0]).toBe(500);
+    expect(apiDelete).not.toHaveBeenCalled();
+    expect(updatePdvSale.mock.calls[0][1]).toMatchObject({
+      total: 50,
+      items: [
+        { productId: 1, quantity: 2, unitPrice: 10, discount: 0 },
+        { productId: 2, quantity: 1, unitPrice: 30, discount: 0 },
+      ],
+    });
   });
 
   it("deve manter a observação atual quando nenhuma é informada", async () => {
+    // Regressão: `PUT /Pdv/sales/{id}` regrava a venda inteira e a tela de
+    // reedição não reenvia a observação, então mandar `null` apagava a
+    // observação da venda a cada edição.
     await updateSale(500, payload());
 
-    expect((apiPut.mock.calls[0][1] as Record<string, any>).notes).toBe("Venda anterior");
+    expect((updatePdvSale.mock.calls[0][1] as Record<string, unknown>).notes).toBe("Venda anterior");
+  });
+
+  it("deve gravar a observação informada sem reler a venda", async () => {
+    await updateSale(500, payload({ notes: "  Troca de tamanho  " }));
+
+    expect((updatePdvSale.mock.calls[0][1] as Record<string, unknown>).notes).toBe("Troca de tamanho");
+    expect(apiGet).not.toHaveBeenCalled();
   });
 });
 
 describe("getSessionSales", () => {
   it("deve filtrar as vendas pela sessão de caixa", async () => {
     vi.clearAllMocks();
-    apiGet.mockResolvedValue({ items: [{ id: 1 }] });
+    getPdvSessionSales.mockResolvedValue([{ id: 1 }]);
 
     const sales = await getSessionSales(7);
 
-    expect(apiGet).toHaveBeenCalledWith("/Sales", { cashRegisterSessionId: 7, page: 1, size: 200 });
+    expect(getPdvSessionSales).toHaveBeenCalledWith(7);
     expect(sales).toEqual([{ id: 1 }]);
   });
 });

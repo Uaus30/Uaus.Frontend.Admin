@@ -365,10 +365,16 @@ async function enqueueSale(
  */
 export async function updateSale(saleId: number, payload: RegisterSalePayload) {
   const total = computeSaleTotal(payload.items, payload.discount);
-  
-  const requestBody = buildRequestBody(payload, "", "", total);
+
+  // `PUT /Pdv/sales/{id}` regrava a venda inteira, então `notes: null` APAGA a
+  // observação já gravada. A tela de reedição não reenvia a observação, logo ela
+  // é relida da venda atual quando o chamador não informa uma nova.
+  const informedNotes = payload.notes?.trim();
+  const notes = informedNotes ?? (await getSale(saleId)).notes ?? null;
+
+  const requestBody = { ...buildRequestBody(payload, "", "", total), notes };
   const updatedSale = await updatePdvSale(saleId, requestBody);
-  
+
   if (!updatedSale) throw new Error("Falha ao atualizar a venda");
 
   return updatedSale;
