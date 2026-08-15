@@ -328,13 +328,37 @@ export async function apiGetBlob(
   };
 }
 
-/** Lê o nome do arquivo do cabeçalho `Content-Disposition`, se houver. */
+/**
+ * Lê o nome do arquivo do cabeçalho `Content-Disposition`, se houver.
+ *
+ * O ASP.NET manda os DOIS formatos quando o nome tem acento, nesta ordem:
+ * `attachment; filename=relatorio.xlsx; filename*=UTF-8''relat%C3%B3rio.xlsx`.
+ * O primeiro é o fallback ASCII para cliente antigo; o segundo é o nome de
+ * verdade. A RFC 6266 manda preferir o `filename*`, e uma regex única sobre o
+ * cabeçalho inteiro casaria com o que vem primeiro — o acentuado seria perdido
+ * justamente nos relatórios em português, que são quase todos.
+ *
+ * O `decodeURIComponent` vai dentro de try/catch porque ele **lança** em nome
+ * com `%` literal: "desconto 50%.pdf" vira `URIError: URI malformed`. Sem a
+ * proteção o erro escapa do `apiGetBlob` e o download inteiro falha, em vez de
+ * cair no nome de reserva — o usuário fica sem a planilha por causa do nome dela.
+ */
 function fileNameFromResponse(response: Response): string | null {
   const disposition = response.headers.get("Content-Disposition");
   if (!disposition) return null;
 
-  const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-  return match ? decodeURIComponent(match[1]) : null;
+  const extended = disposition.match(/filename\*=\s*(?:UTF-8'[^']*')?"?([^";]+)"?/i);
+  const plain = disposition.match(/filename=\s*"?([^";]+)"?/i);
+  const raw = (extended?.[1] ?? plain?.[1])?.trim();
+  if (!raw) return null;
+
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    // Nome que não é percent-encoding válido é usado como veio: melhor o nome
+    // literal do servidor que nenhum arquivo.
+    return raw;
+  }
 }
 
 export async function apiPost<T>(
