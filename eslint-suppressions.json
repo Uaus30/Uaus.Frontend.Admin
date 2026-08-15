@@ -1,0 +1,459 @@
+{
+  "apps/admin/src/App.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/components/layout.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 7
+    }
+  },
+  "apps/admin/src/components/tag-multi-select.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/categories/components/CategoryTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/categories/hooks/useCategories.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/company-settings/hooks/useCompanySettings.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/customers/components/CustomersTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/customers/hooks/useCustomers.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/dashboard/components/PatternChart.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/dashboard/components/chart-primitives.tsx": {
+    "react-refresh/only-export-components": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/departments/components/DepartmentTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/departments/hooks/useDepartments.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/financial-closings/hooks/useFinancialClosings.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/fixed-costs/hooks/useFixedCosts.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/grades/components/GradeEditorModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "apps/admin/src/features/grades/hooks/useGrades.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/images/components/ImageCatalog.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/images/components/ImageUploadModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/images/hooks/useImages.ts": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/inventory/components/CategorySummary.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/inventory/components/InventoryMetrics.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/inventory/components/InventoryTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/inventory/hooks/useInventory.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 5
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/login/hooks/useLoginFeature.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/logs/components/LogsTable.tsx": {
+    "react-refresh/only-export-components": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/logs/hooks/__tests__/useLogs.test.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/partners/hooks/usePartners.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/payment-methods/components/PaymentMethodEditorModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/payment-methods/hooks/usePaymentMethods.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/components/CurrencyInput.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/components/ProductEditorModal.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 28
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/products/components/ProductHistoryModal.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/components/ProductImageSearchModal.tsx": {
+    "react-hooks/immutability": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/components/ProductTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 4
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/products/components/ProductVariationsSection.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/components/editor/ProductVariationsManager.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/hooks/__tests__/useProductEditor.test.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "apps/admin/src/features/products/hooks/__tests__/useProductTable.test.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/products/hooks/editor/useProductForm.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/hooks/editor/useProductImages.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "apps/admin/src/features/products/hooks/editor/useProductSubmit.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "apps/admin/src/features/products/hooks/editor/useProductVariations.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/products/hooks/editor/utils.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/products/hooks/useProductEditor.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 4
+    }
+  },
+  "apps/admin/src/features/products/hooks/useProductTable.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/sales/components/NewSaleModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/sales/components/SaleDetailsModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 5
+    }
+  },
+  "apps/admin/src/features/sales/components/SalesTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/sales/hooks/useSales.ts": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/sales/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/stock-entries/components/NewStockEntryModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/stock-entries/components/StockEntriesTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/stock-entries/components/StockEntryDetailsModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/stock-entries/hooks/useStockEntries.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 7
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/stock-write-offs/hooks/__tests__/useStockWriteOffs.test.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/suppliers/components/SupplierEditorModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/suppliers/components/SuppliersTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "apps/admin/src/features/suppliers/hooks/__tests__/useSuppliers.test.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/suppliers/hooks/useSuppliers.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/tags/components/TagTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/tags/hooks/useTags.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/features/users/components/UserEditorModal.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "apps/admin/src/features/users/components/UsersTable.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "apps/admin/src/features/users/hooks/useUsers.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/hooks/use-mobile.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/hooks/use-toast.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/lib/__tests__/imageOptimizer.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "apps/admin/src/pages/inventory.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/admin/src/pages/products.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/core/src/money.test.ts": {
+    "no-irregular-whitespace": {
+      "count": 1
+    }
+  },
+  "packages/ui/src/components/carousel.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "packages/ui/src/components/date-range-picker.tsx": {
+    "@typescript-eslint/ban-ts-comment": {
+      "count": 1
+    }
+  },
+  "packages/ui/src/components/sidebar.tsx": {
+    "react-hooks/purity": {
+      "count": 1
+    }
+  },
+  "packages/ui/src/components/toaster.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    }
+  }
+}

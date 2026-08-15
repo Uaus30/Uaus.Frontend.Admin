@@ -24,8 +24,10 @@
     "test:receipt": "npm run test --workspace=@workspace/receipt",
     "test:api-client": "npm run test --workspace=@workspace/api-client-react",
     "test:core": "npm run test --workspace=@workspace/core",
-    "lint:pdv": "npm run lint --workspace=@workspace/pdv",
-    "test": "npm run test:core && npm run test:admin && npm run test:pdv && npm run test:receipt && npm run test:api-client"
+    "test": "npm run test:core && npm run test:admin && npm run test:pdv && npm run test:receipt && npm run test:api-client",
+    "lint": "eslint .",
+    "lint:suppress": "eslint . --suppress-all",
+    "lint:prune": "eslint . --prune-suppressions"
   },
   "private": true,
   "engines": {
@@ -33,8 +35,14 @@
     "npm": ">=10"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.58.2"
   },
   "overrides": {
     "react": "19.1.0",

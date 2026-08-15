@@ -25,8 +25,11 @@ jobs:
     - name: Typecheck
       run: npm run typecheck:admin && npm run typecheck:pdv
 
+    # Um comando para o monorepo inteiro: o admin ficou sem lint por muito tempo
+    # e acumulou 126 `any` que ninguem viu. As violacoes legadas estao em
+    # eslint-suppressions.json, entao aqui so falha o que for regressao nova.
     - name: Lint
-      run: npm run lint:pdv
+      run: npm run lint
 
     - name: Run Tests
       run: npm test
