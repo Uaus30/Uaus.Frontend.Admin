@@ -11,11 +11,11 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 
-vi.mock("@workspace/api-client-react", () => ({
-  PRODUCT_LABEL_TYPE: { None: 0, Normal: 1, Promotion: 2, Clearance: 3 },
+// Só o que fala com a rede é dublado — enums, chaves de cache e helpers puros
+// vêm do módulo real, para o teste bater contra o contrato de verdade.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   createProductLabelBatch: mocks.createProductLabelBatch,
-  enumCode: (value: unknown, names: Record<string, number>) =>
-    typeof value === "number" ? value : names[String(value)] ?? 0,
 }));
 
 vi.mock("@/services/products.service", () => ({

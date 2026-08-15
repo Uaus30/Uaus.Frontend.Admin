@@ -21,8 +21,9 @@
     "test:admin": "npm run test --workspace=@workspace/admin",
     "test:pdv": "npm run build:types && npm run test --workspace=@workspace/pdv",
     "test:receipt": "npm run test --workspace=@workspace/receipt",
+    "test:api-client": "npm run test --workspace=@workspace/api-client-react",
     "lint:pdv": "npm run lint --workspace=@workspace/pdv",
-    "test": "npm run test:admin && npm run test:pdv && npm run test:receipt"
+    "test": "npm run test:admin && npm run test:pdv && npm run test:receipt && npm run test:api-client"
   },
   "private": true,
   "engines": {

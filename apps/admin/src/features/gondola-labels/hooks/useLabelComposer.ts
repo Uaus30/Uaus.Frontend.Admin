@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PRODUCT_LABEL_TYPE,
   createProductLabelBatch,
+  getGetProductLabelBatchesQueryKey,
   type ProductDto,
 } from "@workspace/api-client-react";
 import { getProductsPage } from "@/services/products.service";
@@ -162,7 +163,7 @@ export function useLabelComposer() {
           }))
         : items.map(draftToPrintable);
 
-      await queryClient.invalidateQueries({ queryKey: ["ProductLabelBatches"] });
+      await queryClient.invalidateQueries({ queryKey: getGetProductLabelBatchesQueryKey() });
       await printLabelSheet(labels);
 
       toast({

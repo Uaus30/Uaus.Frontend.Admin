@@ -12,7 +12,9 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 
-vi.mock("@workspace/api-client-react", () => ({
+// Só o que fala com a rede é dublado — as chaves de cache vêm do módulo real.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetFinancialClosings: mocks.useGetFinancialClosings,
   useGetFinancialClosingById: mocks.useGetFinancialClosingById,
   previewFinancialClosing: mocks.previewFinancialClosing,

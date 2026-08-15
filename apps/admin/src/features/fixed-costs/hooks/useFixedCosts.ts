@@ -17,12 +17,6 @@ import type { FixedCostForm } from "../types";
 /** Tamanho fixo da página da listagem. */
 export const PAGE_SIZE = 10;
 
-/**
- * Prefixo da chave de cache da listagem. Invalidar só o prefixo alcança todas
- * as variações de busca/página, e não apenas a combinação de parâmetros atual.
- */
-const FIXED_COSTS_KEY_PREFIX = getGetFixedCostsQueryKey()[0];
-
 const MONTH_LABELS = [
   "jan", "fev", "mar", "abr", "mai", "jun",
   "jul", "ago", "set", "out", "nov", "dez",
@@ -110,7 +104,7 @@ export function useFixedCosts() {
   const [form, setForm] = useState<FixedCostForm>(emptyForm);
 
   const invalidateList = () =>
-    queryClient.invalidateQueries({ queryKey: [FIXED_COSTS_KEY_PREFIX] });
+    queryClient.invalidateQueries({ queryKey: getGetFixedCostsQueryKey() });
 
   const saveMutation = useMutation({
     // O retorno explícito une os tipos das duas funções puras (update devolve o

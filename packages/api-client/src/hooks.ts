@@ -594,9 +594,8 @@ export async function checkHealth(): Promise<boolean> {
 
 // Payment Methods Hooks
 
-export function getGetPaymentMethodsQueryKey(params?: { search?: string; isActive?: boolean; page?: number; size?: number }) {
-  return ["PaymentMethods", params] as const;
-}
+/** Chave de cache da listagem de formas de pagamento. */
+export const getGetPaymentMethodsQueryKey = (): QueryKey => ["PaymentMethods"];
 
 export function useGetPaymentMethods(
   params?: { search?: string; isActive?: boolean; page?: number; size?: number },
@@ -605,7 +604,7 @@ export function useGetPaymentMethods(
   },
 ) {
   return useQuery<UiPagedResult<PaymentMethodDto>, ApiError, UiPagedResult<PaymentMethodDto>, QueryKey>({
-    queryKey: getGetPaymentMethodsQueryKey(params),
+    queryKey: [...getGetPaymentMethodsQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGet<BackendPagedResult<PaymentMethodDto>>("/PaymentMethods", {
         search: params?.search,
@@ -668,16 +667,7 @@ export function useDeletePaymentMethod(options?: {
 // Cash Register Sessions Hooks
 
 /** Chave de cache da listagem de sessões de caixa. */
-export function getGetCashRegisterSessionsQueryKey(params?: {
-  userId?: number;
-  status?: number;
-  startDate?: string;
-  endDate?: string;
-  page?: number;
-  size?: number;
-}) {
-  return ["CashRegisterSessions", params] as const;
-}
+export const getGetCashRegisterSessionsQueryKey = (): QueryKey => ["CashRegisterSessions"];
 
 /** Chave de cache da sessão de caixa aberta do operador. */
 export const CURRENT_CASH_REGISTER_SESSION_QUERY_KEY = ["cash-register-session-current"] as const;
@@ -697,7 +687,7 @@ export function useGetCashRegisterSessions(
   },
 ) {
   return useQuery<UiPagedResult<CashRegisterSessionDto>, ApiError, UiPagedResult<CashRegisterSessionDto>, QueryKey>({
-    queryKey: getGetCashRegisterSessionsQueryKey(params),
+    queryKey: [...getGetCashRegisterSessionsQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGet<BackendPagedResult<CashRegisterSessionDto>>("/CashRegisterSessions", {
         userId: params?.userId,
@@ -1364,14 +1354,7 @@ export async function applyInventoryCount(file: File) {
 // ---------------------------------------------------------------------------
 
 /** Chave de cache da listagem de custos fixos. */
-export function getGetFixedCostsQueryKey(params?: {
-  search?: string;
-  activeInMonth?: string;
-  page?: number;
-  limit?: number;
-}) {
-  return ["FixedCosts", params] as const;
-}
+export const getGetFixedCostsQueryKey = (): QueryKey => ["FixedCosts"];
 
 /**
  * Lista os custos fixos.
@@ -1388,7 +1371,7 @@ export function useGetFixedCosts(
   },
 ) {
   return useQuery<UiPagedResult<FixedCostDto>, ApiError, UiPagedResult<FixedCostDto>, QueryKey>({
-    queryKey: getGetFixedCostsQueryKey(params),
+    queryKey: [...getGetFixedCostsQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGet<BackendPagedResult<FixedCostDto>>("/FixedCosts", {
         search: params?.search,
@@ -1430,13 +1413,7 @@ export async function deleteFixedCost(id: number): Promise<void> {
 }
 
 /** Chave de cache da listagem de sócios. */
-export function getGetPartnersQueryKey(params?: {
-  includeInactive?: boolean;
-  page?: number;
-  limit?: number;
-}) {
-  return ["Partners", params] as const;
-}
+export const getGetPartnersQueryKey = (): QueryKey => ["Partners"];
 
 /** Lista os sócios (a API devolve todos; a UI decide filtrar inativos). */
 export function useGetPartners(
@@ -1449,7 +1426,7 @@ export function useGetPartners(
   },
 ) {
   return useQuery<UiPagedResult<PartnerDto>, ApiError, UiPagedResult<PartnerDto>, QueryKey>({
-    queryKey: getGetPartnersQueryKey(params),
+    queryKey: [...getGetPartnersQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGet<BackendPagedResult<PartnerDto>>("/Partners", {
         includeInactive: params?.includeInactive,
@@ -1522,12 +1499,7 @@ export async function updatePartnerProfitShares(
 }
 
 /** Chave de cache do relatório financeiro do período. */
-export function getFinancialReportSummaryQueryKey(params?: {
-  startDate?: string;
-  endDate?: string;
-}) {
-  return ["financial-report-summary", params] as const;
-}
+export const getFinancialReportSummaryQueryKey = (): QueryKey => ["financial-report-summary"];
 
 /**
  * Relatório financeiro do período — prévia calculada ao vivo, nada é persistido.
@@ -1544,7 +1516,7 @@ export function useGetFinancialReportSummary(
   },
 ) {
   return useQuery<FinancialReportSummaryDto, ApiError, FinancialReportSummaryDto, QueryKey>({
-    queryKey: getFinancialReportSummaryQueryKey(params),
+    queryKey: [...getFinancialReportSummaryQueryKey(), params ?? {}],
     queryFn: () =>
       apiGet<FinancialReportSummaryDto>("/FinancialReports/summary", {
         startDate: params?.startDate,
@@ -1555,14 +1527,7 @@ export function useGetFinancialReportSummary(
 }
 
 /** Chave de cache da listagem de fechamentos financeiros. */
-export function getGetFinancialClosingsQueryKey(params?: {
-  startDate?: string;
-  endDate?: string;
-  page?: number;
-  limit?: number;
-}) {
-  return ["FinancialClosings", params] as const;
-}
+export const getGetFinancialClosingsQueryKey = (): QueryKey => ["FinancialClosings"];
 
 /** Lista os fechamentos (filtro sobre o início do período; mais recentes primeiro). */
 export function useGetFinancialClosings(
@@ -1575,7 +1540,7 @@ export function useGetFinancialClosings(
   },
 ) {
   return useQuery<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>({
-    queryKey: getGetFinancialClosingsQueryKey(params),
+    queryKey: [...getGetFinancialClosingsQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGet<BackendPagedResult<FinancialClosingDto>>("/FinancialClosings", {
         startDate: params?.startDate,
@@ -1719,13 +1684,7 @@ export interface CreateProductLabelBatchPayload {
 }
 
 /** Chave de cache da listagem de lotes de etiquetas. */
-export function getGetProductLabelBatchesQueryKey(params?: {
-  search?: string;
-  page?: number;
-  limit?: number;
-}) {
-  return ["ProductLabelBatches", params] as const;
-}
+export const getGetProductLabelBatchesQueryKey = (): QueryKey => ["ProductLabelBatches"];
 
 /**
  * Lista os lotes de etiquetas do histórico, dos mais recentes para os mais
@@ -1753,7 +1712,7 @@ export function useGetProductLabelBatches(
     UiPagedResult<ProductLabelBatchDto>,
     QueryKey
   >({
-    queryKey: getGetProductLabelBatchesQueryKey(params),
+    queryKey: [...getGetProductLabelBatchesQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGet<BackendPagedResult<ProductLabelBatchDto>>("/ProductLabelBatches", {
         search: params?.search,

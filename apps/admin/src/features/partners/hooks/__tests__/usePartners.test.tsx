@@ -14,14 +14,17 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 
-vi.mock("@workspace/api-client-react", () => ({
+// Só o que fala com a rede é dublado. As chaves de cache vêm do módulo REAL:
+// redefini-las aqui já mascarou uma quebra de invalidação, porque o teste
+// passava contra a chave inventada no mock e não contra a que a tela usa.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetPartners: mocks.useGetPartners,
   useGetPartnerProfitShares: mocks.useGetPartnerProfitShares,
   createPartner: mocks.createPartner,
   updatePartner: mocks.updatePartner,
   deletePartner: mocks.deletePartner,
   updatePartnerProfitShares: mocks.updatePartnerProfitShares,
-  PARTNER_PROFIT_SHARES_QUERY_KEY: ["partner-profit-shares"],
 }));
 
 vi.mock("@/hooks/use-toast", () => ({

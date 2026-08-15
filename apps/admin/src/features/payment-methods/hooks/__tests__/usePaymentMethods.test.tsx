@@ -10,8 +10,9 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: mockToast })
 }));
 
-// Mock api client react hooks
-vi.mock("@workspace/api-client-react", () => ({
+// Só o que fala com a rede é dublado.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetPaymentMethods: vi.fn(() => ({
     data: {
       data: [
@@ -42,8 +43,9 @@ vi.mock("@workspace/api-client-react", () => ({
     mutateAsync: vi.fn(() => Promise.resolve()),
     isPending: false
   })),
-  // Mesmo shape do factory real: sem argumentos devolve ["PaymentMethods", undefined]
-  getGetPaymentMethodsQueryKey: (params?: unknown) => ["PaymentMethods", params]
+  // A chave de cache NÃO é redefinida aqui: ela vem do módulo real via
+  // importOriginal, senão o teste de invalidação valida a chave inventada no
+  // mock em vez da que a tela usa — foi assim que a quebra original passou.
 }));
 
 const createWrapper = () => {

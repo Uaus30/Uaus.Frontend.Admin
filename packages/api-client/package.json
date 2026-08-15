@@ -6,6 +6,10 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21"
   },

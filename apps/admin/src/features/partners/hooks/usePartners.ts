@@ -4,6 +4,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import {
   createPartner,
   deletePartner,
+  getGetPartnersQueryKey,
   PARTNER_PROFIT_SHARES_QUERY_KEY,
   updatePartner,
   updatePartnerProfitShares,
@@ -17,15 +18,6 @@ import type { PartnerFormValues } from "../types";
 
 /** Itens por página na tabela de sócios. */
 export const PAGE_SIZE = 10;
-
-/**
- * Prefixo da chave de cache da listagem de sócios.
- *
- * A invalidação usa só o prefixo de propósito: `getGetPartnersQueryKey()` sem
- * parâmetros vira `["Partners", undefined]`, que não casa com nenhuma página
- * parametrizada em cache — o prefixo alcança todas.
- */
-const PARTNERS_QUERY_KEY_PREFIX = ["Partners"] as const;
 
 const EMPTY_FORM: PartnerFormValues = { name: "", isActive: true };
 
@@ -130,7 +122,7 @@ export function usePartners() {
       // A edição pode mudar nome e status — os dois aparecem também na
       // distribuição de lucros, então as duas chaves são invalidadas.
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: PARTNERS_QUERY_KEY_PREFIX }),
+        queryClient.invalidateQueries({ queryKey: getGetPartnersQueryKey() }),
         queryClient.invalidateQueries({ queryKey: PARTNER_PROFIT_SHARES_QUERY_KEY }),
       ]);
 
@@ -174,7 +166,7 @@ export function usePartners() {
     mutationFn: (id: number) => deletePartner(id),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: PARTNERS_QUERY_KEY_PREFIX }),
+        queryClient.invalidateQueries({ queryKey: getGetPartnersQueryKey() }),
         queryClient.invalidateQueries({ queryKey: PARTNER_PROFIT_SHARES_QUERY_KEY }),
       ]);
       toast({ title: "Sócio removido." });
@@ -295,7 +287,7 @@ export function usePartners() {
       // O percentual também aparece na listagem de sócios — invalida as duas.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: PARTNER_PROFIT_SHARES_QUERY_KEY }),
-        queryClient.invalidateQueries({ queryKey: PARTNERS_QUERY_KEY_PREFIX }),
+        queryClient.invalidateQueries({ queryKey: getGetPartnersQueryKey() }),
       ]);
       toast({
         title: "Distribuição de lucros salva.",

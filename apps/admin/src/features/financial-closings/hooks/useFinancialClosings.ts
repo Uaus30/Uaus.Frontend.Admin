@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import {
   createFinancialClosing,
   deleteFinancialClosing,
+  getGetFinancialClosingsQueryKey,
   previewFinancialClosing,
   useGetFinancialClosingById,
   useGetFinancialClosings,
@@ -169,7 +170,7 @@ export function useFinancialClosings() {
     onSuccess: async () => {
       // Prefixo da chave ["FinancialClosings", params]: invalida todas as
       // páginas e filtros da listagem de uma vez.
-      await queryClient.invalidateQueries({ queryKey: ["FinancialClosings"] });
+      await queryClient.invalidateQueries({ queryKey: getGetFinancialClosingsQueryKey() });
       toast({
         title: "Fechamento confirmado",
         description: "Os números do período e o rateio dos sócios foram congelados.",
@@ -220,7 +221,7 @@ export function useFinancialClosings() {
     onSuccess: async (_data, id) => {
       // O documento não existe mais — o cache do detalhe sai junto.
       queryClient.removeQueries({ queryKey: ["financial-closing-details", id] });
-      await queryClient.invalidateQueries({ queryKey: ["FinancialClosings"] });
+      await queryClient.invalidateQueries({ queryKey: getGetFinancialClosingsQueryKey() });
       toast({
         title: "Fechamento excluído",
         description: "O período voltou a ficar livre para um novo fechamento.",

@@ -20,4 +20,4 @@ Cadastro dos sócios da empresa e edição da distribuição de lucros — os pe
 - **Desativar um sócio zera o percentual dele.** A soma deixa de fechar em 100 e precisa ser rebalanceada antes do próximo fechamento — a UI avisa ao desativar.
 - **Excluir só é possível sem fechamentos registrados.** Se o sócio aparece no rateio de algum fechamento, o backend recusa (FK Restrict) e orienta a desativá-lo; a mensagem vai inteira para o toast.
 - **A busca por nome é local.** O endpoint `GET /partners` não aceita busca; o filtro (com debounce de 300ms) age sobre a página carregada — suficiente para o volume esperado de sócios.
-- **Invalidação de cache:** as mutações invalidam a listagem de sócios (prefixo `["Partners"]`) e a distribuição (`PARTNER_PROFIT_SHARES_QUERY_KEY`), porque nome, status e percentual aparecem nas duas consultas.
+- **Invalidação de cache:** as mutações invalidam a listagem de sócios (`getGetPartnersQueryKey()`) e a distribuição (`PARTNER_PROFIT_SHARES_QUERY_KEY`), porque nome, status e percentual aparecem nas duas consultas. A factory devolve só o prefixo do recurso, então a invalidação alcança todas as páginas e buscas em cache.

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteProductLabelBatch,
+  getGetProductLabelBatchesQueryKey,
   getProductLabelBatchById,
   useGetProductLabelBatches,
   type ProductLabelBatchDto,
@@ -77,7 +78,7 @@ export function useLabelBatchHistory() {
     setDeleting(true);
     try {
       await deleteProductLabelBatch(deleteTarget.id);
-      await queryClient.invalidateQueries({ queryKey: ["ProductLabelBatches"] });
+      await queryClient.invalidateQueries({ queryKey: getGetProductLabelBatchesQueryKey() });
       toast({ title: "Lote excluído do histórico!" });
       setDeleteTarget(null);
     } catch (error) {
