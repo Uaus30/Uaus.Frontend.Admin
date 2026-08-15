@@ -15,5 +15,6 @@
   },
   "peerDependencies": {
     "react": ">=18"
-  }
+  },
+  "sideEffects": false
 }
