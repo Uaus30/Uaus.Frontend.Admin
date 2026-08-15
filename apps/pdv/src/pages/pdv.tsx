@@ -1296,11 +1296,8 @@ export default function Pdv() {
                   exit={{ opacity: 0, scale: 1.05 }}
                   className="absolute inset-0 flex flex-col items-center justify-center text-center p-12"
                 >
-                  <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                    <Search className="w-16 h-16 text-primary/30" />
-                  </div>
-                  <h2 className="text-4xl font-display font-bold text-foreground/20 uppercase tracking-widest">
-                    Aguardando Busca
+                  <h2 className="text-7xl font-display font-bold text-foreground/20 uppercase tracking-widest">
+                    Caixa Livre
                   </h2>
                 </motion.div>
               )}
