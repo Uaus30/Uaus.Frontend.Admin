@@ -11,12 +11,12 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetFixedCosts: mocks.useGetFixedCosts,
   createFixedCost: mocks.createFixedCost,
   updateFixedCost: mocks.updateFixedCost,
   deleteFixedCost: mocks.deleteFixedCost,
-  getGetFixedCostsQueryKey: (params?: unknown) => ["FixedCosts", params] as const,
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({

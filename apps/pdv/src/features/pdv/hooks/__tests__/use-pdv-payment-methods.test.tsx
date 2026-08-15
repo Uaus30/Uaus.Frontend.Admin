@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const useGetPaymentMethods = vi.fn();
 const listLocalPaymentMethods = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetPaymentMethods: (...args: unknown[]) => useGetPaymentMethods(...args),
 }));
 

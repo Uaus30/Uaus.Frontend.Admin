@@ -14,7 +14,8 @@ vi.mock("@/services/products.service", () => ({
 }));
 
 // Mock api client react hook queries and mutations
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetPurchaseEntries: vi.fn(() => ({
     data: {
       data: [{ id: 1, entryDate: "2026-06-18T22:00:00Z", supplierId: 10, invoiceNumber: "123", total: 1000 }],

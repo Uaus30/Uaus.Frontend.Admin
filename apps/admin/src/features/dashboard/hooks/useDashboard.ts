@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { STALE_TIME } from "@workspace/api-client-react";
 import { getDashboardOverview } from "@/features/dashboard/api";
 import type { DashboardOverview, PeriodMode, PeriodPreset } from "../types";
 import { DEFAULT_PERIOD, resolveCustom, resolvePreset } from "../utils";
@@ -43,7 +44,7 @@ export function useDashboard() {
     queryFn: () => getDashboardOverview({ startDate: period.startDate, endDate: period.endDate }),
     // O intervalo fechado não muda sozinho; meio minuto evita refazer a consulta
     // a cada volta para a aba sem deixar o dado envelhecer.
-    staleTime: 30_000,
+    staleTime: STALE_TIME.operacao,
   });
 
   /**

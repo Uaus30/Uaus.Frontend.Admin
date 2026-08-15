@@ -23,8 +23,8 @@ const mockCreateCustomer = vi.fn();
 const mockUpdateCustomer = vi.fn();
 const mockDeleteCustomer = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
-  getGetCustomersQueryKey: () => ["customers"],
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetCustomers: vi.fn(() => ({
     data: {
       data: [

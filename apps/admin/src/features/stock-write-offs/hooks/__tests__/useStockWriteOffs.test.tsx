@@ -12,13 +12,13 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetStockWriteOffs: mocks.useGetStockWriteOffs,
   useGetUsers: mocks.useGetUsers,
   getStockWriteOff: mocks.getStockWriteOff,
   registerStockWriteOff: mocks.registerStockWriteOff,
   reverseStockWriteOff: mocks.reverseStockWriteOff,
-  getGetStockWriteOffsQueryKey: () => ["stock-write-offs"],
   enumCode: (value: unknown) => (typeof value === "number" ? value : 0),
   SELECTABLE_STOCK_WRITE_OFF_REASONS: [1, 2, 3],
   STOCK_WRITE_OFF_REASON_LABEL: { 1: "Consumo", 2: "Perda", 3: "Doação", 4: "Inventário" },

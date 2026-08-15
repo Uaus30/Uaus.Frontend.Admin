@@ -47,7 +47,8 @@ vi.mock("@/services/sales.service", () => ({
 }));
 
 // Mock api client react queries
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetSales: vi.fn(() => ({
     data: {
       data: [],

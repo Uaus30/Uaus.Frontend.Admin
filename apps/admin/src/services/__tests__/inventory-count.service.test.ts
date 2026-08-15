@@ -4,7 +4,8 @@ const downloadInventoryCountSheet = vi.fn();
 const previewInventoryCount = vi.fn();
 const applyInventoryCount = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   downloadInventoryCountSheet: (...args: unknown[]) => downloadInventoryCountSheet(...args),
   previewInventoryCount: (...args: unknown[]) => previewInventoryCount(...args),
   applyInventoryCount: (...args: unknown[]) => applyInventoryCount(...args),

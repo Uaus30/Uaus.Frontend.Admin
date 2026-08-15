@@ -1,5 +1,6 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "@workspace/api-client-react";
 import { Toaster } from "@workspace/ui";
 import { TooltipProvider } from "@workspace/ui";
 import { CloudOff } from "lucide-react";
@@ -8,14 +9,7 @@ import { useOfflineStore } from "@/stores/use-offline-store";
 import Login from "@/pages/login";
 import Pdv from "@/pages/pdv";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      staleTime: 30000,
-    },
-  },
-});
+const queryClient = createQueryClient();
 
 function Router() {
   return (

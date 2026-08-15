@@ -7,7 +7,8 @@ const extractCreatedId = vi.fn();
 const fetchAllPages = vi.fn();
 const createCompleteSale = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   apiGet: (...args: unknown[]) => apiGet(...args),
   apiPost: (...args: unknown[]) => apiPost(...args),
   apiDelete: (...args: unknown[]) => apiDelete(...args),

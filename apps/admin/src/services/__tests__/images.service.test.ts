@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createImageFromFile, updateImageRecord } from "../images.service";
 import { apiPost, apiPut } from "@workspace/api-client-react";
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   apiPost: vi.fn(() => Promise.resolve({ data: { id: 1, name: "test" } })),
   apiPut: vi.fn(() => Promise.resolve({ data: { id: 1, name: "updated" } })),
   fetchAllPages: vi.fn(),

@@ -1,4 +1,4 @@
-import { useGetMe } from "@workspace/api-client-react";
+import { STALE_TIME, useGetMe } from "@workspace/api-client-react";
 
 /**
  * Sessão do usuário logado.
@@ -10,5 +10,5 @@ import { useGetMe } from "@workspace/api-client-react";
  * não muda entre telas, e o guard consulta em toda rota.
  */
 export function useSessao() {
-  return useGetMe({ query: { retry: false, staleTime: 5 * 60 * 1000 } });
+  return useGetMe({ query: { retry: false, staleTime: STALE_TIME.catalogo } });
 }

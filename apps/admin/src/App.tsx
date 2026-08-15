@@ -1,23 +1,16 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@workspace/ui";
 import { TooltipProvider } from "@workspace/ui";
 import { useState, useEffect, useRef, Suspense } from "react";
-import { checkHealth } from "@workspace/api-client-react";
+import { checkHealth, createQueryClient } from "@workspace/api-client-react";
 import { WifiOff, Loader2 } from "lucide-react";
 import { useToast } from "@workspace/ui";
 import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
 import { AuthGate, RequireRole } from "@/components/route-guards";
 
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      staleTime: 30000,
-    },
-  },
-});
+const queryClient = createQueryClient();
 
 const PageFallback = () => (
   <div className="flex h-screen w-full items-center justify-center">

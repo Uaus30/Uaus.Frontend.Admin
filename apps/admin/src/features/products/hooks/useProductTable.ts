@@ -18,7 +18,7 @@ import {
 } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
-import { apiGet, type ImageDto } from "@workspace/api-client-react";
+import { apiGet, STALE_TIME, type ImageDto } from "@workspace/api-client-react";
 import { CATALOG_KEYS, useAllDepartments, useAllCategories, useAllTags } from "@/hooks/use-catalog";
 
 /**
@@ -71,7 +71,7 @@ export function useProductTable() {
   const { data: statusOptions = [] } = useQuery({
     queryKey: ["product-status-options"],
     queryFn: () => getEnumOptions("/Products/enums/product-status"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.catalogo,
     refetchOnWindowFocus: false,
   });
 
@@ -88,7 +88,7 @@ export function useProductTable() {
     queries: groupIds.map((id) => ({
       queryKey: ["products-by-group", id],
       queryFn: () => getAllProducts({ productGroupId: id }),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIME.catalogo,
     })),
   });
   const allProducts = productsQueries.flatMap((q) => q.data ?? []);
@@ -98,7 +98,7 @@ export function useProductTable() {
     queries: productIds.map((id) => ({
       queryKey: ["tags-by-product", id],
       queryFn: () => getAllProductTags({ productId: id }),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIME.catalogo,
     })),
   });
   const productTags = productTagsQueries.flatMap((q) => q.data ?? []);
@@ -107,7 +107,7 @@ export function useProductTable() {
     queries: productIds.map((id) => ({
       queryKey: ["images-by-product", id],
       queryFn: () => getAllProductImages({ productId: id }),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIME.catalogo,
     })),
   });
   const productImages = productImagesQueries.flatMap((q) => q.data ?? []);
@@ -117,7 +117,7 @@ export function useProductTable() {
     queries: imageIds.map((id) => ({
       queryKey: ["image-by-id", id],
       queryFn: () => apiGet<ImageDto>(`/Images/${id}`).catch(() => null),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIME.catalogo,
     })),
   });
   const imagesCatalog = imagesCatalogQueries

@@ -23,7 +23,8 @@ vi.mock("./stock", () => ({
   consumeLocalStock: (...args: unknown[]) => consumeLocalStock(...args),
 }));
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   apiPost: (...args: unknown[]) => apiPost(...args),
 }));
 

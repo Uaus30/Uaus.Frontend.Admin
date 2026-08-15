@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useGetCompanySettings, type CompanySettingsDto } from "@workspace/api-client-react";
+import { STALE_TIME, useGetCompanySettings, type CompanySettingsDto } from "@workspace/api-client-react";
 import { readCachedCompanySettings, writeCachedCompanySettings } from "@/offline";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import {
@@ -38,7 +38,7 @@ export function useCompanySettings(): {
 
   const { data } = useGetCompanySettings({
     // Sem conexão a requisição só falharia; a cópia local responde por ela.
-    query: { enabled: online, retry: false, staleTime: 5 * 60 * 1000 },
+    query: { enabled: online, retry: false, staleTime: STALE_TIME.catalogo },
   });
 
   const [cached, setCached] = useState<CompanySettingsDto | null>(null);

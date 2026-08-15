@@ -25,8 +25,8 @@ const mockUpdateUser = vi.fn();
 const mockDeleteUser = vi.fn();
 const mockRefetch = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
-  getGetUsersQueryKey: () => ["users"],
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetUsers: vi.fn(() => ({
     data: {
       data: [

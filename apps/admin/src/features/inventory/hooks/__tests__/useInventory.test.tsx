@@ -15,7 +15,8 @@ vi.mock("@/services/categories.service", () => ({
 }));
 
 // Mock api client react hook
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetInventoryReport: vi.fn(() => ({
     data: {
       metrics: {

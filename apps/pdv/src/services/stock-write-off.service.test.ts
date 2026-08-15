@@ -15,7 +15,8 @@ class ApiError extends Error {
   }
 }
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   ApiError,
   registerStockWriteOff: (...args: unknown[]) => registerStockWriteOffRequest(...args),
   // `sales.service` é importado por este módulo (reuso de `toLocalTimestamp`,

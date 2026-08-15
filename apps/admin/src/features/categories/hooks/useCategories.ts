@@ -4,7 +4,7 @@ import { useDebounce } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
 import { createCategory, deleteCategory, getCategoriesPage, updateCategory } from "@/services/categories.service";
 import { getCategoryReport } from "@/services/reports.service";
-import { getGetCategoriesQueryKey } from "@workspace/api-client-react";
+import { STALE_TIME, getGetCategoriesQueryKey } from "@workspace/api-client-react";
 import type { CategoryForm, EnrichedCategory, CategoryReport } from "../types";
 import { useAllDepartments } from "@/hooks/use-catalog";
 import { describeApiError } from "@workspace/core";
@@ -90,7 +90,7 @@ export function useCategories() {
     queryKey: ["category-report", selectedCatId],
     queryFn: () => getCategoryReport(selectedCatId as number),
     enabled: !!selectedCatId && reportOpen,
-    staleTime: 5 * 60_000,
+    staleTime: STALE_TIME.catalogo,
   });
 
   /**

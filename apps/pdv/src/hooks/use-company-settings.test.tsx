@@ -5,7 +5,8 @@ const useGetCompanySettings = vi.fn();
 const readCachedCompanySettings = vi.fn();
 const writeCachedCompanySettings = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetCompanySettings: (...args: unknown[]) => useGetCompanySettings(...args),
 }));
 

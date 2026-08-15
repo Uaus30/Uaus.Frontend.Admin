@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { STALE_TIME } from "@workspace/api-client-react";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
 import { getAllCustomers } from "@/services/customers.service";
 import { getAllGrades } from "@/services/grades.service";
@@ -79,8 +80,11 @@ export const CATALOG_KEYS = {
  * Cinco minutos evita refazer a varredura a cada navegação entre features que
  * usam a mesma lista — e a invalidação explícita de quem cria/edita continua
  * valendo, porque invalidação ignora staleTime.
+ *
+ * O número mora em `STALE_TIME.catalogo`, no api-client, para o PDV e o admin
+ * envelhecerem o mesmo dado no mesmo prazo.
  */
-const CATALOG_STALE_TIME = 5 * 60 * 1000;
+const CATALOG_STALE_TIME = STALE_TIME.catalogo;
 
 /** `enabled` permite ao consumidor adiar a carga (modal fechada, por exemplo). */
 interface CatalogOptions {

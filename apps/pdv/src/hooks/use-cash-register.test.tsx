@@ -8,7 +8,8 @@ const closeCashRegisterSession = vi.fn();
 const useGetCurrentCashRegisterSession = vi.fn();
 const getSessionSales = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   CURRENT_CASH_REGISTER_SESSION_QUERY_KEY: ["cash-register-session-current"],
   openCashRegisterSession: (...args: unknown[]) => openCashRegisterSession(...args),
   closeCashRegisterSession: (...args: unknown[]) => closeCashRegisterSession(...args),

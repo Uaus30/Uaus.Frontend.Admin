@@ -19,8 +19,8 @@ vi.mock("wouter", () => ({
 
 // Mock do React Query e API Client de login
 const mockLoginMutate = vi.fn();
-vi.mock("@workspace/api-client-react", () => ({
-  getGetMeQueryKey: () => ["me"],
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useLogin: vi.fn(() => ({
     mutate: mockLoginMutate,
     isPending: false,

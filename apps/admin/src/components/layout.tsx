@@ -17,7 +17,7 @@ import {
   SidebarMenuSubButton
 } from "@workspace/ui";
 import { ChevronDown, Loader2, LogOut } from "lucide-react";
-import { useGetMe, useLogout } from "@workspace/api-client-react";
+import { STALE_TIME, useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 import { getDisplayName } from "@/services/mappers";
@@ -42,7 +42,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { data: user, isLoading } = useGetMe({
     query: {
       retry: false,
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIME.catalogo,
     }
   });
 

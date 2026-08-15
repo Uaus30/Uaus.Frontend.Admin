@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getDashboardMonthly } from "@/features/dashboard/api";
 import type { DashboardMonthly } from "../types";
 import { growth } from "../utils";
+import { STALE_TIME } from "@workspace/api-client-react";
 
 /** Meses trazidos no histórico, incluindo o corrente. */
 const HISTORY_MONTHS = 12;
@@ -25,7 +26,7 @@ export function useMonthlyComparison() {
     queryFn: () => getDashboardMonthly(HISTORY_MONTHS),
     // Os totais mudam a cada venda, mas o gráfico é de leitura mensal: cinco
     // minutos de cache evitam refazer doze meses de agregação à toa.
-    staleTime: 5 * 60_000,
+    staleTime: STALE_TIME.catalogo,
   });
 
   const comparison = data

@@ -6,7 +6,8 @@ const reverseStockWriteOff = vi.fn();
 
 // Os enums são copiados do contrato em packages/api-client: o service os usa em
 // tempo de import (rótulos e opções dos selects).
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   getStockWriteOff: (...args: unknown[]) => getStockWriteOff(...args),
   registerStockWriteOff: (...args: unknown[]) => registerStockWriteOff(...args),
   reverseStockWriteOff: (...args: unknown[]) => reverseStockWriteOff(...args),

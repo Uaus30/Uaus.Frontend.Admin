@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useGetMe } from "@workspace/api-client-react";
+import { STALE_TIME, useGetMe } from "@workspace/api-client-react";
 
 /**
  * Operador autenticado no caixa, e o desvio para o login quando não há um.
@@ -17,7 +17,7 @@ export function usePdvOperator() {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = useGetMe({
-    query: { retry: false, staleTime: 5 * 60 * 1000 },
+    query: { retry: false, staleTime: STALE_TIME.catalogo },
   });
 
   useEffect(() => {

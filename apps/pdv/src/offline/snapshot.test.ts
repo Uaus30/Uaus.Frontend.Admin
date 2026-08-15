@@ -11,7 +11,8 @@ const listPendingSales = vi.fn();
 const listPendingWriteOffs = vi.fn();
 const consumeLocalStock = vi.fn();
 
-vi.mock("@workspace/api-client-react", () => ({
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   apiGet: (...args: unknown[]) => apiGet(...args),
 }));
 

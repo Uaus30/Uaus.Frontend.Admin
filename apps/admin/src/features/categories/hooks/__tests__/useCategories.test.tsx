@@ -26,8 +26,8 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 }));
 
 // Mock workspace query keys
-vi.mock("@workspace/api-client-react", () => ({
-  getGetCategoriesQueryKey: () => ["categories"],
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
 }));
 
 // Helper wrapper for React Query

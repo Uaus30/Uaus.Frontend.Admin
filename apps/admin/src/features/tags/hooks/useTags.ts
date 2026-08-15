@@ -8,6 +8,7 @@ import { createTag, deleteTag, getTagsPage, updateTag } from "@/services/tags.se
 import { getTagReport } from "@/services/reports.service";
 import type { TagForm, EnrichedTag, TagReport } from "../types";
 import { describeApiError } from "@workspace/core";
+import { STALE_TIME } from "@workspace/api-client-react";
 
 export type SortDir = "asc" | "desc";
 export type SortBy = "name" | "productCount" | "createdAt";
@@ -93,7 +94,7 @@ export function useTags() {
     queryKey: ["tag-report", selectedTagId],
     queryFn: () => getTagReport(selectedTagId as number),
     enabled: !!selectedTagId && reportModalOpen,
-    staleTime: 5 * 60_000,
+    staleTime: STALE_TIME.catalogo,
   });
 
   /**
