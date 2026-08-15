@@ -12,7 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { buildReceiptFromSale, printReceipt, resolveStoreInfo } from "@workspace/receipt";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@workspace/core";
+import { computeSaleTotals, formatCurrency, round2 } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import { buildEnrichedSales, buildProductCollections } from "@/services/mappers";
 import {
@@ -229,23 +229,31 @@ export function useSales() {
     setItems((current) => current.filter((item) => item.productId !== productId));
   }
 
-  const subtotal = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  }, [items]);
+  // A conta é a mesma do PDV, vinda do @workspace/core: o admin usava toFixed,
+  // que trunca onde o EPSILON arredonda — 2,675 virava 2,67 aqui e 2,68 no
+  // caixa, para a mesma venda.
+  const totals = useMemo(
+    () =>
+      computeSaleTotals({
+        items: items.map((item) => ({
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          unitDiscount: 0,
+        })),
+        globalDiscount: discount,
+      }),
+    [items, discount]
+  );
 
-  const total = useMemo(() => {
-    return Math.max(0, Number((subtotal - discount).toFixed(2)));
-  }, [subtotal, discount]);
+  const subtotal = totals.subtotal;
+  const total = totals.total;
 
   const paidAmount = useMemo(
-    () => Number(payments.reduce((sum, payment) => sum + payment.amount, 0).toFixed(2)),
+    () => round2(payments.reduce((sum, payment) => sum + payment.amount, 0)),
     [payments]
   );
 
-  const remainingAmount = useMemo(
-    () => Number((total - paidAmount).toFixed(2)),
-    [total, paidAmount]
-  );
+  const remainingAmount = useMemo(() => round2(total - paidAmount), [total, paidAmount]);
 
   // Com uma única forma de pagamento o valor acompanha o total automaticamente.
   useEffect(() => {

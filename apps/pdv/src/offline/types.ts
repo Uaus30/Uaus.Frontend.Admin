@@ -72,6 +72,15 @@ export interface PendingSaleItem {
   quantity: number;
   /** Preço unitário já líquido do desconto do item. */
   unitPrice: number;
+  /**
+   * Desconto unitário concedido, em reais.
+   *
+   * Vai separado do preço porque `unitPrice + discount` é o que reconstrói o
+   * preço de tabela do momento da venda — sem ele não há como auditar desconto
+   * nem cupom. Opcional apenas por causa das vendas já enfileiradas antes deste
+   * campo existir; leia sempre com `?? 0`.
+   */
+  discount?: number;
   /** Nome do produto no momento da venda, para o cupom e a lista de pendências. */
   productName: string;
 }

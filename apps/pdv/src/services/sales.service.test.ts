@@ -157,6 +157,26 @@ describe("registerSale online", () => {
     ]);
   });
 
+  it("o desconto do item sobrevive ao caminho online", async () => {
+    // REGRESSÃO: a tela montava os itens sem o campo `discount`, e o `?? 0` do
+    // serviço gravava zero em toda venda. O desconto sumia dentro do unitPrice,
+    // e o backend deixava de distinguir "produto de R$ 8" de "produto de R$ 10
+    // com R$ 2 de desconto" — sem isso não há auditoria de desconto nem cupom.
+    await registerSale(
+      payload({
+        items: [
+          { productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" },
+        ],
+        payments: [{ paymentMethodId: 1, amount: 16 }],
+      }),
+    );
+
+    const [item] = postBody(0).items as Array<Record<string, number>>;
+    expect(item.discount).toBe(2);
+    // O contrato do DTO: unitPrice + discount reconstrói o preço de tabela.
+    expect(item.unitPrice + item.discount).toBe(10);
+  });
+
   it("deve enviar o total calculado, o desconto e a sessão de caixa", async () => {
     await registerSale(payload({ discount: 5, payments: [{ paymentMethodId: 1, amount: 45 }] }));
 
@@ -304,6 +324,24 @@ describe("registerSale offline", () => {
     // ter mudado quando a venda subir.
     expect(queuedSale().items[0].productName).toBe("Café");
     expect(queuedSale().payments[0].paymentMethodName).toBe("Dinheiro");
+  });
+
+  it("o desconto do item sobrevive à fila offline", async () => {
+    // A outra metade da regressão: `PendingSaleItem` nem declarava o campo, e o
+    // corpo do lote de sincronização o omitia. A venda offline subia com
+    // desconto zero enquanto a mesma venda online subia correta.
+    await registerSale(
+      payload({
+        items: [
+          { productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" },
+        ],
+        payments: [{ paymentMethodId: 1, amount: 16 }],
+      }),
+      { offline: true },
+    );
+
+    const items = queuedSale().items as Array<Record<string, number>>;
+    expect(items[0].discount).toBe(2);
   });
 
   it("deve gravar a venda antes de debitar o estoque", async () => {

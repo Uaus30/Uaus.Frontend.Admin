@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { computeSaleTotals, type SaleItemForTotals } from "@workspace/core";
 
 /** Uma linha do carrinho de venda em andamento. */
 export interface PdvItem {
@@ -156,6 +157,19 @@ interface PdvState {
   /** Subtotal menos o desconto da venda, nunca negativo. */
   getTotal: () => number;
 }
+
+/**
+ * Traduz o carrinho para o formato que `computeSaleTotals` espera.
+ *
+ * A conta em si mora no `@workspace/core` para o total exibido aqui ser
+ * exatamente o mesmo que vai no payload da venda e no cupom impresso.
+ */
+const toTotalsItems = (items: PdvItem[]): SaleItemForTotals[] =>
+  items.map((item) => ({
+    unitPrice: item.price,
+    quantity: item.quantity,
+    unitDiscount: item.discount,
+  }));
 
 /** Gera o identificador local de uma linha do carrinho ou de uma venda em espera. */
 const generateId = () => Math.random().toString(36).slice(2, 11);
@@ -426,8 +440,11 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       saleClientReference: null,
     })),
 
-  getSubtotal: () =>
-    get().items.reduce((total, item) => total + (item.price - item.discount) * item.quantity, 0),
+  getSubtotal: () => computeSaleTotals({ items: toTotalsItems(get().items) }).subtotal,
 
-  getTotal: () => Math.max(0, get().getSubtotal() - get().globalDiscount),
+  getTotal: () =>
+    computeSaleTotals({
+      items: toTotalsItems(get().items),
+      globalDiscount: get().globalDiscount,
+    }).total,
 }));

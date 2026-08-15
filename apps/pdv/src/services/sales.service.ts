@@ -10,7 +10,7 @@ import {
   type SaleItemDto,
   type BackendPagedResult,
 } from "@workspace/api-client-react";
-import { round2 } from "@workspace/core";
+import { computeSaleTotals } from "@workspace/core";
 import {
   checkLocalStock,
   consumeLocalStock,
@@ -78,12 +78,24 @@ const PDV_SALE_PATH = "/Pdv/sales";
  * O backend refaz esta mesma conta e recusa divergência — offline o total é
  * calculado aqui, então ele não pode ser a única palavra.
  *
+ * A conta em si vem do `@workspace/core`: é a MESMA função que o carrinho usa
+ * para exibir o total, e era essa duplicação que permitia a tela mostrar um
+ * valor e o payload levar outro.
+ *
  * @param items Itens do carrinho com o preço já líquido do desconto do item.
  * @param discount Desconto aplicado sobre o total da venda.
  */
 export function computeSaleTotal(items: SaleItemInput[], discount: number) {
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  return Math.max(0, round2(subtotal - discount));
+  return computeSaleTotals({
+    // `unitPrice` aqui já chega líquido do desconto da linha, então o abatimento
+    // por item é zero — ele foi contabilizado antes de montar o payload.
+    items: items.map((item) => ({
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+      unitDiscount: 0,
+    })),
+    globalDiscount: discount,
+  }).total;
 }
 
 /**

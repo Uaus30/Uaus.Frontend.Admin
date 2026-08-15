@@ -40,6 +40,11 @@ function toRequestBody(sale: PendingSale) {
       productId: item.productId,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      // `?? 0` cobre as vendas que já estavam na fila antes de o campo existir:
+      // `pendingSales` sobrevive à migração, então elas sobem sem `discount`.
+      // Não houve troca de versão da base — nada mudou no esquema, e subir a
+      // versão apagaria as stores de catálogo de todo caixa na próxima abertura.
+      discount: item.discount ?? 0,
     })),
     payments: sale.payments.map((payment) => ({
       paymentMethodId: payment.paymentMethodId,

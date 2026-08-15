@@ -1,8 +1,8 @@
-import path from "path";
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-const workspaceRoot = path.resolve(__dirname, "../..");
+const workspaceRoot = path.resolve(import.meta.dirname, "../..");
 
 /**
  * Configuração de testes do PDV. Fica separada do vite.config.ts porque os
@@ -16,7 +16,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
       react: path.resolve(workspaceRoot, "node_modules/react"),
       "react-dom": path.resolve(workspaceRoot, "node_modules/react-dom"),
     },

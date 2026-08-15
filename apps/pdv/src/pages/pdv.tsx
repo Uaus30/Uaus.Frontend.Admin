@@ -48,9 +48,8 @@ import {
   updateSale,
   LocalStockError,
 } from "@/services/sales.service";
-import { formatCurrency } from "@workspace/core";
+import { computeDiscount, formatCurrency, parseAmount, round2 } from "@workspace/core";
 import { searchProducts } from "@/lib/product-search";
-import { parseAmount, round2 } from "@/lib/checkout";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
@@ -273,7 +272,10 @@ export default function Pdv() {
   const subtotal = getSubtotal();
   const total = getTotal();
 
-  const checkout = useCheckout(subtotal, paymentMethods);
+  // `total`, não `subtotal`: o checkout cobra o que a venda grava. Enquanto ele
+  // recebia o subtotal, qualquer desconto global era exibido no carrinho, ia
+  // para o payload — e NÃO era descontado do valor a receber no caixa.
+  const checkout = useCheckout(total, paymentMethods);
 
   /**
    * Adiciona o produto ao carrinho recusando produto zerado ou quantidade
@@ -436,28 +438,30 @@ export default function Pdv() {
       if (inputEl && item) inputEl.value = (item.price - item.discount).toFixed(2).replace(".", ",");
     };
 
+    // O preço digitado vira desconto pela diferença contra a tabela. A conta e
+    // os limites saem do @workspace/core, o mesmo módulo do diálogo de desconto
+    // e do total do carrinho — três caminhos, uma regra só.
     const val = parseAmount(valueStr);
-    if (isNaN(val) || val < 0) {
+    const resultado = computeDiscount({
+      base: originalPrice,
+      value: Number.isNaN(val) ? NaN : originalPrice - val,
+      type: "value",
+    });
+
+    if ("error" in resultado) {
+      const acimaDaTabela = resultado.error === "negativo";
       toast({
-        title: "Valor Inválido",
-        description: "Por favor, digite um preço unitário válido.",
+        title: acimaDaTabela ? "Valor Superior ao Original" : "Valor Inválido",
+        description: acimaDaTabela
+          ? `O valor do item não pode ser superior ao preço original de ${formatCurrency(originalPrice)}.`
+          : "Por favor, digite um preço unitário válido.",
         variant: "destructive",
       });
       restore();
       return;
     }
 
-    if (val > originalPrice) {
-      toast({
-        title: "Valor Superior ao Original",
-        description: `O valor do item não pode ser superior ao preço original de ${formatCurrency(originalPrice)}.`,
-        variant: "destructive",
-      });
-      restore();
-      return;
-    }
-
-    const discount = round2(originalPrice - val);
+    const discount = resultado.amount;
     applyItemDiscount(id, discount);
     toast({
       title: discount > 0 ? "Preço Atualizado" : "Preço Restaurado",
@@ -524,6 +528,12 @@ export default function Pdv() {
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: round2(item.price - item.discount),
+        // O desconto vai SEPARADO do preço. Sem ele o backend não distingue um
+        // produto que custa R$ 8 de um de R$ 10 com R$ 2 de desconto, e o
+        // contrato do DTO diz que `unitPrice + discount` reconstrói o preço de
+        // tabela do momento da venda. É disso que dependem o relatório de
+        // descontos e qualquer auditoria de cupom.
+        discount: item.discount,
         // O nome vai junto para a fila offline: o cupom e a lista de pendências
         // precisam dele, e a base local pode ter mudado quando a venda subir.
         productName: item.name,
@@ -941,16 +951,19 @@ export default function Pdv() {
 
       const cartItems: PdvItem[] = saleItems.map((item) => {
         const product = productById.get(item.productId);
-        const originalPriceFromSale = item.unitPrice + (item.discount ?? 0);
-        const price = product?.price ?? originalPriceFromSale;
+        // O preço de tabela vem da PRÓPRIA venda (`unitPrice + discount`), não
+        // do cadastro atual. Usar o preço de hoje reescrevia o histórico: mudar
+        // o preço no admin alterava retroativamente o desconto de uma venda
+        // antiga ao reabri-la para edição.
+        const originalPriceFromSale = round2(item.unitPrice + (item.discount ?? 0));
         return {
           id: `${item.id}`,
           productId: item.productId,
           name: item.productName || product?.name || `Produto #${item.productId}`,
           barcode: product?.barcode || item.barcode || undefined,
-          price,
+          price: originalPriceFromSale,
           quantity: item.quantity,
-          discount: Math.max(0, round2(price - item.unitPrice)),
+          discount: round2(item.discount ?? 0),
           // O estoque atual já não contém as unidades desta venda.
           availableStock: (product?.stock ?? 0) + item.quantity,
         };
@@ -1601,7 +1614,7 @@ export default function Pdv() {
         onOpenChange={(open) => !open && backToSelling()}
         consumer={consumer}
         setConsumer={setConsumer}
-        total={subtotal}
+        total={total}
         checkout={checkout}
         savingSale={savingSale}
         onConfirmPayment={handleConfirmPayment}

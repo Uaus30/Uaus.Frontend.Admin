@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tag } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
 import { Button, Input, Label } from "@workspace/ui";
-import { parseAmount, round2 } from "@workspace/core";
+import { computeDiscount, parseAmount } from "@workspace/core";
 import { useToast } from "@/hooks/use-toast";
 import type { PdvItem } from "@/stores/use-pdv-store";
 
@@ -58,43 +58,39 @@ export function DiscountDialog({
   }
 
   const confirmDiscount = () => {
-    const val = parseAmount(discountValue);
-    if (isNaN(val)) return;
+    const informado = parseAmount(discountValue);
+    // Alvo define a base do desconto: a venda inteira, ou o preço unitário da
+    // linha. A conta e os limites são do @workspace/core — o mesmo módulo que o
+    // store usa para o total e que o cupom vai usar.
+    const item = target.type === "item" && target.id
+      ? items.find((i) => i.id === target.id)
+      : undefined;
 
-    if (val < 0) {
+    if (target.type === "item" && !item) return;
+
+    const base = target.type === "global" ? subtotal : (item?.price ?? 0);
+    const resultado = computeDiscount({ base, value: informado, type: discountType });
+
+    if ("error" in resultado) {
+      if (resultado.error === "invalido") return;
+
       toast({
         title: "Desconto Inválido",
-        description: "O desconto não pode ser negativo.",
+        description:
+          resultado.error === "negativo"
+            ? "O desconto não pode ser negativo."
+            : target.type === "global"
+              ? "O desconto não pode ser maior que o subtotal da venda."
+              : "O desconto não pode ser maior que o valor do item.",
         variant: "destructive",
       });
       return;
     }
 
     if (target.type === "global") {
-      const finalValue = discountType === "percent" ? (subtotal * val) / 100 : val;
-      if (finalValue > subtotal) {
-        toast({
-          title: "Desconto Inválido",
-          description: "O desconto não pode ser maior que o subtotal da venda.",
-          variant: "destructive",
-        });
-        return;
-      }
-      applyGlobalDiscount(round2(finalValue));
-    } else if (target.id) {
-      const item = items.find((i) => i.id === target.id);
-      if (item) {
-        const finalValue = discountType === "percent" ? (item.price * val) / 100 : val;
-        if (finalValue > item.price) {
-          toast({
-            title: "Desconto Inválido",
-            description: "O desconto não pode ser maior que o valor do item.",
-            variant: "destructive",
-          });
-          return;
-        }
-        applyItemDiscount(item.id, round2(finalValue));
-      }
+      applyGlobalDiscount(resultado.amount);
+    } else if (item) {
+      applyItemDiscount(item.id, resultado.amount);
     }
 
     toast({ title: "Desconto Aplicado", duration: 2000 });

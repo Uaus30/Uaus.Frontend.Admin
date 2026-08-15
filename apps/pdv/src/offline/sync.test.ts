@@ -242,8 +242,36 @@ describe("syncPendingSales", () => {
     const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
     // Os nomes de produto e forma de pagamento são só da fila local; enviá-los
     // faria o backend recusar o corpo.
-    expect(body.sales[0].items).toEqual([{ productId: 1, quantity: 2, unitPrice: 25 }]);
+    expect(body.sales[0].items).toEqual([
+      { productId: 1, quantity: 2, unitPrice: 25, discount: 0 },
+    ]);
     expect(body.sales[0]).toMatchObject({ clientReference: "ref-1", cashRegisterSessionId: 7 });
+  });
+
+  it("deve enviar o desconto do item no lote, inclusive nas vendas antigas da fila", async () => {
+    // Duas vendas: uma gravada depois do campo existir, outra de antes.
+    // `pendingSales` sobrevive à migração, então a segunda sobe sem o campo e
+    // precisa virar zero em vez de `undefined` — o backend recusaria o corpo.
+    const comDesconto = pendingSale("ref-1");
+    comDesconto.items = [
+      { productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" },
+    ];
+
+    const legada = pendingSale("ref-2", 2);
+    legada.items = [
+      { productId: 1, quantity: 1, unitPrice: 25, productName: "Café" },
+    ] as typeof legada.items;
+
+    listSalesToSync.mockResolvedValue([comDesconto, legada]);
+    apiPost.mockResolvedValue({
+      data: { results: [result("ref-1", "Created"), result("ref-2", "Created")] },
+    });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<{ items: Array<Record<string, number>> }> };
+    expect(body.sales[0].items[0].discount).toBe(2);
+    expect(body.sales[1].items[0].discount).toBe(0);
   });
 
   it("não deve perder venda quando a conexão cai no meio da sincronização", async () => {
