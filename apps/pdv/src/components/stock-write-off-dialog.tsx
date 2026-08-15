@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ApiError,
   SELECTABLE_STOCK_WRITE_OFF_REASONS,
   STOCK_WRITE_OFF_REASON,
   STOCK_WRITE_OFF_REASON_LABEL,
   type ProductPdvSearchDto,
 } from "@workspace/api-client-react";
+import { describeApiError } from "@workspace/core";
 import { AlertTriangle, FileText, Loader2, Minus, PackageMinus, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -134,7 +134,7 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
       } catch (error) {
         toast({
           title: "Erro na busca",
-          description: error instanceof Error ? error.message : "Tente novamente.",
+          description: describeApiError(error),
           variant: "destructive",
         });
       } finally {
@@ -235,7 +235,7 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
       toast({
         title: "Não foi possível registrar a baixa",
         description:
-          error instanceof ApiError || error instanceof Error ? error.message : "Tente novamente.",
+          describeApiError(error),
         variant: "destructive",
         duration: 6000,
       });

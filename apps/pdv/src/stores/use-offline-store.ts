@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { describeApiError } from "@workspace/core";
 import {
   readLocalDatabaseState,
   refreshLocalDatabase,
@@ -85,9 +86,16 @@ interface OfflineState {
   reset: () => void;
 }
 
-/** Mensagem legível de um erro qualquer. */
+/**
+ * Mensagem legível de um erro qualquer.
+ *
+ * Delega ao `@workspace/core`, que desempacota o `ValidationProblemDetails` do
+ * ASP.NET — sem isso a recusa do servidor chega ao operador como "One or more
+ * validation errors occurred". O texto padrão é próprio: aqui o erro é de
+ * sincronização, não de uma ação que o operador acabou de fazer.
+ */
 function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : "Falha inesperada.";
+  return describeApiError(error, "Falha inesperada.");
 }
 
 /**

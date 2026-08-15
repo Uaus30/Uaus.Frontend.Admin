@@ -48,7 +48,7 @@ import {
   updateSale,
   LocalStockError,
 } from "@/services/sales.service";
-import { computeDiscount, formatCurrency, parseAmount, round2 } from "@workspace/core";
+import { computeDiscount, describeApiError, formatCurrency, parseAmount, round2 } from "@workspace/core";
 import { searchProducts } from "@/lib/product-search";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -357,7 +357,7 @@ export default function Pdv() {
       } catch (error) {
         toast({
           title: "Erro na busca",
-          description: error instanceof Error ? error.message : "Tente novamente.",
+          description: describeApiError(error),
           variant: "destructive",
         });
       } finally {
@@ -667,7 +667,7 @@ export default function Pdv() {
 
       toast({
         title: "Não foi possível registrar a venda",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
         duration: 6000,
       });
@@ -701,7 +701,7 @@ export default function Pdv() {
     } catch (error) {
       toast({
         title: "Não foi possível abrir o caixa",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
       });
     } finally {
@@ -806,7 +806,7 @@ export default function Pdv() {
     } catch (error) {
       toast({
         title: "Não foi possível cancelar",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
       });
     } finally {
@@ -898,7 +898,7 @@ export default function Pdv() {
     } catch (error) {
       toast({
         title: "Não foi possível imprimir o relatório",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
       });
     } finally {
@@ -927,7 +927,7 @@ export default function Pdv() {
     } catch (error) {
       toast({
         title: "Não foi possível montar o cupom",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
       });
     } finally {
@@ -979,7 +979,7 @@ export default function Pdv() {
     } catch (error) {
       toast({
         title: "Não foi possível carregar a venda",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: describeApiError(error),
         variant: "destructive",
       });
     } finally {
