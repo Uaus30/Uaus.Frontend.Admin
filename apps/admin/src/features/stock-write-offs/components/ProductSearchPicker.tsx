@@ -12,7 +12,7 @@ import {
   CommandList,
 } from "@workspace/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
-import { formatQuantity } from "@/lib/formatters";
+import { formatQuantity } from "@workspace/core";
 import { getProductsPage } from "@/services/products.service";
 import type { ProductSearchOption } from "../types";
 

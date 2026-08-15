@@ -2,12 +2,9 @@ import { useState } from "react";
 import { Tag } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
 import { Button, Input, Label } from "@workspace/ui";
-import { parseAmount } from "@/lib/checkout";
+import { parseAmount, round2 } from "@workspace/core";
 import { useToast } from "@/hooks/use-toast";
 import type { PdvItem } from "@/stores/use-pdv-store";
-
-/** Arredonda para duas casas evitando o erro de ponto flutuante do JavaScript. */
-const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export type DiscountTarget = { type: "global" | "item"; id?: string };
 

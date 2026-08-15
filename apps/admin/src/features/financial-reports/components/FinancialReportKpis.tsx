@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@workspace/ui";
 import { Skeleton } from "@workspace/ui";
-import { formatCurrency, formatPercentage, formatQuantity } from "@/lib/formatters";
-import { cn } from "@/lib/utils";
+import { formatCurrency, formatPercentage, formatQuantity } from "@workspace/core";
+import { cn } from "@workspace/ui";
 import type { FinancialReportSummaryDto } from "../types";
 
 type FinancialReportKpisProps = {

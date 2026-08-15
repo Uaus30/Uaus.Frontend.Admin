@@ -3,21 +3,15 @@
  *
  * Ficam aqui, fora da tela, porque são regras de dinheiro: precisam de teste, e
  * testá-las dentro do componente exigiria renderizar o PDV inteiro.
- */
-
-/** Arredonda para duas casas evitando o erro de ponto flutuante do JavaScript. */
-export function round2(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-/**
- * Converte um valor digitado no formato pt-BR ("1.234,50") para número.
  *
- * @returns O número, ou `NaN` quando o texto não representa um valor.
+ * `round2` e `parseAmount` moraram aqui até o `@workspace/core` existir. São
+ * reexportados para os call sites do PDV não mudarem, mas a implementação é uma
+ * só no monorepo — havia cinco, com três algoritmos que divergiam em centavos.
  */
-export function parseAmount(value: string): number {
-  return parseFloat(value.replace(/\./g, "").replace(",", "."));
-}
+
+import { parseAmount, round2 } from "@workspace/core";
+
+export { parseAmount, round2 };
 
 /** Conferência do dinheiro em mãos contra a parte em dinheiro da venda. */
 export interface CashSettlement {

@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@workspace/ui";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@workspace/ui";
+import { formatCurrency } from "@workspace/core";
 
 /**
  * Peças compartilhadas por todos os gráficos do painel.

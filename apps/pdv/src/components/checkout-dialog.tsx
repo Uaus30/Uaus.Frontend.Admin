@@ -2,7 +2,7 @@ import { Banknote, CreditCard, Split, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@workspace/ui";
 import { Button, Input, Label } from "@workspace/ui";
 import { ConsumerPicker } from "@/components/consumer-picker";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { type CheckoutState } from "@/hooks/use-checkout";
 import { type PdvConsumer } from "@/stores/use-pdv-store";
 

@@ -10,7 +10,7 @@ import {
 } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@workspace/core";
 import type { CashRegisterSessionDto } from "../types";
 
 interface CashRegisterSessionDetailsDialogProps {

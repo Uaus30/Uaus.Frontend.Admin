@@ -5,7 +5,7 @@ import { Label } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
-import { cn } from "@/lib/utils";
+import { cn } from "@workspace/ui";
 import type { PeriodMode, PeriodPreset } from "../types";
 import { PERIOD_PRESETS } from "../utils";
 

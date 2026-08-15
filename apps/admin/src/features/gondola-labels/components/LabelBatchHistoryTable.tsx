@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { formatDate } from "@/lib/formatters";
+import { formatDate } from "@workspace/core";
 import type { ProductLabelBatchDto, UiPagedResult } from "@workspace/api-client-react";
 
 interface LabelBatchHistoryTableProps {

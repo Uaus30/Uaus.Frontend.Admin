@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowRight, Link2, Magnet } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { BaitProduct, ProductAffinity } from "../types";
 
 /** Bloco vazio das listas de cesta, com o motivo provável da ausência. */

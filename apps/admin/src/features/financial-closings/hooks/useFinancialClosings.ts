@@ -10,8 +10,8 @@ import {
   useGetFinancialClosings,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { describeApiError } from "@/lib/api-error";
-import { formatShortDate } from "@/lib/formatters";
+import { describeApiError } from "@workspace/core";
+import { formatShortDate } from "@workspace/core";
 import type { FinancialClosingDto, FinancialClosingPreviewDto, NewClosingStep } from "../types";
 
 /** Tamanho fixo da página da listagem. */

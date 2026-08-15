@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@workspace/core";
 import type { CashRegisterSessionDto, CashRegisterSessionStatusFilter } from "../types";
 
 interface CashRegisterSessionsTableProps {

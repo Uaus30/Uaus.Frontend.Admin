@@ -13,27 +13,13 @@ import {
   type PartnerDto,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { describeApiError } from "@/lib/api-error";
+import { describeApiError, normalizeSearchText, round2 } from "@workspace/core";
 import type { PartnerFormValues } from "../types";
 
 /** Itens por página na tabela de sócios. */
 export const PAGE_SIZE = 10;
 
 const EMPTY_FORM: PartnerFormValues = { name: "", isActive: true };
-
-/** Remove acentos e caixa para a busca local por nome. */
-function normalizeText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
-/** Arredonda a 2 casas — mesma precisão do percentual no backend (numeric(5,2)). */
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /**
  * usePartners
@@ -77,9 +63,9 @@ export function usePartners() {
   // a página carregada resolve sem inventar parâmetro fora do contrato.
   const partners = useMemo(() => {
     const items = partnersPage?.data ?? [];
-    const term = normalizeText(search);
+    const term = normalizeSearchText(search);
     if (!term) return items;
-    return items.filter((item) => normalizeText(item.name).includes(term));
+    return items.filter((item) => normalizeSearchText(item.name).includes(term));
   }, [partnersPage?.data, search]);
 
   const editingId = editingPartner?.id ?? null;

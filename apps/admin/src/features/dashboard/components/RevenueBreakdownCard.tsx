@@ -1,6 +1,6 @@
 import React from "react";
 import { Skeleton } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { DashboardBreakdown } from "../types";
 import { ChartCard, ChartEmptyState } from "./chart-primitives";
 

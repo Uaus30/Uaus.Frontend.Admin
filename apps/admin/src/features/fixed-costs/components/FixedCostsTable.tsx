@@ -9,7 +9,7 @@ import {
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { CalendarOff, Edit2, ReceiptText, Trash2 } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { formatMonth, isFixedCostActive } from "../hooks/useFixedCosts";
 import type { FixedCostDto } from "../types";
 

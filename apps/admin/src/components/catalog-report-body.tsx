@@ -1,5 +1,5 @@
 import React from "react";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { CatalogReport } from "@/services/mappers";
 
 /** Converte `yyyy-MM-dd` em `dd/MM/yyyy` sem passar por `Date`, evitando fuso. */

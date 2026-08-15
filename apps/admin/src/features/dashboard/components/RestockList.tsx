@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle, PackageX, Timer, TrendingDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@workspace/ui";
+import { formatCurrency } from "@workspace/core";
 import type { RestockSuggestion, RestockUrgency } from "../types";
 
 /**

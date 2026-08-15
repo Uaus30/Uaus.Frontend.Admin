@@ -5,7 +5,7 @@ import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Loader2, Phone, RefreshCw } from "lucide-react";
-import { cleanPhone, formatPhone } from "@/lib/utils";
+import { cleanPhone, formatPhone } from "@workspace/core";
 import { UF_LIST, randomColor } from "../hooks/useSuppliers";
 import type { SupplierForm } from "../types";
 

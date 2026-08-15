@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { format, startOfMonth } from "date-fns";
 import { useGetFinancialReportSummary } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { describeApiError } from "@/lib/api-error";
+import { describeApiError } from "@workspace/core";
 import type { FinancialReportPeriodFilter } from "../types";
 
 /** Formato das datas que trafegam como string nos filtros (padrão da casa). */

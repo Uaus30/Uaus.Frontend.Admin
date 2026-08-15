@@ -7,7 +7,7 @@ import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { TagMultiSelect } from "@/components/tag-multi-select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { Loader2, Plus, Save, Grid3X3, AlertTriangle, HelpCircle, Printer, Package, Eye, EyeOff } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import Barcode from "react-barcode";

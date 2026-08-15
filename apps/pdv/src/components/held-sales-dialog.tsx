@@ -3,7 +3,7 @@ import { PauseCircle, Play, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
 
 type HeldSalesDialogProps = {

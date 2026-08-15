@@ -3,7 +3,7 @@ import { Button } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { ProductDto } from "@workspace/api-client-react";
 
 interface LabelProductSearchProps {

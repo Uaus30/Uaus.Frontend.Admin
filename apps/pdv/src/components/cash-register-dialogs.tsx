@@ -5,7 +5,7 @@ import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Unlock, DollarSign, FileText, Loader2, Lock } from "lucide-react";
 import { parseAmount, round2 } from "@/lib/checkout";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { CashRegisterSessionDto, CashRegisterSessionSummaryDto } from "@workspace/api-client-react";
 
 interface OpenCashRegisterDialogProps {

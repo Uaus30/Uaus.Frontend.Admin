@@ -3,7 +3,7 @@ import { History, Loader2, Printer, MoreVertical, FileBarChart } from "lucide-re
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
 import { Button } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { enumCode, PAYMENT_STATUS, type SaleDto } from "@workspace/api-client-react";
 
 export interface SalesHistoryDialogProps {

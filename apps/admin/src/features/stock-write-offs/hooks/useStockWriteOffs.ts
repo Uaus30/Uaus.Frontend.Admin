@@ -9,7 +9,7 @@ import {
   type StockWriteOffDto,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { describeApiError } from "@/lib/api-error";
+import { describeApiError } from "@workspace/core";
 import {
   buildStockWriteOffQuery,
   EMPTY_STOCK_WRITE_OFF_FILTERS,

@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui";
-import { formatCurrency, formatQuantity } from "@/lib/formatters";
+import { formatCurrency, formatQuantity } from "@workspace/core";
 import type { FinancialReportWriteOffsDto } from "../types";
 
 type WriteOffsByReasonCardProps = {

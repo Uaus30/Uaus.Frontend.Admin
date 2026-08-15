@@ -9,7 +9,7 @@ import {
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Edit2, Trash2, Handshake } from "lucide-react";
-import { formatPercentage } from "@/lib/formatters";
+import { formatPercentage } from "@workspace/core";
 import type { PartnerDto } from "../types";
 
 interface PartnersTableProps {

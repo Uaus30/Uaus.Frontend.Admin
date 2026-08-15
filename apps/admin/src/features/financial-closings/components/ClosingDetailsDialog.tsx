@@ -8,7 +8,7 @@ import {
 } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Loader2, Lock, Trash2 } from "lucide-react";
-import { formatDate, formatShortDate } from "@/lib/formatters";
+import { formatDate, formatShortDate } from "@workspace/core";
 import { ClosingSummary } from "./ClosingSummary";
 import type { FinancialClosingDto } from "../types";
 

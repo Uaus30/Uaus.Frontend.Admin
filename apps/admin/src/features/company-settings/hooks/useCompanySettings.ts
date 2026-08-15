@@ -6,7 +6,7 @@ import {
   useGetCompanySettings,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { describeApiError } from "@/lib/api-error";
+import { describeApiError } from "@workspace/core";
 
 /**
  * Padrão local enquanto a leitura não chega.

@@ -3,7 +3,7 @@ import { CalendarRange, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Skeleton } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { useSalesPatterns } from "../hooks/useSalesPatterns";
 import { PATTERN_WINDOWS, type PatternWindow } from "../hooks/useSalesPatterns";
 import { formatBrazilianDate } from "../utils";

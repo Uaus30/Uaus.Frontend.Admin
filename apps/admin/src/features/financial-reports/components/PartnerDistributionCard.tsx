@@ -8,8 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui";
-import { formatCurrency, formatPercentage } from "@/lib/formatters";
-import { cn } from "@/lib/utils";
+import { formatCurrency, formatPercentage } from "@workspace/core";
+import { cn } from "@workspace/ui";
 import type { PartnerDistributionItemDto } from "../types";
 
 type PartnerDistributionCardProps = {

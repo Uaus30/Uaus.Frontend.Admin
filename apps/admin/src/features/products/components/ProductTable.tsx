@@ -4,7 +4,7 @@ import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { buildPublicImageUrl } from "@/services/core";
 import { Edit2, ImageIcon, Loader2, Search, Trash2, AlertTriangle, MoreVertical, Package, History } from "lucide-react";
 import type { EnrichedProduct } from "@/services/mappers";

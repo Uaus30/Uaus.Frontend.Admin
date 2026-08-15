@@ -14,7 +14,7 @@ import { Label } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { formatCurrency, formatDate, formatQuantity } from "@/lib/formatters";
+import { formatCurrency, formatDate, formatQuantity } from "@workspace/core";
 import {
   ALL_FILTER_VALUE,
   STOCK_WRITE_OFF_REASON_FILTER_OPTIONS,

@@ -1,6 +1,6 @@
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
-import { formatCurrency, formatShortDate } from "@/lib/formatters";
+import { formatCurrency, formatShortDate } from "@workspace/core";
 import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
 
 /**

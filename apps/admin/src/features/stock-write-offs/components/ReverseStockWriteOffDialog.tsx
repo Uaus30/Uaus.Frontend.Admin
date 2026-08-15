@@ -12,7 +12,7 @@ import {
 } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
-import { formatCurrency, formatDate, formatQuantity } from "@/lib/formatters";
+import { formatCurrency, formatDate, formatQuantity } from "@workspace/core";
 
 type ReverseStockWriteOffDialogProps = {
   /** Baixa alvo do estorno, ou `null` quando o diálogo está fechado. */

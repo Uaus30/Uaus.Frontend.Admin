@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { InventoryCountResultDto } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { describeApiError } from "@/lib/api-error";
+import { describeApiError } from "@workspace/core";
 import {
   applyInventorySheet,
   canApplyInventoryCount,

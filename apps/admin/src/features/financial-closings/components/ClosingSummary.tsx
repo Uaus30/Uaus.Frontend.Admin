@@ -7,7 +7,7 @@ import {
   TableCell,
 } from "@workspace/ui";
 import { AlertTriangle, Handshake, ReceiptText } from "lucide-react";
-import { formatCurrency, formatPercentage } from "@/lib/formatters";
+import { formatCurrency, formatPercentage } from "@workspace/core";
 import type { ClosingNumbers, FinancialReportFixedCostItemDto } from "../types";
 
 interface ClosingSummaryProps {

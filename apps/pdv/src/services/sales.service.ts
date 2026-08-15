@@ -10,6 +10,7 @@ import {
   type SaleItemDto,
   type BackendPagedResult,
 } from "@workspace/api-client-react";
+import { round2 } from "@workspace/core";
 import {
   checkLocalStock,
   consumeLocalStock,
@@ -83,11 +84,6 @@ const PDV_SALE_PATH = "/Pdv/sales";
 export function computeSaleTotal(items: SaleItemInput[], discount: number) {
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
   return Math.max(0, round2(subtotal - discount));
-}
-
-/** Arredonda para duas casas evitando o erro de ponto flutuante do JavaScript. */
-function round2(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 /**

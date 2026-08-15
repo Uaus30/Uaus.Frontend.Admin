@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeApiError } from "../api-error";
+import { describeApiError } from "./api-error";
 
 /** Reproduz o formato do `ApiError` sem depender do cliente HTTP. */
 function apiErrorLike(message: string, payload: unknown) {

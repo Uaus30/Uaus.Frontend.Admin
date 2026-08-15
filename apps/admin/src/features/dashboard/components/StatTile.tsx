@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Card } from "@workspace/ui";
-import { cn } from "@/lib/utils";
+import { cn } from "@workspace/ui";
 import { formatSignedPercent } from "../utils";
 
 /**

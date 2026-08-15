@@ -1,7 +1,7 @@
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, CheckCircle2, Info } from "lucide-react";
 import type { InventoryCountLineDto, InventoryCountResultDto } from "@workspace/api-client-react";
 import { Badge } from "@workspace/ui";
-import { formatQuantity } from "@/lib/formatters";
+import { formatQuantity } from "@workspace/core";
 
 type InventoryCountResultProps = {
   result: InventoryCountResultDto;

@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { formatDate } from "@/lib/formatters";
+import { formatDate } from "@workspace/core";
 import type { ProductLabelBatchDto } from "@workspace/api-client-react";
 import { batchToPrintableLabels } from "../hooks/useLabelBatchHistory";
 import { LabelPreviewCard } from "./LabelPreviewCard";

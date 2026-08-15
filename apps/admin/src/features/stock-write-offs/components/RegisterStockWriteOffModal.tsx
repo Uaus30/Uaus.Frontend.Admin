@@ -11,7 +11,7 @@ import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
-import { formatQuantity } from "@/lib/formatters";
+import { formatQuantity } from "@workspace/core";
 import { SELECTABLE_STOCK_WRITE_OFF_REASON_OPTIONS } from "@/services/stock-write-offs.service";
 import { ProductSearchPicker } from "./ProductSearchPicker";
 import type { ProductSearchOption, StockWriteOffDraftItem } from "../types";

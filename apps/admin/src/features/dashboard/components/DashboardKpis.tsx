@@ -1,7 +1,7 @@
 import React from "react";
 import { Receipt, ShoppingCart, TrendingUp, Wallet } from "lucide-react";
 import { Skeleton } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { DashboardOverview } from "../types";
 import { growth } from "../utils";
 import { StatTile } from "./StatTile";

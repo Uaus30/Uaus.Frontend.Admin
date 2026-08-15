@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeSearchText } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import {
   createSupplier,
@@ -33,9 +34,12 @@ export function randomColor(): string {
 
 /**
  * Remove acentos e caracteres especiais para normalizar o nome de status.
+ *
+ * Mantido com o nome que descreve o uso na tela; a regra de normalizacao e a
+ * mesma do resto do sistema e vive em `@workspace/core`.
  */
 export function normalizeStatusName(name: string): string {
-  return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return normalizeSearchText(name);
 }
 
 /**

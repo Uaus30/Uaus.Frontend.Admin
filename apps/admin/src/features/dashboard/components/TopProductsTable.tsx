@@ -1,7 +1,7 @@
 import React from "react";
 import { Skeleton } from "@workspace/ui";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@workspace/ui";
+import { formatCurrency } from "@workspace/core";
 import type { DashboardTopProduct } from "../types";
 import { ChartCard, ChartEmptyState } from "./chart-primitives";
 

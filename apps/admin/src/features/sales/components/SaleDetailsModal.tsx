@@ -3,7 +3,7 @@ import { Loader2, Printer, Receipt } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@workspace/core";
 import { useGetSaleDetails } from "@workspace/api-client-react";
 import type { EnrichedSale } from "../types";
 

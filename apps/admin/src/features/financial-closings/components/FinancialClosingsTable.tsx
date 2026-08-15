@@ -7,7 +7,7 @@ import {
   TableCell,
 } from "@workspace/ui";
 import { Lock } from "lucide-react";
-import { formatCurrency, formatDate, formatShortDate } from "@/lib/formatters";
+import { formatCurrency, formatDate, formatShortDate } from "@workspace/core";
 import type { FinancialClosingDto } from "../types";
 
 interface FinancialClosingsTableProps {

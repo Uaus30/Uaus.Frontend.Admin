@@ -1,6 +1,6 @@
 import React from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { PatternBucket } from "../types";
 import { compactCurrency } from "../utils";
 import { AXIS_PROPS, ChartTooltip, GRID_PROPS, MAX_BAR_SIZE } from "./chart-primitives";

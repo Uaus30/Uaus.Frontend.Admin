@@ -48,7 +48,7 @@ import {
   updateSale,
   LocalStockError,
 } from "@/services/sales.service";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { searchProducts } from "@/lib/product-search";
 import { parseAmount, round2 } from "@/lib/checkout";
 import { Button } from "@workspace/ui";

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Loader2, Users } from "lucide-react";
-import { cleanPhone, formatPhone } from "@/lib/utils";
+import { cleanPhone, formatPhone } from "@workspace/core";
 import type { CustomerForm } from "../types";
 
 /**

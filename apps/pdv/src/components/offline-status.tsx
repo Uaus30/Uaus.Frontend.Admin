@@ -16,7 +16,7 @@ import { Button } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
 import {

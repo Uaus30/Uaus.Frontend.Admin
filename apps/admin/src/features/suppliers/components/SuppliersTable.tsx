@@ -9,8 +9,8 @@ import {
   SelectValue,
 } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
-import { formatPhone } from "@/lib/utils";
+import { formatCurrency } from "@workspace/core";
+import { formatPhone } from "@workspace/core";
 import { Edit2, Search, Trash2 } from "lucide-react";
 import { whatsappUrl } from "../hooks/useSuppliers";
 import type { EnumOption } from "../types";

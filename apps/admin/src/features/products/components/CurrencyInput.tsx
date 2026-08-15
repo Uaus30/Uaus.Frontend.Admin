@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 
 type CurrencyInputProps = {
   /** Optional element ID for reference / focus management */

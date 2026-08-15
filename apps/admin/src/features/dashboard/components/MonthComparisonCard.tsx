@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@workspace/ui";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@workspace/ui";
+import { formatCurrency } from "@workspace/core";
 import type { DashboardMonthly } from "../types";
 import { compactCurrency, formatSignedPercent } from "../utils";
 import {

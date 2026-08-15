@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@workspace/core";
 import type { NewSaleDraftItem, NewSaleDraftPayment } from "../types";
 
 type NewSaleModalProps = {
