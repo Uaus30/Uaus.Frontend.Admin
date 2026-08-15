@@ -11,6 +11,8 @@ import { DashboardKpis } from "@/features/dashboard/components/DashboardKpis";
 import { LiveTodayCard } from "@/features/dashboard/components/LiveTodayCard";
 import { RevenueProfitChart } from "@/features/dashboard/components/RevenueProfitChart";
 import { MonthComparisonCard } from "@/features/dashboard/components/MonthComparisonCard";
+import { WeekComparisonCard } from "@/features/dashboard/components/WeekComparisonCard";
+import { useWeekComparison } from "@/features/dashboard/hooks/useWeekComparison";
 import { RevenueBreakdownCard } from "@/features/dashboard/components/RevenueBreakdownCard";
 import { TopProductsTable } from "@/features/dashboard/components/TopProductsTable";
 import { PatternsPanel } from "@/features/dashboard/components/PatternsPanel";
@@ -33,6 +35,7 @@ export default function Dashboard() {
   const dashboard = useDashboard();
   const live = useLiveToday();
   const monthly = useMonthlyComparison();
+  const weekComparison = useWeekComparison();
   const patterns = useSalesPatterns();
   const intelligence = useSalesIntelligence();
 
@@ -78,6 +81,12 @@ export default function Dashboard() {
           series={dashboard.overview?.series ?? []}
           periodLabel={dashboard.period.label}
           isLoading={dashboard.isLoading}
+        />
+
+        <WeekComparisonCard
+          days={weekComparison.days}
+          week={weekComparison.week}
+          isLoading={weekComparison.isLoading}
         />
 
         <MonthComparisonCard
