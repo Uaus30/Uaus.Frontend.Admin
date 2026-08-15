@@ -25,5 +25,16 @@ jobs:
     - name: Typecheck
       run: npm run typecheck:admin && npm run typecheck:pdv
 
+    - name: Lint
+      run: npm run lint:pdv
+
     - name: Run Tests
       run: npm test
+
+    # O pipeline so rodava typecheck e teste, entao um build quebrado passava
+    # batido — inclusive o do PDV, que nem e publicado pela Vercel.
+    - name: Build Admin
+      run: npm run build:admin
+
+    - name: Build PDV
+      run: npm run build:pdv

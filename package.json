@@ -21,6 +21,7 @@
     "test:admin": "npm run test --workspace=@workspace/admin",
     "test:pdv": "npm run build:types && npm run test --workspace=@workspace/pdv",
     "test:receipt": "npm run test --workspace=@workspace/receipt",
+    "lint:pdv": "npm run lint --workspace=@workspace/pdv",
     "test": "npm run test:admin && npm run test:pdv && npm run test:receipt"
   },
   "private": true,
