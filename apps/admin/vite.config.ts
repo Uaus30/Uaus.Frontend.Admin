@@ -19,6 +19,44 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        /**
+         * Separa as bibliotecas do código do app.
+         *
+         * As 27 rotas já são `lazy`, então cada tela vem sob demanda. O que
+         * sobrava eager era o chunk `index` com 268 KB — React, React Query e
+         * Radix misturados ao código que muda todo dia. Com isso, qualquer
+         * deploy invalidava o pacote inteiro no navegador de quem já tinha o
+         * app carregado.
+         *
+         * O agrupamento é por FREQUÊNCIA DE MUDANÇA, não por tamanho: o
+         * framework muda em major, o kit de UI muda quando alguém atualiza o
+         * shadcn, e o código da loja muda toda semana.
+         *
+         * `recharts` e `react-datepicker` ganham chunk próprio porque são
+         * pesados e usados por poucas telas — deixá-los no vendor comum faria
+         * quem só abre a tela de clientes baixar o motor de gráficos.
+         */
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          // Packages do monorepo entram por symlink em node_modules, mas são
+          // código nosso e mudam com o app.
+          if (id.includes("@workspace")) return undefined;
+
+          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
+          if (id.includes("react-datepicker") || id.includes("react-day-picker")) return "vendor-datas";
+          if (id.includes("date-fns")) return "vendor-datas";
+          if (id.includes("react-dom") || /node_modules\/react\//.test(id)) return "vendor-react";
+          if (id.includes("@tanstack")) return "vendor-query";
+          if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("framer-motion")) return "vendor-motion";
+          if (id.includes("jsbarcode") || id.includes("react-barcode")) return "vendor-barcode";
+
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     port: Number(process.env.PORT ?? 5173),

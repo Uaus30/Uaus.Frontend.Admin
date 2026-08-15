@@ -69,6 +69,45 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        /**
+         * Separa as bibliotecas do código do app.
+         *
+         * O motivo aqui não é o tamanho do primeiro carregamento — o PDV abre uma
+         * vez por turno. É o SERVICE WORKER: com um arquivo só, qualquer correção
+         * de uma linha muda o hash do bundle inteiro e o precache rebaixa os
+         * ~650 KB completos, em cada caixa da rede, a cada deploy. Numa loja com
+         * internet ruim isso é o caixa esperando para abrir.
+         *
+         * Com as bibliotecas em chunks próprios, o deploy típico — que mexe só no
+         * código da loja — invalida apenas o chunk do app. React e React Query
+         * ficam no cache do turno anterior.
+         *
+         * O agrupamento é por FREQUÊNCIA DE MUDANÇA, não por tamanho: react e
+         * react-dom mudam junto (major do framework), o Radix muda junto (kit de
+         * UI), e o código do app muda todo dia.
+         */
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          // Os packages do monorepo entram por symlink dentro de node_modules.
+          // Eles são código NOSSO e mudam junto com o app — deixá-los no vendor
+          // faria uma correção no packages/core invalidar o chunk das
+          // bibliotecas, que é justamente o que este agrupamento evita.
+          if (id.includes("@workspace")) return undefined;
+
+          if (id.includes("react-dom") || /node_modules\/react\//.test(id)) return "vendor-react";
+          if (id.includes("@tanstack")) return "vendor-query";
+          if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("framer-motion")) return "vendor-motion";
+          if (id.includes("react-datepicker") || id.includes("date-fns")) return "vendor-datas";
+
+          return "vendor";
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
