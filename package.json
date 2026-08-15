@@ -24,6 +24,10 @@
     "test": "npm run test:admin && npm run test:pdv && npm run test:receipt"
   },
   "private": true,
+  "engines": {
+    "node": "24.x",
+    "npm": ">=10"
+  },
   "devDependencies": {
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
