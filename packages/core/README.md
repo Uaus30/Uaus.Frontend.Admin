@@ -14,14 +14,14 @@ bater com o total enviado à API nem com o subtotal impresso no cupom.
 
 ## O que entra
 
-| Arquivo | Responsabilidade |
-| --- | --- |
-| `money.ts` | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
-| `discount.ts` | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem` |
-| `format.ts` | `formatDate`, `formatShortDate`, `toDateKey` |
-| `text.ts` | `normalizeSearchText` |
-| `mask.ts` | `cleanPhone`, `formatPhone` |
-| `api-error.ts` | `describeApiError` |
+| Arquivo        | Responsabilidade                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| `money.ts`     | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
+| `discount.ts`  | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem`                                       |
+| `format.ts`    | `formatDate`, `formatShortDate`, `toDateKey`                                                         |
+| `text.ts`      | `normalizeSearchText`                                                                                |
+| `mask.ts`      | `cleanPhone`, `formatPhone`                                                                          |
+| `api-error.ts` | `describeApiError`                                                                                   |
 
 ## O que NÃO entra
 
@@ -72,7 +72,7 @@ bater com o total enviado à API nem com o subtotal impresso no cupom.
    pelo menor `ProductId`, a ordem estável equivalente).
 
 6. **`describeApiError` lê o erro por duck typing**, não por `instanceof
-   ApiError` — é o que mantém o helper independente do cliente HTTP e testável
+ApiError` — é o que mantém o helper independente do cliente HTTP e testável
    sem mock de rede. Ele existe para desempacotar o `ValidationProblemDetails`
    do ASP.NET, que sem tratamento chega ao usuário como "One or more validation
    errors occurred".

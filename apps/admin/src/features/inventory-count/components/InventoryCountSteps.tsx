@@ -104,5 +104,3 @@ function Step({ number, title, description, children }: StepProps) {
     </div>
   );
 }
-
-

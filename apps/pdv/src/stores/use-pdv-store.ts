@@ -16,12 +16,7 @@ import {
  * repo inteiro importa de `@/stores/use-pdv-store`, e trocar 25 imports para
  * apontar para o arquivo novo seria mexer em tela para não mexer em nada.
  */
-export {
-  EMPTY_CONSUMER,
-  computeCartTotals,
-  couponDiscountFor,
-  toTotalsItems,
-} from "./pdv-cart";
+export { EMPTY_CONSUMER, computeCartTotals, couponDiscountFor, toTotalsItems } from "./pdv-cart";
 export type { AppliedCoupon, CouponAnswer, HeldSale, PdvConsumer, PdvItem } from "./pdv-cart";
 
 /** Escalas de fonte disponíveis, do menor para o maior. */

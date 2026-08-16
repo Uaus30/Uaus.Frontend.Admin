@@ -14,7 +14,7 @@ type SortIconProps = {
 
 /**
  * SortIcon
- * 
+ *
  * Renders the sorting direction indicator next to table headers.
  */
 function SortIcon({ active, direction }: SortIconProps) {
@@ -61,7 +61,7 @@ type TagTableProps = {
 
 /**
  * TagTable
- * 
+ *
  * Component for listing tags in a tabular form, supporting sorting, searching, and pagination.
  */
 export function TagTable({
@@ -106,13 +106,22 @@ export function TagTable({
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="cursor-pointer px-6 py-4 hover:text-foreground" onClick={() => toggleSort("name")}>
+              <th
+                className="cursor-pointer px-6 py-4 hover:text-foreground"
+                onClick={() => toggleSort("name")}
+              >
                 Etiqueta <SortIcon active={sortBy === "name"} direction={sortDir} />
               </th>
-              <th className="cursor-pointer px-6 py-4 hover:text-foreground" onClick={() => toggleSort("productCount")}>
+              <th
+                className="cursor-pointer px-6 py-4 hover:text-foreground"
+                onClick={() => toggleSort("productCount")}
+              >
                 Qtd Produtos <SortIcon active={sortBy === "productCount"} direction={sortDir} />
               </th>
-              <th className="cursor-pointer px-6 py-4 hover:text-foreground" onClick={() => toggleSort("createdAt")}>
+              <th
+                className="cursor-pointer px-6 py-4 hover:text-foreground"
+                onClick={() => toggleSort("createdAt")}
+              >
                 Data Cadastro <SortIcon active={sortBy === "createdAt"} direction={sortDir} />
               </th>
               <th className="px-6 py-4">Exibir no site</th>
@@ -137,7 +146,10 @@ export function TagTable({
                 <tr key={tag.id} className="border-b border-border/50 transition-colors hover:bg-muted/20">
                   <td className="px-6 py-4 font-medium text-foreground">
                     <div className="flex items-center gap-3">
-                      <div className="h-4 w-4 rounded-full border border-white/20 shadow-inner" style={{ backgroundColor: tag.color }} />
+                      <div
+                        className="h-4 w-4 rounded-full border border-white/20 shadow-inner"
+                        style={{ backgroundColor: tag.color }}
+                      />
                       <span style={{ color: tag.color }} className="font-semibold">
                         {tag.name}
                       </span>
@@ -219,7 +231,12 @@ export function TagTable({
           <span className="ml-2">Total: {tagPage?.total || 0}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage((current) => current - 1)}
+          >
             Anterior
           </Button>
           <span className="px-2 text-xs">
@@ -255,5 +272,3 @@ export function TagTable({
     </div>
   );
 }
-
-

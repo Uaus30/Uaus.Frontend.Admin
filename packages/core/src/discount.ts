@@ -120,9 +120,7 @@ export function computeSaleTotals({
   globalDiscount = 0,
   couponDiscount = 0,
 }: SaleTotalsInput): SaleTotals {
-  const grossSubtotal = round2(
-    items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
-  );
+  const grossSubtotal = round2(items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0));
   const itemDiscountTotal = round2(
     items.reduce((sum, item) => sum + Math.max(0, item.unitDiscount) * item.quantity, 0),
   );
@@ -177,8 +175,7 @@ function indexOfLargestSubtotal(items: CouponAllocationItem[], subtotals: number
   for (let index = 1; index < subtotals.length; index++) {
     const wins =
       subtotals[index] > subtotals[largest] ||
-      (subtotals[index] === subtotals[largest] &&
-        items[index].productId < items[largest].productId);
+      (subtotals[index] === subtotals[largest] && items[index].productId < items[largest].productId);
 
     if (wins) largest = index;
   }
@@ -222,17 +219,13 @@ function indexOfLargestSubtotal(items: CouponAllocationItem[], subtotals: number
  * @returns Uma parcela por item, na MESMA ordem da entrada, somando exatamente
  * `couponDiscount`.
  */
-export function allocateCouponByItem(
-  items: CouponAllocationItem[],
-  couponDiscount: number,
-): number[] {
+export function allocateCouponByItem(items: CouponAllocationItem[], couponDiscount: number): number[] {
   const shares = items.map(() => 0);
   if (shares.length === 0) return shares;
 
   // Cupom negativo ou ilegível vira zero, como em `computeSaleTotals`: virar
   // acréscimo silencioso na linha do item seria pior que não ratear.
-  const target =
-    Number.isFinite(couponDiscount) && couponDiscount > 0 ? round2(couponDiscount) : 0;
+  const target = Number.isFinite(couponDiscount) && couponDiscount > 0 ? round2(couponDiscount) : 0;
   if (target === 0) return shares;
 
   const subtotals = items.map(netSubtotal);

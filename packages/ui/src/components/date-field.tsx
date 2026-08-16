@@ -95,11 +95,7 @@ interface FloatingCalendarPortalProps {
  * gatilho. Se não couber à direita ou abaixo, reposiciona para dentro da tela —
  * o mesmo calendário é usado em barras de filtro coladas na borda direita.
  */
-export function FloatingCalendarPortal({
-  anchor,
-  onClose,
-  children,
-}: FloatingCalendarPortalProps) {
+export function FloatingCalendarPortal({ anchor, onClose, children }: FloatingCalendarPortalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
 
@@ -252,5 +248,3 @@ export function DateFieldTrigger({
     </button>
   );
 }
-
-

@@ -11,6 +11,7 @@ Este módulo é responsável pela administração das Formas de Pagamento e suas
 - `hooks/__tests__/usePaymentMethods.test.tsx`: Testes unitários do hook controlador usando Vitest e React Testing Library.
 
 ## Regras de Negócio
+
 - Todo cadastro de forma de pagamento exige um nome válido.
 - Se nenhuma parcela for informada, o sistema assume o padrão **1x (à vista)** com **0% de taxa**.
 - O usuário pode adicionar múltiplas parcelas (ex: 1x, 2x, 3x... 12x) e associar uma taxa percentual para cada uma.

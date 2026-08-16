@@ -43,11 +43,7 @@ export function RevenueProfitChart({ series, periodLabel, isLoading }: RevenuePr
   const hasData = series.some((point) => point.revenue !== 0 || point.profit !== 0);
 
   return (
-    <ChartCard
-      title="Faturamento e lucro"
-      description={periodLabel}
-      action={<SeriesLegend items={LEGEND} />}
-    >
+    <ChartCard title="Faturamento e lucro" description={periodLabel} action={<SeriesLegend items={LEGEND} />}>
       {hasData ? (
         <div className="h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -100,5 +96,3 @@ export function RevenueProfitChart({ series, periodLabel, isLoading }: RevenuePr
     </ChartCard>
   );
 }
-
-

@@ -65,8 +65,8 @@ export default function FinancialClosingsPage() {
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Congele os números de um período e o rateio de lucros entre os sócios — o
-              fechamento é o documento oficial do módulo financeiro.
+              Congele os números de um período e o rateio de lucros entre os sócios — o fechamento é o
+              documento oficial do módulo financeiro.
             </p>
           </div>
 
@@ -110,16 +110,13 @@ export default function FinancialClosingsPage() {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Total: {closingsPage.total} fechamentos</span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
 
-              <span>Página {page} de {closingsPage.totalPages}</span>
+              <span>
+                Página {page} de {closingsPage.totalPages}
+              </span>
 
               <Button
                 variant="outline"
@@ -165,5 +162,3 @@ export default function FinancialClosingsPage() {
     </AppLayout>
   );
 }
-
-

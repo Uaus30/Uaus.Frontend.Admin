@@ -1,11 +1,10 @@
-import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
-import { AuthSession, ApiResponse, BackendPagedResult, UiPagedResult } from './models';
+import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
+import { AuthSession, ApiResponse, BackendPagedResult, UiPagedResult } from "./models";
 const AUTH_STORAGE_KEY = "uaus-office-auth";
 
 export const API_BASE_URL =
   (typeof import.meta !== "undefined" &&
-    (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
-      ?.VITE_API_BASE_URL) ||
+    (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_API_BASE_URL) ||
   (typeof window !== "undefined" ? "/api" : "https://api.uaus.com.br");
 
 export class ApiError extends Error {
@@ -61,12 +60,7 @@ function extractErrorMessage(payload: unknown, fallback: string) {
 
   if (payload && typeof payload === "object") {
     const obj = payload as Record<string, unknown>;
-    const candidateKeys = [
-      "message", "Message",
-      "detail", "Detail",
-      "title", "Title",
-      "error", "Error"
-    ];
+    const candidateKeys = ["message", "Message", "detail", "Detail", "title", "Title", "error", "Error"];
     for (const key of candidateKeys) {
       const value = obj[key];
       if (typeof value === "string" && value.trim()) {
@@ -135,8 +129,7 @@ export function resetUnauthorizedRedirect() {
 function buildLoginUrl() {
   const base =
     (typeof import.meta !== "undefined" &&
-      (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
-        ?.BASE_URL) ||
+      (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.BASE_URL) ||
     "/";
   return `${base.replace(/\/+$/, "")}/login`;
 }
@@ -263,13 +256,7 @@ export async function apiGetOrThrow<T>(
   const data = await apiGet<T>(path, params, options);
 
   if (data == null) {
-    throw new ApiError(
-      `A resposta de ${path} veio sem conteúdo.`,
-      204,
-      null,
-      "GET",
-      path,
-    );
+    throw new ApiError(`A resposta de ${path} veio sem conteúdo.`, 204, null, "GET", path);
   }
 
   return data;
@@ -313,13 +300,7 @@ export async function apiGetBlob(
   if (!response.ok) {
     if (response.status === 401) handleUnauthorized();
 
-    throw new ApiError(
-      `Erro ${response.status} ao baixar ${path}`,
-      response.status,
-      null,
-      "GET",
-      path,
-    );
+    throw new ApiError(`Erro ${response.status} ao baixar ${path}`, response.status, null, "GET", path);
   }
 
   return {
@@ -387,10 +368,7 @@ export async function apiPut<T>(
   return result;
 }
 
-export async function apiDelete<T>(
-  path: string,
-  options?: { auth?: boolean; headers?: HeadersInit },
-) {
+export async function apiDelete<T>(path: string, options?: { auth?: boolean; headers?: HeadersInit }) {
   const result = await apiRequest<T>("DELETE", path, {
     auth: options?.auth,
     headers: options?.headers,
@@ -525,9 +503,7 @@ export async function fetchAllPages<T>(
     }
   };
 
-  await Promise.all(
-    Array.from({ length: Math.min(FETCH_ALL_PAGES_CONCURRENCY, pages.length) }, worker),
-  );
+  await Promise.all(Array.from({ length: Math.min(FETCH_ALL_PAGES_CONCURRENCY, pages.length) }, worker));
 
   for (const items of collected) {
     if (items) allItems.push(...items);
@@ -547,10 +523,3 @@ export function useCrudMutation<TData, TVariables>(
     ...options?.mutation,
   });
 }
-
-
-
-
-
-
-

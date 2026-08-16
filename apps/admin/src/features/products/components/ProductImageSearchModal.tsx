@@ -26,7 +26,7 @@ type ProductImageSearchModalProps = {
 
 /**
  * ProductImageSearchModal
- * 
+ *
  * Componente modal desacoplado para consulta e seleção de imagens da internet.
  * Realiza buscas baseadas no nome e código de barras do produto e permite
  * selecionar a imagem desejada aplicando as regras de otimização.
@@ -120,7 +120,8 @@ export function ProductImageSearchModal({
             Buscar imagem na internet
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground mt-1.5 font-medium">
-            {productName} {barcode && <span className="text-muted-foreground/60 font-normal">· cód. {barcode}</span>}
+            {productName}{" "}
+            {barcode && <span className="text-muted-foreground/60 font-normal">· cód. {barcode}</span>}
           </DialogDescription>
         </DialogHeader>
 
@@ -170,7 +171,9 @@ export function ProductImageSearchModal({
                         : "border-border/50 hover:border-primary/50"
                     }`}
                   >
-                    <img loading="lazy" decoding="async"
+                    <img
+                      loading="lazy"
+                      decoding="async"
                       src={img.thumbnailUrl}
                       alt={img.title}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -179,7 +182,7 @@ export function ProductImageSearchModal({
                         e.currentTarget.src = img.imageUrl;
                       }}
                     />
-                    
+
                     {/* Indicador de Seleção / Overlay */}
                     {isSubmitting && (
                       <div className="absolute inset-0 bg-background/60 backdrop-blur-xs flex items-center justify-center">
@@ -224,8 +227,3 @@ export function ProductImageSearchModal({
     </Dialog>
   );
 }
-
-
-
-
-

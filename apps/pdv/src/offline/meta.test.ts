@@ -82,12 +82,7 @@ describe("nextOfflineSaleNumber", () => {
     await nextOfflineSaleNumber();
 
     expect(updateMany).toHaveBeenCalledTimes(1);
-    expect(updateMany).toHaveBeenCalledWith(
-      {},
-      "meta",
-      ["offlineSaleSequence"],
-      expect.any(Function),
-    );
+    expect(updateMany).toHaveBeenCalledWith({}, "meta", ["offlineSaleSequence"], expect.any(Function));
     // Nenhuma leitura fora da transação.
     expect(getByKey).not.toHaveBeenCalled();
     expect(put).not.toHaveBeenCalled();

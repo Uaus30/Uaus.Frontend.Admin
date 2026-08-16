@@ -26,9 +26,7 @@ export async function getSaleItems(saleId: number) {
   return fetchAllPages<SaleItemDto>("/SaleItems", { saleId });
 }
 
-export async function createSaleWithItems(
-  payload: CreateCompleteSalePayload,
-) {
+export async function createSaleWithItems(payload: CreateCompleteSalePayload) {
   const saleId = await createCompleteSale(payload);
   if (!saleId) {
     throw new Error("Não foi possível identificar a venda criada.");

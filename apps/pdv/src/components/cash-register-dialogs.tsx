@@ -185,17 +185,23 @@ export function CloseCashRegisterDialog({
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/30">
             <div>
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total de Vendas</p>
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+                Total de Vendas
+              </p>
               <p className="text-xl font-bold font-mono text-foreground">{summary?.salesCount ?? 0}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Faturamento</p>
-              <p className="text-xl font-bold font-mono text-primary">{formatCurrency(summary?.revenue ?? 0)}</p>
+              <p className="text-xl font-bold font-mono text-primary">
+                {formatCurrency(summary?.revenue ?? 0)}
+              </p>
             </div>
             <div className="col-span-2 h-px bg-border/40 my-1" />
             <div>
               <p className="text-xs text-muted-foreground uppercase font-bold">Fundo de Troco</p>
-              <p className="text-sm font-semibold font-mono">{formatCurrency(session?.openingBalance ?? 0)}</p>
+              <p className="text-sm font-semibold font-mono">
+                {formatCurrency(session?.openingBalance ?? 0)}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase font-bold">Recebido em Dinheiro</p>
@@ -248,7 +254,11 @@ export function CloseCashRegisterDialog({
                 if (isNaN(counted)) return null;
                 const diff = round2(counted - (summary?.expectedCashAmount ?? 0));
                 if (Math.abs(diff) < 0.01) {
-                  return <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Confere com o esperado.</p>;
+                  return (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                      Confere com o esperado.
+                    </p>
+                  );
                 }
                 return (
                   <p className="text-xs text-destructive font-semibold">
@@ -290,4 +300,3 @@ export function CloseCashRegisterDialog({
     </Dialog>
   );
 }
-

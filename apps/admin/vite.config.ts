@@ -6,10 +6,7 @@ import { createCoverageOptions } from "../../vitest.shared.mts";
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),

@@ -26,13 +26,8 @@ vi.mock("./pending-sales", () => ({
   listPendingSales: (...args: unknown[]) => listPendingSales(...args),
 }));
 
-const {
-  countQueuedRedemptions,
-  lookupLocalCoupon,
-  resolveLocalCoupon,
-  toLocalCoupon,
-  writeLocalCoupons,
-} = await import("./coupons");
+const { countQueuedRedemptions, lookupLocalCoupon, resolveLocalCoupon, toLocalCoupon, writeLocalCoupons } =
+  await import("./coupons");
 
 /** Cupom da base local: 10% em setembro, sem teto de uso e sem questionário. */
 function localCoupon(overrides: Partial<LocalCoupon> = {}): LocalCoupon {
@@ -325,9 +320,7 @@ describe("resolveLocalCoupon", () => {
   it("deve conferir o relógio ANTES de procurar o código", () => {
     // Numa máquina com a data errada, "cupom não encontrado" mandaria o operador
     // procurar o problema no panfleto do cliente em vez de no relógio.
-    const refused = resolveLocalCoupon(
-      input({ code: "NAOEXISTE", now: new Date("2010-01-01T09:00:00") }),
-    );
+    const refused = resolveLocalCoupon(input({ code: "NAOEXISTE", now: new Date("2010-01-01T09:00:00") }));
 
     expect(refused).toMatchObject({ reason: "unreliable-clock" });
   });
@@ -357,9 +350,7 @@ describe("lookupLocalCoupon", () => {
   it("não deve lançar quando o cupom não existe", async () => {
     // Recusa de cupom é acontecimento normal do balcão, não erro: quem chama
     // mostra a mensagem, não trata exceção.
-    readMeta.mockImplementation(async (key: string) =>
-      key === "coupons" ? [] : "2000-01-02T08:00:00",
-    );
+    readMeta.mockImplementation(async (key: string) => (key === "coupons" ? [] : "2000-01-02T08:00:00"));
 
     await expect(lookupLocalCoupon("NAOEXISTE")).resolves.toMatchObject({
       outcome: "refused",

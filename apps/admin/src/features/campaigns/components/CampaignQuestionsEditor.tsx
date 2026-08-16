@@ -53,11 +53,7 @@ function filledOptions(question: CampaignQuestionDraft): number {
  * 3. **Pergunta com menos de {@link MIN_OPTIONS} opções fica marcada aqui e
  *    barra o submit** no hook. Uma alternativa só não é pergunta, é aviso.
  */
-export function CampaignQuestionsEditor({
-  questions,
-  onChange,
-  isLoading,
-}: CampaignQuestionsEditorProps) {
+export function CampaignQuestionsEditor({ questions, onChange, isLoading }: CampaignQuestionsEditorProps) {
   const canAddQuestion = questions.length < MAX_QUESTIONS;
 
   function updateQuestion(index: number, patch: Partial<CampaignQuestionDraft>) {
@@ -150,9 +146,7 @@ export function CampaignQuestionsEditor({
                   <Switch
                     id={`question-required-${question.key}`}
                     checked={question.isRequired}
-                    onCheckedChange={(checked) =>
-                      updateQuestion(questionIndex, { isRequired: checked })
-                    }
+                    onCheckedChange={(checked) => updateQuestion(questionIndex, { isRequired: checked })}
                   />
                   <Label
                     htmlFor={`question-required-${question.key}`}
@@ -169,9 +163,7 @@ export function CampaignQuestionsEditor({
                 size="icon"
                 title="Remover pergunta"
                 className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                onClick={() =>
-                  onChange(questions.filter((_, position) => position !== questionIndex))
-                }
+                onClick={() => onChange(questions.filter((_, position) => position !== questionIndex))}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -250,9 +242,7 @@ export function CampaignQuestionsEditor({
                   size="sm"
                   className="gap-1"
                   disabled={question.options.length >= MAX_OPTIONS}
-                  onClick={() =>
-                    updateOptions(questionIndex, [...question.options, emptyOptionDraft()])
-                  }
+                  onClick={() => updateOptions(questionIndex, [...question.options, emptyOptionDraft()])}
                 >
                   <Plus className="h-4 w-4" /> Opção
                 </Button>

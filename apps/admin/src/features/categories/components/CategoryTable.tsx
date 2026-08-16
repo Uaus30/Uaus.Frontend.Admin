@@ -38,7 +38,7 @@ type CategoryTableProps = {
 
 /**
  * CategoryTable
- * 
+ *
  * Renders the search filters, tabular grid of categories, and paginator.
  */
 export function CategoryTable({
@@ -133,12 +133,8 @@ export function CategoryTable({
                       {category.name}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {category.department?.name || "-"}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {category.description || "-"}
-                  </td>
+                  <td className="px-6 py-4 text-muted-foreground">{category.department?.name || "-"}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{category.description || "-"}</td>
                   <td className="px-6 py-4 font-medium">
                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium tabular-nums text-muted-foreground">
                       {category.productCount}
@@ -224,5 +220,3 @@ export function CategoryTable({
     </div>
   );
 }
-
-

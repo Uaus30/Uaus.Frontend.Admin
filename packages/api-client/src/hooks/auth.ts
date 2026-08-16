@@ -6,12 +6,16 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { ApiError, useCrudMutation, apiRequest, getAuthSession, setAuthSession, clearAuthSession, isTokenExpired } from "../client";
-import type {
-  AuthenticatedUserDto,
-  QueryKey,
-  UserDto,
-} from "../models";
+import {
+  ApiError,
+  useCrudMutation,
+  apiRequest,
+  getAuthSession,
+  setAuthSession,
+  clearAuthSession,
+  isTokenExpired,
+} from "../client";
+import type { AuthenticatedUserDto, QueryKey, UserDto } from "../models";
 
 /** Chave de cache do usuário logado. */
 export const getGetMeQueryKey = (): QueryKey => ["auth", "me"];
@@ -58,9 +62,7 @@ export function useLogin(options?: {
   }, options);
 }
 
-export function useLogout(options?: {
-  mutation?: UseMutationOptions<void, ApiError, void>;
-}) {
+export function useLogout(options?: { mutation?: UseMutationOptions<void, ApiError, void> }) {
   return useCrudMutation(async () => {
     clearAuthSession();
   }, options);

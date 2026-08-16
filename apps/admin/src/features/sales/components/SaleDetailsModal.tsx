@@ -24,7 +24,7 @@ type SaleDetailsModalProps = {
 
 /**
  * SaleDetailsModal
- * 
+ *
  * Dialog component showing purchase details and transaction aggregates.
  */
 export function SaleDetailsModal({
@@ -51,7 +51,8 @@ export function SaleDetailsModal({
       <DialogContent className="border-border/50 bg-card sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-display">
-            <Receipt className="h-5 w-5 text-primary" /> Detalhes da Venda #{saleToView?.id.toString().padStart(4, "0")}
+            <Receipt className="h-5 w-5 text-primary" /> Detalhes da Venda #
+            {saleToView?.id.toString().padStart(4, "0")}
           </DialogTitle>
         </DialogHeader>
         {saleToView && (
@@ -147,9 +148,7 @@ export function SaleDetailsModal({
                         <td className="px-4 py-3 text-right text-muted-foreground">
                           {item.unitCost != null ? formatCurrency(item.unitCost) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right font-medium">
-                          {formatCurrency(item.subtotal)}
-                        </td>
+                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}</td>
                       </tr>
                     ))
                   )}
@@ -208,5 +207,3 @@ export function SaleDetailsModal({
     </Dialog>
   );
 }
-
-

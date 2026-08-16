@@ -232,13 +232,9 @@ export function CouponDialog({ open, onOpenChange }: CouponDialogProps) {
                   ({describeParameter(found.discountType, found.discountValue)})
                 </span>
               </p>
-              {found.description && (
-                <p className="text-sm text-muted-foreground">{found.description}</p>
-              )}
+              {found.description && <p className="text-sm text-muted-foreground">{found.description}</p>}
               <p className="text-xs text-muted-foreground mt-1">
-                {found.remainingUses === null
-                  ? "Usos ilimitados"
-                  : `Restam ${found.remainingUses} uso(s)`}
+                {found.remainingUses === null ? "Usos ilimitados" : `Restam ${found.remainingUses} uso(s)`}
                 {found.fromLocalDatabase && " · conferido na base local"}
               </p>
               {found.overLimit && (
@@ -254,9 +250,7 @@ export function CouponDialog({ open, onOpenChange }: CouponDialogProps) {
                 key={question.questionId}
                 question={question}
                 index={index}
-                chosenOptionId={
-                  answers.find((answer) => answer.questionId === question.questionId)?.optionId
-                }
+                chosenOptionId={answers.find((answer) => answer.questionId === question.questionId)?.optionId}
                 onChoose={choose}
               />
             ))}

@@ -14,12 +14,7 @@ import { useState, useRef, useId } from "react";
 import DatePicker from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import { startOfDay, endOfDay } from "date-fns";
-import {
-  CalendarPanel,
-  DateFieldTrigger,
-  FloatingCalendarPortal,
-  formatDateLabel,
-} from "./date-field";
+import { CalendarPanel, DateFieldTrigger, FloatingCalendarPortal, formatDateLabel } from "./date-field";
 import "react-datepicker/dist/react-datepicker.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -145,4 +140,3 @@ export function DateRangePicker({
     </>
   );
 }
-

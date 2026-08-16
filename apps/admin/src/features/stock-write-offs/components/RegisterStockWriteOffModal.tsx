@@ -1,12 +1,6 @@
 import { AlertTriangle, Loader2, PackageMinus, X } from "lucide-react";
 import { Button } from "@workspace/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
@@ -64,8 +58,7 @@ export function RegisterStockWriteOffModal({
             <PackageMinus className="h-5 w-5 text-primary" /> Registrar Baixa de Estoque
           </DialogTitle>
           <DialogDescription>
-            Saída de mercadoria sem venda. O estoque é reduzido na hora e a baixa não entra no
-            faturamento.
+            Saída de mercadoria sem venda. O estoque é reduzido na hora e a baixa não entra no faturamento.
           </DialogDescription>
         </DialogHeader>
 
@@ -89,11 +82,7 @@ export function RegisterStockWriteOffModal({
 
             <div className="space-y-4 rounded-xl border border-border/50 bg-background/50 p-4">
               <h4 className="text-sm font-semibold">Itens da baixa</h4>
-              <ProductSearchPicker
-                onSelect={onAddItem}
-                selectedIds={selectedIds}
-                disabled={isSaving}
-              />
+              <ProductSearchPicker onSelect={onAddItem} selectedIds={selectedIds} disabled={isSaving} />
 
               {items.length > 0 && (
                 <div className="mt-4 overflow-hidden rounded-lg border border-border/50 bg-card">
@@ -151,8 +140,7 @@ export function RegisterStockWriteOffModal({
                   é o backend, que planeja o consumo lote a lote. */}
               <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Baixa acima do saldo é recusada. Para acertar diferença de contagem, use o
-                inventário.
+                Baixa acima do saldo é recusada. Para acertar diferença de contagem, use o inventário.
               </p>
             </div>
 
@@ -169,16 +157,11 @@ export function RegisterStockWriteOffModal({
 
           <div className="mt-auto flex items-center justify-between border-t border-border/50 px-2 pt-4">
             <div className="text-sm text-muted-foreground">
-              {items.length} {items.length === 1 ? "produto" : "produtos"} ·{" "}
-              {formatQuantity(totalQuantity)} de quantidade total
+              {items.length} {items.length === 1 ? "produto" : "produtos"} · {formatQuantity(totalQuantity)}{" "}
+              de quantidade total
             </div>
             <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSaving}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSaving} className="hover-elevate">
@@ -196,5 +179,3 @@ export function RegisterStockWriteOffModal({
     </Dialog>
   );
 }
-
-

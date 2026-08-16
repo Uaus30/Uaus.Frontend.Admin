@@ -2,13 +2,7 @@ import { Eraser, Printer, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { LABEL_TYPE_INFOS, type LabelDraftItem, type LabelTypeCode } from "../types";
 
@@ -54,9 +48,7 @@ export function LabelItemsTable({
     <Card className="border-border/50 shadow-lg shadow-black/5">
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Etiquetas do Lote</CardTitle>
-        <CardDescription>
-          Defina o tipo, o preço impresso e as cópias de cada etiqueta.
-        </CardDescription>
+        <CardDescription>Defina o tipo, o preço impresso e as cópias de cada etiqueta.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Input
@@ -162,17 +154,8 @@ export function LabelItemsTable({
             >
               <Eraser className="mr-2 h-4 w-4" /> Limpar
             </Button>
-            <Button
-              type="button"
-              className="hover-elevate"
-              disabled={!canGenerate}
-              onClick={onGenerate}
-            >
-              {printing ? (
-                <Spinner className="mr-2 h-4 w-4" />
-              ) : (
-                <Printer className="mr-2 h-4 w-4" />
-              )}
+            <Button type="button" className="hover-elevate" disabled={!canGenerate} onClick={onGenerate}>
+              {printing ? <Spinner className="mr-2 h-4 w-4" /> : <Printer className="mr-2 h-4 w-4" />}
               Salvar e Imprimir
             </Button>
           </div>
@@ -181,5 +164,3 @@ export function LabelItemsTable({
     </Card>
   );
 }
-
-

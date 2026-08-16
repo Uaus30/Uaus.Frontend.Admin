@@ -7,11 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
-import type {
-  BackendPagedResult,
-  QueryKey,
-  UiPagedResult,
-} from "../models";
+import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
 
 // ==========================================
 // SYSTEM LOGS TYPES & HOOKS
@@ -32,9 +28,19 @@ export interface SystemLogDto {
 export const getGetLogsQueryKey = (): QueryKey => ["logs"];
 
 export function useGetLogs(
-  params?: { search?: string; type?: string; startDate?: string; endDate?: string; page?: number; limit?: number },
+  params?: {
+    search?: string;
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<SystemLogDto>, ApiError, UiPagedResult<SystemLogDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<SystemLogDto>, ApiError, UiPagedResult<SystemLogDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<SystemLogDto>, ApiError, UiPagedResult<SystemLogDto>, QueryKey>({

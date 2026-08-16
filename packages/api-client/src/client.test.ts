@@ -157,9 +157,7 @@ describe("buildUrl", () => {
     // buildUrl NÃO aceita URL pronta: ela vira caminho colado no base. É
     // exatamente por isso que apiGetBlob desvia da função quando a URL já é
     // absoluta (proxy de imagem) — ver o teste correspondente abaixo.
-    expect(buildUrl("https://cdn.uaus.com.br/img.png")).toContain(
-      "/https://cdn.uaus.com.br/img.png",
-    );
+    expect(buildUrl("https://cdn.uaus.com.br/img.png")).toContain("/https://cdn.uaus.com.br/img.png");
   });
 });
 
@@ -194,12 +192,8 @@ describe("sessão gravada no navegador", () => {
     // deixaria o app tentando usar para sempre um token que o servidor recusa.
     expect(isTokenExpired(null)).toBe(true);
     expect(isTokenExpired({ token: { expiration: "" } } as AuthSession)).toBe(true);
-    expect(isTokenExpired({ token: { expiration: "2020-01-01T00:00:00Z" } } as AuthSession)).toBe(
-      true,
-    );
-    expect(isTokenExpired({ token: { expiration: "2099-01-01T00:00:00Z" } } as AuthSession)).toBe(
-      false,
-    );
+    expect(isTokenExpired({ token: { expiration: "2020-01-01T00:00:00Z" } } as AuthSession)).toBe(true);
+    expect(isTokenExpired({ token: { expiration: "2099-01-01T00:00:00Z" } } as AuthSession)).toBe(false);
   });
 });
 
@@ -300,7 +294,10 @@ describe("ApiError", () => {
   it("aceita corpo de erro em texto puro", async () => {
     // Nem todo erro do pipeline volta em JSON (proxy, 502 do gateway). Sem este
     // caminho o JSON.parse quebraria antes de virar ApiError.
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(502, "Bad Gateway")));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(502, "Bad Gateway")),
+    );
 
     const error = (await apiGet("/Sales").catch((e: unknown) => e)) as ApiError;
 
@@ -311,7 +308,10 @@ describe("ApiError", () => {
   it("cai numa mensagem com status e endereço quando o corpo não tem nada legível", async () => {
     // "Erro 500 ao acessar /Sales" é feio, mas é o que permite abrir um chamado.
     // Toast vazio não permite.
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(500, { traceId: "00-abc" })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(500, { traceId: "00-abc" })),
+    );
 
     await expect(apiGet("/Sales")).rejects.toThrow("Erro 500 ao acessar /Sales");
   });
@@ -348,7 +348,10 @@ describe("401 — sessão recusada pelo servidor", () => {
     // explica por quê.
     const { assign } = stubBrowser();
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(401)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(401)),
+    );
 
     await expect(apiGet("/Sales")).rejects.toBeInstanceOf(ApiError);
 
@@ -362,13 +365,16 @@ describe("401 — sessão recusada pelo servidor", () => {
     // junto o que ainda não sincronizou — venda pendente vira venda perdida.
     const { storage } = stubBrowser();
     signIn();
-    storage.set("pdv-preferencias", "{\"impressora\":\"balcao\"}");
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(401)));
+    storage.set("pdv-preferencias", '{"impressora":"balcao"}');
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(401)),
+    );
 
     await expect(apiGet("/Sales")).rejects.toBeInstanceOf(ApiError);
 
     expect(storage.has("uaus-office-auth")).toBe(false);
-    expect(storage.get("pdv-preferencias")).toBe("{\"impressora\":\"balcao\"}");
+    expect(storage.get("pdv-preferencias")).toBe('{"impressora":"balcao"}');
   });
 
   it("redireciona UMA vez quando várias queries respondem 401 juntas", async () => {
@@ -399,7 +405,10 @@ describe("401 — sessão recusada pelo servidor", () => {
     // não levaria mais ninguém ao login.
     const { assign } = stubBrowser();
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(401)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(401)),
+    );
 
     await expect(apiGet("/Sales")).rejects.toBeInstanceOf(ApiError);
     resetUnauthorizedRedirect();
@@ -413,7 +422,10 @@ describe("401 — sessão recusada pelo servidor", () => {
     // recarregamento — a tela recarregando sozinha enquanto a pessoa digita.
     const { assign } = stubBrowser({ pathname: "/login" });
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(401)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(401)),
+    );
 
     await expect(apiGet("/Sales")).rejects.toBeInstanceOf(ApiError);
 
@@ -427,11 +439,14 @@ describe("401 — sessão recusada pelo servidor", () => {
     // mensagem do formulário e recarregaria a tela por cima do que foi digitado.
     const { assign } = stubBrowser();
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(401, { message: "Senha inválida." })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(401, { message: "Senha inválida." })),
+    );
 
-    await expect(
-      apiPost("/Users/authenticate", { login: "ana" }, { auth: false }),
-    ).rejects.toThrow("Senha inválida.");
+    await expect(apiPost("/Users/authenticate", { login: "ana" }, { auth: false })).rejects.toThrow(
+      "Senha inválida.",
+    );
 
     expect(assign).not.toHaveBeenCalled();
     expect(getAuthSession()).not.toBeNull();
@@ -443,11 +458,12 @@ describe("401 — sessão recusada pelo servidor", () => {
     // uma venda.
     const { assign } = stubBrowser();
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(401, { message: "Senha inválida." })));
-
-    await expect(apiPost("/Users/authenticate", { login: "gerente" })).rejects.toThrow(
-      "Senha inválida.",
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(401, { message: "Senha inválida." })),
     );
+
+    await expect(apiPost("/Users/authenticate", { login: "gerente" })).rejects.toThrow("Senha inválida.");
 
     expect(assign).not.toHaveBeenCalled();
     expect(getAuthSession()).not.toBeNull();
@@ -458,7 +474,10 @@ describe("401 — sessão recusada pelo servidor", () => {
     // quem só clicou onde não devia.
     const { assign } = stubBrowser();
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(403, { message: "Sem permissão." })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(403, { message: "Sem permissão." })),
+    );
 
     await expect(apiGet("/Users")).rejects.toThrow("Sem permissão.");
 
@@ -476,7 +495,10 @@ describe("401 — sessão recusada pelo servidor", () => {
     // é imutável no teste. Está registrado nas pendências.
     const { assign } = stubBrowser();
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => mockErrorResponse(401)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockErrorResponse(401)),
+    );
 
     await expect(apiGet("/Sales")).rejects.toBeInstanceOf(ApiError);
 
@@ -503,9 +525,7 @@ describe("apiGetBlob", () => {
     // downloads sairia com o nome de fallback.
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
-        mockBlobResponse({ "Content-Disposition": "attachment; filename=contagem.xlsx" }),
-      ),
+      vi.fn(async () => mockBlobResponse({ "Content-Disposition": "attachment; filename=contagem.xlsx" })),
     );
 
     await expect(apiGetBlob("/InventoryCounts/export", "padrao.xlsx")).resolves.toMatchObject({
@@ -540,8 +560,7 @@ describe("apiGetBlob", () => {
       "fetch",
       vi.fn(async () =>
         mockBlobResponse({
-          "Content-Disposition":
-            "attachment; filename=relatrio.xlsx; filename*=UTF-8''relat%C3%B3rio.xlsx",
+          "Content-Disposition": "attachment; filename=relatrio.xlsx; filename*=UTF-8''relat%C3%B3rio.xlsx",
         }),
       ),
     );
@@ -570,7 +589,10 @@ describe("apiGetBlob", () => {
   it("cai no nome padrão quando o servidor não manda o cabeçalho", async () => {
     // O proxy de imagem não manda Content-Disposition. Sem o fallback o arquivo
     // seria salvo como "undefined".
-    vi.stubGlobal("fetch", vi.fn(async () => mockBlobResponse()));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockBlobResponse()),
+    );
 
     await expect(apiGetBlob("/Images/9/raw", "imagem.jpg")).resolves.toMatchObject({
       fileName: "imagem.jpg",
@@ -595,11 +617,12 @@ describe("apiGetBlob", () => {
     // export e o usuário recebia um erro genérico numa tela já morta.
     const { assign } = stubBrowser();
     signIn();
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 401 }) as unknown as Response));
-
-    await expect(apiGetBlob("/InventoryCounts/export", "padrao.xlsx")).rejects.toBeInstanceOf(
-      ApiError,
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 401 }) as unknown as Response),
     );
+
+    await expect(apiGetBlob("/InventoryCounts/export", "padrao.xlsx")).rejects.toBeInstanceOf(ApiError);
 
     expect(getAuthSession()).toBeNull();
     expect(assign).toHaveBeenCalledTimes(1);
@@ -608,11 +631,12 @@ describe("apiGetBlob", () => {
   it("falha do download vira ApiError com o status", async () => {
     // O chamador precisa do status para separar "arquivo não existe" de "servidor
     // fora do ar". Um Error genérico obrigaria a ler a string da mensagem.
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response),
+    );
 
-    const error = (await apiGetBlob("/Reports/annual", "padrao.xlsx").catch(
-      (e: unknown) => e,
-    )) as ApiError;
+    const error = (await apiGetBlob("/Reports/annual", "padrao.xlsx").catch((e: unknown) => e)) as ApiError;
 
     expect(error.status).toBe(500);
     expect(error.message).toContain("/Reports/annual");
@@ -636,7 +660,10 @@ describe("apiGetBlob", () => {
 
 describe("apiGet", () => {
   it("devolve o corpo quando ele existe", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => mockResponse({ id: 1, nome: "Café" })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockResponse({ id: 1, nome: "Café" })),
+    );
 
     await expect(apiGet<{ id: number }>("/Produtos/1")).resolves.toEqual({ id: 1, nome: "Café" });
   });
@@ -644,7 +671,10 @@ describe("apiGet", () => {
   it("devolve null em HTTP 204", async () => {
     // REGRESSÃO: a assinatura antiga era `as T`, então o `null` que o client
     // produz chegava à tela tipado como objeto — e ela quebrava ao ler um campo.
-    vi.stubGlobal("fetch", vi.fn(async () => mockResponse(null)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockResponse(null)),
+    );
 
     await expect(apiGet<{ id: number }>("/Cupons/por-codigo/INEXISTENTE")).resolves.toBeNull();
   });
@@ -652,12 +682,15 @@ describe("apiGet", () => {
   it("devolve null quando o corpo vem vazio com status 200", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({
-        ok: true,
-        status: 200,
-        text: async () => "",
-        headers: new Headers(),
-      }) as unknown as Response),
+      vi.fn(
+        async () =>
+          ({
+            ok: true,
+            status: 200,
+            text: async () => "",
+            headers: new Headers(),
+          }) as unknown as Response,
+      ),
     );
 
     await expect(apiGet("/Qualquer")).resolves.toBeNull();
@@ -666,7 +699,10 @@ describe("apiGet", () => {
 
 describe("apiGetOrThrow", () => {
   it("devolve o corpo quando ele existe", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => mockResponse({ items: [], pagination: {} })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockResponse({ items: [], pagination: {} })),
+    );
 
     await expect(apiGetOrThrow("/Produtos")).resolves.toEqual({ items: [], pagination: {} });
   });
@@ -674,13 +710,19 @@ describe("apiGetOrThrow", () => {
   it("lança ApiError quando a resposta vem sem corpo", async () => {
     // Listagem paginada sem corpo é falha do servidor. Propagar null dali só
     // empurraria o problema para dentro da tela.
-    vi.stubGlobal("fetch", vi.fn(async () => mockResponse(null)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockResponse(null)),
+    );
 
     await expect(apiGetOrThrow("/Produtos")).rejects.toBeInstanceOf(ApiError);
   });
 
   it("o erro identifica o endereço que falhou", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => mockResponse(null)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => mockResponse(null)),
+    );
 
     await expect(apiGetOrThrow("/Produtos")).rejects.toThrow(/\/Produtos/);
   });
@@ -777,9 +819,7 @@ describe("fetchAllPages", () => {
     const items = Array.from({ length: 25 }, (_, index) => ({ id: index + 1 }));
     stubPagedApi(items);
 
-    await expect(fetchAllPages<{ id: number }>("/Categorias", undefined, 10)).resolves.toEqual(
-      items,
-    );
+    await expect(fetchAllPages<{ id: number }>("/Categorias", undefined, 10)).resolves.toEqual(items);
   });
 
   it("não pede a segunda página quando a primeira já trouxe tudo", async () => {
@@ -835,9 +875,7 @@ describe("fetchAllPages", () => {
   it("aceita teto próprio quando o padrão não serve", async () => {
     stubPagedApi([{ id: 1 }], 10);
 
-    await expect(fetchAllPages("/Images", undefined, 200, { maxItems: 5 })).rejects.toThrow(
-      /teto de 5/,
-    );
+    await expect(fetchAllPages("/Images", undefined, 200, { maxItems: 5 })).rejects.toThrow(/teto de 5/);
   });
 
   it("aceita exatamente o total do teto", async () => {
@@ -848,4 +886,3 @@ describe("fetchAllPages", () => {
     await expect(fetchAllPages("/Tags", undefined, 200, { maxItems: 3 })).resolves.toHaveLength(3);
   });
 });
-

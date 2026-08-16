@@ -7,11 +7,7 @@
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation } from "../client";
-import type {
-  GradeDto,
-  QueryKey,
-  SaveGradePayload,
-} from "../models";
+import type { GradeDto, QueryKey, SaveGradePayload } from "../models";
 
 export const getGetGradesQueryKey = (): QueryKey => ["grades"];
 
@@ -47,9 +43,7 @@ export function useUpdateGrade(options?: {
   }, options);
 }
 
-export function useDeleteGrade(options?: {
-  mutation?: UseMutationOptions<null, ApiError, { id: number }>;
-}) {
+export function useDeleteGrade(options?: { mutation?: UseMutationOptions<null, ApiError, { id: number }> }) {
   return useCrudMutation(async ({ id }) => {
     const response = await apiDelete<null>(`/Grades/${id}`);
     return response.data;

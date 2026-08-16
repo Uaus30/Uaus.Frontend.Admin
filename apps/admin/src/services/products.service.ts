@@ -278,9 +278,7 @@ export async function syncProductImages(payload: {
   currentAssociations: ProductImageDto[];
   nextImages: Array<{ imageId: number; displayOrder: number }>;
 }) {
-  const currentByImageId = new Map(
-    payload.currentAssociations.map((item) => [item.imageId, item]),
-  );
+  const currentByImageId = new Map(payload.currentAssociations.map((item) => [item.imageId, item]));
   const nextImageIds = new Set(payload.nextImages.map((item) => item.imageId));
 
   for (const association of payload.currentAssociations) {

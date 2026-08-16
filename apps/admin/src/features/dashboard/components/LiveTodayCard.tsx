@@ -184,17 +184,10 @@ export function LiveTodayCard({ today, isLoading, isFetching, updatedAt, onRefre
                   <Tooltip
                     cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
                     content={
-                      <ChartTooltip
-                        labelFormatter={(label) => `${String(label).padStart(2, "0")}h`}
-                      />
+                      <ChartTooltip labelFormatter={(label) => `${String(label).padStart(2, "0")}h`} />
                     }
                   />
-                  <Bar
-                    dataKey="revenue"
-                    name="Faturamento"
-                    maxBarSize={MAX_BAR_SIZE}
-                    radius={[4, 4, 0, 0]}
-                  >
+                  <Bar dataKey="revenue" name="Faturamento" maxBarSize={MAX_BAR_SIZE} radius={[4, 4, 0, 0]}>
                     {hours.map((point) => (
                       <Cell
                         key={point.hour}
@@ -219,5 +212,3 @@ export function LiveTodayCard({ today, isLoading, isFetching, updatedAt, onRefre
     </Card>
   );
 }
-
-

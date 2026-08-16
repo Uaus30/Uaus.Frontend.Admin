@@ -1,14 +1,7 @@
 import { Badge } from "@workspace/ui";
 import { USER_STATUS, enumCode } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { getDisplayName } from "@/services/mappers";
 import { Loader2, Pencil, ShieldCheck, Trash2, User, UserCog } from "lucide-react";
 
@@ -40,14 +33,7 @@ interface UsersTableProps {
 /**
  * Componente que renderiza a tabela de listagem de usuários com badges e ações.
  */
-export function UsersTable({
-  data,
-  isLoading,
-  roleLabels,
-  statusLabels,
-  onEdit,
-  onDelete,
-}: UsersTableProps) {
+export function UsersTable({ data, isLoading, roleLabels, statusLabels, onEdit, onDelete }: UsersTableProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <Table>
@@ -97,7 +83,11 @@ export function UsersTable({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={enumCode(user.status, USER_STATUS) === USER_STATUS.Active ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        enumCode(user.status, USER_STATUS) === USER_STATUS.Active ? "default" : "secondary"
+                      }
+                    >
                       {statusLabels[user.status] ?? user.status}
                     </Badge>
                   </TableCell>
@@ -125,5 +115,3 @@ export function UsersTable({
     </div>
   );
 }
-
-

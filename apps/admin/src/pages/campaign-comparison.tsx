@@ -57,8 +57,8 @@ export default function CampaignComparisonPage() {
               </h1>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Campanhas lado a lado, cada uma medida na janela dela e contra o faturamento da loja
-              no mesmo intervalo.
+              Campanhas lado a lado, cada uma medida na janela dela e contra o faturamento da loja no mesmo
+              intervalo.
             </p>
           </div>
 
@@ -93,17 +93,15 @@ export default function CampaignComparisonPage() {
             <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
           <p className="text-xs text-muted-foreground sm:pb-2.5">
-            Opcional. O recorte só encolhe a janela de cada campanha — nunca a estica para fora do
-            período em que ela esteve no ar.
+            Opcional. O recorte só encolhe a janela de cada campanha — nunca a estica para fora do período em
+            que ela esteve no ar.
           </p>
         </div>
 
         {isError ? (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
             <AlertTriangle className="h-8 w-8 text-destructive" />
-            <p className="text-sm font-medium text-foreground">
-              Não foi possível carregar o comparativo.
-            </p>
+            <p className="text-sm font-medium text-foreground">Não foi possível carregar o comparativo.</p>
             <p className="text-sm text-muted-foreground">{describeApiError(error)}</p>
             <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
               <RefreshCw className="h-4 w-4" /> Tentar novamente

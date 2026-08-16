@@ -114,22 +114,57 @@ export const ROUTES: AppRoute[] = [
 
   { path: "/vendas", label: "Vendas", group: "Financeiro", component: Sales },
   { path: "/financeiro/caixas", label: "Caixas", group: "Financeiro", component: CashRegisterSessions },
-  { path: "/financeiro/relatorios", label: "Relatórios", group: "Financeiro", component: FinancialReports, roles: SO_ADMIN },
-  { path: "/financeiro/fechamentos", label: "Fechamentos", group: "Financeiro", component: FinancialClosings, roles: SO_ADMIN },
-  { path: "/financeiro/custos-fixos", label: "Custos Fixos", group: "Financeiro", component: FixedCosts, roles: SO_ADMIN },
+  {
+    path: "/financeiro/relatorios",
+    label: "Relatórios",
+    group: "Financeiro",
+    component: FinancialReports,
+    roles: SO_ADMIN,
+  },
+  {
+    path: "/financeiro/fechamentos",
+    label: "Fechamentos",
+    group: "Financeiro",
+    component: FinancialClosings,
+    roles: SO_ADMIN,
+  },
+  {
+    path: "/financeiro/custos-fixos",
+    label: "Custos Fixos",
+    group: "Financeiro",
+    component: FixedCosts,
+    roles: SO_ADMIN,
+  },
   { path: "/financeiro/socios", label: "Sócios", group: "Financeiro", component: Partners, roles: SO_ADMIN },
-  { path: "/financeiro/formas-pagamento", label: "Formas de Pagamento", group: "Financeiro", component: PaymentMethodsPage },
+  {
+    path: "/financeiro/formas-pagamento",
+    label: "Formas de Pagamento",
+    group: "Financeiro",
+    component: PaymentMethodsPage,
+  },
   // Caminho antigo, mantido para não quebrar link salvo. Fora do menu: a mesma
   // tela em dois lugares confundiria mais do que ajuda.
   { path: "/formas-pagamento", component: PaymentMethodsPage, hidden: true },
 
   { path: "/marketing/cupons", label: "Cupons", group: "Marketing", component: Coupons, roles: SO_ADMIN },
-  { path: "/marketing/campanhas", label: "Campanhas", group: "Marketing", component: Campaigns, roles: SO_ADMIN },
+  {
+    path: "/marketing/campanhas",
+    label: "Campanhas",
+    group: "Marketing",
+    component: Campaigns,
+    roles: SO_ADMIN,
+  },
   // O comparativo vem ANTES do relatório de propósito: não há colisão (dois
   // segmentos contra três), mas manter o caminho literal na frente do
   // parametrizado é o hábito que impede a próxima rota de `/campanhas/algo` ser
   // engolida por `:id`.
-  { path: "/marketing/campanhas/comparativo", label: "Comparativo de Campanhas", group: "Marketing", component: CampaignComparison, roles: SO_ADMIN },
+  {
+    path: "/marketing/campanhas/comparativo",
+    label: "Comparativo de Campanhas",
+    group: "Marketing",
+    component: CampaignComparison,
+    roles: SO_ADMIN,
+  },
   // Detalhe: chega pela lista, não pelo menu. Repete `roles` porque proteger a
   // listagem e esquecer o detalhe é exatamente a porta dos fundos que o teste
   // de rotas cobre no log.
@@ -144,7 +179,13 @@ export const ROUTES: AppRoute[] = [
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },
   { path: "/clientes", label: "Clientes", icon: Users, component: Customers },
 
-  { path: "/configuracoes", label: "Configurações", group: "Sistema", component: CompanySettings, roles: SO_ADMIN },
+  {
+    path: "/configuracoes",
+    label: "Configurações",
+    group: "Sistema",
+    component: CompanySettings,
+    roles: SO_ADMIN,
+  },
   { path: "/sistema/logs", label: "Logs", group: "Sistema", component: Logs, roles: SO_ADMIN },
   { path: "/sistema/logs/:id", component: LogDetails, roles: SO_ADMIN, hidden: true },
   { path: "/sistema/usuarios", label: "Usuários", group: "Sistema", component: UsersPage, roles: SO_ADMIN },
@@ -208,9 +249,7 @@ export function buildMenu(role: number | undefined): MenuEntry[] {
   const grupos: MenuGroup[] = MENU_GROUPS.map((grupo) => ({
     name: grupo.name,
     icon: grupo.icon,
-    items: visiveis
-      .filter((r) => r.group === grupo.name)
-      .map((r) => ({ name: r.label!, href: r.path })),
+    items: visiveis.filter((r) => r.group === grupo.name).map((r) => ({ name: r.label!, href: r.path })),
   })).filter((g) => g.items.length > 0);
 
   // Dashboard primeiro, depois os grupos, e as soltas restantes ao fim — a

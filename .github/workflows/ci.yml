@@ -273,6 +273,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # A varredura de formatação já passou no repositório inteiro, então o
+      # portão pode entrar sem nascer vermelho. Ele existe para o diff de revisão
+      # falar só do que mudou de verdade: sem formatador travado, metade de um PR
+      # vira reindentação e o revisor para de ler.
+      - name: Formatação
+        run: npm run format:check
+
   # ---------------------------------------------------------------------------
   # `vite build` do admin não checa tipo nenhum — ele só transpila. Sem este job,
   # erro de tipo no admin passaria batido mesmo com o build verde.

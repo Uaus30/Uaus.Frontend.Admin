@@ -28,9 +28,7 @@ type CampaignReportComparisonPickerProps = {
 /** Período da campanha em uma linha. Fim ausente = em aberto. */
 function describePeriod(campaign: CampaignDto): string {
   const inicio = formatShortDate(campaign.startsAt);
-  return campaign.endsAt == null
-    ? `desde ${inicio}`
-    : `${inicio} até ${formatShortDate(campaign.endsAt)}`;
+  return campaign.endsAt == null ? `desde ${inicio}` : `${inicio} até ${formatShortDate(campaign.endsAt)}`;
 }
 
 /**
@@ -64,8 +62,8 @@ export function CampaignReportComparisonPicker({
           <div>
             <CardTitle className="text-lg font-semibold">Campanhas comparadas</CardTitle>
             <CardDescription>
-              {selectedIds.length} de {maxCampaigns} selecionada(s). Cada linha é medida na janela
-              dela, com o próprio denominador.
+              {selectedIds.length} de {maxCampaigns} selecionada(s). Cada linha é medida na janela dela, com o
+              próprio denominador.
             </CardDescription>
           </div>
 

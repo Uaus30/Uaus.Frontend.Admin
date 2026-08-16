@@ -32,8 +32,7 @@ const keyFactories = exports.filter(
 
 /** Chaves fixas exportadas como constante (ex.: COMPANY_SETTINGS_QUERY_KEY). */
 const constantKeys = exports.filter(
-  (entry): entry is [string, readonly unknown[]] =>
-    Array.isArray(entry[1]) && /_QUERY_KEY$/.test(entry[0]),
+  (entry): entry is [string, readonly unknown[]] => Array.isArray(entry[1]) && /_QUERY_KEY$/.test(entry[0]),
 );
 
 describe("convenção de chaves de cache", () => {
@@ -62,25 +61,22 @@ describe("convenção de chaves de cache", () => {
     key.forEach((segment) => expect(typeof segment).toBe("string"));
   });
 
-  it.each(keyFactories)(
-    "%s alcança a query parametrizada no cache real do React Query",
-    (_nome, factory) => {
-      // O teste que importa: não é sobre o formato da chave, é sobre o
-      // comportamento do cache. Registra uma query como a aplicação registra
-      // e confirma que o filtro construído pela factory a encontra.
-      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      const prefix = factory();
-      const params = { search: "teste", page: 2, limit: 20 };
+  it.each(keyFactories)("%s alcança a query parametrizada no cache real do React Query", (_nome, factory) => {
+    // O teste que importa: não é sobre o formato da chave, é sobre o
+    // comportamento do cache. Registra uma query como a aplicação registra
+    // e confirma que o filtro construído pela factory a encontra.
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const prefix = factory();
+    const params = { search: "teste", page: 2, limit: 20 };
 
-      client.setQueryData([...prefix, params], { data: [] });
-      client.setQueryData(["outro-recurso", params], { data: [] });
+    client.setQueryData([...prefix, params], { data: [] });
+    client.setQueryData(["outro-recurso", params], { data: [] });
 
-      const encontradas = client.getQueryCache().findAll({ queryKey: prefix });
+    const encontradas = client.getQueryCache().findAll({ queryKey: prefix });
 
-      expect(encontradas).toHaveLength(1);
-      client.clear();
-    },
-  );
+    expect(encontradas).toHaveLength(1);
+    client.clear();
+  });
 
   it("o filtro por prefixo alcança TODAS as páginas e buscas do mesmo recurso", () => {
     // Regressão do sintoma original: criar/editar/excluir invalidava só a

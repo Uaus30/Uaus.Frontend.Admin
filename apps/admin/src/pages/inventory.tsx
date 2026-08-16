@@ -9,7 +9,7 @@ import { InventoryTable } from "@/features/inventory/components/InventoryTable";
 
 /**
  * Inventory Page Component
- * 
+ *
  * Renders the product stock inventory dashboard, connecting page controls
  * and panels to the useInventory state manager hook.
  */
@@ -49,7 +49,10 @@ export default function Inventory() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Inventário de Produtos</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-4xl">
-              <strong className="text-primary">Sobre este relatório:</strong> Mostra apenas produtos com controle de estoque ativado e pelo menos 1 unidade em estoque. Produtos sem controle, serviços e itens zerados não aparecem aqui. Os valores de mercadoria (preço de venda), custo e lucro estimado são calculados sobre o estoque atual.
+              <strong className="text-primary">Sobre este relatório:</strong> Mostra apenas produtos com
+              controle de estoque ativado e pelo menos 1 unidade em estoque. Produtos sem controle, serviços e
+              itens zerados não aparecem aqui. Os valores de mercadoria (preço de venda), custo e lucro
+              estimado são calculados sobre o estoque atual.
             </p>
           </div>
           <Button
@@ -68,11 +71,7 @@ export default function Inventory() {
           formatPercent={formatPercent}
         />
 
-        <CategorySummary
-          report={report}
-          formatCurrency={formatCurrency}
-          formatPercent={formatPercent}
-        />
+        <CategorySummary report={report} formatCurrency={formatCurrency} formatPercent={formatPercent} />
 
         <InventoryTable
           search={search}
@@ -101,5 +100,3 @@ export default function Inventory() {
     </AppLayout>
   );
 }
-
-

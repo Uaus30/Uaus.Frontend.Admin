@@ -35,7 +35,7 @@ type ImageUploadModalProps = {
 
 /**
  * ImageUploadModal
- * 
+ *
  * Renders the dialog box to select files and upload them to the images database.
  */
 export function ImageUploadModal({
@@ -66,7 +66,13 @@ export function ImageUploadModal({
             onClick={() => fileRef.current?.click()}
           >
             {preview ? (
-              <img loading="lazy" decoding="async" src={preview} alt="preview" className="mx-auto max-h-40 rounded-lg object-contain" />
+              <img
+                loading="lazy"
+                decoding="async"
+                src={preview}
+                alt="preview"
+                className="mx-auto max-h-40 rounded-lg object-contain"
+              />
             ) : (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Upload className="h-8 w-8 opacity-50" />
@@ -106,7 +112,11 @@ export function ImageUploadModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={onUpload} disabled={!file || !formName || !formType || uploading} className="hover-elevate">
+          <Button
+            onClick={onUpload}
+            disabled={!file || !formName || !formType || uploading}
+            className="hover-elevate"
+          >
             {uploading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -119,6 +129,3 @@ export function ImageUploadModal({
     </Dialog>
   );
 }
-
-
-

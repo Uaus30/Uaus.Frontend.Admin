@@ -23,7 +23,7 @@ import { CATALOG_KEYS, useAllDepartments, useAllCategories, useAllTags } from "@
 
 /**
  * useProductTable
- * 
+ *
  * Hook controlador da tabela de produtos: listagem paginada com busca, os
  * atributos relacionados (departamento, categoria, etiqueta, imagem) e a edição
  * de preço e estoque direto na célula.
@@ -137,11 +137,11 @@ export function useProductTable() {
    */
   const enrichedProducts = useMemo(() => {
     const pageGroups = groupPage?.data ?? [];
-    
-    const representativeProducts = pageGroups.map(group => {
-      const firstProduct = allProducts.find(p => p.productGroupId === group.id);
+
+    const representativeProducts = pageGroups.map((group) => {
+      const firstProduct = allProducts.find((p) => p.productGroupId === group.id);
       if (firstProduct) return firstProduct;
-      
+
       // Fallback fallback if group has no child products
       return {
         id: 0,
@@ -156,7 +156,7 @@ export function useProductTable() {
         status: 1,
         canDelete: true,
         createdAt: group.createdAt,
-        updatedAt: group.updatedAt
+        updatedAt: group.updatedAt,
       };
     });
 
@@ -172,9 +172,9 @@ export function useProductTable() {
     }).enrichedProducts;
 
     // Normalizes names to match the group name in UI
-    return allEnriched.map(item => ({
+    return allEnriched.map((item) => ({
       ...item,
-      name: item.productGroup?.name || item.name
+      name: item.productGroup?.name || item.name,
     }));
   }, [
     categories,
@@ -196,10 +196,10 @@ export function useProductTable() {
     if (statusVal === undefined || statusVal === null) return 0;
     const statusStr = String(statusVal);
     const option = statusOptions.find(
-      opt =>
+      (opt) =>
         String(opt.id) === statusStr ||
         opt.value.toLowerCase() === statusStr.toLowerCase() ||
-        opt.name.toLowerCase() === statusStr.toLowerCase()
+        opt.name.toLowerCase() === statusStr.toLowerCase(),
     );
     return option ? option.id : Number(statusVal);
   };

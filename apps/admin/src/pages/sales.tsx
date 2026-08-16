@@ -9,7 +9,7 @@ import { SaleDetailsModal } from "@/features/sales/components/SaleDetailsModal";
 
 /**
  * Sales Page Component
- * 
+ *
  * Renders the Sales administration panel layout, connecting visual listings
  * and checkout dialogs to the useSales state manager hook.
  */
@@ -158,5 +158,3 @@ export default function Sales() {
     </AppLayout>
   );
 }
-
-

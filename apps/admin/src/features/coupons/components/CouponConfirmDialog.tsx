@@ -53,12 +53,7 @@ interface CouponConfirmDialogProps {
 }
 
 /** Diálogo único das três decisões destrutivas da tela de cupons. */
-export function CouponConfirmDialog({
-  request,
-  onAccept,
-  onDismiss,
-  loading,
-}: CouponConfirmDialogProps) {
+export function CouponConfirmDialog({ request, onAccept, onDismiss, loading }: CouponConfirmDialogProps) {
   const content = request ? describeConfirm(request) : null;
 
   return (

@@ -9,11 +9,7 @@ import {
   type StockWriteOffDto,
   type StockWriteOffFilters,
 } from "@workspace/api-client-react";
-import type {
-  StockWriteOffDraftItem,
-  StockWriteOffFilterState,
-  StockWriteOffSelectOption,
-} from "./types";
+import type { StockWriteOffDraftItem, StockWriteOffFilterState, StockWriteOffSelectOption } from "./types";
 
 /**
  * Baixa de estoque: saída de mercadoria sem venda (consumo, perda, doação e a
@@ -63,8 +59,14 @@ export const SELECTABLE_STOCK_WRITE_OFF_REASON_OPTIONS: StockWriteOffSelectOptio
 
 /** Situações oferecidas no filtro da listagem. */
 export const STOCK_WRITE_OFF_STATUS_OPTIONS: StockWriteOffSelectOption[] = [
-  { value: String(STOCK_WRITE_OFF_STATUS.Confirmed), label: STOCK_WRITE_OFF_STATUS_LABEL[STOCK_WRITE_OFF_STATUS.Confirmed] },
-  { value: String(STOCK_WRITE_OFF_STATUS.Reversed), label: STOCK_WRITE_OFF_STATUS_LABEL[STOCK_WRITE_OFF_STATUS.Reversed] },
+  {
+    value: String(STOCK_WRITE_OFF_STATUS.Confirmed),
+    label: STOCK_WRITE_OFF_STATUS_LABEL[STOCK_WRITE_OFF_STATUS.Confirmed],
+  },
+  {
+    value: String(STOCK_WRITE_OFF_STATUS.Reversed),
+    label: STOCK_WRITE_OFF_STATUS_LABEL[STOCK_WRITE_OFF_STATUS.Reversed],
+  },
 ];
 
 /**

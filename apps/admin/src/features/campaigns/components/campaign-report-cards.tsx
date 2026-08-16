@@ -1,12 +1,4 @@
-import {
-  BadgePercent,
-  Receipt,
-  Ticket,
-  TrendingUp,
-  Undo2,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+import { BadgePercent, Receipt, Ticket, TrendingUp, Undo2, Wallet, type LucideIcon } from "lucide-react";
 import { Card, CardContent, Skeleton, cn } from "@workspace/ui";
 import { formatCurrency, formatPercentage } from "@workspace/core";
 import type { CampaignReportCard } from "../hooks/useCampaignReport";
@@ -71,9 +63,7 @@ function ReportCard({ card }: { card: CampaignReportCard }) {
 
         {card.periodValue !== null ? (
           <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-            <span className="font-medium text-foreground/80">
-              {formatValue(card.periodValue, card.kind)}
-            </span>{" "}
+            <span className="font-medium text-foreground/80">{formatValue(card.periodValue, card.kind)}</span>{" "}
             na loja no mesmo intervalo
           </p>
         ) : (

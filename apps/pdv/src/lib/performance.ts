@@ -81,16 +81,11 @@ export function describePreviousDay(
  * mostrar. O piso de 1 evita divisão por zero na semana sem venda nenhuma.
  */
 export function weekdayChartScale(days: WeekdayComparisonDto[]): number {
-  const maior = days.reduce(
-    (max, day) => Math.max(max, day.revenue, day.previousRevenue),
-    0,
-  );
+  const maior = days.reduce((max, day) => Math.max(max, day.revenue, day.previousRevenue), 0);
   return maior > 0 ? maior : 1;
 }
 
 /** Soma do faturamento dos dias que já aconteceram nesta semana. */
 export function weekRevenueSoFar(days: WeekdayComparisonDto[]): number {
-  return round2(
-    days.filter((day) => !day.isFuture).reduce((sum, day) => sum + day.revenue, 0),
-  );
+  return round2(days.filter((day) => !day.isFuture).reduce((sum, day) => sum + day.revenue, 0));
 }

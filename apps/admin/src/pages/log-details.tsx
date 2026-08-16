@@ -4,17 +4,7 @@ import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui";
 import { useGetLog } from "@workspace/api-client-react";
-import { 
-  ArrowLeft, 
-  Copy, 
-  Check, 
-  Loader2, 
-  Terminal,
-  Calendar,
-  Hash,
-  Globe,
-  Tag
-} from "lucide-react";
+import { ArrowLeft, Copy, Check, Loader2, Terminal, Calendar, Hash, Globe, Tag } from "lucide-react";
 import { useToast } from "@workspace/ui";
 import { getLogTypeBadge } from "@/features/logs/components/LogsTable";
 import { formatDateTime } from "@/features/logs/hooks/useLogs";
@@ -81,9 +71,9 @@ export default function LogDetails() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="hover-elevate bg-card border border-border"
               onClick={() => setLocation("/sistema/logs")}
             >
@@ -94,7 +84,9 @@ export default function LogDetails() {
                 <h1 className="text-3xl font-display font-bold">Log #{log.id}</h1>
                 {getLogTypeBadge(log.type)}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">Detalhes completos do registro de log do sistema.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Detalhes completos do registro de log do sistema.
+              </p>
             </div>
           </div>
 
@@ -140,13 +132,17 @@ export default function LogDetails() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-mono font-medium text-foreground">{log.code || "-"}</span>
                     {log.code && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-6 w-6 hover:bg-muted"
                         onClick={() => copyToClipboard(log.code, "code")}
                       >
-                        {copiedField === "code" ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
+                        {copiedField === "code" ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
                       </Button>
                     )}
                   </div>
@@ -159,13 +155,17 @@ export default function LogDetails() {
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-sm font-mono text-foreground break-all">{log.origin || "-"}</span>
                     {log.origin && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-6 w-6 hover:bg-muted shrink-0"
                         onClick={() => copyToClipboard(log.origin, "origin")}
                       >
-                        {copiedField === "origin" ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
+                        {copiedField === "origin" ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
                       </Button>
                     )}
                   </div>
@@ -178,13 +178,17 @@ export default function LogDetails() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-mono text-foreground select-all">{log.requestId}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-6 w-6 hover:bg-muted"
                         onClick={() => copyToClipboard(log.requestId || "", "requestId")}
                       >
-                        {copiedField === "requestId" ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
+                        {copiedField === "requestId" ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -206,9 +210,9 @@ export default function LogDetails() {
                 <Hash className="h-5 w-5 text-primary" /> Detalhes
               </CardTitle>
               {log.details && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-8 gap-1 hover-elevate bg-background"
                   onClick={() => copyToClipboard(log.details || "", "details")}
                 >
@@ -242,5 +246,3 @@ export default function LogDetails() {
     </AppLayout>
   );
 }
-
-

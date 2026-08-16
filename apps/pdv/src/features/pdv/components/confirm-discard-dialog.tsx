@@ -22,8 +22,8 @@ export function ConfirmDiscardDialog({ open, onOpenChange, onConfirm }: ConfirmD
         </DialogTitle>
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Há itens ativos no carrinho de compras atual. Deseja descartar esta venda em andamento para editar a venda
-            selecionada?
+            Há itens ativos no carrinho de compras atual. Deseja descartar esta venda em andamento para editar
+            a venda selecionada?
           </p>
           <div className="flex gap-3 pt-2">
             <Button variant="ghost" className="flex-1 cursor-pointer" onClick={() => onOpenChange(false)}>

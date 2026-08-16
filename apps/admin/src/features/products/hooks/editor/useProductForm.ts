@@ -10,7 +10,15 @@ import { deleteProductGroup } from "@/services/products.service";
 import { mapDtoToGrade, createEmptyProductEditor } from "./utils";
 import type { ProductGroupForm, ProductEditorForm, Grade, LocalImage } from "../../types";
 import type { TagDto } from "@workspace/api-client-react";
-import { useAllDepartments, useAllCategories, useAllGrades, useAllTags, useAllProductTags, useAllProductGroups, CATALOG_KEYS } from "@/hooks/use-catalog";
+import {
+  useAllDepartments,
+  useAllCategories,
+  useAllGrades,
+  useAllTags,
+  useAllProductTags,
+  useAllProductGroups,
+  CATALOG_KEYS,
+} from "@/hooks/use-catalog";
 import { describeApiError } from "@workspace/core";
 
 export interface UseProductFormProps {
@@ -38,7 +46,7 @@ export function useProductForm({
   matrixGeneratedForCategoryRef,
   setVariationDrafts,
   setImages,
-  setActiveGrades
+  setActiveGrades,
 }: UseProductFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -52,11 +60,20 @@ export function useProductForm({
 
   const typeMapFromApi = useMemo(() => {
     const map: Record<number | string, any> = {
-      1: "Tamanho", 2: "Cor", 3: "Modelo", 4: "Estampa",
-      "Size": "Tamanho", "Color": "Cor", "Model": "Modelo", "Print": "Estampa",
-      "size": "Tamanho", "color": "Cor", "model": "Modelo", "print": "Estampa",
+      1: "Tamanho",
+      2: "Cor",
+      3: "Modelo",
+      4: "Estampa",
+      Size: "Tamanho",
+      Color: "Cor",
+      Model: "Modelo",
+      Print: "Estampa",
+      size: "Tamanho",
+      color: "Cor",
+      model: "Modelo",
+      print: "Estampa",
     };
-    gradeTypeOptions.forEach(opt => {
+    gradeTypeOptions.forEach((opt) => {
       map[opt.id] = opt.name;
       map[opt.value] = opt.name;
       map[opt.value.toLowerCase()] = opt.name;
@@ -65,7 +82,10 @@ export function useProductForm({
   }, [gradeTypeOptions]);
 
   const { data: apiGrades = [] } = useAllGrades();
-  const gradesList = useMemo(() => apiGrades.map((g: any) => mapDtoToGrade(g, typeMapFromApi)), [apiGrades, typeMapFromApi]);
+  const gradesList = useMemo(
+    () => apiGrades.map((g: any) => mapDtoToGrade(g, typeMapFromApi)),
+    [apiGrades, typeMapFromApi],
+  );
 
   const { data: categories = [] } = useAllCategories();
 
@@ -98,11 +118,11 @@ export function useProductForm({
   const getStatusIdAsString = (statusVal: any): string => {
     if (statusVal === undefined || statusVal === null) return "";
     const statusStr = String(statusVal);
-    const byId = statusOptions.find(opt => String(opt.id) === statusStr);
+    const byId = statusOptions.find((opt) => String(opt.id) === statusStr);
     if (byId) return String(byId.id);
-    const byValue = statusOptions.find(opt => opt.value.toLowerCase() === statusStr.toLowerCase());
+    const byValue = statusOptions.find((opt) => opt.value.toLowerCase() === statusStr.toLowerCase());
     if (byValue) return String(byValue.id);
-    const byName = statusOptions.find(opt => opt.name.toLowerCase() === statusStr.toLowerCase());
+    const byName = statusOptions.find((opt) => opt.name.toLowerCase() === statusStr.toLowerCase());
     if (byName) return String(byName.id);
     return statusStr;
   };
@@ -111,17 +131,17 @@ export function useProductForm({
     if (statusVal === undefined || statusVal === null) return 0;
     const statusStr = String(statusVal);
     const option = statusOptions.find(
-      opt =>
+      (opt) =>
         String(opt.id) === statusStr ||
         opt.value.toLowerCase() === statusStr.toLowerCase() ||
-        opt.name.toLowerCase() === statusStr.toLowerCase()
+        opt.name.toLowerCase() === statusStr.toLowerCase(),
     );
     return option ? option.id : Number(statusVal);
   };
 
   const defaultStatus = useMemo(() => {
     const activeOpt = statusOptions.find(
-      (opt) => opt.name.toLowerCase() === "ativo" || opt.value.toLowerCase() === "ativo"
+      (opt) => opt.name.toLowerCase() === "ativo" || opt.value.toLowerCase() === "ativo",
     );
     return activeOpt ? String(activeOpt.id) : "";
   }, [statusOptions]);
@@ -164,7 +184,7 @@ export function useProductForm({
   }
 
   function toggleHasVariations(checked: boolean) {
-    setForm(current => ({ ...current, hasVariations: checked }));
+    setForm((current) => ({ ...current, hasVariations: checked }));
     setVariationDrafts([]);
     setActiveVariationKey(null);
     setActiveGrades([]);

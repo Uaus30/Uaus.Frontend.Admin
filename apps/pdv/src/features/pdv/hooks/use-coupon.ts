@@ -1,11 +1,6 @@
 import { useCallback, useState } from "react";
 import { create } from "zustand";
-import {
-  ApiError,
-  COUPON_DISCOUNT_TYPE,
-  enumCode,
-  lookupPdvCoupon,
-} from "@workspace/api-client-react";
+import { ApiError, COUPON_DISCOUNT_TYPE, enumCode, lookupPdvCoupon } from "@workspace/api-client-react";
 import { describeApiError } from "@workspace/core";
 import { lookupLocalCoupon, type LocalCoupon } from "@/offline";
 import { useOfflineStore } from "@/stores/use-offline-store";
@@ -96,8 +91,7 @@ function fromLocalCoupon(
 /** Perguntas obrigatórias que ainda estão sem resposta. */
 function missingRequired(questions: CouponQuestion[], answers: CouponAnswer[]): CouponQuestion[] {
   return questions.filter(
-    (question) =>
-      question.isRequired && !answers.some((answer) => answer.questionId === question.questionId),
+    (question) => question.isRequired && !answers.some((answer) => answer.questionId === question.questionId),
   );
 }
 
@@ -131,12 +125,7 @@ export function useCoupon() {
       return null;
     }
 
-    const coupon = fromLocalCoupon(
-      result.coupon,
-      discountType,
-      result.remainingUses,
-      result.overLimit,
-    );
+    const coupon = fromLocalCoupon(result.coupon, discountType, result.remainingUses, result.overLimit);
     setFound(coupon);
     return coupon;
   }, []);

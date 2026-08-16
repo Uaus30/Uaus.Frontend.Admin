@@ -78,22 +78,12 @@ export function CustomerEditorModal({
         <form key={open ? (editingId ?? "new") : "closed"} onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Nome Completo</label>
-            <Input
-              required
-              ref={nameRef}
-              defaultValue={initialForm.name}
-              className="bg-background"
-            />
+            <Input required ref={nameRef} defaultValue={initialForm.name} className="bg-background" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
-              <Input
-                type="email"
-                ref={emailRef}
-                defaultValue={initialForm.email}
-                className="bg-background"
-              />
+              <Input type="email" ref={emailRef} defaultValue={initialForm.email} className="bg-background" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Telefone</label>
@@ -107,19 +97,11 @@ export function CustomerEditorModal({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">CPF / CNPJ</label>
-            <Input
-              ref={documentRef}
-              defaultValue={initialForm.document}
-              className="bg-background"
-            />
+            <Input ref={documentRef} defaultValue={initialForm.document} className="bg-background" />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Endereço</label>
-            <Input
-              ref={addressRef}
-              defaultValue={initialForm.address}
-              className="bg-background"
-            />
+            <Input ref={addressRef} defaultValue={initialForm.address} className="bg-background" />
           </div>
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -134,5 +116,3 @@ export function CustomerEditorModal({
     </Dialog>
   );
 }
-
-

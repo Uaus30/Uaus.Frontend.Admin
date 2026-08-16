@@ -1,4 +1,13 @@
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@workspace/ui";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
@@ -6,7 +15,17 @@ import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { buildPublicImageUrl } from "@/services/core";
-import { Edit2, ImageIcon, Loader2, Search, Trash2, AlertTriangle, MoreVertical, Package, History } from "lucide-react";
+import {
+  Edit2,
+  ImageIcon,
+  Loader2,
+  Search,
+  Trash2,
+  AlertTriangle,
+  MoreVertical,
+  Package,
+  History,
+} from "lucide-react";
 import type { EnrichedProduct } from "@/services/mappers";
 import React, { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
@@ -37,24 +56,32 @@ type ProductTableProps = {
   onSearchInternetImage?: (product: EnrichedProduct) => void;
 };
 
-function CurrencyInputInline({ value, onSave, disabled }: { value: number, onSave: (val: number) => void, disabled?: boolean }) {
+function CurrencyInputInline({
+  value,
+  onSave,
+  disabled,
+}: {
+  value: number;
+  onSave: (val: number) => void;
+  disabled?: boolean;
+}) {
   const [focused, setFocused] = useState(false);
-  const [localValue, setLocalValue] = useState(value.toFixed(2).replace('.', ','));
+  const [localValue, setLocalValue] = useState(value.toFixed(2).replace(".", ","));
 
   // Sync value when it changes from outside
   React.useEffect(() => {
     if (!focused) {
-      setLocalValue(value.toFixed(2).replace('.', ','));
+      setLocalValue(value.toFixed(2).replace(".", ","));
     }
   }, [value, focused]);
 
   const handleBlurOrEnter = () => {
     setFocused(false);
-    const numericValue = Number(localValue.replace(',', '.'));
+    const numericValue = Number(localValue.replace(",", "."));
     if (!isNaN(numericValue) && numericValue !== value) {
       onSave(numericValue);
     } else {
-      setLocalValue(value.toFixed(2).replace('.', ','));
+      setLocalValue(value.toFixed(2).replace(".", ","));
     }
   };
 
@@ -62,15 +89,15 @@ function CurrencyInputInline({ value, onSave, disabled }: { value: number, onSav
     <Input
       type="text"
       inputMode="decimal"
-      value={focused ? localValue : value.toFixed(2).replace('.', ',')}
+      value={focused ? localValue : value.toFixed(2).replace(".", ",")}
       disabled={disabled}
       onChange={(e) => {
         let val = e.target.value;
-        val = val.replace(/\./g, ',');
-        val = val.replace(/[^\d,]/g, '');
-        const parts = val.split(',');
+        val = val.replace(/\./g, ",");
+        val = val.replace(/[^\d,]/g, "");
+        const parts = val.split(",");
         if (parts.length > 2) {
-          val = parts[0] + ',' + parts.slice(1).join('');
+          val = parts[0] + "," + parts.slice(1).join("");
         }
         setLocalValue(val);
       }}
@@ -79,7 +106,7 @@ function CurrencyInputInline({ value, onSave, disabled }: { value: number, onSav
       }}
       onBlur={handleBlurOrEnter}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
           e.currentTarget.blur();
         }
       }}
@@ -88,7 +115,15 @@ function CurrencyInputInline({ value, onSave, disabled }: { value: number, onSav
   );
 }
 
-function StockInputInline({ value, onSave, disabled }: { value: number, onSave: (val: number) => void, disabled?: boolean }) {
+function StockInputInline({
+  value,
+  onSave,
+  disabled,
+}: {
+  value: number;
+  onSave: (val: number) => void;
+  disabled?: boolean;
+}) {
   const [focused, setFocused] = useState(false);
   const [localValue, setLocalValue] = useState(String(value));
 
@@ -119,7 +154,7 @@ function StockInputInline({ value, onSave, disabled }: { value: number, onSave: 
         disabled={disabled}
         onChange={(e) => {
           let val = e.target.value;
-          val = val.replace(/[^\d]/g, '');
+          val = val.replace(/[^\d]/g, "");
           setLocalValue(val);
         }}
         onFocus={() => {
@@ -127,7 +162,7 @@ function StockInputInline({ value, onSave, disabled }: { value: number, onSave: 
         }}
         onBlur={handleBlurOrEnter}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
+          if (e.key === "Enter") {
             e.currentTarget.blur();
           }
         }}
@@ -135,8 +170,8 @@ function StockInputInline({ value, onSave, disabled }: { value: number, onSave: 
           focused
             ? "bg-background border-border text-foreground"
             : isLowStock
-            ? "bg-destructive/20 border-transparent text-destructive hover:border-destructive/30"
-            : "bg-secondary border-transparent text-secondary-foreground hover:border-secondary-foreground/20"
+              ? "bg-destructive/20 border-transparent text-destructive hover:border-destructive/30"
+              : "bg-secondary border-transparent text-secondary-foreground hover:border-secondary-foreground/20"
         }`}
       />
       <span className="text-xs text-muted-foreground font-semibold select-none">un</span>
@@ -220,15 +255,21 @@ export function ProductTable({
                             {mainImage ? (
                               <HoverCard openDelay={0} closeDelay={0}>
                                 <HoverCardTrigger asChild>
-                                  <img loading="lazy" decoding="async"
+                                  <img
+                                    loading="lazy"
+                                    decoding="async"
                                     src={buildPublicImageUrl(mainImage.url)}
                                     alt={mainImage.name}
                                     className="h-10 w-10 rounded-lg border border-border/50 object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                    onClick={() => setSelectedImage({ url: mainImage.url, name: mainImage.name })}
+                                    onClick={() =>
+                                      setSelectedImage({ url: mainImage.url, name: mainImage.name })
+                                    }
                                   />
                                 </HoverCardTrigger>
                                 <HoverCardContent className="w-80 h-80 p-0 overflow-hidden border-border/50 shadow-2xl rounded-xl">
-                                  <img loading="lazy" decoding="async"
+                                  <img
+                                    loading="lazy"
+                                    decoding="async"
                                     src={buildPublicImageUrl(mainImage.url)}
                                     alt={mainImage.name}
                                     className="w-full h-full object-cover"
@@ -263,8 +304,12 @@ export function ProductTable({
                         <td className="px-6 py-4 font-medium text-orange-500">
                           {product.productGroup?.hasVariations ? (
                             <div className="flex flex-col">
-                              <span className="font-medium text-orange-500">{formatCurrency(product.price)}</span>
-                              <span className="text-[10px] text-orange-500 font-semibold uppercase mt-0.5">Variações</span>
+                              <span className="font-medium text-orange-500">
+                                {formatCurrency(product.price)}
+                              </span>
+                              <span className="text-[10px] text-orange-500 font-semibold uppercase mt-0.5">
+                                Variações
+                              </span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1">
@@ -280,10 +325,14 @@ export function ProductTable({
                         <td className="px-6 py-4">
                           {product.productGroup?.hasVariations ? (
                             <div className="flex flex-col">
-                              <span className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold w-max ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}>
+                              <span
+                                className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold w-max ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}
+                              >
                                 {product.stock} un
                               </span>
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase mt-0.5">Variações</span>
+                              <span className="text-[10px] text-muted-foreground font-semibold uppercase mt-0.5">
+                                Variações
+                              </span>
                             </div>
                           ) : (
                             <StockInputInline
@@ -296,15 +345,31 @@ export function ProductTable({
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1">
                             {product.tags.map((tag) => (
-                              <span key={tag.id} className="rounded-full border px-2 py-0.5 text-[10px] font-medium" style={{ borderColor: tag.color, color: tag.color, backgroundColor: `${tag.color}15` }}>
+                              <span
+                                key={tag.id}
+                                className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                                style={{
+                                  borderColor: tag.color,
+                                  color: tag.color,
+                                  backgroundColor: `${tag.color}15`,
+                                }}
+                              >
                                 {tag.name}
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge variant={enumCode(product.status, PRODUCT_STATUS) === PRODUCT_STATUS.Active ? "default" : "outline"}>
-                            {statusOptions.find((option) => option.id === enumCode(product.status, PRODUCT_STATUS))?.name ?? "—"}
+                          <Badge
+                            variant={
+                              enumCode(product.status, PRODUCT_STATUS) === PRODUCT_STATUS.Active
+                                ? "default"
+                                : "outline"
+                            }
+                          >
+                            {statusOptions.find(
+                              (option) => option.id === enumCode(product.status, PRODUCT_STATUS),
+                            )?.name ?? "—"}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -355,10 +420,7 @@ export function ProductTable({
                       </tr>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-36 border-border/50 bg-card">
-                      <ContextMenuItem
-                        onClick={() => onEdit(product)}
-                        className="cursor-pointer gap-2"
-                      >
+                      <ContextMenuItem onClick={() => onEdit(product)} className="cursor-pointer gap-2">
                         <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                         Editar
                       </ContextMenuItem>
@@ -416,11 +478,23 @@ export function ProductTable({
           <span className="ml-2">Total: {productPageTotal}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage((current) => current - 1)}
+          >
             Anterior
           </Button>
-          <span className="px-2 text-xs">{page} / {totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>
+          <span className="px-2 text-xs">
+            {page} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((current) => current + 1)}
+          >
             Próxima
           </Button>
         </div>
@@ -433,8 +507,9 @@ export function ProductTable({
             </div>
             <AlertDialogTitle className="text-center text-xl">Excluir Produto?</AlertDialogTitle>
             <AlertDialogDescription className="text-center pt-2">
-              Você está prestes a excluir o produto <span className="font-bold text-foreground">"{productToDelete?.name}"</span>. 
-              Esta ação é permanente e não poderá ser desfeita.
+              Você está prestes a excluir o produto{" "}
+              <span className="font-bold text-foreground">"{productToDelete?.name}"</span>. Esta ação é
+              permanente e não poderá ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0 mt-6">
@@ -454,11 +529,16 @@ export function ProductTable({
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
-        <DialogContent aria-describedby={undefined} className="max-w-[600px] border-border/50 bg-black/95 p-0 overflow-hidden shadow-2xl rounded-2xl flex flex-col items-center justify-center gap-0">
+        <DialogContent
+          aria-describedby={undefined}
+          className="max-w-[600px] border-border/50 bg-black/95 p-0 overflow-hidden shadow-2xl rounded-2xl flex flex-col items-center justify-center gap-0"
+        >
           <DialogTitle className="sr-only">Visualizar Imagem</DialogTitle>
           {selectedImage && (
             <div className="relative w-full h-full flex items-center justify-center p-8">
-              <img loading="lazy" decoding="async"
+              <img
+                loading="lazy"
+                decoding="async"
                 src={buildPublicImageUrl(selectedImage.url)}
                 alt={selectedImage.name}
                 className="max-h-[500px] max-w-[500px] rounded-lg object-contain shadow-2xl w-auto h-auto"
@@ -470,6 +550,3 @@ export function ProductTable({
     </div>
   );
 }
-
-
-

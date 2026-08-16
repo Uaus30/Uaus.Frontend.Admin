@@ -6,7 +6,15 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import {
+  apiGetOrThrow,
+  apiPost,
+  apiPut,
+  apiDelete,
+  ApiError,
+  useCrudMutation,
+  mapPagedResult,
+} from "../client";
 import type {
   BackendPagedResult,
   CategoryDto,
@@ -21,7 +29,10 @@ export const getGetCategoriesQueryKey = (): QueryKey => ["categories"];
 export function useGetCategories(
   params?: { search?: string; departmentId?: number; page?: number; limit?: number },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<CategoryDto>, ApiError, UiPagedResult<CategoryDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<CategoryDto>, ApiError, UiPagedResult<CategoryDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<CategoryDto>, ApiError, UiPagedResult<CategoryDto>, QueryKey>({

@@ -8,12 +8,12 @@ Cadastro das campanhas de marketing: período, questionário do caixa e os cupon
 
 São dois períodos independentes, e eles não precisam coincidir:
 
-| Situação | O desconto sai? | O caixa pergunta? |
-| --- | --- | --- |
-| Cupom vigente, campanha no ar | sim | sim |
-| Cupom vigente, campanha **encerrada** ou inativa | **sim** | não |
-| Cupom vencido, campanha no ar | **não** | não (nem chega a aplicar) |
-| Cupom vigente, campanha excluída | **sim** | não |
+| Situação                                         | O desconto sai? | O caixa pergunta?         |
+| ------------------------------------------------ | --------------- | ------------------------- |
+| Cupom vigente, campanha no ar                    | sim             | sim                       |
+| Cupom vigente, campanha **encerrada** ou inativa | **sim**         | não                       |
+| Cupom vencido, campanha no ar                    | **não**         | não (nem chega a aplicar) |
+| Cupom vigente, campanha excluída                 | **sim**         | não                       |
 
 O caso da segunda linha é o que motiva a regra existir. O cliente lê "válido até 30/09" no panfleto; se encerrar a campanha no dia 15 recusasse o cupom, o sistema estaria desmentindo o papel impresso que a própria loja distribuiu. Por isso desativar, encerrar ou excluir uma campanha **nunca** invalida cupom: o que acaba é a pergunta.
 

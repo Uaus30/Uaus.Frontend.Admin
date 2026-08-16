@@ -1,5 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { CashRegisterSessionDto, CashRegisterSessionSummaryDto, SaleDto } from "@workspace/api-client-react";
+import type {
+  CashRegisterSessionDto,
+  CashRegisterSessionSummaryDto,
+  SaleDto,
+} from "@workspace/api-client-react";
 import { CheckoutDialog } from "@/components/checkout-dialog";
 import { DiscountDialog } from "@/components/discount-dialog";
 import { SalesHistoryDialog } from "@/components/sales-history-dialog";

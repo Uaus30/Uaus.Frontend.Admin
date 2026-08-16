@@ -76,10 +76,7 @@ export function ProfitSharesCard({
                   key={share.partnerId}
                   className="flex items-center justify-between gap-4 rounded-lg border border-border/50 bg-background/50 p-3"
                 >
-                  <Label
-                    htmlFor={`share-${share.partnerId}`}
-                    className="text-sm font-medium truncate"
-                  >
+                  <Label htmlFor={`share-${share.partnerId}`} className="text-sm font-medium truncate">
                     {share.partnerName}
                   </Label>
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -102,14 +99,8 @@ export function ProfitSharesCard({
             </div>
 
             <div className="flex items-center justify-between gap-3 border-t pt-4">
-              <span
-                className={`text-sm font-medium ${
-                  isSumValid ? "text-emerald-600" : "text-destructive"
-                }`}
-              >
-                {isSumValid
-                  ? `Soma: ${formatSum(sum)}%`
-                  : `Soma: ${formatSum(sum)}% — deve ser 100%`}
+              <span className={`text-sm font-medium ${isSumValid ? "text-emerald-600" : "text-destructive"}`}>
+                {isSumValid ? `Soma: ${formatSum(sum)}%` : `Soma: ${formatSum(sum)}% — deve ser 100%`}
               </span>
 
               <Button type="submit" disabled={!canSave || isSaving} className="hover-elevate">
@@ -131,5 +122,3 @@ export function ProfitSharesCard({
     </Card>
   );
 }
-
-

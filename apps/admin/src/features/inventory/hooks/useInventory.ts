@@ -4,14 +4,13 @@ import { useDebounce } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
 import { useGetInventoryReport, apiGetOrThrow } from "@workspace/api-client-react";
 
-
 import { useAllCategories, useAllSuppliers } from "@/hooks/use-catalog";
 import { describeApiError } from "@workspace/core";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 /**
  * useInventory
- * 
+ *
  * Hook customizado para gerenciar estados de busca, filtros, paginação,
  * escala de visualização (zoom) e exportações de relatórios do inventário.
  */
@@ -35,7 +34,13 @@ export function useInventory() {
   const [zoomScale, setZoomScale] = useState(1.0);
 
   // Query: Busca o relatório de inventário paginado e filtrado
-  const { data: report, isLoading, isFetching, isError, error } = useGetInventoryReport({
+  const {
+    data: report,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useGetInventoryReport({
     search: debouncedSearch || undefined,
     supplierId: selectedSupplier !== "all" ? Number(selectedSupplier) : undefined,
     categoryId: selectedCategory !== "all" ? Number(selectedCategory) : undefined,
@@ -102,7 +107,7 @@ export function useInventory() {
 
       // GET /Inventory devolve InventoryReportDto: o campo `items` é um
       // PagedResult ({ items: [...], pagination: {...} }), não um array.
-      const items = Array.isArray(result.items) ? result.items : result.items?.items ?? [];
+      const items = Array.isArray(result.items) ? result.items : (result.items?.items ?? []);
       if (items.length === 0) {
         toast({
           title: "Erro na exportação",
@@ -114,7 +119,8 @@ export function useInventory() {
 
       // Constrói CSV estruturado com separador e BOM UTF-8
       let csvContent = "\ufeff";
-      csvContent += "Produto;Cód. Barras;Fornecedor;Categoria;Estoque;Custo Unit.;Venda Unit.;Custo Total;Mercadoria;Lucro Est.;Margem Est.\r\n";
+      csvContent +=
+        "Produto;Cód. Barras;Fornecedor;Categoria;Estoque;Custo Unit.;Venda Unit.;Custo Total;Mercadoria;Lucro Est.;Margem Est.\r\n";
 
       items.forEach((item: any) => {
         const supName = item.supplierName || "Não informado";

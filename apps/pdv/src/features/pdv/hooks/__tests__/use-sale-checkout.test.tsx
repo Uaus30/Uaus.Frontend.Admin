@@ -255,9 +255,7 @@ describe("useSaleCheckout", () => {
   it("deve inicializar o pagamento uma única vez por checkout", () => {
     const { rerender } = render();
 
-    expect(setPayments).toHaveBeenCalledWith([
-      { paymentMethodId: 1, amount: 16, installmentNumber: 1 },
-    ]);
+    expect(setPayments).toHaveBeenCalledWith([{ paymentMethodId: 1, amount: 16, installmentNumber: 1 }]);
     setPayments.mockClear();
 
     // Um refetch de /PaymentMethods troca a identidade do array; a escolha do

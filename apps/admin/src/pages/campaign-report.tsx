@@ -68,8 +68,7 @@ export default function CampaignReportPage() {
                 </h1>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {windowLabel ||
-                  "O que a campanha moveu, contra o que a loja fez no mesmo intervalo."}
+                {windowLabel || "O que a campanha moveu, contra o que a loja fez no mesmo intervalo."}
               </p>
             </div>
           </div>
@@ -100,9 +99,7 @@ export default function CampaignReportPage() {
           <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
             <AlertTriangle className="h-8 w-8 text-destructive" />
             <p className="text-sm font-medium text-foreground">Campanha não informada.</p>
-            <p className="text-sm text-muted-foreground">
-              Abra o relatório pela lista de campanhas.
-            </p>
+            <p className="text-sm text-muted-foreground">Abra o relatório pela lista de campanhas.</p>
           </div>
         ) : isError ? (
           /*

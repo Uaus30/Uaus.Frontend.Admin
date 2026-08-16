@@ -41,10 +41,7 @@ export interface StockShortage {
  * @param movements Itens da venda com as quantidades.
  * @returns Os produtos que não têm saldo. Vazio significa que a venda pode entrar.
  */
-export function findStockShortages(
-  products: LocalProduct[],
-  movements: StockMovement[],
-): StockShortage[] {
+export function findStockShortages(products: LocalProduct[], movements: StockMovement[]): StockShortage[] {
   const byId = new Map(products.map((product) => [product.id, product]));
   const shortages: StockShortage[] = [];
 
@@ -134,7 +131,3 @@ export function consumeLocalStock(movements: StockMovement[]): Promise<void> {
 export function restoreLocalStock(movements: StockMovement[]): Promise<void> {
   return applyStockMovement(movements, 1);
 }
-
-
-
-

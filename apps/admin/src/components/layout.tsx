@@ -1,20 +1,20 @@
 import { ReactNode, useEffect, type CSSProperties } from "react";
 import { Link, useLocation } from "wouter";
-import { 
-  SidebarProvider, 
-  SidebarTrigger, 
-  Sidebar, 
-  SidebarContent, 
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarMenu, 
-  SidebarMenuButton, 
-  SidebarMenuItem, 
+import {
+  SidebarProvider,
+  SidebarTrigger,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarMenuSubButton
+  SidebarMenuSubButton,
 } from "@workspace/ui";
 import { ChevronDown, Loader2, LogOut } from "lucide-react";
 import { STALE_TIME, useGetMe, useLogout } from "@workspace/api-client-react";
@@ -38,12 +38,12 @@ import { ROLE_LABELS, buildMenu, type RoleCode } from "@/routes";
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  
+
   const { data: user, isLoading } = useGetMe({
     query: {
       retry: false,
       staleTime: STALE_TIME.catalogo,
-    }
+    },
   });
 
   const { mutate: logout, isPending: isLoggingOut } = useLogout({
@@ -51,8 +51,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       onSuccess: () => {
         queryClient.setQueryData(getGetMeQueryKey(), null);
         setLocation("/login");
-      }
-    }
+      },
+    },
   });
 
   useEffect(() => {
@@ -89,9 +89,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <Sidebar className="border-r border-border/50 bg-card">
           <SidebarHeader className="p-6">
             <div className="flex items-center gap-3">
-              <img loading="lazy" decoding="async" 
-                src={`${import.meta.env.BASE_URL}images/logo-icon.png`} 
-                alt="Uaus" 
+              <img
+                loading="lazy"
+                decoding="async"
+                src={`${import.meta.env.BASE_URL}images/logo-icon.png`}
+                alt="Uaus"
                 className="w-8 h-8 object-contain"
               />
               <div>
@@ -100,23 +102,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
           </SidebarHeader>
-          
+
           <SidebarContent className="px-3">
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {navigation.map((item) => {
                     if (item.items) {
-                      const isSubActive = item.items.some(sub => location.startsWith(sub.href));
+                      const isSubActive = item.items.some((sub) => location.startsWith(sub.href));
                       return (
-                        <Collapsible 
-                          key={item.name} 
+                        <Collapsible
+                          key={item.name}
                           defaultOpen={isSubActive}
                           className="group/collapsible w-full"
                         >
                           <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
-                              <SidebarMenuButton 
+                              <SidebarMenuButton
                                 className={`
                                   h-11 px-4 mb-1 rounded-xl transition-all duration-200 w-full text-muted-foreground hover:bg-white/5 hover:text-foreground
                                 `}
@@ -129,17 +131,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
                             <CollapsibleContent>
                               <SidebarMenuSub className="ml-4 border-l border-border/50 pl-2">
                                 {item.items.map((sub) => {
-                                  const isActive = location === sub.href || (sub.href !== "/dashboard" && location.startsWith(sub.href));
+                                  const isActive =
+                                    location === sub.href ||
+                                    (sub.href !== "/dashboard" && location.startsWith(sub.href));
                                   return (
                                     <SidebarMenuSubItem key={sub.name}>
-                                      <SidebarMenuSubButton 
-                                        asChild 
+                                      <SidebarMenuSubButton
+                                        asChild
                                         isActive={isActive}
                                         className={`
                                           h-9 px-3 rounded-lg transition-all duration-150 w-full
-                                          ${isActive 
-                                            ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium" 
-                                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                                          ${
+                                            isActive
+                                              ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium"
+                                              : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                                           }
                                         `}
                                       >
@@ -157,17 +162,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       );
                     }
 
-                    const isActive = location === item.href || (item.href !== "/dashboard" && location.startsWith(item.href));
+                    const isActive =
+                      location === item.href ||
+                      (item.href !== "/dashboard" && location.startsWith(item.href));
                     return (
                       <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton 
-                          asChild 
+                        <SidebarMenuButton
+                          asChild
                           isActive={isActive}
                           className={`
                             h-11 px-4 mb-1 rounded-xl transition-all duration-200
-                            ${isActive 
-                              ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium" 
-                              : "text-muted-foreground hover:bg-white/5 hover:text-foreground hover-elevate"
+                            ${
+                              isActive
+                                ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium"
+                                : "text-muted-foreground hover:bg-white/5 hover:text-foreground hover-elevate"
                             }
                           `}
                         >
@@ -194,7 +202,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <span className="text-xs text-muted-foreground mt-1">{roleLabel}</span>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => logout()}
               disabled={isLoggingOut}
               className="w-full flex items-center gap-3 px-4 h-10 text-sm text-destructive hover:bg-destructive/10 rounded-xl transition-colors font-medium hover-elevate disabled:opacity-50"
@@ -211,15 +219,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="flex-1" />
           </header>
           <main className="flex-1 overflow-y-auto p-6 md:p-8">
-            <div className="max-w-7xl mx-auto">
-              {children}
-            </div>
+            <div className="max-w-7xl mx-auto">{children}</div>
           </main>
         </div>
       </div>
     </SidebarProvider>
   );
 }
-
-
-

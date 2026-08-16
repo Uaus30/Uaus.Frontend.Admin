@@ -25,9 +25,8 @@ vi.mock("@/offline", () => ({
   searchLocalProducts: (...args: unknown[]) => searchLocalProducts(...args),
 }));
 
-const { ProductSearchUnavailableError, searchProducts, toProductPdvSearchDtos } = await import(
-  "./product-search"
-);
+const { ProductSearchUnavailableError, searchProducts, toProductPdvSearchDtos } =
+  await import("./product-search");
 
 /** Produto da base local. */
 function localProduct(id: number, name: string): LocalProduct {

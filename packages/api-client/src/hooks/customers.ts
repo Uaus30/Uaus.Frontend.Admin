@@ -6,7 +6,15 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import {
+  apiGetOrThrow,
+  apiPost,
+  apiPut,
+  apiDelete,
+  ApiError,
+  useCrudMutation,
+  mapPagedResult,
+} from "../client";
 import type {
   BackendPagedResult,
   CreateCustomerPayload,
@@ -21,7 +29,10 @@ export const getGetCustomersQueryKey = (): QueryKey => ["customers"];
 export function useGetCustomers(
   params?: { search?: string; page?: number; limit?: number },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<CustomerDto>, ApiError, UiPagedResult<CustomerDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<CustomerDto>, ApiError, UiPagedResult<CustomerDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<CustomerDto>, ApiError, UiPagedResult<CustomerDto>, QueryKey>({

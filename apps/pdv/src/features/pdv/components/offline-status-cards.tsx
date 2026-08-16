@@ -73,7 +73,9 @@ export function LocalDatabaseCard({
     <>
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-background/50 p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <Database className={`h-5 w-5 shrink-0 ${hasLocalDatabase ? "text-primary" : "text-destructive"}`} />
+          <Database
+            className={`h-5 w-5 shrink-0 ${hasLocalDatabase ? "text-primary" : "text-destructive"}`}
+          />
           <div className="min-w-0">
             <p className="text-sm font-bold leading-tight">Base local</p>
             <p className="truncate text-[11px] text-muted-foreground">

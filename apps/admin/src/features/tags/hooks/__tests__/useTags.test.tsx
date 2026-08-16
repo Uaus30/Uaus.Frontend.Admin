@@ -6,12 +6,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock the services
 vi.mock("@/services/tags.service", () => ({
-  getTagsPage: vi.fn(() => Promise.resolve({
-    data: [{ id: 10, name: "Tag 10", color: "#ff0000", isPublic: true, createdAt: "2026-06-18T22:00:00Z" }],
-    total: 1,
-    page: 1,
-    limit: 20
-  })),
+  getTagsPage: vi.fn(() =>
+    Promise.resolve({
+      data: [{ id: 10, name: "Tag 10", color: "#ff0000", isPublic: true, createdAt: "2026-06-18T22:00:00Z" }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    }),
+  ),
   createTag: vi.fn(() => Promise.resolve({ id: 11 })),
   updateTag: vi.fn(() => Promise.resolve()),
   deleteTag: vi.fn(() => Promise.resolve()),

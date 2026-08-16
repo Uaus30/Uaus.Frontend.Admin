@@ -88,7 +88,13 @@ type PendingSaleRowProps = {
 };
 
 /** Uma venda esperando para subir, ou recusada pelo servidor. */
-export function PendingSaleRow({ sale, confirming, onToggleConfirm, onRetry, onDiscard }: PendingSaleRowProps) {
+export function PendingSaleRow({
+  sale,
+  confirming,
+  onToggleConfirm,
+  onRetry,
+  onDiscard,
+}: PendingSaleRowProps) {
   const failed = sale.status === "failed";
 
   return (
@@ -102,7 +108,9 @@ export function PendingSaleRow({ sale, confirming, onToggleConfirm, onRetry, onD
           <div className="flex items-center gap-2">
             {/* Número provisório: a venda ainda não tem ID no banco. */}
             <span className="font-mono text-sm font-bold">OFF-{sale.offlineNumber}</span>
-            <span className="font-mono text-[10px] text-muted-foreground">{formatQueueTime(sale.occurredAt)}</span>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {formatQueueTime(sale.occurredAt)}
+            </span>
             <StatusBadge failed={failed} />
           </div>
           <p className="mt-1 truncate text-[11px] text-muted-foreground">

@@ -34,9 +34,7 @@ export default function Logs() {
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-display font-bold">Logs do Sistema</h1>
-          <p className="mt-1 text-muted-foreground">
-            Monitore os eventos, requisições e erros do sistema.
-          </p>
+          <p className="mt-1 text-muted-foreground">Monitore os eventos, requisições e erros do sistema.</p>
         </div>
 
         <LogsFilterBar
@@ -85,5 +83,3 @@ export default function Logs() {
     </AppLayout>
   );
 }
-
-

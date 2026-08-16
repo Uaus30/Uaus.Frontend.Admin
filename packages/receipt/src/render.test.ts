@@ -83,7 +83,7 @@ describe("buildReceiptHtml", () => {
 
   it("omite a linha do código quando o item não o traz", () => {
     // É o caso da reimpressão: o item de venda da API não carrega o código.
-    expect(buildReceiptHtml(makeReceipt())).not.toContain("item-barcode\">");
+    expect(buildReceiptHtml(makeReceipt())).not.toContain('item-barcode">');
   });
 
   it("ordena as seções: itens, totais, forma de pagamento e consumidor", () => {
@@ -237,9 +237,7 @@ describe("buildReceiptHtml", () => {
 
   it("omite os parênteses quando o cupom não sabe o próprio parâmetro", () => {
     // Snapshot antigo, sem tipo nem valor: sai o código sozinho, e não "(0%)".
-    const html = buildReceiptHtml(
-      makeReceipt({ coupon: { code: "ANTIGO", label: "", amount: 0.02 } }),
-    );
+    const html = buildReceiptHtml(makeReceipt({ coupon: { code: "ANTIGO", label: "", amount: 0.02 } }));
 
     expect(html).toContain("DESCONTO CUPOM ANTIGO<");
     expect(html).not.toContain("ANTIGO (");
@@ -266,9 +264,7 @@ describe("buildReceiptHtml", () => {
 
   it("imprime troco só quando houve dinheiro recebido", () => {
     expect(buildReceiptHtml(makeReceipt())).not.toContain("Troco");
-    expect(
-      buildReceiptHtml(makeReceipt({ amountReceived: 5, change: 4.75 })),
-    ).toContain("Troco");
+    expect(buildReceiptHtml(makeReceipt({ amountReceived: 5, change: 4.75 }))).toContain("Troco");
   });
 
   it("carimba segunda via na reimpressão", () => {
@@ -297,9 +293,7 @@ describe("buildReceiptHtml", () => {
     // quase apagado no papel. Reembutir a arte original derruba este teste.
     // Caminho a partir do cwd, que é a raiz do pacote: sob jsdom o
     // `import.meta.url` não é uma URL de arquivo e não serve para ler do disco.
-    const printArt = readFileSync(
-      resolve(process.cwd(), "assets/logo-uaus-print.png"),
-    ).toString("base64");
+    const printArt = readFileSync(resolve(process.cwd(), "assets/logo-uaus-print.png")).toString("base64");
 
     expect(STORE_LOGO_DATA_URI).toBe(`data:image/png;base64,${printArt}`);
     expect(buildReceiptHtml(makeReceipt())).toContain(STORE_LOGO_DATA_URI);
@@ -338,6 +332,6 @@ describe("buildReceiptHtml", () => {
   it("mostra traço quando a origem não informou o valor da forma de pagamento", () => {
     const html = buildReceiptHtml(makeReceipt({ payments: [{ name: "Dinheiro", amount: null }] }));
 
-    expect(html).toContain("<span class=\"row-value\">—</span>");
+    expect(html).toContain('<span class="row-value">—</span>');
   });
 });

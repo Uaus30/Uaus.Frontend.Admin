@@ -22,9 +22,7 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
   useToast: () => ({ toast: mocks.toast }),
 }));
 
-const { buildReportCards, describeReportWindow, useCampaignReport } = await import(
-  "../useCampaignReport"
-);
+const { buildReportCards, describeReportWindow, useCampaignReport } = await import("../useCampaignReport");
 
 /** Relatório de referência: os números do exemplo do contrato. */
 const report: CampaignReportDto = {
@@ -190,9 +188,7 @@ describe("useCampaignReport", () => {
       campaign: { ...report.campaign, revenue: 0, couponDiscount: 0 },
     };
 
-    expect(card(buildReportCards(zerada), "couponDiscount").note).toBe(
-      "0,00% do faturamento da campanha",
-    );
+    expect(card(buildReportCards(zerada), "couponDiscount").note).toBe("0,00% do faturamento da campanha");
   });
 
   it("deve destacar resgates acima do limite e definição divergente na nota do estorno", () => {
@@ -221,9 +217,7 @@ describe("useCampaignReport", () => {
     mocks.useGetCampaignReport.mockReturnValue({
       data: {
         ...report,
-        daily: [
-          { day: "2026-09-01T00:00:00", redemptions: 0, campaignRevenue: 0, periodRevenue: 0 },
-        ],
+        daily: [{ day: "2026-09-01T00:00:00", redemptions: 0, campaignRevenue: 0, periodRevenue: 0 }],
       },
       isLoading: false,
       isFetching: false,
@@ -248,9 +242,7 @@ describe("useCampaignReport", () => {
 
     renderHook(() => useCampaignReport(3), { wrapper: createWrapper() });
 
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Servidor indisponível" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Servidor indisponível" }));
   });
 
   it("não deve avisar servidor indisponível quando a campanha não existe (404)", () => {

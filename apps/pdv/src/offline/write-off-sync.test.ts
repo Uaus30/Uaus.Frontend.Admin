@@ -40,15 +40,11 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   registerStockWriteOff: (...args: unknown[]) => registerStockWriteOff(...args),
 }));
 
-const { buildWriteOffRequestBody, classifyWriteOffFailure, syncPendingWriteOffs } = await import(
-  "./write-off-sync"
-);
+const { buildWriteOffRequestBody, classifyWriteOffFailure, syncPendingWriteOffs } =
+  await import("./write-off-sync");
 
 /** Monta uma baixa da fila. */
-function pendingWriteOff(
-  reference: string,
-  overrides: Partial<PendingWriteOff> = {},
-): PendingWriteOff {
+function pendingWriteOff(reference: string, overrides: Partial<PendingWriteOff> = {}): PendingWriteOff {
   return {
     clientReference: reference,
     occurredAt: "2026-07-25T17:34:12",
@@ -87,9 +83,7 @@ describe("classifyWriteOffFailure", () => {
       // (token expirado no meio da rodada) ou um 502 do proxy marcava a baixa
       // como "Recusada" e devolvia ao estoque local mercadoria que de fato saiu
       // da prateleira — o servidor nem chegou a avaliar a baixa.
-      expect(classifyWriteOffFailure(new ApiError("Falha de infraestrutura", status))).toBe(
-        "retry",
-      );
+      expect(classifyWriteOffFailure(new ApiError("Falha de infraestrutura", status))).toBe("retry");
     },
   );
 
@@ -117,15 +111,11 @@ describe("buildWriteOffRequestBody", () => {
 
   it("deve enviar só o que a API espera de cada item", () => {
     // O nome do produto é só da fila local; enviá-lo faria o backend recusar.
-    expect(buildWriteOffRequestBody(pendingWriteOff("ref-1")).items).toEqual([
-      { productId: 1, quantity: 2 },
-    ]);
+    expect(buildWriteOffRequestBody(pendingWriteOff("ref-1")).items).toEqual([{ productId: 1, quantity: 2 }]);
   });
 
   it("deve levar motivo e observação", () => {
-    const body = buildWriteOffRequestBody(
-      pendingWriteOff("ref-1", { reason: 3, notes: "doado à creche" }),
-    );
+    const body = buildWriteOffRequestBody(pendingWriteOff("ref-1", { reason: 3, notes: "doado à creche" }));
 
     expect(body).toMatchObject({ reason: 3, notes: "doado à creche" });
   });

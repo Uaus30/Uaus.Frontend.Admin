@@ -45,8 +45,7 @@ export function CatalogReportBody({ report, emptyMessage }: CatalogReportBodyPro
     <div className="space-y-5">
       <p className="text-xs text-muted-foreground">
         Período de {toBrazilianDate(report.startDate)} a {toBrazilianDate(report.endDate)} ·{" "}
-        {report.productCount} produto(s) · margem de{" "}
-        {report.marginPercentage.toFixed(1).replace(".", ",")}%
+        {report.productCount} produto(s) · margem de {report.marginPercentage.toFixed(1).replace(".", ",")}%
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -75,10 +74,7 @@ export function CatalogReportBody({ report, emptyMessage }: CatalogReportBodyPro
           </thead>
           <tbody>
             {report.products.map((product) => (
-              <tr
-                key={product.id}
-                className="border-b border-border/40 last:border-0 hover:bg-muted/20"
-              >
+              <tr key={product.id} className="border-b border-border/40 last:border-0 hover:bg-muted/20">
                 <td className="max-w-[220px] px-3 py-2.5">
                   <p className="truncate font-medium text-foreground" title={product.name}>
                     {product.name}

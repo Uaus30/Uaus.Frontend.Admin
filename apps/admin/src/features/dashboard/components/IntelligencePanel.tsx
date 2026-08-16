@@ -101,8 +101,8 @@ export function IntelligencePanel({
           <section>
             <h4 className="text-sm font-semibold text-foreground">Reposição prioritária</h4>
             <p className="mb-3 text-xs text-muted-foreground">
-              Produtos com giro que estão perto de acabar, ordenados pelo lucro que a falta custaria
-              nas próximas três semanas.
+              Produtos com giro que estão perto de acabar, ordenados pelo lucro que a falta custaria nas
+              próximas três semanas.
             </p>
             <RestockList items={intelligence.restock} lookbackDays={intelligence.lookbackDays} />
           </section>
@@ -129,5 +129,3 @@ export function IntelligencePanel({
     </ChartCard>
   );
 }
-
-

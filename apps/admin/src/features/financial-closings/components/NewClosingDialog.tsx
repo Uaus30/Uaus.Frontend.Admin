@@ -10,11 +10,7 @@ import { Button } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
-import {
-  formatDateInput,
-  guardCalendarDismiss,
-  parseDateInput,
-} from "@workspace/ui";
+import { formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
 import { ArrowLeft, CalendarRange, Loader2, Lock } from "lucide-react";
 import { ClosingSummary } from "./ClosingSummary";
 import type { FinancialClosingPreviewDto, NewClosingStep } from "../types";
@@ -129,8 +125,8 @@ export function NewClosingDialog({
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Recomendado fechar o mês-calendário cheio: os custos fixos entram por
-                  competência mensal, sem pró-rata.
+                  Recomendado fechar o mês-calendário cheio: os custos fixos entram por competência mensal,
+                  sem pró-rata.
                 </p>
               </div>
             </div>
@@ -173,21 +169,12 @@ export function NewClosingDialog({
               </div>
 
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={onBackToPeriod}
-                  disabled={isSaving}
-                  className="gap-1.5"
-                >
+                <Button variant="outline" onClick={onBackToPeriod} disabled={isSaving} className="gap-1.5">
                   <ArrowLeft className="h-4 w-4" />
                   Voltar
                 </Button>
                 <Button onClick={onConfirm} disabled={isSaving} className="gap-2">
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Lock className="h-4 w-4" />
-                  )}
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                   Confirmar fechamento
                 </Button>
               </DialogFooter>
@@ -198,5 +185,3 @@ export function NewClosingDialog({
     </Dialog>
   );
 }
-
-

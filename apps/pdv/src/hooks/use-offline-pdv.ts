@@ -65,10 +65,7 @@ export function useOfflinePdv(sessionId: number | null) {
   const sync = useCallback((): Promise<QueueSyncOutcome | null> => syncNow(), [syncNow]);
 
   /** Rebaixa o snapshot a pedido do operador (botão "atualizar base local"). */
-  const updateLocalDatabase = useCallback(
-    () => refreshSnapshot(sessionId),
-    [refreshSnapshot, sessionId],
-  );
+  const updateLocalDatabase = useCallback(() => refreshSnapshot(sessionId), [refreshSnapshot, sessionId]);
 
   return {
     /** A API está respondendo. */

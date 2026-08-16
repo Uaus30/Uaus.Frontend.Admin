@@ -13,10 +13,12 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 
 // Mock do serviço de enums
 vi.mock("@/services/core", () => ({
-  getEnumOptions: vi.fn(() => Promise.resolve([
-    { id: 1, name: "Administrador", value: "admin", allowSelect: true },
-    { id: 2, name: "Usuário Comum", value: "user", allowSelect: true },
-  ])),
+  getEnumOptions: vi.fn(() =>
+    Promise.resolve([
+      { id: 1, name: "Administrador", value: "admin", allowSelect: true },
+      { id: 2, name: "Usuário Comum", value: "user", allowSelect: true },
+    ]),
+  ),
 }));
 
 // Mock do API Client para usuários
@@ -30,7 +32,15 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   useGetUsers: vi.fn(() => ({
     data: {
       data: [
-        { id: 1, firstName: "João", lastName: "Silva", username: "joaosilva", email: "joao@test.com", role: 1, status: 1 }
+        {
+          id: 1,
+          firstName: "João",
+          lastName: "Silva",
+          username: "joaosilva",
+          email: "joao@test.com",
+          role: 1,
+          status: 1,
+        },
       ],
       total: 1,
       page: 1,

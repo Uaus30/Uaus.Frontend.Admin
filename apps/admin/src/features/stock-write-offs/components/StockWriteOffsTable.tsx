@@ -44,8 +44,7 @@ type StockWriteOffsTableProps = {
 };
 
 /** Rótulo dos campos de filtro — mesmo padrão da barra de filtros das vendas. */
-const FILTER_LABEL_CLASS =
-  "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+const FILTER_LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 /**
  * StockWriteOffsTable
@@ -85,9 +84,7 @@ export function StockWriteOffsTable({
             <Label className={FILTER_LABEL_CLASS}>Período</Label>
             <DateRangePicker
               value={dateRange}
-              onChange={(range) =>
-                onPeriodChange(formatDateInput(range.from), formatDateInput(range.to))
-              }
+              onChange={(range) => onPeriodChange(formatDateInput(range.from), formatDateInput(range.to))}
             />
           </div>
 
@@ -207,10 +204,7 @@ export function StockWriteOffsTable({
                       </td>
                       <td className="px-6 py-4">{writeOff.userName || "Não informado"}</td>
                       <td className="px-6 py-4">
-                        <Badge
-                          variant={reversed ? "destructive" : "secondary"}
-                          className="font-normal"
-                        >
+                        <Badge variant={reversed ? "destructive" : "secondary"} className="font-normal">
                           {STOCK_WRITE_OFF_STATUS_LABEL[statusCode] ?? "Não informada"}
                         </Badge>
                       </td>
@@ -275,5 +269,3 @@ export function StockWriteOffsTable({
     </div>
   );
 }
-
-

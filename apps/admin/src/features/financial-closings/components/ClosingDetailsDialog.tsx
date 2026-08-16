@@ -48,15 +48,13 @@ export function ClosingDetailsDialog({
               : "Fechamento Financeiro"}
           </DialogTitle>
           <DialogDescription>
-            Números e rateio congelados na confirmação — alterações posteriores em sócios ou
-            custos fixos não afetam este documento.
+            Números e rateio congelados na confirmação — alterações posteriores em sócios ou custos fixos não
+            afetam este documento.
           </DialogDescription>
         </DialogHeader>
 
         {isLoading || !closing ? (
-          <div className="py-12 text-center text-muted-foreground">
-            Carregando fechamento...
-          </div>
+          <div className="py-12 text-center text-muted-foreground">Carregando fechamento...</div>
         ) : (
           <>
             <div className="space-y-4 pt-2">
@@ -73,10 +71,8 @@ export function ClosingDetailsDialog({
 
               <p className="text-sm text-muted-foreground">
                 Fechado por{" "}
-                <span className="font-medium text-foreground">
-                  {closing.closedByUserName ?? "—"}
-                </span>{" "}
-                em {formatDate(closing.createdAt)}.
+                <span className="font-medium text-foreground">{closing.closedByUserName ?? "—"}</span> em{" "}
+                {formatDate(closing.createdAt)}.
               </p>
             </div>
 
@@ -87,11 +83,7 @@ export function ClosingDetailsDialog({
                 disabled={isDeleting}
                 className="gap-2"
               >
-                {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Excluir fechamento
               </Button>
               <Button variant="outline" onClick={onClose}>
@@ -104,5 +96,3 @@ export function ClosingDetailsDialog({
     </Dialog>
   );
 }
-
-

@@ -7,12 +7,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Mock the services
 vi.mock("@/services/categories.service", () => ({
   getAllCategories: vi.fn(() => Promise.resolve([{ id: 1, name: "Cat 1", departmentId: 10 }])),
-  getDepartmentsPage: vi.fn(() => Promise.resolve({
-    data: [{ id: 10, name: "Dep 10", description: "Desc 10" }],
-    total: 1,
-    page: 1,
-    limit: 20
-  })),
+  getDepartmentsPage: vi.fn(() =>
+    Promise.resolve({
+      data: [{ id: 10, name: "Dep 10", description: "Desc 10" }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    }),
+  ),
   createDepartment: vi.fn(() => Promise.resolve({ id: 11 })),
   updateDepartment: vi.fn(() => Promise.resolve()),
   deleteDepartment: vi.fn(() => Promise.resolve()),

@@ -2,11 +2,7 @@ import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  COUPON_DISCOUNT_TYPE,
-  getGetCouponsQueryKey,
-  type CouponDto,
-} from "@workspace/api-client-react";
+import { COUPON_DISCOUNT_TYPE, getGetCouponsQueryKey, type CouponDto } from "@workspace/api-client-react";
 import type { CouponForm } from "../../types";
 
 const mocks = vi.hoisted(() => ({
@@ -194,9 +190,7 @@ describe("useCoupons", () => {
       }),
     );
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Cupom cadastrado." }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Cupom cadastrado." })),
     );
     expect(result.current.modalOpen).toBe(false);
   });
@@ -246,9 +240,7 @@ describe("useCoupons", () => {
 
     // A chave vem do módulo real: se a factory passar a embutir parâmetros, este
     // teste quebra — que é justamente o sintoma de "a tela não atualiza".
-    await waitFor(() =>
-      expect(invalidar).toHaveBeenCalledWith({ queryKey: getGetCouponsQueryKey() }),
-    );
+    await waitFor(() => expect(invalidar).toHaveBeenCalledWith({ queryKey: getGetCouponsQueryKey() }));
   });
 
   it("não deve chamar a mutação quando a confirmação de exclusão é recusada", async () => {

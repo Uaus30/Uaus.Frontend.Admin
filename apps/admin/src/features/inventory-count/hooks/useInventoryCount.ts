@@ -125,9 +125,7 @@ export function useInventoryCount() {
       // argumento derrubava o cache inteiro do app — e como invalidação ignora
       // staleTime, com a tela de produtos montada isso reativava a cascata de
       // ~200 requisições dela.
-      await Promise.all(
-        AFFECTED_QUERY_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-      );
+      await Promise.all(AFFECTED_QUERY_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
 
       toast({
         title: "Contagem aplicada",

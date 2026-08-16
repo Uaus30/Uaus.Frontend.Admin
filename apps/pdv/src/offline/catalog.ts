@@ -38,10 +38,12 @@ export function invalidateProductsCache() {
 /** Todos os produtos da base local (com cache em memória para não gargalar a busca). */
 export function listLocalProducts(): Promise<LocalProduct[]> {
   if (_cachedProducts) return Promise.resolve(_cachedProducts);
-  return openLocalDatabase().then((db) => getAll<LocalProduct>(db, STORE.products)).then((products) => {
-    _cachedProducts = products;
-    return products;
-  });
+  return openLocalDatabase()
+    .then((db) => getAll<LocalProduct>(db, STORE.products))
+    .then((products) => {
+      _cachedProducts = products;
+      return products;
+    });
 }
 
 /** Um produto da base local pelo ID, ou `null`. */
@@ -65,11 +67,7 @@ export function getLocalProduct(productId: number): Promise<LocalProduct | null>
  * @param term Termo digitado, ainda não normalizado.
  * @param limit Máximo de resultados.
  */
-export function filterProducts(
-  products: LocalProduct[],
-  term: string,
-  limit = SEARCH_LIMIT,
-): LocalProduct[] {
+export function filterProducts(products: LocalProduct[], term: string, limit = SEARCH_LIMIT): LocalProduct[] {
   const raw = term.trim();
   if (!raw) return [];
 
@@ -120,11 +118,7 @@ export function listLocalPaymentMethods(): Promise<LocalPaymentMethod[]> {
  * @param term Termo digitado, ainda não normalizado.
  * @param limit Máximo de resultados.
  */
-export function filterCustomers(
-  customers: LocalCustomer[],
-  term: string,
-  limit = 8,
-): LocalCustomer[] {
+export function filterCustomers(customers: LocalCustomer[], term: string, limit = 8): LocalCustomer[] {
   const raw = term.trim();
   if (!raw) return [];
 
@@ -147,4 +141,3 @@ export async function searchLocalCustomers(term: string, limit = 8): Promise<Loc
   const db = await openLocalDatabase();
   return filterCustomers(await getAll<LocalCustomer>(db, STORE.customers), term, limit);
 }
-

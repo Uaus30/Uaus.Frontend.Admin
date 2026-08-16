@@ -4,14 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { TagDto } from "@workspace/api-client-react";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@workspace/ui";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
 import { generateRandomTagColor } from "@/lib/tag-colors";
@@ -59,10 +52,8 @@ export function TagMultiSelect({
 
   const options = useMemo(() => {
     const base = search.trim()
-      ? searchPage?.data ?? []
-      : [...allTags]
-          .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"))
-          .slice(0, 20);
+      ? (searchPage?.data ?? [])
+      : [...allTags].sort((left, right) => left.name.localeCompare(right.name, "pt-BR")).slice(0, 20);
 
     const merged = new Map<number, TagDto>();
     [...selectedTags, ...base].forEach((tag) => {
@@ -72,8 +63,8 @@ export function TagMultiSelect({
     return [...merged.values()].sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
   }, [allTags, search, searchPage?.data, selectedTags]);
 
-  const canCreate = normalizedSearch.length > 0
-    && !options.some((tag) => normalizeTagName(tag.name) === normalizedSearch);
+  const canCreate =
+    normalizedSearch.length > 0 && !options.some((tag) => normalizeTagName(tag.name) === normalizedSearch);
 
   function toggleTag(tag: TagDto) {
     const selected = selectedIds.includes(tag.id);
@@ -87,11 +78,7 @@ export function TagMultiSelect({
       return;
     }
 
-    onChange(
-      selected
-        ? selectedIds.filter((id) => id !== tag.id)
-        : [...selectedIds, tag.id],
-    );
+    onChange(selected ? selectedIds.filter((id) => id !== tag.id) : [...selectedIds, tag.id]);
   }
 
   async function handleCreateTag() {
@@ -163,11 +150,7 @@ export function TagMultiSelect({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
           <Command shouldFilter={false}>
-            <CommandInput
-              value={search}
-              onValueChange={setSearch}
-              placeholder={placeholder}
-            />
+            <CommandInput value={search} onValueChange={setSearch} placeholder={placeholder} />
             <CommandList>
               <CommandEmpty>
                 {isFetching ? "Buscando etiquetas..." : "Nenhuma etiqueta encontrada."}
@@ -182,7 +165,8 @@ export function TagMultiSelect({
 
                 {options.map((tag) => {
                   const selected = selectedIds.includes(tag.id);
-                  const publicTagBlocked = !selected && tag.isPublic && selectedPublicTagId && selectedPublicTagId !== tag.id;
+                  const publicTagBlocked =
+                    !selected && tag.isPublic && selectedPublicTagId && selectedPublicTagId !== tag.id;
 
                   return (
                     <CommandItem
@@ -191,7 +175,10 @@ export function TagMultiSelect({
                       disabled={Boolean(publicTagBlocked)}
                     >
                       <Check className={`h-4 w-4 ${selected ? "opacity-100" : "opacity-0"}`} />
-                      <span className="h-3 w-3 rounded-full border border-white/20" style={{ backgroundColor: tag.color }} />
+                      <span
+                        className="h-3 w-3 rounded-full border border-white/20"
+                        style={{ backgroundColor: tag.color }}
+                      />
                       <span className="flex-1 truncate" style={{ color: tag.color }}>
                         {tag.name}
                       </span>
@@ -208,10 +195,6 @@ export function TagMultiSelect({
           </Command>
         </PopoverContent>
       </Popover>
-
-
     </div>
   );
 }
-
-

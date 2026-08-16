@@ -44,9 +44,7 @@ export function LabelProductSearch({
             <Spinner className="h-5 w-5" />
           </div>
         ) : results.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            Nenhum produto encontrado.
-          </p>
+          <p className="py-4 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
         ) : (
           <ul className="flex flex-col divide-y divide-border/50">
             {results.map((product) => (
@@ -77,5 +75,3 @@ export function LabelProductSearch({
     </Card>
   );
 }
-
-

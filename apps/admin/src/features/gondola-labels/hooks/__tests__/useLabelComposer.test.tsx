@@ -121,9 +121,7 @@ describe("useLabelComposer", () => {
     act(() => result.current.updateItem(1, { labelType: 2 }));
 
     expect(result.current.items[1].labelType).toBe(1);
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "destructive" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 
   it("barra a geração quando algum item tem preço ou quantidade inválidos", async () => {
@@ -135,18 +133,14 @@ describe("useLabelComposer", () => {
     await act(async () => result.current.handleGenerate());
 
     expect(mocks.createProductLabelBatch).not.toHaveBeenCalled();
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "destructive" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 
   it("gera o lote com os valores digitados e imprime o que o backend congelou", async () => {
     const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
 
     act(() => result.current.addProduct(product(5)));
-    act(() =>
-      result.current.updateItem(0, { labelType: 2, priceInput: "9,99", quantityInput: "2" }),
-    );
+    act(() => result.current.updateItem(0, { labelType: 2, priceInput: "9,99", quantityInput: "2" }));
     act(() => result.current.setDescription("Promoção da semana"));
 
     await act(async () => result.current.handleGenerate());

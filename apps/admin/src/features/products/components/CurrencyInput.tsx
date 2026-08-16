@@ -15,7 +15,7 @@ type CurrencyInputProps = {
 
 /**
  * CurrencyInput
- * 
+ *
  * A controlled input component specialized in formatting numbers as Brazilian Real currency (R$).
  * - On focus, it shows a user-friendly editable numeric string with comma decimals (e.g. "12,34").
  * - On blur, it parses the string back to a float number and calls onChange.
@@ -73,5 +73,3 @@ export function CurrencyInput({ id, value, onChange, className }: CurrencyInputP
     />
   );
 }
-
-

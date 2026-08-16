@@ -1,8 +1,8 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { registerSW } from 'virtual:pwa-register'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { registerSW } from "virtual:pwa-register";
+import "./index.css";
+import App from "./App.tsx";
 
 /**
  * Registra o service worker que guarda o app em cache.
@@ -18,10 +18,10 @@ import App from './App.tsx'
  * Falha no registro é tolerada de propósito — em HTTP simples ou navegador sem
  * suporte, o PDV continua funcionando online normalmente.
  */
-registerSW({ immediate: true, onRegisterError: () => undefined })
+registerSW({ immediate: true, onRegisterError: () => undefined });
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);

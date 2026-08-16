@@ -14,14 +14,10 @@ type CategorySummaryProps = {
 
 /**
  * CategorySummary
- * 
+ *
  * Component rendering distribution stats by category and system alert boxes.
  */
-export function CategorySummary({
-  report,
-  formatCurrency,
-  formatPercent,
-}: CategorySummaryProps) {
+export function CategorySummary({ report, formatCurrency, formatPercent }: CategorySummaryProps) {
   if (!report) return null;
 
   return (
@@ -53,10 +49,12 @@ export function CategorySummary({
                     Unidades: <strong className="text-foreground">{cat.unitsCount}</strong>
                   </div>
                   <div>
-                    Venda: <strong className="text-emerald-500">{formatCurrency(cat.merchandiseValue)}</strong>
+                    Venda:{" "}
+                    <strong className="text-emerald-500">{formatCurrency(cat.merchandiseValue)}</strong>
                   </div>
                   <div>
-                    Lucro est.: <strong className="text-emerald-500">{formatCurrency(cat.estimatedProfit)}</strong>
+                    Lucro est.:{" "}
+                    <strong className="text-emerald-500">{formatCurrency(cat.estimatedProfit)}</strong>
                   </div>
                 </div>
               </div>
@@ -97,5 +95,3 @@ export function CategorySummary({
     </div>
   );
 }
-
-

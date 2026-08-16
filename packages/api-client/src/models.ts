@@ -1,5 +1,3 @@
-
-
 export type QueryKey = readonly unknown[];
 
 export interface TokenDto {
@@ -752,7 +750,6 @@ export interface ApiResponse<T> {
   data: T | null;
   response: Response;
 }
-
 
 // ---------------------------------------------------------------------------
 // Desempenho da loja — resumo consumido pela modal do PDV e pelo painel.

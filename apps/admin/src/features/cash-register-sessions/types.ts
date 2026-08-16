@@ -1,7 +1,4 @@
-import type {
-  CashRegisterSessionDto,
-  CashRegisterSessionSummaryDto,
-} from "@workspace/api-client-react";
+import type { CashRegisterSessionDto, CashRegisterSessionSummaryDto } from "@workspace/api-client-react";
 
 /**
  * Valores do Select de status da listagem.

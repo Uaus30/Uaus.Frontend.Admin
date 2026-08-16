@@ -141,10 +141,7 @@ export async function createCoupon(data: SaveCouponPayload): Promise<CouponDto |
  *
  * @throws {ApiError} 400 nas recusas acima; 404 quando o cupom não existe.
  */
-export async function updateCoupon(
-  id: number,
-  data: SaveCouponPayload,
-): Promise<CouponDto | null> {
+export async function updateCoupon(id: number, data: SaveCouponPayload): Promise<CouponDto | null> {
   const response = await apiPut<CouponDto>(`/Coupons/${id}`, data);
   return response.data;
 }

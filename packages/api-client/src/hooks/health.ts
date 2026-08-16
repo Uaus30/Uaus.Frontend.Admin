@@ -7,7 +7,6 @@
 
 import { buildUrl } from "../client";
 
-
 export async function checkHealth(): Promise<boolean> {
   try {
     const url = buildUrl("/health");

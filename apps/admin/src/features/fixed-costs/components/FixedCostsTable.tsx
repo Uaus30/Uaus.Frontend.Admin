@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@workspace/ui";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { CalendarOff, Edit2, ReceiptText, Trash2 } from "lucide-react";
@@ -39,11 +32,7 @@ export function FixedCostsTable({
   onDelete,
 }: FixedCostsTableProps) {
   if (isLoading) {
-    return (
-      <div className="py-12 text-center text-muted-foreground">
-        Carregando custos fixos...
-      </div>
-    );
+    return <div className="py-12 text-center text-muted-foreground">Carregando custos fixos...</div>;
   }
 
   if (items.length === 0) {
@@ -51,7 +40,9 @@ export function FixedCostsTable({
       <div className="py-12 text-center text-muted-foreground border rounded-lg bg-card">
         <ReceiptText className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
         <p className="font-medium text-base">Nenhum custo fixo encontrado</p>
-        <p className="text-sm">Cadastre aluguel, contador, energia... para entrarem no fechamento financeiro.</p>
+        <p className="text-sm">
+          Cadastre aluguel, contador, energia... para entrarem no fechamento financeiro.
+        </p>
       </div>
     );
   }
@@ -89,7 +80,10 @@ export function FixedCostsTable({
 
                 <TableCell>
                   {active ? (
-                    <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+                    <Badge
+                      variant="default"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                    >
                       Vigente
                     </Badge>
                   ) : (
@@ -144,5 +138,3 @@ export function FixedCostsTable({
     </div>
   );
 }
-
-

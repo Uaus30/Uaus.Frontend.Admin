@@ -7,13 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
-import type {
-  BackendPagedResult,
-  QueryKey,
-  SaleDto,
-  SaleItemDto,
-  UiPagedResult,
-} from "../models";
+import type { BackendPagedResult, QueryKey, SaleDto, SaleItemDto, UiPagedResult } from "../models";
 
 export const getGetSalesQueryKey = (): QueryKey => ["sales"];
 
@@ -28,7 +22,10 @@ export function useGetSales(
     limit?: number;
   },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<SaleDto>, ApiError, UiPagedResult<SaleDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<SaleDto>, ApiError, UiPagedResult<SaleDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<SaleDto>, ApiError, UiPagedResult<SaleDto>, QueryKey>({
@@ -72,7 +69,10 @@ export function useGetSaleDetails(
 export function useGetSaleItems(
   params?: { saleId?: number; page?: number; limit?: number },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<SaleItemDto>, ApiError, UiPagedResult<SaleItemDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<SaleItemDto>, ApiError, UiPagedResult<SaleItemDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<SaleItemDto>, ApiError, UiPagedResult<SaleItemDto>, QueryKey>({

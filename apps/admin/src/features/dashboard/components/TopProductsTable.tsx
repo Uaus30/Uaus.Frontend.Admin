@@ -101,5 +101,3 @@ export function TopProductsTable({ products, periodLabel, isLoading }: TopProduc
     </ChartCard>
   );
 }
-
-

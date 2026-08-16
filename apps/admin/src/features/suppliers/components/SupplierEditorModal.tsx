@@ -22,8 +22,17 @@ function getInitials(name: string) {
 /**
  * Componente de avatar do fornecedor utilizado no formulário.
  */
-function SupplierAvatar({ name, color, size = "md" }: { name: string; color: string; size?: "sm" | "md" | "lg" }) {
-  const sizeClass = size === "sm" ? "h-9 w-9 text-sm" : size === "lg" ? "h-16 w-16 text-2xl" : "h-10 w-10 text-sm";
+function SupplierAvatar({
+  name,
+  color,
+  size = "md",
+}: {
+  name: string;
+  color: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const sizeClass =
+    size === "sm" ? "h-9 w-9 text-sm" : size === "lg" ? "h-16 w-16 text-2xl" : "h-10 w-10 text-sm";
 
   return (
     <div
@@ -116,43 +125,46 @@ export function SupplierEditorModal({
     }
   };
 
-  const statusSelect = useMemo(() => (
-    <Select
-      value={status}
-      onValueChange={setStatus}
-      disabled={selectableSupplierStatusOptions.length === 0}
-    >
-      <SelectTrigger className="bg-background">
-        <SelectValue placeholder="Selecione..." />
-      </SelectTrigger>
-      <SelectContent>
-        {selectableSupplierStatusOptions.map((item) => (
-          <SelectItem key={item.id} value={String(item.id)}>
-            {item.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  ), [status, selectableSupplierStatusOptions]);
+  const statusSelect = useMemo(
+    () => (
+      <Select
+        value={status}
+        onValueChange={setStatus}
+        disabled={selectableSupplierStatusOptions.length === 0}
+      >
+        <SelectTrigger className="bg-background">
+          <SelectValue placeholder="Selecione..." />
+        </SelectTrigger>
+        <SelectContent>
+          {selectableSupplierStatusOptions.map((item) => (
+            <SelectItem key={item.id} value={String(item.id)}>
+              {item.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    ),
+    [status, selectableSupplierStatusOptions],
+  );
 
-  const ufSelect = useMemo(() => (
-    <Select
-      value={state || "__none"}
-      onValueChange={(value) => setState(value === "__none" ? "" : value)}
-    >
-      <SelectTrigger className="bg-background">
-        <SelectValue placeholder="Selecione..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__none">Não informar</SelectItem>
-        {UF_LIST.map((uf) => (
-          <SelectItem key={uf} value={uf}>
-            {uf}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  ), [state]);
+  const ufSelect = useMemo(
+    () => (
+      <Select value={state || "__none"} onValueChange={(value) => setState(value === "__none" ? "" : value)}>
+        <SelectTrigger className="bg-background">
+          <SelectValue placeholder="Selecione..." />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">Não informar</SelectItem>
+          {UF_LIST.map((uf) => (
+            <SelectItem key={uf} value={uf}>
+              {uf}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    ),
+    [state],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -273,11 +285,7 @@ export function SupplierEditorModal({
               </div>
               <div className="space-y-1.5">
                 <Label>Cidade</Label>
-                <Input
-                  ref={cityRef}
-                  defaultValue={initialForm.city || ""}
-                  className="bg-background"
-                />
+                <Input ref={cityRef} defaultValue={initialForm.city || ""} className="bg-background" />
               </div>
               <div className="space-y-1.5">
                 <Label>UF</Label>
@@ -300,7 +308,11 @@ export function SupplierEditorModal({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving} className="bg-primary text-primary-foreground hover-elevate">
+            <Button
+              type="submit"
+              disabled={saving}
+              className="bg-primary text-primary-foreground hover-elevate"
+            >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
             </Button>
           </DialogFooter>
@@ -309,5 +321,3 @@ export function SupplierEditorModal({
     </Dialog>
   );
 }
-
-

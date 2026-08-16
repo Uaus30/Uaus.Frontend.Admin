@@ -16,11 +16,7 @@ export async function getAllProductTags() {
   return fetchAllPages<ProductTagDto>("/ProductTags");
 }
 
-export async function getTagsPage(params?: {
-  search?: string;
-  page?: number;
-  limit?: number;
-}) {
+export async function getTagsPage(params?: { search?: string; page?: number; limit?: number }) {
   return getPaged<TagDto>("/Tags", {
     search: params?.search,
     page: params?.page ?? 1,
@@ -28,10 +24,7 @@ export async function getTagsPage(params?: {
   });
 }
 
-export async function searchTags(params?: {
-  search?: string;
-  limit?: number;
-}) {
+export async function searchTags(params?: { search?: string; limit?: number }) {
   return getPaged<TagDto>("/Tags", {
     search: params?.search,
     page: 1,
@@ -39,11 +32,7 @@ export async function searchTags(params?: {
   });
 }
 
-export async function createTag(payload: {
-  name: string;
-  color: string;
-  isPublic?: boolean;
-}) {
+export async function createTag(payload: { name: string; color: string; isPublic?: boolean }) {
   const response = await apiPost<TagDto>("/Tags", {
     name: payload.name.trim(),
     color: payload.color,
@@ -57,12 +46,7 @@ export async function createTag(payload: {
   return response.data;
 }
 
-export async function updateTag(payload: {
-  id: number;
-  name: string;
-  color: string;
-  isPublic: boolean;
-}) {
+export async function updateTag(payload: { id: number; name: string; color: string; isPublic: boolean }) {
   const response = await apiPut<TagDto>("/Tags", {
     id: payload.id,
     name: payload.name.trim(),

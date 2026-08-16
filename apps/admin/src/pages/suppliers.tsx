@@ -46,7 +46,10 @@ export default function Suppliers() {
             <h1 className="text-3xl font-display font-bold text-foreground">Fornecedores</h1>
             <p className="mt-1 text-muted-foreground">Gerencie seus fornecedores e contatos comerciais.</p>
           </div>
-          <Button onClick={() => handleOpenModal()} className="bg-primary text-primary-foreground hover-elevate">
+          <Button
+            onClick={() => handleOpenModal()}
+            className="bg-primary text-primary-foreground hover-elevate"
+          >
             <Plus className="mr-2 h-4 w-4" /> Novo Fornecedor
           </Button>
         </div>
@@ -85,5 +88,3 @@ export default function Suppliers() {
     </AppLayout>
   );
 }
-
-

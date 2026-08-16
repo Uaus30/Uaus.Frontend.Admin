@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@workspace/ui";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Edit2, Trash2, Handshake } from "lucide-react";
@@ -26,19 +19,9 @@ interface PartnersTableProps {
  *
  * Tabela de sócios com percentual de lucro, status e ações rápidas.
  */
-export function PartnersTable({
-  partners,
-  isLoading,
-  isDeleting,
-  onEdit,
-  onDelete,
-}: PartnersTableProps) {
+export function PartnersTable({ partners, isLoading, isDeleting, onEdit, onDelete }: PartnersTableProps) {
   if (isLoading) {
-    return (
-      <div className="py-12 text-center text-muted-foreground">
-        Carregando sócios...
-      </div>
-    );
+    return <div className="py-12 text-center text-muted-foreground">Carregando sócios...</div>;
   }
 
   if (partners.length === 0) {
@@ -72,13 +55,14 @@ export function PartnersTable({
                 </div>
               </TableCell>
 
-              <TableCell className="font-mono">
-                {formatPercentage(partner.profitSharePercentage)}
-              </TableCell>
+              <TableCell className="font-mono">{formatPercentage(partner.profitSharePercentage)}</TableCell>
 
               <TableCell>
                 {partner.isActive ? (
-                  <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+                  <Badge
+                    variant="default"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                  >
                     Ativo
                   </Badge>
                 ) : (
@@ -119,5 +103,3 @@ export function PartnersTable({
     </div>
   );
 }
-
-

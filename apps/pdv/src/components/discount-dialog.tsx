@@ -62,9 +62,7 @@ export function DiscountDialog({
     // Alvo define a base do desconto: a venda inteira, ou o preço unitário da
     // linha. A conta e os limites são do @workspace/core — o mesmo módulo que o
     // store usa para o total e que o cupom vai usar.
-    const item = target.type === "item" && target.id
-      ? items.find((i) => i.id === target.id)
-      : undefined;
+    const item = target.type === "item" && target.id ? items.find((i) => i.id === target.id) : undefined;
 
     if (target.type === "item" && !item) return;
 
@@ -139,8 +137,7 @@ export function DiscountDialog({
               Cancelar
             </Button>
             {((target.type === "global" && globalDiscount > 0) ||
-              (target.type === "item" &&
-                (items.find((i) => i.id === target.id)?.discount ?? 0) > 0)) && (
+              (target.type === "item" && (items.find((i) => i.id === target.id)?.discount ?? 0) > 0)) && (
               <Button
                 variant="outline"
                 className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20 cursor-pointer"
@@ -157,7 +154,10 @@ export function DiscountDialog({
                 Remover
               </Button>
             )}
-            <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white" onClick={confirmDiscount}>
+            <Button
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+              onClick={confirmDiscount}
+            >
               Aplicar
             </Button>
           </div>

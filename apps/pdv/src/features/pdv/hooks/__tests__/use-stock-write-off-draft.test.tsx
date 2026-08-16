@@ -81,9 +81,7 @@ describe("useStockWriteOffDraft", () => {
     await act(() => result.current.confirm());
 
     expect(registerWriteOff).not.toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Quantidade acima do estoque" }),
-    );
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Quantidade acima do estoque" }));
   });
 
   it("deve recusar a confirmação com a lista vazia", async () => {
@@ -138,7 +136,10 @@ describe("useStockWriteOffDraft", () => {
     });
     await act(() => result.current.confirm());
 
-    expect(registerWriteOff).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ offline: true }));
+    expect(registerWriteOff).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ offline: true }),
+    );
     expect(onRegistered).not.toHaveBeenCalled();
     expect(refreshCounts).toHaveBeenCalled();
   });

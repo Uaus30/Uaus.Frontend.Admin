@@ -56,7 +56,8 @@ export default function PartnersPage() {
               <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Sócios</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Cadastre os sócios da empresa e configure a distribuição de lucros usada nos fechamentos financeiros.
+              Cadastre os sócios da empresa e configure a distribuição de lucros usada nos fechamentos
+              financeiros.
             </p>
           </div>
 
@@ -104,7 +105,9 @@ export default function PartnersPage() {
                     Anterior
                   </Button>
 
-                  <span>Página {page} de {pagination.totalPages}</span>
+                  <span>
+                    Página {page} de {pagination.totalPages}
+                  </span>
 
                   <Button
                     variant="outline"
@@ -149,5 +152,3 @@ export default function PartnersPage() {
     </AppLayout>
   );
 }
-
-

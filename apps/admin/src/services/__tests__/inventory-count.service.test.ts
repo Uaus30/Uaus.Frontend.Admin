@@ -11,11 +11,8 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   applyInventoryCount: (...args: unknown[]) => applyInventoryCount(...args),
 }));
 
-const {
-  canApplyInventoryCount,
-  exportInventorySheet,
-  validateInventoryFile,
-} = await import("../inventory-count.service");
+const { canApplyInventoryCount, exportInventorySheet, validateInventoryFile } =
+  await import("../inventory-count.service");
 
 /** Arquivo falso com nome e tamanho controlados. */
 function fakeFile(name: string, size = 10): File {

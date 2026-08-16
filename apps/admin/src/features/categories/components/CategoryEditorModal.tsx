@@ -27,7 +27,7 @@ type CategoryEditorModalProps = {
 
 /**
  * CategoryEditorModal
- * 
+ *
  * Renders the modal sheet containing the Category creation/editing form.
  */
 export function CategoryEditorModal({
@@ -53,9 +53,7 @@ export function CategoryEditorModal({
             <label className="text-sm font-medium">Departamento</label>
             <Select
               value={formData.departmentId}
-              onValueChange={(value) =>
-                setFormData((current) => ({ ...current, departmentId: value }))
-              }
+              onValueChange={(value) => setFormData((current) => ({ ...current, departmentId: value }))}
             >
               <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Selecione..." />
@@ -74,9 +72,7 @@ export function CategoryEditorModal({
             <Input
               required
               value={formData.name}
-              onChange={(event) =>
-                setFormData((current) => ({ ...current, name: event.target.value }))
-              }
+              onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
               className="bg-background"
             />
           </div>
@@ -103,5 +99,3 @@ export function CategoryEditorModal({
     </Dialog>
   );
 }
-
-

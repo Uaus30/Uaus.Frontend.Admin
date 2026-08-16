@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@workspace/ui";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Lock } from "lucide-react";
 import { formatCurrency, formatDate, formatShortDate } from "@workspace/core";
 import type { FinancialClosingDto } from "../types";
@@ -23,17 +16,9 @@ interface FinancialClosingsTableProps {
  * Tabela dos fechamentos financeiros confirmados. Cada linha abre o detalhe
  * com o rateio congelado — não há edição: fechamento se refaz excluindo.
  */
-export function FinancialClosingsTable({
-  items,
-  isLoading,
-  onRowClick,
-}: FinancialClosingsTableProps) {
+export function FinancialClosingsTable({ items, isLoading, onRowClick }: FinancialClosingsTableProps) {
   if (isLoading) {
-    return (
-      <div className="py-12 text-center text-muted-foreground">
-        Carregando fechamentos...
-      </div>
-    );
+    return <div className="py-12 text-center text-muted-foreground">Carregando fechamentos...</div>;
   }
 
   if (items.length === 0) {
@@ -41,9 +26,7 @@ export function FinancialClosingsTable({
       <div className="py-12 text-center text-muted-foreground border rounded-lg bg-card">
         <Lock className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
         <p className="font-medium text-base">Nenhum fechamento registrado</p>
-        <p className="text-sm">
-          Clique em "Novo Fechamento" para congelar os números de um período.
-        </p>
+        <p className="text-sm">Clique em "Novo Fechamento" para congelar os números de um período.</p>
       </div>
     );
   }
@@ -88,9 +71,7 @@ export function FinancialClosingsTable({
                 {formatCurrency(item.netProfit)}
               </TableCell>
               <TableCell>{item.closedByUserName ?? "—"}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDate(item.createdAt)}
-              </TableCell>
+              <TableCell className="text-muted-foreground">{formatDate(item.createdAt)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -98,5 +79,3 @@ export function FinancialClosingsTable({
     </div>
   );
 }
-
-

@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const mockToast = vi.fn();
 vi.mock("@workspace/ui", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/ui")>()),
-  useToast: () => ({ toast: mockToast })
+  useToast: () => ({ toast: mockToast }),
 }));
 
 // Só o que fala com a rede é dublado.
@@ -21,28 +21,30 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
           id: 1,
           name: "Dinheiro",
           isActive: true,
-          installments: [{ id: 10, paymentMethodId: 1, installmentNumber: 1, feePercentage: 0, isActive: true }]
-        }
+          installments: [
+            { id: 10, paymentMethodId: 1, installmentNumber: 1, feePercentage: 0, isActive: true },
+          ],
+        },
       ],
       page: 1,
       limit: 10,
       total: 1,
-      totalPages: 1
+      totalPages: 1,
     },
     isLoading: false,
-    refetch: vi.fn()
+    refetch: vi.fn(),
   })),
   useCreatePaymentMethod: vi.fn(() => ({
     mutateAsync: vi.fn(() => Promise.resolve({ id: 2 })),
-    isPending: false
+    isPending: false,
   })),
   useUpdatePaymentMethod: vi.fn(() => ({
     mutateAsync: vi.fn(() => Promise.resolve({ id: 1 })),
-    isPending: false
+    isPending: false,
   })),
   useDeletePaymentMethod: vi.fn(() => ({
     mutateAsync: vi.fn(() => Promise.resolve()),
-    isPending: false
+    isPending: false,
   })),
   // A chave de cache NÃO é redefinida aqui: ela vem do módulo real via
   // importOriginal, senão o teste de invalidação valida a chave inventada no
@@ -52,8 +54,8 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: { retry: false }
-    }
+      queries: { retry: false },
+    },
   });
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

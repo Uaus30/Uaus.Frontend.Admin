@@ -61,8 +61,8 @@ export function SalesHistoryDialog({
           </DialogDescription>
           {queuedSalesCount > 0 && (
             <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-              {queuedSalesCount} venda(s) registrada(s) offline ainda não aparecem aqui — elas
-              estão na fila local. Consulte o indicador de conexão no topo da tela.
+              {queuedSalesCount} venda(s) registrada(s) offline ainda não aparecem aqui — elas estão na fila
+              local. Consulte o indicador de conexão no topo da tela.
             </p>
           )}
         </div>
@@ -74,9 +74,7 @@ export function SalesHistoryDialog({
             </div>
           ) : sales.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground italic">
-              {usesCashRegister
-                ? "Nenhuma venda realizada nesta sessão."
-                : "Nenhuma venda registrada hoje."}
+              {usesCashRegister ? "Nenhuma venda realizada nesta sessão." : "Nenhuma venda registrada hoje."}
             </div>
           ) : (
             <div className="space-y-3 pb-20">

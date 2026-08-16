@@ -14,16 +14,56 @@ import type { SupplierForm } from "../types";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 export const AVATAR_COLORS = [
-  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
-  "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#10b981",
-  "#14b8a6", "#06b6d4", "#3b82f6", "#0ea5e9", "#84cc16",
-  "#d946ef", "#e11d48", "#059669", "#0284c7", "#7c3aed",
+  "#6366f1",
+  "#8b5cf6",
+  "#a855f7",
+  "#ec4899",
+  "#f43f5e",
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#22c55e",
+  "#10b981",
+  "#14b8a6",
+  "#06b6d4",
+  "#3b82f6",
+  "#0ea5e9",
+  "#84cc16",
+  "#d946ef",
+  "#e11d48",
+  "#059669",
+  "#0284c7",
+  "#7c3aed",
 ];
 
 export const UF_LIST = [
-  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
-  "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
-  "RS","RO","RR","SC","SP","SE","TO",
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
 ];
 
 /**
@@ -114,15 +154,16 @@ export function useSuppliers() {
   const selectableSupplierStatusOptions = useMemo(
     () =>
       statusOptions.filter(
-        (item) =>
-          item.allowSelect &&
-          ["ativo", "inativo"].includes(normalizeStatusName(item.name)),
+        (item) => item.allowSelect && ["ativo", "inativo"].includes(normalizeStatusName(item.name)),
       ),
     [statusOptions],
   );
 
   const activeStatusValue = useMemo(
-    () => selectableSupplierStatusOptions.find((item) => normalizeStatusName(item.name) === "ativo")?.id.toString() ?? "",
+    () =>
+      selectableSupplierStatusOptions
+        .find((item) => normalizeStatusName(item.name) === "ativo")
+        ?.id.toString() ?? "",
     [selectableSupplierStatusOptions],
   );
 
@@ -131,7 +172,9 @@ export function useSuppliers() {
     if (!modalOpen || !activeStatusValue || selectableSupplierStatusOptions.length === 0) return;
 
     setForm((current) => {
-      const statusIsAllowed = selectableSupplierStatusOptions.some((item) => String(item.id) === current.status);
+      const statusIsAllowed = selectableSupplierStatusOptions.some(
+        (item) => String(item.id) === current.status,
+      );
       if (statusIsAllowed) return current;
       return { ...current, status: activeStatusValue };
     });
@@ -143,7 +186,12 @@ export function useSuppliers() {
   // corrente, e o contador de páginas continuava contando todos.
   const statusParam = statusFilter === "all" ? undefined : Number(statusFilter);
 
-  const { data: suppliersPage, isLoading, isError, error } = useQuery({
+  const {
+    data: suppliersPage,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["suppliers-page", { search, status: statusParam, page, limit }],
     queryFn: () => getSuppliersPage({ search, status: statusParam, page, limit }),
   });
@@ -156,14 +204,16 @@ export function useSuppliers() {
 
   /**
    * Abre a modal de cadastro/edição de fornecedor.
-   * 
+   *
    * @param supplier Fornecedor a ser carregado em modo de edição (opcional).
    */
   function handleOpenModal(supplier?: any) {
     if (supplier) {
       setEditingId(supplier.id);
       const supplierStatus = supplier.status == null ? "" : String(supplier.status);
-      const statusIsAllowed = selectableSupplierStatusOptions.some((item) => String(item.id) === supplierStatus);
+      const statusIsAllowed = selectableSupplierStatusOptions.some(
+        (item) => String(item.id) === supplierStatus,
+      );
 
       setForm({
         name: supplier.name || "",
@@ -202,12 +252,17 @@ export function useSuppliers() {
 
   /**
    * Envia os dados do formulário de fornecedor para cadastrar ou atualizar.
-   * 
+   *
    * @param formData Objeto com os campos do formulário preenchidos.
    */
   async function handleSubmitSupplier(formData: SupplierForm) {
     const minimumPurchaseValue = Number(formData.minimumPurchaseValue);
-    if (!formData.name.trim() || formData.minimumPurchaseValue === "" || Number.isNaN(minimumPurchaseValue) || minimumPurchaseValue < 0) {
+    if (
+      !formData.name.trim() ||
+      formData.minimumPurchaseValue === "" ||
+      Number.isNaN(minimumPurchaseValue) ||
+      minimumPurchaseValue < 0
+    ) {
       toast({
         title: "Preencha os campos obrigatórios",
         description: "Informe o nome do fornecedor e o valor mínimo de compra.",
@@ -270,7 +325,7 @@ export function useSuppliers() {
 
   /**
    * Remove um fornecedor do sistema.
-   * 
+   *
    * @param id Identificador do fornecedor a ser removido.
    * @param name Nome do fornecedor (para fins de confirmação).
    */

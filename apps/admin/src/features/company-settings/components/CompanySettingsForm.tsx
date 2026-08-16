@@ -42,7 +42,7 @@ const IDENTITY_INPUTS: Array<{
     field: "document",
     label: "CNPJ",
     placeholder: "64.958.682/0001-22",
-    hint: "Só o número — o cupom imprime o rótulo \"CNPJ:\" sozinho.",
+    hint: 'Só o número — o cupom imprime o rótulo "CNPJ:" sozinho.',
   },
 ];
 
@@ -79,8 +79,8 @@ export function CompanySettingsForm({
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Identidade da loja</CardTitle>
           <CardDescription>
-            O que sai impresso no cabeçalho e no rodapé dos cupons. Campo em branco usa o valor
-            padrão mostrado como exemplo.
+            O que sai impresso no cabeçalho e no rodapé dos cupons. Campo em branco usa o valor padrão
+            mostrado como exemplo.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -114,9 +114,7 @@ export function CompanySettingsForm({
               rows={2}
               disabled={isSaving}
             />
-            <p className="text-xs text-muted-foreground">
-              Agradecimento impresso no fim de todo cupom.
-            </p>
+            <p className="text-xs text-muted-foreground">Agradecimento impresso no fim de todo cupom.</p>
           </div>
         </CardContent>
       </Card>
@@ -133,8 +131,8 @@ export function CompanySettingsForm({
                 Controlar caixa (abertura e fechamento por turno)
               </Label>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                Desligado, o PDV não exige abertura de caixa para vender e as operações ficam sem
-                sessão vinculada — vendas e baixas deixam de aparecer no fechamento de turno.
+                Desligado, o PDV não exige abertura de caixa para vender e as operações ficam sem sessão
+                vinculada — vendas e baixas deixam de aparecer no fechamento de turno.
               </p>
             </div>
             <Switch
@@ -151,7 +149,8 @@ export function CompanySettingsForm({
                 Limite de desconto para vendedores (%)
               </Label>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                Zero para sem limite. Descontos acima desse teto no balcão exigirão a senha de um Administrador.
+                Zero para sem limite. Descontos acima desse teto no balcão exigirão a senha de um
+                Administrador.
               </p>
             </div>
             <Input
@@ -169,20 +168,12 @@ export function CompanySettingsForm({
       </Card>
 
       <div className="flex items-center justify-end gap-3">
-        {isDirty && (
-          <span className="text-xs text-muted-foreground">Há alterações não salvas.</span>
-        )}
+        {isDirty && <span className="text-xs text-muted-foreground">Há alterações não salvas.</span>}
         <Button type="submit" disabled={!isDirty || isSaving} className="hover-elevate">
-          {isSaving ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Salvar
         </Button>
       </div>
     </form>
   );
 }
-
-

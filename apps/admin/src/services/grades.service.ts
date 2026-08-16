@@ -16,11 +16,7 @@ export async function getGradesByCategoryId(categoryId: number) {
   return apiGetOrThrow<GradeDto[]>(`/Grades/category/${categoryId}`);
 }
 
-export async function getGradesPage(params?: {
-  search?: string;
-  page?: number;
-  limit?: number;
-}) {
+export async function getGradesPage(params?: { search?: string; page?: number; limit?: number }) {
   return getPaged<GradeDto>("/Grades", {
     search: params?.search,
     page: params?.page ?? 1,

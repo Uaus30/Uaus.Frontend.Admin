@@ -65,7 +65,7 @@ anterior continua valendo. A data em que ela foi baixada aparece no painel
 
 **Abrir o caixa exige internet.** A sessão é a âncora contábil da venda; uma
 sessão criada localmente teria que ser reconciliada depois, com risco de duplicar
-caixa. Decisão de produto — o offline cobre a queda *durante* o turno.
+caixa. Decisão de produto — o offline cobre a queda _durante_ o turno.
 
 Mas a sessão aberta **é guardada na base local** (`use-cash-register.ts`). Isso
 cobre o cenário que dá nome ao problema: a energia volta, a máquina reinicia, a
@@ -185,15 +185,20 @@ IndexedDB.
   "couponId": 12,
   "code": "10OFFSET26",
   "description": "Setembro 2026",
-  "discountType": "Percentage",          // enum; o PDV resolve para 1/2 na carga
+  "discountType": "Percentage", // enum; o PDV resolve para 1/2 na carga
   "discountValue": 10,
-  "validFrom": "2026-09-01T00:00:00",    // instante, nunca data pura
-  "validUntil": "2026-09-30T23:59:59",   // omitido = sem prazo
-  "remainingAtSnapshot": 40,             // omitido = ILIMITADO, nunca "zero usos"
-  "questions": [                          // já resolvidas; SEM campaignId
-    { "questionId": 7, "label": "Como conheceu a loja?", "isRequired": true,
-      "options": [ { "optionId": 21, "label": "Instagram" } ] }
-  ]
+  "validFrom": "2026-09-01T00:00:00", // instante, nunca data pura
+  "validUntil": "2026-09-30T23:59:59", // omitido = sem prazo
+  "remainingAtSnapshot": 40, // omitido = ILIMITADO, nunca "zero usos"
+  "questions": [
+    // já resolvidas; SEM campaignId
+    {
+      "questionId": 7,
+      "label": "Como conheceu a loja?",
+      "isRequired": true,
+      "options": [{ "optionId": 21, "label": "Instagram" }],
+    },
+  ],
 }
 ```
 
@@ -287,11 +292,11 @@ falha de rede.
 
 Cada venda tem o seu próprio desfecho:
 
-| Desfecho     | O que o PDV faz |
-| ------------ | --------------- |
-| `Created`    | tira da fila |
+| Desfecho     | O que o PDV faz                                                           |
+| ------------ | ------------------------------------------------------------------------- |
+| `Created`    | tira da fila                                                              |
 | `Duplicated` | tira da fila — já estava gravada (resposta de um lote anterior se perdeu) |
-| `Rejected`   | mantém na fila marcada com o motivo **e devolve o estoque local** |
+| `Rejected`   | mantém na fila marcada com o motivo **e devolve o estoque local**         |
 
 A devolução de estoque na recusa é importante: aquela venda não existe, então o
 saldo local estava mentindo para baixo.
@@ -398,14 +403,14 @@ IndexedDB e sem DOM. As regras da tela que também são puras moram em `lib/`
 
 Banco `uaus-pdv-offline`, versão em `database.ts` (v2: entrou `pendingWriteOffs`):
 
-| Store              | Chave             | Conteúdo | Sobrevive à migração? |
-| ------------------ | ----------------- | -------- | --------------------- |
-| `meta`             | `key`             | data do snapshot, sequencial offline, sessão de caixa, configurações da empresa, **cupons** | **sim** |
-| `products`         | `id`              | catálogo + estoque local | recriada |
-| `paymentMethods`   | `id`              | formas ativas com taxas | recriada |
-| `customers`        | `id`              | clientes cadastrados | recriada |
-| `pendingSales`     | `clientReference` | vendas offline | **sim** |
-| `pendingWriteOffs` | `clientReference` | baixas de estoque offline | **sim** |
+| Store              | Chave             | Conteúdo                                                                                    | Sobrevive à migração? |
+| ------------------ | ----------------- | ------------------------------------------------------------------------------------------- | --------------------- |
+| `meta`             | `key`             | data do snapshot, sequencial offline, sessão de caixa, configurações da empresa, **cupons** | **sim**               |
+| `products`         | `id`              | catálogo + estoque local                                                                    | recriada              |
+| `paymentMethods`   | `id`              | formas ativas com taxas                                                                     | recriada              |
+| `customers`        | `id`              | clientes cadastrados                                                                        | recriada              |
+| `pendingSales`     | `clientReference` | vendas offline                                                                              | **sim**               |
+| `pendingWriteOffs` | `clientReference` | baixas de estoque offline                                                                   | **sim**               |
 
 O critério é simples: sobrevive o que **só** existe aqui. As filas contêm
 movimento que o servidor nunca viu; os metadados guardam o sequencial dos cupons
@@ -507,22 +512,22 @@ Para inspecionar: DevTools → Application → IndexedDB → `uaus-pdv-offline`.
 
 ## Onde mexer
 
-| Precisa                                        | Arquivo |
-| ---------------------------------------------- | ------- |
-| Levar mais dados para a base local             | `PdvSnapshotDto` no backend, `offline/types.ts`, `offline/snapshot.ts` — e suba as duas versões |
-| Mudar a relevância da busca local              | `offline/catalog.ts` → `filterProducts` (tem teste) |
-| Mudar a regra do cupom offline                 | `offline/coupons.ts` → `resolveLocalCoupon` (tem teste) — leia "Estourar o limite offline é ACEITO" antes |
-| Mudar o que a venda envia de cupom             | `offline/sync.ts` → `toCouponBody` (tem teste) |
-| Mudar o fallback da busca de produtos          | `lib/product-search.ts` → `searchProducts` (tem teste) |
-| Mudar a regra de estoque offline               | `offline/stock.ts` → `findStockShortages` (tem teste) |
-| Mudar o que fazer com cada desfecho            | `offline/sync.ts` → `applySyncResults` (tem teste) |
-| Mudar o tamanho do lote                        | `offline/sync.ts` → `SYNC_BATCH_SIZE` (≤ 50, limite do backend) |
-| Mudar o que a baixa envia ao servidor          | `offline/write-off-sync.ts` → `buildWriteOffRequestBody` (tem teste) |
-| Mudar a regra da lista de itens da baixa       | `lib/write-off-draft.ts` (tem teste) |
-| Ligar o modo sem controle de caixa             | `lib/cash-register-mode.ts` — leia o bloqueio no topo do arquivo |
-| Mudar o intervalo de sondagem                  | `offline/connectivity.ts` |
-| Mudar o que o cupom offline mostra             | `packages/receipt/src/render.ts` (banner) e `types.ts` (`offline`) |
-| Mexer em data enviada à API                    | `services/sales.service.ts` → `toLocalTimestamp` (tem teste) — leia a nota abaixo |
+| Precisa                                  | Arquivo                                                                                                   |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Levar mais dados para a base local       | `PdvSnapshotDto` no backend, `offline/types.ts`, `offline/snapshot.ts` — e suba as duas versões           |
+| Mudar a relevância da busca local        | `offline/catalog.ts` → `filterProducts` (tem teste)                                                       |
+| Mudar a regra do cupom offline           | `offline/coupons.ts` → `resolveLocalCoupon` (tem teste) — leia "Estourar o limite offline é ACEITO" antes |
+| Mudar o que a venda envia de cupom       | `offline/sync.ts` → `toCouponBody` (tem teste)                                                            |
+| Mudar o fallback da busca de produtos    | `lib/product-search.ts` → `searchProducts` (tem teste)                                                    |
+| Mudar a regra de estoque offline         | `offline/stock.ts` → `findStockShortages` (tem teste)                                                     |
+| Mudar o que fazer com cada desfecho      | `offline/sync.ts` → `applySyncResults` (tem teste)                                                        |
+| Mudar o tamanho do lote                  | `offline/sync.ts` → `SYNC_BATCH_SIZE` (≤ 50, limite do backend)                                           |
+| Mudar o que a baixa envia ao servidor    | `offline/write-off-sync.ts` → `buildWriteOffRequestBody` (tem teste)                                      |
+| Mudar a regra da lista de itens da baixa | `lib/write-off-draft.ts` (tem teste)                                                                      |
+| Ligar o modo sem controle de caixa       | `lib/cash-register-mode.ts` — leia o bloqueio no topo do arquivo                                          |
+| Mudar o intervalo de sondagem            | `offline/connectivity.ts`                                                                                 |
+| Mudar o que o cupom offline mostra       | `packages/receipt/src/render.ts` (banner) e `types.ts` (`offline`)                                        |
+| Mexer em data enviada à API              | `services/sales.service.ts` → `toLocalTimestamp` (tem teste) — leia a nota abaixo                         |
 
 ## Datas: hora da loja, sem fuso
 

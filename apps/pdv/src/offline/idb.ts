@@ -86,8 +86,7 @@ function waitForTransaction(transaction: IDBTransaction): Promise<void> {
     transaction.oncomplete = () => resolve();
     transaction.onabort = () =>
       reject(transaction.error ?? new Error("A gravação na base local foi desfeita."));
-    transaction.onerror = () =>
-      reject(transaction.error ?? new Error("Falha ao gravar na base local."));
+    transaction.onerror = () => reject(transaction.error ?? new Error("Falha ao gravar na base local."));
   });
 }
 

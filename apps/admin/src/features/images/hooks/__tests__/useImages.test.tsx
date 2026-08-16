@@ -7,29 +7,33 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Mock the services
 vi.mock("@/services/core", () => ({
   buildPublicImageUrl: vi.fn((url) => `http://public-url${url}`),
-  getEnumOptions: vi.fn(() => Promise.resolve([
-    { id: 1, name: "Produto", value: "Product", allowSelect: true },
-  ])),
+  getEnumOptions: vi.fn(() =>
+    Promise.resolve([{ id: 1, name: "Produto", value: "Product", allowSelect: true }]),
+  ),
 }));
 
 vi.mock("@/services/images.service", () => ({
   createImageFromFile: vi.fn(() => Promise.resolve({ id: 11 })),
   deleteImage: vi.fn(() => Promise.resolve()),
-  getImagesPage: vi.fn(() => Promise.resolve({
-    data: [{ id: 10, name: "Img 10", url: "/img10.png", type: 1, createdAt: "2026-06-18T22:00:00Z" }],
-    total: 1,
-    page: 1,
-    limit: 20
-  })),
+  getImagesPage: vi.fn(() =>
+    Promise.resolve({
+      data: [{ id: 10, name: "Img 10", url: "/img10.png", type: 1, createdAt: "2026-06-18T22:00:00Z" }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    }),
+  ),
   // Catálogo completo: 3 imagens tipo 1 e 2 imagens tipo 2, como se estivessem
   // espalhadas por várias páginas do servidor.
-  getAllImages: vi.fn(() => Promise.resolve([
-    { id: 1, name: "Prod 1", url: "/p1.png", type: 1, createdAt: "2026-06-18T22:00:00Z" },
-    { id: 2, name: "Banner 1", url: "/b1.png", type: 2, createdAt: "2026-06-18T22:00:00Z" },
-    { id: 3, name: "Prod 2", url: "/p2.png", type: 1, createdAt: "2026-06-18T22:00:00Z" },
-    { id: 4, name: "Banner 2", url: "/b2.png", type: 2, createdAt: "2026-06-18T22:00:00Z" },
-    { id: 5, name: "Prod 3", url: "/p3.png", type: 1, createdAt: "2026-06-18T22:00:00Z" },
-  ])),
+  getAllImages: vi.fn(() =>
+    Promise.resolve([
+      { id: 1, name: "Prod 1", url: "/p1.png", type: 1, createdAt: "2026-06-18T22:00:00Z" },
+      { id: 2, name: "Banner 1", url: "/b1.png", type: 2, createdAt: "2026-06-18T22:00:00Z" },
+      { id: 3, name: "Prod 2", url: "/p2.png", type: 1, createdAt: "2026-06-18T22:00:00Z" },
+      { id: 4, name: "Banner 2", url: "/b2.png", type: 2, createdAt: "2026-06-18T22:00:00Z" },
+      { id: 5, name: "Prod 3", url: "/p3.png", type: 1, createdAt: "2026-06-18T22:00:00Z" },
+    ]),
+  ),
   updateImageRecord: vi.fn(() => Promise.resolve()),
 }));
 

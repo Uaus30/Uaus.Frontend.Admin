@@ -1,8 +1,8 @@
-import path from "path"
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa'
+import path from "path";
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -23,31 +23,31 @@ export default defineConfig({
     VitePWA({
       // O caixa não é atualizado à mão: a nova versão entra sozinha na próxima
       // abertura, sem depender de o operador aceitar um aviso.
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'favicon.svg', 'images/logo-icon.png'],
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "favicon.svg", "images/logo-icon.png"],
       manifest: {
-        name: 'Uaus! PDV',
-        short_name: 'PDV',
-        description: 'Ponto de venda da Uaus!, com operação offline.',
-        lang: 'pt-BR',
+        name: "Uaus! PDV",
+        short_name: "PDV",
+        description: "Ponto de venda da Uaus!, com operação offline.",
+        lang: "pt-BR",
         // Tela cheia sem barra de navegador: o caixa é um terminal, não um site.
-        display: 'standalone',
-        orientation: 'landscape',
-        background_color: '#0b0b0f',
-        theme_color: '#0b0b0f',
-        start_url: '.',
+        display: "standalone",
+        orientation: "landscape",
+        background_color: "#0b0b0f",
+        theme_color: "#0b0b0f",
+        start_url: ".",
         icons: [
-          { src: 'images/logo-icon.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'images/logo-icon.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: "images/logo-icon.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "images/logo-icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
       workbox: {
         // Tudo que o app precisa para subir fica em cache na instalação.
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
 
         // Navegação sempre cai no index cacheado: o PDV é uma SPA, e sem isso um
         // recarregamento offline daria 404.
-        navigateFallback: 'index.html',
+        navigateFallback: "index.html",
         navigateFallbackDenylist: [/^\/api\//],
 
         // A API **nunca** entra em cache. Servir venda, estoque ou sessão de caixa
@@ -56,8 +56,8 @@ export default defineConfig({
         // IndexedDB, que carrega a própria data de atualização.
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkOnly',
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
+            handler: "NetworkOnly",
           },
         ],
       },
@@ -112,7 +112,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ['react', 'react-dom']
+    dedupe: ["react", "react-dom"],
   },
   server: {
     port: 5174,
@@ -126,4 +126,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

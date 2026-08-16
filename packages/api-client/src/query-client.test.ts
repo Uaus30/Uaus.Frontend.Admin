@@ -15,8 +15,7 @@ describe("createQueryClient", () => {
     // base local.
     const queries = createQueryClient({
       defaultOptions: { queries: { staleTime: STALE_TIME.referencia } },
-    })
-      .getDefaultOptions().queries;
+    }).getDefaultOptions().queries;
 
     expect(queries?.staleTime).toBe(STALE_TIME.referencia);
     expect(queries?.retry).toBe(false);

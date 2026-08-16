@@ -43,7 +43,9 @@ export function useLogs() {
   // --- Applied state (usado na query de API) ---
   const [appliedSearch, setAppliedSearch] = useState("");
   const [appliedType, setAppliedType] = useState<string>("all");
-  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | undefined>(() => getDefaultDateRange());
+  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | undefined>(() =>
+    getDefaultDateRange(),
+  );
 
   const [page, setPage] = useState(1);
   const limit = 25;
@@ -62,9 +64,7 @@ export function useLogs() {
   const startDateLocal = appliedDateRange?.from
     ? toLocalApiTimestamp(startOfDay(appliedDateRange.from))
     : undefined;
-  const endDateLocal = appliedDateRange?.to
-    ? toLocalApiTimestamp(endOfDay(appliedDateRange.to))
-    : undefined;
+  const endDateLocal = appliedDateRange?.to ? toLocalApiTimestamp(endOfDay(appliedDateRange.to)) : undefined;
 
   // Consulta paginada dos logs
   const { data, isLoading, isError, error } = useGetLogs({

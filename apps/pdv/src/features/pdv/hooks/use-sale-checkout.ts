@@ -6,12 +6,7 @@ import { useToast } from "@workspace/ui";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import type { CheckoutState } from "@/hooks/use-checkout";
 import type { CashRegisterMode } from "@/lib/cash-register-mode";
-import {
-  LocalStockError,
-  newClientReference,
-  registerSale,
-  updateSale,
-} from "@/services/sales.service";
+import { LocalStockError, newClientReference, registerSale, updateSale } from "@/services/sales.service";
 import { buildSalePayload } from "../lib/build-sale-payload";
 import { buildSaleReceipt } from "../lib/build-sale-receipt";
 import type { SavedSale } from "../types";
@@ -132,7 +127,11 @@ export function useSaleCheckout({
     const { payments, receivedAmount, change } = checkout;
 
     if (mode.saleRequiresSession && !sessionId) {
-      toast({ title: "Caixa fechado", description: "Abra o caixa para registrar vendas.", variant: "destructive" });
+      toast({
+        title: "Caixa fechado",
+        description: "Abra o caixa para registrar vendas.",
+        variant: "destructive",
+      });
       return;
     }
     if (editingSaleId && !online) {

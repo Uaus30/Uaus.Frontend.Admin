@@ -31,7 +31,7 @@ import { CATALOG_KEYS, useAllCustomers } from "@/hooks/use-catalog";
 
 /**
  * useSales
- * 
+ *
  * Hook customizado para gerenciar a listagem, detalhamento de vendas,
  * e a lógica do carrinho/checkout (registro de novas vendas).
  */
@@ -90,25 +90,17 @@ export function useSales() {
   const { data: enrichedProducts = [] } = useQuery({
     queryKey: ["products-enriched-for-sales"],
     queryFn: async () => {
-      const [
-        products,
-        productGroups,
-        categories,
-        departments,
-        tags,
-        productTags,
-        images,
-        productImages,
-      ] = await Promise.all([
-        getAllProducts(),
-        getAllProductGroups(),
-        getAllCategories(),
-        getAllDepartments(),
-        getAllTags(),
-        getAllProductTags(),
-        getAllImages(),
-        getAllProductImages(),
-      ]);
+      const [products, productGroups, categories, departments, tags, productTags, images, productImages] =
+        await Promise.all([
+          getAllProducts(),
+          getAllProductGroups(),
+          getAllCategories(),
+          getAllDepartments(),
+          getAllTags(),
+          getAllProductTags(),
+          getAllImages(),
+          getAllProductImages(),
+        ]);
 
       return buildProductCollections({
         products,
@@ -127,7 +119,7 @@ export function useSales() {
   // Mapeador de métodos de pagamento por ID
   const paymentMethodById = useMemo(
     () => Object.fromEntries(dbPaymentMethods.map((item) => [item.id, item.name])),
-    [dbPaymentMethods]
+    [dbPaymentMethods],
   );
 
   // Lista de vendas enriquecida com cliente
@@ -136,7 +128,7 @@ export function useSales() {
     const customersById = new Map(customers.map((item) => [item.id, item]));
     return salesPage.data.map((sale) => ({
       ...sale,
-      customer: sale.customerId ? customersById.get(sale.customerId) ?? null : null,
+      customer: sale.customerId ? (customersById.get(sale.customerId) ?? null) : null,
       items: [],
     })) as EnrichedSale[];
   }, [customers, salesPage]);
@@ -158,20 +150,16 @@ export function useSales() {
     () =>
       enrichedProducts.filter(
         (product) =>
-          product.stock > 0 && enumCode(product.status, PRODUCT_STATUS) !== PRODUCT_STATUS.Inactive
+          product.stock > 0 && enumCode(product.status, PRODUCT_STATUS) !== PRODUCT_STATUS.Inactive,
       ),
-    [enrichedProducts]
+    [enrichedProducts],
   );
 
   function resetSaleForm() {
     setCustomerId(null);
     setItems([]);
     setDiscount(0);
-    setPayments(
-      dbPaymentMethods.length > 0
-        ? [{ paymentMethodId: dbPaymentMethods[0].id, amount: 0 }]
-        : []
-    );
+    setPayments(dbPaymentMethods.length > 0 ? [{ paymentMethodId: dbPaymentMethods[0].id, amount: 0 }] : []);
     setNotes("");
     setSelectedProductId("");
     setSelectedQty(1);
@@ -202,7 +190,7 @@ export function useSales() {
       const existing = current.find((item) => item.productId === product.id);
       if (existing) {
         return current.map((item) =>
-          item.productId === product.id ? { ...item, quantity: item.quantity + selectedQty } : item
+          item.productId === product.id ? { ...item, quantity: item.quantity + selectedQty } : item,
         );
       }
 
@@ -240,7 +228,7 @@ export function useSales() {
         })),
         globalDiscount: discount,
       }),
-    [items, discount]
+    [items, discount],
   );
 
   const subtotal = totals.subtotal;
@@ -248,7 +236,7 @@ export function useSales() {
 
   const paidAmount = useMemo(
     () => round2(payments.reduce((sum, payment) => sum + payment.amount, 0)),
-    [payments]
+    [payments],
   );
 
   const remainingAmount = useMemo(() => round2(total - paidAmount), [total, paidAmount]);
@@ -285,7 +273,7 @@ export function useSales() {
    */
   function updatePayment(index: number, patch: Partial<NewSaleDraftPayment>) {
     setPayments((current) =>
-      current.map((payment, position) => (position === index ? { ...payment, ...patch } : payment))
+      current.map((payment, position) => (position === index ? { ...payment, ...patch } : payment)),
     );
   }
 

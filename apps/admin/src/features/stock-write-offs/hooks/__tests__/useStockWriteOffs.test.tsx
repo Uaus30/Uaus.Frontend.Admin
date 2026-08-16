@@ -252,9 +252,7 @@ describe("useStockWriteOffs", () => {
       result.current.confirmReversal();
     });
 
-    await waitFor(() =>
-      expect(mocks.reverseStockWriteOff).toHaveBeenCalledWith(1, "Lançado em duplicidade"),
-    );
+    await waitFor(() => expect(mocks.reverseStockWriteOff).toHaveBeenCalledWith(1, "Lançado em duplicidade"));
     await waitFor(() => expect(result.current.reversalTarget).toBeNull());
   });
 });

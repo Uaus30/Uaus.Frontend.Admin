@@ -240,7 +240,9 @@ describe("useCampaigns", () => {
 
     await waitFor(() => expect(mocks.updateCampaign).toHaveBeenCalled());
     const [, payload] = mocks.updateCampaign.mock.calls[0];
-    expect(payload.questions.map((q: { id: number | null; sortOrder: number }) => q.sortOrder)).toEqual([1, 2]);
+    expect(payload.questions.map((q: { id: number | null; sortOrder: number }) => q.sortOrder)).toEqual([
+      1, 2,
+    ]);
     // A pergunta antiga foi para o fim, mas continua sendo a MESMA linha.
     expect(payload.questions[1].id).toBe(7);
   });
@@ -261,8 +263,7 @@ describe("useCampaigns", () => {
     expect(mocks.toast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Questionário incompleto",
-        description:
-          'A pergunta "Como conheceu a loja?" precisa de pelo menos 2 opções de resposta ativas!',
+        description: 'A pergunta "Como conheceu a loja?" precisa de pelo menos 2 opções de resposta ativas!',
         variant: "destructive",
       }),
     );
@@ -283,9 +284,7 @@ describe("useCampaigns", () => {
     });
 
     expect(mocks.updateCampaign).not.toHaveBeenCalled();
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "destructive" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 
   it("deve barrar mais de 6 perguntas antes de chamar a API", async () => {
@@ -352,9 +351,7 @@ describe("useCampaigns", () => {
     await waitFor(() => expect(mocks.updateCampaign).toHaveBeenCalled());
 
     // As chaves são as REAIS do api-client — o mock não redefine nenhuma delas.
-    await waitFor(() =>
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: getGetCampaignsQueryKey() }),
-    );
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: getGetCampaignsQueryKey() }));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: getGetCampaignByIdQueryKey() });
     // A linha do cupom carrega `campaignName`: renomear a campanha sem isto
     // deixaria a tela de cupons exibindo o nome antigo.
@@ -430,9 +427,7 @@ describe("useCampaigns", () => {
   });
 
   it("deve mostrar a mensagem do backend quando o salvamento é recusado", async () => {
-    mocks.updateCampaign.mockRejectedValue(
-      new Error("Pergunta não encontrada nesta campanha!"),
-    );
+    mocks.updateCampaign.mockRejectedValue(new Error("Pergunta não encontrada nesta campanha!"));
     const { result } = await renderEditando();
 
     await act(async () => {

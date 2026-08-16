@@ -34,10 +34,9 @@ function makeSale(overrides: Partial<SaleLike> = {}): SaleLike {
 
 describe("buildReceiptFromSale", () => {
   it("copia os dados da venda para o cupom", () => {
-    const receipt = buildReceiptFromSale(
-      makeSale({ discount: 2, notes: "entrega" }),
-      [{ productId: 7, productName: "CHICLETE", quantity: 2, unitPrice: 6 }],
-    );
+    const receipt = buildReceiptFromSale(makeSale({ discount: 2, notes: "entrega" }), [
+      { productId: 7, productName: "CHICLETE", quantity: 2, unitPrice: 6 },
+    ]);
 
     expect(receipt.saleId).toBe(42);
     expect(receipt.total).toBe(10);
@@ -45,9 +44,7 @@ describe("buildReceiptFromSale", () => {
     expect(receipt.notes).toBe("entrega");
     // O item da venda da API não carrega código de barras, então ele fica nulo
     // e a linha do código não é impressa.
-    expect(receipt.items).toEqual([
-      { name: "CHICLETE", quantity: 2, unitPrice: 6, barcode: null },
-    ]);
+    expect(receipt.items).toEqual([{ name: "CHICLETE", quantity: 2, unitPrice: 6, barcode: null }]);
   });
 
   it("repassa o código de barras quando a origem o conhece", () => {
@@ -59,19 +56,15 @@ describe("buildReceiptFromSale", () => {
   });
 
   it("nomeia o produto pelo ID quando a API não trouxe a descrição", () => {
-    const receipt = buildReceiptFromSale(makeSale(), [
-      { productId: 7, quantity: 1, unitPrice: 10 },
-    ]);
+    const receipt = buildReceiptFromSale(makeSale(), [{ productId: 7, quantity: 1, unitPrice: 10 }]);
 
     expect(receipt.items[0].name).toBe("Produto #7");
   });
 
   it("resolve o nome da forma de pagamento pelo mapa quando a venda não traz", () => {
-    const receipt = buildReceiptFromSale(
-      makeSale({ payments: [{ paymentMethodId: 3, amount: 10 }] }),
-      [],
-      { paymentMethodNameById: { 3: "PIX" } },
-    );
+    const receipt = buildReceiptFromSale(makeSale({ payments: [{ paymentMethodId: 3, amount: 10 }] }), [], {
+      paymentMethodNameById: { 3: "PIX" },
+    });
 
     expect(receipt.payments[0].name).toBe("PIX");
   });
@@ -186,10 +179,7 @@ describe("buildReceiptFromSale", () => {
   });
 
   it("não deixa o desconto ficar negativo com snapshot inconsistente", () => {
-    const receipt = buildReceiptFromSale(
-      makeSale({ discount: 5, couponDiscount: 12, couponCode: "X" }),
-      [],
-    );
+    const receipt = buildReceiptFromSale(makeSale({ discount: 5, couponDiscount: 12, couponCode: "X" }), []);
 
     expect(receipt.discount).toBe(0);
   });

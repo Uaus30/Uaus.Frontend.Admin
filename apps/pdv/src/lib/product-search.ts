@@ -1,8 +1,4 @@
-import {
-  ApiError,
-  searchPdvProducts,
-  type ProductPdvSearchDto,
-} from "@workspace/api-client-react";
+import { ApiError, searchPdvProducts, type ProductPdvSearchDto } from "@workspace/api-client-react";
 import { searchLocalProducts, type LocalProduct } from "@/offline";
 
 /**

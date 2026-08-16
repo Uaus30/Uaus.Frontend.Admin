@@ -9,29 +9,29 @@ não tem nenhum dado simulado: todos os números vêm de vendas reais.
 
 ### Hooks
 
-*   `hooks/useDashboard.ts`: período exibido e visão geral do intervalo (KPIs, série diária, quebras, ranking). O período vive aqui, e não em cada painel, para que os cards e os gráficos nunca mostrem recortes diferentes lado a lado.
-*   `hooks/useLiveToday.ts`: faturamento do dia corrente, com atualização automática a cada minuto.
-*   `hooks/useMonthlyComparison.ts`: mês atual contra o anterior e histórico dos meses fechados.
-*   `hooks/useSalesPatterns.ts`: padrões históricos, **carregados sob demanda**.
-*   `hooks/useSalesIntelligence.ts`: reposição e análise de cesta, **carregadas sob demanda**.
+- `hooks/useDashboard.ts`: período exibido e visão geral do intervalo (KPIs, série diária, quebras, ranking). O período vive aqui, e não em cada painel, para que os cards e os gráficos nunca mostrem recortes diferentes lado a lado.
+- `hooks/useLiveToday.ts`: faturamento do dia corrente, com atualização automática a cada minuto.
+- `hooks/useMonthlyComparison.ts`: mês atual contra o anterior e histórico dos meses fechados.
+- `hooks/useSalesPatterns.ts`: padrões históricos, **carregados sob demanda**.
+- `hooks/useSalesIntelligence.ts`: reposição e análise de cesta, **carregadas sob demanda**.
 
 ### Componentes
 
-*   `components/PeriodSelector.tsx`: cabeçalho com o período em vigor e os controles que o mudam (ver [padrão de calendário](../../components/ui/README.md)).
-*   `components/StatTile.tsx` / `components/DashboardKpis.tsx`: cards de faturamento, lucro, vendas e ticket médio.
-*   `components/LiveTodayCard.tsx`: número em destaque do dia, comparativos e faturamento por hora.
-*   `components/RevenueProfitChart.tsx`: faturamento e lucro dia a dia no período.
-*   `components/MonthComparisonCard.tsx`: curva acumulada do mês atual contra o anterior.
-*   `components/RevenueBreakdownCard.tsx`: quebra do faturamento por categoria e por forma de pagamento.
-*   `components/TopProductsTable.tsx`: ranking de produtos com margem e estoque.
-*   `components/PatternsPanel.tsx` + `components/PatternChart.tsx`: padrões por dia da semana, hora do dia e dia do mês.
-*   `components/IntelligencePanel.tsx` + `components/RestockList.tsx` + `components/BasketInsights.tsx`: inteligência comercial.
-*   `components/chart-primitives.tsx`: moldura, tooltip, legenda e especificações visuais compartilhadas.
+- `components/PeriodSelector.tsx`: cabeçalho com o período em vigor e os controles que o mudam (ver [padrão de calendário](../../components/ui/README.md)).
+- `components/StatTile.tsx` / `components/DashboardKpis.tsx`: cards de faturamento, lucro, vendas e ticket médio.
+- `components/LiveTodayCard.tsx`: número em destaque do dia, comparativos e faturamento por hora.
+- `components/RevenueProfitChart.tsx`: faturamento e lucro dia a dia no período.
+- `components/MonthComparisonCard.tsx`: curva acumulada do mês atual contra o anterior.
+- `components/RevenueBreakdownCard.tsx`: quebra do faturamento por categoria e por forma de pagamento.
+- `components/TopProductsTable.tsx`: ranking de produtos com margem e estoque.
+- `components/PatternsPanel.tsx` + `components/PatternChart.tsx`: padrões por dia da semana, hora do dia e dia do mês.
+- `components/IntelligencePanel.tsx` + `components/RestockList.tsx` + `components/BasketInsights.tsx`: inteligência comercial.
+- `components/chart-primitives.tsx`: moldura, tooltip, legenda e especificações visuais compartilhadas.
 
 ### Apoio
 
-*   `types.ts`: contratos espelhando os DTOs de `/Dashboard`.
-*   `utils.ts`: resolução de períodos, variação percentual e formatadores.
+- `types.ts`: contratos espelhando os DTOs de `/Dashboard`.
+- `utils.ts`: resolução de períodos, variação percentual e formatadores.
 
 ---
 
@@ -39,9 +39,9 @@ não tem nenhum dado simulado: todos os números vêm de vendas reais.
 
 ### 1. Definição de faturamento e lucro
 
-*   **Faturamento** é a soma de `sales.total`, que já está **líquido** do desconto da venda.
-*   **Lucro** é a soma do lucro dos itens **menos** o desconto do cabeçalho. `sale_items.profit` é calculado sobre o preço cheio e não enxerga o abatimento dado no fechamento; sem essa subtração o painel reportaria lucro maior que o real em toda venda com desconto.
-*   Vendas canceladas (`PaymentStatus.Cancelled`) ficam fora de todos os números, o mesmo critério do resumo de caixa.
+- **Faturamento** é a soma de `sales.total`, que já está **líquido** do desconto da venda.
+- **Lucro** é a soma do lucro dos itens **menos** o desconto do cabeçalho. `sale_items.profit` é calculado sobre o preço cheio e não enxerga o abatimento dado no fechamento; sem essa subtração o painel reportaria lucro maior que o real em toda venda com desconto.
+- Vendas canceladas (`PaymentStatus.Cancelled`) ficam fora de todos os números, o mesmo critério do resumo de caixa.
 
 ### 2. Períodos
 

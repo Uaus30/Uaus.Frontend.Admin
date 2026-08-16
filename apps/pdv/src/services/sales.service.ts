@@ -487,9 +487,7 @@ export async function getSaleItems(saleId: number) {
  */
 export async function restoreCancelledSaleStock(saleId: number): Promise<void> {
   const items = await getSaleItems(saleId);
-  await restoreLocalStock(
-    items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-  );
+  await restoreLocalStock(items.map((item) => ({ productId: item.productId, quantity: item.quantity })));
 }
 
 /**

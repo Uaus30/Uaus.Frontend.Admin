@@ -76,5 +76,3 @@ export function DashboardKpis({ overview, isLoading }: DashboardKpisProps) {
     </div>
   );
 }
-
-

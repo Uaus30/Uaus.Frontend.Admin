@@ -74,9 +74,7 @@ function reversedNote(report: CampaignReportDto): string {
   if (report.overLimit > 0) avisos.push(`${report.overLimit} acima do limite do cupom`);
   if (report.definitionDrift > 0) avisos.push(`${report.definitionDrift} com definição divergente`);
 
-  return avisos.length > 0
-    ? avisos.join(" · ")
-    : "Resgate estornado sai de todas as somas de dinheiro.";
+  return avisos.length > 0 ? avisos.join(" · ") : "Resgate estornado sai de todas as somas de dinheiro.";
 }
 
 /**
@@ -157,9 +155,7 @@ export function buildReportCards(report: CampaignReportDto): CampaignReportCard[
  */
 export function describeReportWindow(startsAt: string, endsAt?: string | null): string {
   const inicio = formatDate(startsAt);
-  return endsAt == null
-    ? `${inicio} até agora (campanha em aberto)`
-    : `${inicio} até ${formatDate(endsAt)}`;
+  return endsAt == null ? `${inicio} até agora (campanha em aberto)` : `${inicio} até ${formatDate(endsAt)}`;
 }
 
 /**
@@ -177,14 +173,7 @@ export function describeReportWindow(startsAt: string, endsAt?: string | null): 
  * @param campaignId Campanha do relatório; indefinido mantém a query desligada.
  */
 export function useCampaignReport(campaignId?: number) {
-  const {
-    data: report,
-    isLoading,
-    isFetching,
-    isError,
-    error,
-    refetch,
-  } = useGetCampaignReport(campaignId);
+  const { data: report, isLoading, isFetching, isError, error, refetch } = useGetCampaignReport(campaignId);
 
   // 5xx não tem o que o usuário corrigir e deixaria a tela vazia sem explicação;
   // 4xx (campanha inexistente) vira o estado de erro da página, com a mensagem
@@ -196,9 +185,7 @@ export function useCampaignReport(campaignId?: number) {
 
   // Série toda em zero não é gráfico, é uma reta rente ao eixo: a tela mostra o
   // estado vazio em vez de sugerir que houve movimento medido.
-  const hasDailyMovement = daily.some(
-    (point) => point.campaignRevenue !== 0 || point.periodRevenue !== 0,
-  );
+  const hasDailyMovement = daily.some((point) => point.campaignRevenue !== 0 || point.periodRevenue !== 0);
 
   return {
     report,

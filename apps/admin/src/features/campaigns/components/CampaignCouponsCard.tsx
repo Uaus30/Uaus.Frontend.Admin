@@ -41,12 +41,7 @@ function formatValidity(coupon: CouponDto): string {
  * quem decide dinheiro é a vigência e o valor do próprio cupom. A campanha só
  * decide se as perguntas aparecem.
  */
-export function CampaignCouponsCard({
-  coupons,
-  total,
-  isLoading,
-  onCreateCoupon,
-}: CampaignCouponsCardProps) {
+export function CampaignCouponsCard({ coupons, total, isLoading, onCreateCoupon }: CampaignCouponsCardProps) {
   return (
     <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-3">
@@ -67,8 +62,7 @@ export function CampaignCouponsCard({
 
       {!isLoading && coupons.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Nenhum cupom aponta para esta campanha ainda — sem cupom, o questionário nunca chega ao
-          caixa.
+          Nenhum cupom aponta para esta campanha ainda — sem cupom, o questionário nunca chega ao caixa.
         </p>
       )}
 
@@ -96,9 +90,7 @@ export function CampaignCouponsCard({
               {/* Ausente = ILIMITADO. Exibir 0 aqui diria "esgotado" justamente
                   no cupom que nunca esgota. */}
               <span>
-                {coupon.remainingUses == null
-                  ? "usos ilimitados"
-                  : `${coupon.remainingUses} usos restantes`}
+                {coupon.remainingUses == null ? "usos ilimitados" : `${coupon.remainingUses} usos restantes`}
               </span>
             </div>
           </div>

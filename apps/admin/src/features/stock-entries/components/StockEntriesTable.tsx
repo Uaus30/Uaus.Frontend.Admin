@@ -31,7 +31,7 @@ type StockEntriesTableProps = {
 
 /**
  * StockEntriesTable
- * 
+ *
  * Component rendering the list of stock entries with filtering.
  */
 export function StockEntriesTable({
@@ -110,7 +110,9 @@ export function StockEntriesTable({
                       <TableCell className="px-4 py-3 text-sm font-medium">
                         {sup?.name || "Não informado"}
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-sm font-mono">{entry.invoiceNumber || "-"}</TableCell>
+                      <TableCell className="px-4 py-3 text-sm font-mono">
+                        {entry.invoiceNumber || "-"}
+                      </TableCell>
                       <TableCell className="px-4 py-3 text-sm font-semibold text-right text-emerald-500">
                         {formatCurrency(entry.total)}
                       </TableCell>
@@ -159,5 +161,3 @@ export function StockEntriesTable({
     </Card>
   );
 }
-
-

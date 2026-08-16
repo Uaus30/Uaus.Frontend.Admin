@@ -153,14 +153,12 @@ export function buildProductCollections(input: {
 
   const enrichedProducts = input.products.map<EnrichedProduct>((product) => {
     const productGroup = groupsById.get(product.productGroupId) ?? null;
-    const category = productGroup ? categoriesById.get(productGroup.categoryId) ?? null : null;
-    const department = category ? departmentsById.get(category.departmentId) ?? null : null;
+    const category = productGroup ? (categoriesById.get(productGroup.categoryId) ?? null) : null;
+    const department = category ? (departmentsById.get(category.departmentId) ?? null) : null;
     const tags = (tagsByProductId.get(product.id) ?? []).sort((a, b) =>
       a.name.localeCompare(b.name, "pt-BR"),
     );
-    const images = (imagesByProductId.get(product.id) ?? []).sort(
-      (a, b) => a.displayOrder - b.displayOrder,
-    );
+    const images = (imagesByProductId.get(product.id) ?? []).sort((a, b) => a.displayOrder - b.displayOrder);
 
     return {
       ...product,
@@ -200,7 +198,7 @@ export function buildEnrichedSales(input: {
 
   return input.sales.map<EnrichedSale>((sale) => ({
     ...sale,
-    customer: sale.customerId ? customersById.get(sale.customerId) ?? null : null,
+    customer: sale.customerId ? (customersById.get(sale.customerId) ?? null) : null,
     items: (itemsBySaleId.get(sale.id) ?? []).map((item) => ({
       ...item,
       product: productsById.get(item.productId) ?? null,

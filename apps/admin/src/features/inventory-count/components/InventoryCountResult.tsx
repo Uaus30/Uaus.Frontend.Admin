@@ -38,8 +38,8 @@ export function InventoryCountResult({ result, isApplied }: InventoryCountResult
 
       {result.notCountedRows > 0 && (
         <Callout tone="muted" icon={Info} title={`${result.notCountedRows} produto(s) não contado(s)`}>
-          Linhas com a coluna de contagem em branco foram ignoradas — em branco significa
-          não contado, e nunca zero. Elas continuam com o saldo atual.
+          Linhas com a coluna de contagem em branco foram ignoradas — em branco significa não contado, e nunca
+          zero. Elas continuam com o saldo atual.
         </Callout>
       )}
 
@@ -77,9 +77,7 @@ function Summary({ result, isApplied }: InventoryCountResultProps) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <p className="truncate font-mono text-sm text-muted-foreground">{result.fileName}</p>
-        {isApplied && (
-          <Badge className="border-none bg-emerald-500 text-white">Aplicada</Badge>
-        )}
+        {isApplied && <Badge className="border-none bg-emerald-500 text-white">Aplicada</Badge>}
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -208,5 +206,3 @@ function Callout({ tone, icon: Icon, title, children }: CalloutProps) {
     </div>
   );
 }
-
-

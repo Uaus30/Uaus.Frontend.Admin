@@ -229,9 +229,7 @@ describe("submitStockWriteOffReversal", () => {
   });
 
   it("deve exigir o motivo do estorno", async () => {
-    await expect(submitStockWriteOffReversal(42, "   ")).rejects.toThrow(
-      "Informe o motivo do estorno.",
-    );
+    await expect(submitStockWriteOffReversal(42, "   ")).rejects.toThrow("Informe o motivo do estorno.");
     expect(reverseStockWriteOff).not.toHaveBeenCalled();
   });
 });

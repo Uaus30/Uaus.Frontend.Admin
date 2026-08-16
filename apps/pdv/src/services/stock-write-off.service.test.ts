@@ -97,9 +97,9 @@ describe("registerWriteOff online", () => {
     // servidor baixava o estoque duas vezes.
     registerStockWriteOffRequest.mockRejectedValueOnce(new ApiError("Gateway Timeout", 504));
 
-    await expect(
-      registerWriteOff(payload(), { clientReference: "chave-do-rascunho" }),
-    ).rejects.toThrow("Gateway Timeout");
+    await expect(registerWriteOff(payload(), { clientReference: "chave-do-rascunho" })).rejects.toThrow(
+      "Gateway Timeout",
+    );
     await registerWriteOff(payload(), { clientReference: "chave-do-rascunho" });
 
     expect(sentBody(0).clientReference).toBe("chave-do-rascunho");
@@ -219,13 +219,9 @@ describe("registerWriteOff offline", () => {
   });
 
   it("deve recusar a baixa que não cabe no estoque local", async () => {
-    checkLocalStock.mockResolvedValue([
-      { productId: 1, productName: "Café", requested: 2, available: 1 },
-    ]);
+    checkLocalStock.mockResolvedValue([{ productId: 1, productName: "Café", requested: 2, available: 1 }]);
 
-    await expect(registerWriteOff(payload(), { offline: true })).rejects.toBeInstanceOf(
-      LocalStockError,
-    );
+    await expect(registerWriteOff(payload(), { offline: true })).rejects.toBeInstanceOf(LocalStockError);
 
     // Nada é gravado: o backend recusa baixa acima do saldo, e enfileirar uma
     // baixa condenada só adiaria a recusa para a sincronização.
@@ -234,9 +230,7 @@ describe("registerWriteOff offline", () => {
   });
 
   it("deve informar no erro qual produto faltou", async () => {
-    checkLocalStock.mockResolvedValue([
-      { productId: 1, productName: "Café", requested: 5, available: 2 },
-    ]);
+    checkLocalStock.mockResolvedValue([{ productId: 1, productName: "Café", requested: 5, available: 2 }]);
 
     await expect(registerWriteOff(payload(), { offline: true })).rejects.toThrow(/Café.*5.*2/);
   });

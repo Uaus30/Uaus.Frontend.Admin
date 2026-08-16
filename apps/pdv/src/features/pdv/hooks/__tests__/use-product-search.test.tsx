@@ -204,7 +204,10 @@ describe("useProductSearch", () => {
     // que ele acabou de apagar — e ele adiciona o produto errado ao carrinho.
     let resolver: (produtos: unknown[]) => void = () => {};
     searchProducts.mockImplementation(
-      () => new Promise((resolve) => { resolver = resolve as (p: unknown[]) => void; }),
+      () =>
+        new Promise((resolve) => {
+          resolver = resolve as (p: unknown[]) => void;
+        }),
     );
 
     const { result } = renderHook(() => useProductSearch({ online: true }));

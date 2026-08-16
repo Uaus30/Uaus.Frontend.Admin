@@ -49,9 +49,7 @@ export function AffinityList({ items }: { items: ProductAffinity[] }) {
 
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>
-              <span className="font-medium text-foreground tabular-nums">
-                {item.confidence.toFixed(0)}%
-              </span>{" "}
+              <span className="font-medium text-foreground tabular-nums">{item.confidence.toFixed(0)}%</span>{" "}
               de quem leva o primeiro leva o segundo
             </span>
             <span>

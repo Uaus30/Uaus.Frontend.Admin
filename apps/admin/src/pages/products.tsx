@@ -24,7 +24,10 @@ export default function Products() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Produtos</h1>
           </div>
-          <Button onClick={() => editor.openModal()} className="bg-primary text-primary-foreground hover-elevate">
+          <Button
+            onClick={() => editor.openModal()}
+            className="bg-primary text-primary-foreground hover-elevate"
+          >
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
         </div>
@@ -79,5 +82,3 @@ export default function Products() {
     </AppLayout>
   );
 }
-
-

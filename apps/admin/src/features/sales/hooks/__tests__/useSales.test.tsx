@@ -7,13 +7,13 @@ import { useGetSales } from "@workspace/api-client-react";
 
 // Mock the services
 vi.mock("@/services/core", () => ({
-  getEnumOptions: vi.fn(() => Promise.resolve([
-    { id: 1, name: "Pix", allowSelect: true },
-  ])),
+  getEnumOptions: vi.fn(() => Promise.resolve([{ id: 1, name: "Pix", allowSelect: true }])),
 }));
 
 vi.mock("@/services/mappers", () => ({
-  buildProductCollections: vi.fn(() => ({ enrichedProducts: [{ id: 1, name: "Prod 1", price: 100, stock: 10 }] })),
+  buildProductCollections: vi.fn(() => ({
+    enrichedProducts: [{ id: 1, name: "Prod 1", price: 100, stock: 10 }],
+  })),
   buildEnrichedSales: vi.fn(() => []),
 }));
 
@@ -64,7 +64,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
       page: 1,
       limit: 100,
       total: 1,
-      totalPages: 1
+      totalPages: 1,
     },
     isLoading: false,
   })),

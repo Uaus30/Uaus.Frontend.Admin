@@ -8,7 +8,7 @@ import { GradeEditorModal } from "@/features/grades/components/GradeEditorModal"
 
 /**
  * Grades Page Component
- * 
+ *
  * Renders the Grades admin layout, connecting page-level headers
  * to the useGrades state manager hook and child presentation components.
  */
@@ -118,5 +118,3 @@ export default function Grades() {
     </AppLayout>
   );
 }
-
-

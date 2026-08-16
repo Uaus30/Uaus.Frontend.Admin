@@ -16,10 +16,7 @@
  * @returns Até 11 dígitos, sem máscara.
  */
 export function cleanPhone(value: string): string {
-  return value
-    .replace(/\D/g, "")
-    .replace(/^0+/, "")
-    .slice(0, 11);
+  return value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 11);
 }
 
 /**

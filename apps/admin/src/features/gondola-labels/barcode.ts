@@ -12,9 +12,7 @@ export function hasValidEanCheckDigit(digits: string): boolean {
 
   const numbers = digits.split("").map(Number);
   const check = numbers.pop() ?? 0;
-  const sum = numbers
-    .reverse()
-    .reduce((acc, digit, index) => acc + digit * (index % 2 === 0 ? 3 : 1), 0);
+  const sum = numbers.reverse().reduce((acc, digit, index) => acc + digit * (index % 2 === 0 ? 3 : 1), 0);
 
   return (10 - (sum % 10)) % 10 === check;
 }

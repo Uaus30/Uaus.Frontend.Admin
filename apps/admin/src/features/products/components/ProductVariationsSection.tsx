@@ -31,7 +31,7 @@ type ProductVariationsSectionProps = {
 
 /**
  * ProductVariationsSection
- * 
+ *
  * Renders the variations table when hasVariations is enabled.
  * Features:
  * - Table header with headers matching selected category grades.
@@ -64,7 +64,9 @@ export function ProductVariationsSection({
       className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-5 mt-6 animate-in fade-in slide-in-from-bottom-4 transition-all duration-300"
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">VARIAÇÕES DO PRODUTO</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          VARIAÇÕES DO PRODUTO
+        </h2>
         {isFetchingGroupProducts ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : null}
       </div>
 
@@ -299,5 +301,3 @@ export function ProductVariationsSection({
     </div>
   );
 }
-
-

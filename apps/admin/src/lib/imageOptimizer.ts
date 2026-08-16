@@ -38,10 +38,10 @@ function getDynamicQuality(sizeBytes: number): number {
   const twoMega = 2 * 1024 * 1024;
 
   if (sizeBytes > fiveMega) {
-    return 0.70; // Compressão mais agressiva para imagens gigantes
+    return 0.7; // Compressão mais agressiva para imagens gigantes
   }
   if (sizeBytes > twoMega) {
-    return 0.80; // Compressão média/balanceada
+    return 0.8; // Compressão média/balanceada
   }
   return 0.85; // Compressão leve para imagens menores
 }
@@ -64,7 +64,7 @@ function isCanvasSupported(): boolean {
 
 /**
  * Otimiza um arquivo de imagem no frontend para reduzir o seu tamanho físico em bytes.
- * 
+ *
  * Se a imagem for muito grande ou pesada, ela será redimensionada respeitando as proporções
  * originais e comprimida com uma taxa de qualidade dinâmica ou pré-definida. PNG vira WebP
  * (preserva a transparência); os demais formatos viram JPEG.
@@ -75,7 +75,7 @@ function isCanvasSupported(): boolean {
  */
 export async function optimizeImage(
   file: File,
-  options: ImageOptimizerOptions = {}
+  options: ImageOptimizerOptions = {},
 ): Promise<ImageOptimizerResult> {
   const {
     maxWidth = 1600,
@@ -138,7 +138,7 @@ export async function optimizeImage(
 
         // Obter qualidade (dinâmica ou parametrizada)
         const quality = options.quality ?? getDynamicQuality(file.size);
-        
+
         const isPng = file.type === "image/png";
         const newType = isPng ? "image/webp" : "image/jpeg";
 
@@ -176,7 +176,7 @@ export async function optimizeImage(
             }
           },
           newType,
-          quality
+          quality,
         );
       };
 
@@ -192,5 +192,3 @@ export async function optimizeImage(
     return resultFallback;
   }
 }
-
-

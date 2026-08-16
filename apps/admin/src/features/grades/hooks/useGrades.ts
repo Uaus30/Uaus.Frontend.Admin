@@ -30,7 +30,7 @@ function mapDtoToGrade(dto: GradeDto, typeMap: Record<number | string, GradeType
 
 /**
  * useGrades
- * 
+ *
  * Hook customizado para gerenciar regras de negócios, consultas e operações
  * da visualização administrativa de Grades e Dimensões.
  */
@@ -49,7 +49,7 @@ export function useGrades() {
 
   const selectableGradeTypeOptions = useMemo(
     () => gradeTypeOptions.filter((opt) => opt.allowSelect),
-    [gradeTypeOptions]
+    [gradeTypeOptions],
   );
 
   // Mapeadores entre a API (Numérico/Enum de API) e a UI (Texto em Português)
@@ -59,14 +59,14 @@ export function useGrades() {
       2: "Cor",
       3: "Modelo",
       4: "Estampa",
-      "Size": "Tamanho",
-      "Color": "Cor",
-      "Model": "Modelo",
-      "Print": "Estampa",
-      "size": "Tamanho",
-      "color": "Cor",
-      "model": "Modelo",
-      "print": "Estampa",
+      Size: "Tamanho",
+      Color: "Cor",
+      Model: "Modelo",
+      Print: "Estampa",
+      size: "Tamanho",
+      color: "Cor",
+      model: "Modelo",
+      print: "Estampa",
     };
     gradeTypeOptions.forEach((opt) => {
       const name = opt.name as GradeType;
@@ -92,7 +92,10 @@ export function useGrades() {
 
   // Busca todas as grades cadastradas
   const { data: apiGrades = [], isLoading } = useGetGrades();
-  const grades = useMemo(() => apiGrades.map((g) => mapDtoToGrade(g, typeMapFromApi)), [apiGrades, typeMapFromApi]);
+  const grades = useMemo(
+    () => apiGrades.map((g) => mapDtoToGrade(g, typeMapFromApi)),
+    [apiGrades, typeMapFromApi],
+  );
 
   // Busca categorias e departamentos para vinculação
   const { data: categories = [] } = useAllCategories();

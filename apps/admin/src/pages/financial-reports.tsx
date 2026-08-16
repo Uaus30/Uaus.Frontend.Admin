@@ -59,8 +59,8 @@ export default function FinancialReportsPage() {
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Prévia do resultado do período calculada ao vivo — o documento oficial é o
-              fechamento financeiro.
+              Prévia do resultado do período calculada ao vivo — o documento oficial é o fechamento
+              financeiro.
             </p>
           </div>
 
@@ -129,5 +129,3 @@ export default function FinancialReportsPage() {
     </AppLayout>
   );
 }
-
-

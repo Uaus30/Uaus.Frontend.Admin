@@ -29,7 +29,7 @@ type DepartmentTableProps = {
 
 /**
  * DepartmentTable
- * 
+ *
  * Renders the search, tabular list of departments, and paginator footer.
  */
 export function DepartmentTable({
@@ -45,9 +45,7 @@ export function DepartmentTable({
 }: DepartmentTableProps) {
   // A confirmação guarda o departamento inteiro, não só o id: o diálogo precisa
   // do nome e da contagem de categorias para dizer o que exatamente se perde.
-  const [departmentToDelete, setDepartmentToDelete] = React.useState<EnrichedDepartment | null>(
-    null,
-  );
+  const [departmentToDelete, setDepartmentToDelete] = React.useState<EnrichedDepartment | null>(null);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
@@ -102,9 +100,7 @@ export function DepartmentTable({
                       {department.name}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {department.description || "-"}
-                  </td>
+                  <td className="px-6 py-4 text-muted-foreground">{department.description || "-"}</td>
                   <td className="px-6 py-4 font-medium">
                     <div className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
                       <FolderTree className="h-3.5 w-3.5" />
@@ -183,5 +179,3 @@ export function DepartmentTable({
     </div>
   );
 }
-
-

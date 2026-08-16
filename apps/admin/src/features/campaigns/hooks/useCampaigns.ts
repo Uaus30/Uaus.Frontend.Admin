@@ -156,8 +156,7 @@ export function useCampaigns() {
       if ((pagedData?.data.length ?? 0) === 1) setPage((current) => Math.max(1, current - 1));
       toast({
         title: "Campanha excluída.",
-        description:
-          "Os cupons ligados a ela continuam valendo — só o questionário deixa de aparecer.",
+        description: "Os cupons ligados a ela continuam valendo — só o questionário deixa de aparecer.",
       });
     },
     onError: (error: unknown) => {

@@ -45,7 +45,10 @@ export function CategoryReportModal({
               <Spinner />
             </div>
           ) : (
-            <CatalogReportBody report={selectedReport} emptyMessage="Esta categoria ainda não tem produtos cadastrados." />
+            <CatalogReportBody
+              report={selectedReport}
+              emptyMessage="Esta categoria ainda não tem produtos cadastrados."
+            />
           )}
         </div>
 
@@ -56,5 +59,3 @@ export function CategoryReportModal({
     </Dialog>
   );
 }
-
-

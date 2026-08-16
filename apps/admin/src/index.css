@@ -78,11 +78,11 @@
 
 /* DARK MODE — Primary theme (always dark) */
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
 
   /* Deep dark slate background */
   --background: 222 47% 7%;
@@ -146,45 +146,53 @@
   --chart-4: 330 92% 40%;
   --chart-5: 189 92% 38%;
 
-  --app-font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --app-font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'JetBrains Mono', Menlo, monospace;
-  --radius: .625rem;
+  --app-font-mono: "JetBrains Mono", Menlo, monospace;
+  --radius: 0.625rem;
 
-  --shadow-2xs: 0 1px 3px 0 rgba(0,0,0,0.4);
-  --shadow-xs: 0 1px 3px 0 rgba(0,0,0,0.4);
-  --shadow-sm: 0 2px 6px -1px rgba(0,0,0,0.5);
-  --shadow: 0 4px 12px -2px rgba(0,0,0,0.5);
-  --shadow-md: 0 6px 16px -4px rgba(0,0,0,0.6);
-  --shadow-lg: 0 10px 24px -6px rgba(0,0,0,0.6);
-  --shadow-xl: 0 16px 32px -8px rgba(0,0,0,0.7);
-  --shadow-2xl: 0 24px 48px -12px rgba(0,0,0,0.8);
+  --shadow-2xs: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 16px -4px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 24px -6px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 32px -8px rgba(0, 0, 0, 0.7);
+  --shadow-2xl: 0 24px 48px -12px rgba(0, 0, 0, 0.8);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(
+    from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(
+    from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(
+    from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(
+    from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 }
 
 /* Same dark theme for .dark class (always dark app) */
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
 
   --background: 222 47% 7%;
   --foreground: 210 40% 96%;
@@ -221,14 +229,14 @@
   --chart-4: 142 71% 45%;
   --chart-5: 32 98% 55%;
 
-  --shadow-2xs: 0 1px 3px 0 rgba(0,0,0,0.4);
-  --shadow-xs: 0 1px 3px 0 rgba(0,0,0,0.4);
-  --shadow-sm: 0 2px 6px -1px rgba(0,0,0,0.5);
-  --shadow: 0 4px 12px -2px rgba(0,0,0,0.5);
-  --shadow-md: 0 6px 16px -4px rgba(0,0,0,0.6);
-  --shadow-lg: 0 10px 24px -6px rgba(0,0,0,0.6);
-  --shadow-xl: 0 16px 32px -8px rgba(0,0,0,0.7);
-  --shadow-2xl: 0 24px 48px -12px rgba(0,0,0,0.8);
+  --shadow-2xs: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 16px -4px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 24px -6px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 32px -8px rgba(0, 0, 0, 0.7);
+  --shadow-2xl: 0 24px 48px -12px rgba(0, 0, 0, 0.8);
 }
 
 @layer base {
@@ -268,16 +276,30 @@
 }
 
 @keyframes border-flash {
-  0%, 100% { box-shadow: 0 0 0 rgba(34,197,94,0); border-color: inherit; }
-  50% { box-shadow: 0 0 12px rgba(34,197,94,0.8); border-color: #22c55e; }
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+    border-color: inherit;
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    border-color: #22c55e;
+  }
 }
 .animate-border-flash {
   animation: border-flash 0.8s ease-in-out 1;
 }
 
 @keyframes border-flash-primary {
-  0%, 100% { box-shadow: 0 0 0 hsla(var(--primary), 0); border-color: inherit; }
-  50% { box-shadow: 0 0 16px hsla(var(--primary), 0.4); border-color: hsl(var(--primary)); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 hsla(var(--primary), 0);
+    border-color: inherit;
+  }
+  50% {
+    box-shadow: 0 0 16px hsla(var(--primary), 0.4);
+    border-color: hsl(var(--primary));
+  }
 }
 .animate-border-flash-primary {
   animation: border-flash-primary 1.2s ease-in-out 1;
@@ -310,8 +332,10 @@
     pointer-events: none;
   }
 
-  .no-default-hover-elevate {}
-  .no-default-active-elevate {}
+  .no-default-hover-elevate {
+  }
+  .no-default-active-elevate {
+  }
 
   .toggle-elevate::before,
   .toggle-elevate-2::before {
@@ -377,7 +401,7 @@
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
   background-color: hsl(var(--card));
   font-family: var(--app-font-sans);
 }
@@ -445,7 +469,9 @@
   line-height: 2.2rem;
   font-size: 0.8rem;
   margin: 0.1rem;
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition:
+    background-color 0.1s ease,
+    color 0.1s ease;
 }
 
 .uaus-rdp-dark .react-datepicker__day:hover {
@@ -531,4 +557,3 @@
 .uaus-rdp-dark .react-datepicker__triangle {
   display: none;
 }
-

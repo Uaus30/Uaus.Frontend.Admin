@@ -1,13 +1,7 @@
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { formatPhone } from "@workspace/core";
@@ -28,8 +22,17 @@ function getInitials(name: string) {
 /**
  * Componente interno de avatar do fornecedor.
  */
-function SupplierAvatar({ name, color, size = "md" }: { name: string; color: string; size?: "sm" | "md" | "lg" }) {
-  const sizeClass = size === "sm" ? "h-9 w-9 text-sm" : size === "lg" ? "h-16 w-16 text-2xl" : "h-10 w-10 text-sm";
+function SupplierAvatar({
+  name,
+  color,
+  size = "md",
+}: {
+  name: string;
+  color: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const sizeClass =
+    size === "sm" ? "h-9 w-9 text-sm" : size === "lg" ? "h-16 w-16 text-2xl" : "h-10 w-10 text-sm";
 
   return (
     <div
@@ -174,18 +177,29 @@ export function SuppliersTable({
               </tr>
             ) : (
               suppliers.map((supplier) => (
-                <tr key={supplier.id} className="border-b border-border/50 transition-colors hover:bg-muted/20">
+                <tr
+                  key={supplier.id}
+                  className="border-b border-border/50 transition-colors hover:bg-muted/20"
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <SupplierAvatar name={supplier.name} color={supplier.avatarColor} size="sm" />
                       <div>
                         <p className="leading-tight font-medium text-foreground">{supplier.name}</p>
-                        {supplier.corporateName && <p className="mt-0.5 text-xs text-muted-foreground">{supplier.corporateName}</p>}
-                        {supplier.document && <p className="mt-0.5 font-mono text-xs text-muted-foreground/70">{supplier.document}</p>}
+                        {supplier.corporateName && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">{supplier.corporateName}</p>
+                        )}
+                        {supplier.document && (
+                          <p className="mt-0.5 font-mono text-xs text-muted-foreground/70">
+                            {supplier.document}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-muted-foreground">{supplier.salesRepresentative || "Não informado"}</td>
+                  <td className="px-6 py-4 text-muted-foreground">
+                    {supplier.salesRepresentative || "Não informado"}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       {supplier.phone ? (
@@ -204,19 +218,30 @@ export function SuppliersTable({
                       ) : (
                         <span className="text-xs text-muted-foreground">Não informado</span>
                       )}
-                      {supplier.email && <span className="max-w-[180px] truncate text-xs text-muted-foreground">{supplier.email}</span>}
+                      {supplier.email && (
+                        <span className="max-w-[180px] truncate text-xs text-muted-foreground">
+                          {supplier.email}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
-                    {supplier.city || supplier.state ? [supplier.city, supplier.state].filter(Boolean).join("/") : "Não informado"}
+                    {supplier.city || supplier.state
+                      ? [supplier.city, supplier.state].filter(Boolean).join("/")
+                      : "Não informado"}
                   </td>
-                  <td className="px-6 py-4 font-medium text-primary">{formatCurrency(supplier.minimumPurchaseValue)}</td>
+                  <td className="px-6 py-4 font-medium text-primary">
+                    {formatCurrency(supplier.minimumPurchaseValue)}
+                  </td>
                   <td className="px-6 py-4">
                     <Badge className="border-0 bg-emerald-500/20 text-emerald-400">
                       {statusLabelById[supplier.status] ?? (supplier.status ? supplier.status : "Sem status")}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-xs text-muted-foreground max-w-[200px]" title={supplier.description || ""}>
+                  <td
+                    className="px-6 py-4 text-xs text-muted-foreground max-w-[200px]"
+                    title={supplier.description || ""}
+                  >
                     <div className="line-clamp-2 leading-tight break-words">
                       {supplier.description || "-"}
                     </div>
@@ -270,11 +295,23 @@ export function SuppliersTable({
           <span className="ml-2">Total: {suppliersPage?.total || 0}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => onPageChange((current) => current - 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => onPageChange((current) => current - 1)}
+          >
             Anterior
           </Button>
-          <span className="px-2 text-xs">{page} / {totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange((current) => current + 1)}>
+          <span className="px-2 text-xs">
+            {page} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange((current) => current + 1)}
+          >
             Próxima
           </Button>
         </div>
@@ -282,5 +319,3 @@ export function SuppliersTable({
     </div>
   );
 }
-
-

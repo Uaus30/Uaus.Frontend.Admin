@@ -7,12 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
-import type {
-  BackendPagedResult,
-  EnumValue,
-  QueryKey,
-  UiPagedResult,
-} from "../models";
+import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
 
 // ---------------------------------------------------------------------------
 // Baixas de estoque e configurações da empresa

@@ -1,13 +1,6 @@
 import { ReceiptText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { FinancialReportFixedCostsDto } from "../types";
 
@@ -28,8 +21,7 @@ export function FixedCostsCard({ fixedCosts }: FixedCostsCardProps) {
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Custos fixos do período</CardTitle>
         <CardDescription>
-          Competência mensal: cada mês tocado pelo período lança o valor mensal cheio, sem
-          pró-rata.
+          Competência mensal: cada mês tocado pelo período lança o valor mensal cheio, sem pró-rata.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -56,18 +48,14 @@ export function FixedCostsCard({ fixedCosts }: FixedCostsCardProps) {
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.monthlyAmount)}</TableCell>
                     <TableCell className="text-right">{item.monthsCount}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatCurrency(item.total)}
-                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(item.total)}</TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted/20">
                   <TableCell colSpan={3} className="font-semibold">
                     Total no período
                   </TableCell>
-                  <TableCell className="text-right font-bold">
-                    {formatCurrency(fixedCosts.total)}
-                  </TableCell>
+                  <TableCell className="text-right font-bold">{formatCurrency(fixedCosts.total)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -77,5 +65,3 @@ export function FixedCostsCard({ fixedCosts }: FixedCostsCardProps) {
     </Card>
   );
 }
-
-

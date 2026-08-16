@@ -12,7 +12,11 @@ import { buildReceiptFromSale, resolveStoreInfo } from "@workspace/receipt";
 import { describeApiError, round2 } from "@workspace/core";
 import { useToast } from "@workspace/ui";
 import { usePdvStore } from "@/stores/use-pdv-store";
-import { cancelSale as cancelSaleRequest, getSaleItems, restoreCancelledSaleStock } from "@/services/sales.service";
+import {
+  cancelSale as cancelSaleRequest,
+  getSaleItems,
+  restoreCancelledSaleStock,
+} from "@/services/sales.service";
 import type { PdvItem } from "../types";
 import { useReceiptPrinter } from "./use-receipt-printer";
 
@@ -68,7 +72,10 @@ export function useSaleHistoryActions({
         }
 
         await onSaleChanged();
-        toast({ title: "Venda cancelada", description: `A venda #${sale.id} foi cancelada e o estoque devolvido.` });
+        toast({
+          title: "Venda cancelada",
+          description: `A venda #${sale.id} foi cancelada e o estoque devolvido.`,
+        });
       } catch (error) {
         toast({
           title: "Não foi possível cancelar",

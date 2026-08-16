@@ -6,7 +6,15 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, mapPagedResult, extractCreatedId } from "../client";
+import {
+  apiGetOrThrow,
+  apiPost,
+  apiPut,
+  apiDelete,
+  ApiError,
+  mapPagedResult,
+  extractCreatedId,
+} from "../client";
 import type {
   BackendPagedResult,
   CreateFinancialClosingPayload,
@@ -74,10 +82,7 @@ export async function createFixedCost(data: SaveFixedCostPayload): Promise<numbe
 }
 
 /** Atualiza um custo fixo. "Encerrar" um custo = preencher `endsOn` (hard delete só para lançado errado). */
-export async function updateFixedCost(
-  id: number,
-  data: SaveFixedCostPayload,
-): Promise<FixedCostDto | null> {
+export async function updateFixedCost(id: number, data: SaveFixedCostPayload): Promise<FixedCostDto | null> {
   const response = await apiPut<FixedCostDto>(`/FixedCosts/${id}`, data);
   return response.data;
 }
@@ -145,10 +150,7 @@ export async function createPartner(data: CreatePartnerPayload): Promise<number 
 }
 
 /** Atualiza um sócio. Desativar zera o percentual — rebalanceie antes do próximo fechamento. */
-export async function updatePartner(
-  id: number,
-  data: UpdatePartnerPayload,
-): Promise<PartnerDto | null> {
+export async function updatePartner(id: number, data: UpdatePartnerPayload): Promise<PartnerDto | null> {
   const response = await apiPut<PartnerDto>(`/Partners/${id}`, data);
   return response.data;
 }
@@ -212,24 +214,31 @@ export function useGetFinancialClosings(
   params?: { startDate?: string; endDate?: string; page?: number; limit?: number },
   options?: {
     query?: Omit<
-      UseQueryOptions<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>,
+      UseQueryOptions<
+        UiPagedResult<FinancialClosingDto>,
+        ApiError,
+        UiPagedResult<FinancialClosingDto>,
+        QueryKey
+      >,
       "queryKey" | "queryFn"
     >;
   },
 ) {
-  return useQuery<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>({
-    queryKey: [...getGetFinancialClosingsQueryKey(), params ?? {}],
-    queryFn: async () => {
-      const result = await apiGetOrThrow<BackendPagedResult<FinancialClosingDto>>("/FinancialClosings", {
-        startDate: params?.startDate,
-        endDate: params?.endDate,
-        page: params?.page ?? 1,
-        size: params?.limit ?? 20,
-      });
-      return mapPagedResult(result);
+  return useQuery<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>(
+    {
+      queryKey: [...getGetFinancialClosingsQueryKey(), params ?? {}],
+      queryFn: async () => {
+        const result = await apiGetOrThrow<BackendPagedResult<FinancialClosingDto>>("/FinancialClosings", {
+          startDate: params?.startDate,
+          endDate: params?.endDate,
+          page: params?.page ?? 1,
+          size: params?.limit ?? 20,
+        });
+        return mapPagedResult(result);
+      },
+      ...options?.query,
     },
-    ...options?.query,
-  });
+  );
 }
 
 /**
@@ -273,9 +282,7 @@ export async function previewFinancialClosing(
  * soma dos percentuais dos sócios ativos ≠ 100.
  * @returns O ID criado (do header Location) ou null se o header não vier.
  */
-export async function createFinancialClosing(
-  data: CreateFinancialClosingPayload,
-): Promise<number | null> {
+export async function createFinancialClosing(data: CreateFinancialClosingPayload): Promise<number | null> {
   const response = await apiPost<FinancialClosingDto>("/FinancialClosings", data);
   return extractCreatedId(response.response);
 }

@@ -3,7 +3,7 @@ import { Plus, Upload, X, HelpCircle, Globe } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import type { LocalImage } from "../types";
- 
+
 type ProductImagesSectionProps = {
   /** Array of currently uploaded or selected images in the frontend form */
   images: LocalImage[];
@@ -18,10 +18,10 @@ type ProductImagesSectionProps = {
   /** Callback opcional para acionar a busca de imagens na web */
   onSearchWebImage?: () => void;
 };
- 
+
 /**
  * ProductImagesSection
- * 
+ *
  * Renders the image manager for a product.
  * Features:
  * - Displays a grid of uploaded images (or a placeholder if empty).
@@ -63,7 +63,11 @@ export function ProductImagesSection({
             onClick={onSearchWebImage}
             disabled={!productName.trim()}
             className="h-8 text-xs gap-1.5"
-            title={!productName.trim() ? "Preencha o nome do produto para habilitar a busca" : "Buscar imagens na internet"}
+            title={
+              !productName.trim()
+                ? "Preencha o nome do produto para habilitar a busca"
+                : "Buscar imagens na internet"
+            }
           >
             <Globe className="h-3.5 w-3.5" />
             Buscar na Web
@@ -94,7 +98,9 @@ export function ProductImagesSection({
                 }
               }}
             >
-              <img loading="lazy" decoding="async"
+              <img
+                loading="lazy"
+                decoding="async"
                 src={image.url}
                 alt={image.name}
                 className="aspect-square w-full object-cover pointer-events-none"
@@ -107,7 +113,9 @@ export function ProductImagesSection({
                 <button
                   type="button"
                   className="rounded bg-card/90 p-1 text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
-                  onClick={() => setImages((current) => current.filter((_, currentIndex) => currentIndex !== index))}
+                  onClick={() =>
+                    setImages((current) => current.filter((_, currentIndex) => currentIndex !== index))
+                  }
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -142,6 +150,3 @@ export function ProductImagesSection({
     </div>
   );
 }
-
-
-

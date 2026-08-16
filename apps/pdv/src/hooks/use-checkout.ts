@@ -57,9 +57,7 @@ export function useCheckout(total: number, paymentMethods: PaymentMethodDto[]) {
   }
 
   function updatePaymentAmount(methodId: number, amount: number) {
-    setPayments((current) =>
-      current.map((p) => (p.paymentMethodId === methodId ? { ...p, amount } : p)),
-    );
+    setPayments((current) => current.map((p) => (p.paymentMethodId === methodId ? { ...p, amount } : p)));
   }
 
   function updatePaymentInstallment(methodId: number, installmentNumber: number) {
@@ -110,5 +108,3 @@ export function useCheckout(total: number, paymentMethods: PaymentMethodDto[]) {
     resetCheckout,
   };
 }
-
-

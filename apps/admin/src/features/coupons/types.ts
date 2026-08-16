@@ -1,8 +1,4 @@
-import type {
-  CouponDiscountTypeCode,
-  CouponDto,
-  SaveCouponPayload,
-} from "@workspace/api-client-react";
+import type { CouponDiscountTypeCode, CouponDto, SaveCouponPayload } from "@workspace/api-client-react";
 
 /**
  * Valores do formulário de cupom, exatamente como estão nos controles da tela.

@@ -49,10 +49,7 @@ export function useLabelComposer() {
     () => items.reduce((acc, item) => acc + Math.max(0, parseQuantityInput(item.quantityInput)), 0),
     [items],
   );
-  const totalProducts = useMemo(
-    () => new Set(items.map((item) => item.productId)).size,
-    [items],
-  );
+  const totalProducts = useMemo(() => new Set(items.map((item) => item.productId)).size, [items]);
 
   /** Etiquetas como serão impressas, para a pré-visualização em tela. */
   const previewLabels = useMemo<PrintableLabel[]>(() => items.map(draftToPrintable), [items]);
@@ -99,9 +96,7 @@ export function useLabelComposer() {
       if (patch.labelType !== undefined) {
         const conflict = current.some(
           (item, i) =>
-            i !== index &&
-            item.productId === target.productId &&
-            item.labelType === patch.labelType,
+            i !== index && item.productId === target.productId && item.labelType === patch.labelType,
         );
 
         if (conflict) {
@@ -118,8 +113,7 @@ export function useLabelComposer() {
     });
   };
 
-  const removeItem = (index: number) =>
-    setItems((current) => current.filter((_, i) => i !== index));
+  const removeItem = (index: number) => setItems((current) => current.filter((_, i) => i !== index));
 
   const clearItems = () => setItems([]);
 

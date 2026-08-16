@@ -1,6 +1,13 @@
 import React, { useRef } from "react";
 import { GripVertical, Info, Loader2, Plus, Search, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
@@ -79,7 +86,7 @@ type GradeEditorModalProps = {
 
 /**
  * GradeEditorModal
- * 
+ *
  * Tabbed dialog form component for creating and editing product dimension grades.
  */
 export function GradeEditorModal({
@@ -139,7 +146,11 @@ export function GradeEditorModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden mt-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex-1 flex flex-col overflow-hidden mt-4"
+        >
           <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="info">Informações Básicas</TabsTrigger>
             <TabsTrigger value="categories" className="relative">
@@ -173,13 +184,19 @@ export function GradeEditorModal({
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground font-medium block">Criado em</span>
                       <span className="text-foreground">
-                        {editingGrade?.createdAt ? new Date(editingGrade.createdAt).toLocaleString("pt-BR") : "-"}
+                        {editingGrade?.createdAt
+                          ? new Date(editingGrade.createdAt).toLocaleString("pt-BR")
+                          : "-"}
                       </span>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground font-medium block">Última alteração</span>
+                      <span className="text-xs text-muted-foreground font-medium block">
+                        Última alteração
+                      </span>
                       <span className="text-foreground">
-                        {editingGrade?.updatedAt ? new Date(editingGrade.updatedAt).toLocaleString("pt-BR") : "-"}
+                        {editingGrade?.updatedAt
+                          ? new Date(editingGrade.updatedAt).toLocaleString("pt-BR")
+                          : "-"}
                       </span>
                     </div>
                     <div className="space-y-1">
@@ -233,7 +250,9 @@ export function GradeEditorModal({
 
                 <div className="border border-border/50 rounded-xl p-2 h-[260px] overflow-y-auto bg-background space-y-1.5 shadow-inner">
                   {filteredCategories.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3 text-center">Nenhuma categoria encontrada para a busca.</p>
+                    <p className="text-xs text-muted-foreground p-3 text-center">
+                      Nenhuma categoria encontrada para a busca.
+                    </p>
                   ) : (
                     filteredCategories.map((cat: any) => {
                       const checked = selectedCategoryIds.includes(cat.id);
@@ -288,9 +307,7 @@ export function GradeEditorModal({
                       <tr>
                         <th className="w-8 px-2 py-2.5"></th>
                         <th className="px-3 py-2.5 font-medium">Valor (Obrigatório)</th>
-                        {gradeType === "Cor" && (
-                          <th className="px-3 py-2.5 font-medium w-24">Cor</th>
-                        )}
+                        {gradeType === "Cor" && <th className="px-3 py-2.5 font-medium w-24">Cor</th>}
                         <th className="px-3 py-2.5 w-10"></th>
                       </tr>
                     </thead>
@@ -375,7 +392,9 @@ export function GradeEditorModal({
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-muted-foreground">Dica: Você pode arrastar as linhas pelo ícone à esquerda para alterar a ordem de exibição.</p>
+                <p className="text-xs text-muted-foreground">
+                  Dica: Você pode arrastar as linhas pelo ícone à esquerda para alterar a ordem de exibição.
+                </p>
               </TabsContent>
             </div>
 
@@ -421,5 +440,3 @@ export function GradeEditorModal({
     </Dialog>
   );
 }
-
-

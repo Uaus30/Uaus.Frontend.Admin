@@ -25,7 +25,7 @@ describe("imageOptimizer", () => {
 
   it("deve pular otimização se o canvas não for suportado no ambiente", async () => {
     const file = new File([new ArrayBuffer(300 * 1024)], "foto.jpg", { type: "image/jpeg" });
-    
+
     // Simular ambiente sem suporte a canvas
     const originalCreateElement = document.createElement;
     document.createElement = vi.fn().mockImplementation((tag) => {
@@ -105,11 +105,7 @@ describe("imageOptimizer", () => {
     // Regressão: o encode precisa ser pedido em WebP de fato. Já houve o caso de
     // rotular o File como image/webp enquanto o canvas gerava bytes JPEG, o que
     // perdia a transparência do PNG e ainda entregava um arquivo mal rotulado.
-    expect(mockCanvas.toBlob).toHaveBeenCalledWith(
-      expect.any(Function),
-      "image/webp",
-      expect.any(Number),
-    );
+    expect(mockCanvas.toBlob).toHaveBeenCalledWith(expect.any(Function), "image/webp", expect.any(Number));
     expect(mockCanvas.width).toBe(1000); // Proporção 2000x2000 reduzida para 1000x1000
     expect(mockCanvas.height).toBe(1000);
 

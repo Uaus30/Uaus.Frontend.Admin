@@ -27,7 +27,7 @@ type TagEditorModalProps = {
 
 /**
  * TagEditorModal
- * 
+ *
  * Renders the modal dialog for creating or updating a Tag.
  */
 export function TagEditorModal({
@@ -84,9 +84,7 @@ export function TagEditorModal({
               </div>
               <Switch
                 checked={formData.isPublic}
-                onCheckedChange={(checked) =>
-                  setFormData((current) => ({ ...current, isPublic: checked }))
-                }
+                onCheckedChange={(checked) => setFormData((current) => ({ ...current, isPublic: checked }))}
               />
             </div>
           </div>
@@ -103,5 +101,3 @@ export function TagEditorModal({
     </Dialog>
   );
 }
-
-

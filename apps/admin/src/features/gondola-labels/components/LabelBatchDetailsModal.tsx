@@ -67,16 +67,8 @@ export function LabelBatchDetailsModal({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
-          <Button
-            type="button"
-            disabled={!batch || reprinting}
-            onClick={() => batch && onReprint(batch.id)}
-          >
-            {reprinting ? (
-              <Spinner className="mr-2 h-4 w-4" />
-            ) : (
-              <Printer className="mr-2 h-4 w-4" />
-            )}
+          <Button type="button" disabled={!batch || reprinting} onClick={() => batch && onReprint(batch.id)}>
+            {reprinting ? <Spinner className="mr-2 h-4 w-4" /> : <Printer className="mr-2 h-4 w-4" />}
             Reimprimir
           </Button>
         </DialogFooter>
@@ -84,5 +76,3 @@ export function LabelBatchDetailsModal({
     </Dialog>
   );
 }
-
-

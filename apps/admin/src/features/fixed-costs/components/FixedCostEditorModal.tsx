@@ -45,8 +45,8 @@ export function FixedCostEditorModal({
         <DialogHeader>
           <DialogTitle>{editingId ? "Editar Custo Fixo" : "Novo Custo Fixo"}</DialogTitle>
           <DialogDescription>
-            O valor mensal entra cheio em cada mês da vigência, sem pró-rata, e é
-            lançado nos fechamentos financeiros do período.
+            O valor mensal entra cheio em cada mês da vigência, sem pró-rata, e é lançado nos fechamentos
+            financeiros do período.
           </DialogDescription>
         </DialogHeader>
 
@@ -96,9 +96,7 @@ export function FixedCostEditorModal({
                 value={form.endsOn}
                 onChange={(e) => onFormChange({ ...form, endsOn: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">
-                Deixe em branco para custo ainda vigente.
-              </p>
+              <p className="text-xs text-muted-foreground">Deixe em branco para custo ainda vigente.</p>
             </div>
           </div>
 
@@ -126,5 +124,3 @@ export function FixedCostEditorModal({
     </Dialog>
   );
 }
-
-

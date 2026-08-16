@@ -42,9 +42,7 @@ function KpiCard({ label, value, icon: Icon, hint, className, valueClassName }: 
           </span>
           <Icon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
         </div>
-        <p className={cn("mt-2 text-2xl font-display font-bold tracking-tight", valueClassName)}>
-          {value}
-        </p>
+        <p className={cn("mt-2 text-2xl font-display font-bold tracking-tight", valueClassName)}>{value}</p>
         {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
       </CardContent>
     </Card>
@@ -77,9 +75,7 @@ export function FinancialReportKpis({ summary, isLoading }: FinancialReportKpisP
         label="Faturamento"
         value={formatCurrency(sales.revenue)}
         icon={Wallet}
-        hint={
-          sales.discount > 0 ? `${formatCurrency(sales.discount)} em descontos` : undefined
-        }
+        hint={sales.discount > 0 ? `${formatCurrency(sales.discount)} em descontos` : undefined}
       />
       <KpiCard
         label="CMV"
@@ -128,5 +124,3 @@ export function FinancialReportKpis({ summary, isLoading }: FinancialReportKpisP
     </div>
   );
 }
-
-

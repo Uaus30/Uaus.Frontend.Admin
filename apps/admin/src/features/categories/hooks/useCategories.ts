@@ -2,7 +2,12 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
-import { createCategory, deleteCategory, getCategoriesPage, updateCategory } from "@/services/categories.service";
+import {
+  createCategory,
+  deleteCategory,
+  getCategoriesPage,
+  updateCategory,
+} from "@/services/categories.service";
 import { getCategoryReport } from "@/services/reports.service";
 import { STALE_TIME, getGetCategoriesQueryKey } from "@workspace/api-client-react";
 import type { CategoryForm, EnrichedCategory, CategoryReport } from "../types";
@@ -12,10 +17,10 @@ import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 /**
  * useCategories
- * 
+ *
  * Custom React hook managing the state, validation, and TanStack Queries/Mutations
  * for the Categories administration view.
- * 
+ *
  * Core responsibilities:
  * - Local states for search, filters, pagination, and modal toggles.
  * - Loading list of departments.
@@ -56,7 +61,12 @@ export function useCategories() {
   const { data: departments = [] } = useAllDepartments();
 
   // Query: Paginated and filtered categories
-  const { data: categoriesPage, isLoading, isError, error } = useQuery({
+  const {
+    data: categoriesPage,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: [...getGetCategoriesQueryKey(), { search: debouncedSearch, departmentFilter, page }],
     queryFn: () =>
       getCategoriesPage({

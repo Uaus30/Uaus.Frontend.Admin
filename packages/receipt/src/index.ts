@@ -1,10 +1,4 @@
-export type {
-  ReceiptData,
-  ReceiptItem,
-  ReceiptPayment,
-  ReceiptStore,
-  StoreInfo,
-} from "./types";
+export type { ReceiptData, ReceiptItem, ReceiptPayment, ReceiptStore, StoreInfo } from "./types";
 export type { SaleItemLike, SaleLike, SaleReceiptContext } from "./from-sale";
 export type {
   SalesReportData,

@@ -35,9 +35,8 @@ export function LabelBatchDeleteDialog({
           </div>
           <AlertDialogTitle>Excluir lote #{batch?.id}?</AlertDialogTitle>
           <AlertDialogDescription>
-            O lote{batch?.description ? ` "${batch.description}"` : ""} sai do histórico e não
-            poderá mais ser reimpresso. As etiquetas já impressas e o cadastro dos produtos não
-            são afetados.
+            O lote{batch?.description ? ` "${batch.description}"` : ""} sai do histórico e não poderá mais ser
+            reimpresso. As etiquetas já impressas e o cadastro dos produtos não são afetados.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -58,5 +57,3 @@ export function LabelBatchDeleteDialog({
     </AlertDialog>
   );
 }
-
-

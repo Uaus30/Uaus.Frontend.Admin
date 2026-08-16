@@ -79,7 +79,7 @@ const parseDescription = (desc: string) => {
   const changes = parts[1]
     .replace(/\.$/, "") // remove pontuação final
     .split(", ")
-    .map(c => c.trim())
+    .map((c) => c.trim())
     .filter(Boolean);
 
   return { main, changes };
@@ -100,7 +100,11 @@ export function ProductHistoryModal({
     }
   }, [isOpen, productGroupId, queryClient]);
 
-  const { data: productGroup, isLoading, error } = useQuery({
+  const {
+    data: productGroup,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["product-group-history", productGroupId],
     queryFn: () => getProductGroupById(productGroupId!),
     enabled: productGroupId !== null && isOpen,
@@ -115,15 +119,14 @@ export function ProductHistoryModal({
 
   const filteredHistories = useMemo(() => {
     const sorted = [...histories].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() || b.id - a.id
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() || b.id - a.id,
     );
 
     if (!searchTerm.trim()) return sorted;
     const term = searchTerm.toLowerCase();
     return sorted.filter((h: ProductHistoryDto) => {
-      const formattedUser = h.userFirstName && h.userLastName
-        ? `${h.userFirstName} ${h.userLastName}`.toLowerCase()
-        : "";
+      const formattedUser =
+        h.userFirstName && h.userLastName ? `${h.userFirstName} ${h.userLastName}`.toLowerCase() : "";
       return (
         h.description.toLowerCase().includes(term) ||
         (h.createdBy && h.createdBy.toLowerCase().includes(term)) ||
@@ -141,7 +144,8 @@ export function ProductHistoryModal({
             Histórico do Produto
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground mt-1">
-            Grupo de Produto: <span className="font-semibold text-foreground">{productGroupName}</span> (ID: {productGroupId})
+            Grupo de Produto: <span className="font-semibold text-foreground">{productGroupName}</span> (ID:{" "}
+            {productGroupId})
           </DialogDescription>
         </DialogHeader>
 
@@ -179,16 +183,19 @@ export function ProductHistoryModal({
                 const config = getActionConfig(entry.type);
                 const ActionIcon = config.icon;
                 const parsed = parseDescription(entry.description);
-                const userName = entry.userFirstName && entry.userLastName
-                  ? `${entry.userFirstName} ${entry.userLastName}`
-                  : entry.createdBy || "Sistema";
+                const userName =
+                  entry.userFirstName && entry.userLastName
+                    ? `${entry.userFirstName} ${entry.userLastName}`
+                    : entry.createdBy || "Sistema";
 
-                const typeLabel = typeOptions.find(opt => opt.id === entry.type)?.name || config.label;
+                const typeLabel = typeOptions.find((opt) => opt.id === entry.type)?.name || config.label;
 
                 return (
                   <div key={entry.id} className="relative group">
                     {/* Indicador de Timeline */}
-                    <div className={`absolute -left-[45px] top-0 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all duration-200 group-hover:scale-110 ${config.bgColor} ${config.borderColor} ${config.textColor}`}>
+                    <div
+                      className={`absolute -left-[45px] top-0 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all duration-200 group-hover:scale-110 ${config.bgColor} ${config.borderColor} ${config.textColor}`}
+                    >
                       <ActionIcon className="h-4 w-4" />
                     </div>
 
@@ -196,7 +203,10 @@ export function ProductHistoryModal({
                       {/* Cabeçalho do Evento */}
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/20 pb-2">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`font-semibold text-[10px] px-2 py-0.5 border ${config.bgColor} ${config.borderColor} ${config.textColor}`}>
+                          <Badge
+                            variant="outline"
+                            className={`font-semibold text-[10px] px-2 py-0.5 border ${config.bgColor} ${config.borderColor} ${config.textColor}`}
+                          >
                             {typeLabel}
                           </Badge>
                           <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -211,14 +221,14 @@ export function ProductHistoryModal({
                       </div>
 
                       {/* Conteúdo/Descrição */}
-                      <div className="text-sm text-foreground/90 font-medium">
-                        {parsed.main}.
-                      </div>
+                      <div className="text-sm text-foreground/90 font-medium">{parsed.main}.</div>
 
                       {/* Detalhes de Alterações (Diff) */}
                       {parsed.changes.length > 0 && (
                         <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-border/10">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Propriedades Alteradas:</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Propriedades Alteradas:
+                          </span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                             {parsed.changes.map((change, idx) => (
                               <div
@@ -243,5 +253,3 @@ export function ProductHistoryModal({
     </Dialog>
   );
 }
-
-

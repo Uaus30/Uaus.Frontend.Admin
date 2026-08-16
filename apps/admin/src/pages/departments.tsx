@@ -8,7 +8,7 @@ import { DepartmentEditorModal } from "@/features/departments/components/Departm
 
 /**
  * Departments Page Component
- * 
+ *
  * Orchestrates the departments page by linking the useDepartments hook state manager
  * to pure presentation components.
  */
@@ -21,7 +21,9 @@ export default function Departments() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Departamentos</h1>
-            <p className="mt-1 text-muted-foreground">Organize a estrutura principal para agrupar categorias.</p>
+            <p className="mt-1 text-muted-foreground">
+              Organize a estrutura principal para agrupar categorias.
+            </p>
           </div>
           <Button onClick={() => model.openModal()} className="hover-elevate">
             <Plus className="mr-2 h-4 w-4" /> Novo Departamento
@@ -53,5 +55,3 @@ export default function Departments() {
     </AppLayout>
   );
 }
-
-

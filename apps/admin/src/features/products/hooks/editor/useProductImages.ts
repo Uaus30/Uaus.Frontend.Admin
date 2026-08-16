@@ -61,7 +61,7 @@ export function useProductImages({
       });
     }
 
-    setImages((current) => [...current, ...nextImages as any]);
+    setImages((current) => [...current, ...(nextImages as any)]);
   }
 
   async function handleVariationFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
@@ -96,7 +96,7 @@ export function useProductImages({
 
     updateVariationDraft(activeVariation.key, (draft) => ({
       ...draft,
-      images: [...draft.images, ...nextImages as any],
+      images: [...draft.images, ...(nextImages as any)],
     }));
   }
 

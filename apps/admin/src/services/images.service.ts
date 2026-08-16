@@ -19,11 +19,7 @@ export async function getAllProductImages() {
   return fetchAllPages<ProductImageDto>("/ProductImages");
 }
 
-export async function getImagesPage(params?: {
-  search?: string;
-  page?: number;
-  limit?: number;
-}) {
+export async function getImagesPage(params?: { search?: string; page?: number; limit?: number }) {
   return getPaged<ImageDto>("/Images", {
     search: params?.search,
     page: params?.page ?? 1,
@@ -31,11 +27,7 @@ export async function getImagesPage(params?: {
   });
 }
 
-export async function createImageFromFile(payload: {
-  file: File;
-  name: string;
-  type: number;
-}) {
+export async function createImageFromFile(payload: { file: File; name: string; type: number }) {
   const formData = new FormData();
   formData.append("File", payload.file);
   formData.append("Name", payload.name);
@@ -99,10 +91,7 @@ export function buildImageProxyUrl(url: string): string {
  * @param webImageUrl URL pública da imagem escolhida na busca.
  * @param baseName Nome do produto, usado para batizar o arquivo.
  */
-export async function downloadWebImageAsFile(
-  webImageUrl: string,
-  baseName: string,
-): Promise<File> {
+export async function downloadWebImageAsFile(webImageUrl: string, baseName: string): Promise<File> {
   const { blob } = await apiGetBlob(buildImageProxyUrl(webImageUrl), "imagem.jpg");
   const cleanName = baseName.toLowerCase().replace(/[^a-z0-9]/g, "_") || "produto";
 

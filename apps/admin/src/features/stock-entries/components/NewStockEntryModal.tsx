@@ -51,7 +51,7 @@ type NewStockEntryModalProps = {
 
 /**
  * NewStockEntryModal
- * 
+ *
  * Form dialog hosting inputs to record new supplier physical stock purchases.
  */
 export function NewStockEntryModal({
@@ -275,11 +275,7 @@ export function NewStockEntryModal({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                className="bg-primary text-primary-foreground"
-                disabled={isSavingEntry}
-              >
+              <Button type="submit" className="bg-primary text-primary-foreground" disabled={isSavingEntry}>
                 {isSavingEntry ? "Salvando..." : "Salvar Entrada"}
               </Button>
             </div>
@@ -289,5 +285,3 @@ export function NewStockEntryModal({
     </Dialog>
   );
 }
-
-

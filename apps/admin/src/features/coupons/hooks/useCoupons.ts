@@ -222,11 +222,7 @@ export function useCoupons() {
     onSuccess: async (_result, input) => {
       await invalidateCoupons();
       toast({
-        title: input.desativando
-          ? "Cupom desativado."
-          : input.id
-            ? "Cupom atualizado."
-            : "Cupom cadastrado.",
+        title: input.desativando ? "Cupom desativado." : input.id ? "Cupom atualizado." : "Cupom cadastrado.",
         description: input.desativando
           ? "Ele para de valer no balcão agora; os resgates e os comprovantes continuam."
           : undefined,

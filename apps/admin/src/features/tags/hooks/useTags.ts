@@ -15,10 +15,10 @@ export type SortBy = "name" | "productCount" | "createdAt";
 
 /**
  * useTags
- * 
+ *
  * Hook customizado para gerenciar o estado, consultas, mutations e ordenação
  * da tela de gerenciamento de etiquetas (Tags).
- * 
+ *
  * Funcionalidades centrais:
  * - Paginação, busca textual e ordenação local da listagem.
  * - Gerenciamento de formulário de criação/edição.

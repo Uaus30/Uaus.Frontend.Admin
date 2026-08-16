@@ -28,9 +28,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   apiPost: (...args: unknown[]) => apiPost(...args),
 }));
 
-const { applySyncResults, chunk, readSyncStatus, syncPendingSales, SYNC_BATCH_SIZE } = await import(
-  "./sync"
-);
+const { applySyncResults, chunk, readSyncStatus, syncPendingSales, SYNC_BATCH_SIZE } = await import("./sync");
 
 /** Monta uma venda da fila. */
 function pendingSale(reference: string, offlineNumber = 1): PendingSale {
@@ -243,9 +241,7 @@ describe("syncPendingSales", () => {
     const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
     // Os nomes de produto e forma de pagamento são só da fila local; enviá-los
     // faria o backend recusar o corpo.
-    expect(body.sales[0].items).toEqual([
-      { productId: 1, quantity: 2, unitPrice: 25, discount: 0 },
-    ]);
+    expect(body.sales[0].items).toEqual([{ productId: 1, quantity: 2, unitPrice: 25, discount: 0 }]);
     expect(body.sales[0]).toMatchObject({ clientReference: "ref-1", cashRegisterSessionId: 7 });
   });
 
@@ -254,14 +250,10 @@ describe("syncPendingSales", () => {
     // `pendingSales` sobrevive à migração, então a segunda sobe sem o campo e
     // precisa virar zero em vez de `undefined` — o backend recusaria o corpo.
     const comDesconto = pendingSale("ref-1");
-    comDesconto.items = [
-      { productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" },
-    ];
+    comDesconto.items = [{ productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" }];
 
     const legada = pendingSale("ref-2", 2);
-    legada.items = [
-      { productId: 1, quantity: 1, unitPrice: 25, productName: "Café" },
-    ] as typeof legada.items;
+    legada.items = [{ productId: 1, quantity: 1, unitPrice: 25, productName: "Café" }] as typeof legada.items;
 
     listSalesToSync.mockResolvedValue([comDesconto, legada]);
     apiPost.mockResolvedValue({

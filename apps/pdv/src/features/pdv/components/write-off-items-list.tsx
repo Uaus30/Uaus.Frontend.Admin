@@ -101,8 +101,8 @@ export function WriteOffItemsList({ items, shortages, onChangeQuantity, onRemove
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-[11px] font-medium text-destructive">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            {shortages.map((item) => item.name).join(", ")} — a quantidade passa do estoque
-            disponível. O servidor recusaria a baixa.
+            {shortages.map((item) => item.name).join(", ")} — a quantidade passa do estoque disponível. O
+            servidor recusaria a baixa.
           </span>
         </div>
       )}

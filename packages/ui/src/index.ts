@@ -39,7 +39,6 @@ export * from "./components/toggle";
 export * from "./components/tooltip";
 export * from "./lib/utils";
 
-
 // Hooks que os componentes deste pacote consomem.
 //
 // Moraram em `apps/*/src/hooks/` até ago/2026, e o sidebar/toaster os importavam

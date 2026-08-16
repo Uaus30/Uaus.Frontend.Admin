@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  PAYMENT_STATUS,
-  PRODUCT_STATUS,
-  USER_STATUS,
-  enumCode,
-} from "@workspace/api-client-react";
+import { PAYMENT_STATUS, PRODUCT_STATUS, USER_STATUS, enumCode } from "@workspace/api-client-react";
 
 /**
  * A API serializa enums pelo nome do membro em C# ("Paid", "Active"), mas as

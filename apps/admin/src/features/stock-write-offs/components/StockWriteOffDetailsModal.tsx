@@ -149,9 +149,7 @@ export function StockWriteOffDetailsModal({
                           <TableCell className="px-4 py-2 text-sm font-medium">
                             {item.productName || `Produto #${item.productId}`}
                           </TableCell>
-                          <TableCell className="px-4 py-2 font-mono text-xs">
-                            {item.barcode || "-"}
-                          </TableCell>
+                          <TableCell className="px-4 py-2 font-mono text-xs">{item.barcode || "-"}</TableCell>
                           <TableCell className="px-4 py-2 text-right text-sm font-semibold">
                             {formatQuantity(item.quantity)}
                           </TableCell>
@@ -190,5 +188,3 @@ export function StockWriteOffDetailsModal({
     </Dialog>
   );
 }
-
-

@@ -27,12 +27,7 @@ function describeConsumer(sale: HeldSale) {
  * Retomar exige o carrinho vazio. Com uma venda em andamento, a tela oferece
  * pausar a atual antes de trazer a escolhida — assim nada é perdido no balcão.
  */
-export function HeldSalesDialog({
-  open,
-  onOpenChange,
-  onResumed,
-  onHeldToMakeRoom,
-}: HeldSalesDialogProps) {
+export function HeldSalesDialog({ open, onOpenChange, onResumed, onHeldToMakeRoom }: HeldSalesDialogProps) {
   const heldSales = usePdvStore((state) => state.heldSales);
   const cartItems = usePdvStore((state) => state.items);
   const editingSaleId = usePdvStore((state) => state.editingSaleId);
@@ -93,8 +88,8 @@ export function HeldSalesDialog({
         <ScrollArea className="flex-1 p-6 min-h-[220px]">
           {heldSales.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground italic">
-              Pause uma venda pelo botão <span className="font-semibold not-italic">PAUSAR</span> no
-              resumo da venda para vê-la aqui.
+              Pause uma venda pelo botão <span className="font-semibold not-italic">PAUSAR</span> no resumo da
+              venda para vê-la aqui.
             </div>
           ) : (
             <div className="space-y-3">
@@ -202,5 +197,3 @@ export function HeldSalesDialog({
     </Dialog>
   );
 }
-
-

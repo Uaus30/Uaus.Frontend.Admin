@@ -30,11 +30,7 @@ export async function getCategoriesPage(params?: {
   });
 }
 
-export async function getDepartmentsPage(params?: {
-  search?: string;
-  page?: number;
-  limit?: number;
-}) {
+export async function getDepartmentsPage(params?: { search?: string; page?: number; limit?: number }) {
   return getPaged<DepartmentDto>("/Departments", {
     search: params?.search,
     page: params?.page ?? 1,
@@ -63,18 +59,11 @@ export async function deleteCategory(id: number) {
   return apiDelete<null>(`/Categories/${id}`);
 }
 
-export async function createDepartment(payload: {
-  name: string;
-  description?: string | null;
-}) {
+export async function createDepartment(payload: { name: string; description?: string | null }) {
   return apiPost<null>("/Departments", payload);
 }
 
-export async function updateDepartment(payload: {
-  id: number;
-  name: string;
-  description?: string | null;
-}) {
+export async function updateDepartment(payload: { id: number; name: string; description?: string | null }) {
   return apiPut<DepartmentDto>("/Departments", payload);
 }
 

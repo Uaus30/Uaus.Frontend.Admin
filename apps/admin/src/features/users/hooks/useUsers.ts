@@ -1,11 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  useCreateUser,
-  useDeleteUser,
-  useGetUsers,
-  useUpdateUser,
-} from "@workspace/api-client-react";
+import { useCreateUser, useDeleteUser, useGetUsers, useUpdateUser } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 import { getDisplayName, splitFullName, usernameFromEmail } from "@/services/mappers";
@@ -46,10 +41,7 @@ export function useUsers() {
     queryFn: () => getEnumOptions("/Users/enums/user-status"),
   });
 
-  const selectableRoleOptions = useMemo(
-    () => roleOptions.filter((item) => item.allowSelect),
-    [roleOptions],
-  );
+  const selectableRoleOptions = useMemo(() => roleOptions.filter((item) => item.allowSelect), [roleOptions]);
   const selectableStatusOptions = useMemo(
     () => statusOptions.filter((item) => item.allowSelect),
     [statusOptions],
@@ -128,7 +120,7 @@ export function useUsers() {
 
   /**
    * Abre a modal para edição de um usuário existente.
-   * 
+   *
    * @param user Usuário a ser editado.
    */
   function openEdit(user: any) {
@@ -146,7 +138,7 @@ export function useUsers() {
 
   /**
    * Submete os dados do formulário de usuário.
-   * 
+   *
    * @param formPayload Objeto do formulário preenchido.
    */
   function handleSubmitUser(formPayload: UserForm) {
@@ -194,7 +186,7 @@ export function useUsers() {
 
   /**
    * Executa a remoção física/lógica de um usuário.
-   * 
+   *
    * @param id Identificador do usuário.
    */
   function handleDeleteUser(id: number) {

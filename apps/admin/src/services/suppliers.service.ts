@@ -1,10 +1,4 @@
-import {
-  apiDelete,
-  apiPost,
-  apiPut,
-  fetchAllPages,
-  type SupplierDto,
-} from "@workspace/api-client-react";
+import { apiDelete, apiPost, apiPut, fetchAllPages, type SupplierDto } from "@workspace/api-client-react";
 import { getPaged } from "./core";
 
 export async function getAllSuppliers() {
@@ -30,9 +24,7 @@ export async function createSupplier(payload: Omit<SupplierDto, "id" | "createdA
   return apiPost<null>("/Suppliers", payload);
 }
 
-export async function updateSupplier(
-  payload: Omit<SupplierDto, "createdAt" | "updatedAt">,
-) {
+export async function updateSupplier(payload: Omit<SupplierDto, "createdAt" | "updatedAt">) {
   return apiPut<SupplierDto>("/Suppliers", payload);
 }
 

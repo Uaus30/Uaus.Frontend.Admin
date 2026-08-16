@@ -67,9 +67,7 @@ export interface CashRegisterMode {
  *   padrão, que é o mesmo do backend — uma loja sem a configuração gravada opera
  *   do jeito de sempre.
  */
-export function resolveCashRegisterMode(
-  settings: CompanySettingsDto | null | undefined,
-): CashRegisterMode {
+export function resolveCashRegisterMode(settings: CompanySettingsDto | null | undefined): CashRegisterMode {
   const usesCashRegister = settings?.usesCashRegister ?? DEFAULT_COMPANY_SETTINGS.usesCashRegister;
 
   return {

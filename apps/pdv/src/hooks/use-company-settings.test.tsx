@@ -16,8 +16,7 @@ vi.mock("@/offline", () => ({
 }));
 
 vi.mock("@/stores/use-offline-store", () => ({
-  useOfflineStore: (selector: (state: { online: boolean }) => unknown) =>
-    selector({ online: true }),
+  useOfflineStore: (selector: (state: { online: boolean }) => unknown) => selector({ online: true }),
 }));
 
 const { useCompanySettings } = await import("./use-company-settings");

@@ -17,7 +17,7 @@ import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
 /**
  * useStockEntries
- * 
+ *
  * Hook customizado para gerenciar a listagem, detalhamento, criação
  * e cancelamento de notas/entradas de mercadoria no estoque.
  */
@@ -62,7 +62,7 @@ export function useStockEntries() {
       query: {
         enabled: !!selectedEntryId,
       },
-    }
+    },
   );
 
   // Query: Carrega fornecedores ativos para listagem/formulário
@@ -166,7 +166,7 @@ export function useStockEntries() {
         }
 
         return updated;
-      })
+      }),
     );
   }
 
@@ -185,7 +185,7 @@ export function useStockEntries() {
     }
 
     const invalidItem = items.some(
-      (item) => !item.productId || item.quantity <= 0 || item.unitCost < 0 || item.price < 0
+      (item) => !item.productId || item.quantity <= 0 || item.unitCost < 0 || item.price < 0,
     );
     if (invalidItem) {
       toast({

@@ -9,7 +9,7 @@ import { ImageRenameModal } from "@/features/images/components/ImageRenameModal"
 
 /**
  * Images Page Component
- * 
+ *
  * Renders the Images admin panel, mounting child uploader, renamer,
  * and grid listing components, and linking them to useImages.
  */
@@ -124,5 +124,3 @@ export default function Images() {
     </AppLayout>
   );
 }
-
-

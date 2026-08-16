@@ -36,7 +36,10 @@ export default function Customers() {
             <h1 className="text-3xl font-display font-bold text-foreground">Clientes</h1>
             <p className="mt-1 text-muted-foreground">Gerencie sua base de clientes e histórico.</p>
           </div>
-          <Button onClick={() => handleOpenModal()} className="bg-primary text-primary-foreground hover-elevate">
+          <Button
+            onClick={() => handleOpenModal()}
+            className="bg-primary text-primary-foreground hover-elevate"
+          >
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
           </Button>
         </div>
@@ -65,5 +68,3 @@ export default function Customers() {
     </AppLayout>
   );
 }
-
-

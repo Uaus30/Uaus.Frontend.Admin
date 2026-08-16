@@ -1,13 +1,5 @@
 import { Badge } from "@workspace/ui";
-import { 
-  AlertCircle, 
-  AlertTriangle, 
-  CheckCircle2, 
-  FileText, 
-  Info, 
-  Loader2, 
-  Terminal 
-} from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Loader2, Terminal } from "lucide-react";
 import { formatDateTime } from "../hooks/useLogs";
 import type { SystemLogDto } from "../types";
 
@@ -18,7 +10,10 @@ export function getLogTypeBadge(type: string) {
   const normType = type?.toLowerCase() || "";
   if (normType.includes("err") || normType.includes("fail") || normType.includes("crit")) {
     return (
-      <Badge variant="destructive" className="gap-1 px-2.5 py-1 text-xs font-semibold uppercase animate-pulse">
+      <Badge
+        variant="destructive"
+        className="gap-1 px-2.5 py-1 text-xs font-semibold uppercase animate-pulse"
+      >
         <AlertTriangle className="h-3 w-3 shrink-0" />
         {type || "ERROR"}
       </Badge>
@@ -71,11 +66,7 @@ interface LogsTableProps {
 /**
  * Componente que exibe a tabela principal de logs do sistema de forma estruturada.
  */
-export function LogsTable({
-  logsList,
-  isLoading,
-  onRowClick,
-}: LogsTableProps) {
+export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card w-full overflow-x-auto">
       <table
@@ -92,11 +83,36 @@ export function LogsTable({
         </colgroup>
         <thead>
           <tr className="border-b border-border bg-muted/40 h-11">
-            <th className="px-4 text-left font-medium text-muted-foreground text-sm" style={{ width: "70px" }}>ID</th>
-            <th className="px-4 text-left font-medium text-muted-foreground text-sm" style={{ width: "110px" }}>Tipo</th>
-            <th className="px-4 text-left font-medium text-muted-foreground text-sm" style={{ width: "190px" }}>Data</th>
-            <th className="px-4 text-left font-medium text-muted-foreground text-sm" style={{ width: "310px" }}>Código</th>
-            <th className="px-4 text-left font-medium text-muted-foreground text-sm" style={{ width: "240px" }}>Origem</th>
+            <th
+              className="px-4 text-left font-medium text-muted-foreground text-sm"
+              style={{ width: "70px" }}
+            >
+              ID
+            </th>
+            <th
+              className="px-4 text-left font-medium text-muted-foreground text-sm"
+              style={{ width: "110px" }}
+            >
+              Tipo
+            </th>
+            <th
+              className="px-4 text-left font-medium text-muted-foreground text-sm"
+              style={{ width: "190px" }}
+            >
+              Data
+            </th>
+            <th
+              className="px-4 text-left font-medium text-muted-foreground text-sm"
+              style={{ width: "310px" }}
+            >
+              Código
+            </th>
+            <th
+              className="px-4 text-left font-medium text-muted-foreground text-sm"
+              style={{ width: "240px" }}
+            >
+              Origem
+            </th>
             <th className="px-4 text-left font-medium text-muted-foreground text-sm">Mensagem</th>
           </tr>
         </thead>
@@ -127,19 +143,32 @@ export function LogsTable({
                 onClick={() => onRowClick(log.id)}
               >
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground align-middle">
-                  <div className="truncate" style={{ width: "38px" }}>{log.id}</div>
+                  <div className="truncate" style={{ width: "38px" }}>
+                    {log.id}
+                  </div>
                 </td>
                 <td className="px-4 py-3 font-medium align-middle">
-                  <div className="truncate" style={{ width: "78px" }}>{getLogTypeBadge(log.type)}</div>
+                  <div className="truncate" style={{ width: "78px" }}>
+                    {getLogTypeBadge(log.type)}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle">
-                  <div className="truncate" style={{ width: "158px" }}>{formatDateTime(log.createdAt)}</div>
+                  <div className="truncate" style={{ width: "158px" }}>
+                    {formatDateTime(log.createdAt)}
+                  </div>
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-foreground align-middle">
-                  <div className="truncate" style={{ width: "278px" }}>{log.code || "-"}</div>
+                  <div className="truncate" style={{ width: "278px" }}>
+                    {log.code || "-"}
+                  </div>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle" title={log.origin}>
-                  <div className="truncate" style={{ width: "208px" }}>{log.origin || "-"}</div>
+                <td
+                  className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle"
+                  title={log.origin}
+                >
+                  <div className="truncate" style={{ width: "208px" }}>
+                    {log.origin || "-"}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-foreground align-middle" title={log.message}>
                   <div className="line-clamp-2 text-xs leading-snug">{log.message || "-"}</div>
@@ -152,5 +181,3 @@ export function LogsTable({
     </div>
   );
 }
-
-

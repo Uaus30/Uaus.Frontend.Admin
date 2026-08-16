@@ -50,13 +50,13 @@ export function ReverseStockWriteOffDialog({
             <div className="space-y-3">
               <p>
                 O estorno <strong>devolve ao estoque</strong> tudo o que esta baixa retirou e
-                <strong> mantém o registro no histórico</strong>, marcado como estornado. Não é
-                exclusão: a baixa continua aparecendo na listagem.
+                <strong> mantém o registro no histórico</strong>, marcado como estornado. Não é exclusão: a
+                baixa continua aparecendo na listagem.
               </p>
               {writeOff && (
                 <p className="text-foreground">
-                  {formatDate(writeOff.occurredAt)} · {formatQuantity(writeOff.totalQuantity)} de
-                  quantidade · {formatCurrency(writeOff.totalCost)} de custo
+                  {formatDate(writeOff.occurredAt)} · {formatQuantity(writeOff.totalQuantity)} de quantidade ·{" "}
+                  {formatCurrency(writeOff.totalCost)} de custo
                 </p>
               )}
             </div>
@@ -96,5 +96,3 @@ export function ReverseStockWriteOffDialog({
     </AlertDialog>
   );
 }
-
-

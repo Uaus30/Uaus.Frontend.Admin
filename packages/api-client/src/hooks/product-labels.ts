@@ -7,12 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiDelete, ApiError, mapPagedResult } from "../client";
-import type {
-  BackendPagedResult,
-  EnumValue,
-  QueryKey,
-  UiPagedResult,
-} from "../models";
+import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
 
 // ---------------------------------------------------------------------------
 // Etiquetas de gôndola — lotes de impressão em A4 com histórico

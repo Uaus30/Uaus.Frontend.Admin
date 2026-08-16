@@ -25,8 +25,6 @@ const ITEMS = [
   { productId: 2, quantity: 1, unitPrice: 50 },
 ];
 
-
-
 describe("createSaleWithItems", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,7 +35,15 @@ describe("createSaleWithItems", () => {
     const payload = {
       customerId: 9,
       discount: 20,
-      payments: [{ paymentMethodId: 1, amount: 80, paymentMethodInstallmentId: null, installments: 1, transactionFee: 0 }],
+      payments: [
+        {
+          paymentMethodId: 1,
+          amount: 80,
+          paymentMethodInstallmentId: null,
+          installments: 1,
+          transactionFee: 0,
+        },
+      ],
       items: ITEMS,
     };
 
@@ -54,7 +60,15 @@ describe("createSaleWithItems", () => {
       createSaleWithItems({
         customerId: null,
         discount: 0,
-        payments: [{ paymentMethodId: 1, amount: 100, paymentMethodInstallmentId: null, installments: 1, transactionFee: 0 }],
+        payments: [
+          {
+            paymentMethodId: 1,
+            amount: 100,
+            paymentMethodInstallmentId: null,
+            installments: 1,
+            transactionFee: 0,
+          },
+        ],
         items: ITEMS,
       }),
     ).rejects.toThrow("Não foi possível identificar a venda criada.");

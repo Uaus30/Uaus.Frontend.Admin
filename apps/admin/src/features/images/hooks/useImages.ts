@@ -16,7 +16,7 @@ import { describeApiError } from "@workspace/core";
 
 /**
  * useImages
- * 
+ *
  * Custom hook centralizing state, forms, copy-to-clipboard,
  * upload mutations, rename updates, and list querying for the Images section.
  */
@@ -73,7 +73,10 @@ export function useImages() {
     queryKey: ["images-page", { search: debouncedSearch, page, limit, typeFilter }],
     queryFn: () =>
       getImagesPage({
-        search: debouncedSearch, page, limit }),
+        search: debouncedSearch,
+        page,
+        limit,
+      }),
     enabled: !typeFilterActive,
   });
 

@@ -7,11 +7,7 @@
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
-import type {
-  BackendPagedResult,
-  QueryKey,
-  UiPagedResult,
-} from "../models";
+import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
 
 // ==========================================
 // INVENTORY & PURCHASE ENTRIES TYPES & HOOKS
@@ -121,9 +117,20 @@ export interface InventoryReportDto {
 }
 
 export function useGetPurchaseEntries(
-  params?: { supplierId?: number; productId?: number; barcode?: string; startDate?: string; endDate?: string; page?: number; limit?: number },
+  params?: {
+    supplierId?: number;
+    productId?: number;
+    barcode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<PurchaseEntryDto>, ApiError, UiPagedResult<PurchaseEntryDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<PurchaseEntryDto>, ApiError, UiPagedResult<PurchaseEntryDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<PurchaseEntryDto>, ApiError, UiPagedResult<PurchaseEntryDto>, QueryKey>({
@@ -147,7 +154,10 @@ export function useGetPurchaseEntries(
 export function useGetPurchaseEntryDetails(
   id: number,
   options?: {
-    query?: Omit<UseQueryOptions<ReceivedPurchaseEntryDto, ApiError, ReceivedPurchaseEntryDto, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<ReceivedPurchaseEntryDto, ApiError, ReceivedPurchaseEntryDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<ReceivedPurchaseEntryDto, ApiError, ReceivedPurchaseEntryDto, QueryKey>({
@@ -180,9 +190,19 @@ export function useDeletePurchaseEntry(options?: {
 }
 
 export function useGetInventoryReport(
-  params?: { search?: string; supplierId?: number; categoryId?: number; stockStatus?: string; page?: number; limit?: number },
+  params?: {
+    search?: string;
+    supplierId?: number;
+    categoryId?: number;
+    stockStatus?: string;
+    page?: number;
+    limit?: number;
+  },
   options?: {
-    query?: Omit<UseQueryOptions<InventoryReportDto, ApiError, InventoryReportDto, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<InventoryReportDto, ApiError, InventoryReportDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<InventoryReportDto, ApiError, InventoryReportDto, QueryKey>({

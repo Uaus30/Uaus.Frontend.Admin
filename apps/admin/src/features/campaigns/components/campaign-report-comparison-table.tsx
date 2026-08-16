@@ -32,10 +32,7 @@ type CampaignReportComparisonTableProps = {
  * mesma tabela podem ter sido medidas em intervalos de tamanhos diferentes.
  * Faturamento sem a janela ao lado é um número que ninguém consegue conferir.
  */
-export function CampaignReportComparisonTable({
-  rows,
-  hasSelection,
-}: CampaignReportComparisonTableProps) {
+export function CampaignReportComparisonTable({ rows, hasSelection }: CampaignReportComparisonTableProps) {
   return (
     <Card className="border-border/50">
       <CardHeader>
@@ -90,12 +87,8 @@ export function CampaignReportComparisonTable({
                       {formatDate(row.windowStart)} → {formatDate(row.windowEnd)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{row.redemptions}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCurrency(row.revenue)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCurrency(row.profit)}
-                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(row.revenue)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(row.profit)}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCurrency(row.averageTicket)}
                     </TableCell>

@@ -77,13 +77,7 @@ type ChartTooltipProps = {
  * bloco, ficam ilegíveis como texto. Aqui a identidade vem do ponto colorido ao
  * lado, e o texto usa os tokens de tipografia.
  */
-export function ChartTooltip({
-  active,
-  payload,
-  label,
-  labelFormatter,
-  valueFormatter,
-}: ChartTooltipProps) {
+export function ChartTooltip({ active, payload, label, labelFormatter, valueFormatter }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
 
   const format = valueFormatter ?? ((value: number) => formatCurrency(value));
@@ -154,11 +148,7 @@ export function SeriesLegend({ items }: { items: Array<{ name: string; color: st
     <div className="flex flex-wrap items-center gap-4">
       {items.map((item) => (
         <div key={item.name} className="flex items-center gap-2">
-          <span
-            className="h-0.5 w-4 rounded-full"
-            style={{ backgroundColor: item.color }}
-            aria-hidden
-          />
+          <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: item.color }} aria-hidden />
           <span className="text-xs text-muted-foreground">{item.name}</span>
         </div>
       ))}
@@ -174,5 +164,3 @@ export function ChartEmptyState({ message }: { message: string }) {
     </div>
   );
 }
-
-

@@ -9,7 +9,6 @@ import { useToast } from "@workspace/ui";
 import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
 import { AuthGate, RequireRole } from "@/components/route-guards";
 
-
 const queryClient = createQueryClient();
 
 const PageFallback = () => (
@@ -79,7 +78,7 @@ function OfflineBanner() {
 
       const [_, ok] = await Promise.all([minDelayPromise, okPromise]);
       const currentOffline = !ok;
-      
+
       setIsOffline(currentOffline);
       isOfflineRef.current = currentOffline;
 
@@ -162,5 +161,3 @@ function App() {
 }
 
 export default App;
-
-

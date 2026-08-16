@@ -11,11 +11,11 @@ Os apps importam **sempre** de `@workspace/ui`. Nenhum dos dois mantém uma past
 
 ## O que entra e o que não entra
 
-| Entra | Não entra |
-| --- | --- |
-| Componente visual, variante, acessibilidade, layout | Regra de domínio (dinheiro, data de negócio, validação) |
-| Estado **da própria interface** (aberto/fechado, hover, foco) | Chamada de rede, DTO, chave de cache |
-| Formatação puramente visual (classe, ícone, animação) | Import de dentro de um app (`@/...`) |
+| Entra                                                         | Não entra                                               |
+| ------------------------------------------------------------- | ------------------------------------------------------- |
+| Componente visual, variante, acessibilidade, layout           | Regra de domínio (dinheiro, data de negócio, validação) |
+| Estado **da própria interface** (aberto/fechado, hover, foco) | Chamada de rede, DTO, chave de cache                    |
+| Formatação puramente visual (classe, ícone, animação)         | Import de dentro de um app (`@/...`)                    |
 
 O pacote é **folha do grafo**: ele não importa nada de `@workspace/*`. Se um
 componente parece precisar de `round2`, `parseAmount` ou `describeApiError`, o
@@ -93,10 +93,10 @@ de cada app e declarar `sideEffects: false`.
 Não compensa, e dá para verificar sem opinião — basta olhar o que cada app
 realmente empacotou:
 
-| App | Usa `DatePicker`/`DateRangePicker`? | `react-datepicker` no bundle? |
-| --- | --- | --- |
-| admin | sim, em 7 features | sim — chunk `vendor-datas`, JS **e** CSS |
-| pdv | **nenhum arquivo importa** | **não** — zero ocorrência de `react-datepicker__` nos bundles |
+| App   | Usa `DatePicker`/`DateRangePicker`? | `react-datepicker` no bundle?                                 |
+| ----- | ----------------------------------- | ------------------------------------------------------------- |
+| admin | sim, em 7 features                  | sim — chunk `vendor-datas`, JS **e** CSS                      |
+| pdv   | **nenhum arquivo importa**          | **não** — zero ocorrência de `react-datepicker__` nos bundles |
 
 Ou seja: o PDV, que não usa calendário, já descarta os dois componentes **com o
 array no lugar**. Mover o CSS para fora não liberaria tree-shaking porque não há
@@ -144,11 +144,11 @@ a cobertura continua sendo o calendário e mais nada.
 Três dependências deste pacote estão declaradas em versões diferentes no
 `apps/admin`, e o resultado está instalado em disco — duas cópias vivas:
 
-| Pacote | ui declara | admin declara | Instalado |
-| --- | --- | --- | --- |
-| `lucide-react` | `^1.14.0` | `^0.545.0` | `packages/ui` 1.31.0 · `apps/admin` 0.545.0 |
-| `date-fns` | `^4.1.0` | `^3.6.0` | raiz 4.4.0 · `apps/admin` 3.6.0 |
-| `tailwind-merge` | `^3.5.0` | `^3.3.1` | raiz 3.6.0 · `packages/ui` 2.6.1 |
+| Pacote           | ui declara | admin declara | Instalado                                   |
+| ---------------- | ---------- | ------------- | ------------------------------------------- |
+| `lucide-react`   | `^1.14.0`  | `^0.545.0`    | `packages/ui` 1.31.0 · `apps/admin` 0.545.0 |
+| `date-fns`       | `^4.1.0`   | `^3.6.0`      | raiz 4.4.0 · `apps/admin` 3.6.0             |
+| `tailwind-merge` | `^3.5.0`   | `^3.3.1`      | raiz 3.6.0 · `packages/ui` 2.6.1            |
 
 O admin renderiza componentes deste kit, então o bundle dele carrega os dois
 majors do pacote de ícones ao mesmo tempo. Unificar é tarefa própria — mexer numa
@@ -159,9 +159,9 @@ de comportamento.
 
 ## Onde mexer
 
-| Precisa | Arquivo |
-| --- | --- |
-| Componente novo | `src/components/` **e** o export no `src/index.ts` — fora do barrel ele não existe para os apps |
-| Mudar o padrão de calendário | `src/components/date-field.tsx` (primitivos) — leia `src/components/README.md` antes |
-| Mudar aparência/duração de um toast | `src/components/toaster.tsx`, no mapa único de variantes |
-| Novo import de CSS puro num componente | acrescente o arquivo ao `sideEffects` do `package.json` |
+| Precisa                                | Arquivo                                                                                         |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Componente novo                        | `src/components/` **e** o export no `src/index.ts` — fora do barrel ele não existe para os apps |
+| Mudar o padrão de calendário           | `src/components/date-field.tsx` (primitivos) — leia `src/components/README.md` antes            |
+| Mudar aparência/duração de um toast    | `src/components/toaster.tsx`, no mapa único de variantes                                        |
+| Novo import de CSS puro num componente | acrescente o arquivo ao `sideEffects` do `package.json`                                         |

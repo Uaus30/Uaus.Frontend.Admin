@@ -1,10 +1,7 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@workspace/ui";
 import { formatCurrency, formatPercentage } from "@workspace/core";
-import type {
-  CampaignReportQuestionDto,
-  CampaignReportQuestionOptionDto,
-} from "@workspace/api-client-react";
+import type { CampaignReportQuestionDto, CampaignReportQuestionOptionDto } from "@workspace/api-client-react";
 import {
   AXIS_PROPS,
   ChartCard,
@@ -48,12 +45,8 @@ function OptionTooltip({
           {formatPercentage(option.percentage)}
         </span>
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {formatCurrency(option.revenue)} faturados
-      </p>
-      <p className="text-xs text-muted-foreground">
-        Ticket médio de {formatCurrency(option.averageTicket)}
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{formatCurrency(option.revenue)} faturados</p>
+      <p className="text-xs text-muted-foreground">Ticket médio de {formatCurrency(option.averageTicket)}</p>
     </div>
   );
 }
@@ -75,10 +68,7 @@ function QuestionChart({ question }: { question: CampaignReportQuestionDto }) {
       title={question.label}
       description={`${question.answered} resgate(s) responderam esta pergunta`}
     >
-      <div
-        className="w-full"
-        style={{ height: question.options.length * ROW_HEIGHT + 24 }}
-      >
+      <div className="w-full" style={{ height: question.options.length * ROW_HEIGHT + 24 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={question.options}
@@ -89,13 +79,7 @@ function QuestionChart({ question }: { question: CampaignReportQuestionDto }) {
                 que cruzar o comprimento que se está comparando. */}
             <CartesianGrid {...GRID_PROPS} vertical horizontal={false} />
             <XAxis type="number" {...AXIS_PROPS} allowDecimals={false} />
-            <YAxis
-              type="category"
-              dataKey="label"
-              {...AXIS_PROPS}
-              width={120}
-              interval={0}
-            />
+            <YAxis type="category" dataKey="label" {...AXIS_PROPS} width={120} interval={0} />
             <Tooltip cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }} content={<OptionTooltip />} />
             <Bar
               dataKey="count"
@@ -122,10 +106,7 @@ function QuestionChart({ question }: { question: CampaignReportQuestionDto }) {
  * misturar, na mesma lista, rótulo congelado no resgate com rótulo vivo do
  * cadastro: duas verdades diferentes sobre linhas vizinhas.
  */
-export function CampaignReportQuestionsChart({
-  questions,
-  isLoading,
-}: CampaignReportQuestionsChartProps) {
+export function CampaignReportQuestionsChart({ questions, isLoading }: CampaignReportQuestionsChartProps) {
   if (isLoading) {
     return <Skeleton className="h-[320px] rounded-xl" />;
   }

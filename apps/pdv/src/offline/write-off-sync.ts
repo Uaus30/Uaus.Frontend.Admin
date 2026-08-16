@@ -74,9 +74,7 @@ export function classifyWriteOffFailure(error: unknown): "rejected" | "retry" {
 
 /** Mensagem legível de uma recusa do servidor. */
 function describeRejection(error: unknown): string {
-  return error instanceof Error && error.message
-    ? error.message
-    : "O servidor recusou a baixa de estoque.";
+  return error instanceof Error && error.message ? error.message : "O servidor recusou a baixa de estoque.";
 }
 
 /**

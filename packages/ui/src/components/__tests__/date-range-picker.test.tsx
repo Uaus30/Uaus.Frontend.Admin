@@ -10,11 +10,7 @@ describe("DateRangePicker", () => {
   });
 
   it("exibe o período no formato dd/MM/yyyy → dd/MM/yyyy", () => {
-    render(
-      <DateRangePicker
-        value={{ from: new Date(2026, 6, 18), to: new Date(2026, 6, 25) }}
-      />,
-    );
+    render(<DateRangePicker value={{ from: new Date(2026, 6, 18), to: new Date(2026, 6, 25) }} />);
 
     expect(screen.getByText("18/07/2026 → 25/07/2026")).toBeTruthy();
   });

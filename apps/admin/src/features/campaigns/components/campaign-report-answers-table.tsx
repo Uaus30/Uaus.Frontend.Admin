@@ -42,8 +42,8 @@ export function CampaignReportAnswersTable({ questions }: CampaignReportAnswersT
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Respostas por alternativa</CardTitle>
         <CardDescription>
-          Contagem, participação e ticket médio de cada alternativa escolhida no balcão. A
-          participação é sobre quem respondeu aquela pergunta.
+          Contagem, participação e ticket médio de cada alternativa escolhida no balcão. A participação é
+          sobre quem respondeu aquela pergunta.
         </CardDescription>
       </CardHeader>
       <CardContent>

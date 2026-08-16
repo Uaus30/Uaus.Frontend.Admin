@@ -28,8 +28,8 @@ export function useLoginFeature() {
           description: describeApiError(err, "Credenciais inválidas. Tente novamente."),
           variant: "destructive",
         });
-      }
-    }
+      },
+    },
   });
 
   /**

@@ -172,13 +172,9 @@ describe("usePartners", () => {
       result.current.handleSubmitPartner(submitEvent);
     });
 
+    await waitFor(() => expect(mocks.createPartner).toHaveBeenCalledWith({ name: "Diego Nunes" }));
     await waitFor(() =>
-      expect(mocks.createPartner).toHaveBeenCalledWith({ name: "Diego Nunes" }),
-    );
-    await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Sócio cadastrado." }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Sócio cadastrado." })),
     );
     expect(result.current.modalOpen).toBe(false);
   });
@@ -203,8 +199,7 @@ describe("usePartners", () => {
       expect(mocks.toast).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Sócio atualizado.",
-          description:
-            "O percentual foi zerado — rebalanceie a distribuição antes do próximo fechamento.",
+          description: "O percentual foi zerado — rebalanceie a distribuição antes do próximo fechamento.",
         }),
       ),
     );
@@ -220,9 +215,7 @@ describe("usePartners", () => {
     });
 
     expect(mocks.createPartner).not.toHaveBeenCalled();
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "destructive" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 
   it("não deve excluir quando a confirmação é recusada", async () => {
@@ -246,9 +239,7 @@ describe("usePartners", () => {
 
     await waitFor(() => expect(mocks.deletePartner).toHaveBeenCalledWith(1));
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Sócio removido." }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Sócio removido." })),
     );
   });
 
@@ -269,8 +260,7 @@ describe("usePartners", () => {
       expect(mocks.toast).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Erro ao remover sócio",
-          description:
-            "Este sócio possui fechamentos registrados! Desative-o em vez de excluir.",
+          description: "Este sócio possui fechamentos registrados! Desative-o em vez de excluir.",
           variant: "destructive",
         }),
       ),
@@ -280,9 +270,7 @@ describe("usePartners", () => {
   it("deve carregar no rascunho apenas os percentuais dos sócios ativos", async () => {
     const { result } = renderHook(() => usePartners(), { wrapper: createWrapper() });
 
-    await waitFor(() =>
-      expect(result.current.draftPercentages).toEqual({ 1: "75", 2: "25" }),
-    );
+    await waitFor(() => expect(result.current.draftPercentages).toEqual({ 1: "75", 2: "25" }));
     expect(result.current.activeShares).toHaveLength(2);
     expect(result.current.sharesSum).toBe(100);
     expect(result.current.isSharesSumValid).toBe(true);

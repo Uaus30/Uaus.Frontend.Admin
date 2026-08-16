@@ -27,29 +27,38 @@ export function ProductPricingAndStock({
       {!form.hasVariations && (
         <>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Preço de venda (R$) <span className="text-red-500">*</span></label>
-            <CurrencyInput 
+            <label className="text-sm font-medium">
+              Preço de venda (R$) <span className="text-red-500">*</span>
+            </label>
+            <CurrencyInput
               id="input-price"
-              value={productEditor.price} 
+              value={productEditor.price}
               onChange={(val) => {
                 setProductEditor((current) => ({ ...current, price: val }));
-                if (validationErrors.price) setValidationErrors(prev => ({ ...prev, price: false }));
-              }} 
-              className={`bg-background w-full ${validationErrors.price ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`} 
+                if (validationErrors.price) setValidationErrors((prev) => ({ ...prev, price: false }));
+              }}
+              className={`bg-background w-full ${validationErrors.price ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}
             />
-            {validationErrors.price && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
+            {validationErrors.price && (
+              <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Status <span className="text-red-500">*</span></label>
-            <Select 
-              value={productEditor.status} 
+            <label className="text-sm font-medium">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <Select
+              value={productEditor.status}
               onValueChange={(value) => {
                 setProductEditor((current) => ({ ...current, status: value }));
-                if (validationErrors.status) setValidationErrors(prev => ({ ...prev, status: false }));
+                if (validationErrors.status) setValidationErrors((prev) => ({ ...prev, status: false }));
               }}
             >
-              <SelectTrigger id="select-status" className={`bg-background w-full ${validationErrors.status ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}>
+              <SelectTrigger
+                id="select-status"
+                className={`bg-background w-full ${validationErrors.status ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}
+              >
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
@@ -60,7 +69,9 @@ export function ProductPricingAndStock({
                 ))}
               </SelectContent>
             </Select>
-            {validationErrors.status && <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>}
+            {validationErrors.status && (
+              <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
+            )}
           </div>
         </>
       )}
@@ -81,7 +92,16 @@ export function ProductPricingAndStock({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Input type="number" min="0" value={productEditor.minStock} onChange={(event) => setProductEditor((current) => ({ ...current, minStock: Number(event.target.value) }))} className="bg-background" required />
+            <Input
+              type="number"
+              min="0"
+              value={productEditor.minStock}
+              onChange={(event) =>
+                setProductEditor((current) => ({ ...current, minStock: Number(event.target.value) }))
+              }
+              className="bg-background"
+              required
+            />
           </div>
 
           <div className="space-y-2">
@@ -98,14 +118,24 @@ export function ProductPricingAndStock({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Input type="number" value={productEditor.stock} readOnly className="bg-muted/30 text-muted-foreground cursor-not-allowed" />
+            <Input
+              type="number"
+              value={productEditor.stock}
+              readOnly
+              className="bg-muted/30 text-muted-foreground cursor-not-allowed"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Visibilidade</label>
             <label className="flex items-center gap-2 text-sm cursor-pointer border border-border/50 rounded-md px-3 h-10 bg-card hover:bg-muted/50 transition-colors w-full justify-between">
               <span className="font-medium shrink-0">Exibir no site</span>
-              <Switch checked={form.isPublic} onCheckedChange={(checked) => setForm(current => ({ ...current, isPublic: checked === true }))} />
+              <Switch
+                checked={form.isPublic}
+                onCheckedChange={(checked) =>
+                  setForm((current) => ({ ...current, isPublic: checked === true }))
+                }
+              />
             </label>
           </div>
         </div>

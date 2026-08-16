@@ -12,5 +12,3 @@ export interface LogTypeOption {
   value: string;
   allowSelect: boolean;
 }
-
-

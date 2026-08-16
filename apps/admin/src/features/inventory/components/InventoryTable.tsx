@@ -55,7 +55,7 @@ type InventoryTableProps = {
 
 /**
  * InventoryTable
- * 
+ *
  * Component rendering the tabular product stock list, filters, and scale zoom controls.
  */
 export function InventoryTable({
@@ -91,14 +91,32 @@ export function InventoryTable({
           </div>
 
           <div className="flex items-center gap-1 bg-muted/20 border border-border/40 p-1 rounded-lg self-end lg:self-center">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomOut} title="Diminuir zoom">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleZoomOut}
+              title="Diminuir zoom"
+            >
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
             <span className="text-2xs font-semibold px-2 font-mono">{Math.round(zoomScale * 100)}%</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleResetZoom} title="Restaurar zoom">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleResetZoom}
+              title="Restaurar zoom"
+            >
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomIn} title="Aumentar zoom">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleZoomIn}
+              title="Aumentar zoom"
+            >
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -190,7 +208,11 @@ export function InventoryTable({
         ) : (
           <div
             className="overflow-x-auto border border-border/40 rounded-xl transition-all duration-200"
-            style={{ transform: `scale(${zoomScale})`, transformOrigin: "top left", width: `${100 / zoomScale}%` }}
+            style={{
+              transform: `scale(${zoomScale})`,
+              transformOrigin: "top left",
+              width: `${100 / zoomScale}%`,
+            }}
           >
             <Table>
               <TableHeader className="bg-muted/40">
@@ -210,23 +232,38 @@ export function InventoryTable({
               <TableBody>
                 {report.items.data.map((item: any) => (
                   <TableRow key={item.id} className="hover:bg-muted/10 transition-colors">
-                    <TableCell className="px-4 py-3 font-semibold text-sm truncate max-w-[200px]" title={item.productName}>
+                    <TableCell
+                      className="px-4 py-3 font-semibold text-sm truncate max-w-[200px]"
+                      title={item.productName}
+                    >
                       {item.productName}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-xs font-mono">{item.barcode || "-"}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-muted-foreground">{item.supplierName}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm">{item.categoryName}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm font-bold text-center">
-                      {item.stock} UN
+                    <TableCell className="px-4 py-3 text-sm text-muted-foreground">
+                      {item.supplierName}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(item.unitCost)}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-right font-medium text-emerald-500">{formatCurrency(item.unitSale)}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-right font-semibold text-amber-500">{formatCurrency(item.totalCost)}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-right font-bold text-emerald-500">{formatCurrency(item.mercadoria)}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm">{item.categoryName}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm font-bold text-center">{item.stock} UN</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-right font-medium">
+                      {formatCurrency(item.unitCost)}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-right font-medium text-emerald-500">
+                      {formatCurrency(item.unitSale)}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-right font-semibold text-amber-500">
+                      {formatCurrency(item.totalCost)}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-right font-bold text-emerald-500">
+                      {formatCurrency(item.mercadoria)}
+                    </TableCell>
                     <TableCell className="px-4 py-3 text-sm text-right">
                       <span className="flex flex-col items-end">
-                        <span className="font-bold text-emerald-500">{formatCurrency(item.estimatedProfit)}</span>
-                        <span className="text-2xs text-muted-foreground font-semibold">{formatPercent(item.marginPercentage)}</span>
+                        <span className="font-bold text-emerald-500">
+                          {formatCurrency(item.estimatedProfit)}
+                        </span>
+                        <span className="text-2xs text-muted-foreground font-semibold">
+                          {formatPercent(item.marginPercentage)}
+                        </span>
                       </span>
                     </TableCell>
                   </TableRow>
@@ -266,5 +303,3 @@ export function InventoryTable({
     </Card>
   );
 }
-
-

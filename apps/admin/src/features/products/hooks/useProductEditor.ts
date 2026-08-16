@@ -47,7 +47,7 @@ export function useProductEditor() {
     matrixGeneratedForCategoryRef,
     setVariationDrafts,
     setImages,
-    setActiveGrades
+    setActiveGrades,
   });
 
   const {
@@ -218,7 +218,13 @@ export function useProductEditor() {
     if (!modalOpen || !form.hasVariations) return;
     setVariationDrafts((current) => {
       if (current.length > 0) return current;
-      const draft = { ...createEmptyProductEditor(productForm.defaultStatus), key: `temp-${Math.random().toString(36).substring(2, 9)}`, name: form.productGroupName.trim(), images: [], canDelete: true } as VariationDraft;
+      const draft = {
+        ...createEmptyProductEditor(productForm.defaultStatus),
+        key: `temp-${Math.random().toString(36).substring(2, 9)}`,
+        name: form.productGroupName.trim(),
+        images: [],
+        canDelete: true,
+      } as VariationDraft;
       setActiveVariationKey(draft.key);
       return [draft];
     });
@@ -256,11 +262,11 @@ export function useProductEditor() {
 
   useEffect(() => {
     if (
-      !modalOpen
-      || !form.hasVariations
-      || !editingGroupId
-      || enrichedGroupProducts.length === 0
-      || loadedGroupId === editingGroupId
+      !modalOpen ||
+      !form.hasVariations ||
+      !editingGroupId ||
+      enrichedGroupProducts.length === 0 ||
+      loadedGroupId === editingGroupId
     ) {
       return;
     }
@@ -270,7 +276,6 @@ export function useProductEditor() {
     setActiveVariationKey((current) => current ?? drafts[0]?.key ?? null);
     setLoadedGroupId(editingGroupId);
   }, [editingGroupId, enrichedGroupProducts, form.hasVariations, modalOpen, loadedGroupId]);
-
 
   return {
     modalOpen,

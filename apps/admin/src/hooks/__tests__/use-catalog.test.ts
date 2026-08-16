@@ -83,9 +83,9 @@ describe("invalidação por prefixo", () => {
     client.invalidateQueries({ queryKey: RESOURCE_KEYS.departments });
 
     expect(client.getQueryState(CATALOG_KEYS.departments)?.isInvalidated).toBe(true);
-    expect(
-      client.getQueryState([...RESOURCE_KEYS.departments, "page", { page: 1 }])?.isInvalidated,
-    ).toBe(true);
+    expect(client.getQueryState([...RESOURCE_KEYS.departments, "page", { page: 1 }])?.isInvalidated).toBe(
+      true,
+    );
     client.clear();
   });
 

@@ -24,9 +24,7 @@ describe("describeApiError", () => {
       },
     });
 
-    expect(describeApiError(error)).toBe(
-      "A baixa precisa de ao menos um item. Motivo inválido.",
-    );
+    expect(describeApiError(error)).toBe("A baixa precisa de ao menos um item. Motivo inválido.");
   });
 
   it("deve aceitar valor solto no dicionário de validação", () => {
@@ -42,9 +40,7 @@ describe("describeApiError", () => {
   });
 
   it("deve usar erros locais lançados antes da requisição", () => {
-    expect(describeApiError(new Error("Selecione o motivo da baixa."))).toBe(
-      "Selecione o motivo da baixa.",
-    );
+    expect(describeApiError(new Error("Selecione o motivo da baixa."))).toBe("Selecione o motivo da baixa.");
   });
 
   it("deve cair no texto padrão quando não há nada legível", () => {

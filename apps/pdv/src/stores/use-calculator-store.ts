@@ -97,8 +97,7 @@ export const useCalculatorStore = create<CalculatorState>((set, get) => ({
       return { expression: expression + char, resultOnScreen };
     }),
 
-  backspace: () =>
-    set((state) => ({ expression: state.expression.slice(0, -1), resultOnScreen: false })),
+  backspace: () => set((state) => ({ expression: state.expression.slice(0, -1), resultOnScreen: false })),
 
   clear: () => set(() => ({ expression: "", resultOnScreen: false })),
 

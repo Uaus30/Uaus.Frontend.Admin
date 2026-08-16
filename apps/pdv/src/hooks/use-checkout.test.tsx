@@ -14,7 +14,13 @@ const paymentMethods: PaymentMethodDto[] = [
     name: "Dinheiro",
     isActive: true,
     installments: [
-      { id: 1, paymentMethodId: CASH_PAYMENT_METHOD_ID, installmentNumber: 1, feePercentage: 0, isActive: true },
+      {
+        id: 1,
+        paymentMethodId: CASH_PAYMENT_METHOD_ID,
+        installmentNumber: 1,
+        feePercentage: 0,
+        isActive: true,
+      },
     ],
   },
   {

@@ -77,8 +77,8 @@ export function CampaignEditorModal({
         <DialogHeader>
           <DialogTitle>{editingId ? "Editar Campanha" : "Nova Campanha"}</DialogTitle>
           <DialogDescription>
-            O período da campanha decide apenas quando o questionário é apresentado no caixa. O
-            desconto e o prazo do panfleto continuam sendo do cupom.
+            O período da campanha decide apenas quando o questionário é apresentado no caixa. O desconto e o
+            prazo do panfleto continuam sendo do cupom.
           </DialogDescription>
         </DialogHeader>
 

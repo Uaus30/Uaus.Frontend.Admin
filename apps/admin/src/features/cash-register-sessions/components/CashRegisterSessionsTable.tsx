@@ -1,24 +1,11 @@
 import { Wallet } from "lucide-react";
 import { CASH_REGISTER_SESSION_OPEN } from "@workspace/api-client-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { formatCurrency, formatDate } from "@workspace/core";
 import type { CashRegisterSessionDto, CashRegisterSessionStatusFilter } from "../types";
 
@@ -42,8 +29,7 @@ interface CashRegisterSessionsTableProps {
 }
 
 /** Rótulo dos campos de filtro — mesmo padrão da barra de filtros de vendas. */
-const FILTER_LABEL_CLASS =
-  "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+const FILTER_LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 /** Badge da coluna Diferença: verde quando a gaveta bateu, destructive quando não. */
 function DifferenceBadge({ value }: { value: number | null }) {
@@ -57,7 +43,11 @@ function DifferenceBadge({ value }: { value: number | null }) {
     );
   }
 
-  return <Badge variant="destructive" className="font-medium">{formatCurrency(value)}</Badge>;
+  return (
+    <Badge variant="destructive" className="font-medium">
+      {formatCurrency(value)}
+    </Badge>
+  );
 }
 
 /**
@@ -117,9 +107,7 @@ export function CashRegisterSessionsTable({
 
       {/* Conteúdo */}
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">
-          Carregando sessões de caixa...
-        </div>
+        <div className="py-12 text-center text-muted-foreground">Carregando sessões de caixa...</div>
       ) : sessions.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground border rounded-lg bg-card">
           <Wallet className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
@@ -165,9 +153,7 @@ export function CashRegisterSessionsTable({
                     {session.userName || <span className="text-muted-foreground">—</span>}
                   </TableCell>
 
-                  <TableCell className="text-right">
-                    {formatCurrency(session.openingBalance)}
-                  </TableCell>
+                  <TableCell className="text-right">{formatCurrency(session.openingBalance)}</TableCell>
 
                   <TableCell className="text-right">
                     {session.expectedAmount != null ? (
@@ -209,5 +195,3 @@ export function CashRegisterSessionsTable({
     </div>
   );
 }
-
-

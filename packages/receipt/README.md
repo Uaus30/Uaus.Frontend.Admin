@@ -17,15 +17,15 @@ para a mesma venda.
 
 ## O que entra
 
-| Arquivo | Responsabilidade |
-| --- | --- |
-| `types.ts` | `ReceiptData`, `ReceiptItem`, `ReceiptPayment`, `ReceiptCoupon`, `ReceiptStore` |
-| `document.ts` | Folha de estilo da bobina, `row`, `divider`, formatação de dinheiro/data |
-| `render.ts` | `buildReceiptHtml` — o layout do comprovante |
-| `from-sale.ts` | `buildReceiptFromSale` — venda da API → `ReceiptData` (reimpressão) |
-| `sales-report.ts` | Relatório de fechamento do caixa |
-| `store-info.ts` | Identidade da loja, com padrão embutido para cadastro pela metade |
-| `print.ts` | Impressão via iframe isolado |
+| Arquivo           | Responsabilidade                                                                |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `types.ts`        | `ReceiptData`, `ReceiptItem`, `ReceiptPayment`, `ReceiptCoupon`, `ReceiptStore` |
+| `document.ts`     | Folha de estilo da bobina, `row`, `divider`, formatação de dinheiro/data        |
+| `render.ts`       | `buildReceiptHtml` — o layout do comprovante                                    |
+| `from-sale.ts`    | `buildReceiptFromSale` — venda da API → `ReceiptData` (reimpressão)             |
+| `sales-report.ts` | Relatório de fechamento do caixa                                                |
+| `store-info.ts`   | Identidade da loja, com padrão embutido para cadastro pela metade               |
+| `print.ts`        | Impressão via iframe isolado                                                    |
 
 ## O que NÃO entra
 

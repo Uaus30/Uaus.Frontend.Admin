@@ -21,7 +21,13 @@ type PatternChartProps = {
  * engana: "R$ 800 por domingo" pesa muito diferente se saiu de dois domingos ou
  * de cinquenta.
  */
-function PatternTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PatternBucket }> }) {
+function PatternTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: PatternBucket }>;
+}) {
   if (!active || !payload?.length) return null;
   const bucket = payload[0].payload;
 
@@ -90,7 +96,7 @@ export function PatternChart({
                   {...AXIS_PROPS}
                   interval="preserveStartEnd"
                   tickFormatter={(_value, index) =>
-                    tickFormatter ? tickFormatter(data[index]) : data[index]?.label ?? ""
+                    tickFormatter ? tickFormatter(data[index]) : (data[index]?.label ?? "")
                   }
                 />
                 <YAxis {...AXIS_PROPS} tickFormatter={compactCurrency} width={48} />
@@ -99,9 +105,7 @@ export function PatternChart({
                   {data.map((bucket) => (
                     <Cell
                       key={bucket.key}
-                      fill={
-                        bucket.key === best?.key ? "hsl(var(--chart-2))" : "hsl(var(--chart-1))"
-                      }
+                      fill={bucket.key === best?.key ? "hsl(var(--chart-2))" : "hsl(var(--chart-1))"}
                     />
                   ))}
                 </Bar>

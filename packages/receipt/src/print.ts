@@ -43,8 +43,7 @@ export function printReceiptHtml(html: string): Promise<void> {
     iframe.setAttribute("aria-hidden", "true");
     iframe.setAttribute("tabindex", "-1");
     // Fora da tela em vez de escondido: navegador não imprime iframe sem layout.
-    iframe.style.cssText =
-      "position:fixed;left:-10000px;top:0;width:80mm;height:100vh;border:0;";
+    iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:80mm;height:100vh;border:0;";
 
     let finished = false;
     const cleanup = () => {

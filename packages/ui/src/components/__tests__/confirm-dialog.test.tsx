@@ -36,9 +36,7 @@ describe("ConfirmDialog", () => {
     renderDialog({ itemName: "Bebidas geladas" });
 
     expect(screen.getByText("Remover esta categoria?")).toBeTruthy();
-    expect(
-      screen.getByText("A categoria sai do cadastro e a ação não pode ser desfeita."),
-    ).toBeTruthy();
+    expect(screen.getByText("A categoria sai do cadastro e a ação não pode ser desfeita.")).toBeTruthy();
     expect(screen.getByText("Bebidas geladas")).toBeTruthy();
   });
 

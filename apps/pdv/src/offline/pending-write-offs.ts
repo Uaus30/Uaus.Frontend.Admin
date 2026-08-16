@@ -88,10 +88,7 @@ export async function removePendingWriteOff(clientReference: string): Promise<vo
  * excluído, saldo em lote insuficiente) se repetiria a cada rodada. O operador
  * precisa decidir — corrigir a causa e reenfileirar, ou descartar.
  */
-export async function markPendingWriteOffFailed(
-  writeOff: PendingWriteOff,
-  error: string,
-): Promise<void> {
+export async function markPendingWriteOffFailed(writeOff: PendingWriteOff, error: string): Promise<void> {
   await savePendingWriteOff({
     ...writeOff,
     status: "failed",

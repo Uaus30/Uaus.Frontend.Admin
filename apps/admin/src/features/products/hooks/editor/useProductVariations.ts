@@ -45,13 +45,8 @@ export function useProductVariations({
     [activeVariationKey, variationDrafts],
   );
 
-  function updateVariationDraft(
-    key: string,
-    updater: (draft: VariationDraft) => VariationDraft,
-  ) {
-    setVariationDrafts((current) =>
-      current.map((draft) => (draft.key === key ? updater(draft) : draft)),
-    );
+  function updateVariationDraft(key: string, updater: (draft: VariationDraft) => VariationDraft) {
+    setVariationDrafts((current) => current.map((draft) => (draft.key === key ? updater(draft) : draft)));
   }
 
   function generateVariationsMatrix(selectedGradeIds: number[]) {
@@ -66,14 +61,18 @@ export function useProductVariations({
       draft.minStock = productEditor.minStock;
       draft.barcode = productEditor.barcode;
       draft.variantMap = {};
-      
+
       setVariationDrafts([draft]);
-      setForm(current => ({ ...current, hasVariations: true }));
+      setForm((current) => ({ ...current, hasVariations: true }));
       setActiveVariationKey(draft.key);
       return;
     }
 
-    const generateCombinations = (gradesList: Grade[], currentMap: Record<number, number> = {}, index = 0): Record<number, number>[] => {
+    const generateCombinations = (
+      gradesList: Grade[],
+      currentMap: Record<number, number> = {},
+      index = 0,
+    ): Record<number, number>[] => {
       if (index === gradesList.length) {
         return [{ ...currentMap }];
       }
@@ -87,15 +86,17 @@ export function useProductVariations({
     };
 
     const newCombinations = generateCombinations(selectedGrades);
-    
-    const newDrafts: VariationDraft[] = newCombinations.map(combo => {
-      const comboNames = selectedGrades.map((g: Grade) => {
-        const variantId = combo[g.id];
-        return g.variants.find((v: any) => v.id === variantId)?.value;
-      }).filter(Boolean);
-      
+
+    const newDrafts: VariationDraft[] = newCombinations.map((combo) => {
+      const comboNames = selectedGrades
+        .map((g: Grade) => {
+          const variantId = combo[g.id];
+          return g.variants.find((v: any) => v.id === variantId)?.value;
+        })
+        .filter(Boolean);
+
       const draftName = `${productEditor.name || form.productGroupName} ${comboNames.join(" ")}`.trim();
-      
+
       const draft = createVariationDraft(defaultStatus, draftName);
       draft.price = productEditor.price;
       draft.stock = 0;
@@ -106,22 +107,25 @@ export function useProductVariations({
     });
 
     setVariationDrafts(newDrafts);
-    setForm(current => ({ ...current, hasVariations: newDrafts.length > 0 }));
+    setForm((current) => ({ ...current, hasVariations: newDrafts.length > 0 }));
     if (newDrafts.length > 0) setActiveVariationKey(newDrafts[0].key);
   }
 
   function addVariationDraft(initialValues?: Partial<VariationDraft>) {
-    const draft = createVariationDraft(defaultStatus, initialValues?.name || productEditor.name || form.productGroupName.trim());
+    const draft = createVariationDraft(
+      defaultStatus,
+      initialValues?.name || productEditor.name || form.productGroupName.trim(),
+    );
     draft.price = initialValues?.price ?? productEditor.price;
     draft.minStock = initialValues?.minStock ?? productEditor.minStock;
     draft.barcode = initialValues?.barcode ?? productEditor.barcode;
     draft.stock = initialValues?.stock ?? 0;
     if (initialValues?.variantMap) draft.variantMap = initialValues.variantMap;
     if (initialValues?.status) draft.status = initialValues.status;
-    
+
     setVariationDrafts((current) => {
       const newDrafts = [...current, draft];
-      setForm(f => ({ ...f, hasVariations: true }));
+      setForm((f) => ({ ...f, hasVariations: true }));
       return newDrafts;
     });
     setActiveVariationKey(draft.key);
@@ -131,7 +135,7 @@ export function useProductVariations({
     if (draft.id == null || draft.id === 0) {
       const nextDrafts = variationDrafts.filter((item) => item.key !== draft.key);
       setVariationDrafts(nextDrafts);
-      setForm(f => ({ ...f, hasVariations: nextDrafts.length > 0 }));
+      setForm((f) => ({ ...f, hasVariations: nextDrafts.length > 0 }));
       if (activeVariationKey === draft.key) {
         setActiveVariationKey(nextDrafts[0]?.key ?? null);
       }
@@ -145,7 +149,7 @@ export function useProductVariations({
 
       const nextDrafts = variationDrafts.filter((item) => item.key !== draft.key);
       setVariationDrafts(nextDrafts);
-      setForm(f => ({ ...f, hasVariations: nextDrafts.length > 0 }));
+      setForm((f) => ({ ...f, hasVariations: nextDrafts.length > 0 }));
       if (activeVariationKey === draft.key) {
         setActiveVariationKey(nextDrafts[0]?.key ?? null);
       }

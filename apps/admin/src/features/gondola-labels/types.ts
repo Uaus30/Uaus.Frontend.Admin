@@ -21,7 +21,12 @@ export interface LabelTypeInfo {
 export const LABEL_TYPE_INFOS: LabelTypeInfo[] = [
   { code: PRODUCT_LABEL_TYPE.Normal, name: "Normal", background: "#ffffff", foreground: "#000000" },
   { code: PRODUCT_LABEL_TYPE.Promotion, name: "Promoção", background: "#ffe600", foreground: "#000000" },
-  { code: PRODUCT_LABEL_TYPE.Clearance, name: "Queima de Estoque", background: "#ee3524", foreground: "#000000" },
+  {
+    code: PRODUCT_LABEL_TYPE.Clearance,
+    name: "Queima de Estoque",
+    background: "#ee3524",
+    foreground: "#000000",
+  },
 ];
 
 /** Metadados do tipo; cai para Normal (branca) quando o código é desconhecido. */
@@ -71,9 +76,7 @@ export function parsePriceInput(value: string): number {
   if (!trimmed) return 0;
 
   // Com vírgula, o ponto é separador de milhar; sem vírgula, é decimal.
-  const normalized = trimmed.includes(",")
-    ? trimmed.replace(/\./g, "").replace(",", ".")
-    : trimmed;
+  const normalized = trimmed.includes(",") ? trimmed.replace(/\./g, "").replace(",", ".") : trimmed;
 
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;

@@ -32,8 +32,8 @@ Consequências práticas nesta feature:
 
 O teto é **orçamento de marketing, não trava de estoque**: o PDV offline pode
 gravar um resgate acima do limite, e o backend aceita — ele nunca recusa uma
-venda já paga por causa de cupom. Por isso `remainingUses` na tela é *leitura do
-instante*, não reserva: dois caixas podem ver "resta 1 uso" ao mesmo tempo, e os
+venda já paga por causa de cupom. Por isso `remainingUses` na tela é _leitura do
+instante_, não reserva: dois caixas podem ver "resta 1 uso" ao mesmo tempo, e os
 dois estarão certos, porque nada foi reservado.
 
 ---
@@ -106,12 +106,12 @@ Quem recusa o desconto no balcão é a **data**; o indicador de ativo é a chave
 
 ## 5. Editar um cupom que já circula
 
-| Edição | Permitida? |
-| --- | --- |
-| descrição, campanha, indicador de ativo | sim, sem confirmação |
-| tipo, valor, vigência | sim, **com confirmação** quando há resgate |
-| teto abaixo do já resgatado | sim — é o "encerrar agora"; o `UPDATE` condicional simplesmente para de aceitar |
-| **código**, com qualquer resgate | **não** |
+| Edição                                  | Permitida?                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------- |
+| descrição, campanha, indicador de ativo | sim, sem confirmação                                                            |
+| tipo, valor, vigência                   | sim, **com confirmação** quando há resgate                                      |
+| teto abaixo do já resgatado             | sim — é o "encerrar agora"; o `UPDATE` condicional simplesmente para de aceitar |
+| **código**, com qualquer resgate        | **não**                                                                         |
 
 O **código é travado no formulário** depois do primeiro resgate. Trocá-lo mataria
 todo panfleto em circulação: quem apresentasse o papel ouviria "cupom não
@@ -144,7 +144,7 @@ só para o seletor do formulário e para o filtro.
 
 - A busca tem debounce de 300 ms e **volta para a página 1** já na digitação —
   filtro novo, contagem nova. O mesmo vale para o filtro de campanha e o de
-  ativos. O recuo é feito nos *setters*, não num efeito que observa o filtro:
+  ativos. O recuo é feito nos _setters_, não num efeito que observa o filtro:
   efeito que chama `setState` renderiza em cascata e é erro de lint aqui.
 - **Excluir o último item da última página recua uma página**, no `onSuccess` da
   própria exclusão. Sem isso a tela ficaria presa numa página que deixou de

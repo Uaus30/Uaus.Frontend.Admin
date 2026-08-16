@@ -196,9 +196,7 @@ describe("buildSalePayload", () => {
 
     // O bug que já aconteceu com o desconto global: a tela mostrava um número e
     // o payload levava outro. `registerSale` calcula o total a partir daqui.
-    expect(computeSaleTotal(payload.items, payload.discount)).toBe(
-      totalNaTela([ITEM, ITEM_30], 5, CUPOM_10),
-    );
+    expect(computeSaleTotal(payload.items, payload.discount)).toBe(totalNaTela([ITEM, ITEM_30], 5, CUPOM_10));
   });
 
   it("deve reajustar o cupom quando um item é bipado depois de aplicá-lo", () => {

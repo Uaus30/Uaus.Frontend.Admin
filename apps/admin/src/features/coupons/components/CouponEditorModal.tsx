@@ -77,8 +77,8 @@ export function CouponEditorModal({
         <DialogHeader>
           <DialogTitle>{editing ? "Editar Cupom" : "Novo Cupom"}</DialogTitle>
           <DialogDescription>
-            O código é o que sai impresso no panfleto e o que o cliente dita no balcão. O desconto é
-            calculado sobre o subtotal já descontado o abatimento manual da venda.
+            O código é o que sai impresso no panfleto e o que o cliente dita no balcão. O desconto é calculado
+            sobre o subtotal já descontado o abatimento manual da venda.
           </DialogDescription>
         </DialogHeader>
 
@@ -119,9 +119,7 @@ export function CouponEditorModal({
               <Label htmlFor="cp-type">Tipo de desconto *</Label>
               <Select
                 value={String(form.discountType)}
-                onValueChange={(value) =>
-                  alterar({ discountType: Number(value) as CouponDiscountTypeCode })
-                }
+                onValueChange={(value) => alterar({ discountType: Number(value) as CouponDiscountTypeCode })}
               >
                 <SelectTrigger id="cp-type">
                   <SelectValue />
@@ -195,8 +193,8 @@ export function CouponEditorModal({
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Em branco = sem prazo. A hora vale até o último segundo do minuto escolhido: 23:59
-                cobre o dia inteiro.
+                Em branco = sem prazo. A hora vale até o último segundo do minuto escolhido: 23:59 cobre o dia
+                inteiro.
               </p>
             </div>
           </div>
@@ -212,8 +210,8 @@ export function CouponEditorModal({
                 onChange={(e) => alterar({ usageLimit: e.target.value })}
               />
               <p className="text-xs text-muted-foreground">
-                Deixe em branco para ilimitado. É orçamento de marketing, não trava de estoque: uma
-                venda offline pode entrar acima do teto e o sistema a aceita.
+                Deixe em branco para ilimitado. É orçamento de marketing, não trava de estoque: uma venda
+                offline pode entrar acima do teto e o sistema a aceita.
               </p>
             </div>
 
@@ -221,9 +219,7 @@ export function CouponEditorModal({
               <Label htmlFor="cp-campaign">Campanha</Label>
               <Select
                 value={form.campaignId || SEM_CAMPANHA}
-                onValueChange={(value) =>
-                  alterar({ campaignId: value === SEM_CAMPANHA ? "" : value })
-                }
+                onValueChange={(value) => alterar({ campaignId: value === SEM_CAMPANHA ? "" : value })}
               >
                 <SelectTrigger id="cp-campaign">
                   <SelectValue placeholder="Sem campanha" />
@@ -238,8 +234,8 @@ export function CouponEditorModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                A campanha só fornece o questionário do balcão. Quem decide o desconto é a vigência
-                deste cupom.
+                A campanha só fornece o questionário do balcão. Quem decide o desconto é a vigência deste
+                cupom.
               </p>
             </div>
           </div>

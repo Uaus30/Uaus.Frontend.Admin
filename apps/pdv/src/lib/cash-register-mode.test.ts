@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_COMPANY_SETTINGS,
-  resolveCashRegisterMode,
-} from "./cash-register-mode";
+import { DEFAULT_COMPANY_SETTINGS, resolveCashRegisterMode } from "./cash-register-mode";
 
 describe("resolveCashRegisterMode", () => {
   it("deve exigir sessão na loja que usa controle de caixa", () => {

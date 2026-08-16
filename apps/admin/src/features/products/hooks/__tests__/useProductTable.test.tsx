@@ -36,43 +36,47 @@ const productGroup = {
 };
 
 vi.mock("@/services/products.service", () => ({
-  getAllProducts: vi.fn(() => Promise.resolve([
-    {
-      id: 10,
-      productGroupId: 1,
-      name: "Caneca Personalizada 300ml",
-      description: "Caneca de porcelana",
-      barcode: "789000000001",
-      price: 25,
-      costPrice: 10,
-      stock: 5,
-      minStock: 1,
-      status: 2,
-      canDelete: true,
-      createdAt: "2026-01-01T00:00:00",
-      updatedAt: null,
-    },
-  ])),
-  getAllProductImages: vi.fn(() => Promise.resolve([])),
-  getAllProductTags: vi.fn(() => Promise.resolve([])),
-  getProductGroupsPage: vi.fn(() => Promise.resolve({
-    data: [
+  getAllProducts: vi.fn(() =>
+    Promise.resolve([
       {
-        id: 1,
-        categoryId: 5,
-        name: "Caneca Personalizada",
-        description: null,
-        hasVariations: false,
-        showOnSite: true,
+        id: 10,
+        productGroupId: 1,
+        name: "Caneca Personalizada 300ml",
+        description: "Caneca de porcelana",
+        barcode: "789000000001",
+        price: 25,
+        costPrice: 10,
+        stock: 5,
+        minStock: 1,
+        status: 2,
         canDelete: true,
         createdAt: "2026-01-01T00:00:00",
         updatedAt: null,
       },
-    ],
-    total: 1,
-    page: 1,
-    limit: 20,
-  })),
+    ]),
+  ),
+  getAllProductImages: vi.fn(() => Promise.resolve([])),
+  getAllProductTags: vi.fn(() => Promise.resolve([])),
+  getProductGroupsPage: vi.fn(() =>
+    Promise.resolve({
+      data: [
+        {
+          id: 1,
+          categoryId: 5,
+          name: "Caneca Personalizada",
+          description: null,
+          hasVariations: false,
+          showOnSite: true,
+          canDelete: true,
+          createdAt: "2026-01-01T00:00:00",
+          updatedAt: null,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    }),
+  ),
   upsertProduct: vi.fn(() => Promise.resolve({ id: 10, canDelete: true })),
   adjustProductStock: vi.fn(() => Promise.resolve({ id: 10 })),
   syncProductImages: vi.fn(() => Promise.resolve()),
@@ -134,12 +138,14 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
 }));
 
 vi.mock("@/lib/imageOptimizer", () => ({
-  optimizeImage: vi.fn((file: File) => Promise.resolve({
-    file,
-    optimized: false,
-    originalSize: 0,
-    optimizedSize: 0,
-  })),
+  optimizeImage: vi.fn((file: File) =>
+    Promise.resolve({
+      file,
+      optimized: false,
+      originalSize: 0,
+      optimizedSize: 0,
+    }),
+  ),
 }));
 
 const mockToast = vi.fn();

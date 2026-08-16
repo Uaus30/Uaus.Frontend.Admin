@@ -84,11 +84,7 @@ export function useProductSubmit({
     return createdGroup;
   }
 
-  async function persistProductAssociations(
-    productId: number,
-    tagIds: number[],
-    sourceImages: LocalImage[],
-  ) {
+  async function persistProductAssociations(productId: number, tagIds: number[], sourceImages: LocalImage[]) {
     const currentTagAssociations = productTags.filter((item) => item.productId === productId);
     await syncProductTags({
       productId,
@@ -152,11 +148,7 @@ export function useProductSubmit({
           status: getStatusNumber(productEditor.status),
         });
 
-        const normalizedImages = await persistProductAssociations(
-          product.id,
-          productEditor.tagIds,
-          images,
-        );
+        const normalizedImages = await persistProductAssociations(product.id, productEditor.tagIds, images);
 
         setProductEditor((current) => ({ ...current, id: product.id }));
         setImages(normalizedImages);
@@ -170,7 +162,9 @@ export function useProductSubmit({
           for (const draft of variationDrafts) {
             const comboStr = JSON.stringify(draft.variantMap || {});
             if (combinations.has(comboStr)) {
-              throw new Error("Existem variações com as mesmas combinações de grades selecionadas. Remova a duplicidade para continuar.");
+              throw new Error(
+                "Existem variações com as mesmas combinações de grades selecionadas. Remova a duplicidade para continuar.",
+              );
             }
             combinations.add(comboStr);
           }
@@ -179,7 +173,9 @@ export function useProductSubmit({
           for (const draft of variationDrafts) {
             const nameKey = draft.name.trim().toUpperCase();
             if (names.has(nameKey)) {
-              throw new Error(`Existem variações com o mesmo nome ("${draft.name.trim()}"). Como não há grades selecionadas, cada variação deve ter um nome único.`);
+              throw new Error(
+                `Existem variações com o mesmo nome ("${draft.name.trim()}"). Como não há grades selecionadas, cada variação deve ter um nome único.`,
+              );
             }
             names.add(nameKey);
           }
@@ -203,11 +199,7 @@ export function useProductSubmit({
             gradeOptionIds: Object.values(draft.variantMap || {}),
           });
 
-          const normalizedImages = await persistProductAssociations(
-            product.id,
-            draft.tagIds,
-            draft.images,
-          );
+          const normalizedImages = await persistProductAssociations(product.id, draft.tagIds, draft.images);
 
           nextDrafts.push({
             ...draft,

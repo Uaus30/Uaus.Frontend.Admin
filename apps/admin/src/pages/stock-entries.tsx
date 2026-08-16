@@ -9,7 +9,7 @@ import { NewStockEntryModal } from "@/features/stock-entries/components/NewStock
 
 /**
  * StockEntries Page Component
- * 
+ *
  * Renders the Stock Entries admin panel, connecting page-level actions
  * to the useStockEntries state manager hook and extracted subcomponents.
  */
@@ -120,5 +120,3 @@ export default function StockEntries() {
     </AppLayout>
   );
 }
-
-

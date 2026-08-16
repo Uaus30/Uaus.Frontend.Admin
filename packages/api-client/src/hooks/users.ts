@@ -6,7 +6,15 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import {
+  apiGetOrThrow,
+  apiPost,
+  apiPut,
+  apiDelete,
+  ApiError,
+  useCrudMutation,
+  mapPagedResult,
+} from "../client";
 import type {
   BackendPagedResult,
   CreateUserPayload,
@@ -22,7 +30,10 @@ export const getGetUsersQueryKey = (): QueryKey => ["users"];
 export function useGetUsers(
   params?: { search?: string; page?: number; limit?: number },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<UserListDto>, ApiError, UiPagedResult<UserListDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<UserListDto>, ApiError, UiPagedResult<UserListDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<UserListDto>, ApiError, UiPagedResult<UserListDto>, QueryKey>({
@@ -57,9 +68,7 @@ export function useUpdateUser(options?: {
   }, options);
 }
 
-export function useDeleteUser(options?: {
-  mutation?: UseMutationOptions<null, ApiError, { id: number }>;
-}) {
+export function useDeleteUser(options?: { mutation?: UseMutationOptions<null, ApiError, { id: number }> }) {
   return useCrudMutation(async ({ id }) => {
     const response = await apiDelete<null>(`/Users/${id}`);
     return response.data;

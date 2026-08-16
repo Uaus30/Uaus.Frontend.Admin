@@ -58,9 +58,7 @@ export function UserEditorModal({
             <Label>Nome completo</Label>
             <Input
               value={form.fullName}
-              onChange={(event) =>
-                onFormChange((current) => ({ ...current, fullName: event.target.value }))
-              }
+              onChange={(event) => onFormChange((current) => ({ ...current, fullName: event.target.value }))}
               placeholder="Nome do usuário"
               required
               className="bg-background border-input"
@@ -139,9 +137,7 @@ export function UserEditorModal({
                 <Label>Status</Label>
                 <Select
                   value={form.status}
-                  onValueChange={(value) =>
-                    onFormChange((current) => ({ ...current, status: value }))
-                  }
+                  onValueChange={(value) => onFormChange((current) => ({ ...current, status: value }))}
                 >
                   <SelectTrigger className="bg-background border-input">
                     <SelectValue placeholder="Selecione..." />
@@ -176,5 +172,3 @@ export function UserEditorModal({
     </Dialog>
   );
 }
-
-

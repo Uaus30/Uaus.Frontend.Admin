@@ -210,8 +210,7 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
                       )}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Consumo, perda e doação registrados sem conexão. O estoque local já está
-                      descontado.
+                      Consumo, perda e doação registrados sem conexão. O estoque local já está descontado.
                     </p>
                   </div>
                 </div>

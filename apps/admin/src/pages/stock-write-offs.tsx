@@ -120,5 +120,3 @@ export default function StockWriteOffs() {
     </AppLayout>
   );
 }
-
-

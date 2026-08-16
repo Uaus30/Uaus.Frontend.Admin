@@ -68,7 +68,7 @@ type NewSaleModalProps = {
 
 /**
  * NewSaleModal
- * 
+ *
  * Dialog wizard component supporting live items additions, pay methods, and billing details.
  */
 export function NewSaleModal({
@@ -106,10 +106,7 @@ export function NewSaleModal({
   );
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] flex-col border-border/50 bg-card sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-display">
@@ -323,7 +320,9 @@ export function NewSaleModal({
               <p>Desconto: -{formatCurrency(discount)}</p>
             </div>
             <div className="text-right">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Total a Pagar</p>
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Total a Pagar
+              </p>
               <p className="text-3xl font-display font-bold text-primary">{formatCurrency(total)}</p>
             </div>
           </div>
@@ -334,10 +333,7 @@ export function NewSaleModal({
             <Button
               onClick={onSubmit}
               disabled={
-                savingSale ||
-                items.length === 0 ||
-                payments.length === 0 ||
-                Math.abs(remainingAmount) > 0.01
+                savingSale || items.length === 0 || payments.length === 0 || Math.abs(remainingAmount) > 0.01
               }
               className="hover-elevate"
             >
@@ -354,5 +350,3 @@ export function NewSaleModal({
     </Dialog>
   );
 }
-
-

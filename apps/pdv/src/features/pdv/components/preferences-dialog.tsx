@@ -38,12 +38,16 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
 
         <div className="p-6 space-y-6">
           <div className="space-y-3">
-            <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Tema do Sistema</Label>
+            <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              Tema do Sistema
+            </Label>
             <div className="flex gap-2">
               <Button
                 variant={theme === "light" ? "default" : "outline"}
                 className={`flex-1 gap-2 h-14 font-semibold cursor-pointer ${
-                  theme === "light" ? "bg-primary text-primary-foreground border-none" : "border-border/50 text-foreground"
+                  theme === "light"
+                    ? "bg-primary text-primary-foreground border-none"
+                    : "border-border/50 text-foreground"
                 }`}
                 onClick={() => setTheme("light")}
               >
@@ -52,7 +56,9 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
               <Button
                 variant={theme === "dark" ? "default" : "outline"}
                 className={`flex-1 gap-2 h-14 font-semibold cursor-pointer ${
-                  theme === "dark" ? "bg-primary text-primary-foreground border-none" : "border-border/50 text-foreground"
+                  theme === "dark"
+                    ? "bg-primary text-primary-foreground border-none"
+                    : "border-border/50 text-foreground"
                 }`}
                 onClick={() => setTheme("dark")}
               >

@@ -101,9 +101,7 @@ export function PerformanceDialog({ open, onOpenChange }: PerformanceDialogProps
             </div>
           )}
 
-          {error && (
-            <p className="text-sm text-destructive py-6 text-center">{describeApiError(error)}</p>
-          )}
+          {error && <p className="text-sm text-destructive py-6 text-center">{describeApiError(error)}</p>}
 
           {data && (
             <>
@@ -124,9 +122,7 @@ export function PerformanceDialog({ open, onOpenChange }: PerformanceDialogProps
                             numa segunda o operador precisa saber que a base é o
                             sábado, senão lê a variação como se fosse o domingo. */}
                         vs. {previousDay.isYesterday ? "ontem" : previousDay.label}
-                        {previousDay.isYesterday
-                          ? ""
-                          : " (último dia com venda)"}
+                        {previousDay.isYesterday ? "" : " (último dia com venda)"}
                       </span>
                     </>
                   ) : (
@@ -142,9 +138,7 @@ export function PerformanceDialog({ open, onOpenChange }: PerformanceDialogProps
                   </span>
                   <span>
                     ticket médio{" "}
-                    <b className="text-foreground font-mono">
-                      {formatCurrency(data.today.averageTicket)}
-                    </b>
+                    <b className="text-foreground font-mono">{formatCurrency(data.today.averageTicket)}</b>
                   </span>
                 </div>
               </div>

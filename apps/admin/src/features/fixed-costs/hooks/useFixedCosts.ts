@@ -17,10 +17,7 @@ import type { FixedCostForm } from "../types";
 /** Tamanho fixo da página da listagem. */
 export const PAGE_SIZE = 10;
 
-const MONTH_LABELS = [
-  "jan", "fev", "mar", "abr", "mai", "jun",
-  "jul", "ago", "set", "out", "nov", "dez",
-];
+const MONTH_LABELS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 /** Competência atual no formato "yyyy-MM". */
 export function currentMonthKey(): string {
@@ -103,15 +100,15 @@ export function useFixedCosts() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FixedCostForm>(emptyForm);
 
-  const invalidateList = () =>
-    queryClient.invalidateQueries({ queryKey: getGetFixedCostsQueryKey() });
+  const invalidateList = () => queryClient.invalidateQueries({ queryKey: getGetFixedCostsQueryKey() });
 
   const saveMutation = useMutation({
     // O retorno explícito une os tipos das duas funções puras (update devolve o
     // DTO, create devolve o ID criado) — sem ele o TS recusa a união de Promises.
-    mutationFn: async (
-      input: { id: number | null; payload: SaveFixedCostPayload },
-    ): Promise<FixedCostDto | number | null> =>
+    mutationFn: async (input: {
+      id: number | null;
+      payload: SaveFixedCostPayload;
+    }): Promise<FixedCostDto | number | null> =>
       input.id ? updateFixedCost(input.id, input.payload) : createFixedCost(input.payload),
     onSuccess: async (_result, input) => {
       await invalidateList();

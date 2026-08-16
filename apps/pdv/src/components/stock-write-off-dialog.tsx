@@ -164,8 +164,8 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
 
             {!online && (
               <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                Sem conexão: a baixa fica na fila local, já descontada do estoque local, e sobe
-                quando o servidor voltar.
+                Sem conexão: a baixa fica na fila local, já descontada do estoque local, e sobe quando o
+                servidor voltar.
               </p>
             )}
           </div>

@@ -2,13 +2,7 @@ import { Button } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Loader2, Search } from "lucide-react";
 import type { LogTypeOption } from "../types";
 
@@ -99,10 +93,7 @@ export function LogsFilterBar({
           <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Período
           </Label>
-          <DateRangePicker
-            value={draftDateRange}
-            onChange={onDateRangeChange}
-          />
+          <DateRangePicker value={draftDateRange} onChange={onDateRangeChange} />
         </div>
 
         {/* Botão Buscar */}
@@ -110,17 +101,8 @@ export function LogsFilterBar({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-transparent select-none">
             &nbsp;
           </span>
-          <Button
-            id="log-search-btn"
-            onClick={onSearch}
-            disabled={isLoading}
-            className="gap-2"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
+          <Button id="log-search-btn" onClick={onSearch} disabled={isLoading} className="gap-2">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             Buscar
           </Button>
         </div>
@@ -128,5 +110,3 @@ export function LogsFilterBar({
     </div>
   );
 }
-
-

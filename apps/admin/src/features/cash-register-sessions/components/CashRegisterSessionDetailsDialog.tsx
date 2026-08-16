@@ -154,12 +154,9 @@ export function CashRegisterSessionDetailsDialog({
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Dinheiro × Outros
-                    </p>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Dinheiro × Outros</p>
                     <p className="mt-1 font-medium">
-                      {formatCurrency(summary.cashAmount)}{" "}
-                      <span className="text-muted-foreground">×</span>{" "}
+                      {formatCurrency(summary.cashAmount)} <span className="text-muted-foreground">×</span>{" "}
                       {formatCurrency(summary.nonCashAmount)}
                     </p>
                   </div>
@@ -178,15 +175,10 @@ export function CashRegisterSessionDetailsDialog({
                       </thead>
                       <tbody>
                         {summary.byPaymentMethod.map((row) => (
-                          <tr
-                            key={row.paymentMethodId}
-                            className="border-b border-border/50 last:border-0"
-                          >
+                          <tr key={row.paymentMethodId} className="border-b border-border/50 last:border-0">
                             <td className="px-4 py-3 font-medium">{row.paymentMethodName}</td>
                             <td className="px-4 py-3 text-center">{row.count}</td>
-                            <td className="px-4 py-3 text-right font-medium">
-                              {formatCurrency(row.amount)}
-                            </td>
+                            <td className="px-4 py-3 text-right font-medium">{formatCurrency(row.amount)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -195,9 +187,7 @@ export function CashRegisterSessionDetailsDialog({
                 )}
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Resumo do turno indisponível para esta sessão.
-              </p>
+              <p className="text-sm text-muted-foreground">Resumo do turno indisponível para esta sessão.</p>
             )}
 
             {/* Observações */}
@@ -227,5 +217,3 @@ export function CashRegisterSessionDetailsDialog({
     </Dialog>
   );
 }
-
-

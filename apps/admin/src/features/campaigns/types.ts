@@ -68,10 +68,4 @@ export interface CampaignQuestionDraft {
   options: CampaignOptionDraft[];
 }
 
-export type {
-  CampaignDto,
-  CampaignQuestionDto,
-  CampaignQuestionOptionDto,
-  CouponDto,
-  SaveCampaignPayload,
-};
+export type { CampaignDto, CampaignQuestionDto, CampaignQuestionOptionDto, CouponDto, SaveCampaignPayload };

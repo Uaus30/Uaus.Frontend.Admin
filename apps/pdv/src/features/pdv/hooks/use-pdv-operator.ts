@@ -33,7 +33,7 @@ export function usePdvOperator() {
    */
   const operatorName = user?.firstName
     ? `${user.firstName} ${user.lastName || ""}`.trim()
-    : ((user as { name?: string } | undefined)?.name || "Operador");
+    : (user as { name?: string } | undefined)?.name || "Operador";
 
   return { user, isLoading, operatorName };
 }

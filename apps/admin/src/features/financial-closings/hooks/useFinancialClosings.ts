@@ -165,8 +165,7 @@ export function useFinancialClosings() {
   }
 
   const confirmMutation = useMutation({
-    mutationFn: (period: ClosingPeriod) =>
-      createFinancialClosing({ ...period, notes: notes.trim() || null }),
+    mutationFn: (period: ClosingPeriod) => createFinancialClosing({ ...period, notes: notes.trim() || null }),
     onSuccess: async () => {
       // Prefixo da chave ["FinancialClosings", params]: invalida todas as
       // páginas e filtros da listagem de uma vez.

@@ -28,9 +28,7 @@ describe("formatLabelPrice", () => {
 
 describe("escapeHtml", () => {
   it("escapa os cinco caracteres especiais de HTML", () => {
-    expect(escapeHtml(`<Açaí & "Mel" 'Puro'>`)).toBe(
-      "&lt;Açaí &amp; &quot;Mel&quot; &#39;Puro&#39;&gt;",
-    );
+    expect(escapeHtml(`<Açaí & "Mel" 'Puro'>`)).toBe("&lt;Açaí &amp; &quot;Mel&quot; &#39;Puro&#39;&gt;");
   });
 });
 

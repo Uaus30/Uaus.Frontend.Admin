@@ -4,18 +4,18 @@ Cliente HTTP e hooks React Query do backend Uaus. **Escrito à mão** — não �
 gerado. Todo endpoint novo entra aqui manualmente.
 
 > Houve uma tentativa de adotar Orval que nunca foi concluída. O código gerado
-> foi removido em ago/2026 porque declarava um contrato *contraditório* com o
+> foi removido em ago/2026 porque declarava um contrato _contraditório_ com o
 > real e colidia em nome com o vivo. Se um dia o Orval voltar, tem que ser em PR
 > próprio, gerando **só tipos** — nunca dois contratos vivos ao mesmo tempo.
 
 ## Camadas
 
-| Arquivo | Responsabilidade |
-| --- | --- |
-| `src/client.ts` | Transporte: `apiGet/apiPost/apiPut/apiDelete`, sessão, tratamento de 401, paginação |
-| `src/models.ts` | DTOs e enums do backend |
-| `src/hooks/<domínio>.ts` | Hooks React Query e funções de acesso, um arquivo por domínio |
-| `src/hooks/index.ts` | Barrel — o import público não muda |
+| Arquivo                  | Responsabilidade                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `src/client.ts`          | Transporte: `apiGet/apiPost/apiPut/apiDelete`, sessão, tratamento de 401, paginação |
+| `src/models.ts`          | DTOs e enums do backend                                                             |
+| `src/hooks/<domínio>.ts` | Hooks React Query e funções de acesso, um arquivo por domínio                       |
+| `src/hooks/index.ts`     | Barrel — o import público não muda                                                  |
 
 Os apps importam sempre de `@workspace/api-client-react`, nunca de um caminho
 interno.

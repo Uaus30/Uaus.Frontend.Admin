@@ -71,13 +71,7 @@ export function PatternsPanel({
           ))}
         </SelectContent>
       </Select>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={refresh}
-        disabled={isRefreshing}
-        className="h-9"
-      >
+      <Button variant="outline" size="sm" onClick={refresh} disabled={isRefreshing} className="h-9">
         {isRefreshing ? (
           <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
         ) : (
@@ -149,5 +143,3 @@ export function PatternsPanel({
     </ChartCard>
   );
 }
-
-

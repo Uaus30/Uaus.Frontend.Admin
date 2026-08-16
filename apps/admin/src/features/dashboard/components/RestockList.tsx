@@ -10,7 +10,10 @@ import type { RestockSuggestion, RestockUrgency } from "../types";
  * Cada faixa vem com ícone e texto além da cor: quem não distingue vermelho de
  * âmbar precisa continuar lendo a lista.
  */
-const URGENCY: Record<RestockUrgency, { label: string; className: string; icon: React.ComponentType<{ className?: string }> }> = {
+const URGENCY: Record<
+  RestockUrgency,
+  { label: string; className: string; icon: React.ComponentType<{ className?: string }> }
+> = {
   out: { label: "Sem estoque", className: "bg-destructive/15 text-destructive", icon: PackageX },
   critical: { label: "Crítico", className: "bg-destructive/15 text-destructive", icon: AlertTriangle },
   high: { label: "Alto", className: "bg-amber-500/15 text-amber-300", icon: TrendingDown },

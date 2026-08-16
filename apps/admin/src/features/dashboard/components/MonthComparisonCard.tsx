@@ -178,5 +178,3 @@ export function MonthComparisonCard({ monthly, comparison, isLoading }: MonthCom
     </ChartCard>
   );
 }
-
-

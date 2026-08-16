@@ -7,14 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, ApiError, apiRequest, mapPagedResult } from "../client";
-import type {
-  BackendPagedResult,
-  CashRegisterSessionDto,
-  QueryKey,
-  SaleDto,
-  UiPagedResult,
-} from "../models";
-
+import type { BackendPagedResult, CashRegisterSessionDto, QueryKey, SaleDto, UiPagedResult } from "../models";
 
 // Cash Register Sessions Hooks
 
@@ -30,25 +23,45 @@ export const CURRENT_CASH_REGISTER_SESSION_QUERY_KEY = ["cash-register-session-c
  * @param params Filtros por operador, status, período e paginação.
  */
 export function useGetCashRegisterSessions(
-  params?: { userId?: number; status?: number; startDate?: string; endDate?: string; page?: number; size?: number },
+  params?: {
+    userId?: number;
+    status?: number;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    size?: number;
+  },
   options?: {
     query?: Omit<
-      UseQueryOptions<UiPagedResult<CashRegisterSessionDto>, ApiError, UiPagedResult<CashRegisterSessionDto>, QueryKey>,
+      UseQueryOptions<
+        UiPagedResult<CashRegisterSessionDto>,
+        ApiError,
+        UiPagedResult<CashRegisterSessionDto>,
+        QueryKey
+      >,
       "queryKey" | "queryFn"
     >;
   },
 ) {
-  return useQuery<UiPagedResult<CashRegisterSessionDto>, ApiError, UiPagedResult<CashRegisterSessionDto>, QueryKey>({
+  return useQuery<
+    UiPagedResult<CashRegisterSessionDto>,
+    ApiError,
+    UiPagedResult<CashRegisterSessionDto>,
+    QueryKey
+  >({
     queryKey: [...getGetCashRegisterSessionsQueryKey(), params ?? {}],
     queryFn: async () => {
-      const result = await apiGetOrThrow<BackendPagedResult<CashRegisterSessionDto>>("/CashRegisterSessions", {
-        userId: params?.userId,
-        status: params?.status,
-        startDate: params?.startDate,
-        endDate: params?.endDate,
-        page: params?.page ?? 1,
-        size: params?.size ?? 20,
-      });
+      const result = await apiGetOrThrow<BackendPagedResult<CashRegisterSessionDto>>(
+        "/CashRegisterSessions",
+        {
+          userId: params?.userId,
+          status: params?.status,
+          startDate: params?.startDate,
+          endDate: params?.endDate,
+          page: params?.page ?? 1,
+          size: params?.size ?? 20,
+        },
+      );
       return mapPagedResult(result);
     },
     ...options?.query,
@@ -83,7 +96,10 @@ export function useGetCurrentCashRegisterSession(options?: {
 export function useGetCashRegisterSessionById(
   id?: number,
   options?: {
-    query?: Omit<UseQueryOptions<CashRegisterSessionDto, ApiError, CashRegisterSessionDto, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<CashRegisterSessionDto, ApiError, CashRegisterSessionDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<CashRegisterSessionDto, ApiError, CashRegisterSessionDto, QueryKey>({
@@ -100,7 +116,10 @@ export function useGetCashRegisterSessionById(
  * @param data Fundo de troco colocado na gaveta e observações da abertura.
  * @returns A sessão recém-aberta.
  */
-export async function openCashRegisterSession(data: { openingBalance: number; openingNotes?: string | null }) {
+export async function openCashRegisterSession(data: {
+  openingBalance: number;
+  openingNotes?: string | null;
+}) {
   const response = await apiPost<CashRegisterSessionDto>("/CashRegisterSessions/open", data);
   return response.data;
 }

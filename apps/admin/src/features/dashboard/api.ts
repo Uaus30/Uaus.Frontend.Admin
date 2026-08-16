@@ -69,9 +69,7 @@ export async function getDashboardPatterns(months = 12) {
  * @param full Verdadeiro reconstrói o histórico inteiro em vez das últimas semanas.
  */
 export async function refreshDashboardPatterns(full = false) {
-  const response = await apiPost<DashboardPatternsRefresh>(
-    `/Dashboard/patterns/refresh?full=${full}`,
-  );
+  const response = await apiPost<DashboardPatternsRefresh>(`/Dashboard/patterns/refresh?full=${full}`);
   return response.data;
 }
 
@@ -81,10 +79,7 @@ export async function refreshDashboardPatterns(full = false) {
  *
  * @param params Janela de vendas analisada e tamanho de cada lista.
  */
-export async function getDashboardIntelligence(params?: {
-  lookbackDays?: number;
-  take?: number;
-}) {
+export async function getDashboardIntelligence(params?: { lookbackDays?: number; take?: number }) {
   return apiGetOrThrow<DashboardIntelligence>("/Dashboard/intelligence", {
     lookbackDays: params?.lookbackDays ?? 90,
     take: params?.take ?? 10,

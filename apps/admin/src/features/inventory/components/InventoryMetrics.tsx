@@ -15,7 +15,7 @@ type InventoryMetricsProps = {
 
 /**
  * InventoryMetrics
- * 
+ *
  * Component rendering the top metrics dashboard cards for the inventory.
  */
 export function InventoryMetrics({
@@ -102,5 +102,3 @@ export function InventoryMetrics({
     </div>
   );
 }
-
-

@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription
+  DialogDescription,
 } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -37,17 +37,16 @@ export function PaymentMethodEditorModal({
   onRemoveInstallment,
   onInstallmentChange,
   onSubmit,
-  isSaving
+  isSaving,
 }: PaymentMethodEditorModalProps) {
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {editingId ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}
-          </DialogTitle>
+          <DialogTitle>{editingId ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}</DialogTitle>
           <DialogDescription>
-            Configure o nome da forma de pagamento, status de disponibilidade e as taxas cobradas por parcelamento.
+            Configure o nome da forma de pagamento, status de disponibilidade e as taxas cobradas por
+            parcelamento.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,10 +99,7 @@ export function PaymentMethodEditorModal({
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {formData.installments.map((inst, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 p-2.5 rounded-md border bg-card text-sm"
-                >
+                <div key={index} className="flex items-center gap-3 p-2.5 rounded-md border bg-card text-sm">
                   <div className="w-24 shrink-0 space-y-1">
                     <Label className="text-[11px] text-muted-foreground">Parcela</Label>
                     <div className="flex items-center gap-1">
@@ -112,7 +108,11 @@ export function PaymentMethodEditorModal({
                         min={1}
                         value={inst.installmentNumber}
                         onChange={(e) =>
-                          onInstallmentChange(index, "installmentNumber", Math.max(1, parseInt(e.target.value) || 1))
+                          onInstallmentChange(
+                            index,
+                            "installmentNumber",
+                            Math.max(1, parseInt(e.target.value) || 1),
+                          )
                         }
                         className="h-8 text-center font-bold"
                       />
@@ -130,7 +130,11 @@ export function PaymentMethodEditorModal({
                         placeholder="0.00"
                         value={inst.feePercentage}
                         onChange={(e) =>
-                          onInstallmentChange(index, "feePercentage", Math.max(0, parseFloat(e.target.value) || 0))
+                          onInstallmentChange(
+                            index,
+                            "feePercentage",
+                            Math.max(0, parseFloat(e.target.value) || 0),
+                          )
                         }
                         className="h-8 pr-7"
                       />
@@ -175,5 +179,3 @@ export function PaymentMethodEditorModal({
     </Dialog>
   );
 }
-
-

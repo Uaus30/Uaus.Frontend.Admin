@@ -24,9 +24,7 @@ describe("addDraftItem", () => {
   it("deve incluir o produto com quantidade 1", () => {
     const items = addDraftItem([], product(1, "Café", 5));
 
-    expect(items).toEqual([
-      { productId: 1, name: "Café", barcode: "1", quantity: 1, availableStock: 5 },
-    ]);
+    expect(items).toEqual([{ productId: 1, name: "Café", barcode: "1", quantity: 1, availableStock: 5 }]);
   });
 
   it("deve somar em vez de repetir o produto", () => {

@@ -39,10 +39,7 @@ export interface CashSettlement {
  * @param cashAmount Parte da venda a ser paga em dinheiro, ou `null` quando não há.
  * @param receivedText Valor recebido, como o operador digitou.
  */
-export function computeCashSettlement(
-  cashAmount: number | null,
-  receivedText: string,
-): CashSettlement {
+export function computeCashSettlement(cashAmount: number | null, receivedText: string): CashSettlement {
   if (cashAmount === null || !receivedText.trim()) {
     return { received: null, change: 0, shortfall: 0 };
   }

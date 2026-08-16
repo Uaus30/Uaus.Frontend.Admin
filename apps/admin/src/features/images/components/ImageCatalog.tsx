@@ -49,7 +49,7 @@ type ImageCatalogProps = {
 
 /**
  * ImageCatalog
- * 
+ *
  * Grid list catalog displaying images, filters, action triggers, and pagination.
  */
 export function ImageCatalog({
@@ -124,7 +124,9 @@ export function ImageCatalog({
               className="group relative overflow-hidden rounded-xl border border-border/50 bg-background transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
             >
               <div className="flex aspect-square items-center justify-center overflow-hidden bg-muted/30">
-                <img loading="lazy" decoding="async"
+                <img
+                  loading="lazy"
+                  decoding="async"
                   src={buildPublicImageUrl(image.url)}
                   alt={image.name}
                   className="h-full w-full object-cover"
@@ -204,7 +206,12 @@ export function ImageCatalog({
           <span className="ml-2">Total: {imagePage?.total || 0}</span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage((current) => current - 1)}
+          >
             Anterior
           </Button>
           <span className="px-2 py-1 text-xs">
@@ -236,6 +243,3 @@ export function ImageCatalog({
     </div>
   );
 }
-
-
-

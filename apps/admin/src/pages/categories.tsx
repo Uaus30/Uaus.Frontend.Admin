@@ -9,7 +9,7 @@ import { CategoryReportModal } from "@/features/categories/components/CategoryRe
 
 /**
  * Categories Page Component
- * 
+ *
  * Orchestrates the categories administration page by linking the useCategories state manager
  * to pure presentation components.
  */
@@ -66,5 +66,3 @@ export default function Categories() {
     </AppLayout>
   );
 }
-
-

@@ -62,9 +62,7 @@ vi.mock("./stock", () => ({
   consumeLocalStock: (...args: unknown[]) => consumeLocalStock(...args),
 }));
 
-const { collectPendingStockDebits, installSnapshot, clearLocalCatalog } = await import(
-  "./snapshot"
-);
+const { collectPendingStockDebits, installSnapshot, clearLocalCatalog } = await import("./snapshot");
 
 /** Snapshot mínimo com o produto 1 valendo R$ 10,00 e 5 unidades no servidor. */
 function snapshot(overrides: Partial<PdvSnapshot> = {}): PdvSnapshot {
@@ -195,9 +193,10 @@ describe("installSnapshot", () => {
     // marcada como confiável sem os débitos). A marca é procurada pelo nome da
     // chave: `writeMeta` também grava os cupons, que são carga e não marca, e
     // olhar só a primeira chamada testaria a ordem de outra coisa.
-    const markOrder = writeMeta.mock.invocationCallOrder[
-      writeMeta.mock.calls.findIndex((call) => call[0] === "snapshotSchemaVersion")
-    ];
+    const markOrder =
+      writeMeta.mock.invocationCallOrder[
+        writeMeta.mock.calls.findIndex((call) => call[0] === "snapshotSchemaVersion")
+      ];
     const putOrder = putAll.mock.invocationCallOrder[0];
     const consumeOrder = consumeLocalStock.mock.invocationCallOrder[0];
     expect(putOrder).toBeLessThan(consumeOrder);

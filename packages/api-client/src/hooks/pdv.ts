@@ -50,10 +50,7 @@ export interface ProductPdvSearchDto {
  *   rede — o servidor responderia o mesmo.
  * @param limit Máximo de resultados (padrão 20; o servidor limita a 100).
  */
-export async function searchPdvProducts(
-  term: string,
-  limit = 20,
-): Promise<ProductPdvSearchDto[]> {
+export async function searchPdvProducts(term: string, limit = 20): Promise<ProductPdvSearchDto[]> {
   const query = term.trim();
   if (!query) return [];
 
@@ -265,10 +262,7 @@ export interface RegisterPdvSalePayload {
  * @throws {ApiError} Quando o servidor recusa (estoque, venda cancelada,
  *   sessão fechada ou desconto acima do limite sem autorização).
  */
-export async function updatePdvSale(
-  id: number,
-  payload: RegisterPdvSalePayload,
-): Promise<SaleDto | null> {
+export async function updatePdvSale(id: number, payload: RegisterPdvSalePayload): Promise<SaleDto | null> {
   const response = await apiPut<SaleDto>(`/Pdv/sales/${id}`, payload);
   return response.data;
 }
@@ -308,9 +302,7 @@ export interface CreateCompleteSalePayload {
  * @throws {ApiError} Quando algum item não tem estoque ou os pagamentos não
  *   fecham com o total calculado no servidor.
  */
-export async function createCompleteSale(
-  payload: CreateCompleteSalePayload,
-): Promise<number | null> {
+export async function createCompleteSale(payload: CreateCompleteSalePayload): Promise<number | null> {
   const response = await apiPost<SaleDto>("/Sales/complete", payload);
   return extractCreatedId(response.response);
 }

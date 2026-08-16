@@ -8,7 +8,7 @@ import {
   useUpdatePaymentMethod,
   useDeletePaymentMethod,
   getGetPaymentMethodsQueryKey,
-  type PaymentMethodDto
+  type PaymentMethodDto,
 } from "@workspace/api-client-react";
 import type { PaymentMethodFormValues, InstallmentFormValue } from "../types";
 import { describeApiError } from "@workspace/core";
@@ -34,16 +34,20 @@ export function usePaymentMethods() {
   const [formData, setFormData] = useState<PaymentMethodFormValues>({
     name: "",
     isActive: true,
-    installments: [{ installmentNumber: 1, feePercentage: 0, isActive: true }]
+    installments: [{ installmentNumber: 1, feePercentage: 0, isActive: true }],
   });
 
   const parsedIsActive = isActiveFilter === "all" ? undefined : isActiveFilter === "true";
 
-  const { data: pagedData, isLoading, refetch } = useGetPaymentMethods({
+  const {
+    data: pagedData,
+    isLoading,
+    refetch,
+  } = useGetPaymentMethods({
     search: debouncedSearch.trim() || undefined,
     isActive: parsedIsActive,
     page,
-    size: 10
+    size: 10,
   });
 
   const createMutation = useCreatePaymentMethod();
@@ -55,7 +59,7 @@ export function usePaymentMethods() {
     setFormData({
       name: "",
       isActive: true,
-      installments: [{ installmentNumber: 1, feePercentage: 0, isActive: true }]
+      installments: [{ installmentNumber: 1, feePercentage: 0, isActive: true }],
     });
     setModalOpen(true);
   }, []);
@@ -70,8 +74,8 @@ export function usePaymentMethods() {
         id: inst.id,
         installmentNumber: inst.installmentNumber,
         feePercentage: inst.feePercentage,
-        isActive: inst.isActive
-      }))
+        isActive: inst.isActive,
+      })),
     });
     setModalOpen(true);
   }, []);
@@ -83,33 +87,35 @@ export function usePaymentMethods() {
 
   const handleAddInstallment = useCallback(() => {
     setFormData((prev) => {
-      const nextNumber = prev.installments.length > 0
-        ? Math.max(...prev.installments.map((i) => i.installmentNumber)) + 1
-        : 1;
+      const nextNumber =
+        prev.installments.length > 0 ? Math.max(...prev.installments.map((i) => i.installmentNumber)) + 1 : 1;
       return {
         ...prev,
         installments: [
           ...prev.installments,
-          { installmentNumber: nextNumber, feePercentage: 0, isActive: true }
-        ]
+          { installmentNumber: nextNumber, feePercentage: 0, isActive: true },
+        ],
       };
     });
   }, []);
 
-  const handleRemoveInstallment = useCallback((index: number) => {
-    setFormData((prev) => {
-      if (prev.installments.length <= 1) {
-        toast({
-          title: "Atenção",
-          description: "É necessário manter ao menos uma opção de parcelamento (ex: 1x).",
-          variant: "destructive"
-        });
-        return prev;
-      }
-      const updated = prev.installments.filter((_, i) => i !== index);
-      return { ...prev, installments: updated };
-    });
-  }, [toast]);
+  const handleRemoveInstallment = useCallback(
+    (index: number) => {
+      setFormData((prev) => {
+        if (prev.installments.length <= 1) {
+          toast({
+            title: "Atenção",
+            description: "É necessário manter ao menos uma opção de parcelamento (ex: 1x).",
+            variant: "destructive",
+          });
+          return prev;
+        }
+        const updated = prev.installments.filter((_, i) => i !== index);
+        return { ...prev, installments: updated };
+      });
+    },
+    [toast],
+  );
 
   const handleInstallmentChange = useCallback(
     (index: number, field: keyof InstallmentFormValue, value: any) => {
@@ -119,7 +125,7 @@ export function usePaymentMethods() {
         return { ...prev, installments: updated };
       });
     },
-    []
+    [],
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,7 +134,7 @@ export function usePaymentMethods() {
       toast({
         title: "Campo Obrigatório",
         description: "O nome da forma de pagamento é obrigatório.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -144,9 +150,9 @@ export function usePaymentMethods() {
               id: inst.id,
               installmentNumber: Number(inst.installmentNumber),
               feePercentage: Number(inst.feePercentage),
-              isActive: inst.isActive
-            }))
-          }
+              isActive: inst.isActive,
+            })),
+          },
         });
         toast({ title: "Sucesso", description: "Forma de pagamento atualizada com sucesso!" });
       } else {
@@ -157,9 +163,9 @@ export function usePaymentMethods() {
             installments: formData.installments.map((inst) => ({
               installmentNumber: Number(inst.installmentNumber),
               feePercentage: Number(inst.feePercentage),
-              isActive: inst.isActive
-            }))
-          }
+              isActive: inst.isActive,
+            })),
+          },
         });
         toast({ title: "Sucesso", description: "Forma de pagamento cadastrada com sucesso!" });
       }
@@ -170,7 +176,7 @@ export function usePaymentMethods() {
       toast({
         title: "Erro ao salvar",
         description: describeApiError(err, "Ocorreu um erro ao salvar a forma de pagamento."),
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -186,14 +192,16 @@ export function usePaymentMethods() {
       toast({
         title: "Erro ao excluir",
         description: describeApiError(err, "Ocorreu um erro ao excluir a forma de pagamento."),
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   return {
     items: pagedData?.data ?? [],
-    pagination: pagedData ? { page: pagedData.page, size: pagedData.limit, filteredItems: pagedData.total } : undefined,
+    pagination: pagedData
+      ? { page: pagedData.page, size: pagedData.limit, filteredItems: pagedData.total }
+      : undefined,
     isLoading,
     page,
     setPage,
@@ -214,6 +222,6 @@ export function usePaymentMethods() {
     handleSubmit,
     handleDelete,
     isSaving: createMutation.isPending || updateMutation.isPending,
-    refetch
+    refetch,
   };
 }

@@ -47,9 +47,7 @@ function DailyTooltip({
 
   return (
     <div className="rounded-lg border border-border bg-popover/95 px-3 py-2 shadow-lg backdrop-blur">
-      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-        {formatBrazilianDate(point.day)}
-      </p>
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{formatBrazilianDate(point.day)}</p>
       <div className="flex flex-col gap-1 text-sm">
         <div className="flex items-center gap-2">
           <span
@@ -129,10 +127,7 @@ export function CampaignReportDailyChart({
               <CartesianGrid {...GRID_PROPS} />
               <XAxis dataKey="day" {...AXIS_PROPS} tickFormatter={formatAxisDate} minTickGap={24} />
               <YAxis {...AXIS_PROPS} tickFormatter={compactCurrency} width={56} />
-              <Tooltip
-                cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
-                content={<DailyTooltip />}
-              />
+              <Tooltip cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} content={<DailyTooltip />} />
 
               {/*
                 A loja é desenhada primeiro para ficar ATRÁS: ela é o denominador

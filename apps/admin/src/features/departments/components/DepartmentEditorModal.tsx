@@ -24,7 +24,7 @@ type DepartmentEditorModalProps = {
 
 /**
  * DepartmentEditorModal
- * 
+ *
  * Renders the modal sheet containing the Department creation/editing form.
  */
 export function DepartmentEditorModal({
@@ -50,9 +50,7 @@ export function DepartmentEditorModal({
             <Input
               required
               value={formData.name}
-              onChange={(event) =>
-                setFormData((current) => ({ ...current, name: event.target.value }))
-              }
+              onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
               className="bg-background"
             />
           </div>
@@ -79,5 +77,3 @@ export function DepartmentEditorModal({
     </Dialog>
   );
 }
-
-

@@ -49,13 +49,11 @@ export default function CampaignsPage() {
           <div>
             <div className="flex items-center gap-2">
               <Megaphone className="h-6 w-6 text-primary" />
-              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-                Campanhas
-              </h1>
+              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Campanhas</h1>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Agrupe cupons e pergunte no caixa como o cliente chegou até a loja. O período da
-              campanha decide quando o questionário aparece; o desconto é do cupom.
+              Agrupe cupons e pergunte no caixa como o cliente chegou até a loja. O período da campanha decide
+              quando o questionário aparece; o desconto é do cupom.
             </p>
           </div>
 
@@ -91,12 +89,7 @@ export default function CampaignsPage() {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Total: {pagination.total} campanhas</span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
 

@@ -219,9 +219,7 @@ describe("computeSaleTotals", () => {
     });
 
     expect(totais.total).toBe(
-      Math.round(
-        (totais.subtotal - totais.globalDiscount - totais.couponDiscount) * 100,
-      ) / 100,
+      Math.round((totais.subtotal - totais.globalDiscount - totais.couponDiscount) * 100) / 100,
     );
   });
 });

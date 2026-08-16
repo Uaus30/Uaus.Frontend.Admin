@@ -6,10 +6,12 @@ import { useCustomers } from "../useCustomers";
 
 // Mock das dependências externas
 vi.mock("@/services/sales.service", () => ({
-  getAllSales: vi.fn(() => Promise.resolve([
-    { id: 101, customerId: 1, total: 150 },
-    { id: 102, customerId: 1, total: 50 },
-  ])),
+  getAllSales: vi.fn(() =>
+    Promise.resolve([
+      { id: 101, customerId: 1, total: 150 },
+      { id: 102, customerId: 1, total: 50 },
+    ]),
+  ),
 }));
 
 const mockToast = vi.fn();
@@ -28,7 +30,15 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   useGetCustomers: vi.fn(() => ({
     data: {
       data: [
-        { id: 1, name: "Maria Silva", email: "maria@test.com", phone: "11999999999", document: "123.456.789-00", address: "Rua A, 123", createdAt: "2026-06-18" }
+        {
+          id: 1,
+          name: "Maria Silva",
+          email: "maria@test.com",
+          phone: "11999999999",
+          document: "123.456.789-00",
+          address: "Rua A, 123",
+          createdAt: "2026-06-18",
+        },
       ],
       total: 1,
       page: 1,
@@ -133,7 +143,7 @@ describe("useCustomers Hook", () => {
 
   it("deve chamar a mutação de exclusão de cliente se confirmado", () => {
     const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
-    
+
     vi.spyOn(window, "confirm").mockImplementation(() => true);
 
     act(() => {

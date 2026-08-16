@@ -17,13 +17,13 @@ Leia lá antes de mexer aqui — nenhuma regra de negócio mora nesta feature.
 
 ## Arquivos
 
-| Arquivo | Papel |
-| --- | --- |
-| `hooks/useInventoryCount.ts` | orquestra o ciclo; todo o estado da tela |
-| `components/InventoryCountSteps.tsx` | os dois passos (baixar / importar) |
-| `components/InventoryCountResult.tsx` | faltas, sobras e linhas ignoradas |
+| Arquivo                                     | Papel                                    |
+| ------------------------------------------- | ---------------------------------------- |
+| `hooks/useInventoryCount.ts`                | orquestra o ciclo; todo o estado da tela |
+| `components/InventoryCountSteps.tsx`        | os dois passos (baixar / importar)       |
+| `components/InventoryCountResult.tsx`       | faltas, sobras e linhas ignoradas        |
 | `../../services/inventory-count.service.ts` | download, validação do arquivo, chamadas |
-| `../../pages/inventory-count.tsx` | monta a página; sem regra |
+| `../../pages/inventory-count.tsx`           | monta a página; sem regra                |
 
 ## Decisões
 
@@ -35,7 +35,7 @@ não tem desfazer em lote — o dono precisa ver o impacto antes.
 achar que já importou ao escolher o arquivo.
 
 **O input de arquivo é zerado depois de cada escolha.** Sem isso, corrigir a
-planilha e escolher o *mesmo* arquivo de novo não dispararia o evento `change`, e
+planilha e escolher o _mesmo_ arquivo de novo não dispararia o evento `change`, e
 a tela ficaria mostrando a prévia velha.
 
 **"Na exportação" e "agora" aparecem lado a lado** nas tabelas de diferença. A

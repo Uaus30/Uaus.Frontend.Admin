@@ -125,10 +125,7 @@ export async function createCampaign(data: SaveCampaignPayload): Promise<Campaig
  * @throws {ApiError} 400 nas mesmas validações do `createCampaign`; 404 quando a
  *   campanha não existe.
  */
-export async function updateCampaign(
-  id: number,
-  data: SaveCampaignPayload,
-): Promise<CampaignDto | null> {
+export async function updateCampaign(id: number, data: SaveCampaignPayload): Promise<CampaignDto | null> {
   const response = await apiPut<CampaignDto>(`/Campaigns/${id}`, data);
   return response.data;
 }

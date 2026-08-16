@@ -30,12 +30,12 @@ O admin é uma retaguarda: se a API cai, a tela avisa e espera. O PDV **não pod
 esperar** — tem cliente no balcão. É isso que explica quase toda decisão
 estranha deste app.
 
-| | admin | pdv |
-| --- | --- | --- |
-| API fora | mostra faixa e espera | continua vendendo |
-| Fonte de dados | só a API | API **ou** a base local do IndexedDB |
-| Gravação | direto | direto **ou** fila local que sobe depois |
-| Recarregar a página | precisa de rede | abre do service worker |
+|                     | admin                 | pdv                                      |
+| ------------------- | --------------------- | ---------------------------------------- |
+| API fora            | mostra faixa e espera | continua vendendo                        |
+| Fonte de dados      | só a API              | API **ou** a base local do IndexedDB     |
+| Gravação            | direto                | direto **ou** fila local que sobe depois |
+| Recarregar a página | precisa de rede       | abre do service worker                   |
 
 ---
 
@@ -57,7 +57,7 @@ estranha deste app.
 
 **Não consegue:**
 
-- **Fazer login.** A autenticação é do servidor. O offline cobre a queda *durante*
+- **Fazer login.** A autenticação é do servidor. O offline cobre a queda _durante_
   o turno, não o começo dele.
 - **Abrir o caixa.** A sessão é a âncora contábil da venda; uma sessão criada
   localmente teria que ser reconciliada depois, com risco de duplicar caixa.

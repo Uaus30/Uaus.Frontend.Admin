@@ -17,14 +17,14 @@ ponteiro que ninguém segue não é regra.
 
 ## 2. Mapa dos workspaces
 
-| Workspace | O que é | O que NÃO entra |
-| --- | --- | --- |
-| `apps/admin` | Retaguarda. 25 features. | — |
-| `apps/pdv` | Ponto de venda, offline-first. | — |
-| `packages/api-client` | Cliente HTTP, DTOs e hooks React Query. Escrito à mão. | Regra de negócio |
-| `packages/core` | Regra de domínio pura: dinheiro, datas, texto, máscara, erro. | React, rede, DOM |
-| `packages/ui` | Componentes visuais (shadcn). | Regra de domínio |
-| `packages/receipt` | Montagem e impressão do cupom. | Chamada de API |
+| Workspace             | O que é                                                       | O que NÃO entra  |
+| --------------------- | ------------------------------------------------------------- | ---------------- |
+| `apps/admin`          | Retaguarda. 25 features.                                      | —                |
+| `apps/pdv`            | Ponto de venda, offline-first.                                | —                |
+| `packages/api-client` | Cliente HTTP, DTOs e hooks React Query. Escrito à mão.        | Regra de negócio |
+| `packages/core`       | Regra de domínio pura: dinheiro, datas, texto, máscara, erro. | React, rede, DOM |
+| `packages/ui`         | Componentes visuais (shadcn).                                 | Regra de domínio |
+| `packages/receipt`    | Montagem e impressão do cupom.                                | Chamada de API   |
 
 Cada package tem README próprio. Leia o do pacote antes de mexer nele.
 

@@ -22,9 +22,7 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
   useToast: () => ({ toast: mocks.toast }),
 }));
 
-const { useCashRegisterSessions, statusFilterToCode } = await import(
-  "../useCashRegisterSessions"
-);
+const { useCashRegisterSessions, statusFilterToCode } = await import("../useCashRegisterSessions");
 
 /** Sessão fechada mínima para a listagem dos testes. */
 const closedSession = {

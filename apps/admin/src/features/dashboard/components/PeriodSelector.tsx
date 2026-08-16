@@ -72,9 +72,7 @@ export function PeriodSelector({
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Visão geral</h1>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-            {periodLabel}
-          </span>
+          <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{periodLabel}</span>
           {periodMode === "custom" && (
             <Button
               variant="ghost"
@@ -129,5 +127,3 @@ export function PeriodSelector({
     </div>
   );
 }
-
-

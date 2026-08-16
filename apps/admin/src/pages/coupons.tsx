@@ -50,13 +50,11 @@ export default function CouponsPage() {
           <div>
             <div className="flex items-center gap-2">
               <TicketPercent className="w-6 h-6 text-primary" />
-              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
-                Cupons
-              </h1>
+              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Cupons</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Códigos de desconto do panfleto: valor, vigência e teto de resgates. O balcão aplica
-              pelo código; o histórico de cada venda guarda o cupom como ele era no dia.
+              Códigos de desconto do panfleto: valor, vigência e teto de resgates. O balcão aplica pelo
+              código; o histórico de cada venda guarda o cupom como ele era no dia.
             </p>
           </div>
 
@@ -90,12 +88,7 @@ export default function CouponsPage() {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Total: {pagination.total} cupons</span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
 

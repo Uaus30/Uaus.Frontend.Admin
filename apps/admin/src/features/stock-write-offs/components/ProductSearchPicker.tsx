@@ -3,14 +3,7 @@ import { useDebounce } from "@workspace/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@workspace/ui";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@workspace/ui";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
 import { formatQuantity } from "@workspace/core";
 import { getProductsPage } from "@/services/products.service";
@@ -72,15 +65,9 @@ export function ProductSearchPicker({ onSelect, selectedIds, disabled }: Product
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command shouldFilter={false}>
-          <CommandInput
-            value={search}
-            onValueChange={setSearch}
-            placeholder="Buscar produto..."
-          />
+          <CommandInput value={search} onValueChange={setSearch} placeholder="Buscar produto..." />
           <CommandList>
-            <CommandEmpty>
-              {isFetching ? "Buscando produtos..." : "Nenhum produto encontrado."}
-            </CommandEmpty>
+            <CommandEmpty>{isFetching ? "Buscando produtos..." : "Nenhum produto encontrado."}</CommandEmpty>
             <CommandGroup>
               {options.map((product) => (
                 <CommandItem key={product.id} onSelect={() => handleSelect(product)}>
@@ -107,5 +94,3 @@ export function ProductSearchPicker({ onSelect, selectedIds, disabled }: Product
     </Popover>
   );
 }
-
-

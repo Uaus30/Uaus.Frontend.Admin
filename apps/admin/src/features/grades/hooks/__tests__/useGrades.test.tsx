@@ -12,19 +12,17 @@ vi.mock("@/services/grades.service", () => ({
 }));
 
 vi.mock("@/services/core", () => ({
-  getEnumOptions: vi.fn(() => Promise.resolve([
-    { id: 1, name: "Tamanho", value: "Size", allowSelect: true },
-    { id: 2, name: "Cor", value: "Color", allowSelect: true },
-  ])),
+  getEnumOptions: vi.fn(() =>
+    Promise.resolve([
+      { id: 1, name: "Tamanho", value: "Size", allowSelect: true },
+      { id: 2, name: "Cor", value: "Color", allowSelect: true },
+    ]),
+  ),
 }));
 
 vi.mock("@/services/categories.service", () => ({
-  getAllCategories: vi.fn(() => Promise.resolve([
-    { id: 101, name: "Calçados", departmentId: 10 },
-  ])),
-  getAllDepartments: vi.fn(() => Promise.resolve([
-    { id: 10, name: "Calçados Dept" },
-  ])),
+  getAllCategories: vi.fn(() => Promise.resolve([{ id: 101, name: "Calçados", departmentId: 10 }])),
+  getAllDepartments: vi.fn(() => Promise.resolve([{ id: 10, name: "Calçados Dept" }])),
 }));
 
 // Mock api client react hook

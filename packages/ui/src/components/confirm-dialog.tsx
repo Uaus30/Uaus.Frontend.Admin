@@ -161,9 +161,7 @@ export function ConfirmDialog({
             disabled={pending}
             onClick={handleConfirm}
           >
-            {pending && (
-              <Spinner className="mr-2 h-4 w-4" dotClassName="h-1.5 w-1.5 bg-current" />
-            )}
+            {pending && <Spinner className="mr-2 h-4 w-4" dotClassName="h-1.5 w-1.5 bg-current" />}
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

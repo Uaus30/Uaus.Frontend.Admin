@@ -97,9 +97,13 @@ export function CheckoutDialog({
                       className="w-full text-left p-3.5 flex items-center justify-between cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
-                        <CreditCard className={`w-5 h-5 shrink-0 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                        <CreditCard
+                          className={`w-5 h-5 shrink-0 ${selected ? "text-primary" : "text-muted-foreground"}`}
+                        />
                         <div>
-                          <p className={`font-medium text-sm leading-none ${selected ? "text-primary" : "text-foreground"}`}>
+                          <p
+                            className={`font-medium text-sm leading-none ${selected ? "text-primary" : "text-foreground"}`}
+                          >
                             {pm.name}
                           </p>
                           <p className="text-[11px] text-muted-foreground mt-1">
@@ -157,7 +161,9 @@ export function CheckoutDialog({
             </div>
 
             {splitPayment && (
-              <p className={`text-xs ${Math.abs(remainingAmount) > 0.01 ? "text-destructive" : "text-muted-foreground"}`}>
+              <p
+                className={`text-xs ${Math.abs(remainingAmount) > 0.01 ? "text-destructive" : "text-muted-foreground"}`}
+              >
                 Distribuído: {formatCurrency(paidAmount)} de {formatCurrency(total)}
                 {Math.abs(remainingAmount) > 0.01 &&
                   (remainingAmount > 0
@@ -182,8 +188,7 @@ export function CheckoutDialog({
                     {payments
                       .filter((p) => p.installmentNumber > 1)
                       .map(
-                          (p) =>
-                          `${p.installmentNumber}x de ${formatCurrency(p.amount / p.installmentNumber)}`,
+                        (p) => `${p.installmentNumber}x de ${formatCurrency(p.amount / p.installmentNumber)}`,
                       )
                       .join(" + ")}
                   </p>
@@ -205,9 +210,7 @@ export function CheckoutDialog({
                   </div>
                   {cashShortfall > 0 ? (
                     <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-                      <p className="text-xs font-semibold uppercase text-destructive">
-                        Falta receber
-                      </p>
+                      <p className="text-xs font-semibold uppercase text-destructive">Falta receber</p>
                       <p className="font-mono text-2xl font-bold text-destructive">
                         {formatCurrency(cashShortfall)}
                       </p>
@@ -215,7 +218,9 @@ export function CheckoutDialog({
                   ) : (
                     change > 0 && (
                       <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase">Troco</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase">
+                          Troco
+                        </p>
                         <p className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400">
                           {formatCurrency(change)}
                         </p>
@@ -226,7 +231,6 @@ export function CheckoutDialog({
               )}
             </div>
 
-          
             <Button
               size="lg"
               className="w-full h-14 mt-6 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -247,9 +251,3 @@ export function CheckoutDialog({
     </Dialog>
   );
 }
-
-
-
-
-
-

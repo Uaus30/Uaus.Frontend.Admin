@@ -7,10 +7,7 @@ import {
   useGetCurrentCashRegisterSession,
   type CashRegisterSessionDto,
 } from "@workspace/api-client-react";
-import {
-  readCachedCashRegisterSession,
-  writeCachedCashRegisterSession,
-} from "@/offline";
+import { readCachedCashRegisterSession, writeCachedCashRegisterSession } from "@/offline";
 import { getSessionSales, getTodaySales } from "@/services/sales.service";
 
 /**

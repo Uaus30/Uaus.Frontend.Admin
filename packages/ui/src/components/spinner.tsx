@@ -1,4 +1,4 @@
-import { cn } from "../lib/utils"
+import { cn } from "../lib/utils";
 
 interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   dotClassName?: string;
@@ -36,14 +36,10 @@ function Spinner({ className, dotClassName, ...props }: SpinnerProps) {
           className={cn("h-2.5 w-2.5 rounded-full bg-primary animate-three-dots", dotClassName)}
           style={{ animationDelay: "-0.16s" }}
         ></span>
-        <span
-          className={cn("h-2.5 w-2.5 rounded-full bg-primary animate-three-dots", dotClassName)}
-        ></span>
+        <span className={cn("h-2.5 w-2.5 rounded-full bg-primary animate-three-dots", dotClassName)}></span>
       </div>
     </>
-  )
+  );
 }
 
-export { Spinner }
-
-
+export { Spinner };

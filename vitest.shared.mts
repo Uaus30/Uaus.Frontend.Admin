@@ -87,10 +87,7 @@ const SHARED_EXCLUDE = [
  *   Use para ponto de entrada (`main.tsx`) e afins — código que só existe para
  *   ligar o app no DOM e não tem o que asseverar.
  */
-export function createCoverageOptions(
-  workspace: string,
-  extraExclude: string[] = [],
-): CoverageOptions {
+export function createCoverageOptions(workspace: string, extraExclude: string[] = []): CoverageOptions {
   return {
     provider: "v8",
     // `text` é o número na hora, no terminal; `html` é para navegar até a linha

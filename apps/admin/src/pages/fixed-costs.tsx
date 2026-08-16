@@ -42,7 +42,8 @@ export default function FixedCostsPage() {
               <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Custos Fixos</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Cadastre os custos mensais recorrentes (aluguel, contador, energia...) que entram no fechamento financeiro.
+              Cadastre os custos mensais recorrentes (aluguel, contador, energia...) que entram no fechamento
+              financeiro.
             </p>
           </div>
 
@@ -80,16 +81,13 @@ export default function FixedCostsPage() {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Total: {pagination.total} custos fixos</span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
 
-              <span>Página {page} de {pagination.totalPages}</span>
+              <span>
+                Página {page} de {pagination.totalPages}
+              </span>
 
               <Button
                 variant="outline"
@@ -117,5 +115,3 @@ export default function FixedCostsPage() {
     </AppLayout>
   );
 }
-
-

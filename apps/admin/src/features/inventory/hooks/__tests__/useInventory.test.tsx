@@ -162,9 +162,7 @@ describe("useInventory handleExportExcel", () => {
       await result.current.handleExportExcel();
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Exportado" }),
-    );
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Exportado" }));
     expect(capturedBlob).not.toBeNull();
 
     const csv = await capturedBlob!.text();

@@ -190,5 +190,3 @@ export function ConsumerPicker({ consumer, onChange }: ConsumerPickerProps) {
     </div>
   );
 }
-
-

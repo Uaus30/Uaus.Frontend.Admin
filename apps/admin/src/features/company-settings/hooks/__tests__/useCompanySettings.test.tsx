@@ -144,9 +144,7 @@ describe("useCompanySettings", () => {
       }),
     );
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Configurações salvas" }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Configurações salvas" })),
     );
   });
 

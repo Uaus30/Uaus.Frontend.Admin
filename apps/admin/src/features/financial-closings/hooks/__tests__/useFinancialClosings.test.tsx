@@ -168,9 +168,7 @@ describe("useFinancialClosings", () => {
   });
 
   it("deve mostrar a mensagem do backend quando a prévia falha", async () => {
-    mocks.previewFinancialClosing.mockRejectedValue(
-      new Error("Período inicial deve ser anterior ao final!"),
-    );
+    mocks.previewFinancialClosing.mockRejectedValue(new Error("Período inicial deve ser anterior ao final!"));
 
     const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
 
@@ -214,9 +212,7 @@ describe("useFinancialClosings", () => {
       }),
     );
     await waitFor(() => expect(result.current.newClosingOpen).toBe(false));
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Fechamento confirmado" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Fechamento confirmado" }));
   });
 
   it("deve enviar as observações sem espaços das pontas", async () => {
@@ -338,9 +334,7 @@ describe("useFinancialClosings", () => {
 
     await waitFor(() => expect(mocks.deleteFinancialClosing).toHaveBeenCalledWith(5));
     await waitFor(() => expect(result.current.detailsId).toBeNull());
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Fechamento excluído" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Fechamento excluído" }));
   });
 
   it("não deve excluir quando o usuário cancela o aviso", async () => {

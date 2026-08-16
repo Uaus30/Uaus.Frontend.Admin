@@ -24,13 +24,8 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
   useToast: () => ({ toast: mocks.toast }),
 }));
 
-const {
-  useFixedCosts,
-  currentMonthKey,
-  formatMonth,
-  isFixedCostActive,
-  monthKeyToPayloadDate,
-} = await import("../useFixedCosts");
+const { useFixedCosts, currentMonthKey, formatMonth, isFixedCostActive, monthKeyToPayloadDate } =
+  await import("../useFixedCosts");
 
 /** Evento de submit mínimo — o hook só chama `preventDefault`. */
 const submitEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
@@ -204,9 +199,7 @@ describe("useFixedCosts", () => {
       }),
     );
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Custo fixo cadastrado." }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Custo fixo cadastrado." })),
     );
     expect(result.current.modalOpen).toBe(false);
   });
@@ -238,9 +231,7 @@ describe("useFixedCosts", () => {
       }),
     );
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Custo fixo atualizado." }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Custo fixo atualizado." })),
     );
   });
 
@@ -298,9 +289,7 @@ describe("useFixedCosts", () => {
       }),
     );
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Custo fixo encerrado." }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Custo fixo encerrado." })),
     );
   });
 
@@ -325,9 +314,7 @@ describe("useFixedCosts", () => {
 
     await waitFor(() => expect(mocks.deleteFixedCost).toHaveBeenCalledWith(7));
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Custo fixo excluído." }),
-      ),
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Custo fixo excluído." })),
     );
   });
 });

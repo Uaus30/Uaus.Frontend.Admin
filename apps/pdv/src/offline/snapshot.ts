@@ -170,10 +170,7 @@ export async function installSnapshot(snapshot: PdvSnapshot): Promise<SnapshotIn
   // Sem isso, um snapshot instalado com fila pendente (botão "Atualizar", ou a
   // reconexão que baixa o snapshot antes de a fila subir) inflaria o saldo local
   // e liberaria venda offline de produto que já saiu da prateleira.
-  const [pendingSales, pendingWriteOffs] = await Promise.all([
-    listPendingSales(),
-    listPendingWriteOffs(),
-  ]);
+  const [pendingSales, pendingWriteOffs] = await Promise.all([listPendingSales(), listPendingWriteOffs()]);
   const debits = collectPendingStockDebits(pendingSales, pendingWriteOffs);
   if (debits.length > 0) await consumeLocalStock(debits);
 
@@ -233,7 +230,3 @@ export async function clearLocalCatalog(): Promise<void> {
   await remove(db, STORE.meta, META_KEY.snapshotGeneratedAt);
   await remove(db, STORE.meta, META_KEY.snapshotSchemaVersion);
 }
-
-
-
-

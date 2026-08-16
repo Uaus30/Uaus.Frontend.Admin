@@ -1,18 +1,5 @@
-import {
-  Badge,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui";
-import {
-  COUPON_DISCOUNT_TYPE,
-  COUPON_DISCOUNT_TYPE_LABEL,
-  enumCode,
-} from "@workspace/api-client-react";
+import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
+import { COUPON_DISCOUNT_TYPE, COUPON_DISCOUNT_TYPE_LABEL, enumCode } from "@workspace/api-client-react";
 import { formatCurrency, formatDate } from "@workspace/core";
 import { Edit2, Megaphone, PowerOff, TicketPercent, Trash2 } from "lucide-react";
 import { canDeleteCoupon } from "../hooks/useCoupons";
@@ -112,26 +99,20 @@ export function CouponsTable({ items, isLoading, isBusy, onEdit, onDelete }: Cou
                     <div className="flex flex-col">
                       <span className="font-mono">{item.code}</span>
                       {item.description && (
-                        <span className="text-xs font-normal text-muted-foreground">
-                          {item.description}
-                        </span>
+                        <span className="text-xs font-normal text-muted-foreground">{item.description}</span>
                       )}
                     </div>
                   </div>
                 </TableCell>
 
                 <TableCell className="text-muted-foreground">
-                  {COUPON_DISCOUNT_TYPE_LABEL[enumCode(item.discountType, COUPON_DISCOUNT_TYPE)] ??
-                    "—"}
+                  {COUPON_DISCOUNT_TYPE_LABEL[enumCode(item.discountType, COUPON_DISCOUNT_TYPE)] ?? "—"}
                 </TableCell>
 
                 <TableCell className="font-mono">{formatDiscount(item)}</TableCell>
 
-                <TableCell
-                  className={expired ? "text-destructive text-sm" : "text-muted-foreground text-sm"}
-                >
-                  {formatDate(item.validFrom)} —{" "}
-                  {item.validUntil ? formatDate(item.validUntil) : "sem prazo"}
+                <TableCell className={expired ? "text-destructive text-sm" : "text-muted-foreground text-sm"}>
+                  {formatDate(item.validFrom)} — {item.validUntil ? formatDate(item.validUntil) : "sem prazo"}
                   {expired && <span className="ml-1 font-medium">(vencido)</span>}
                 </TableCell>
 

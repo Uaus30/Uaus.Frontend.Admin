@@ -1,6 +1,13 @@
 import React from "react";
 import { CalendarDays, Receipt, Trash2, Truck } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
@@ -28,7 +35,7 @@ type StockEntryDetailsModalProps = {
 
 /**
  * StockEntryDetailsModal
- * 
+ *
  * Dialog component displaying itemized lists of products received in a purchase receipt.
  */
 export function StockEntryDetailsModal({
@@ -66,7 +73,10 @@ export function StockEntryDetailsModal({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl border border-border/50 bg-muted/20">
               <div>
                 <span className="text-xs text-muted-foreground block mb-1">Fornecedor</span>
-                <span className="text-sm font-semibold flex items-center gap-1.5" title={entryDetails.supplierName}>
+                <span
+                  className="text-sm font-semibold flex items-center gap-1.5"
+                  title={entryDetails.supplierName}
+                >
                   <Truck className="h-3.5 w-3.5 text-muted-foreground" />
                   {entryDetails.supplierName}
                 </span>
@@ -118,8 +128,12 @@ export function StockEntryDetailsModal({
                       <TableRow key={item.id} className="hover:bg-muted/5">
                         <TableCell className="px-4 py-2 text-sm font-medium">{item.productName}</TableCell>
                         <TableCell className="px-4 py-2 text-sm font-mono text-xs">{item.barcode}</TableCell>
-                        <TableCell className="px-4 py-2 text-sm font-semibold text-right">{item.quantity}</TableCell>
-                        <TableCell className="px-4 py-2 text-sm text-right">{formatCurrency(item.unitCost)}</TableCell>
+                        <TableCell className="px-4 py-2 text-sm font-semibold text-right">
+                          {item.quantity}
+                        </TableCell>
+                        <TableCell className="px-4 py-2 text-sm text-right">
+                          {formatCurrency(item.unitCost)}
+                        </TableCell>
                         <TableCell className="px-4 py-2 text-sm text-right text-emerald-500 font-semibold">
                           {formatCurrency(item.productPrice)}
                         </TableCell>
@@ -165,5 +179,3 @@ export function StockEntryDetailsModal({
     </Dialog>
   );
 }
-
-

@@ -61,8 +61,7 @@ type SalesTableProps = {
 };
 
 /** Rótulo dos campos de filtro — mesmo padrão da barra de filtros dos logs. */
-const FILTER_LABEL_CLASS =
-  "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+const FILTER_LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 /**
  * SalesTable
@@ -192,155 +191,162 @@ export function SalesTable({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-6 py-4">ID</th>
-              <th className="px-6 py-4">Data</th>
-              <th className="px-6 py-4">Cliente</th>
-              <th className="px-6 py-4">Pagamento</th>
-              <th className="px-6 py-4">Total</th>
-              <th className="px-6 py-4 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
               <tr>
-                <td colSpan={6} className="py-12 text-center">
-                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                </td>
+                <th className="px-6 py-4">ID</th>
+                <th className="px-6 py-4">Data</th>
+                <th className="px-6 py-4">Cliente</th>
+                <th className="px-6 py-4">Pagamento</th>
+                <th className="px-6 py-4">Total</th>
+                <th className="px-6 py-4 text-right">Ações</th>
               </tr>
-            ) : saleDetails.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                  Nenhuma venda registrada.
-                </td>
-              </tr>
-            ) : (
-              saleDetails.map((sale) => (
-                <tr key={sale.id} className="border-b border-border/50 transition-colors hover:bg-muted/20">
-                  <td className="px-6 py-4 font-mono font-medium text-muted-foreground">
-                    #{sale.id.toString().padStart(4, "0")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{formatDate(sale.createdAt)}</td>
-                  <td className="px-6 py-4 font-medium">
-                    {sale.customerName || sale.customer?.name ? (
-                      <div className="min-w-0">
-                        <p className="truncate">{sale.customerName || sale.customer?.name}</p>
-                        {sale.customerDocument && (
-                          <p className="truncate font-mono text-xs text-muted-foreground">
-                            {sale.customerDocument}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Consumidor Final</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {(sale.payments?.length ?? 0) > 0 ? (
-                        sale.payments!.map((payment) => (
-                          <Badge key={payment.id} variant="outline" className="border-border/50 font-normal">
-                            {payment.paymentMethodName || paymentMethodById[payment.paymentMethodId] || "—"}
-                          </Badge>
-                        ))
-                      ) : (
-                        <Badge variant="outline" className="border-border/50 font-normal">
-                          {sale.paymentMethodName ||
-                            (sale.paymentMethodId ? paymentMethodById[sale.paymentMethodId] : null) ||
-                            "Não informado"}
-                        </Badge>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-primary">{formatCurrency(sale.total)}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
-                        onClick={() => onViewDetails(sale.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
-                        onClick={() => onPrintReceipt(sale.id)}
-                        disabled={printingSaleId === sale.id}
-                        title="Reimprimir cupom"
-                      >
-                        {printingSaleId === sale.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Printer className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                        onClick={() => setSaleToDelete(sale)}
-                      >
-                        {deletingSaleId === sale.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex items-center justify-between border-t border-border/50 p-4 text-sm text-muted-foreground">
-        <span>
-          Mostrando página {salesPage?.page || 1} de{" "}
-          {Math.ceil((salesPage?.total || 0) / (salesPage?.limit || 15)) || 1}
-        </span>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={salesPage ? salesPage.data.length < salesPage.limit : true}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Próxima
-          </Button>
+              ) : saleDetails.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    Nenhuma venda registrada.
+                  </td>
+                </tr>
+              ) : (
+                saleDetails.map((sale) => (
+                  <tr key={sale.id} className="border-b border-border/50 transition-colors hover:bg-muted/20">
+                    <td className="px-6 py-4 font-mono font-medium text-muted-foreground">
+                      #{sale.id.toString().padStart(4, "0")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{formatDate(sale.createdAt)}</td>
+                    <td className="px-6 py-4 font-medium">
+                      {sale.customerName || sale.customer?.name ? (
+                        <div className="min-w-0">
+                          <p className="truncate">{sale.customerName || sale.customer?.name}</p>
+                          {sale.customerDocument && (
+                            <p className="truncate font-mono text-xs text-muted-foreground">
+                              {sale.customerDocument}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Consumidor Final</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {(sale.payments?.length ?? 0) > 0 ? (
+                          sale.payments!.map((payment) => (
+                            <Badge
+                              key={payment.id}
+                              variant="outline"
+                              className="border-border/50 font-normal"
+                            >
+                              {payment.paymentMethodName || paymentMethodById[payment.paymentMethodId] || "—"}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline" className="border-border/50 font-normal">
+                            {sale.paymentMethodName ||
+                              (sale.paymentMethodId ? paymentMethodById[sale.paymentMethodId] : null) ||
+                              "Não informado"}
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-primary">{formatCurrency(sale.total)}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
+                          onClick={() => onViewDetails(sale.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
+                          onClick={() => onPrintReceipt(sale.id)}
+                          disabled={printingSaleId === sale.id}
+                          title="Reimprimir cupom"
+                        >
+                          {printingSaleId === sale.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Printer className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
+                          onClick={() => setSaleToDelete(sale)}
+                        >
+                          {deletingSaleId === sale.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      <ConfirmDialog
-        open={saleToDelete !== null}
-        onOpenChange={(open) => !open && setSaleToDelete(null)}
-        title="Remover esta venda e seus itens?"
-        itemName={
-          saleToDelete
-            ? `Venda #${saleToDelete.id} — ${formatDate(saleToDelete.createdAt)} — ${formatCurrency(saleToDelete.total)}`
-            : undefined
-        }
-        description={`A venda sai do histórico junto com ${saleToDelete?.items.length ?? 0} ${saleToDelete?.items.length === 1 ? "item" : "itens"}. Ela deixa de contar no faturamento, no lucro e nos relatórios do período. A ação não pode ser desfeita.`}
-        confirmLabel="Sim, remover venda"
-        destructive
-        loading={saleToDelete !== null && deletingSaleId === saleToDelete.id}
-        onConfirm={() => {
-          if (saleToDelete) onDelete(saleToDelete.id);
-        }}
-      />
+        <div className="flex items-center justify-between border-t border-border/50 p-4 text-sm text-muted-foreground">
+          <span>
+            Mostrando página {salesPage?.page || 1} de{" "}
+            {Math.ceil((salesPage?.total || 0) / (salesPage?.limit || 15)) || 1}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={salesPage ? salesPage.data.length < salesPage.limit : true}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Próxima
+            </Button>
+          </div>
+        </div>
+
+        <ConfirmDialog
+          open={saleToDelete !== null}
+          onOpenChange={(open) => !open && setSaleToDelete(null)}
+          title="Remover esta venda e seus itens?"
+          itemName={
+            saleToDelete
+              ? `Venda #${saleToDelete.id} — ${formatDate(saleToDelete.createdAt)} — ${formatCurrency(saleToDelete.total)}`
+              : undefined
+          }
+          description={`A venda sai do histórico junto com ${saleToDelete?.items.length ?? 0} ${saleToDelete?.items.length === 1 ? "item" : "itens"}. Ela deixa de contar no faturamento, no lucro e nos relatórios do período. A ação não pode ser desfeita.`}
+          confirmLabel="Sim, remover venda"
+          destructive
+          loading={saleToDelete !== null && deletingSaleId === saleToDelete.id}
+          onConfirm={() => {
+            if (saleToDelete) onDelete(saleToDelete.id);
+          }}
+        />
+      </div>
     </div>
-  </div>
   );
 }
-
-

@@ -281,9 +281,7 @@ describe("useCampaignComparison — exportação", () => {
 
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:comparativo");
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Comparativo exportado." }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Comparativo exportado." }));
   });
 
   it("não deve gerar arquivo vazio quando não há linha nenhuma", () => {
@@ -300,8 +298,6 @@ describe("useCampaignComparison — exportação", () => {
     act(() => result.current.handleExportCsv());
 
     expect(clickSpy).not.toHaveBeenCalled();
-    expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Nada para exportar" }),
-    );
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Nada para exportar" }));
   });
 });

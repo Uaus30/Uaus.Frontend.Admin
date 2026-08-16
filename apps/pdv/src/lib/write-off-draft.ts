@@ -42,10 +42,7 @@ export interface WriteOffDraftItem {
  * @param product Produto escolhido na busca.
  * @returns Uma lista nova; a original não é alterada.
  */
-export function addDraftItem(
-  items: WriteOffDraftItem[],
-  product: WriteOffProduct,
-): WriteOffDraftItem[] {
+export function addDraftItem(items: WriteOffDraftItem[], product: WriteOffProduct): WriteOffDraftItem[] {
   const existing = items.find((item) => item.productId === product.id);
 
   if (existing) {
@@ -91,10 +88,7 @@ export function setDraftQuantity(
 }
 
 /** Tira o produto da lista. */
-export function removeDraftItem(
-  items: WriteOffDraftItem[],
-  productId: number,
-): WriteOffDraftItem[] {
+export function removeDraftItem(items: WriteOffDraftItem[], productId: number): WriteOffDraftItem[] {
   return items.filter((item) => item.productId !== productId);
 }
 

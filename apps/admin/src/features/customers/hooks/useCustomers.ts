@@ -17,7 +17,7 @@ import { describeApiError } from "@workspace/core";
 
 /**
  * Hook customizado para gerenciar a lógica de negócios, consultas e mutações da feature de Clientes.
- * 
+ *
  * @returns Um objeto com estados, dados de clientes, estatísticas e funções de manipulação.
  */
 export function useCustomers() {
@@ -105,7 +105,7 @@ export function useCustomers() {
   /**
    * Abre a modal de cadastro/edição de cliente.
    * Se um cliente for fornecido, preenche o formulário para edição.
-   * 
+   *
    * @param customer Cliente opcional para carregar na edição.
    */
   function handleOpenModal(customer?: any) {
@@ -128,7 +128,7 @@ export function useCustomers() {
 
   /**
    * Executa a remoção física/lógica de um cliente.
-   * 
+   *
    * @param id Identificador do cliente a ser removido.
    */
   function handleDeleteCustomer(id: number) {
@@ -139,7 +139,7 @@ export function useCustomers() {
 
   /**
    * Submete os dados do formulário de cliente para salvar/atualizar.
-   * 
+   *
    * @param payload Objeto contendo os dados do formulário do cliente.
    */
   function handleSaveCustomer(payload: any) {

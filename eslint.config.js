@@ -1,9 +1,9 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 /**
  * Lint do monorepo inteiro — os dois apps e os quatro packages.
@@ -25,10 +25,10 @@ import { defineConfig, globalIgnores } from 'eslint/config'
  */
 export default defineConfig([
   globalIgnores([
-    '**/dist/**',
-    '**/node_modules/**',
-    'apps/*/public/**',
-    'coverage/**',
+    "**/dist/**",
+    "**/node_modules/**",
+    "apps/*/public/**",
+    "coverage/**",
     // Worktrees de agente são uma CÓPIA do repositório dentro do próprio
     // repositório, num commit qualquer do passado. O git as ignora
     // (.git/info/exclude), mas o `eslint .` varre por caminho e não por
@@ -36,10 +36,10 @@ export default defineConfig([
     // acusar 195 erros que não existem em nenhum arquivo de verdade, e o portão
     // do baseline — que reprova quando a contagem cresce — reprovava por causa
     // de código que ninguém escreveu hoje.
-    '.claude/**',
+    ".claude/**",
   ]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -50,47 +50,46 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      'max-lines': ['warn', { max: 300, skipBlankLines: true, skipComments: true }],
+      "max-lines": ["warn", { max: 300, skipBlankLines: true, skipComments: true }],
       // Warning porque dependência de efeito exige julgamento: há casos
       // legítimos de omitir uma, e cada um precisa de comentário explicando o
       // porquê. Como erro, o caminho fácil seria o eslint-disable.
-      'react-hooks/exhaustive-deps': 'warn',
+      "react-hooks/exhaustive-deps": "warn",
       // O prefixo `_` é a forma de declarar "existe na assinatura, não uso" —
       // acontece em callback cuja posição do parâmetro importa e em dublê de
       // teste. Sem isto, a saída era apagar o parâmetro e perder a documentação
       // da assinatura.
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
       ],
     },
   },
   {
     // Arquivo de teste grande é cobertura, não acoplamento — fatiá-lo só para
     // caber no teto pioraria a leitura.
-    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    files: ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
     rules: {
-      'max-lines': 'off',
+      "max-lines": "off",
     },
   },
   {
-    files: ['packages/**/*.{ts,tsx}'],
+    files: ["packages/**/*.{ts,tsx}"],
     rules: {
       // Os packages não são componentes de tela; a regra do Fast Refresh não se
       // aplica a um barrel de utilitários nem a um kit que exporta variantes.
-      'react-refresh/only-export-components': 'off',
+      "react-refresh/only-export-components": "off",
       // O alias `@/` só resolve DENTRO de um app. Um package que o usa só
       // compila por acidente — porque cada app mantém um arquivo com o nome
       // exato no caminho exato — e apagar esse arquivo quebra o build sem nada
       // apontando o motivo. Foi o que aconteceu com use-mobile e use-toast.
-      'no-restricted-imports': [
-        'error',
+      "no-restricted-imports": [
+        "error",
         {
           patterns: [
             {
-              group: ['@/*'],
-              message:
-                'Package não pode importar do app. Mova o que falta para dentro do próprio package.',
+              group: ["@/*"],
+              message: "Package não pode importar do app. Mova o que falta para dentro do próprio package.",
             },
           ],
         },
@@ -101,16 +100,16 @@ export default defineConfig([
     // `src/services` é camada baixa: ela não pode depender de `src/features`,
     // que é camada alta. Dois services importavam tipos de features, invertendo
     // a dependência e impedindo que qualquer um dos dois fosse movido sozinho.
-    files: ['apps/admin/src/services/**/*.{ts,tsx}'],
+    files: ["apps/admin/src/services/**/*.{ts,tsx}"],
     rules: {
-      'no-restricted-imports': [
-        'error',
+      "no-restricted-imports": [
+        "error",
         {
           patterns: [
             {
-              group: ['@/features/*'],
+              group: ["@/features/*"],
               message:
-                'services não pode depender de features. Se o tipo é da feature, o arquivo pertence a ela.',
+                "services não pode depender de features. Se o tipo é da feature, o arquivo pertence a ela.",
             },
           ],
         },
@@ -119,9 +118,9 @@ export default defineConfig([
   },
   {
     // Configs de build rodam em Node, não no navegador.
-    files: ['**/*.config.{ts,js}'],
+    files: ["**/*.config.{ts,js}"],
     languageOptions: {
       globals: globals.node,
     },
   },
-])
+]);

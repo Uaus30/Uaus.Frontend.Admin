@@ -1,13 +1,6 @@
 import { Handshake } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatPercentage } from "@workspace/core";
 import { cn } from "@workspace/ui";
 import type { PartnerDistributionItemDto } from "../types";
@@ -37,8 +30,8 @@ export function PartnerDistributionCard({
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Distribuição prevista por sócio</CardTitle>
         <CardDescription>
-          Prévia com os percentuais atuais dos sócios ativos — o rateio oficial é congelado no
-          fechamento do período.
+          Prévia com os percentuais atuais dos sócios ativos — o rateio oficial é congelado no fechamento do
+          período.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -66,10 +59,7 @@ export function PartnerDistributionCard({
                     <TableCell className="font-medium">{item.partnerName}</TableCell>
                     <TableCell className="text-right">{formatPercentage(item.percentage)}</TableCell>
                     <TableCell
-                      className={cn(
-                        "text-right font-semibold",
-                        item.amount < 0 && "text-destructive",
-                      )}
+                      className={cn("text-right font-semibold", item.amount < 0 && "text-destructive")}
                     >
                       {formatCurrency(item.amount)}
                     </TableCell>
@@ -79,9 +69,7 @@ export function PartnerDistributionCard({
                   <TableCell colSpan={2} className="font-semibold">
                     Lucro líquido do período
                   </TableCell>
-                  <TableCell
-                    className={cn("text-right font-bold", netProfit < 0 && "text-destructive")}
-                  >
+                  <TableCell className={cn("text-right font-bold", netProfit < 0 && "text-destructive")}>
                     {formatCurrency(netProfit)}
                   </TableCell>
                 </TableRow>
@@ -93,5 +81,3 @@ export function PartnerDistributionCard({
     </Card>
   );
 }
-
-

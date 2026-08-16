@@ -117,11 +117,7 @@ export {
   type PendingWriteOffsTally,
 } from "./pending-write-offs";
 
-export {
-  buildWriteOffRequestBody,
-  classifyWriteOffFailure,
-  syncPendingWriteOffs,
-} from "./write-off-sync";
+export { buildWriteOffRequestBody, classifyWriteOffFailure, syncPendingWriteOffs } from "./write-off-sync";
 
 export { syncPendingQueues, tallyPendingQueues, type QueuesTally } from "./queues";
 
@@ -153,4 +149,3 @@ export type {
   SyncSalesResponse,
   WriteOffSyncOutcome,
 } from "./types";
-

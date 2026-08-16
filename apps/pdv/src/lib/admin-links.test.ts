@@ -108,11 +108,7 @@ describe("openInNewTab", () => {
 
     openInNewTab("https://admin.uaus.com.br/");
 
-    expect(window.open).toHaveBeenCalledWith(
-      "https://admin.uaus.com.br/",
-      "_blank",
-      "noopener,noreferrer",
-    );
+    expect(window.open).toHaveBeenCalledWith("https://admin.uaus.com.br/", "_blank", "noopener,noreferrer");
   });
 
   it("não abre nada quando a URL é null", () => {

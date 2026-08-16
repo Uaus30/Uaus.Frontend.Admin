@@ -41,8 +41,8 @@ export default function CashRegisterSessionsPage() {
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Acompanhe os turnos de caixa do PDV: abertura, fechamento e conferência da gaveta de
-              cada operador.
+              Acompanhe os turnos de caixa do PDV: abertura, fechamento e conferência da gaveta de cada
+              operador.
             </p>
           </div>
 
@@ -74,16 +74,13 @@ export default function CashRegisterSessionsPage() {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Total: {pagination.filteredItems} sessões de caixa</span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
 
-              <span>Página {page} de {pagination.totalPages}</span>
+              <span>
+                Página {page} de {pagination.totalPages}
+              </span>
 
               <Button
                 variant="outline"
@@ -110,5 +107,3 @@ export default function CashRegisterSessionsPage() {
     </AppLayout>
   );
 }
-
-

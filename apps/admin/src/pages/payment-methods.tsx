@@ -31,7 +31,7 @@ export default function PaymentMethodsPage() {
     handleSubmit,
     handleDelete,
     isSaving,
-    refetch
+    refetch,
   } = usePaymentMethods();
 
   return (
@@ -42,15 +42,24 @@ export default function PaymentMethodsPage() {
           <div>
             <div className="flex items-center gap-2">
               <CreditCard className="w-6 h-6 text-primary" />
-              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Formas de Pagamento</h1>
+              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
+                Formas de Pagamento
+              </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Gerencie as formas de pagamento disponíveis para os clientes e configure as taxas por parcelamento.
+              Gerencie as formas de pagamento disponíveis para os clientes e configure as taxas por
+              parcelamento.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()} title="Atualizar dados" className="hover-elevate">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              title="Atualizar dados"
+              className="hover-elevate"
+            >
               <RefreshCw className="w-4 h-4" />
             </Button>
 
@@ -108,12 +117,7 @@ export default function PaymentMethodsPage() {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Total: {pagination.filteredItems} formas de pagamento</span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
 
@@ -148,5 +152,3 @@ export default function PaymentMethodsPage() {
     </AppLayout>
   );
 }
-
-

@@ -9,7 +9,7 @@ import { TagReportModal } from "@/features/tags/components/TagReportModal";
 
 /**
  * Tags Page Component
- * 
+ *
  * Renders the Tags admin layout, mounting the subcomponents and connecting
  * them to the useTags state manager hook.
  */
@@ -99,5 +99,3 @@ export default function Tags() {
     </AppLayout>
   );
 }
-
-

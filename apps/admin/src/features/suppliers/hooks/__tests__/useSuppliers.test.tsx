@@ -8,14 +8,14 @@ import { useSuppliers } from "../useSuppliers";
 const mockCreateSupplier = vi.fn();
 const mockUpdateSupplier = vi.fn();
 const mockDeleteSupplier = vi.fn();
-const mockGetSuppliersPage = vi.fn((..._params: unknown[]) => Promise.resolve({
-  data: [
-    { id: 10, name: "Supplier A", minimumPurchaseValue: 100, status: 1, avatarColor: "#6366f1" }
-  ],
-  total: 1,
-  page: 1,
-  limit: 20,
-}));
+const mockGetSuppliersPage = vi.fn((..._params: unknown[]) =>
+  Promise.resolve({
+    data: [{ id: 10, name: "Supplier A", minimumPurchaseValue: 100, status: 1, avatarColor: "#6366f1" }],
+    total: 1,
+    page: 1,
+    limit: 20,
+  }),
+);
 
 vi.mock("@/services/suppliers.service", () => ({
   // Recebe os params para o teste poder afirmar o que foi ao servidor.
@@ -26,10 +26,12 @@ vi.mock("@/services/suppliers.service", () => ({
 }));
 
 vi.mock("@/services/core", () => ({
-  getEnumOptions: vi.fn(() => Promise.resolve([
-    { id: 1, name: "Ativo", value: "ativo", allowSelect: true },
-    { id: 2, name: "Inativo", value: "inativo", allowSelect: true },
-  ])),
+  getEnumOptions: vi.fn(() =>
+    Promise.resolve([
+      { id: 1, name: "Ativo", value: "ativo", allowSelect: true },
+      { id: 2, name: "Inativo", value: "inativo", allowSelect: true },
+    ]),
+  ),
 }));
 
 // Mock do toast
@@ -71,9 +73,7 @@ describe("useSuppliers Hook", () => {
       });
 
       await vi.waitFor(() => {
-        expect(mockGetSuppliersPage).toHaveBeenCalledWith(
-          expect.objectContaining({ status: 2 }),
-        );
+        expect(mockGetSuppliersPage).toHaveBeenCalledWith(expect.objectContaining({ status: 2 }));
       });
     });
 
@@ -83,9 +83,7 @@ describe("useSuppliers Hook", () => {
       await vi.waitFor(() => expect(mockGetSuppliersPage).toHaveBeenCalled());
 
       expect(result.current.statusFilter).toBe("all");
-      expect(mockGetSuppliersPage).toHaveBeenCalledWith(
-        expect.objectContaining({ status: undefined }),
-      );
+      expect(mockGetSuppliersPage).toHaveBeenCalledWith(expect.objectContaining({ status: undefined }));
     });
 
     it("volta para a primeira página ao trocar o filtro", async () => {

@@ -165,9 +165,7 @@ describe("registerSale online", () => {
     // com R$ 2 de desconto" — sem isso não há auditoria de desconto nem cupom.
     await registerSale(
       payload({
-        items: [
-          { productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" },
-        ],
+        items: [{ productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" }],
         payments: [{ paymentMethodId: 1, amount: 16 }],
       }),
     );
@@ -214,8 +212,20 @@ describe("registerSale online", () => {
     );
 
     expect(postBody(0).payments).toEqual([
-      { paymentMethodId: 1, paymentMethodInstallmentId: null, amount: 20, installments: 1, transactionFee: 0 },
-      { paymentMethodId: 4, paymentMethodInstallmentId: 5, amount: 30, installments: 3, transactionFee: 1.84 },
+      {
+        paymentMethodId: 1,
+        paymentMethodInstallmentId: null,
+        amount: 20,
+        installments: 1,
+        transactionFee: 0,
+      },
+      {
+        paymentMethodId: 4,
+        paymentMethodInstallmentId: 5,
+        amount: 30,
+        installments: 3,
+        transactionFee: 1.84,
+      },
     ]);
   });
 
@@ -269,9 +279,9 @@ describe("registerSale online", () => {
     // ClientReference não tinha como barrar.
     apiPost.mockRejectedValueOnce(new ApiError("Gateway Timeout", 504));
 
-    await expect(
-      registerSale(payload(), { clientReference: "chave-do-checkout" }),
-    ).rejects.toThrow("Gateway Timeout");
+    await expect(registerSale(payload(), { clientReference: "chave-do-checkout" })).rejects.toThrow(
+      "Gateway Timeout",
+    );
     await registerSale(payload(), { clientReference: "chave-do-checkout" });
 
     expect(postBody(0).clientReference).toBe("chave-do-checkout");
@@ -282,9 +292,7 @@ describe("registerSale online", () => {
     // Desconto negativo AUMENTA o total: "-5" numa venda de R$ 50 cobraria
     // R$ 55. Online o servidor recusa; offline a fila só descobriria horas
     // depois, na sincronização.
-    await expect(registerSale(payload({ discount: -5 }))).rejects.toThrow(
-      "não pode ser negativo",
-    );
+    await expect(registerSale(payload({ discount: -5 }))).rejects.toThrow("não pode ser negativo");
 
     expect(apiPost).not.toHaveBeenCalled();
     expect(savePendingSale).not.toHaveBeenCalled();
@@ -333,9 +341,7 @@ describe("registerSale offline", () => {
     // desconto zero enquanto a mesma venda online subia correta.
     await registerSale(
       payload({
-        items: [
-          { productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" },
-        ],
+        items: [{ productId: 1, quantity: 2, unitPrice: 8, discount: 2, productName: "Café" }],
         payments: [{ paymentMethodId: 1, amount: 16 }],
       }),
       { offline: true },
@@ -355,9 +361,7 @@ describe("registerSale offline", () => {
   });
 
   it("deve recusar a venda que não cabe no estoque local", async () => {
-    checkLocalStock.mockResolvedValue([
-      { productId: 1, productName: "Café", requested: 2, available: 1 },
-    ]);
+    checkLocalStock.mockResolvedValue([{ productId: 1, productName: "Café", requested: 2, available: 1 }]);
 
     await expect(registerSale(payload(), { offline: true })).rejects.toBeInstanceOf(LocalStockError);
 
@@ -368,9 +372,7 @@ describe("registerSale offline", () => {
   });
 
   it("deve informar no erro qual produto faltou", async () => {
-    checkLocalStock.mockResolvedValue([
-      { productId: 1, productName: "Café", requested: 5, available: 2 },
-    ]);
+    checkLocalStock.mockResolvedValue([{ productId: 1, productName: "Café", requested: 5, available: 2 }]);
 
     await expect(registerSale(payload(), { offline: true })).rejects.toThrow(/Café.*5.*2/);
   });

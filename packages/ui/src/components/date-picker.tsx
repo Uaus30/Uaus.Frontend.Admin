@@ -12,12 +12,7 @@
 import { useId, useRef, useState } from "react";
 import DatePickerLib from "react-datepicker";
 import { ptBR } from "date-fns/locale";
-import {
-  CalendarPanel,
-  DateFieldTrigger,
-  FloatingCalendarPortal,
-  formatDateLabel,
-} from "./date-field";
+import { CalendarPanel, DateFieldTrigger, FloatingCalendarPortal, formatDateLabel } from "./date-field";
 import "react-datepicker/dist/react-datepicker.css";
 
 export interface DatePickerProps {
@@ -109,4 +104,3 @@ export function DatePicker({
     </>
   );
 }
-

@@ -141,8 +141,7 @@ export function draftsFromDto(questions: CampaignQuestionDto[]): CampaignQuestio
  * passaria daqui e voltaria como 400.
  */
 export function describeQuestionsProblem(questions: CampaignQuestionDraft[]): string | null {
-  if (questions.length > MAX_QUESTIONS)
-    return `A campanha aceita no máximo ${MAX_QUESTIONS} perguntas!`;
+  if (questions.length > MAX_QUESTIONS) return `A campanha aceita no máximo ${MAX_QUESTIONS} perguntas!`;
 
   for (const question of questions) {
     const label = question.label.trim();

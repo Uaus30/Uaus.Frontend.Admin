@@ -14,17 +14,26 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 
 // Mock do serviço de enums
 vi.mock("@/services/core", () => ({
-  getEnumOptions: vi.fn(() => Promise.resolve([
-    { id: 1, name: "Info", value: "info", allowSelect: true },
-    { id: 2, name: "Error", value: "error", allowSelect: true },
-  ])),
+  getEnumOptions: vi.fn(() =>
+    Promise.resolve([
+      { id: 1, name: "Info", value: "info", allowSelect: true },
+      { id: 2, name: "Error", value: "error", allowSelect: true },
+    ]),
+  ),
 }));
 
 // Mock do API Client para logs
 const mockGetLogs = vi.fn((_params?: unknown) => ({
   data: {
     data: [
-      { id: 1, type: "INFO", message: "Log test message", origin: "System", code: "SYS-001", createdAt: "2026-06-18T22:51:38-03:00" }
+      {
+        id: 1,
+        type: "INFO",
+        message: "Log test message",
+        origin: "System",
+        code: "SYS-001",
+        createdAt: "2026-06-18T22:51:38-03:00",
+      },
     ],
     total: 1,
     page: 1,

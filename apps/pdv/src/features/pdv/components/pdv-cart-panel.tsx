@@ -144,8 +144,12 @@ export function PdvCartPanel({
         </div>
 
         <div className="pt-4 border-t border-border/50">
-          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Total Final</p>
-          <p className="text-5xl font-mono font-bold text-foreground tracking-tight">{formatCurrency(total)}</p>
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">
+            Total Final
+          </p>
+          <p className="text-5xl font-mono font-bold text-foreground tracking-tight">
+            {formatCurrency(total)}
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-2">

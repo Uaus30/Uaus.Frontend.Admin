@@ -37,7 +37,8 @@ export function tokenize(expression: string): string[] {
       continue;
     }
 
-    const isSign = char === "−" && current === "" && (tokens.length === 0 || isOperator(tokens[tokens.length - 1]));
+    const isSign =
+      char === "−" && current === "" && (tokens.length === 0 || isOperator(tokens[tokens.length - 1]));
     if (isSign) {
       current = "-";
       continue;
@@ -137,5 +138,7 @@ export function formatResult(value: number) {
 
 /** Converte um resultado de volta em texto editável na calculadora. */
 export function resultToExpression(value: number) {
-  return String(Number(value.toPrecision(12))).replace("-", "−").replace(".", ",");
+  return String(Number(value.toPrecision(12)))
+    .replace("-", "−")
+    .replace(".", ",");
 }

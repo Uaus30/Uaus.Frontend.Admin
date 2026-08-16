@@ -17,11 +17,7 @@ import {
   submitStockWriteOff,
   submitStockWriteOffReversal,
 } from "@/features/stock-write-offs/domain";
-import type {
-  ProductSearchOption,
-  StockWriteOffDraftItem,
-  StockWriteOffFilterState,
-} from "../types";
+import type { ProductSearchOption, StockWriteOffDraftItem, StockWriteOffFilterState } from "../types";
 
 const PAGE_SIZE = 15;
 
@@ -60,10 +56,7 @@ export function useStockWriteOffs() {
   const [draftItems, setDraftItems] = useState<StockWriteOffDraftItem[]>([]);
   const [draftNotes, setDraftNotes] = useState("");
 
-  const query = useMemo(
-    () => buildStockWriteOffQuery(filters, { page, limit: PAGE_SIZE }),
-    [filters, page],
-  );
+  const query = useMemo(() => buildStockWriteOffQuery(filters, { page, limit: PAGE_SIZE }), [filters, page]);
 
   const { data: writeOffsPage, isLoading } = useGetStockWriteOffs(query);
 
@@ -83,10 +76,7 @@ export function useStockWriteOffs() {
    * Troca um filtro e volta para a primeira página — manter a página atual
    * mostraria "nenhum resultado" só porque o novo recorte é menor.
    */
-  function setFilter<K extends keyof StockWriteOffFilterState>(
-    key: K,
-    value: StockWriteOffFilterState[K],
-  ) {
+  function setFilter<K extends keyof StockWriteOffFilterState>(key: K, value: StockWriteOffFilterState[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
     setPage(1);
   }

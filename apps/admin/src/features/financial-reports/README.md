@@ -32,7 +32,7 @@ Prévia ao vivo do resultado financeiro de um período: faturamento, CMV, lucro 
 ### 4. Custos fixos por competência mensal
 
 - Cada mês-calendário tocado pelo período lança o **valor mensal cheio** de cada custo vigente naquele mês, sem pró-rata.
-- Período que não começa no dia 1 ou não termina no último dia do mês gera *warning* do backend (exibido no banner).
+- Período que não começa no dia 1 ou não termina no último dia do mês gera _warning_ do backend (exibido no banner).
 
 ### 5. Distribuição prevista
 

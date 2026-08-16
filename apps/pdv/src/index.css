@@ -76,11 +76,11 @@
 
 /* DARK MODE — Primary theme (always dark) */
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
 
   /* Premium Dark Neutral background */
   --background: 20 10% 3%;
@@ -134,36 +134,44 @@
   --chart-4: 142 71% 45%;
   --chart-5: 0 84% 60%;
 
-  --app-font-sans: 'Outfit', 'Inter', system-ui, sans-serif;
+  --app-font-sans: "Outfit", "Inter", system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'JetBrains Mono', Menlo, monospace;
+  --app-font-mono: "JetBrains Mono", Menlo, monospace;
   --radius: 0.75rem;
 
-  --shadow-2xs: 0 1px 3px 0 rgba(0,0,0,0.5);
-  --shadow-xs: 0 1px 3px 0 rgba(0,0,0,0.5);
-  --shadow-sm: 0 2px 8px -1px rgba(0,0,0,0.6);
-  --shadow: 0 8px 24px -4px rgba(0,0,0,0.7);
-  --shadow-md: 0 12px 32px -8px rgba(0,0,0,0.8);
-  --shadow-lg: 0 20px 48px -12px rgba(0,0,0,0.9);
-  --shadow-xl: 0 32px 64px -16px rgba(0,0,0,0.95);
-  --shadow-2xl: 0 48px 96px -24px rgba(0,0,0,1);
+  --shadow-2xs: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.6);
+  --shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7);
+  --shadow-md: 0 12px 32px -8px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 20px 48px -12px rgba(0, 0, 0, 0.9);
+  --shadow-xl: 0 32px 64px -16px rgba(0, 0, 0, 0.95);
+  --shadow-2xl: 0 48px 96px -24px rgba(0, 0, 0, 1);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(
+    from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(
+    from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(
+    from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(
+    from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 }
 
 /* Same dark theme for .dark class (always dark app) */
@@ -307,8 +315,10 @@ html.light {
     pointer-events: none;
   }
 
-  .no-default-hover-elevate {}
-  .no-default-active-elevate {}
+  .no-default-hover-elevate {
+  }
+  .no-default-active-elevate {
+  }
 
   .toggle-elevate::before,
   .toggle-elevate-2::before {
@@ -374,7 +384,7 @@ html.light {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
   background-color: hsl(var(--card));
   font-family: var(--app-font-sans);
 }
@@ -442,7 +452,9 @@ html.light {
   line-height: 2.2rem;
   font-size: 0.8rem;
   margin: 0.1rem;
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition:
+    background-color 0.1s ease,
+    color 0.1s ease;
 }
 
 .uaus-rdp-dark .react-datepicker__day:hover {
@@ -528,4 +540,3 @@ html.light {
 .uaus-rdp-dark .react-datepicker__triangle {
   display: none;
 }
-

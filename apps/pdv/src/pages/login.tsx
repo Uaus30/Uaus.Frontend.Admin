@@ -28,8 +28,8 @@ export default function Login() {
           description: err?.message || "Credenciais inválidas. Tente novamente.",
           variant: "destructive",
         });
-      }
-    }
+      },
+    },
   });
 
   const submitLogin = () => {
@@ -49,7 +49,7 @@ export default function Login() {
       </div>
 
       <div className="w-full max-w-md m-auto px-6 md:px-12 relative z-10 md:ml-[10%]">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -57,9 +57,11 @@ export default function Login() {
         >
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center">
-              <img loading="lazy" decoding="async" 
-                src={`${import.meta.env.BASE_URL}images/logo-icon.png`} 
-                alt="Uaus" 
+              <img
+                loading="lazy"
+                decoding="async"
+                src={`${import.meta.env.BASE_URL}images/logo-icon.png`}
+                alt="Uaus"
                 className="w-12 h-12 object-contain"
               />
             </div>
@@ -70,19 +72,17 @@ export default function Login() {
           </div>
 
           <h2 className="text-3xl font-display font-bold mb-2">Abertura de Caixa</h2>
-          <p className="text-muted-foreground mb-8 text-sm">
-            Insira suas credenciais para operar o caixa.
-          </p>
+          <p className="text-muted-foreground mb-8 text-sm">Insira suas credenciais para operar o caixa.</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="identifier">Usuário ou Matrícula</Label>
-              <Input 
-                id="identifier" 
+              <Input
+                id="identifier"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="operador@uaus.com.br" 
+                placeholder="operador@uaus.com.br"
                 className="h-12 bg-background/50 border-white/10 focus-visible:ring-primary/50"
                 autoComplete="username"
                 autoFocus
@@ -91,9 +91,9 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input 
-                id="password" 
-                type="password" 
+              <Input
+                id="password"
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => {
@@ -102,19 +102,21 @@ export default function Login() {
                     submitLogin();
                   }
                 }}
-                placeholder="••••••••" 
+                placeholder="••••••••"
                 className="h-12 bg-background/50 border-white/10 focus-visible:ring-primary/50"
                 autoComplete="current-password"
                 required
               />
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg shadow-primary/20 hover-elevate mt-4"
               disabled={isPending}
             >
-              {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+              {isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
                 <span className="flex items-center gap-2">
                   Abrir Caixa <ArrowRight className="w-4 h-4" />
                 </span>
@@ -130,6 +132,3 @@ export default function Login() {
     </div>
   );
 }
-
-
-

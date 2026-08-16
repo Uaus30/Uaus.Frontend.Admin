@@ -86,8 +86,8 @@ export function PartnerEditorModal({
                 <p className="flex items-start gap-2 text-sm text-amber-600 dark:text-amber-500">
                   <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>
-                    Desativar zera o percentual de lucro deste sócio. Rebalanceie a
-                    distribuição antes do próximo fechamento.
+                    Desativar zera o percentual de lucro deste sócio. Rebalanceie a distribuição antes do
+                    próximo fechamento.
                   </span>
                 </p>
               )}
@@ -108,5 +108,3 @@ export function PartnerEditorModal({
     </Dialog>
   );
 }
-
-

@@ -1,14 +1,5 @@
 import { useLocation } from "wouter";
-import {
-  Badge,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui";
+import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { BarChart3, Edit2, Megaphone, Trash2 } from "lucide-react";
 import { formatDate } from "@workspace/core";
 import type { CampaignDto } from "../types";
@@ -38,8 +29,7 @@ function describeStatus(campaign: CampaignDto): { key: StatusKey; label: string 
 
   const now = nowInstant();
   if (now < campaign.startsAt) return { key: "programada", label: "Programada" };
-  if (campaign.endsAt != null && now > campaign.endsAt)
-    return { key: "encerrada", label: "Encerrada" };
+  if (campaign.endsAt != null && now > campaign.endsAt) return { key: "encerrada", label: "Encerrada" };
 
   return { key: "no-ar", label: "No ar" };
 }
@@ -58,13 +48,7 @@ function formatPeriod(campaign: CampaignDto): string {
  * inteiro, que é justamente o intervalo com que o relatório compara o
  * faturamento da loja.
  */
-export function CampaignsTable({
-  items,
-  isLoading,
-  isDeleting,
-  onEdit,
-  onDelete,
-}: CampaignsTableProps) {
+export function CampaignsTable({ items, isLoading, isDeleting, onEdit, onDelete }: CampaignsTableProps) {
   // Navegação por `setLocation`, e não por `<Link>` envolvendo o botão: âncora
   // com botão dentro é marcação inválida, e é assim que a tabela de produtos e
   // a de logs já navegam.

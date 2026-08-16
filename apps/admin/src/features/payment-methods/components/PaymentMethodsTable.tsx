@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@workspace/ui";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Edit2, Trash2, CreditCard, Percent } from "lucide-react";
@@ -18,18 +11,9 @@ interface PaymentMethodsTableProps {
   onDelete: (id: number) => void;
 }
 
-export function PaymentMethodsTable({
-  items,
-  isLoading,
-  onEdit,
-  onDelete
-}: PaymentMethodsTableProps) {
+export function PaymentMethodsTable({ items, isLoading, onEdit, onDelete }: PaymentMethodsTableProps) {
   if (isLoading) {
-    return (
-      <div className="py-12 text-center text-muted-foreground">
-        Carregando formas de pagamento...
-      </div>
-    );
+    return <div className="py-12 text-center text-muted-foreground">Carregando formas de pagamento...</div>;
   }
 
   if (items.length === 0) {
@@ -65,7 +49,10 @@ export function PaymentMethodsTable({
 
               <TableCell>
                 {item.isActive ? (
-                  <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+                  <Badge
+                    variant="default"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                  >
                     Ativo
                   </Badge>
                 ) : (
@@ -124,5 +111,3 @@ export function PaymentMethodsTable({
     </div>
   );
 }
-
-

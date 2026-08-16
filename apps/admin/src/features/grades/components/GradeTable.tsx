@@ -21,7 +21,7 @@ type GradeTableProps = {
 
 /**
  * GradeTable
- * 
+ *
  * Component that lists all product grades/dimensions in a table with search filtering.
  */
 export function GradeTable({
@@ -72,12 +72,8 @@ export function GradeTable({
             ) : (
               filteredGrades.map((grade: Grade) => (
                 <tr key={grade.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                  <td className="px-6 py-4 font-bold text-foreground">
-                    {grade.name}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {grade.type}
-                  </td>
+                  <td className="px-6 py-4 font-bold text-foreground">{grade.name}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{grade.type}</td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">
                       {[...grade.variants]
@@ -127,5 +123,3 @@ export function GradeTable({
     </div>
   );
 }
-
-

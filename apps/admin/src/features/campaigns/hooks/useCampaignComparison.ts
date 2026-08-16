@@ -60,7 +60,8 @@ export const COMPARISON_METRICS: ComparisonMetric[] = [
   {
     value: "share",
     label: "% da loja",
-    description: "Participação da campanha na loja, dentro da janela dela — a leitura comparável entre meses diferentes.",
+    description:
+      "Participação da campanha na loja, dentro da janela dela — a leitura comparável entre meses diferentes.",
     kind: "percent",
     series: [
       { dataKey: "revenuePercentage", name: "% do faturamento" },
@@ -274,17 +275,13 @@ export function useCampaignComparison() {
       return;
     }
 
-    downloadCsv(
-      buildComparisonCsv(rows),
-      `Comparativo_Campanhas_${toDateKey(new Date())}.csv`,
-    );
+    downloadCsv(buildComparisonCsv(rows), `Comparativo_Campanhas_${toDateKey(new Date())}.csv`);
     toast({ title: "Comparativo exportado.", description: `${rows.length} campanha(s) no arquivo.` });
   }
 
   // Métrica removida da lista (ou valor inválido vindo de um estado antigo) não
   // pode deixar o gráfico sem série nenhuma.
-  const metric =
-    COMPARISON_METRICS.find((item) => item.value === metricValue) ?? COMPARISON_METRICS[0];
+  const metric = COMPARISON_METRICS.find((item) => item.value === metricValue) ?? COMPARISON_METRICS[0];
 
   return {
     searchInput,

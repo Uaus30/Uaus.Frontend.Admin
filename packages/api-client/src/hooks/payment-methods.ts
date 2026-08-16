@@ -6,7 +6,15 @@
  */
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
+import {
+  apiGetOrThrow,
+  apiPost,
+  apiPut,
+  apiDelete,
+  ApiError,
+  useCrudMutation,
+  mapPagedResult,
+} from "../client";
 import type {
   BackendPagedResult,
   CreatePaymentMethodRequest,
@@ -16,7 +24,6 @@ import type {
   UpdatePaymentMethodRequest,
 } from "../models";
 
-
 // Payment Methods Hooks
 
 /** Chave de cache da listagem de formas de pagamento. */
@@ -25,7 +32,10 @@ export const getGetPaymentMethodsQueryKey = (): QueryKey => ["PaymentMethods"];
 export function useGetPaymentMethods(
   params?: { search?: string; isActive?: boolean; page?: number; size?: number },
   options?: {
-    query?: Omit<UseQueryOptions<UiPagedResult<PaymentMethodDto>, ApiError, UiPagedResult<PaymentMethodDto>, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<PaymentMethodDto>, ApiError, UiPagedResult<PaymentMethodDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<UiPagedResult<PaymentMethodDto>, ApiError, UiPagedResult<PaymentMethodDto>, QueryKey>({
@@ -46,7 +56,10 @@ export function useGetPaymentMethods(
 export function useGetPaymentMethodById(
   id: number,
   options?: {
-    query?: Omit<UseQueryOptions<PaymentMethodDto, ApiError, PaymentMethodDto, QueryKey>, "queryKey" | "queryFn">;
+    query?: Omit<
+      UseQueryOptions<PaymentMethodDto, ApiError, PaymentMethodDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
   },
 ) {
   return useQuery<PaymentMethodDto, ApiError, PaymentMethodDto, QueryKey>({
