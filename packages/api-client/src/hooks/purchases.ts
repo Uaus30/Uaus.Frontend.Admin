@@ -116,6 +116,17 @@ export interface InventoryReportDto {
   items: UiPagedResult<InventoryItemDto>;
 }
 
+/**
+ * Chave de cache da listagem de entradas de compra.
+ *
+ * Só o PREFIXO, como manda o README: quem consulta acrescenta os parâmetros em
+ * `[...getGetPurchaseEntriesQueryKey(), params ?? {}]`. É o prefixo que faz a
+ * invalidação alcançar TODAS as páginas e filtros de uma vez — sem ele, salvar
+ * uma entrada estando na página 2 deixaria a página 1 com dados velhos, e a
+ * nota recém-lançada só apareceria depois de um F5.
+ */
+export const getGetPurchaseEntriesQueryKey = (): QueryKey => ["purchase-entries"];
+
 export function useGetPurchaseEntries(
   params?: {
     supplierId?: number;
@@ -134,7 +145,7 @@ export function useGetPurchaseEntries(
   },
 ) {
   return useQuery<UiPagedResult<PurchaseEntryDto>, ApiError, UiPagedResult<PurchaseEntryDto>, QueryKey>({
-    queryKey: ["purchase-entries", params ?? {}],
+    queryKey: [...getGetPurchaseEntriesQueryKey(), params ?? {}],
     queryFn: async () => {
       const result = await apiGetOrThrow<BackendPagedResult<PurchaseEntryDto>>("/PurchaseEntries", {
         supplierId: params?.supplierId,

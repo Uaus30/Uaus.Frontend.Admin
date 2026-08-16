@@ -2,11 +2,14 @@ import { renderHook, act } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { getGetPurchaseEntriesQueryKey } from "@workspace/api-client-react";
 import type { ProductSearchOption } from "@/components/product-search-picker";
 
 const mocks = vi.hoisted(() => ({
   receiveEntry: vi.fn(),
   useReceivePurchaseEntry: vi.fn(),
+  deleteEntry: vi.fn(),
+  useDeletePurchaseEntry: vi.fn(),
   getProductById: vi.fn(),
 }));
 
@@ -35,7 +38,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   })),
   useGetPurchaseEntryDetails: vi.fn(() => ({ data: undefined, isLoading: false })),
   useReceivePurchaseEntry: mocks.useReceivePurchaseEntry,
-  useDeletePurchaseEntry: vi.fn(() => ({ mutate: vi.fn() })),
+  useDeletePurchaseEntry: mocks.useDeletePurchaseEntry,
 }));
 
 const mockToast = vi.fn();
@@ -53,10 +56,21 @@ function product(id: number, name = `Produto ${id}`): ProductSearchOption {
 
 const createWrapper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return ({ children }: { children: React.ReactNode }) => (
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  return Object.assign(wrapper, { queryClient });
 };
+
+/** Opções que o hook passou para a mutation de recebimento (para disparar o onSuccess). */
+function receiveOptions() {
+  return mocks.useReceivePurchaseEntry.mock.calls.at(-1)?.[0];
+}
+
+/** Idem, para a mutation de exclusão. */
+function deleteOptions() {
+  return mocks.useDeletePurchaseEntry.mock.calls.at(-1)?.[0];
+}
 
 /** Carga enviada ao backend na última chamada de `receiveEntry`. */
 function lastPayload() {
@@ -75,6 +89,7 @@ describe("useStockEntries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.useReceivePurchaseEntry.mockReturnValue({ mutate: mocks.receiveEntry, isPending: false });
+    mocks.useDeletePurchaseEntry.mockReturnValue({ mutate: mocks.deleteEntry });
   });
 
   it("deve iniciar com o formulário vazio", () => {
@@ -158,6 +173,48 @@ describe("useStockEntries", () => {
     submit();
     expect(mocks.receiveEntry).not.toHaveBeenCalled();
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "warning" }));
+  });
+
+  it("deve voltar para a primeira página e recarregar a listagem ao salvar", async () => {
+    // A chave de invalidação NÃO é redefinida no mock: quem vale é a que a
+    // própria query registra. Uma chave inventada aqui passaria no teste e
+    // deixaria a tela sem atualizar na prática (armadilha 1 do CLAUDE.md).
+    const wrapper = createWrapper();
+    const invalidateSpy = vi.spyOn(wrapper.queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useStockEntries(), { wrapper });
+
+    act(() => result.current.setPage(2));
+    expect(result.current.page).toBe(2);
+
+    await act(async () => receiveOptions().mutation.onSuccess());
+
+    expect(result.current.page).toBe(1);
+    expect(result.current.newEntryModalOpen).toBe(false);
+    expect(result.current.items).toEqual([]);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: getGetPurchaseEntriesQueryKey() });
+  });
+
+  it("deve recarregar a listagem inteira ao excluir uma entrada", async () => {
+    const wrapper = createWrapper();
+    const invalidateSpy = vi.spyOn(wrapper.queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useStockEntries(), { wrapper });
+
+    await act(async () => deleteOptions().mutation.onSuccess());
+
+    expect(result.current.detailsModalOpen).toBe(false);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: getGetPurchaseEntriesQueryKey() });
+  });
+
+  it("deve voltar para a primeira página ao trocar o filtro de fornecedor", () => {
+    // Sem isso, filtrar estando na página 3 mostraria "nenhuma entrada" só
+    // porque o novo recorte tem menos páginas que o anterior.
+    const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
+
+    act(() => result.current.setPage(3));
+    act(() => result.current.setSelectedSupplierFilter("10"));
+
+    expect(result.current.selectedSupplierFilter).toBe("10");
+    expect(result.current.page).toBe(1);
   });
 
   it("deve limpar o formulário inteiro no reset", () => {

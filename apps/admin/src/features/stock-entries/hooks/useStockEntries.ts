@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useToast } from "@workspace/ui";
 import {
+  getGetPurchaseEntriesQueryKey,
   useGetPurchaseEntries,
   useGetPurchaseEntryDetails,
   useReceivePurchaseEntry,
@@ -61,6 +62,7 @@ function readPreloadProductId(): number | null {
  */
 export function useStockEntries() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
@@ -81,7 +83,6 @@ export function useStockEntries() {
   const {
     data: entriesData,
     isLoading: isLoadingEntries,
-    refetch: refetchEntries,
     isError,
     error,
   } = useGetPurchaseEntries({
@@ -89,6 +90,29 @@ export function useStockEntries() {
     limit: 10,
     supplierId: selectedSupplierFilter !== "all" ? Number(selectedSupplierFilter) : undefined,
   });
+
+  /**
+   * Recarrega a listagem inteira, e não só a página aberta.
+   *
+   * `refetch()` da própria query atualizaria apenas a combinação de página e
+   * filtro em uso; as demais ficariam no cache com dados de antes. Invalidar
+   * pelo PREFIXO da chave alcança todas de uma vez (ver armadilha 1 do
+   * CLAUDE.md e o README do api-client).
+   */
+  function invalidateEntries() {
+    return queryClient.invalidateQueries({ queryKey: getGetPurchaseEntriesQueryKey() });
+  }
+
+  /**
+   * Troca o fornecedor do filtro e volta para a primeira página.
+   *
+   * Manter a página atual mostraria "nenhuma entrada" só porque o novo recorte
+   * é menor que o anterior.
+   */
+  function handleSupplierFilterChange(value: string) {
+    setSelectedSupplierFilter(value);
+    setPage(1);
+  }
 
   // O aviso de servidor fora do ar é o mesmo em toda tela — mora num hook só.
   useApiErrorToast(isError, error);
@@ -136,7 +160,12 @@ export function useStockEntries() {
         toast({ title: "Sucesso", description: "Entrada de estoque registrada com sucesso!" });
         setNewEntryModalOpen(false);
         resetNewEntryForm();
-        refetchEntries();
+        // Volta para a primeira página: é lá que a nota nova aparece, já que a
+        // listagem vem ordenada por data de entrada decrescente. Salvar estando
+        // na página 2 deixava o operador olhando para o fim da lista, sem ver o
+        // que acabou de lançar.
+        setPage(1);
+        invalidateEntries();
       },
       onError: (err: unknown) => {
         toast({
@@ -155,7 +184,7 @@ export function useStockEntries() {
         toast({ title: "Sucesso", description: "Entrada removida e estoque recalculado!" });
         setDetailsModalOpen(false);
         setSelectedEntryId(null);
-        refetchEntries();
+        invalidateEntries();
       },
       onError: (err: unknown) => {
         toast({
@@ -284,7 +313,7 @@ export function useStockEntries() {
     newEntryModalOpen,
     setNewEntryModalOpen,
     selectedSupplierFilter,
-    setSelectedSupplierFilter,
+    setSelectedSupplierFilter: handleSupplierFilterChange,
     supplierId,
     setSupplierId,
     invoiceNumber,

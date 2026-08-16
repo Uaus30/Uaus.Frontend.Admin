@@ -34,7 +34,14 @@ Este módulo gerencia o recebimento de mercadorias no estoque, permitindo o regi
 - Pelo menos um item deve ser adicionado.
 - Todos os itens precisam de quantidade maior que zero e custos/preços não-negativos.
 
-### 4. Cancelamento de Entrada
+### 4. Ordenação e recarga da listagem
+
+- A listagem vem do backend ordenada por **data de entrada decrescente e, no empate, por ID decrescente** (`PurchaseEntryService.GetAllAsync`). O empate é o caso comum: como a data é um dia-calendário à meia-noite, tudo que foi lançado no mesmo dia empata, e aí a nota registrada por último aparece primeiro.
+- **Uma nota retroativa não vai para o topo** — ela cai na posição do dia que o operador escolheu. Isso é a ordenação funcionando, não um defeito: uma entrada lançada hoje com data de três dias atrás aparece três dias atrás.
+- Depois de salvar, a tela **volta para a página 1** e invalida a listagem pelo prefixo da chave (`getGetPurchaseEntriesQueryKey`). Os dois passos importam: `refetch()` sozinho atualizaria só a página aberta e deixaria as outras no cache com dados velhos, e ficar na página 2 esconderia justamente a nota que acabou de ser lançada.
+- Trocar o filtro de fornecedor também volta para a página 1, senão o recorte novo — que costuma ter menos páginas — mostraria "nenhuma entrada".
+
+### 5. Cancelamento de Entrada
 
 - A exclusão de uma entrada é permitida (controlada pelo flag `canDelete` do backend).
 - O cancelamento remove os lotes de estoque lançados por esta entrada e atualiza/recalcula os saldos físicos vigentes dos produtos relacionados.
