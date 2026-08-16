@@ -21,6 +21,24 @@ describe("round2", () => {
     expect(round2(entrada)).toBe(esperado);
   });
 
+  // Fronteira do meio-centavo conferida contra o BACKEND, porque este é o
+  // número que o cliente leva impresso. `round2` é half-up com epsilon;
+  // `Math.Round(valor, 2)` sobre `decimal` no C# é banker's rounding — leva ao
+  // dígito PAR. Os dois DIVERGEM em 2,665 (2,67 aqui, 2,66 lá) e em 1,005 (1,01
+  // aqui, 1,00 lá), e coincidem em 2,675 porque ali o par já é o 8.
+  //
+  // Prevalece o valor do CLIENTE: foi o que apareceu na tela do caixa e saiu no
+  // comprovante. O backend audita o total com tolerância de 0,01 — exatamente o
+  // tamanho dessa divergência —, e sem essa tolerância a venda seria recusada no
+  // balcão por um centavo de diferença de algoritmo.
+  it.each([
+    { valor: 2.665, cliente: 2.67, csharp: "2,66" },
+    { valor: 1.005, cliente: 1.01, csharp: "1,00" },
+    { valor: 2.675, cliente: 2.68, csharp: "2,68" },
+  ])("$valor vale $cliente para o cliente (o C# devolveria $csharp)", ({ valor, cliente }) => {
+    expect(round2(valor)).toBe(cliente);
+  });
+
   it("mantém valores que já têm duas casas", () => {
     expect(round2(10.5)).toBe(10.5);
     expect(round2(0.01)).toBe(0.01);

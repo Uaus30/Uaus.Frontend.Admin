@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeDiscount, computeSaleTotals } from "./discount";
+import { allocateCouponByItem, computeDiscount, computeSaleTotals } from "./discount";
 
 describe("computeDiscount", () => {
   describe("desconto em valor", () => {
@@ -223,5 +223,97 @@ describe("computeSaleTotals", () => {
         (totais.subtotal - totais.globalDiscount - totais.couponDiscount) * 100,
       ) / 100,
     );
+  });
+});
+
+describe("allocateCouponByItem", () => {
+  /**
+   * Itens de uma unidade, sem desconto de linha — o subtotal é o próprio preço.
+   * O `productId` acompanha a posição porque é ele que decide o empate.
+   */
+  const itens = (...subtotais: number[]) =>
+    subtotais.map((subtotal, indice) => ({
+      productId: indice + 1,
+      unitPrice: subtotal,
+      quantity: 1,
+      unitDiscount: 0,
+    }));
+
+  /** Soma em centavos INTEIROS: somar floats esconderia o centavo perdido. */
+  const centavos = (parcelas: number[]) =>
+    parcelas.reduce((total, parcela) => total + Math.round(parcela * 100), 0);
+
+  it("devolve o resíduo POSITIVO ao item de maior subtotal", () => {
+    // 10,00 sobre 33,33 / 33,33 / 33,34: três parcelas de 3,33 e 1 centavo sobrando.
+    const parcelas = allocateCouponByItem(itens(33.33, 33.33, 33.34), 10);
+
+    expect(parcelas).toEqual([3.33, 3.33, 3.34]);
+    expect(centavos(parcelas)).toBe(1000);
+  });
+
+  it("devolve o resíduo NEGATIVO ao item de maior subtotal", () => {
+    // 7,77 sobre 10 / 20 / 30: 1,30 + 2,59 + 3,89 dá 7,78 — um centavo a MAIS.
+    const parcelas = allocateCouponByItem(itens(10, 20, 30), 7.77);
+
+    expect(parcelas).toEqual([1.3, 2.59, 3.88]);
+    expect(centavos(parcelas)).toBe(777);
+  });
+
+  it("no empate de subtotal o resíduo fica no MENOR productId", () => {
+    // Sem regra de desempate, reordenar o carrinho mudaria o rateio da venda.
+    expect(allocateCouponByItem(itens(10, 10, 10), 10)).toEqual([3.34, 3.33, 3.33]);
+  });
+
+  it("o empate é decidido pelo produto, NÃO pela posição na lista", () => {
+    // Mesmo carrinho do caso anterior, com os produtos em ordem invertida: o
+    // centavo tem que seguir o produto 1, que agora está na última posição.
+    // Desempatar pelo primeiro da lista deixaria este teste vermelho — e é
+    // exatamente a divergência que faria o rateio do PDV não bater com o gravado
+    // pelo backend, que relê os itens do banco em outra ordem.
+    const carrinho = [
+      { productId: 3, unitPrice: 10, quantity: 1, unitDiscount: 0 },
+      { productId: 2, unitPrice: 10, quantity: 1, unitDiscount: 0 },
+      { productId: 1, unitPrice: 10, quantity: 1, unitDiscount: 0 },
+    ];
+
+    expect(allocateCouponByItem(carrinho, 10)).toEqual([3.33, 3.33, 3.34]);
+  });
+
+  it("devolve as parcelas na mesma ordem dos itens, e a ordem não muda o rateio", () => {
+    // Mesmo carrinho do caso 10 / 20 / 30, embaralhado: as mesmas três parcelas.
+    expect(allocateCouponByItem(itens(30, 10, 20), 7.77)).toEqual([3.88, 1.3, 2.59]);
+  });
+
+  it("dá o cupom inteiro ao item único", () => {
+    expect(allocateCouponByItem(itens(50), 7.77)).toEqual([7.77]);
+  });
+
+  it("rateia pelo subtotal LÍQUIDO, não pelo preço de tabela", () => {
+    // 10,00 x 2 com 5,00 de desconto unitário vale 10,00 — igual ao outro item.
+    const carrinho = [
+      { productId: 1, unitPrice: 10, quantity: 2, unitDiscount: 5 },
+      { productId: 2, unitPrice: 10, quantity: 1, unitDiscount: 0 },
+    ];
+
+    expect(allocateCouponByItem(carrinho, 6)).toEqual([3, 3]);
+  });
+
+  it("zera as parcelas quando não há cupom", () => {
+    expect(allocateCouponByItem(itens(10, 20), 0)).toEqual([0, 0]);
+    expect(allocateCouponByItem(itens(10, 20), -5)).toEqual([0, 0]);
+  });
+
+  it("aceita lista vazia", () => {
+    expect(allocateCouponByItem([], 10)).toEqual([]);
+  });
+
+  it("a soma das parcelas reproduz o cupom EXATAMENTE", () => {
+    // Invariante que o banco confere: sum(sale_items.coupon_discount) tem que
+    // dar sales.coupon_discount. É ela que quebra quando o resíduo é ignorado.
+    const carrinho = itens(12.35, 7.9, 103.4, 0.99, 45.6);
+
+    for (const cupom of [0.01, 1.11, 7.77, 10, 33.33, 99.99]) {
+      expect(centavos(allocateCouponByItem(carrinho, cupom))).toBe(Math.round(cupom * 100));
+    }
   });
 });
