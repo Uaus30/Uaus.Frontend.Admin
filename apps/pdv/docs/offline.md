@@ -17,7 +17,7 @@ metade que roda no navegador.
 │   faz o PDV **abrir** sem internet                          │
 ├─────────────────────────────────────────────────────────────┤
 │ Base local (IndexedDB)                                      │
-│   produtos, formas de pagamento, clientes, estoque          │
+│   produtos, formas de pagamento, clientes, estoque, cupons  │
 │   → faz o PDV **vender** sem internet                       │
 ├─────────────────────────────────────────────────────────────┤
 │ Filas de pendências (IndexedDB)                             │
@@ -160,6 +160,105 @@ O que as duas filas compartilham é a mecânica, de propósito: chave primária
 `stockApplied`, recusa que não é retentada sozinha, e sobrevivência à migração
 do schema local.
 
+### 2c. Cupom de desconto no balcão
+
+O snapshot traz os cupons vigentes **com o questionário da campanha já
+resolvido**. É isso que permite ao caixa encontrar a campanha **pelo código do
+cupom** sem rede: o PDV pergunta pelo código, recebe as perguntas prontas e
+nunca sabe o `campaignId` — nem na base local, nem na fila, nem no payload da
+venda. Quem fotografa o vínculo com a campanha é o servidor, na gravação. É essa
+regra que mantém a camada mais cara de mexer (offline, fila, idempotência,
+comprovante) estável a qualquer evolução do modelo de campanha.
+
+Com internet, quem responde é `GET /Pdv/coupons/{code}`. Sem internet, é
+`lookupLocalCoupon(code)` (`offline/coupons.ts`), que devolve o cupom encontrado
+ou uma recusa com mensagem pronta para o operador ("Cupom expirado em 30/09/2026
+às 23:59!"). A decisão em si é pura (`resolveLocalCoupon`) e testada sem
+IndexedDB.
+
+#### O que o snapshot precisa trazer
+
+```jsonc
+// PdvSnapshotDto.coupons[] — e suba PdvSnapshotDto.CurrentSchemaVersion,
+// que é a ÚNICA versão que muda por causa desta feature.
+{
+  "couponId": 12,
+  "code": "10OFFSET26",
+  "description": "Setembro 2026",
+  "discountType": "Percentage",          // enum; o PDV resolve para 1/2 na carga
+  "discountValue": 10,
+  "validFrom": "2026-09-01T00:00:00",    // instante, nunca data pura
+  "validUntil": "2026-09-30T23:59:59",   // omitido = sem prazo
+  "remainingAtSnapshot": 40,             // omitido = ILIMITADO, nunca "zero usos"
+  "questions": [                          // já resolvidas; SEM campaignId
+    { "questionId": 7, "label": "Como conheceu a loja?", "isRequired": true,
+      "options": [ { "optionId": 21, "label": "Instagram" } ] }
+  ]
+}
+```
+
+Só cupom **ativo, não excluído e ainda vigente** entra na lista; o
+questionário segue a mesma regra do `GET /Pdv/coupons/{code}` (campanha ativa e
+dentro do período, senão vem vazio). O campo `coupons` inteiro é **opcional** no
+PDV: um snapshot de um backend anterior a esta feature simplesmente não o traz, e
+aí a base local responde "este caixa não tem a lista de cupons" em vez de "cupom
+não encontrado" — ausência e lista vazia são coisas diferentes, e só a segunda
+autoriza dizer que o cupom não existe.
+
+#### O limite de uso é conferido contra o snapshot, menos a fila
+
+```
+remainingUses = remainingAtSnapshot − resgates já enfileirados neste caixa
+```
+
+`remainingAtSnapshot` **não é saldo corrente**, e o nome do campo foi escolhido
+para isso: ele é o que o servidor sabia no instante em que gerou o snapshot.
+Outro caixa pode ter consumido usos desde então, e nada nessa leitura reserva
+coisa alguma. A subtração da fila existe porque o servidor ainda não conhece as
+vendas presas aqui — sem ela, dez vendas offline com o mesmo cupom continuariam
+anunciando o mesmo número de usos restantes. Entram na conta só as vendas
+`pending`: uma venda `failed` foi recusada pelo servidor, então nenhum resgate
+foi gravado e nenhum uso foi consumido.
+
+#### Estourar o limite offline é ACEITO
+
+O PDV **não recusa venda** por limite de cupom, nem quando sabe que ele já
+acabou. O cliente está no balcão com o panfleto na mão, e a conta do PDV nem é a
+verdade corrente. A venda entra, sobe na fila e o servidor carimba `over_limit`
+no resgate (modo tolerante do sync); o relatório da campanha mostra quantos
+resgates entraram por cima do teto. `overLimit` na resposta existe para a tela
+**avisar**, nunca para bloquear.
+
+> Limite de cupom é **orçamento de marketing, não estoque**. Estoque recusado
+> devolve saldo e o prejuízo é de inventário; cupom recusado depois do
+> pagamento não tem compensação — o cliente já pagou o valor com desconto e a
+> transação do adquirente já passou. A mesma regra vale no backend: ele nunca
+> recusa uma venda por causa do cupom depois que o dinheiro mudou de mãos.
+
+#### Sanidade de relógio
+
+Sem internet, a vigência do cupom é conferida contra o relógio da máquina — o
+único que existe. `snapshotGeneratedAt` é a **hora do servidor**, gravada na
+instalação do snapshot, e serve de piso: se o relógio local está antes dela, ele
+está mentindo, porque aquele instante já aconteceu. Nesse caso a validação
+offline do cupom é recusada por inteiro, antes mesmo de procurar o código —
+numa máquina com a data errada, "cupom não encontrado" mandaria o operador
+procurar o problema no panfleto do cliente em vez de no relógio.
+
+O cenário é concreto: queda de energia com a bateria do RTC gasta. A máquina
+reinicia em 2010, todo cupom vencido volta a parecer válido e todo cupom futuro
+parece ainda não vigente. Há uma folga de cinco minutos porque o relógio do
+caixa nunca está perfeitamente sincronizado com o do servidor, e sem folga um
+atraso de três segundos recusaria todos os cupons do turno; o erro que a
+conferência existe para pegar é de horas ou de anos.
+
+**Relógio ADIANTADO continua indetectável, e isto não está resolvido.**
+Descobrir que o relógio está à frente exige perguntar a hora a alguém, e
+perguntar exige rede — que é o que não há aqui. Um caixa adiantado aceita um
+cupom já vencido; a venda sobe, o servidor **não a recusa** (o cliente já pagou)
+e grava o resgate com `definition_drift`, que é o que faz a divergência aparecer
+na reconciliação e no relatório da campanha.
+
 ### 3. Conexão volta → sincroniza
 
 `watchConnectivity` sonda `/Health` a cada 15s (5s quando está fora). Em toda
@@ -239,10 +338,16 @@ o operador segue direto.
 O fechamento (e o botão "Sair", que também é bloqueado por fila pendente) faz
 **logout de verdade**: `clearAuthSession()` tira o token do navegador e
 `clearLocalCatalog()` apaga o cadastro local — produtos, formas de pagamento e
-clientes, que carregam nome/CPF/telefone. As filas e os metadados que só
-existem aqui (sequencial de cupom, configurações da empresa) **não** são
+clientes, que carregam nome/CPF/telefone, **e a lista de cupons de desconto**,
+que carrega as perguntas da campanha. As filas e os metadados que só existem
+aqui (sequencial do cupom impresso, configurações da empresa) **não** são
 tocados; a fila só chega vazia nesse ponto porque a saída é bloqueada enquanto
 houver pendência.
+
+> Os cupons são o único item do cadastro que mora numa store preservada, então
+> `clearAll(CATALOG_STORES)` não os alcança: quem os apaga é uma linha
+> explícita em `clearLocalCatalog`. Ao mexer nessa função, confira que ela
+> continua lá — a perda é silenciosa.
 
 ---
 
@@ -256,6 +361,7 @@ src/
 │   ├── meta.ts                  snapshot, sequencial de cupom, sessão, configurações
 │   ├── snapshot.ts              baixa o cadastro e substitui a base local
 │   ├── catalog.ts               busca de produtos e clientes na base local
+│   ├── coupons.ts               cupons de desconto e a consulta pelo código, sem rede
 │   ├── stock.ts                 projeção local do estoque
 │   ├── pending-sales.ts         a fila de vendas
 │   ├── sync.ts                  envio em lotes e aplicação dos desfechos
@@ -294,7 +400,7 @@ Banco `uaus-pdv-offline`, versão em `database.ts` (v2: entrou `pendingWriteOffs
 
 | Store              | Chave             | Conteúdo | Sobrevive à migração? |
 | ------------------ | ----------------- | -------- | --------------------- |
-| `meta`             | `key`             | data do snapshot, sequencial offline, sessão de caixa, configurações da empresa | **sim** |
+| `meta`             | `key`             | data do snapshot, sequencial offline, sessão de caixa, configurações da empresa, **cupons** | **sim** |
 | `products`         | `id`              | catálogo + estoque local | recriada |
 | `paymentMethods`   | `id`              | formas ativas com taxas | recriada |
 | `customers`        | `id`              | clientes cadastrados | recriada |
@@ -307,6 +413,14 @@ provisórios, a sessão de caixa e as configurações da empresa, que também n�
 de onde ser recuperados sem internet. O cadastro é cópia descartável — o próximo
 snapshot o repovoa.
 
+**A única exceção ao critério são os cupons de desconto**, que são cadastro
+descartável e mesmo assim moram numa chave de `meta` (`META_KEY.coupons`). O
+motivo está em "Por que a versão do banco não subiu", logo abaixo. A
+contrapartida é que eles não são apagados por `clearAll(CATALOG_STORES)`, e por
+isso `clearLocalCatalog` remove essa chave **explicitamente** — sem a linha, os
+cupons e as perguntas de campanha do operador anterior sobreviveriam ao logout,
+que é exatamente o que aquela limpeza existe para impedir.
+
 ### Duas versões, não confunda
 
 - `DATABASE_VERSION` (`database.ts`) — estrutura do IndexedDB. Suba ao mudar
@@ -315,6 +429,26 @@ snapshot o repovoa.
   DTO.
 
 Um muda sem o outro.
+
+### Por que a versão do banco NÃO subiu com os cupons
+
+Os cupons de desconto entraram na base local **sem** subir `DATABASE_VERSION`:
+ele continua em 2. Eles moram numa chave da store `meta`, e só o
+`snapshotSchemaVersion` — o formato do DTO, que é decisão do backend — sobe.
+
+Uma store `coupons` própria seria mais arrumada e custaria caro: qualquer store
+nova exige `DATABASE_VERSION` 3, e a migração **apaga `products`,
+`paymentMethods` e `customers` de todo caixa da rede** na primeira abertura
+depois do deploy. Um caixa que abrisse essa versão sem internet ficaria sem
+catálogo — sem preço, sem estoque, sem vender — justamente na situação para a
+qual o offline existe. É a armadilha 4 do `CLAUDE.md`, e aqui ela seria paga por
+nada: cupom é uma lista curta de registros pequenos, lida inteira a cada
+consulta. Não há índice, varredura nem volume que justifique o preço.
+
+O que a escolha cobra em troca está escrito em dois lugares no código, porque é
+fácil esquecer: `clearLocalCatalog` apaga a chave à mão, e `installSnapshot`
+grava a lista (ou `null`) a cada instalação, já que nenhum `clear` de store passa
+por ali.
 
 ### Detecção de conexão
 
@@ -352,13 +486,20 @@ Depois, no navegador:
    "VENDA OFFLINE — Nº PROVISÓRIO".
 5. Recarregue a página ainda offline: o PDV deve abrir (service worker) e a venda
    deve continuar na fila (IndexedDB).
-6. Ainda offline, abra o menu → **Baixa de Estoque**, escolha um motivo, busque um
+6. Ainda offline, aplique um **cupom de desconto** cadastrado no admin: ele é
+   encontrado pelo código na base local e, se estiver ligado a uma campanha
+   vigente, as perguntas aparecem — tudo sem rede. Adiante o relógio do sistema
+   para depois do fim da vigência e confirme que o cupom é recusado; **atrase**-o
+   para antes da data do snapshot e confirme que a validação inteira é recusada
+   com o aviso de relógio.
+7. Ainda offline, abra o menu → **Baixa de Estoque**, escolha um motivo, busque um
    produto e confirme. Ela entra na fila de baixas e o estoque local já cai.
-7. Volte a rede. Em até 5s a sincronização roda sozinha e avisa o resultado das
+8. Volte a rede. Em até 5s a sincronização roda sozinha e avisa o resultado das
    duas filas.
-8. Confira no histórico da sessão que a venda apareceu com número definitivo, e
+9. Confira no histórico da sessão que a venda apareceu com número definitivo, e
    no admin que a baixa entrou com a **hora em que foi feita**, não com a da
-   sincronização.
+   sincronização. Se a venda levou cupom, confira o resgate no relatório da
+   campanha — e o carimbo `over_limit` quando o limite já estava estourado.
 
 Para inspecionar: DevTools → Application → IndexedDB → `uaus-pdv-offline`.
 
@@ -370,6 +511,8 @@ Para inspecionar: DevTools → Application → IndexedDB → `uaus-pdv-offline`.
 | ---------------------------------------------- | ------- |
 | Levar mais dados para a base local             | `PdvSnapshotDto` no backend, `offline/types.ts`, `offline/snapshot.ts` — e suba as duas versões |
 | Mudar a relevância da busca local              | `offline/catalog.ts` → `filterProducts` (tem teste) |
+| Mudar a regra do cupom offline                 | `offline/coupons.ts` → `resolveLocalCoupon` (tem teste) — leia "Estourar o limite offline é ACEITO" antes |
+| Mudar o que a venda envia de cupom             | `offline/sync.ts` → `toCouponBody` (tem teste) |
 | Mudar o fallback da busca de produtos          | `lib/product-search.ts` → `searchProducts` (tem teste) |
 | Mudar a regra de estoque offline               | `offline/stock.ts` → `findStockShortages` (tem teste) |
 | Mudar o que fazer com cada desfecho            | `offline/sync.ts` → `applySyncResults` (tem teste) |
@@ -418,3 +561,14 @@ A convenção completa, incluindo o fuso do contêiner da API, está em
   não para calcular custo.
 - **Uma aba por caixa.** Duas abas do PDV na mesma máquina compartilham a base
   local e a migração de schema é bloqueada por abas abertas.
+- **O limite de uso do cupom offline é uma estimativa, e a loja se organiza para
+  um caixa offline por vez.** Dois caixas offline com o mesmo cupom partem do
+  mesmo `remainingAtSnapshot` e não conhecem a fila um do outro. O sistema não
+  finge o contrário: o estouro é aceito, carimbado no sync e visível no
+  relatório da campanha.
+- **Relógio adiantado no caixa não é detectável sem servidor.** O atrasado é
+  (ver "Sanidade de relógio"); o adiantado aceita cupom vencido, e o desvio só
+  aparece depois, como `definition_drift` no resgate.
+- **Cupom desativado no meio do turno continua valendo offline.** A base local é
+  do início do turno e não tem como saber da mudança. A venda entra, e é o
+  servidor que registra a divergência no sync.

@@ -1,8 +1,10 @@
 import { AnimatePresence } from "framer-motion";
-import { PauseCircle, ShoppingCart, Tag, Trash2 } from "lucide-react";
+import { PauseCircle, ShoppingCart, Tag, Ticket, Trash2 } from "lucide-react";
 import { Button, ScrollArea, useToast } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { usePdvStore } from "@/stores/use-pdv-store";
+import { useCouponDialog } from "../hooks/use-coupon";
+import { COUPON_SHORTCUT_KEY } from "./coupon-dialog";
 import { PdvCartItem } from "./pdv-cart-item";
 
 type PdvCartPanelProps = {
@@ -43,6 +45,13 @@ export function PdvCartPanel({
   const applyGlobalDiscount = usePdvStore((state) => state.applyGlobalDiscount);
   const setCheckout = usePdvStore((state) => state.setCheckout);
   const cancelSale = usePdvStore((state) => state.cancelSale);
+
+  const coupon = usePdvStore((state) => state.coupon);
+  // Derivado do carrinho a cada render, nunca guardado: bipar um item reajusta o
+  // abatimento sozinho, e é este número que vai ao payload e ao comprovante.
+  const couponDiscount = usePdvStore((state) => state.getCouponDiscount());
+  const removeCoupon = usePdvStore((state) => state.removeCoupon);
+  const showCouponDialog = useCouponDialog((state) => state.show);
 
   return (
     <div className="w-[500px] flex flex-col bg-card shrink-0 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.3)] z-20 relative">
@@ -101,6 +110,37 @@ export function PdvCartPanel({
               </div>
             </div>
           )}
+
+          {/* Linha própria, abaixo do desconto e acima do total: é a ordem em que
+              a conta acontece (item → global → cupom) e a mesma do comprovante
+              impresso. O cupom aparece mesmo abatendo zero — ele foi apresentado
+              no balcão, e sumir da tela faria o operador aplicá-lo de novo. */}
+          {coupon && (
+            <div className="flex justify-between items-center text-emerald-500 font-bold text-sm">
+              <span className="flex items-center gap-1 min-w-0">
+                <Ticket className="w-3 h-3 shrink-0" />
+                <span className="truncate">CUPOM {coupon.code}</span>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono">- {formatCurrency(couponDiscount)}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-emerald-500 hover:text-destructive hover:bg-destructive/10 p-0 rounded cursor-pointer"
+                  onClick={() => {
+                    removeCoupon();
+                    toast({
+                      title: "Cupom Removido",
+                      description: `O cupom ${coupon.code} saiu desta venda.`,
+                      duration: 2000,
+                    });
+                  }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="pt-4 border-t border-border/50">
@@ -118,13 +158,28 @@ export function PdvCartPanel({
             DESCONTO
           </Button>
           <Button
-            className="h-14 font-bold text-sm tracking-widest bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-primary/20"
-            disabled={items.length === 0 || blockedWithoutSession}
-            onClick={setCheckout}
+            variant="outline"
+            className="h-14 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
+            // `preventDefault` no mousedown: sem ele o clique traz o foco para o
+            // botão, e o Radix devolveria o cursor PARA CÁ ao fechar o diálogo —
+            // o próximo bipe do leitor seria digitado num botão e sumiria. Assim
+            // o foco nunca sai do campo de busca, e é para lá que ele volta.
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={showCouponDialog}
+            disabled={items.length === 0}
+            title={`Aplicar cupom de desconto (${COUPON_SHORTCUT_KEY})`}
           >
-            FINALIZAR
+            CUPOM
           </Button>
         </div>
+
+        <Button
+          className="w-full h-14 font-bold text-sm tracking-widest bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-primary/20"
+          disabled={items.length === 0 || blockedWithoutSession}
+          onClick={setCheckout}
+        >
+          FINALIZAR
+        </Button>
 
         {items.length > 0 && (
           <div className="grid grid-cols-2 gap-2">

@@ -44,6 +44,82 @@ export interface LocalCustomer {
   searchName: string;
 }
 
+/** Uma alternativa de resposta do questionário, como o balcão a apresenta. */
+export interface LocalCouponQuestionOption {
+  optionId: number;
+  label: string;
+}
+
+/**
+ * Uma pergunta do questionário **já resolvida**: o PDV não sabe (nem precisa
+ * saber) de que campanha ela veio.
+ *
+ * É o mesmo formato de `CouponLookupQuestionDto`, o que faz a tela do cupom ter
+ * um caminho só para o online e o offline.
+ */
+export interface LocalCouponQuestion {
+  questionId: number;
+  label: string;
+  /** Resposta obrigatória para aplicar o cupom. */
+  isRequired: boolean;
+  /** De duas a oito alternativas; no balcão viram botões grandes, sem teclado. */
+  options: LocalCouponQuestionOption[];
+}
+
+/**
+ * Um cupom como ele vem dentro do snapshot — a definição completa e o
+ * questionário já resolvido.
+ *
+ * **`campaignId` não existe aqui de propósito.** A campanha é encontrada pelo
+ * código do cupom, e quem fotografa o vínculo é o servidor na gravação. É isso
+ * que mantém offline, fila, idempotência e comprovante estáveis a qualquer
+ * evolução do modelo de campanha.
+ */
+export interface PdvSnapshotCoupon {
+  couponId: number;
+  code: string;
+  description?: string | null;
+  /** Enum `CouponDiscountType` da API — pode vir como número ou nome. */
+  discountType: number | string;
+  discountValue: number;
+  /** Início da vigência, inclusivo. Instante, nunca data pura. */
+  validFrom: string;
+  /** Fim da vigência, inclusivo. Ausente/nulo = sem prazo. */
+  validUntil?: string | null;
+  /**
+   * Usos que restavam **no instante em que o snapshot foi gerado**. Nulo =
+   * ilimitado.
+   *
+   * O nome é escolhido para ninguém o ler como saldo corrente: outro caixa pode
+   * ter consumido usos desde então, e este número não é reserva nem promessa.
+   */
+  remainingAtSnapshot?: number | null;
+  /** Questionário a apresentar, ou vazio quando o cupom não tem campanha ativa. */
+  questions?: LocalCouponQuestion[];
+}
+
+/**
+ * Um cupom na base local, já normalizado na instalação do snapshot: código em
+ * maiúsculas e tipo de desconto resolvido para o código numérico do enum.
+ *
+ * Normalizar na carga, e não na consulta, é o mesmo motivo do `searchName` do
+ * produto — o balcão consulta a cada tecla, a carga acontece uma vez por turno.
+ */
+export interface LocalCoupon {
+  couponId: number;
+  /** Código normalizado em MAIÚSCULAS: é por ele que a busca local casa. */
+  code: string;
+  description: string | null;
+  /** Código do enum `CouponDiscountType`: 1 = Percentual, 2 = Valor fixo. */
+  discountType: number;
+  discountValue: number;
+  validFrom: string;
+  validUntil: string | null;
+  /** Usos restantes no instante do snapshot. `null` = ILIMITADO, nunca "zero usos". */
+  remainingAtSnapshot: number | null;
+  questions: LocalCouponQuestion[];
+}
+
 /** Resposta de `GET /Pdv/snapshot`. */
 export interface PdvSnapshot {
   schemaVersion: number;
@@ -64,6 +140,15 @@ export interface PdvSnapshot {
     document: string | null;
     phone: string | null;
   }>;
+  /**
+   * Cupons vigentes com o questionário resolvido.
+   *
+   * Opcional porque um snapshot gerado por um backend anterior a esta feature
+   * não traz o campo. Ausente **não** é o mesmo que lista vazia: vazio é "esta
+   * loja não tem cupom", ausente é "este caixa não sabe nada sobre cupons" — e a
+   * consulta offline recusa de formas diferentes nos dois casos.
+   */
+  coupons?: PdvSnapshotCoupon[] | null;
 }
 
 /** Um item da venda, no formato que a API espera. */
@@ -96,6 +181,48 @@ export interface PendingSalePayment {
   paymentMethodName: string;
 }
 
+/** Uma resposta do questionário, por id. O rótulo exibido é gravado pelo servidor. */
+export interface PendingSaleCouponAnswer {
+  questionId: number;
+  optionId: number;
+}
+
+/**
+ * O cupom aplicado numa venda da fila. Um bloco, não campos soltos: ou o cupom
+ * inteiro veio, ou não veio nenhum. **Um por venda, não cumulativo.**
+ *
+ * **`discountAmount` JÁ ESTÁ INCLUÍDO em `PendingSale.discount` — NÃO SOMAR.**
+ * O desconto da venda continua sendo o total e o cupom é uma parcela dele; somar
+ * os dois faria o servidor recusar a venda por total divergente no sync, com o
+ * cliente já fora da loja.
+ *
+ * **Não guarda o valor do carrinho, e sim o abatimento daquele instante.** O que
+ * nunca pode ser congelado é o cupom *aplicado na tela* — o percentual precisa
+ * ser reconta a cada item bipado. Aqui a venda já fechou: o número gravado é o
+ * que saiu impresso no comprovante que o cliente levou, e é ele que o servidor
+ * audita.
+ *
+ * **Sem `campaignId`**, como no payload online: o PDV nunca sabe de onde as
+ * perguntas vieram.
+ */
+export interface PendingSaleCoupon {
+  couponId: number;
+  /**
+   * Código como o operador leu do panfleto. Serve de conferência contra
+   * `couponId`: uma base local velha pode trazer um id que hoje pertence a outro
+   * código.
+   */
+  code: string;
+  /** Código do enum `CouponDiscountType`: 1 = Percentual, 2 = Valor fixo. */
+  discountType: number;
+  discountValue: number;
+  /** Base do cálculo: subtotal dos itens MENOS o desconto global, nunca o subtotal cru. */
+  baseAmount: number;
+  /** Reais abatidos. Já incluídos em `discount`, e nunca maiores que `baseAmount`. */
+  discountAmount: number;
+  answers: PendingSaleCouponAnswer[];
+}
+
 /**
  * Situação de uma venda na fila local.
  *
@@ -126,6 +253,15 @@ export interface PendingSale {
   customerDocument: string | null;
   total: number;
   discount: number;
+  /**
+   * Cupom aplicado nesta venda, ou ausente quando não houve cupom.
+   *
+   * Opcional por causa das vendas já enfileiradas antes deste campo existir:
+   * `pendingSales` sobrevive à migração do schema local, então elas sobem sem o
+   * bloco — leia sempre com `?? null` e nunca assuma o objeto. O backend também
+   * aceita a ausência (`RegisterPdvSaleCouponRequest? Coupon`).
+   */
+  coupon?: PendingSaleCoupon | null;
   notes: string | null;
   items: PendingSaleItem[];
   payments: PendingSalePayment[];

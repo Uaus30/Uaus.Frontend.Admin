@@ -1,5 +1,6 @@
 import { apiGetOrThrow } from "@workspace/api-client-react";
 import { normalizeForSearch } from "./catalog";
+import { toLocalCoupon, writeLocalCoupons } from "./coupons";
 import { CATALOG_STORES, META_KEY, STORE, openLocalDatabase } from "./database";
 import { clearAll, putAll, remove } from "./idb";
 import { writeMeta } from "./meta";
@@ -82,6 +83,14 @@ export interface SnapshotInstallResult {
   products: number;
   paymentMethods: number;
   customers: number;
+  /**
+   * Cupons vigentes que vieram na base local.
+   *
+   * Zero tem duas causas que a tela não precisa distinguir, mas quem depura sim:
+   * a loja não tem cupom vigente, ou o backend ainda não manda `coupons[]` — e aí
+   * a consulta offline responde "este caixa não tem a lista de cupons".
+   */
+  coupons: number;
   /** Quando o backend gerou o snapshot, em ISO. */
   generatedAt: string;
 }
@@ -141,12 +150,21 @@ export async function installSnapshot(snapshot: PdvSnapshot): Promise<SnapshotIn
     installments: method.installments ?? [],
   }));
   const customers = snapshot.customers.map(toLocalCustomer);
+  // `null` quando o campo não veio (backend anterior a esta feature): a consulta
+  // offline precisa distinguir "esta loja não tem cupom" de "este caixa não sabe
+  // nada sobre cupons", e só a segunda é motivo para não validar nada.
+  const coupons = snapshot.coupons ? snapshot.coupons.map(toLocalCoupon) : null;
 
   await clearAll(db, CATALOG_STORES);
   await putAll(db, STORE.products, products);
   invalidateProductsCache();
   await putAll(db, STORE.paymentMethods, paymentMethods);
   await putAll(db, STORE.customers, customers);
+
+  // Os cupons não moram numa store de cadastro (a store nova custaria a migração
+  // do banco local), então a substituição deles é esta gravação — inclusive
+  // quando é `null`, que apaga a lista do turno anterior.
+  await writeLocalCoupons(coupons);
 
   // Re-aplica os débitos da fila pendente sobre o estoque que acabou de chegar.
   // Sem isso, um snapshot instalado com fila pendente (botão "Atualizar", ou a
@@ -170,6 +188,7 @@ export async function installSnapshot(snapshot: PdvSnapshot): Promise<SnapshotIn
     products: products.length,
     paymentMethods: paymentMethods.length,
     customers: customers.length,
+    coupons: coupons?.length ?? 0,
     generatedAt: snapshot.generatedAt,
   };
 }
@@ -186,8 +205,8 @@ export async function refreshLocalDatabase(): Promise<SnapshotInstallResult> {
 }
 
 /**
- * Apaga o cadastro local (produtos, formas de pagamento e clientes) e as marcas
- * do snapshot.
+ * Apaga o cadastro local (produtos, formas de pagamento e clientes), os cupons e
+ * as marcas do snapshot.
  *
  * Usado no logout: o cadastro carrega dados pessoais de clientes (nome,
  * documento, telefone) e não pode ficar legível no navegador depois que o
@@ -195,11 +214,18 @@ export async function refreshLocalDatabase(): Promise<SnapshotInstallResult> {
  * servidor não conhece não é apagado; a saída é bloqueada enquanto houver
  * pendência. O sequencial de cupom e as configurações da empresa também ficam:
  * não são dado pessoal e não têm de onde ser recuperados sem internet.
+ *
+ * **Os cupons precisam ser apagados à mão, e é fácil esquecer.** Eles moram numa
+ * chave da store `meta`, que é preservada, então `clearAll(CATALOG_STORES)` não
+ * os alcança — a linha explícita abaixo é a única coisa que impede a lista de
+ * cupons e as perguntas da campanha do operador anterior de sobreviverem ao
+ * logout, exatamente o que a limpeza existe para evitar.
  */
 export async function clearLocalCatalog(): Promise<void> {
   const db = await openLocalDatabase();
 
   await clearAll(db, CATALOG_STORES);
+  await remove(db, STORE.meta, META_KEY.coupons);
 
   // Sem as marcas o PDV sabe que a base sumiu: `hasLocalDatabase` volta a ser
   // falso e a venda offline fica bloqueada até o próximo snapshot.

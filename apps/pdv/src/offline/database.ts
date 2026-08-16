@@ -18,6 +18,15 @@ const DATABASE_NAME = "uaus-pdv-offline";
  * este é a estrutura do IndexedDB. Um pode mudar sem o outro.
  *
  * Histórico: v2 acrescentou `pendingWriteOffs` (fila de baixas de estoque).
+ *
+ * **Os cupons NÃO subiram esta versão, e isso é deliberado.** Eles moram numa
+ * chave da store `meta` (ver {@link META_KEY.coupons}), que está em
+ * {@link PRESERVED_STORES}. Uma store própria exigiria a v3, e a migração
+ * apagaria `products`, `paymentMethods` e `customers` **de todo caixa da rede**
+ * na primeira abertura depois do deploy — um caixa que subisse a versão sem
+ * internet ficaria sem catálogo para vender. Cupom é uma lista pequena de
+ * registros pequenos, lida inteira a cada consulta: não há índice nem varredura
+ * que justifique pagar esse preço.
  */
 const DATABASE_VERSION = 2;
 
@@ -87,6 +96,20 @@ export const META_KEY = {
    * configuração real da loja.
    */
   companySettings: "companySettings",
+  /**
+   * Cupons de desconto do snapshot, **com o questionário da campanha já
+   * resolvido** — é o que permite encontrar a campanha pelo código do cupom sem
+   * rede. O PDV nunca sabe o `campaignId`.
+   *
+   * Mora em `meta` para não criar store nova: ver a nota do
+   * {@link DATABASE_VERSION}. A contrapartida é que esta é a única cópia
+   * descartável do servidor guardada numa store **preservada** — quem apaga
+   * cadastro precisa apagá-la à mão, e é exatamente por isso que
+   * `clearLocalCatalog` remove esta chave explicitamente. Esquecer deixaria os
+   * cupons (e as perguntas da campanha) do operador anterior legíveis depois do
+   * logout, contrariando a razão de existir daquela limpeza.
+   */
+  coupons: "coupons",
 } as const;
 
 /** Um registro da store de metadados. */

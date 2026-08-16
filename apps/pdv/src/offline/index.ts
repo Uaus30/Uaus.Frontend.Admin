@@ -17,6 +17,7 @@
  * - `meta.ts` — quando o snapshot foi baixado e o sequencial de cupom provisório.
  * - `snapshot.ts` — baixa o cadastro da API e substitui a base local.
  * - `catalog.ts` — busca de produtos e clientes na base local.
+ * - `coupons.ts` — cupons do snapshot e a consulta do cupom pelo código, sem rede.
  * - `stock.ts` — projeção local do estoque: conferência, baixa e devolução.
  * - `pending-sales.ts` — a fila de vendas offline.
  * - `sync.ts` — envio da fila de vendas em lotes e aplicação dos desfechos.
@@ -57,6 +58,20 @@ export {
   searchLocalProducts,
   invalidateProductsCache,
 } from "./catalog";
+
+export {
+  countQueuedRedemptions,
+  lookupLocalCoupon,
+  readLocalCoupons,
+  resolveLocalCoupon,
+  toLocalCoupon,
+  writeLocalCoupons,
+  type LocalCouponFound,
+  type LocalCouponLookup,
+  type LocalCouponLookupInput,
+  type LocalCouponRefusal,
+  type LocalCouponRefused,
+} from "./coupons";
 
 export {
   checkLocalStock,
@@ -114,12 +129,18 @@ export { probeApi, watchConnectivity, type ConnectivityListener } from "./connec
 
 export type {
   LocalCompanySettings,
+  LocalCoupon,
+  LocalCouponQuestion,
+  LocalCouponQuestionOption,
   LocalCustomer,
   LocalPaymentMethod,
   LocalPaymentMethodInstallment,
   LocalProduct,
   PdvSnapshot,
+  PdvSnapshotCoupon,
   PendingSale,
+  PendingSaleCoupon,
+  PendingSaleCouponAnswer,
   PendingSaleItem,
   PendingSalePayment,
   PendingSaleStatus,

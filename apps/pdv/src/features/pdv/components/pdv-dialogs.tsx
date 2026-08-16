@@ -10,9 +10,11 @@ import { PerformanceDialog } from "@/components/performance-dialog";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import type { CheckoutState } from "@/hooks/use-checkout";
 import type { CashRegisterMode } from "@/lib/cash-register-mode";
+import { useCouponDialog } from "../hooks/use-coupon";
 import type { PdvDialogs as PdvDialogControls } from "../hooks/use-pdv-dialogs";
 import type { useSaleHistoryActions } from "../hooks/use-sale-history-actions";
 import { ConfirmDiscardDialog } from "./confirm-discard-dialog";
+import { CouponDialog } from "./coupon-dialog";
 import { PreferencesDialog } from "./preferences-dialog";
 
 type PdvDialogsProps = {
@@ -82,6 +84,11 @@ export function PdvDialogs({
   const subtotal = usePdvStore((state) => state.getSubtotal());
   const total = usePdvStore((state) => state.getTotal());
 
+  // O diálogo do cupom é aberto pelo resumo da venda (componente irmão) e pelo
+  // atalho de teclado; o estado vem de um store para não atravessar a página.
+  const couponDialogOpen = useCouponDialog((state) => state.open);
+  const setCouponDialogOpen = useCouponDialog((state) => state.setOpen);
+
   return (
     <>
       <CheckoutDialog
@@ -108,6 +115,8 @@ export function PdvDialogs({
         applyGlobalDiscount={applyGlobalDiscount}
         applyItemDiscount={applyItemDiscount}
       />
+
+      <CouponDialog open={couponDialogOpen} onOpenChange={setCouponDialogOpen} />
 
       <SalesHistoryDialog
         open={dialogs.salesHistory.open}

@@ -1,50 +1,28 @@
 import { create } from "zustand";
-import { computeSaleTotals, type SaleItemForTotals } from "@workspace/core";
-
-/** Uma linha do carrinho de venda em andamento. */
-export interface PdvItem {
-  /** Identificador local da linha do carrinho. */
-  id: string;
-  productId: number;
-  name: string;
-  barcode?: string;
-  /** Preço de tabela do produto. */
-  price: number;
-  quantity: number;
-  /** Desconto em R$ por unidade. */
-  discount: number;
-  /** Estoque disponível no momento em que o item entrou no carrinho. */
-  availableStock: number;
-}
+import { computeSaleTotals } from "@workspace/core";
+import {
+  EMPTY_CONSUMER,
+  computeCartTotals,
+  toTotalsItems,
+  type AppliedCoupon,
+  type HeldSale,
+  type PdvConsumer,
+  type PdvItem,
+} from "./pdv-cart";
 
 /**
- * Consumidor da venda. Ou é um cliente cadastrado (`customerId`), ou é o
- * CPF/CNPJ que o operador digitou no balcão.
+ * Os tipos do carrinho e a conta do total moram em `./pdv-cart`; aqui fica só a
+ * máquina de estado. Eles são REEXPORTADOS abaixo porque a divisão é interna: o
+ * repo inteiro importa de `@/stores/use-pdv-store`, e trocar 25 imports para
+ * apontar para o arquivo novo seria mexer em tela para não mexer em nada.
  */
-export interface PdvConsumer {
-  customerId: number | null;
-  /**
-   * Nome do cliente cadastrado escolhido na busca, só para o operador conferir
-   * quem selecionou. Fica vazio na venda de balcão — o PDV não coleta nome — e
-   * não é impresso no cupom, que identifica o consumidor pelo documento.
-   */
-  name: string;
-  /** CPF/CNPJ do consumidor: do cadastro escolhido, ou digitado no balcão. */
-  document: string;
-}
-
-/** Uma venda pausada, à espera de ser retomada. */
-export interface HeldSale {
-  /** Identificador local; a venda em espera ainda não existe na API. */
-  id: string;
-  /** Momento em que a venda foi pausada, em ISO. */
-  heldAt: string;
-  items: PdvItem[];
-  globalDiscount: number;
-  consumer: PdvConsumer;
-  /** Total no momento da pausa, para a lista não precisar recalcular. */
-  total: number;
-}
+export {
+  EMPTY_CONSUMER,
+  computeCartTotals,
+  couponDiscountFor,
+  toTotalsItems,
+} from "./pdv-cart";
+export type { AppliedCoupon, CouponAnswer, HeldSale, PdvConsumer, PdvItem } from "./pdv-cart";
 
 /** Escalas de fonte disponíveis, do menor para o maior. */
 export const FONT_SCALES = [0.85, 0.925, 1, 1.1, 1.2, 1.35] as const;
@@ -54,9 +32,6 @@ const DEFAULT_FONT_SCALE_INDEX = 2;
 
 const HELD_SALES_STORAGE_KEY = "pdv-held-sales";
 const FONT_SCALE_STORAGE_KEY = "pdv-font-scale-index";
-
-/** Consumidor vazio: venda para consumidor não identificado. */
-export const EMPTY_CONSUMER: PdvConsumer = { customerId: null, name: "", document: "" };
 
 /**
  * Estado local do PDV: carrinho, desconto da venda, vendas em espera e
@@ -69,6 +44,12 @@ interface PdvState {
   globalDiscount: number;
   /** Consumidor da venda em andamento. */
   consumer: PdvConsumer;
+  /**
+   * Cupom aplicado na venda, ou `null`. **Um por venda — não é cumulativo.**
+   *
+   * Guarda a definição, nunca o valor em reais: ver {@link AppliedCoupon}.
+   */
+  coupon: AppliedCoupon | null;
   theme: "light" | "dark";
   /** Abre a impressão do cupom assim que a venda é gravada. */
   autoPrintReceipt: boolean;
@@ -101,6 +82,15 @@ interface PdvState {
   applyItemDiscount: (id: string, discount: number) => void;
   /** Aplica desconto sobre o total da venda. */
   applyGlobalDiscount: (discount: number) => void;
+  /**
+   * Aplica (ou troca) o cupom da venda em andamento.
+   *
+   * Trocar substitui: um cupom por venda é invariante do banco
+   * (`ux_coupon_redemptions_sale_id`), não convenção de tela.
+   */
+  applyCoupon: (coupon: AppliedCoupon) => void;
+  /** Tira o cupom da venda. O abatimento some sozinho — ele nunca foi guardado. */
+  removeCoupon: () => void;
   /** Define o consumidor da venda em andamento. */
   setConsumer: (consumer: PdvConsumer) => void;
   /** Abre o checkout; ignorado com o carrinho vazio. */
@@ -154,22 +144,20 @@ interface PdvState {
 
   /** Soma dos itens já com os descontos de linha aplicados. */
   getSubtotal: () => number;
-  /** Subtotal menos o desconto da venda, nunca negativo. */
+  /**
+   * Abatimento do cupom NESTE instante, recalculado sobre o carrinho corrente.
+   *
+   * É função e não campo justamente para não existir número guardado: bipar um
+   * item reajusta o abatimento sozinho.
+   */
+  getCouponDiscount: () => number;
+  /** Subtotal menos o desconto da venda e o cupom, nunca negativo. */
   getTotal: () => number;
 }
 
-/**
- * Traduz o carrinho para o formato que `computeSaleTotals` espera.
- *
- * A conta em si mora no `@workspace/core` para o total exibido aqui ser
- * exatamente o mesmo que vai no payload da venda e no cupom impresso.
- */
-const toTotalsItems = (items: PdvItem[]): SaleItemForTotals[] =>
-  items.map((item) => ({
-    unitPrice: item.price,
-    quantity: item.quantity,
-    unitDiscount: item.discount,
-  }));
+/** Atalho dos getters: os totais da venda que está no carrinho agora. */
+const currentTotals = (state: Pick<PdvState, "items" | "globalDiscount" | "coupon">) =>
+  computeCartTotals(state.items, state.globalDiscount, state.coupon);
 
 /** Gera o identificador local de uma linha do carrinho ou de uma venda em espera. */
 const generateId = () => Math.random().toString(36).slice(2, 11);
@@ -252,6 +240,7 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   items: [],
   globalDiscount: 0,
   consumer: EMPTY_CONSUMER,
+  coupon: null,
   editingSaleId: null,
   saleClientReference: null,
   theme: initialTheme,
@@ -296,6 +285,10 @@ export const usePdvStore = create<PdvState>((set, get) => ({
 
   applyGlobalDiscount: (discount) => set(() => ({ globalDiscount: discount })),
 
+  applyCoupon: (coupon) => set(() => ({ coupon })),
+
+  removeCoupon: () => set(() => ({ coupon: null })),
+
   setConsumer: (consumer) => set(() => ({ consumer })),
 
   setCheckout: () => set((state) => ({ status: state.items.length > 0 ? "CHECKOUT" : "IDLE" })),
@@ -308,6 +301,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       items: [],
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
+      // O cupom é da VENDA, não do caixa: mantê-lo aqui daria o desconto de
+      // graça ao próximo cliente, e o resgate seria gravado no nome dele.
+      coupon: null,
       editingSaleId: null,
       // A venda foi abandonada: a chave morre com ela. Reutilizá-la numa venda
       // futura faria o servidor engolir a nova como "duplicada" da antiga.
@@ -320,6 +316,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       items: [],
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
+      // O cupom já foi resgatado nesta venda; deixá-lo de pé o resgataria de
+      // novo na venda seguinte, queimando um segundo uso do panfleto.
+      coupon: null,
       editingSaleId: null,
       // Venda confirmada: a próxima venda precisa de chave própria.
       saleClientReference: null,
@@ -346,6 +345,10 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       items: state.items,
       globalDiscount: state.globalDiscount,
       consumer: state.consumer,
+      // A venda pausada guarda o cupom junto: o cliente que voltar para buscar
+      // outro produto não pode ter que apresentar o panfleto de novo. O `total`
+      // abaixo já sai com o abatimento aplicado, porque `getTotal` o deriva.
+      coupon: state.coupon,
       total: state.getTotal(),
     };
 
@@ -358,6 +361,8 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       items: [],
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
+      // O cupom foi junto com a venda pausada; o caixa fica limpo para a próxima.
+      coupon: null,
       editingSaleId: null,
       // A chave pertence à venda pausada, não ao caixa: mantê-la faria a
       // próxima venda nova reutilizar a chave de outra venda.
@@ -383,6 +388,10 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       items: held.items,
       globalDiscount: held.globalDiscount,
       consumer: held.consumer,
+      // `?? null`: as vendas pausadas antes desta feature continuam gravadas no
+      // navegador e voltam sem o campo. Ler `undefined` como cupom deixaria o
+      // estado do store fora do contrato e quebraria o carrinho na retomada.
+      coupon: held.coupon ?? null,
       editingSaleId: null,
     }));
 
@@ -423,8 +432,15 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({ fontScaleIndex: DEFAULT_FONT_SCALE_INDEX }));
   },
 
+  // O cupom NÃO volta na reedição, e isso é limitação DECLARADA, não descuido: a
+  // venda da API devolve o snapshot do resgate (código, tipo, valor) mas não as
+  // respostas do questionário, e sem elas o bloco do payload sairia incompleto.
+  // Enquanto a reedição não souber remontá-lo, ela reenvia a venda sem cupom — o
+  // servidor estorna o resgate e o abatimento fica no cabeçalho como desconto
+  // manual, o que pode passar a exigir senha de administrador. Reeditar venda com
+  // cupom continua sendo caminho a evitar: cancele e registre de novo.
   loadSaleForEditing: (saleId, items, globalDiscount) =>
-    set(() => ({ items, globalDiscount, status: "SELLING", editingSaleId: saleId })),
+    set(() => ({ items, globalDiscount, coupon: null, status: "SELLING", editingSaleId: saleId })),
 
   setEditingSaleId: (id) => set(() => ({ editingSaleId: id })),
 
@@ -436,15 +452,14 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       items: [],
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
+      coupon: null,
       editingSaleId: null,
       saleClientReference: null,
     })),
 
   getSubtotal: () => computeSaleTotals({ items: toTotalsItems(get().items) }).subtotal,
 
-  getTotal: () =>
-    computeSaleTotals({
-      items: toTotalsItems(get().items),
-      globalDiscount: get().globalDiscount,
-    }).total,
+  getCouponDiscount: () => currentTotals(get()).couponDiscount,
+
+  getTotal: () => currentTotals(get()).total,
 }));

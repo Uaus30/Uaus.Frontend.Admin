@@ -14,6 +14,12 @@ import type { PendingSale, SaleSyncResult, SyncOutcome, SyncSalesResponse } from
  *
  * A fila é enviada em lotes; cada venda tem o seu próprio desfecho e o backend
  * nunca reprova o lote inteiro. Ver `Uaus.Backend.Api/docs/pdv-offline.md`.
+ *
+ * **Cupom estourado não é recusa.** Este endpoint grava em modo tolerante: uso
+ * acima do limite entra carimbado como `over_limit`, e definição que mudou depois
+ * da venda entra como `definition_drift`, prevalecendo o valor que o cliente
+ * levou impresso. Nenhum dos dois vira `Rejected` — o dinheiro já mudou de mãos
+ * no balcão, e limite de cupom é orçamento de marketing, não estoque.
  */
 
 /** Endpoint do lote de sincronização. */
@@ -25,6 +31,38 @@ const SYNC_PATH = "/Pdv/sales/sync";
  */
 export const SYNC_BATCH_SIZE = 25;
 
+/**
+ * O bloco do cupom no corpo da requisição, ou `null` quando a venda não teve
+ * cupom.
+ *
+ * `null` (e não `undefined`) porque `RegisterPdvSaleCouponRequest? Coupon` do
+ * backend aceita a ausência explicitamente, e porque as vendas que já estavam na
+ * fila antes desta feature sobem sem o campo — `pendingSales` sobrevive à
+ * migração do schema local, e o `?? null` é o que impede que elas quebrem.
+ *
+ * A campanha não vai junto de propósito: o PDV nunca soube dela, e é o servidor
+ * quem fotografa o vínculo na gravação.
+ */
+function toCouponBody(sale: PendingSale) {
+  const coupon = sale.coupon ?? null;
+  if (!coupon) return null;
+
+  return {
+    couponId: coupon.couponId,
+    code: coupon.code,
+    discountType: coupon.discountType,
+    discountValue: coupon.discountValue,
+    baseAmount: coupon.baseAmount,
+    // JÁ INCLUÍDO em `discount` — o backend confere `discount >= discountAmount`
+    // e recalcula o total contra os itens. Somar os dois recusaria a venda.
+    discountAmount: coupon.discountAmount,
+    answers: (coupon.answers ?? []).map((answer) => ({
+      questionId: answer.questionId,
+      optionId: answer.optionId,
+    })),
+  };
+}
+
 /** Converte a venda da fila no corpo que a API espera. */
 function toRequestBody(sale: PendingSale) {
   return {
@@ -35,6 +73,7 @@ function toRequestBody(sale: PendingSale) {
     customerDocument: sale.customerDocument,
     total: sale.total,
     discount: sale.discount,
+    coupon: toCouponBody(sale),
     notes: sale.notes,
     items: sale.items.map((item) => ({
       productId: item.productId,

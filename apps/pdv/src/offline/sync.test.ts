@@ -275,6 +275,56 @@ describe("syncPendingSales", () => {
     expect(body.sales[1].items[0].discount).toBe(0);
   });
 
+  it("deve enviar o bloco do cupom, sem campanha nenhuma", async () => {
+    const comCupom = pendingSale("ref-1");
+    comCupom.discount = 10;
+    comCupom.coupon = {
+      couponId: 12,
+      code: "10OFFSET26",
+      discountType: 1,
+      discountValue: 10,
+      baseAmount: 100,
+      discountAmount: 10,
+      answers: [{ questionId: 7, optionId: 21 }],
+    };
+
+    listSalesToSync.mockResolvedValue([comCupom]);
+    apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
+    expect(body.sales[0].coupon).toEqual({
+      couponId: 12,
+      code: "10OFFSET26",
+      discountType: 1,
+      discountValue: 10,
+      baseAmount: 100,
+      discountAmount: 10,
+      answers: [{ questionId: 7, optionId: 21 }],
+    });
+    // O `discountAmount` é PARCELA do `discount`, não adição: somar os dois faria
+    // o servidor recusar a venda por total divergente, com o cliente já fora da loja.
+    expect(body.sales[0].discount).toBe(10);
+    // O PDV nunca soube da campanha — quem fotografa o vínculo é o servidor.
+    expect(body.sales[0].coupon).not.toHaveProperty("campaignId");
+  });
+
+  it("deve subir venda antiga da fila, sem o campo de cupom, com `null`", async () => {
+    // `pendingSales` sobrevive à migração do schema local: há vendas enfileiradas
+    // antes desta feature existir, e `undefined` sumiria do JSON.
+    const legada = pendingSale("ref-1");
+    delete (legada as { coupon?: unknown }).coupon;
+
+    listSalesToSync.mockResolvedValue([legada]);
+    apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
+    expect(body.sales[0].coupon).toBeNull();
+  });
+
   it("não deve perder venda quando a conexão cai no meio da sincronização", async () => {
     const sale = pendingSale("ref-1");
     listSalesToSync.mockResolvedValue([sale]);

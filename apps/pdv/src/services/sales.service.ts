@@ -5,6 +5,7 @@ import {
   cancelSale,
   getPdvSessionSales,
   updatePdvSale,
+  type CouponDiscountTypeCode,
   type RegisterPdvSalePayload,
   type SaleDto,
   type SaleItemDto,
@@ -43,6 +44,36 @@ export type SalePaymentInput = {
   paymentMethodName?: string;
 };
 
+/**
+ * O cupom aplicado numa venda, no formato que os dois caminhos de gravação — a
+ * API e a fila offline — esperam.
+ *
+ * **`discountAmount` JÁ ESTÁ INCLUÍDO em `RegisterSalePayload.discount` — NÃO
+ * SOMAR.** O desconto da venda continua sendo o total; o cupom é uma parcela
+ * dele. Somar os dois faria o servidor recusar a venda por total divergente
+ * (online, com o cliente na frente) ou carimbá-la na sincronização (offline, com
+ * o cliente já fora da loja).
+ *
+ * **Sem `campaignId`.** O PDV nunca sabe de onde as perguntas vieram; quem
+ * fotografa o vínculo com a campanha é o servidor, na gravação.
+ */
+export type SaleCouponInput = {
+  couponId: number;
+  /**
+   * Código como o operador leu do panfleto. É conferência contra `couponId`: uma
+   * base local velha pode trazer um id que hoje pertence a outro código.
+   */
+  code: string;
+  /** Código do enum `CouponDiscountType`: 1 = percentual, 2 = valor fixo. */
+  discountType: CouponDiscountTypeCode;
+  discountValue: number;
+  /** Base do cálculo: subtotal dos itens MENOS o desconto global, nunca o cru. */
+  baseAmount: number;
+  /** Reais abatidos. Já incluídos em `discount`, e nunca maiores que `baseAmount`. */
+  discountAmount: number;
+  answers: { questionId: number; optionId: number }[];
+};
+
 export type RegisterSalePayload = {
   /**
    * Sessão de caixa da venda, ou `null` quando a loja não usa controle de caixa.
@@ -60,9 +91,21 @@ export type RegisterSalePayload = {
    * cliente cadastrado, nome e documento saem da ficha dele no backend.
    */
   customerDocument?: string | null;
-  /** Desconto aplicado sobre o total da venda. */
+  /**
+   * Desconto TOTAL aplicado sobre a venda. Quando há cupom, o abatimento dele
+   * **já está incluído aqui**.
+   */
   discount: number;
+  /**
+   * Cupom aplicado, ou ausente/`null` na venda sem cupom. Um por venda — não é
+   * cumulativo, e quem garante isso é um índice único no banco.
+   */
+  coupon?: SaleCouponInput | null;
   items: SaleItemInput[];
+  /**
+   * Formas de pagamento. **Vazia quando o total é zero** — cupom que cobre a
+   * venda inteira não recebe nada, e o servidor aceita a lista vazia nesse caso.
+   */
   payments: SalePaymentInput[];
   notes?: string | null;
   managerLogin?: string | null;
@@ -82,8 +125,14 @@ const PDV_SALE_PATH = "/Pdv/sales";
  * para exibir o total, e era essa duplicação que permitia a tela mostrar um
  * valor e o payload levar outro.
  *
+ * O cupom **não** entra como terceiro argumento de propósito: ele já está dentro
+ * de `discount`, que é o desconto TOTAL. Enquanto `global + cupom <= subtotal`,
+ * `subtotal − (global + cupom)` e `subtotal − global − cupom` são o mesmo número
+ * — é a aritmética que permite o cupom ser uma parcela do desconto em vez de um
+ * abatimento separado, e é o que mantém esta função com uma conta só.
+ *
  * @param items Itens do carrinho com o preço já líquido do desconto do item.
- * @param discount Desconto aplicado sobre o total da venda.
+ * @param discount Desconto TOTAL da venda, cupom incluído.
  */
 export function computeSaleTotal(items: SaleItemInput[], discount: number) {
   return computeSaleTotals({
@@ -189,6 +238,10 @@ function buildRequestBody(
     customerDocument: payload.customerDocument?.trim() || null,
     total,
     discount: payload.discount,
+    // `?? null` e não `undefined`: o backend declara `RegisterPdvSaleCouponRequest?
+    // Coupon` e a ausência é explícita. Vale também para a reedição, que reenvia
+    // a venda inteira.
+    coupon: payload.coupon ?? null,
     notes: payload.notes?.trim() || null,
     managerLogin: payload.managerLogin || null,
     managerPassword: payload.managerPassword || null,
@@ -244,6 +297,15 @@ export async function registerSale(
   // valor inflado. A recusa precisa acontecer aqui, antes de qualquer gravação.
   if (payload.discount < 0) {
     throw new Error("O desconto da venda não pode ser negativo.");
+  }
+
+  // O cupom é PARCELA do desconto, nunca uma adição. Se o abatimento passasse do
+  // desconto total, ou alguém somou duas vezes, ou o desconto foi montado sem o
+  // cupom — e as duas coisas terminam na mesma recusa por total divergente. Vale
+  // recusar aqui pelo mesmo motivo do desconto negativo: offline a divergência
+  // só apareceria na sincronização, com o cliente já fora da loja.
+  if (payload.coupon && payload.coupon.discountAmount > payload.discount) {
+    throw new Error("O desconto do cupom não pode ser maior que o desconto total da venda.");
   }
 
   const total = computeSaleTotal(payload.items, payload.discount);
@@ -318,6 +380,10 @@ async function enqueueSale(
     customerDocument: payload.customerDocument?.trim() || null,
     total,
     discount: payload.discount,
+    // A fila guarda o cupom como ele foi aplicado no balcão: é o número que saiu
+    // impresso no comprovante que o cliente levou, e é ele que prevalece na
+    // sincronização quando a definição do cupom tiver mudado desde então.
+    coupon: payload.coupon ?? null,
     notes,
     items: payload.items.map((item) => ({
       productId: item.productId,
