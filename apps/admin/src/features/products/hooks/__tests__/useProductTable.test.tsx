@@ -73,7 +73,7 @@ const fetchMock = vi.fn(async (url: string | URL) => {
     return new Response(
       JSON.stringify({
         items: [linhaDoServidor],
-        pagination: { page: 1, size: 20, filteredItems: 1 },
+        pagination: { page: 1, size: 10, filteredItems: 1 },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
@@ -157,7 +157,7 @@ describe("useProductTable Hook", () => {
     expect(caminhos).toHaveLength(1);
     expect(caminhos[0]).toContain("/Products/table");
     expect(caminhos[0]).toContain("page=1");
-    expect(caminhos[0]).toContain("size=20");
+    expect(caminhos[0]).toContain("size=10");
   });
 
   it("exibe o nome do grupo na linha sem perder o nome do produto", async () => {
