@@ -36,9 +36,24 @@ export default defineConfig({
         background_color: "#0b0b0f",
         theme_color: "#0b0b0f",
         start_url: ".",
+        /**
+         * O `sizes` precisa bater com o pixel real do arquivo.
+         *
+         * Declarar 512x512 apontando para o `logo-icon.png` (que tem 126x132)
+         * fazia o Chrome DESCARTAR o icone e avisar no console. Sem icone valido
+         * de 192px ou mais, o PDV nao passa no criterio de instalacao: o
+         * `display: "standalone"` logo acima vira letra morta, porque nao ha
+         * como instalar o caixa como aplicativo.
+         *
+         * O `maskable` e um arquivo separado de proposito. O sistema recorta o
+         * icone numa forma propria (circulo, squircle), entao ele precisa de
+         * fundo ate a borda e do logo dentro da zona segura — os 80% centrais.
+         * Reaproveitar o icone `any` faria a alca da sacola ser cortada.
+         */
         icons: [
-          { src: "images/logo-icon.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: "images/logo-icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "images/logo-icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "images/logo-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "images/logo-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
       workbox: {

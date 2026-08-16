@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:pdv"],
       "port": 5174
+    },
+    {
+      "name": "pdv-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "--workspace=@workspace/pdv"],
+      "port": 4173
     }
   ]
 }
