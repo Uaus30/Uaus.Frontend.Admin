@@ -1,9 +1,9 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createQueryClient } from "@workspace/api-client-react";
+import { createQueryClient, STALE_TIME, useGetMe } from "@workspace/api-client-react";
 import { Toaster } from "@workspace/ui";
 import { TooltipProvider } from "@workspace/ui";
-import { CloudOff } from "lucide-react";
+import { CloudOff, Loader2 } from "lucide-react";
 import { useConnectivity } from "@/hooks/use-connectivity";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import Login from "@/pages/login";
@@ -11,11 +11,45 @@ import Pdv from "@/pages/pdv";
 
 const queryClient = createQueryClient();
 
+/**
+ * Exige sessão para **montar** o PDV.
+ *
+ * O redirecionamento sozinho não bastava. Ele mora em `usePdvOperator`, dentro
+ * de um efeito — e efeito roda depois do render, quando os outros hooks da
+ * página já dispararam suas consultas. Abrir o PDV sem sessão mandava quatro
+ * requisições autenticadas para a API (`/CompanySettings`, `/PaymentMethods`,
+ * `/Pdv/sales/today`, `/Pdv/snapshot`), todas 401, e só então caía no login.
+ *
+ * `/me` não aparecia na lista porque `useGetMe` não vai à rede: ele lê a sessão
+ * guardada localmente. É justamente isso que torna este portão barato — a
+ * decisão é local, sem requisição nenhuma, e o spinner dura um render.
+ *
+ * O redirecionamento de `usePdvOperator` continua valendo: ele cobre a sessão
+ * que expira com o PDV já aberto, que este portão não vê.
+ */
+function PdvAutenticado() {
+  const { data: user, isLoading } = useGetMe({
+    query: { retry: false, staleTime: STALE_TIME.catalogo },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return <Redirect to="/login" />;
+
+  return <Pdv />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/" component={Pdv} />
+      <Route path="/" component={PdvAutenticado} />
       <Route component={() => <Redirect to="/" />} />
     </Switch>
   );
