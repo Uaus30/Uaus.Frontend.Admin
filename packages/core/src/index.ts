@@ -18,3 +18,4 @@ export * from "./format";
 export * from "./mask";
 export * from "./money";
 export * from "./text";
+export * from "./week-comparison";

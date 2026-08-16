@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@workspace/ui";
 import { cn } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
+import { accumulateWeekComparison, formatCurrency } from "@workspace/core";
 import type { PerformanceRangeDto, WeekdayComparisonDto } from "@workspace/api-client-react";
 import { compactCurrency, formatSignedPercent } from "../utils";
 import {
@@ -11,8 +11,9 @@ import {
   ChartEmptyState,
   ChartTooltip,
   GRID_PROPS,
-  MAX_BAR_SIZE,
   SERIES_COLORS,
+  SURFACE_COLOR,
+  SeriesLegend,
 } from "./chart-primitives";
 
 /** Rótulos na ordem da semana comercial — segunda primeiro. */
@@ -25,35 +26,44 @@ export type WeekComparisonCardProps = {
 };
 
 /**
- * Semana atual contra a anterior, dia a dia.
+ * Semana atual contra a anterior, pela curva acumulada dia a dia.
  *
  * A semana começa na SEGUNDA, decidida no servidor: é como o varejo conta, e
  * mantém o fim de semana junto no fim do intervalo em vez de partido entre duas
  * semanas.
  *
- * Barras e não linhas, ao contrário do card de meses: aqui são sete pontos
- * discretos e a pergunta é "qual dia foi fraco?", não "qual a tendência".
+ * O formato é o MESMO do card de meses, de propósito: duas linhas acumuladas
+ * partindo do mesmo zero, com a distância entre elas em qualquer dia mostrando
+ * exatamente quanto uma semana está na frente da outra. A conta vem de
+ * `accumulateWeekComparison` no `@workspace/core` — o PDV desenha a mesma curva
+ * a partir da mesma função, então painel e caixa nunca divergem no acumulado.
+ *
+ * A linha da semana atual para no dia de hoje: o dia futuro entra como `null` e
+ * o recharts corta a linha ali, em vez de despencar até zero no domingo.
  */
 export function WeekComparisonCard({ days, week, isLoading }: WeekComparisonCardProps) {
   const data = useMemo(
     () =>
-      days.map((day) => ({
-        label: WEEKDAY_LABELS[day.weekday] ?? "?",
-        // O dia que ainda não chegou entra como null, não como zero: o recharts
-        // omite o null e desenha a lacuna, enquanto o zero viraria uma queda.
-        atual: day.isFuture ? null : day.revenue,
-        anterior: day.previousRevenue,
-        isFuture: day.isFuture,
+      accumulateWeekComparison(days).map((point) => ({
+        label: WEEKDAY_LABELS[point.weekday] ?? "?",
+        current: point.current,
+        previous: point.previous,
       })),
     [days],
   );
 
-  const semVenda = data.every((d) => (d.atual ?? 0) === 0 && d.anterior === 0);
+  const semVenda = days.every((day) => (day.isFuture ? 0 : day.revenue) === 0 && day.previousRevenue === 0);
+
+  const legend = [
+    { name: "Semana atual", color: SERIES_COLORS[0] },
+    { name: "Semana anterior", color: SERIES_COLORS[1] },
+  ];
 
   return (
     <ChartCard
       title="Semana atual x semana anterior"
-      description="De segunda a domingo. Dias que ainda não chegaram ficam sem barra."
+      description="Faturamento acumulado de segunda a domingo. A linha da semana atual para em hoje."
+      action={<SeriesLegend items={legend} />}
     >
       {isLoading ? (
         <Skeleton className="h-[260px] w-full" />
@@ -100,29 +110,35 @@ export function WeekComparisonCard({ days, week, isLoading }: WeekComparisonCard
           )}
 
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+            <LineChart data={data} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
               <CartesianGrid {...GRID_PROPS} />
               <XAxis dataKey="label" {...AXIS_PROPS} />
-              <YAxis {...AXIS_PROPS} tickFormatter={compactCurrency} width={64} />
+              <YAxis {...AXIS_PROPS} tickFormatter={compactCurrency} width={56} />
               <Tooltip
-                cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
+                cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
                 content={<ChartTooltip valueFormatter={formatCurrency} />}
               />
-              <Bar
-                dataKey="anterior"
-                name="Semana anterior"
-                fill={SERIES_COLORS[1]}
-                maxBarSize={MAX_BAR_SIZE}
-                radius={[3, 3, 0, 0]}
-              />
-              <Bar
-                dataKey="atual"
+              <Line
+                type="monotone"
+                dataKey="current"
                 name="Semana atual"
-                fill={SERIES_COLORS[0]}
-                maxBarSize={MAX_BAR_SIZE}
-                radius={[3, 3, 0, 0]}
+                stroke={SERIES_COLORS[0]}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: SURFACE_COLOR }}
+                connectNulls={false}
               />
-            </BarChart>
+              <Line
+                type="monotone"
+                dataKey="previous"
+                name="Semana anterior"
+                stroke={SERIES_COLORS[1]}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: SURFACE_COLOR }}
+                connectNulls={false}
+              />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       )}

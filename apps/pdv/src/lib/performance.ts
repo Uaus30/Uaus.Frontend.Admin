@@ -1,4 +1,4 @@
-import { round2 } from "@workspace/core";
+import { round2, type WeekComparisonPoint } from "@workspace/core";
 import type { PerformanceDayDto, WeekdayComparisonDto } from "@workspace/api-client-react";
 
 /**
@@ -74,14 +74,14 @@ export function describePreviousDay(
 }
 
 /**
- * Maior faturamento entre as duas semanas, para escalar as barras do gráfico.
+ * Maior acumulado entre as duas semanas, para escalar as linhas do gráfico.
  *
  * Uma escala só para as duas séries: escalas independentes fariam uma semana
  * fraca parecer igual a uma forte, que é o oposto do que o gráfico existe para
  * mostrar. O piso de 1 evita divisão por zero na semana sem venda nenhuma.
  */
-export function weekdayChartScale(days: WeekdayComparisonDto[]): number {
-  const maior = days.reduce((max, day) => Math.max(max, day.revenue, day.previousRevenue), 0);
+export function weekComparisonScale(points: WeekComparisonPoint[]): number {
+  const maior = points.reduce((max, point) => Math.max(max, point.current ?? 0, point.previous), 0);
   return maior > 0 ? maior : 1;
 }
 

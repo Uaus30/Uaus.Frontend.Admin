@@ -3,8 +3,8 @@ import type { WeekdayComparisonDto } from "@workspace/api-client-react";
 import {
   changePercentage,
   describePreviousDay,
+  weekComparisonScale,
   weekRevenueSoFar,
-  weekdayChartScale,
   weekdayLabel,
 } from "./performance";
 
@@ -95,21 +95,28 @@ describe("describePreviousDay", () => {
   });
 });
 
-describe("weekdayChartScale", () => {
-  it("usa o maior valor entre as DUAS semanas", () => {
+describe("weekComparisonScale", () => {
+  it("usa o maior acumulado entre as DUAS semanas", () => {
     // Escala única: escalas independentes fariam uma semana fraca parecer igual
     // a uma forte, que é o oposto do que o gráfico existe para mostrar.
-    const dias = [dia({ revenue: 100, previousRevenue: 250 }), dia({ revenue: 180 })];
+    const pontos = [
+      { weekday: 0, current: 100, previous: 250 },
+      { weekday: 1, current: 300, previous: 260 },
+    ];
 
-    expect(weekdayChartScale(dias)).toBe(250);
+    expect(weekComparisonScale(pontos)).toBe(300);
+  });
+
+  it("ignora o dia que ainda não chegou na série atual", () => {
+    expect(weekComparisonScale([{ weekday: 0, current: null, previous: 40 }])).toBe(40);
   });
 
   it("devolve 1 na semana sem venda nenhuma, para não dividir por zero", () => {
-    expect(weekdayChartScale([dia(), dia()])).toBe(1);
+    expect(weekComparisonScale([{ weekday: 0, current: 0, previous: 0 }])).toBe(1);
   });
 
   it("devolve 1 com a lista vazia", () => {
-    expect(weekdayChartScale([])).toBe(1);
+    expect(weekComparisonScale([])).toBe(1);
   });
 });
 

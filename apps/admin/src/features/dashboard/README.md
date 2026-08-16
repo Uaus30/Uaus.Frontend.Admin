@@ -12,6 +12,7 @@ não tem nenhum dado simulado: todos os números vêm de vendas reais.
 - `hooks/useDashboard.ts`: período exibido e visão geral do intervalo (KPIs, série diária, quebras, ranking). O período vive aqui, e não em cada painel, para que os cards e os gráficos nunca mostrem recortes diferentes lado a lado.
 - `hooks/useLiveToday.ts`: faturamento do dia corrente, com atualização automática a cada minuto.
 - `hooks/useMonthlyComparison.ts`: mês atual contra o anterior e histórico dos meses fechados.
+- `hooks/useWeekComparison.ts`: semana atual contra a anterior — o mesmo `/Dashboard/performance` que o PDV consome via `/Pdv/performance`.
 - `hooks/useSalesPatterns.ts`: padrões históricos, **carregados sob demanda**.
 - `hooks/useSalesIntelligence.ts`: reposição e análise de cesta, **carregadas sob demanda**.
 
@@ -22,6 +23,7 @@ não tem nenhum dado simulado: todos os números vêm de vendas reais.
 - `components/LiveTodayCard.tsx`: número em destaque do dia, comparativos e faturamento por hora.
 - `components/RevenueProfitChart.tsx`: faturamento e lucro dia a dia no período.
 - `components/MonthComparisonCard.tsx`: curva acumulada do mês atual contra o anterior.
+- `components/WeekComparisonCard.tsx`: curva acumulada da semana atual contra a anterior, no mesmo formato do card mensal. A soma vem de `accumulateWeekComparison` (`@workspace/core`), compartilhada com o gráfico do PDV.
 - `components/RevenueBreakdownCard.tsx`: quebra do faturamento por categoria e por forma de pagamento.
 - `components/TopProductsTable.tsx`: ranking de produtos com margem e estoque.
 - `components/PatternsPanel.tsx` + `components/PatternChart.tsx`: padrões por dia da semana, hora do dia e dia do mês.

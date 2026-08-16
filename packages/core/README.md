@@ -14,14 +14,15 @@ bater com o total enviado à API nem com o subtotal impresso no cupom.
 
 ## O que entra
 
-| Arquivo        | Responsabilidade                                                                                     |
-| -------------- | ---------------------------------------------------------------------------------------------------- |
-| `money.ts`     | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
-| `discount.ts`  | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem`                                       |
-| `format.ts`    | `formatDate`, `formatShortDate`, `toDateKey`                                                         |
-| `text.ts`      | `normalizeSearchText`                                                                                |
-| `mask.ts`      | `cleanPhone`, `formatPhone`                                                                          |
-| `api-error.ts` | `describeApiError`                                                                                   |
+| Arquivo              | Responsabilidade                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `money.ts`           | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
+| `discount.ts`        | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem`                                       |
+| `format.ts`          | `formatDate`, `formatShortDate`, `toDateKey`                                                         |
+| `text.ts`            | `normalizeSearchText`                                                                                |
+| `mask.ts`            | `cleanPhone`, `formatPhone`                                                                          |
+| `api-error.ts`       | `describeApiError`                                                                                   |
+| `week-comparison.ts` | `accumulateWeekComparison` — curva acumulada da semana atual x anterior                              |
 
 ## O que NÃO entra
 
@@ -71,7 +72,14 @@ bater com o total enviado à API nem com o subtotal impresso no cupom.
    banco confere, e o backend reimplementa o mesmo algoritmo em C# (lá o empate é
    pelo menor `ProductId`, a ordem estável equivalente).
 
-6. **`describeApiError` lê o erro por duck typing**, não por `instanceof
+6. **A curva do comparativo semanal é acumulada, e o dia futuro é `null`.**
+   O Admin (recharts) e o PDV (SVG) desenham o mesmo gráfico "semana atual x
+   anterior", e a soma fica aqui para os dois mostrarem a MESMA curva. O
+   acumulado é o que dá a leitura honesta — a distância entre as linhas em
+   qualquer dia é a diferença entre as semanas até ali — e o `null` no dia que
+   não chegou corta a linha em hoje em vez de desenhar uma queda a zero.
+
+7. **`describeApiError` lê o erro por duck typing**, não por `instanceof
 ApiError` — é o que mantém o helper independente do cliente HTTP e testável
    sem mock de rede. Ele existe para desempacotar o `ValidationProblemDetails`
    do ASP.NET, que sem tratamento chega ao usuário como "One or more validation
