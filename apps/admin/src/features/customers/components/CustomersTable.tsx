@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { formatCurrency, formatShortDate } from "@workspace/core";
 import type { CustomerSummaryDto, UiPagedResult } from "@workspace/api-client-react";
+import { ConfirmDialog } from "@workspace/ui";
 import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
 
 import type { CustomerStats } from "../types";
@@ -31,8 +33,13 @@ interface CustomersTableProps {
   statsByCustomerId: Map<number, CustomerStats>;
   /** Callback executado ao clicar no botão de editar cliente. */
   onEdit: (customer: CustomerSummaryDto) => void;
-  /** Callback executado ao clicar no botão de remover cliente. */
-  onDelete: (id: number) => void;
+  /**
+   * Remove o cliente. Deve devolver a Promise da mutação — o `ConfirmDialog` só
+   * fecha quando ela resolve, e continua aberto se o servidor recusar.
+   */
+  onDelete: (id: number) => void | Promise<unknown>;
+  /** Uma exclusão está em andamento — trava o segundo clique. */
+  isDeleting?: boolean;
 }
 
 /** Cliente sem nenhuma compra: zerado, e sem data de última compra. */
@@ -55,131 +62,163 @@ export function CustomersTable({
   statsByCustomerId,
   onEdit,
   onDelete,
+  isDeleting,
 }: CustomersTableProps) {
+  /**
+   * Cliente aguardando confirmação de exclusão, ou `null`.
+   *
+   * O estado mora AQUI, e não na página: "qual linha está esperando" é estado da
+   * lista. É nesta tabela que o operador clicou, e é dela que sai o nome que o
+   * diálogo mostra — em tabela paginada, o clique no ícone da linha errada é o
+   * engano mais comum, e a pergunta genérica do `window.confirm` que existia
+   * antes não dizia qual cliente ia sumir.
+   */
+  const [paraRemover, setParaRemover] = useState<CustomerSummaryDto | null>(null);
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
-      <div className="flex flex-col gap-4 border-b border-border/50 p-4 sm:flex-row">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome..."
-            value={searchVal}
-            onChange={(event) => onSearchChange(event.target.value)}
-            className="bg-background pl-9"
-          />
+    <>
+      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
+        <div className="flex flex-col gap-4 border-b border-border/50 p-4 sm:flex-row">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome..."
+              value={searchVal}
+              onChange={(event) => onSearchChange(event.target.value)}
+              className="bg-background pl-9"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-6 py-4">Cliente</th>
-              <th className="px-6 py-4">Contato</th>
-              <th className="px-6 py-4">Documento</th>
-              <th className="px-6 py-4">Total Gasto</th>
-              <th className="px-6 py-4">Última compra</th>
-              <th className="px-6 py-4">Desde</th>
-              <th className="px-6 py-4 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
               <tr>
-                <td colSpan={7} className="py-12 text-center">
-                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                </td>
+                <th className="px-6 py-4">Cliente</th>
+                <th className="px-6 py-4">Contato</th>
+                <th className="px-6 py-4">Documento</th>
+                <th className="px-6 py-4">Total Gasto</th>
+                <th className="px-6 py-4">Última compra</th>
+                <th className="px-6 py-4">Desde</th>
+                <th className="px-6 py-4 text-right">Ações</th>
               </tr>
-            ) : (
-              customersPage?.data.map((customer) => {
-                const stats = statsByCustomerId.get(customer.id) ?? SEM_COMPRAS;
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                  </td>
+                </tr>
+              ) : (
+                customersPage?.data.map((customer) => {
+                  const stats = statsByCustomerId.get(customer.id) ?? SEM_COMPRAS;
 
-                return (
-                  <tr
-                    key={customer.id}
-                    className="border-b border-border/50 transition-colors hover:bg-muted/20"
-                  >
-                    <td className="px-6 py-4 font-medium text-foreground">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold uppercase text-primary">
-                          {customer.name.substring(0, 2)}
+                  return (
+                    <tr
+                      key={customer.id}
+                      className="border-b border-border/50 transition-colors hover:bg-muted/20"
+                    >
+                      <td className="px-6 py-4 font-medium text-foreground">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold uppercase text-primary">
+                            {customer.name.substring(0, 2)}
+                          </div>
+                          {customer.name}
                         </div>
-                        {customer.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      <div className="flex flex-col">
-                        <span>{customer.email || "-"}</span>
-                        <span className="text-xs">{customer.phone || ""}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">{customer.document || "-"}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-primary">
-                          {formatCurrency(stats.totalPurchases)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{stats.purchaseCount} compra(s)</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      {/* Traço em vez de data zerada: "nunca comprou" e "comprou
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        <div className="flex flex-col">
+                          <span>{customer.email || "-"}</span>
+                          <span className="text-xs">{customer.phone || ""}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">{customer.document || "-"}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-primary">
+                            {formatCurrency(stats.totalPurchases)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {stats.purchaseCount} compra(s)
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        {/* Traço em vez de data zerada: "nunca comprou" e "comprou
                           em 01/01/0001" não podem parecer a mesma coisa. */}
-                      {stats.lastPurchaseAt ? formatShortDate(stats.lastPurchaseAt) : "—"}
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">{formatShortDate(customer.createdAt)}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
-                          onClick={() => onEdit(customer)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                          onClick={() => onDelete(customer.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                        {stats.lastPurchaseAt ? formatShortDate(stats.lastPurchaseAt) : "—"}
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        {formatShortDate(customer.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
+                            onClick={() => onEdit(customer)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
+                            onClick={() => setParaRemover(customer)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      <div className="flex items-center justify-between border-t border-border/50 p-4 text-sm text-muted-foreground">
-        <span>
-          Mostrando página {customersPage?.page} de{" "}
-          {Math.ceil((customersPage?.total || 0) / (customersPage?.limit || 15)) || 1}
-        </span>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => onPageChange((current) => current - 1)}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={customersPage ? customersPage.data.length < customersPage.limit : true}
-            onClick={() => onPageChange((current) => current + 1)}
-          >
-            Próxima
-          </Button>
+        <div className="flex items-center justify-between border-t border-border/50 p-4 text-sm text-muted-foreground">
+          <span>
+            Mostrando página {customersPage?.page} de{" "}
+            {Math.ceil((customersPage?.total || 0) / (customersPage?.limit || 15)) || 1}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => onPageChange((current) => current - 1)}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={customersPage ? customersPage.data.length < customersPage.limit : true}
+              onClick={() => onPageChange((current) => current + 1)}
+            >
+              Próxima
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={paraRemover !== null}
+        onOpenChange={(aberto) => !aberto && setParaRemover(null)}
+        title="Remover este cliente?"
+        itemName={paraRemover?.name}
+        description="O cadastro sai da lista e deixa de aparecer na busca do balcão. As vendas já registradas para ele continuam no histórico, com o nome gravado na própria venda."
+        confirmLabel="Remover"
+        destructive
+        loading={isDeleting}
+        onConfirm={async () => {
+          await onDelete(paraRemover!.id);
+        }}
+      />
+    </>
   );
 }

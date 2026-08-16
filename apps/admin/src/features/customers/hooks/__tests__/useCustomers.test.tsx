@@ -91,7 +91,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useCreateCustomer: vi.fn(() => ({ mutate: mockCreateCustomer, isPending: false })),
   useUpdateCustomer: vi.fn(() => ({ mutate: mockUpdateCustomer, isPending: false })),
-  useDeleteCustomer: vi.fn(() => ({ mutate: mockDeleteCustomer, isPending: false })),
+  useDeleteCustomer: vi.fn(() => ({ mutateAsync: mockDeleteCustomer, isPending: false })),
 }));
 
 const createWrapper = () => {
@@ -204,15 +204,35 @@ describe("useCustomers Hook", () => {
     expect(mockCreateCustomer).toHaveBeenCalledWith({ data: payload });
   });
 
-  it("deve chamar a mutação de exclusão de cliente se confirmado", () => {
+  it("exclui sem passar por window.confirm e devolve a Promise da mutação", async () => {
+    // A confirmação saiu do hook e virou o `ConfirmDialog`, renderizado pela
+    // tabela — é ela que sabe QUAL linha o operador clicou, e é o nome dessa
+    // linha que o diálogo mostra. O `window.confirm` que morava aqui travava a
+    // thread, ignorava o tema e perguntava "Remover este cliente?" sem dizer
+    // qual: em tabela paginada, errar o ícone da linha é o engano mais comum.
+    //
+    // A Promise importa: o diálogo só fecha quando ela resolve, e permanece
+    // aberto se o servidor recusar. Devolver `void` faria o diálogo sumir e o
+    // operador teria que reencontrar a linha para descobrir que nada mudou.
+    mockDeleteCustomer.mockResolvedValueOnce(undefined);
+    const confirmSpy = vi.spyOn(window, "confirm");
+
     const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
 
-    vi.spyOn(window, "confirm").mockImplementation(() => true);
-
-    act(() => {
-      result.current.handleDeleteCustomer(1);
+    await act(async () => {
+      await result.current.handleDeleteCustomer(1);
     });
 
     expect(mockDeleteCustomer).toHaveBeenCalledWith({ id: 1 });
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it("propaga a recusa do servidor em vez de engolir", async () => {
+    // É o que mantém o diálogo aberto quando a exclusão falha.
+    mockDeleteCustomer.mockRejectedValueOnce(new Error("Cliente tem venda vinculada"));
+
+    const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
+
+    await expect(result.current.handleDeleteCustomer(1)).rejects.toThrow("Cliente tem venda vinculada");
   });
 });

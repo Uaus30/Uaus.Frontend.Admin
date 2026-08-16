@@ -118,7 +118,7 @@ export function useCustomers() {
   });
 
   // Mutação para remover cliente
-  const { mutate: deleteCustomer } = useDeleteCustomer({
+  const { mutateAsync: deleteCustomerAsync, isPending: isDeleting } = useDeleteCustomer({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCustomersQueryKey() });
@@ -158,14 +158,23 @@ export function useCustomers() {
   }
 
   /**
-   * Executa a remoção física/lógica de um cliente.
+   * Executa a remoção de um cliente.
+   *
+   * Devolve a Promise da mutação porque quem chama é o `ConfirmDialog`: ele só
+   * fecha quando ela resolve, e permanece aberto se o servidor recusar — sem
+   * isso o operador veria o diálogo sumir e teria que reencontrar a linha na
+   * tabela paginada para descobrir que nada mudou. A trava de clique duplo
+   * também é do diálogo.
+   *
+   * A confirmação NÃO mora mais aqui. O `window.confirm` que ficava neste ponto
+   * travava a thread, ignorava o tema e não dava para testar; pior, a pergunta
+   * "Remover este cliente?" não dizia QUAL cliente, e em tabela paginada o
+   * clique no ícone da linha errada é o engano mais comum.
    *
    * @param id Identificador do cliente a ser removido.
    */
   function handleDeleteCustomer(id: number) {
-    if (confirm("Remover este cliente?")) {
-      deleteCustomer({ id });
-    }
+    return deleteCustomerAsync({ id });
   }
 
   /**
@@ -196,6 +205,8 @@ export function useCustomers() {
     isSaving: isCreating || isUpdating,
     handleOpenModal,
     handleDeleteCustomer,
+    /** Exclusão em andamento — o diálogo trava o segundo clique. */
+    isDeleting,
     handleSaveCustomer,
   };
 }

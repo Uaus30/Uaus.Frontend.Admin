@@ -25,6 +25,7 @@ export default function Customers() {
     isSaving,
     handleOpenModal,
     handleDeleteCustomer,
+    isDeleting,
     handleSaveCustomer,
   } = useCustomers();
 
@@ -45,6 +46,7 @@ export default function Customers() {
         </div>
 
         <CustomersTable
+          isDeleting={isDeleting}
           customersPage={customersPage}
           isLoading={isLoading}
           searchVal={searchVal}
