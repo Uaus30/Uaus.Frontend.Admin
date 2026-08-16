@@ -105,6 +105,51 @@ export const SUPPLIER_STATUS = {
   Inactive: 2,
 } as const;
 
+/**
+ * Como o cupom calcula o abatimento (enum `CouponDiscountType` do backend).
+ *
+ * `None` é o zero do `smallint` e existe para que a omissão não vire um tipo
+ * válido: cupom gravado sem tipo é cadastro errado, não "percentual de 0%". O
+ * backend recusa `None` tanto no cadastro quanto no payload da venda.
+ *
+ * A base do cálculo é sempre o subtotal dos itens MENOS o desconto global — o
+ * encadeamento é item → global → cupom, com arredondamento a cada etapa. Quem
+ * calcula é `computeDiscount` do `@workspace/core`; o servidor audita.
+ */
+export const COUPON_DISCOUNT_TYPE = {
+  None: 0,
+  /** Percentual sobre a base, de 1 a 100. */
+  Percentage: 1,
+  /** Valor fixo em reais, limitado à base (pode zerar a venda, nunca torná-la negativa). */
+  Amount: 2,
+} as const;
+
+/**
+ * Código do tipo de desconto no que é ENVIADO ao servidor.
+ *
+ * Nas respostas o campo é `EnumValue` (o backend serializa enum pelo nome, com
+ * `JsonStringEnumConverter`) e se lê com `enumCode`. Nos payloads o tipo é este,
+ * fechado nos três códigos: um `number` solto deixaria passar `discountType: 7`,
+ * que só apareceria como 400 no salvamento.
+ */
+export type CouponDiscountTypeCode = (typeof COUPON_DISCOUNT_TYPE)[keyof typeof COUPON_DISCOUNT_TYPE];
+
+/** Rótulos dos tipos de desconto, para tabela, select e comprovante. */
+export const COUPON_DISCOUNT_TYPE_LABEL: Record<number, string> = {
+  [COUPON_DISCOUNT_TYPE.Percentage]: "Percentual",
+  [COUPON_DISCOUNT_TYPE.Amount]: "Valor fixo",
+};
+
+/**
+ * Tipos que o administrador pode escolher no formulário.
+ *
+ * `None` fica de fora: ele existe só para o zero do banco não virar tipo válido.
+ */
+export const SELECTABLE_COUPON_DISCOUNT_TYPES = [
+  COUPON_DISCOUNT_TYPE.Percentage,
+  COUPON_DISCOUNT_TYPE.Amount,
+] as const;
+
 /** Converte o valor de um enum vindo da API (número ou nome) para o código numérico. */
 export function enumCode(value: EnumValue, names: Record<string, number>): number {
   if (typeof value === "number") return value;
@@ -369,7 +414,42 @@ export interface SaleDto {
   /** Sessão de caixa da venda. Nulo nas vendas migradas e fora do PDV. */
   cashRegisterSessionId?: number | null;
   total: number;
+  /** Desconto TOTAL da venda. Quando há cupom, ele JÁ ESTÁ incluído aqui. */
   discount: number;
+  /**
+   * Parcela de `discount` atribuída ao cupom.
+   *
+   * **JÁ ESTÁ INCLUÍDA em `discount` — NÃO SOMAR.** Existe para discriminar a
+   * origem do abatimento (e para excluir o cupom do limite de desconto do
+   * vendedor). Somar os dois inflaria o desconto e reduziria o lucro em todo
+   * relatório que consolida venda. Zero nas vendas sem cupom.
+   *
+   * A API sempre manda o campo (é `decimal`, não anulável); ele é opcional aqui
+   * por causa das vendas gravadas no histórico local do PDV antes desta feature,
+   * que sobem sem ele — leia com `?? 0`.
+   */
+  couponDiscount?: number;
+  /**
+   * Código do cupom como saiu impresso no comprovante daquela venda.
+   *
+   * Os cinco campos de cupom vêm do SNAPSHOT do resgate, não da definição atual
+   * do cadastro: sem eles a reimpressão leria o cupom de hoje e a segunda via
+   * sairia diferente da primeira depois de qualquer edição — pior que não
+   * reimprimir. Ausente nas vendas sem cupom (o backend omite nulo).
+   */
+  couponCode?: string | null;
+  /** Descrição do cupom impressa ao lado do código. Do snapshot do resgate. */
+  couponDescription?: string | null;
+  /**
+   * Tipo do desconto do cupom no momento da venda (enum `CouponDiscountType`).
+   * Pode vir como número ou nome; use `enumCode` com `COUPON_DISCOUNT_TYPE`.
+   */
+  couponDiscountType?: EnumValue;
+  /**
+   * Percentual ou reais do cupom no momento da venda, para o comprovante
+   * escrever "(10%)" ou "(R$ 20,00)". Do snapshot do resgate.
+   */
+  couponDiscountValue?: number | null;
   /**
    * Administrador que autorizou um desconto acima do limite do vendedor
    * (auditoria do desconto gerencial). Nulo quando não houve autorização.
@@ -742,6 +822,427 @@ export interface StorePerformanceDto {
   week: PerformanceRangeDto;
   month: PerformanceRangeDto;
   weekdayComparison: WeekdayComparisonDto[];
+}
+
+// ---------------------------------------------------------------------------
+// Cupons de desconto e campanhas
+//
+// Contrato em PLANO-CUPONS-CAMPANHAS.md (raiz do repositório) e nos DTOs do
+// backend (Uaus.Application/DTOs/Coupons|Campaigns|Pdv).
+//
+// INSTANTE, NÃO DATA. `validFrom`, `validUntil`, `startsAt`, `endsAt`,
+// `windowStart`, `windowEnd` e `day` viajam como DateTime serializado sem fuso
+// ("2026-09-30T23:59:59"). Nunca reduza um deles a "2026-09-30" para depois
+// fazer `new Date("2026-09-30")`: a string só-data é interpretada como UTC e,
+// no Brasil, volta um dia — o cupom apareceria vencendo na véspera do que o
+// administrador salvou (armadilha 2 do CLAUDE.md). Para montar um instante a
+// partir de um `Date` do calendário, formate os componentes locais à mão
+// (`toDateKey` do `@workspace/core` + a hora escolhida), nunca `toISOString()`.
+// ---------------------------------------------------------------------------
+
+/** Cupom de desconto como o painel administrativo o exibe. */
+export interface CouponDto {
+  id: number;
+  createdAt: string;
+  updatedAt?: string | null;
+  /** Código do panfleto, sempre em maiúsculas (`^[A-Z0-9-]{3,30}$`). */
+  code: string;
+  /** Texto curto que sai impresso no comprovante ao lado do código. */
+  description?: string | null;
+  /** Enum CouponDiscountType — pode vir como número ou nome; use `enumCode`. */
+  discountType: EnumValue;
+  /** Percentual (1 a 100) ou reais, conforme `discountType`. */
+  discountValue: number;
+  /** Início da vigência, inclusivo. Instante — leia a nota do topo da seção. */
+  validFrom: string;
+  /** Fim da vigência, inclusivo. Ausente = sem prazo. */
+  validUntil?: string | null;
+  /**
+   * Teto de resgates como está gravado. **Zero significa ILIMITADO**, nunca
+   * "zero usos" — negativos já chegam normalizados para 0. Para exibir, prefira
+   * `remainingUses`, que não obriga a tela a conhecer esta convenção.
+   */
+  usageLimit: number;
+  /** Resgates consumidos. É cache; a verdade é o livro-razão (ver `reconcileCoupon`). */
+  redeemedCount: number;
+  /**
+   * Usos restantes. **Ausente/nulo = ILIMITADO**, e é por isso que o campo é
+   * anulável em vez de trazer 0: cupom sem teto e cupom esgotado são situações
+   * opostas no balcão, e representar as duas com o mesmo 0 faria a tela avisar
+   * "esgotado" justamente no cupom que nunca esgota. Compare com `== null`.
+   */
+  remainingUses?: number | null;
+  isActive: boolean;
+  /** Campanha que fornece o questionário. Ausente = cupom sem perguntas. */
+  campaignId?: number | null;
+  /** Nome da campanha já resolvido, para a coluna da listagem não fazer uma chamada por linha. */
+  campaignName?: string | null;
+}
+
+/**
+ * Conferência entre o contador de uso do cupom e o livro-razão de resgates.
+ *
+ * `redeemedCount` é cache mantido por um UPDATE condicional dentro da transação
+ * da venda; as linhas de resgate são o fato. Em operação normal batem — e sem
+ * este retrato qualquer divergência só é vista e só é corrigida com SQL manual
+ * em produção.
+ */
+export interface CouponReconciliationDto {
+  couponId: number;
+  code: string;
+  /** O contador gravado no cupom. */
+  redeemedCount: number;
+  /** Resgates NÃO estornados no livro-razão. */
+  activeRedemptions: number;
+  /**
+   * `redeemedCount − activeRedemptions`. Zero é o esperado. Positivo = o cupom
+   * está valendo menos do que deveria; negativo = está valendo mais do que a
+   * campanha pagou.
+   */
+  difference: number;
+  /** Atalho de leitura: `difference` é zero. */
+  isBalanced: boolean;
+}
+
+/** Alternativa de resposta de uma pergunta da campanha (conjunto fechado, nunca texto livre). */
+export interface CampaignQuestionOptionDto {
+  id: number;
+  /** Texto do botão no balcão; é copiado para o snapshot do resgate. */
+  label: string;
+  /** Ordem de exibição dentro da pergunta. */
+  sortOrder: number;
+}
+
+/** Uma pergunta do questionário da campanha, como o editor do admin a recebe. */
+export interface CampaignQuestionDto {
+  id: number;
+  /** Texto exibido no balcão; vira `question_label_snapshot` no resgate. */
+  label: string;
+  sortOrder: number;
+  /** Resposta obrigatória para aplicar o cupom. */
+  isRequired: boolean;
+  /** Alternativas ativas, ordenadas. Sempre pelo menos duas e no máximo oito. */
+  options: CampaignQuestionOptionDto[];
+}
+
+/** Campanha de marketing como o painel administrativo a exibe. */
+export interface CampaignDto {
+  id: number;
+  createdAt: string;
+  updatedAt?: string | null;
+  name: string;
+  description?: string | null;
+  /** Início do período, inclusivo. Instante — leia a nota do topo da seção. */
+  startsAt: string;
+  /** Fim do período, inclusivo. Ausente = em aberto. */
+  endsAt?: string | null;
+  /**
+   * Campanha inativa deixa de apresentar o questionário no balcão, mas NÃO
+   * invalida os cupons ligados a ela: quem decide dinheiro é a vigência do cupom.
+   */
+  isActive: boolean;
+  /**
+   * Questionário ordenado, sem as perguntas excluídas logicamente.
+   *
+   * Só vem preenchido na consulta por ID; a LISTAGEM devolve sempre `[]` porque
+   * a tabela do admin não lê pergunta nenhuma e carregá-las custaria duas
+   * consultas extras por página.
+   */
+  questions: CampaignQuestionDto[];
+}
+
+/** Uma alternativa de resposta na consulta do balcão. */
+export interface CouponLookupQuestionOptionDto {
+  optionId: number;
+  label: string;
+}
+
+/** Uma pergunta já resolvida para o balcão — o PDV não sabe que veio de uma campanha. */
+export interface CouponLookupQuestionDto {
+  questionId: number;
+  label: string;
+  isRequired: boolean;
+  /** Sempre de duas a oito alternativas; no balcão viram botões grandes, sem teclado. */
+  options: CouponLookupQuestionOptionDto[];
+}
+
+/**
+ * Resposta do `GET /Pdv/coupons/{code}`: o que o balcão precisa para aplicar o
+ * cupom e, quando houver, o questionário a apresentar.
+ *
+ * **ESTA CONSULTA NÃO RESERVA NADA.** Nenhum uso é debitado, nenhuma linha é
+ * travada. `remainingUses` é leitura do instante, boa para mostrar na tela e
+ * nada mais — o gate real é o UPDATE condicional na gravação da venda. Tratar
+ * esta resposta como reserva faria dois caixas acharem que têm o último uso, e
+ * os dois teriam, porque nada foi reservado.
+ *
+ * **Não devolve valor em reais** de propósito: o abatimento sai de
+ * `computeDiscount` do `@workspace/core` sobre o carrinho, que muda a cada item
+ * bipado. Congelar o valor aqui deixaria o desconto estagnado quando o operador
+ * acrescentasse um produto depois de aplicar o cupom.
+ *
+ * **Não diz de onde as perguntas vieram** — não existe `campaignId` aqui, nem no
+ * payload da venda, nem na fila offline. O servidor fotografa a campanha na
+ * gravação, e é isso que mantém offline, fila, idempotência e comprovante
+ * estáveis a qualquer evolução do modelo de campanha.
+ */
+export interface CouponLookupDto {
+  couponId: number;
+  /** Código normalizado, como está gravado — sempre em maiúsculas. */
+  code: string;
+  description?: string | null;
+  /** Enum CouponDiscountType — pode vir como número ou nome; use `enumCode`. */
+  discountType: EnumValue;
+  /** Percentual (1 a 100) ou reais, conforme `discountType`. */
+  discountValue: number;
+  /** Fim da vigência, inclusivo. Ausente = sem prazo. Instante, nunca data pura. */
+  validUntil?: string | null;
+  /** Usos restantes agora. **Ausente/nulo = ILIMITADO.** Não é reserva nem promessa. */
+  remainingUses?: number | null;
+  /**
+   * Há pergunta OBRIGATÓRIA a responder antes de aplicar o cupom. Falso quando
+   * não há campanha, quando ela está inativa, quando o instante corrente está
+   * fora do período dela, ou quando todas as perguntas são opcionais.
+   */
+  requiresAnswers: boolean;
+  /**
+   * Questionário a apresentar, na ordem do editor. Vazio quando o cupom não tem
+   * campanha, quando a campanha está inativa ou quando o instante corrente está
+   * fora do período dela — e nesse caso o desconto continua valendo: vigência da
+   * CAMPANHA decide apenas se as perguntas aparecem; quem decide dinheiro é a
+   * vigência do CUPOM.
+   */
+  questions: CouponLookupQuestionDto[];
+}
+
+/**
+ * Métricas de um conjunto de vendas no intervalo da campanha.
+ *
+ * É a forma do DENOMINADOR do relatório: as vendas da loja inteira no mesmo
+ * intervalo. Sem esse grupo de controle, "a campanha funcionou" é afirmação sem
+ * comparação — R$ 18 mil podem ser 15% de um mês bom ou 90% de um mês morto.
+ */
+export interface CampaignReportTotalsDto {
+  /** Vendas não canceladas do recorte. */
+  salesCount: number;
+  revenue: number;
+  /** Lucro dos itens menos o desconto das vendas — mesma fórmula do Dashboard. */
+  profit: number;
+  averageTicket: number;
+  /** Margem sobre o faturamento, em pontos percentuais. */
+  marginPercentage: number;
+}
+
+/** Métricas das vendas que usaram um cupom da campanha (resgate não estornado). */
+export interface CampaignReportCampaignTotalsDto extends CampaignReportTotalsDto {
+  /**
+   * Reais abatidos pelos cupons — o custo da ação. É PARCELA do desconto de
+   * cabeçalho, nunca uma adição: não some com `discount` da venda.
+   */
+  couponDiscount: number;
+}
+
+/** Quanto da loja a campanha moveu no intervalo dela, em pontos percentuais. */
+export interface CampaignReportShareDto {
+  salesPercentage: number;
+  revenuePercentage: number;
+  profitPercentage: number;
+}
+
+/**
+ * Um dia da série comparativa. Dias sem movimento vêm com zero em vez de
+ * faltarem, senão o gráfico emenda o dia 3 no dia 7 e uma semana parada vira
+ * uma reta ascendente.
+ */
+export interface CampaignReportDailyPointDto {
+  /** Dia-calendário à meia-noite, como instante ("2026-09-01T00:00:00"). */
+  day: string;
+  redemptions: number;
+  campaignRevenue: number;
+  /** Faturamento de TODAS as vendas da loja no dia — o denominador. */
+  periodRevenue: number;
+}
+
+/**
+ * Desempenho de um cupom dentro da campanha. O código exibido é o SNAPSHOT do
+ * resgate — o que estava impresso no panfleto —, e continua legível mesmo se o
+ * cupom tiver sido excluído do cadastro depois.
+ */
+export interface CampaignReportCouponDto {
+  couponId: number;
+  code: string;
+  redemptions: number;
+  revenue: number;
+  couponDiscount: number;
+}
+
+/** Uma alternativa na distribuição de respostas. A agregação é por id; o rótulo é o do snapshot. */
+export interface CampaignReportQuestionOptionDto {
+  optionId: number;
+  label: string;
+  count: number;
+  /** Participação sobre quem respondeu ESTA pergunta. */
+  percentage: number;
+  revenue: number;
+  averageTicket: number;
+}
+
+/** Distribuição das respostas de uma pergunta. Só aparecem as alternativas escolhidas. */
+export interface CampaignReportQuestionDto {
+  questionId: number;
+  /** Texto da pergunta como o operador leu no balcão (snapshot). */
+  label: string;
+  /** Resgates que responderam esta pergunta — menor que o total quando ela é opcional. */
+  answered: number;
+  options: CampaignReportQuestionOptionDto[];
+}
+
+/**
+ * Relatório de uma campanha: o que ela moveu contra o que a loja fez no MESMO
+ * intervalo.
+ *
+ * O recorte é sempre o intervalo da campanha (até agora quando o fim está em
+ * aberto). Cupom vinculado a campanha encerrada continua valendo e o resgate
+ * segue atribuído a ela, mas fica FORA deste relatório: não há denominador para
+ * um dia em que a campanha não estava no ar, e incluí-lo produziria
+ * participação acima de 100% da loja. Vendas canceladas ficam fora de tudo.
+ */
+export interface CampaignReportDto {
+  campaignId: number;
+  campaignName: string;
+  startsAt: string;
+  /** Ausente = campanha em aberto; os números vão até agora. */
+  endsAt?: string | null;
+  /** Resgates válidos — os que sustentam todos os valores em dinheiro. */
+  redemptions: number;
+  /** Estornados por cancelamento ou remoção do cupom na reedição; saem do faturamento. */
+  reversed: number;
+  /**
+   * Resgates que entraram com o limite já esgotado, sempre pela fila offline.
+   * Diferente de zero significa que a ação custou mais que o orçamento previa —
+   * o backend nunca recusa venda já paga por causa do cupom.
+   */
+  overLimit: number;
+  /** Resgates cujo snapshot não bate com a definição atual do cupom (editado no meio do caminho). */
+  definitionDrift: number;
+  campaign: CampaignReportCampaignTotalsDto;
+  /** Todas as vendas da loja no mesmo intervalo — o grupo de controle. */
+  period: CampaignReportTotalsDto;
+  share: CampaignReportShareDto;
+  daily: CampaignReportDailyPointDto[];
+  coupons: CampaignReportCouponDto[];
+  questions: CampaignReportQuestionDto[];
+}
+
+/**
+ * Uma campanha no comparativo: o mesmo relatório achatado numa linha, para o
+ * gráfico de barras e para a exportação em CSV.
+ *
+ * **Cada linha tem a própria janela.** Campanhas de meses diferentes têm
+ * denominadores diferentes, e é por isso que os percentuais existem: R$ 30 mil
+ * em dezembro e R$ 30 mil em fevereiro não são o mesmo resultado, mas 12% da
+ * loja e 25% da loja são comparáveis.
+ */
+export interface CampaignComparisonRowDto {
+  campaignId: number;
+  campaignName: string;
+  /** Início da campanha como cadastrado. */
+  startsAt: string;
+  /** Fim da campanha como cadastrado. Ausente = em aberto. */
+  endsAt?: string | null;
+  /**
+   * Início do intervalo EFETIVAMENTE medido: a interseção da campanha com o
+   * filtro de período. Viaja no DTO porque o CSV é lido fora do sistema, meses
+   * depois — faturamento sem a janela ao lado é número que ninguém reproduz.
+   */
+  windowStart: string;
+  /** Fim do intervalo medido, inclusivo. Nunca ausente: campanha em aberto é medida até agora. */
+  windowEnd: string;
+  redemptions: number;
+  reversed: number;
+  /** Vendas com cupom da campanha. Igual a `redemptions`: um cupom por venda. */
+  salesCount: number;
+  revenue: number;
+  /** Lucro já líquido do rateio do cupom e do desconto manual. */
+  profit: number;
+  couponDiscount: number;
+  averageTicket: number;
+  marginPercentage: number;
+  periodSalesCount: number;
+  /** Faturamento da loja inteira na janela — o denominador desta linha. */
+  periodRevenue: number;
+  periodProfit: number;
+  salesPercentage: number;
+  revenuePercentage: number;
+  profitPercentage: number;
+}
+
+/**
+ * Dados enviados ao criar/editar um cupom (`SaveCouponRequest` do backend).
+ *
+ * O código é normalizado no servidor (`trim` + maiúsculas), mas mandá-lo já
+ * canônico evita a surpresa de digitar "verao26" e ver "VERAO26" gravado.
+ */
+export interface SaveCouponPayload {
+  code: string;
+  description?: string | null;
+  /** Nunca envie `None` (0): o backend recusa com 400. */
+  discountType: CouponDiscountTypeCode;
+  /** Maior que zero; até 100 quando o tipo é percentual. */
+  discountValue: number;
+  /** Instante "yyyy-MM-ddTHH:mm:ss", sem `Z`. Obrigatório. */
+  validFrom: string;
+  /** Instante ou null/omitido para cupom sem prazo. Deve ser >= `validFrom`. */
+  validUntil?: string | null;
+  /**
+   * Teto de resgates. **0 = ILIMITADO** (negativo é normalizado para 0 no
+   * servidor). Campo vazio no formulário vira 0 com `parseAmountOrNull`, nunca
+   * `parseAmount`, que devolveria `NaN` e mandaria lixo ao servidor.
+   */
+  usageLimit: number;
+  isActive: boolean;
+  /** Campanha que fornece o questionário, ou null para cupom sem perguntas. */
+  campaignId?: number | null;
+}
+
+/** Uma alternativa no salvamento do questionário. Sem `id` (ou com 0) o servidor cria. */
+export interface SaveCampaignQuestionOptionPayload {
+  id?: number | null;
+  label: string;
+  sortOrder: number;
+}
+
+/** Uma pergunta no salvamento do questionário. Precisa de 2 a 8 opções ativas. */
+export interface SaveCampaignQuestionPayload {
+  id?: number | null;
+  label: string;
+  sortOrder: number;
+  isRequired: boolean;
+  options: SaveCampaignQuestionOptionPayload[];
+}
+
+/**
+ * Dados enviados ao criar/editar uma campanha (`SaveCampaignRequest` do backend).
+ *
+ * **`questions` é o estado final desejado, nunca um delta.** O servidor faz
+ * upsert por id dentro de uma transação: com id atualiza, sem id cria, e o que
+ * NÃO vier na lista é excluído logicamente. Mandar só as perguntas alteradas
+ * apagaria todas as outras — e as respostas já gravadas continuariam apontando
+ * para elas, porque a exclusão é lógica.
+ *
+ * Limites impostos pelo servidor: no máximo 6 perguntas, de 2 a 8 opções cada,
+ * rótulos distintos dentro da mesma pergunta. É fila de caixa, não formulário de
+ * pesquisa.
+ */
+export interface SaveCampaignPayload {
+  name: string;
+  description?: string | null;
+  /** Instante "yyyy-MM-ddTHH:mm:ss", sem `Z`. Obrigatório. */
+  startsAt: string;
+  /** Instante ou null/omitido para período em aberto. Deve ser >= `startsAt`. */
+  endsAt?: string | null;
+  isActive: boolean;
+  questions: SaveCampaignQuestionPayload[];
 }
 
 // ---------------------------------------------------------------------------

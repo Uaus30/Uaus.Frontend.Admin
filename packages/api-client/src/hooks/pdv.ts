@@ -8,6 +8,8 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { ApiError, apiGet, apiGetOrThrow, apiPost, apiPut, extractCreatedId } from "../client";
 import type {
+  CouponDiscountTypeCode,
+  CouponLookupDto,
   QueryKey,
   SaleDto,
   StorePerformanceDto,
@@ -69,6 +71,84 @@ export async function getPdvSessionSales(sessionId: number): Promise<SaleDto[]> 
   return (await apiGet<SaleDto[]>(`/Pdv/sessions/${sessionId}/sales`)) ?? [];
 }
 
+/**
+ * Consulta o cupom pelo código lido do panfleto e devolve, junto, o
+ * questionário a apresentar no balcão (`GET /Pdv/coupons/{code}`, liberado para
+ * `Admin` e `Seller`).
+ *
+ * **NÃO É HOOK DE QUERY, e isso é deliberado.** A resposta vale para o instante
+ * da consulta e não reserva nada: guardá-la em cache faria o segundo caixa ler
+ * "restam 2 usos" de um cupom que o primeiro acabou de esgotar, e o operador
+ * cobraria o desconto acreditando na tela. A leitura é sempre nova, disparada
+ * quando o operador digita ou bipa o código.
+ *
+ * **A consulta não debita nem trava nada.** O gate real é o UPDATE condicional
+ * na gravação da venda, que é o único ponto sem janela entre conferir e
+ * consumir.
+ *
+ * @param code Código digitado ou lido. É normalizado para maiúsculas no
+ *   servidor; a codificação da URL protege o caminho quando o operador digita
+ *   algo fora do charset do cupom (espaço, `%`, `/`).
+ * @returns A definição do cupom e o questionário, quando houver.
+ * @throws {ApiError} 400 com mensagem pronta para o balcão quando o cupom não
+ *   existe, está inativo, fora da vigência ou esgotado — recusa prevista, que o
+ *   servidor de propósito não registra como erro. Mostre `error.message`.
+ */
+export async function lookupPdvCoupon(code: string): Promise<CouponLookupDto> {
+  return apiGetOrThrow<CouponLookupDto>(`/Pdv/coupons/${encodeURIComponent(code.trim())}`);
+}
+
+/** Uma resposta do questionário, por id. O rótulo exibido é gravado pelo servidor. */
+export interface RegisterPdvSaleCouponAnswerPayload {
+  /** Pergunta respondida, como veio no `lookupPdvCoupon`. */
+  questionId: number;
+  /** Opção escolhida, entre as da pergunta. */
+  optionId: number;
+}
+
+/**
+ * O cupom aplicado na venda. Um bloco, não campos soltos: ou o cupom inteiro
+ * veio, ou não veio nenhum — não existe estado intermediário com código
+ * preenchido e valor vazio. **Um cupom por venda, não cumulativo** (a
+ * invariante é um índice único no servidor).
+ *
+ * **`discountAmount` JÁ ESTÁ INCLUÍDO em `RegisterPdvSalePayload.discount` —
+ * NÃO SOMAR.** O desconto da venda continua sendo o total e o cupom é uma
+ * parcela dele; é por isso que a conferência de total contra itens não muda.
+ * Somar os dois faria o servidor recusar a venda por total divergente.
+ *
+ * **A campanha não vem aqui.** O PDV nunca sabe de onde as perguntas vieram —
+ * quem fotografa o vínculo é o servidor, na gravação.
+ *
+ * Os valores são AUDITADOS no servidor: online a divergência recusa a venda; na
+ * fila offline ela é carimbada e prevalece o valor do cliente, que foi o
+ * impresso no comprovante que ele levou.
+ */
+export interface RegisterPdvSaleCouponPayload {
+  couponId: number;
+  /**
+   * Código como o operador leu do panfleto. Serve de conferência contra
+   * `couponId`: cache offline velho pode trazer um id que hoje pertence a outro
+   * código.
+   */
+  code: string;
+  /** Código do tipo (`COUPON_DISCOUNT_TYPE`); `None` (0) é recusado. */
+  discountType: CouponDiscountTypeCode;
+  /** Percentual (1 a 100) ou reais, conforme `discountType`. */
+  discountValue: number;
+  /**
+   * Base sobre a qual o abatimento foi calculado: subtotal dos itens **menos o
+   * desconto global**, nunca o subtotal cru. O encadeamento é item → global →
+   * cupom, com arredondamento a cada etapa; calcular sobre o subtotal cru daria
+   * um abatimento maior que o impresso no comprovante.
+   */
+  baseAmount: number;
+  /** Reais efetivamente abatidos. Já incluídos em `discount`, e nunca maiores que `baseAmount`. */
+  discountAmount: number;
+  /** Respostas do questionário. Vazio é o caso normal — a maioria dos cupons não tem campanha. */
+  answers: RegisterPdvSaleCouponAnswerPayload[];
+}
+
 /** Um item vendido, no formato que `POST /Pdv/sales` e `PUT /Pdv/sales/{id}` esperam. */
 export interface RegisterPdvSaleItemPayload {
   productId: number;
@@ -117,10 +197,21 @@ export interface RegisterPdvSalePayload {
   customerName?: string | null;
   /** CPF/CNPJ digitado no balcão. Ignorado quando há `customerId`. */
   customerDocument?: string | null;
-  /** Total da venda: soma dos itens menos o desconto. O servidor refaz a conta e recusa divergência. */
+  /**
+   * Total da venda: soma dos itens menos o desconto. O servidor refaz a conta e
+   * recusa divergência. Pode ser zero quando o cupom cobre tudo — nunca
+   * negativo — e nesse caso a lista de pagamentos vai vazia.
+   */
   total: number;
-  /** Desconto aplicado sobre o total da venda. */
+  /** Desconto TOTAL aplicado sobre a venda. Quando há cupom, ele JÁ ESTÁ incluído aqui. */
   discount: number;
+  /**
+   * Cupom aplicado na venda, ou ausente quando não houve cupom.
+   *
+   * Opcional também por compatibilidade da fila offline: venda enfileirada antes
+   * desta feature sobe sem o bloco e continua sendo aceita.
+   */
+  coupon?: RegisterPdvSaleCouponPayload | null;
   notes?: string | null;
   /**
    * Login do administrador que autoriza um desconto acima do limite do

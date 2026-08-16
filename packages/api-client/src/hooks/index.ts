@@ -22,3 +22,5 @@ export * from "./stock-write-offs";
 export * from "./inventory-count";
 export * from "./financial";
 export * from "./product-labels";
+export * from "./coupons";
+export * from "./campaigns";
