@@ -2,6 +2,7 @@ import React, { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { COUPON_DISCOUNT_TYPE } from "@workspace/api-client-react";
 
 const registerSale = vi.fn();
 const updateSale = vi.fn();
@@ -27,7 +28,9 @@ vi.mock("@workspace/ui", () => ({
 
 const { useSaleCheckout } = await import("../use-sale-checkout");
 const { usePdvStore } = await import("@/stores/use-pdv-store");
-const { LocalStockError } = await import("@/services/sales.service");
+// `computeSaleTotal` é a função DE VERDADE (o mock preserva o resto do módulo):
+// é a mesma conta que o servidor refaz para conferir a venda.
+const { LocalStockError, computeSaleTotal } = await import("@/services/sales.service");
 const { resolveCashRegisterMode } = await import("@/lib/cash-register-mode");
 
 const DINHEIRO = {
@@ -48,6 +51,16 @@ const CART_ITEM = {
   quantity: 2,
   discount: 2,
   availableStock: 5,
+};
+
+/** Cupom de 10% do panfleto, com uma pergunta respondida no balcão. */
+const CUPOM_10 = {
+  couponId: 7,
+  code: "10OFFSET26",
+  description: "Panfleto de setembro",
+  discountType: COUPON_DISCOUNT_TYPE.Percentage,
+  discountValue: 10,
+  answers: [{ questionId: 3, optionId: 21 }],
 };
 
 const setPayments = vi.fn();
@@ -107,6 +120,9 @@ describe("useSaleCheckout", () => {
       status: "CHECKOUT",
       items: [CART_ITEM],
       globalDiscount: 0,
+      // Explícito: `setState` faz merge, e sem zerar aqui o cupom do teste
+      // anterior vazaria para os demais casos.
+      coupon: null,
       consumer: { customerId: null, name: "", document: "" },
       editingSaleId: null,
       saleClientReference: null,
@@ -139,6 +155,46 @@ describe("useSaleCheckout", () => {
     expect(usePdvStore.getState().items).toEqual([]);
     expect(onSaleFinished).toHaveBeenCalled();
     expect(printReceipt).toHaveBeenCalledWith(expect.objectContaining({ saleId: 42, total: 16 }));
+  });
+
+  it("deve levar o cupom aplicado para a venda e para o impresso", async () => {
+    usePdvStore.setState({ coupon: CUPOM_10 });
+
+    // O total que o carrinho MOSTRA — não um literal. O checkout cobra este
+    // valor, e é contra ele que a venda gravada tem que fechar.
+    const totalNaTela = usePdvStore.getState().getTotal();
+
+    const { result } = render({
+      total: totalNaTela,
+      checkout: {
+        ...checkout,
+        payments: [{ paymentMethodId: 1, amount: totalNaTela, installmentNumber: 1 }],
+      } as typeof checkout,
+    });
+
+    await act(() => result.current.confirmPayment());
+
+    const [payload] = registerSale.mock.calls[0];
+
+    // A regressão: o cupom ficava de fora do payload, o `discount` subia só com o
+    // desconto global e o total derivado dele não fechava com o que o cliente
+    // pagou — o servidor recusava a venda com o cliente no balcão.
+    expect(computeSaleTotal(payload.items, payload.discount)).toBe(totalNaTela);
+
+    // O cupom é PARCELA do desconto total, nunca uma adição.
+    expect(payload.coupon).toMatchObject({
+      couponId: 7,
+      code: "10OFFSET26",
+      discountAmount: payload.discount,
+      answers: [{ questionId: 3, optionId: 21 }],
+    });
+
+    // No papel o cupom sai discriminado, com o mesmo abatimento que foi gravado.
+    expect(printReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        coupon: expect.objectContaining({ code: "10OFFSET26", amount: payload.discount }),
+      }),
+    );
   });
 
   it("não deve imprimir quando a impressão automática está desligada", async () => {

@@ -82,6 +82,12 @@ export function useSaleCheckout({
   const status = usePdvStore((state) => state.status);
   const items = usePdvStore((state) => state.items);
   const globalDiscount = usePdvStore((state) => state.globalDiscount);
+  // O cupom precisa vir do store até aqui. Enquanto o payload era montado sem
+  // ele, o carrinho exibia o total COM o abatimento (`getTotal` o deriva) e o
+  // checkout cobrava esse valor, mas a venda subia com o desconto só do global —
+  // total de R$ 15,00 contra R$ 13,50 de pagamentos, e o servidor recusava por
+  // soma divergente com o cliente no balcão.
+  const coupon = usePdvStore((state) => state.coupon);
   const consumer = usePdvStore((state) => state.consumer);
   const editingSaleId = usePdvStore((state) => state.editingSaleId);
   const autoPrintReceipt = usePdvStore((state) => state.autoPrintReceipt);
@@ -151,6 +157,7 @@ export function useSaleCheckout({
       payments,
       paymentMethods,
       paymentMethodNameById,
+      coupon,
     });
 
     setSavingSale(true);
@@ -215,6 +222,7 @@ export function useSaleCheckout({
         payments,
         paymentMethodNameById,
         globalDiscount,
+        coupon,
         operatorName,
         consumerDocument: consumer.document,
         receivedAmount,
@@ -263,6 +271,7 @@ export function useSaleCheckout({
     checkout,
     companySettings,
     consumer,
+    coupon,
     editingSaleId,
     ensureSaleClientReference,
     finishSale,
