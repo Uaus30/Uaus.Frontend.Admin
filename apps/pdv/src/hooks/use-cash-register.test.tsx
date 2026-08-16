@@ -75,6 +75,30 @@ describe("useCashRegister", () => {
     expect(getSessionSales).not.toHaveBeenCalled();
   });
 
+  it("ligar o controle de caixa põe a sessão em carregamento DEPOIS da primeira carga", async () => {
+    // Este é o gatilho de um bug de foco que ninguém conseguia reproduzir:
+    // `/CompanySettings` responde depois de `/me`, e enquanto ela não responde o
+    // padrão é "loja SEM controle de caixa" — a consulta de sessão nasce
+    // desligada. Quando a resposta chega dizendo que a loja usa caixa, `enabled`
+    // vira verdadeiro e `loadingSession` sai de FALSO para VERDADEIRO com o
+    // operador já usando a tela. Quem consome não pode tratar isso como
+    // primeira carga: `pages/pdv.tsx` desmontava o PDV inteiro e o cursor do
+    // campo de busca ficava para trás.
+    mockSession(undefined, true);
+
+    const { result, rerender } = renderHook(({ enabled }) => useCashRegister({ enabled }), {
+      wrapper: createWrapper(),
+      initialProps: { enabled: false },
+    });
+
+    // Consulta desligada: não há sessão a carregar.
+    expect(result.current.loadingSession).toBe(false);
+
+    rerender({ enabled: true });
+
+    expect(result.current.loadingSession).toBe(true);
+  });
+
   it("deve abrir o caixa com o fundo de troco informado", async () => {
     mockSession(null);
     openCashRegisterSession.mockResolvedValue({ id: 8 });

@@ -81,4 +81,40 @@ describe("useCompanySettings", () => {
     expect(result.current.settings).toEqual({ usesCashRegister: false });
     expect(result.current.isFromCache).toBe(false);
   });
+
+  it("deve avisar que a configuração ainda é palpite enquanto ninguém respondeu", async () => {
+    // Quem decide a TELA a partir da configuração não pode agir sobre o padrão:
+    // ele responde "loja sem controle de caixa", e quando a resposta de verdade
+    // chega dizendo o contrário o PDV remontava inteiro. Ver a regra 11 do README
+    // da feature.
+    useGetCompanySettings.mockReturnValue({ data: undefined, isLoading: true });
+
+    const { result } = renderHook(() => useCompanySettings());
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.settings.usesCashRegister).toBe(false);
+
+    await waitFor(() => expect(readCachedCompanySettings).toHaveBeenCalled());
+  });
+
+  it("a resposta do servidor encerra a espera na hora", () => {
+    useGetCompanySettings.mockReturnValue({ data: SERVER_SETTINGS, isLoading: false });
+
+    const { result } = renderHook(() => useCompanySettings());
+
+    // Sem esperar pela leitura da base local: já se sabe o que a loja usa.
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("cópia local ilegível não pode prender o PDV no spinner", async () => {
+    // Um IndexedDB bloqueado (outra aba migrando o banco, modo privado) faria a
+    // leitura falhar. Sem encerrar a espera na falha, a tela nunca apareceria.
+    useGetCompanySettings.mockReturnValue({ data: undefined, isLoading: false });
+    readCachedCompanySettings.mockRejectedValue(new Error("IndexedDB bloqueado"));
+
+    const { result } = renderHook(() => useCompanySettings());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.settings).toEqual({ usesCashRegister: false });
+  });
 });

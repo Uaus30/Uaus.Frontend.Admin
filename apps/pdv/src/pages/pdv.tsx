@@ -46,7 +46,7 @@ export default function Pdv() {
    * — resolvida com fallback por `resolveStoreInfo` em cada ponto de impressão,
    * porque a cópia local pode ser de uma versão sem os campos.
    */
-  const { settings: companySettings, mode } = useCompanySettings();
+  const { settings: companySettings, mode, isLoading: loadingSettings } = useCompanySettings();
 
   const {
     session,
@@ -146,7 +146,25 @@ export default function Pdv() {
     syncPendingQueues: syncPendingQueuesNow,
   });
 
-  if (isLoading || loadingSession) {
+  /**
+   * O balcão só aparece quando a tela **inteira** está decidida — inclusive a
+   * configuração da loja.
+   *
+   * `loadingSettings` está aqui por causa de um bug de foco intermitente.
+   * Enquanto `/CompanySettings` não responde, o padrão é "loja sem controle de
+   * caixa" e a consulta de sessão nasce desligada — então `loadingSession` é
+   * falso e a tela era liberada por `/me`, que responde primeiro. Quando a
+   * resposta de verdade chegava dizendo que a loja usa caixa, a consulta ligava,
+   * `loadingSession` ia de falso para VERDADEIRO e este `return` desmontava o PDV
+   * inteiro. Ele voltava com um `<input>` novo, sem cursor: quem tinha acabado de
+   * clicar no campo de busca precisava clicar de novo, e nada devolvia o foco —
+   * o efeito que refoca depende de `sessionId` mudar, e ele mudava enquanto o
+   * campo nem existia (a cópia local da sessão responde antes da API).
+   *
+   * Esperar pela configuração fecha a janela: quando ela chega, a consulta de
+   * sessão já liga com o spinner ainda na tela, e o balcão é montado uma vez só.
+   */
+  if (loadingSettings || isLoading || loadingSession) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

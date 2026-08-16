@@ -89,7 +89,17 @@ Por isso `useProductSearch` expõe `notFound` separado de `results`: antes da pr
 
 `lib/product-search.ts` ordena os dois caminhos da busca (API e base local) deixando estoque zero por último, com ordenação estável para não embaralhar a relevância que a API devolveu. Zerado não pode ser vendido nem baixado; no topo, com o teto de 20 resultados, ele empurrava para fora da tela o item que o operador consegue usar. Continua aparecendo — sumir com ele faria o operador concluir que o cadastro foi apagado.
 
-### 11. Forma de pagamento na ordem de cadastro
+### 11. A tela espera a configuração da loja, não só o operador
+
+`pages/pdv.tsx` só monta o balcão depois que **as três** respostas chegaram: operador, configuração da loja e sessão de caixa. Faltava a do meio, e a falta explicava um bug de foco intermitente que ninguém conseguia reproduzir.
+
+A corrida era esta: enquanto `/CompanySettings` não responde, o padrão em uso é "loja **sem** controle de caixa" (`lib/cash-register-mode.ts`), e com esse padrão a consulta de sessão nasce desligada — logo `loadingSession` é falso. Como `/me` responde primeiro, a tela era liberada. Quando a resposta de verdade chegava dizendo que a loja usa caixa, a consulta ligava, `loadingSession` ia de falso para **verdadeiro** e o `return` do spinner desmontava o PDV inteiro.
+
+Ele voltava com um `<input>` novo, sem cursor. Quem tinha acabado de clicar no campo de busca precisava clicar de novo, e nada devolvia o foco: o efeito que refoca depende de `sessionId` mudar (regra 7), e ele já tinha mudado — a cópia local da sessão responde antes da API, então `sessionId` era preenchido com o campo ainda inexistente e o `focus()` caiu numa ref nula. Era intermitente porque dependia das duas corridas ao mesmo tempo: o operador clicar naquela fresta, e o IndexedDB ganhar da rede.
+
+Esperar pela configuração fecha a janela — quando ela chega, a consulta de sessão liga com o spinner ainda na tela. Por isso `useCompanySettings` expõe `isLoading`: é a diferença entre "a loja não usa caixa" e "ainda não sei se usa", e só quem decide layout precisa dela. Falha ao ler a cópia local **encerra** a espera; do contrário um IndexedDB bloqueado prenderia o PDV no spinner.
+
+### 12. Forma de pagamento na ordem de cadastro
 
 O checkout lista as formas por ID crescente. Sem ordenar, a lista herdava a ordem de quem respondeu (paginação da API num caminho, chave do IndexedDB no outro) e as formas trocavam de lugar ao cair a conexão — e o operador clica por posição. Por ID, o que a loja usa desde sempre fica no topo.
 
