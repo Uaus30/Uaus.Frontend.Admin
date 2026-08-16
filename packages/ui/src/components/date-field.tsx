@@ -94,6 +94,13 @@ interface FloatingCalendarPortalProps {
  * Renderiza o painel do calendário no `document.body`, ancorado abaixo do
  * gatilho. Se não couber à direita ou abaixo, reposiciona para dentro da tela —
  * o mesmo calendário é usado em barras de filtro coladas na borda direita.
+ *
+ * O `pointerEvents: "auto"` do painel não é enfeite: enquanto um `Dialog` modal
+ * do Radix está aberto, ele zera o `pointer-events` do `<body>` para prender o
+ * clique dentro do modal. Como este portal é um `createPortal` no `body` — e não
+ * um portal do Radix —, ele herda esse bloqueio: o calendário aparece, mas
+ * nenhum dia aceita clique, e o `mousedown` que vaza para o `body` ainda fecha o
+ * painel. Era o que acontecia em todo formulário com data dentro de modal.
  */
 export function FloatingCalendarPortal({ anchor, onClose, children }: FloatingCalendarPortalProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -147,6 +154,8 @@ export function FloatingCalendarPortal({ anchor, onClose, children }: FloatingCa
         top,
         left,
         zIndex: 9999,
+        // Devolve o clique ao painel; ver o porquê no bloco acima.
+        pointerEvents: "auto",
         // Evita o salto do primeiro frame, antes de o painel ser medido.
         visibility: size ? "visible" : "hidden",
       }}
