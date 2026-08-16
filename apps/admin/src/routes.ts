@@ -8,6 +8,7 @@ import {
   Megaphone,
   Package,
   Settings,
+  UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -82,7 +83,9 @@ const Campaigns = lazy(() => import("@/pages/campaigns"));
 const CampaignReport = lazy(() => import("@/pages/campaign-report"));
 const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 
-/** Ícone e ordem de cada grupo do menu. */
+/**
+ * Ícone de cada grupo do menu. A ORDEM de exibição não sai daqui — ver `MENU_ORDER`.
+ */
 export const MENU_GROUPS = [
   { name: "Produtos", icon: Package },
   { name: "Financeiro", icon: DollarSign },
@@ -92,6 +95,36 @@ export const MENU_GROUPS = [
   { name: "Estoque", icon: ClipboardList },
   { name: "Sistema", icon: Settings },
 ] as const;
+
+/**
+ * Ordem da barra lateral, de cima para baixo.
+ *
+ * Cada entrada é o nome de um grupo de `MENU_GROUPS` ou o `path` de uma rota de
+ * primeiro nível — as duas coisas na MESMA lista porque elas se intercalam:
+ * "Sistema" é grupo e fica embaixo de "Usuários" e "Clientes", que são soltas.
+ *
+ * Antes a ordem era implícita no `buildMenu` — Dashboard, todos os grupos, e as
+ * soltas ao fim. Com aquela regra não havia como pôr um grupo depois de uma
+ * solta sem reescrever a função, e a ordem real do menu não estava escrita em
+ * lugar nenhum: era preciso simular a montagem de cabeça para saber.
+ *
+ * O que NÃO está aqui não some: `buildMenu` acrescenta ao fim o que sobrar. Uma
+ * tela nova aparece no menu mesmo que alguém esqueça desta lista — só não
+ * aparece no lugar escolhido.
+ */
+export const MENU_ORDER: readonly string[] = [
+  "/dashboard",
+  "Produtos",
+  "Estoque",
+  "Financeiro",
+  "Marketing",
+  "/imagens",
+  "/clientes",
+  "/sistema/usuarios",
+  // Último de propósito: configuração e auditoria são o que menos se abre num
+  // dia de loja.
+  "Sistema",
+];
 
 /**
  * Só Admin. O dinheiro da sociedade, o cadastro de usuários e a auditoria não
@@ -105,7 +138,7 @@ export const ROUTES: AppRoute[] = [
 
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, component: Dashboard },
 
-  { path: "/produtos", label: "Lista de Produtos", group: "Produtos", component: Products },
+  { path: "/produtos", label: "Cadastro", group: "Produtos", component: Products },
   { path: "/departamentos", label: "Departamentos", group: "Produtos", component: Departments },
   { path: "/categorias", label: "Categorias", group: "Produtos", component: Categories },
   { path: "/grades", label: "Grades", group: "Produtos", component: Grades },
@@ -188,7 +221,18 @@ export const ROUTES: AppRoute[] = [
   },
   { path: "/sistema/logs", label: "Logs", group: "Sistema", component: Logs, roles: SO_ADMIN },
   { path: "/sistema/logs/:id", component: LogDetails, roles: SO_ADMIN, hidden: true },
-  { path: "/sistema/usuarios", label: "Usuários", group: "Sistema", component: UsersPage, roles: SO_ADMIN },
+
+  // Fora do grupo "Sistema": gerenciar quem entra na loja é rotina de dono, não
+  // configuração de sistema, e ficava escondido atrás de um submenu que também
+  // guarda logs. O caminho continua `/sistema/usuarios` — mudar a URL quebraria
+  // link salvo sem devolver nada.
+  {
+    path: "/sistema/usuarios",
+    label: "Usuários",
+    icon: UserCog,
+    component: UsersPage,
+    roles: SO_ADMIN,
+  },
 ];
 
 export const NOT_FOUND_COMPONENT = NotFound;
@@ -258,14 +302,18 @@ export interface MenuGroup {
 export type MenuEntry = MenuLink | MenuGroup;
 
 /**
- * Menu montado a partir das rotas visíveis que o papel pode abrir.
+ * Menu montado a partir das rotas visíveis que o papel pode abrir, na ordem de
+ * `MENU_ORDER`.
  *
  * Um grupo cujos itens sejam todos restritos some inteiro — mostrar "Sistema"
  * vazio para um Vendedor seria pior que não mostrar.
+ *
+ * O que `MENU_ORDER` não menciona entra ao fim, na ordem em que aparece nas
+ * `ROUTES`. Isso é deliberado: uma tela nova esquecida na lista de ordenação
+ * aparece no lugar errado, o que se vê; se sumisse, ninguém notaria.
  */
 export function buildMenu(role: EnumValue): MenuEntry[] {
   const visiveis = ROUTES.filter((r) => r.label && !r.hidden && !r.publica && podeAcessar(r, role));
-  const soltas = visiveis.filter((r) => !r.group);
 
   const paraLink = (r: AppRoute): MenuLink => ({
     name: r.label!,
@@ -273,17 +321,36 @@ export function buildMenu(role: EnumValue): MenuEntry[] {
     icon: r.icon ?? Building2,
   });
 
-  const grupos: MenuGroup[] = MENU_GROUPS.map((grupo) => ({
-    name: grupo.name,
-    icon: grupo.icon,
-    items: visiveis.filter((r) => r.group === grupo.name).map((r) => ({ name: r.label!, href: r.path })),
-  })).filter((g) => g.items.length > 0);
+  const grupos = new Map<string, MenuGroup>();
+  for (const grupo of MENU_GROUPS) {
+    const items = visiveis
+      .filter((r) => r.group === grupo.name)
+      .map((r) => ({ name: r.label!, href: r.path }));
 
-  // Dashboard primeiro, depois os grupos, e as soltas restantes ao fim — a
-  // ordem que o menu já tinha.
-  return [
-    ...soltas.filter((r) => r.path === "/dashboard").map(paraLink),
-    ...grupos,
-    ...soltas.filter((r) => r.path !== "/dashboard").map(paraLink),
-  ];
+    if (items.length > 0) grupos.set(grupo.name, { name: grupo.name, icon: grupo.icon, items });
+  }
+
+  const soltas = new Map(visiveis.filter((r) => !r.group).map((r) => [r.path, r]));
+
+  const menu: MenuEntry[] = [];
+  for (const entrada of MENU_ORDER) {
+    const grupo = grupos.get(entrada);
+    if (grupo) {
+      menu.push(grupo);
+      grupos.delete(entrada);
+      continue;
+    }
+
+    const solta = soltas.get(entrada);
+    if (solta) {
+      menu.push(paraLink(solta));
+      soltas.delete(entrada);
+    }
+  }
+
+  // Sobras: grupo ou rota que ninguém pôs em MENU_ORDER.
+  menu.push(...grupos.values());
+  menu.push(...[...soltas.values()].map(paraLink));
+
+  return menu;
 }

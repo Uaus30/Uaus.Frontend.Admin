@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { USER_ROLE } from "@workspace/api-client-react";
-import { MENU_GROUPS, ROUTES, buildMenu, podeAcessar } from "../routes";
+import { MENU_GROUPS, MENU_ORDER, ROUTES, buildMenu, podeAcessar } from "../routes";
 
 /**
  * Contrato do arquivo de rotas.
@@ -167,6 +167,56 @@ describe("buildMenu", () => {
     expect(hrefs).not.toContain("/formas-pagamento");
     expect(hrefs).toContain("/financeiro/formas-pagamento");
     expect(hrefs).not.toContain("/login");
+  });
+
+  it("segue a ordem declarada em MENU_ORDER", () => {
+    // A ordem do menu é decisão de produto, não consequência do algoritmo de
+    // montagem. Enquanto era implícita — Dashboard, todos os grupos, e as soltas
+    // ao fim — não havia como pôr um grupo depois de uma solta, que é
+    // exatamente o que "Sistema por último" pede.
+    const nomes = buildMenu(USER_ROLE.Admin).map((item) => item.name);
+
+    expect(nomes).toEqual([
+      "Dashboard",
+      "Produtos",
+      "Estoque",
+      "Financeiro",
+      "Marketing",
+      "Mídia",
+      "Clientes",
+      "Usuários",
+      "Sistema",
+    ]);
+  });
+
+  it("Usuários é item de primeiro nível, e não item do grupo Sistema", () => {
+    const usuarios = ROUTES.find((r) => r.path === "/sistema/usuarios")!;
+    const sistema = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Sistema");
+
+    expect(usuarios.group).toBeUndefined();
+    expect(sistema?.items?.map((s) => s.href)).toEqual(["/configuracoes", "/sistema/logs"]);
+  });
+
+  it("nenhuma rota visível fica de fora do menu", () => {
+    // A garantia que o fallback de `buildMenu` existe para dar: uma tela nova
+    // esquecida em MENU_ORDER aparece no lugar errado — nunca some.
+    const visiveis = ROUTES.filter((r) => r.label && !r.hidden && !r.publica).map((r) => r.path);
+    const hrefs = buildMenu(USER_ROLE.Admin).flatMap((item) =>
+      item.items ? item.items.map((s) => s.href) : [item.href],
+    );
+
+    for (const path of visiveis) expect(hrefs).toContain(path);
+  });
+
+  it("toda entrada de MENU_ORDER aponta para um grupo ou uma rota que existe", () => {
+    // Erro de digitação aqui não quebra nada: a entrada é simplesmente ignorada
+    // e o item cai no fim da lista, longe de onde alguém quis pô-lo.
+    const grupos = MENU_GROUPS.map((g) => g.name);
+    const paths = ROUTES.map((r) => r.path);
+
+    for (const entrada of MENU_ORDER) {
+      expect([...grupos, ...paths]).toContain(entrada);
+    }
   });
 
   it("todo item do menu corresponde a uma rota declarada", () => {
