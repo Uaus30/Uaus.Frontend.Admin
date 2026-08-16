@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { Loader2 } from "lucide-react";
+import type { EnumOptionDto } from "@workspace/api-client-react";
+import { Info, Loader2 } from "lucide-react";
 import type { UserForm } from "../types";
 
 /**
@@ -21,9 +22,14 @@ interface UserEditorModalProps {
   /** Callback para atualizar o estado do formulário. */
   onFormChange: React.Dispatch<React.SetStateAction<UserForm>>;
   /** Lista de opções selecionáveis para papéis de usuários. */
-  selectableRoleOptions: any[];
-  /** Lista de opções selecionáveis para status de usuários. */
-  selectableStatusOptions: any[];
+  selectableRoleOptions: EnumOptionDto[];
+  /**
+   * Status oferecidos na edição. Já vem sem "Ativo" quando o usuário está
+   * Pendente — quem promove é a troca de senha, não esta tela.
+   */
+  editableStatusOptions: EnumOptionDto[];
+  /** O usuário editado ainda não trocou a senha do primeiro acesso. */
+  pendentePrimeiroAcesso: boolean;
   /** Estado de salvamento da mutação. */
   isSaving: boolean;
   /** Callback de submissão do formulário. */
@@ -34,6 +40,11 @@ interface UserEditorModalProps {
 
 /**
  * Modal com formulário para cadastro e edição de dados de usuários administrativos.
+ *
+ * **Não pede senha.** O cadastro nasce com a senha padrão do sistema e status
+ * Pendente; quem define a senha de verdade é o próprio usuário, no primeiro
+ * acesso. O campo existia e era descartado pelo servidor: o administrador
+ * entregava ao operador uma senha que o PDV recusava com "Senha inválida!".
  */
 export function UserEditorModal({
   open,
@@ -42,7 +53,8 @@ export function UserEditorModal({
   form,
   onFormChange,
   selectableRoleOptions,
-  selectableStatusOptions,
+  editableStatusOptions,
+  pendentePrimeiroAcesso,
   isSaving,
   onSubmit,
   usernameFromEmail,
@@ -98,21 +110,6 @@ export function UserEditorModal({
               />
             </div>
           </div>
-          {!editingId && (
-            <div className="space-y-2">
-              <Label>Senha</Label>
-              <Input
-                type="password"
-                value={form.password}
-                onChange={(event) =>
-                  onFormChange((current) => ({ ...current, password: event.target.value }))
-                }
-                placeholder="Informe a senha inicial"
-                required
-                className="bg-background border-input"
-              />
-            </div>
-          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Papel</Label>
@@ -143,7 +140,7 @@ export function UserEditorModal({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {selectableStatusOptions.map((option) => (
+                    {editableStatusOptions.map((option) => (
                       <SelectItem key={option.id} value={String(option.id)}>
                         {option.name}
                       </SelectItem>
@@ -153,6 +150,17 @@ export function UserEditorModal({
               </div>
             )}
           </div>
+
+          <p className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              {editingId
+                ? pendentePrimeiroAcesso
+                  ? "Este usuário ainda não trocou a senha do primeiro acesso, por isso continua Pendente. Ele passa a Ativo sozinho assim que trocar."
+                  : "A senha é do próprio usuário. Para quem esqueceu a dele, use “Resetar senha” na lista."
+                : "A senha não é definida aqui: o usuário entra com a senha padrão do sistema, mostrada ao final do cadastro, e é obrigado a trocá-la no primeiro acesso."}
+            </span>
+          </p>
           <DialogFooter className="gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

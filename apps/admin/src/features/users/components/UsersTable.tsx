@@ -1,23 +1,31 @@
 import { Badge } from "@workspace/ui";
-import { USER_STATUS, enumCode } from "@workspace/api-client-react";
+import {
+  USER_ROLE,
+  USER_STATUS,
+  enumCode,
+  precisaTrocarSenha,
+  type UiPagedResult,
+} from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui";
 import { getDisplayName } from "@/services/mappers";
-import { Loader2, Pencil, ShieldCheck, Trash2, User, UserCog } from "lucide-react";
+import { KeyRound, Loader2, Pencil, ShieldCheck, Trash2, User, UserCog } from "lucide-react";
+import type { UserRow } from "../types";
 
 /**
  * Retorna o ícone associado ao papel de usuário.
  */
 function roleIcon(roleId: number) {
-  return roleId === 1 ? ShieldCheck : User;
+  return roleId === USER_ROLE.Admin ? ShieldCheck : User;
 }
 
 /**
  * Propriedades do componente de tabela de usuários.
  */
 interface UsersTableProps {
-  /** Dados da consulta de usuários contendo a lista. */
-  data: any;
+  /** Página atual da consulta de usuários. */
+  data: UiPagedResult<UserRow> | undefined;
   /** Estado de carregamento da lista. */
   isLoading: boolean;
   /** Mapa de ID para o label do papel de usuário. */
@@ -25,15 +33,30 @@ interface UsersTableProps {
   /** Mapa de ID para o label de status do usuário. */
   statusLabels: Record<number, string>;
   /** Callback acionado ao clicar em editar. */
-  onEdit: (user: any) => void;
+  onEdit: (user: UserRow) => void;
+  /** Callback acionado ao clicar em resetar a senha. */
+  onResetPassword: (user: UserRow) => void;
   /** Callback acionado ao clicar em deletar. */
   onDelete: (id: number) => void;
 }
 
 /**
- * Componente que renderiza a tabela de listagem de usuários com badges e ações.
+ * Tabela de usuários com papel, status e ações.
+ *
+ * Papel e status passam por `enumCode` porque a API os serializa pelo NOME
+ * (`"Seller"`, `"Pending"`). Indexar os mapas de rótulo direto com esse valor
+ * devolvia `undefined`, e a tabela caía no fallback: a coluna mostrava "Seller"
+ * e "Pending" em inglês, no meio de uma tela em português.
  */
-export function UsersTable({ data, isLoading, roleLabels, statusLabels, onEdit, onDelete }: UsersTableProps) {
+export function UsersTable({
+  data,
+  isLoading,
+  roleLabels,
+  statusLabels,
+  onEdit,
+  onResetPassword,
+  onDelete,
+}: UsersTableProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <Table>
@@ -62,8 +85,10 @@ export function UsersTable({ data, isLoading, roleLabels, statusLabels, onEdit, 
               </TableCell>
             </TableRow>
           ) : (
-            data?.data.map((user: any) => {
-              const Icon = roleIcon(user.role);
+            data?.data.map((user) => {
+              const role = enumCode(user.role, USER_ROLE);
+              const status = enumCode(user.status, USER_STATUS);
+              const Icon = roleIcon(role);
               return (
                 <TableRow key={user.id} className="border-border hover:bg-muted/30">
                   <TableCell className="font-medium">
@@ -79,31 +104,62 @@ export function UsersTable({ data, isLoading, roleLabels, statusLabels, onEdit, 
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                       <Icon className="h-3 w-3" />
-                      {roleLabels[user.role] ?? user.role}
+                      {roleLabels[role] ?? user.role}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        enumCode(user.status, USER_STATUS) === USER_STATUS.Active ? "default" : "secondary"
-                      }
-                    >
-                      {statusLabels[user.status] ?? user.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={status === USER_STATUS.Active ? "default" : "secondary"}>
+                        {statusLabels[status] ?? user.status}
+                      </Badge>
+                      {precisaTrocarSenha(user.status) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Ainda usa a senha padrão. Vira Ativo ao trocá-la no primeiro acesso.
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(user)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => onDelete(user.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(user)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onResetPassword(user)}
+                          >
+                            <KeyRound className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Resetar senha</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => onDelete(user.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remover</TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

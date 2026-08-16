@@ -1,23 +1,38 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useCreateUser, useDeleteUser, useGetUsers, useUpdateUser } from "@workspace/api-client-react";
+import {
+  USER_ROLE,
+  USER_STATUS,
+  enumCode,
+  useCreateUser,
+  useDeleteUser,
+  useGetUsers,
+  useResetUserPassword,
+  useUpdateUser,
+  type UserRoleCode,
+  type UserStatusCode,
+} from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 import { getDisplayName, splitFullName, usernameFromEmail } from "@/services/mappers";
-import type { UserForm } from "../types";
+import type { FirstAccessInfo, UserForm, UserRow } from "../types";
 import { describeApiError } from "@workspace/core";
 
 export const emptyForm: UserForm = {
   fullName: "",
   username: "",
   email: "",
-  password: "",
   role: "",
   status: "",
 };
 
 /**
- * Hook customizado para centralizar a lógica de negócios da feature de Usuários.
+ * Lógica de negócio da feature de Usuários.
+ *
+ * O ciclo da senha é o que organiza este hook: cadastrar não escolhe senha (o
+ * servidor grava a padrão e deixa o usuário Pendente), o primeiro acesso é quem
+ * promove a conta a Ativo, e resetar devolve tudo ao início. Por isso cadastro e
+ * reset terminam na mesma modal — a que mostra a senha do primeiro acesso.
  */
 export function useUsers() {
   const { toast } = useToast();
@@ -25,7 +40,17 @@ export function useUsers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [resetTarget, setResetTarget] = useState<UserRow | null>(null);
+  const [firstAccess, setFirstAccess] = useState<FirstAccessInfo | null>(null);
   const [form, setForm] = useState<UserForm>(emptyForm);
+
+  /**
+   * Status do usuário aberto na edição, como ele veio do servidor.
+   *
+   * Separado de `form.status`, que muda conforme a pessoa mexe no select: quem
+   * decide se "Ativo" pode ser oferecido é o estado GRAVADO, não o escolhido.
+   */
+  const [statusGravado, setStatusGravado] = useState<number | null>(null);
 
   // Consulta paginada dos usuários
   const { data, isLoading, refetch } = useGetUsers({ page, limit: 50 });
@@ -47,6 +72,20 @@ export function useUsers() {
     [statusOptions],
   );
 
+  /**
+   * Status oferecidos na edição.
+   *
+   * De um Pendente some "Ativo": sair de Pendente é, por definição, ter trocado a
+   * senha do primeiro acesso, e o servidor recusa a promoção pela edição. Deixar
+   * a opção na lista só renderia um erro depois de salvar.
+   */
+  const pendentePrimeiroAcesso = statusGravado === USER_STATUS.Pending;
+
+  const editableStatusOptions = useMemo(() => {
+    if (!pendentePrimeiroAcesso) return selectableStatusOptions;
+    return selectableStatusOptions.filter((item) => item.id !== USER_STATUS.Active);
+  }, [selectableStatusOptions, pendentePrimeiroAcesso]);
+
   const roleLabels = useMemo(
     () => Object.fromEntries(roleOptions.map((item) => [item.id, item.name])),
     [roleOptions],
@@ -59,10 +98,22 @@ export function useUsers() {
   // Mutações de API
   const { mutate: createUser, isPending: creating } = useCreateUser({
     mutation: {
-      onSuccess: () => {
-        toast({ title: "Usuário criado com sucesso." });
+      onSuccess: (result) => {
         setDialogOpen(false);
         refetch();
+
+        // A senha do primeiro acesso só existe nesta resposta. Sem mostrá-la, o
+        // administrador sai da tela sem ter o que dizer ao operador.
+        if (result) {
+          setFirstAccess({
+            username: result.user.username,
+            password: result.firstAccessPassword,
+            origem: "cadastro",
+          });
+          return;
+        }
+
+        toast({ title: "Usuário criado com sucesso." });
       },
       onError: (error) =>
         toast({
@@ -89,6 +140,32 @@ export function useUsers() {
     },
   });
 
+  const { mutate: resetPassword, isPending: resetting } = useResetUserPassword({
+    mutation: {
+      onSuccess: (result) => {
+        setResetTarget(null);
+        refetch();
+
+        if (result) {
+          setFirstAccess({
+            username: result.user.username,
+            password: result.firstAccessPassword,
+            origem: "reset",
+          });
+          return;
+        }
+
+        toast({ title: "Senha resetada." });
+      },
+      onError: (error) =>
+        toast({
+          title: "Erro ao resetar a senha",
+          description: describeApiError(error),
+          variant: "destructive",
+        }),
+    },
+  });
+
   const { mutate: deleteUser, isPending: deleting } = useDeleteUser({
     mutation: {
       onSuccess: () => {
@@ -107,31 +184,40 @@ export function useUsers() {
 
   /**
    * Abre a modal para cadastro de um novo usuário.
+   *
+   * Sem status: quem acabou de ser cadastrado nasce Pendente, e não há escolha a
+   * oferecer.
    */
   function openCreate() {
     setEditingId(null);
+    setStatusGravado(null);
     setForm({
       ...emptyForm,
       role: selectableRoleOptions[0]?.id.toString() ?? "",
-      status: selectableStatusOptions[0]?.id.toString() ?? "",
     });
     setDialogOpen(true);
   }
 
   /**
-   * Abre a modal para edição de um usuário existente.
+   * Abre a modal de edição já com os dados do usuário.
    *
-   * @param user Usuário a ser editado.
+   * `enumCode` é o que faz Papel e Status aparecerem preenchidos. A API serializa
+   * enum pelo NOME (`role: "Seller"`), e a versão anterior fazia `String(user.role)`
+   * — procurando a opção `"Seller"` numa lista cujos valores são `"1"` e `"2"`.
+   * Os dois campos abriam em branco, sem erro em lugar nenhum, e salvar assim
+   * rebaixava o papel do usuário.
    */
-  function openEdit(user: any) {
+  function openEdit(user: UserRow) {
+    const status = enumCode(user.status, USER_STATUS);
+
     setEditingId(user.id);
+    setStatusGravado(status);
     setForm({
       fullName: getDisplayName(user),
       username: user.username,
       email: user.email,
-      password: "",
-      role: String(user.role),
-      status: String(user.status),
+      role: String(enumCode(user.role, USER_ROLE)),
+      status: String(status),
     });
     setDialogOpen(true);
   }
@@ -152,36 +238,26 @@ export function useUsers() {
       return;
     }
 
+    const comum = {
+      firstName,
+      lastName,
+      username: formPayload.username.trim(),
+      email: formPayload.email.trim(),
+      role: Number(formPayload.role) as UserRoleCode,
+    };
+
     if (editingId) {
       updateUser({
         id: editingId,
-        data: {
-          firstName,
-          lastName,
-          username: formPayload.username.trim(),
-          email: formPayload.email.trim(),
-          role: Number(formPayload.role),
-          status: Number(formPayload.status),
-        },
+        data: { ...comum, status: Number(formPayload.status) as UserStatusCode },
       });
       return;
     }
 
-    createUser({
-      data: {
-        firstName,
-        lastName,
-        username: formPayload.username.trim(),
-        email: formPayload.email.trim(),
-        password: formPayload.password,
-        role: Number(formPayload.role),
-        // O `status` faltava aqui: a modal de cadastro oferece o campo e já o
-        // preenche com o padrão, mas o valor escolhido era descartado no envio —
-        // quem criava um usuário inativo recebia um usuário ativo. A edição
-        // sempre mandou. Descoberto ao trocar `data: unknown` pelo tipo real.
-        status: Number(formPayload.status),
-      },
-    });
+    // Sem senha e sem status: o servidor grava a padrão e deixa Pendente. Enviar
+    // uma senha aqui foi o defeito que fez o PDV recusar o login recém-criado —
+    // a tela pedia a senha e o servidor a descartava.
+    createUser({ data: comum });
   }
 
   /**
@@ -193,6 +269,11 @@ export function useUsers() {
     deleteUser({ id });
   }
 
+  /** Devolve o usuário à senha padrão e ao status Pendente. */
+  function handleResetPassword(id: number) {
+    resetPassword({ id });
+  }
+
   return {
     page,
     setPage,
@@ -201,6 +282,10 @@ export function useUsers() {
     editingId,
     deleteId,
     setDeleteId,
+    resetTarget,
+    setResetTarget,
+    firstAccess,
+    setFirstAccess,
     form,
     setForm,
     data,
@@ -209,15 +294,19 @@ export function useUsers() {
     statusOptions,
     selectableRoleOptions,
     selectableStatusOptions,
+    editableStatusOptions,
+    pendentePrimeiroAcesso,
     roleLabels,
     statusLabels,
     creating,
     updating,
     deleting,
+    resetting,
     openCreate,
     openEdit,
     handleSubmitUser,
     handleDeleteUser,
+    handleResetPassword,
     usernameFromEmail,
   };
 }

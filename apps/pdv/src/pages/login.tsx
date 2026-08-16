@@ -76,7 +76,11 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="identifier">Usuário ou Matrícula</Label>
+              {/* "Matrícula" não existe no cadastro: o backend autentica por
+                  username OU email (`x.Username == login || x.Email == login`),
+                  e o operador digitava o e-mail achando que estava no campo
+                  errado. */}
+              <Label htmlFor="identifier">Usuário ou Email</Label>
               <Input
                 id="identifier"
                 type="text"

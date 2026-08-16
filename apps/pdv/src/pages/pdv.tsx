@@ -10,6 +10,7 @@ import { PdvDialogs } from "@/features/pdv/components/pdv-dialogs";
 import { PdvHeader } from "@/features/pdv/components/pdv-header";
 import { PdvMainMenu } from "@/features/pdv/components/pdv-main-menu";
 import { PdvSearchPanel } from "@/features/pdv/components/pdv-search-panel";
+import { TrocaSenhaPrimeiroAcesso } from "@/features/pdv/components/troca-senha-primeiro-acesso";
 import { usePdvCounter } from "@/features/pdv/hooks/use-pdv-counter";
 import { usePdvDialogs } from "@/features/pdv/hooks/use-pdv-dialogs";
 import { usePdvOperator } from "@/features/pdv/hooks/use-pdv-operator";
@@ -72,7 +73,7 @@ export default function Pdv() {
   const { paymentMethods, paymentMethodNameById } = usePdvPaymentMethods(online, hasLocalDatabase);
 
   /** Operador do caixa; sem sessão autenticada o hook redireciona para o login. */
-  const { user, isLoading, operatorName } = usePdvOperator();
+  const { user, isLoading, operatorName, deveTrocarSenha } = usePdvOperator();
 
   // Seletores por campo, e não `useShallow((state) => state)`: assinar o store
   // inteiro fazia esta tela renderizar de novo a cada mudança de qualquer campo,
@@ -154,6 +155,11 @@ export default function Pdv() {
   }
 
   if (!user) return null;
+
+  // Antes de qualquer venda: quem ainda usa a senha padrão do sistema não pode
+  // ter movimento de caixa no seu nome — a senha é a mesma para todo cadastro
+  // novo, então "quem vendeu" não significaria nada.
+  if (deveTrocarSenha) return <TrocaSenhaPrimeiroAcesso operatorName={operatorName} />;
 
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden selection:bg-primary/30">

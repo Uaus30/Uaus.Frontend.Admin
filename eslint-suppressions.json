@@ -288,21 +288,6 @@
       "count": 1
     }
   },
-  "apps/admin/src/features/users/components/UserEditorModal.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
-    }
-  },
-  "apps/admin/src/features/users/components/UsersTable.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 3
-    }
-  },
-  "apps/admin/src/features/users/hooks/useUsers.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
   "apps/admin/src/lib/__tests__/imageOptimizer.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4

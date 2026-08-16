@@ -1,8 +1,11 @@
 import { type ReactNode } from "react";
 import { Redirect, useLocation, useSearch } from "wouter";
 import { Spinner } from "@workspace/ui";
+import { precisaTrocarSenha } from "@workspace/api-client-react";
 import { podeAcessar, type AppRoute } from "@/routes";
 import { useSessao } from "@/hooks/use-sessao";
+import { getDisplayName } from "@/services/mappers";
+import { TrocaSenhaObrigatoria } from "@/features/users/components/TrocaSenhaObrigatoria";
 import { urlLoginCom } from "@/lib/destino-login";
 
 /**
@@ -58,6 +61,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (isLoading) return <TelaCarregando />;
   if (!user) return <Redirect to={urlLoginCom(caminho)} />;
+
+  // Primeiro acesso: quem está Pendente entrou com a senha padrão do sistema, que
+  // é a mesma para todo cadastro novo. A troca vem antes de qualquer tela, e no
+  // gate em vez de numa rota — rota daria para pular pela URL.
+  if (precisaTrocarSenha(user.status)) return <TrocaSenhaObrigatoria nome={getDisplayName(user)} />;
 
   return <>{children}</>;
 }

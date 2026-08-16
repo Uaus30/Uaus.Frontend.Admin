@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { STALE_TIME, useGetMe } from "@workspace/api-client-react";
+import { STALE_TIME, precisaTrocarSenha, useGetMe } from "@workspace/api-client-react";
 
 /**
  * Operador autenticado no caixa, e o desvio para o login quando não há um.
@@ -35,5 +35,17 @@ export function usePdvOperator() {
     ? `${user.firstName} ${user.lastName || ""}`.trim()
     : (user as { name?: string } | undefined)?.name || "Operador";
 
-  return { user, isLoading, operatorName };
+  /**
+   * O operador entrou com a senha padrão do sistema e ainda não escolheu a dele.
+   *
+   * A decisão sai de `precisaTrocarSenha`, do api-client, e não de uma comparação
+   * local: o admin faz a mesma pergunta, e os dois discordarem significaria o PDV
+   * liberando o caixa a quem a retaguarda ainda considera pendente.
+   *
+   * Mora junto do resto da autenticação porque é a mesma decisão — quem pode
+   * operar o caixa agora.
+   */
+  const deveTrocarSenha = user != null && precisaTrocarSenha(user.status);
+
+  return { user, isLoading, operatorName, deveTrocarSenha };
 }

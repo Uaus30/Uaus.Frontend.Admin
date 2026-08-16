@@ -1,10 +1,11 @@
 import { AppLayout } from "@/components/layout";
-import { Button } from "@workspace/ui";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { Button, ConfirmDialog } from "@workspace/ui";
+import { FirstAccessDialog } from "@/features/users/components/FirstAccessDialog";
 import { UserEditorModal } from "@/features/users/components/UserEditorModal";
 import { UsersTable } from "@/features/users/components/UsersTable";
 import { useUsers } from "@/features/users/hooks/useUsers";
-import { Loader2, Plus } from "lucide-react";
+import { getDisplayName } from "@/services/mappers";
+import { Plus } from "lucide-react";
 
 /**
  * Página principal de Usuários Administrativos do Painel.
@@ -17,21 +18,28 @@ export default function Users() {
     editingId,
     deleteId,
     setDeleteId,
+    resetTarget,
+    setResetTarget,
+    firstAccess,
+    setFirstAccess,
     form,
     setForm,
     data,
     isLoading,
     selectableRoleOptions,
-    selectableStatusOptions,
+    editableStatusOptions,
+    pendentePrimeiroAcesso,
     roleLabels,
     statusLabels,
     creating,
     updating,
     deleting,
+    resetting,
     openCreate,
     openEdit,
     handleSubmitUser,
     handleDeleteUser,
+    handleResetPassword,
     usernameFromEmail,
   } = useUsers();
 
@@ -54,6 +62,7 @@ export default function Users() {
           roleLabels={roleLabels}
           statusLabels={statusLabels}
           onEdit={openEdit}
+          onResetPassword={setResetTarget}
           onDelete={setDeleteId}
         />
       </div>
@@ -65,7 +74,8 @@ export default function Users() {
         form={form}
         onFormChange={setForm}
         selectableRoleOptions={selectableRoleOptions}
-        selectableStatusOptions={selectableStatusOptions}
+        editableStatusOptions={editableStatusOptions}
+        pendentePrimeiroAcesso={pendentePrimeiroAcesso}
         isSaving={creating || updating}
         onSubmit={(e) => {
           e.preventDefault();
@@ -74,28 +84,33 @@ export default function Users() {
         usernameFromEmail={usernameFromEmail}
       />
 
-      <Dialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent className="sm:max-w-sm bg-card border-border">
-          <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja remover este usuário? A exclusão é lógica no backend.
-          </p>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteId(null)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleting}
-              onClick={() => deleteId && handleDeleteUser(deleteId)}
-            >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remover"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FirstAccessDialog info={firstAccess} onClose={() => setFirstAccess(null)} />
+
+      <ConfirmDialog
+        open={resetTarget !== null}
+        onOpenChange={(open) => !open && setResetTarget(null)}
+        title="Resetar a senha deste usuário?"
+        itemName={resetTarget ? getDisplayName(resetTarget) : undefined}
+        description="A senha volta a ser a padrão do sistema e o usuário fica Pendente até trocá-la. A senha atual dele para de funcionar na hora — inclusive num caixa aberto."
+        confirmLabel="Resetar senha"
+        loading={resetting}
+        onConfirm={() => {
+          if (resetTarget) handleResetPassword(resetTarget.id);
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title="Remover este usuário?"
+        description="A exclusão é lógica no backend: o usuário perde o acesso e some da lista, mas as vendas e baixas que ele registrou continuam apontando para ele."
+        confirmLabel="Remover"
+        destructive
+        loading={deleting}
+        onConfirm={() => {
+          if (deleteId) handleDeleteUser(deleteId);
+        }}
+      />
     </AppLayout>
   );
 }

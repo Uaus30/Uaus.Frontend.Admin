@@ -14,8 +14,16 @@ export interface UserDto {
   lastName: string;
   username: string;
   email: string;
-  role: number;
-  status: number;
+  /**
+   * Enum UserRole — chega como NOME (`"Admin"`), não como número. Normalize com
+   * `enumCode` e `USER_ROLE`. Ver a nota de `UserListDto.role`.
+   */
+  role: EnumValue;
+  /**
+   * Enum UserStatus — chega como NOME (`"Pending"`). Normalize com `enumCode` e
+   * `USER_STATUS`. `Pending` significa "ainda usa a senha do primeiro acesso".
+   */
+  status: EnumValue;
 }
 
 export interface UserListDto {
@@ -24,13 +32,38 @@ export interface UserListDto {
   lastName: string;
   username: string;
   email: string;
-  role: number;
-  status: number;
+  /**
+   * Enum UserRole — pode vir como número ou nome; use `enumCode`.
+   *
+   * Declarar `number` aqui já custou duas telas. O backend registra
+   * `JsonStringEnumConverter`, então a API manda `"Seller"`: `podeAcessar`
+   * comparava `[1].includes("Admin")` e escondia meia retaguarda até o
+   * `routes.ts` normalizar na fronteira, e a modal de edição de usuário
+   * procurava a opção `"Seller"` num `<Select>` cujos valores são `"1"` e `"2"`
+   * — o campo Papel abria em branco, sem erro nenhum no console.
+   */
+  role: EnumValue;
+  /** Enum UserStatus — pode vir como número ou nome; use `enumCode`. */
+  status: EnumValue;
 }
 
 export interface AuthenticatedUserDto {
   user: UserDto;
   token: TokenDto;
+}
+
+/**
+ * Resposta do cadastro e do reset de senha.
+ *
+ * A senha de primeiro acesso vem do servidor porque quem a informa ao operador é
+ * o administrador que acabou de fazer a operação. Repeti-la em código na tela
+ * faria o admin passar adiante uma senha errada no dia em que a
+ * `System:DefaultPassword` mudasse no appsettings — sem erro que denunciasse.
+ */
+export interface UserFirstAccessDto {
+  user: UserDto;
+  /** Senha do primeiro acesso. O usuário é obrigado a trocá-la para virar Ativo. */
+  firstAccessPassword: string;
 }
 
 export interface EnumOptionDto {
@@ -97,6 +130,16 @@ export const USER_ROLE = {
   Seller: 2,
 } as const;
 
+/**
+ * Código do papel e do status no que é ENVIADO ao servidor.
+ *
+ * Nas respostas os campos são `EnumValue` (o backend serializa enum pelo nome) e
+ * se leem com `enumCode`; nos payloads o tipo é fechado, pelo mesmo motivo do
+ * `CouponDiscountTypeCode`: `role: 7` só apareceria como 400 no salvamento.
+ */
+export type UserRoleCode = (typeof USER_ROLE)[keyof typeof USER_ROLE];
+export type UserStatusCode = (typeof USER_STATUS)[keyof typeof USER_STATUS];
+
 export const SUPPLIER_STATUS = {
   None: 0,
   Active: 1,
@@ -147,6 +190,32 @@ export const SELECTABLE_COUPON_DISCOUNT_TYPES = [
   COUPON_DISCOUNT_TYPE.Percentage,
   COUPON_DISCOUNT_TYPE.Amount,
 ] as const;
+
+/**
+ * Tamanho mínimo da nova senha.
+ *
+ * Espelha o `ChangePasswordRequest.TamanhoMinimo` do backend. Existe no cliente
+ * só para o formulário avisar antes de enviar; quem recusa de verdade é o
+ * servidor. Se os dois números divergirem, o sintoma é uma senha aceita pela
+ * tela e recusada pela API — mudou lá, mude aqui.
+ */
+export const SENHA_TAMANHO_MINIMO = 6;
+
+/**
+ * O usuário ainda precisa trocar a senha do primeiro acesso?
+ *
+ * `Pending` é o estado de quem nunca trocou a senha — e a senha que ele usa é a
+ * padrão do sistema, gravada no appsettings e idêntica para todos os cadastros.
+ * Quem está assim autentica (senão não teria como estrear a conta), mas não deve
+ * chegar a nenhuma outra tela antes de trocar.
+ *
+ * Mora aqui, ao lado de `USER_STATUS` e `enumCode`, porque **admin e PDV têm que
+ * responder isto igual**. Cada app decidindo por conta própria é o caminho para
+ * o PDV liberar o caixa a quem o admin ainda considera pendente.
+ */
+export function precisaTrocarSenha(status: EnumValue): boolean {
+  return enumCode(status, USER_STATUS) === USER_STATUS.Pending;
+}
 
 /** Converte o valor de um enum vindo da API (número ou nome) para o código numérico. */
 export function enumCode(value: EnumValue, names: Record<string, number>): number {
@@ -1358,11 +1427,37 @@ export type UpdateCategoryPayload = CreateCategoryPayload;
 export type CreateCustomerPayload = Omit<CustomerDto, CamposDoServidor>;
 export type UpdateCustomerPayload = CreateCustomerPayload;
 
-export type CreateUserPayload = Omit<UserDto, CamposDoServidor> & {
-  /** Só no cadastro; a troca de senha tem endpoint próprio. */
-  password?: string;
-};
-export type UpdateUserPayload = Omit<UserDto, CamposDoServidor>;
+/**
+ * Cadastro de usuário.
+ *
+ * **Não tem senha nem status de propósito.** Todo cadastro nasce com a senha
+ * padrão do sistema e status Pendente, e é a troca no primeiro acesso que
+ * promove a conta a Ativo. O campo `password` existia aqui, a modal o pedia, e o
+ * servidor o descartava: o administrador entregava ao operador uma senha que o
+ * PDV recusava com "Senha inválida!".
+ *
+ * Não deriva de `UserDto` com `Omit` como os outros payloads porque o DTO passou
+ * a tipar `role`/`status` como `EnumValue` — o que é certo para LER a resposta e
+ * frouxo demais para o que se ENVIA: `role: "vendedor"` compilaria e voltaria 400.
+ */
+export interface CreateUserPayload {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  role: UserRoleCode;
+}
+
+/** Edição. O status entra aqui; a promoção de Pendente a Ativo, não — ver o README. */
+export interface UpdateUserPayload extends CreateUserPayload {
+  status: UserStatusCode;
+}
+
+/** Troca da própria senha. O alvo é sempre o usuário do token. */
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
 
 /** Grade de variação. O `values` é a lista de opções (P, M, G). */
 export type SaveGradePayload = Omit<GradeDto, CamposDoServidor>;
