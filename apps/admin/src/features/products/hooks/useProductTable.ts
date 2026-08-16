@@ -75,7 +75,7 @@ export function useProductTable() {
   const [search, setSearch] = useState(initialSearchFromUrl);
   const debouncedSearch = useDebounce(search, 300);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(10);
 
   useEffect(() => {
     setPage(1);

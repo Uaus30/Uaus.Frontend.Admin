@@ -53,7 +53,7 @@ export function useGetProductTable(
       const result = await apiGetOrThrow<BackendPagedResult<ProductTableRowDto>>("/Products/table", {
         search: params?.search,
         page: params?.page ?? 1,
-        size: params?.limit ?? 20,
+        size: params?.limit ?? 10,
       });
       return mapPagedResult(result);
     },
