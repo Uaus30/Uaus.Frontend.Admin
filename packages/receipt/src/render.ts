@@ -53,19 +53,54 @@ export function buildReceiptHtml(data: ReceiptData): string {
     })
     .join("");
 
-  const paymentRows = data.payments
-    .map((payment) => {
-      const label =
-        payment.installments && payment.installments > 1
-          ? `${escapeHtml(payment.name)} (${payment.installments}x)`
-          : escapeHtml(payment.name);
-      return row(label, payment.amount == null ? "—" : formatReceiptCurrency(payment.amount));
-    })
-    .join("");
+  const paymentRows = data.payments.length
+    ? data.payments
+        .map((payment) => {
+          const label =
+            payment.installments && payment.installments > 1
+              ? `${escapeHtml(payment.name)} (${payment.installments}x)`
+              : escapeHtml(payment.name);
+          return row(label, payment.amount == null ? "—" : formatReceiptCurrency(payment.amount));
+        })
+        .join("")
+    : // Venda zerada pelo cupom não tem forma de pagamento nenhuma, e a seção
+      // ficaria com o título solto sobre o vazio. Mesma saída do relatório de
+      // caixa quando não houve recebimento.
+      `<div class="row small"><span class="row-label">Nenhum pagamento registrado.</span></div>`;
+
+  const { coupon } = data;
+
+  // "DESCONTO CUPOM 10OFFSET26 (10%)". O rótulo já vem pronto de quem chama —
+  // ver `ReceiptCoupon.label` —, e sem ele os parênteses somem em vez de saírem
+  // vazios no papel.
+  //
+  // `row()` interpola CRU: escapar é obrigação de quem monta o rótulo. Código e
+  // descrição são texto livre do cadastro e passam pelo `escapeHtml`; o rótulo
+  // vai junto por consistência, mesmo nascendo de número.
+  const couponLabel = coupon?.label.trim();
+  const couponRow = coupon
+    ? row(
+        `DESCONTO CUPOM ${escapeHtml(coupon.code)}${couponLabel ? ` (${escapeHtml(couponLabel)})` : ""}`,
+        `- ${formatReceiptCurrency(coupon.amount)}`,
+      )
+    : "";
+
+  const couponDescriptionRow = coupon?.description?.trim()
+    ? `<div class="item-breakdown">${escapeHtml(coupon.description.trim())}</div>`
+    : "";
+
+  // O Subtotal existe para que todo abatimento tenha de onde ser subtraído. Ele
+  // também aparece na venda abatida SÓ pelo cupom (`discount` zerado), senão o
+  // papel mostraria um desconto pendurado sem o valor cheio acima dele.
+  const hasDiscountBlock = discount > 0 || coupon != null;
 
   const totalsRows = [
-    discount > 0 ? row("Subtotal", formatReceiptCurrency(subtotal)) : "",
+    hasDiscountBlock ? row("Subtotal", formatReceiptCurrency(subtotal)) : "",
     discount > 0 ? row("Desconto", `- ${formatReceiptCurrency(discount)}`) : "",
+    // Entre o desconto e o TOTAL: é a ordem em que a conta acontece, e é assim
+    // que o cliente confere de cima para baixo.
+    couponRow,
+    couponDescriptionRow,
     row("TOTAL", formatReceiptCurrency(data.total), "total"),
     data.amountReceived != null ? row("Valor recebido", formatReceiptCurrency(data.amountReceived)) : "",
     data.change != null ? row("Troco", formatReceiptCurrency(data.change)) : "",

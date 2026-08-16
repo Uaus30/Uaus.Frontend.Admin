@@ -48,6 +48,52 @@ export interface ReceiptItem {
   barcode?: string | null;
 }
 
+/**
+ * Cupom de desconto aplicado na venda, como ele sai impresso.
+ *
+ * O bloco é opcional e existir já é a decisão: presente, o cupom ganha linha
+ * própria entre o desconto e o TOTAL; ausente, nada muda no impresso.
+ *
+ * **As respostas do questionário da campanha NÃO entram aqui e nunca são
+ * impressas.** O comprovante é o documento que o cliente leva no bolso e deixa
+ * cair no balcão; sexo, faixa etária e "como conheceu a loja" são dado de
+ * pesquisa, que vive no relatório da campanha e em nenhum papel.
+ */
+export interface ReceiptCoupon {
+  /**
+   * Código do cupom, como estava no panfleto — "10OFFSET26".
+   *
+   * Vem do SNAPSHOT do resgate, não do cadastro de hoje: o cupom pode ter sido
+   * editado depois da venda, e a segunda via tem que sair igual à primeira.
+   */
+  code: string;
+  /** Descrição do cupom, impressa numa linha menor logo abaixo. */
+  description?: string | null;
+  /**
+   * Texto PRONTO do parâmetro do cupom — `"10%"` ou `"R$ 20,00"` —, montado por
+   * quem chama e impresso entre parênteses ao lado do código.
+   *
+   * É texto e não `{ tipo, valor }` de propósito: o tipo é um enum do backend
+   * (`CouponDiscountType`, que a API serializa ora pelo nome, ora pelo número) e
+   * mora em `@workspace/api-client`, pacote do qual o cupom impresso **não
+   * depende** — ele também é montado offline, a partir do snapshot local do PDV,
+   * onde não há DTO nenhum por perto. Recebendo texto pronto, o layout nunca
+   * precisa saber quantos tipos de desconto existem: um terceiro tipo amanhã
+   * muda quem chama, não a impressão.
+   *
+   * Vazio é aceito e simplesmente omite os parênteses — é o que sobra de uma
+   * venda antiga cujo snapshot não guardou tipo e valor.
+   */
+  label: string;
+  /**
+   * Reais efetivamente abatidos pelo cupom, impressos com o sinal "- ".
+   *
+   * É valor absoluto e positivo, como o desconto global: o sinal é decoração da
+   * linha, não do número.
+   */
+  amount: number;
+}
+
 /** Uma forma de pagamento usada na venda. */
 export interface ReceiptPayment {
   name: string;
@@ -78,9 +124,27 @@ export interface ReceiptData {
   customerDocument?: string | null;
   items: ReceiptItem[];
   payments: ReceiptPayment[];
-  /** Desconto aplicado sobre o total da venda. */
+  /**
+   * Desconto concedido pelo operador sobre o total da venda — **sem o cupom**,
+   * que tem linha própria.
+   *
+   * Cuidado: o `discount` da API é o desconto TOTAL e **já inclui** a parcela do
+   * cupom. Repassá-lo cru junto com o bloco `coupon` imprimiria o mesmo
+   * abatimento duas vezes e a coluna deixaria de fechar — `Subtotal − Desconto −
+   * Cupom` daria menos que o TOTAL impresso ao lado, na única conta que o
+   * cliente confere de fato. Quem monta o cupom a partir da venda da API
+   * (`buildReceiptFromSale`) já faz a subtração; quem monta do carrinho passa o
+   * `globalDiscount` de `computeSaleTotals`, que sai discriminado do cupom.
+   */
   discount?: number;
-  /** Total final da venda. */
+  /**
+   * Cupom de desconto aplicado na venda. Ausente na venda sem cupom.
+   *
+   * Um por venda — não é cumulativo, e o índice único do resgate no banco é
+   * quem garante isso.
+   */
+  coupon?: ReceiptCoupon;
+  /** Total final da venda. Pode ser zero: o cupom zera a venda, nunca a torna negativa. */
   total: number;
   /** Valor em dinheiro recebido do cliente, quando houver. */
   amountReceived?: number | null;

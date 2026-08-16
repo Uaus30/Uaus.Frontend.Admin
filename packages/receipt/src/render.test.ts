@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildReceiptHtml, computeItemsSubtotal } from "./render";
+import { buildReceiptHtml, computeItemsSubtotal, formatReceiptCurrency } from "./render";
 import { STORE_LOGO_DATA_URI } from "./logo";
 import { STORE_INFO } from "./store-info";
 import type { ReceiptData } from "./types";
@@ -113,11 +113,13 @@ describe("buildReceiptHtml", () => {
     );
   });
 
-  it("omite subtotal e desconto quando não há desconto", () => {
+  it("omite subtotal e desconto quando não há abatimento nenhum", () => {
+    // Sem desconto e sem cupom o cupom não fala em desconto de forma alguma —
+    // nem em "Desconto", nem em "DESCONTO CUPOM".
     const html = buildReceiptHtml(makeReceipt());
 
     expect(html).not.toContain("Subtotal");
-    expect(html).not.toContain("Desconto");
+    expect(html).not.toMatch(/desconto/i);
   });
 
   it("mostra subtotal e desconto quando houve desconto", () => {
@@ -131,6 +133,135 @@ describe("buildReceiptHtml", () => {
 
     expect(html).toContain("Subtotal");
     expect(html).toContain("Desconto");
+  });
+
+  it("imprime a linha do cupom com código, parâmetro e valor abatido", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "CHICLETE DE BOLA", quantity: 10, unitPrice: 12.34 }],
+        discount: 0,
+        coupon: { code: "10OFFSET26", label: "10%", amount: 12.34 },
+        total: 111.06,
+      }),
+    );
+
+    expect(html).toContain("DESCONTO CUPOM 10OFFSET26 (10%)");
+    expect(html).toContain(`- ${formatReceiptCurrency(12.34)}`);
+  });
+
+  it("imprime o cupom de valor fixo com o rótulo em reais", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "CESTA", quantity: 1, unitPrice: 100 }],
+        coupon: { code: "BEMVINDO", label: formatReceiptCurrency(20), amount: 20 },
+        total: 80,
+      }),
+    );
+
+    expect(html).toContain(`DESCONTO CUPOM BEMVINDO (${formatReceiptCurrency(20)})`);
+  });
+
+  it("imprime o Subtotal na venda abatida SÓ pelo cupom", () => {
+    // Sem esta regra o papel mostraria um abatimento pendurado, sem o valor
+    // cheio acima dele para ser subtraído.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "CESTA", quantity: 1, unitPrice: 100 }],
+        discount: 0,
+        coupon: { code: "BEMVINDO", label: "20%", amount: 20 },
+        total: 80,
+      }),
+    );
+
+    expect(html).toContain("Subtotal");
+    expect(html).toContain(formatReceiptCurrency(100));
+    // Sem desconto de operador, a linha "Desconto" continua fora.
+    expect(html).not.toContain(">Desconto<");
+  });
+
+  it("põe a linha do cupom entre o desconto e o TOTAL", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "CESTA", quantity: 1, unitPrice: 100 }],
+        discount: 5,
+        coupon: { code: "BEMVINDO", label: "10%", amount: 9.5 },
+        total: 85.5,
+      }),
+    );
+
+    // `class="row total"` e não "TOTAL": a palavra também é o cabeçalho da
+    // coluna dos itens, lá em cima, e o indexOf pararia nela.
+    const order = ["Subtotal", ">Desconto<", "DESCONTO CUPOM", 'class="row total"'].map((marker) =>
+      html.indexOf(marker),
+    );
+
+    expect(order.every((position) => position >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it("imprime a descrição do cupom abaixo da linha do abatimento", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        coupon: {
+          code: "BEMVINDO",
+          description: "Primeira compra",
+          label: "10%",
+          amount: 0.02,
+        },
+      }),
+    );
+
+    expect(html).toContain('<div class="item-breakdown">Primeira compra</div>');
+    expect(html.indexOf("DESCONTO CUPOM")).toBeLessThan(html.indexOf("Primeira compra"));
+  });
+
+  it("escapa o código e a descrição do cupom", () => {
+    // `row()` interpola cru: quem escapa é quem monta o rótulo. Código vem de
+    // campo livre do cadastro e já chegou torto de importação de planilha.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        coupon: {
+          code: '<b>10"OFF</b>',
+          description: '<img src="x">',
+          label: "10%",
+          amount: 0.02,
+        },
+      }),
+    );
+
+    expect(html).not.toContain("<b>10");
+    expect(html).not.toContain('<img src="x">');
+    expect(html).toContain("&lt;b&gt;10&quot;OFF&lt;/b&gt;");
+    expect(html).toContain("&lt;img src=&quot;x&quot;&gt;");
+  });
+
+  it("omite os parênteses quando o cupom não sabe o próprio parâmetro", () => {
+    // Snapshot antigo, sem tipo nem valor: sai o código sozinho, e não "(0%)".
+    const html = buildReceiptHtml(
+      makeReceipt({ coupon: { code: "ANTIGO", label: "", amount: 0.02 } }),
+    );
+
+    expect(html).toContain("DESCONTO CUPOM ANTIGO<");
+    expect(html).not.toContain("ANTIGO (");
+  });
+
+  it("imprime a venda zerada pelo cupom sem troco e sem pagamento", () => {
+    // O cupom pode zerar a venda (nunca torná-la negativa) e o checkout do PDV
+    // pula a etapa de pagamento — o comprovante ainda tem que sair inteiro.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "BRINDE", quantity: 1, unitPrice: 20 }],
+        payments: [],
+        discount: 0,
+        coupon: { code: "GRATIS", label: "100%", amount: 20 },
+        total: 0,
+      }),
+    );
+
+    expect(html).toContain(`>TOTAL</span><span class="row-value">${formatReceiptCurrency(0)}<`);
+    expect(html).not.toContain("Troco");
+    expect(html).not.toContain("Valor recebido");
+    expect(html).toContain("Nenhum pagamento registrado.");
   });
 
   it("imprime troco só quando houve dinheiro recebido", () => {

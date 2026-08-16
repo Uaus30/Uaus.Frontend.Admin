@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { buildReceiptFromSale, type SaleLike } from "./from-sale";
+import { buildReceiptHtml, formatReceiptCurrency } from "./render";
+import type { ReceiptData } from "./types";
+
+/**
+ * Extrai o bloco de totais do cupom já impresso — "rótulo valor", na ordem.
+ *
+ * A comparação é feita sobre o HTML e não sobre o `ReceiptData` de propósito: o
+ * que precisa bater entre a primeira e a segunda via é o que sai no papel.
+ */
+function totalsBlock(html: string): string[] {
+  const rows = html.matchAll(
+    /<div class="row[^"]*"><span class="row-label">(.*?)<\/span><span class="row-value">(.*?)<\/span><\/div>/g,
+  );
+
+  return [...rows]
+    .filter(([, label]) => /^(Subtotal|Desconto|DESCONTO CUPOM|TOTAL$)/.test(label))
+    .map(([, label, value]) => `${label} ${value}`);
+}
 
 /** Venda mínima como a API devolve, sobrescrita por teste conforme o caso. */
 function makeSale(overrides: Partial<SaleLike> = {}): SaleLike {
@@ -93,6 +111,129 @@ describe("buildReceiptFromSale", () => {
     });
 
     expect(receipt.operatorName).toBe("Do contexto");
+  });
+
+  it("não inventa bloco de cupom na venda que não teve um", () => {
+    const receipt = buildReceiptFromSale(makeSale({ discount: 2 }), []);
+
+    expect(receipt.coupon).toBeUndefined();
+    expect(receipt.discount).toBe(2);
+  });
+
+  it("monta o bloco do cupom a partir do snapshot da venda", () => {
+    const receipt = buildReceiptFromSale(
+      makeSale({
+        discount: 12.34,
+        couponDiscount: 12.34,
+        couponCode: "10OFFSET26",
+        couponDescription: "Panfleto de setembro",
+        couponDiscountType: "Percentage",
+        couponDiscountValue: 10,
+      }),
+      [],
+    );
+
+    expect(receipt.coupon).toEqual({
+      code: "10OFFSET26",
+      description: "Panfleto de setembro",
+      label: "10%",
+      amount: 12.34,
+    });
+  });
+
+  it("escreve o rótulo em reais no cupom de valor fixo", () => {
+    const receipt = buildReceiptFromSale(
+      makeSale({
+        couponCode: "BEMVINDO",
+        couponDiscountType: "Amount",
+        couponDiscountValue: 20,
+        couponDiscount: 20,
+        discount: 20,
+      }),
+      [],
+    );
+
+    expect(receipt.coupon?.label).toBe(formatReceiptCurrency(20));
+  });
+
+  it("aceita o tipo do desconto como número, e não só como nome", () => {
+    // A fila offline pode ter guardado o código do enum em vez do nome.
+    const receipt = buildReceiptFromSale(
+      makeSale({ couponCode: "X", couponDiscountType: 1, couponDiscountValue: 15 }),
+      [],
+    );
+
+    expect(receipt.coupon?.label).toBe("15%");
+  });
+
+  it("deixa o rótulo vazio quando o snapshot não sabe tipo nem valor", () => {
+    const receipt = buildReceiptFromSale(makeSale({ couponCode: "ANTIGO" }), []);
+
+    expect(receipt.coupon?.label).toBe("");
+    expect(receipt.coupon?.amount).toBe(0);
+  });
+
+  it("tira o cupom do desconto, porque na API ele já está dentro dele", () => {
+    // `discount` da API é o desconto TOTAL: 5 do operador + 11,84 do cupom.
+    // Repassá-lo cru imprimiria o cupom duas vezes e a coluna não fecharia.
+    const receipt = buildReceiptFromSale(
+      makeSale({ discount: 16.84, couponDiscount: 11.84, couponCode: "10OFFSET26" }),
+      [],
+    );
+
+    expect(receipt.discount).toBe(5);
+    expect(receipt.coupon?.amount).toBe(11.84);
+  });
+
+  it("não deixa o desconto ficar negativo com snapshot inconsistente", () => {
+    const receipt = buildReceiptFromSale(
+      makeSale({ discount: 5, couponDiscount: 12, couponCode: "X" }),
+      [],
+    );
+
+    expect(receipt.discount).toBe(0);
+  });
+
+  it("reimprime o mesmo bloco de totais que saiu na primeira via", () => {
+    // A primeira via nasce do carrinho do PDV, com os descontos já
+    // discriminados; a segunda nasce da venda da API, onde eles vêm somados.
+    // Divergir aqui é pior do que não reimprimir: o cliente tem as duas vias.
+    const items = [{ productId: 7, productName: "CESTA", quantity: 1, unitPrice: 123.4 }];
+
+    const firstVia: ReceiptData = {
+      saleId: 42,
+      createdAt: "2026-09-30T12:30:15",
+      items: [{ name: "CESTA", quantity: 1, unitPrice: 123.4 }],
+      payments: [{ name: "Dinheiro", amount: 106.56 }],
+      discount: 5,
+      coupon: { code: "10OFFSET26", description: null, label: "10%", amount: 11.84 },
+      total: 106.56,
+    };
+
+    const secondVia = buildReceiptFromSale(
+      makeSale({
+        createdAt: "2026-09-30T12:30:15",
+        total: 106.56,
+        discount: 16.84,
+        couponDiscount: 11.84,
+        couponCode: "10OFFSET26",
+        couponDiscountType: "Percentage",
+        couponDiscountValue: 10,
+        payments: [{ paymentMethodId: 1, paymentMethodName: "Dinheiro", amount: 106.56 }],
+      }),
+      items,
+      { reprint: true },
+    );
+
+    const printed = totalsBlock(buildReceiptHtml(secondVia));
+
+    expect(printed).toEqual(totalsBlock(buildReceiptHtml(firstVia)));
+    expect(printed).toEqual([
+      `Subtotal ${formatReceiptCurrency(123.4)}`,
+      `Desconto - ${formatReceiptCurrency(5)}`,
+      `DESCONTO CUPOM 10OFFSET26 (10%) - ${formatReceiptCurrency(11.84)}`,
+      `TOTAL ${formatReceiptCurrency(106.56)}`,
+    ]);
   });
 
   it("repassa o contexto de operador, consumidor e segunda via", () => {
