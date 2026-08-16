@@ -82,7 +82,7 @@ export function WeekComparisonCard({ days, week, isLoading }: WeekComparisonCard
               <p
                 className={cn(
                   "text-sm font-semibold tabular-nums",
-                  week.changePercentage === null
+                  week.changePercentage == null
                     ? "text-muted-foreground"
                     : week.changePercentage >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
@@ -92,7 +92,7 @@ export function WeekComparisonCard({ days, week, isLoading }: WeekComparisonCard
                 {/* O recorte "mesma altura" é do servidor: comparar a terça em
                     curso com a semana passada inteira mostraria uma queda que é
                     só o calendário. */}
-                {week.changePercentage === null
+                {week.changePercentage == null
                   ? "sem base de comparação"
                   : formatSignedPercent(week.changePercentage)}
               </p>

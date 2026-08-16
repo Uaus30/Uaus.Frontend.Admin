@@ -17,7 +17,7 @@ import {
 import { Button } from "@workspace/ui";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
-import { adminHomeUrl, openInNewTab } from "@/lib/admin-links";
+import { adminBaseUrl, adminHomeUrl, openInNewTab } from "@/lib/admin-links";
 
 type PdvMainMenuProps = {
   /** A loja usa controle de caixa: fechamento e relatório do turno existem. */
@@ -66,6 +66,10 @@ export function PdvMainMenu({
   const [isOpen, setIsOpen] = useState(false);
   const heldSalesCount = usePdvStore((state) => state.heldSales.length);
   const toggleCalculator = useCalculatorStore((state) => state.toggleOpen);
+
+  // Lido a cada render de propósito: é leitura de `window.location`, barata, e
+  // guardá-la em estado só criaria um valor que pode ficar velho.
+  const adminDisponivel = adminBaseUrl() !== null;
 
   /** Fecha o menu e dispara a ação escolhida. */
   const run = (action: () => void) => () => {
@@ -159,18 +163,23 @@ export function PdvMainMenu({
                 Preferências
               </button>
 
-              <button
-                onClick={run(() => openInNewTab(adminHomeUrl()))}
-                className={`${ITEM_CLASS} justify-between`}
-              >
-                <span className="flex items-center gap-3">
-                  <LayoutDashboard className="w-4 h-4 text-primary" />
-                  Painel Administrativo
-                </span>
-                {/* Nova aba, não navegação: o caixa pode estar com venda em
-                    andamento, e sair da tela a perderia. */}
-                <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
+              {/* O item some quando não há como saber onde o admin está: um
+                  botão que abre outra aba do próprio PDV é pior que botão
+                  nenhum — parece que o painel quebrou. Ver `lib/admin-links`. */}
+              {adminDisponivel && (
+                <button
+                  onClick={run(() => openInNewTab(adminHomeUrl()))}
+                  className={`${ITEM_CLASS} justify-between`}
+                >
+                  <span className="flex items-center gap-3">
+                    <LayoutDashboard className="w-4 h-4 text-primary" />
+                    Painel Administrativo
+                  </span>
+                  {/* Nova aba, não navegação: o caixa pode estar com venda em
+                      andamento, e sair da tela a perderia. */}
+                  <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              )}
 
               <div className="h-px bg-border my-1" />
 

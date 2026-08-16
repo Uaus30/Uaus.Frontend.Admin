@@ -152,4 +152,79 @@ describe("useProductSearch", () => {
     expect(result.current.results).toEqual([]);
     expect(searchProducts).toHaveBeenCalledTimes(1);
   });
+
+  it("apagar TUDO limpa a lista, mesmo sem nova busca", async () => {
+    // Pedido do balcão: a lista sobrevivia ao campo vazio, então a tela ficava
+    // afirmando um resultado de uma busca que o operador já abandonou.
+    searchProducts.mockResolvedValue([COCA, FANTA]);
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+
+    await type(result.current.setQuery, "cola");
+    expect(result.current.results).toHaveLength(2);
+
+    await act(async () => {
+      result.current.setQuery("");
+    });
+
+    expect(result.current.results).toEqual([]);
+    expect(result.current.query).toBe("");
+  });
+
+  it("apagar UMA LETRA preserva a lista", async () => {
+    // A outra metade da regra, e ela é deliberada: quem corrige uma letra não
+    // pode ver a lista piscar a cada tecla.
+    searchProducts.mockResolvedValue([COCA, FANTA]);
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+
+    await type(result.current.setQuery, "cola");
+
+    await act(async () => {
+      result.current.setQuery("co");
+    });
+
+    expect(result.current.results).toHaveLength(2);
+  });
+
+  it("espaço em branco conta como campo vazio", async () => {
+    searchProducts.mockResolvedValue([COCA]);
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+
+    await type(result.current.setQuery, "cola");
+
+    await act(async () => {
+      result.current.setQuery("   ");
+    });
+
+    expect(result.current.results).toEqual([]);
+  });
+
+  it("resposta que chega DEPOIS de limpar não repõe a lista", async () => {
+    // Corrida real do balcão: o operador limpa o campo enquanto a busca está no
+    // ar. Sem a guarda de sequência, a resposta antiga traz de volta uma lista
+    // que ele acabou de apagar — e ele adiciona o produto errado ao carrinho.
+    let resolver: (produtos: unknown[]) => void = () => {};
+    searchProducts.mockImplementation(
+      () => new Promise((resolve) => { resolver = resolve as (p: unknown[]) => void; }),
+    );
+
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+
+    await act(async () => {
+      result.current.setQuery("cola");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    });
+
+    await act(async () => {
+      result.current.setQuery("");
+    });
+
+    await act(async () => {
+      resolver([COCA, FANTA]);
+      await Promise.resolve();
+    });
+
+    expect(result.current.results).toEqual([]);
+  });
 });

@@ -782,10 +782,16 @@ export interface PerformanceRangeDto {
   /**
    * Variação percentual sobre o anterior.
    *
-   * `null` quando não houve base de comparação — "não há com o que comparar" é
+   * Ausente quando não houve base de comparação — "não há com o que comparar" é
    * diferente de "não variou", e a tela precisa distinguir os dois.
+   *
+   * **Chega `undefined`, não `null`.** O backend serializa com
+   * `WhenWritingNull`, então o campo nulo é OMITIDO do JSON. Declarar só
+   * `number | null` fazia o TypeScript garantir ao consumidor uma coisa que não
+   * é verdade, e a tela de Desempenho do PDV ficou preta por causa de um
+   * `=== null` que nunca dava true. Compare com `== null` ou use `??`.
    */
-  changePercentage: number | null;
+  changePercentage?: number | null;
 }
 
 /** Um dia da semana com as duas semanas sobrepostas. */
@@ -817,8 +823,12 @@ export interface StorePerformanceDto {
   /** Momento em que o servidor respondeu, para a tela mostrar a hora do dado. */
   serverTime: string;
   today: PerformanceDayDto;
-  /** `null` quando a loja nunca vendeu antes de hoje. */
-  previousSalesDay: PerformanceDayDto | null;
+  /**
+   * Ausente quando a loja nunca vendeu antes de hoje.
+   *
+   * Chega `undefined`, não `null` — ver a nota em `changePercentage`.
+   */
+  previousSalesDay?: PerformanceDayDto | null;
   week: PerformanceRangeDto;
   month: PerformanceRangeDto;
   weekdayComparison: WeekdayComparisonDto[];

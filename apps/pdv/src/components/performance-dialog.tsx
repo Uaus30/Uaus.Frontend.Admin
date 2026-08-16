@@ -20,9 +20,17 @@ export interface PerformanceDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** Variação percentual com seta e cor, ou um traço quando não há base. */
-function ChangeBadge({ change }: { change: number | null }) {
-  if (change === null) {
+/**
+ * Variação percentual com seta e cor, ou um traço quando não há base.
+ *
+ * A comparação é `== null`, com dois iguais, e o tipo aceita `undefined`: o
+ * backend serializa com `WhenWritingNull`, então o campo sem valor não vem
+ * `null` — ele simplesmente NÃO VEM. Com `=== null` a guarda não pegava, o
+ * `toLocaleString` era chamado sobre `undefined` e a modal inteira ficava preta
+ * na primeira loja sem semana anterior.
+ */
+function ChangeBadge({ change }: { change: number | null | undefined }) {
+  if (change == null) {
     return <span className="text-xs text-muted-foreground">sem comparação</span>;
   }
 
@@ -50,7 +58,7 @@ function AccumulatedRow({
 }: {
   label: string;
   revenue: number;
-  change: number | null;
+  change: number | null | undefined;
 }) {
   return (
     <div className="flex items-baseline justify-between py-2">

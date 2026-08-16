@@ -74,14 +74,45 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
     optionsRef.current = options;
   });
 
+  /**
+   * Número da busca mais recente.
+   *
+   * Sem ele existe uma corrida real no balcão: o operador digita, o debounce
+   * dispara, ele limpa o campo antes de a resposta chegar — e a resposta antiga
+   * repõe a lista que acabou de sumir. Toda escrita na tela confere se ainda é a
+   * busca corrente.
+   */
+  const buscaAtualRef = useRef(0);
+
   const clear = useCallback(() => {
+    // Invalida o que estiver em voo: sem isso, limpar e receber a resposta
+    // anterior traria a lista de volta sozinha.
+    buscaAtualRef.current++;
     setQuery("");
     setResults([]);
+  }, []);
+
+  /**
+   * Atualiza o termo e, quando ele fica VAZIO, apaga a lista na hora.
+   *
+   * A limpeza mora aqui, no setter, e não num efeito sobre `query`: `setState`
+   * síncrono dentro de efeito dispara render em cascata e o lint reprova. Além
+   * disso é mais direto — quem apagou o campo já sabe que apagou.
+   */
+  const updateQuery = useCallback((next: string) => {
+    setQuery(next);
+
+    if (next.trim().length === 0) {
+      buscaAtualRef.current++;
+      setResults([]);
+    }
   }, []);
 
   const search = useCallback(
     async (term: string) => {
       const trimmed = term.trim();
+      const busca = ++buscaAtualRef.current;
+
       if (!trimmed) {
         setResults([]);
         return;
@@ -90,6 +121,11 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
       setIsSearching(true);
       try {
         const found = await searchProducts(trimmed, { online });
+
+        // Chegou tarde: o operador já limpou o campo ou digitou outra coisa.
+        // Escrever aqui seria mostrar resultado de uma busca que ele abandonou.
+        if (busca !== buscaAtualRef.current) return;
+
         setResults(found);
 
         // Leitura de código de barras: match exato e único não vira lista.
@@ -102,21 +138,26 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
 
         if (found.length === 0) optionsRef.current.onEmptyResult?.(trimmed);
       } catch (error) {
+        if (busca !== buscaAtualRef.current) return;
+
         toast({
           title: "Erro na busca",
           description: describeApiError(error),
           variant: "destructive",
         });
       } finally {
-        setIsSearching(false);
+        // Só a busca corrente desliga o indicador; a antiga desligaria o spinner
+        // de uma busca que ainda está rodando.
+        if (busca === buscaAtualRef.current) setIsSearching(false);
       }
     },
     [clear, online, toast],
   );
 
-  // Termo curto não limpa o que já está na tela: o operador que apaga uma letra
-  // para corrigir continua vendo o resultado anterior em vez de uma lista que
-  // pisca.
+  // Termo CURTO não limpa o que já está na tela: quem apaga uma letra para
+  // corrigir continua vendo o resultado anterior em vez de uma lista que pisca.
+  // Termo VAZIO é outra coisa, e é tratado em `updateQuery`: manter resultados
+  // sem termo nenhum deixa a tela afirmando uma busca que não existe mais.
   useEffect(() => {
     if (!enabled) return;
     if (query.trim().length < MIN_SEARCH_LENGTH) return;
@@ -125,5 +166,5 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
     return () => clearTimeout(timer);
   }, [enabled, query, search]);
 
-  return { query, setQuery, results, isSearching, search, clear };
+  return { query, setQuery: updateQuery, results, isSearching, search, clear };
 }

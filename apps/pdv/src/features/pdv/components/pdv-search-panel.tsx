@@ -1,10 +1,10 @@
 import type { RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Pencil, Search } from "lucide-react";
+import { Loader2, Pencil, Search, X } from "lucide-react";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 import { Button, Input, ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
-import { adminProductSearchUrl, openInNewTab } from "@/lib/admin-links";
+import { adminBaseUrl, adminProductSearchUrl, openInNewTab } from "@/lib/admin-links";
 import type { ProductSearchState } from "../hooks/use-product-search";
 
 type PdvSearchPanelProps = {
@@ -23,6 +23,10 @@ type PdvSearchPanelProps = {
  * estoque" responde a pergunta de uma vez.
  */
 export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPanelProps) {
+  // O lápis some quando não há como saber onde o admin está: abrir outra aba do
+  // próprio PDV parece que o painel quebrou. Ver `lib/admin-links`.
+  const adminDisponivel = adminBaseUrl() !== null;
+
   return (
     <div className="flex-1 flex flex-col relative border-r border-border/50 bg-background/50">
       <div className="p-6 border-b border-border/50 bg-card z-20">
@@ -39,9 +43,31 @@ export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPan
             value={search.query}
             onChange={(e) => search.setQuery(e.target.value)}
             placeholder="Código de barras ou nome do produto..."
-            className="pl-12 h-14 text-lg font-medium bg-background border-primary/20 focus-visible:ring-primary shadow-inner"
+            className={`h-14 text-lg font-medium bg-background border-primary/20 focus-visible:ring-primary shadow-inner pl-12 ${
+              search.query ? "pr-32" : "pr-24"
+            }`}
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {/* Some com o campo vazio: um "x" que não limpa nada só ocupa espaço
+                e faz o operador conferir se clicou. O foco volta para o campo
+                porque o balcão trabalha sem tirar a mão do teclado — perder o
+                cursor aqui obriga a clicar antes de bipar o próximo produto. */}
+            {search.query && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  search.clear();
+                  inputRef.current?.focus();
+                }}
+                title="Limpar busca (Esc)"
+                aria-label="Limpar busca"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
             <Button
               type="submit"
               size="sm"
@@ -107,6 +133,7 @@ export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPan
                               que o clique também adicione o item ao carrinho. */}
                           <button
                             type="button"
+                            hidden={!adminDisponivel}
                             onClick={(event) => {
                               event.stopPropagation();
                               openInNewTab(adminProductSearchUrl(product.barcode || product.name));

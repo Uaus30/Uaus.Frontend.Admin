@@ -46,12 +46,14 @@ export interface PreviousDayComparison {
  * Monta a leitura da comparação com o dia anterior.
  *
  * @param today Faturamento de hoje.
- * @param previousDay Último dia com venda, ou `null` quando não houve.
+ * @param previousDay Último dia com venda. Aceita `undefined` além de `null`
+ *   porque o backend OMITE o campo quando não houve dia anterior — ele nunca
+ *   chega como `null` de verdade.
  * @param reference Data de hoje, para decidir se o anterior foi ontem.
  */
 export function describePreviousDay(
   today: number,
-  previousDay: PerformanceDayDto | null,
+  previousDay: PerformanceDayDto | null | undefined,
   reference: Date,
 ): PreviousDayComparison | null {
   if (!previousDay) return null;
