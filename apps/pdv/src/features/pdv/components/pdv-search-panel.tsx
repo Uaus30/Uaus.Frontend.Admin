@@ -11,6 +11,8 @@ type PdvSearchPanelProps = {
   search: ProductSearchState;
   /** Campo de busca — o balcão devolve o cursor para cá o tempo todo. */
   inputRef: RefObject<HTMLInputElement | null>;
+  /** A API está respondendo. Muda o que a busca vazia explica ao operador. */
+  online: boolean;
   /** Produto escolhido na lista de resultados. */
   onPickProduct: (product: ProductPdvSearchDto) => void;
 };
@@ -18,11 +20,15 @@ type PdvSearchPanelProps = {
 /**
  * Coluna esquerda do PDV: campo de busca e resultados.
  *
- * Produto zerado aparece na lista, mas apagado e sem clique: escondê-lo faria o
- * operador achar que o cadastro sumiu e procurar de novo. Mostrar com "sem
- * estoque" responde a pergunta de uma vez.
+ * Produto zerado aparece na lista — no fim dela, apagado e sem clique. Escondê-lo
+ * faria o operador achar que o cadastro sumiu e procurar de novo; deixá-lo no
+ * meio empurrava para fora da tela o item vendável. Mostrar por último e com
+ * "sem estoque" responde a pergunta de uma vez.
+ *
+ * Busca sem resultado também fica **aqui**, no lugar do primeiro item, e não num
+ * toast: o operador está olhando para a lista, não para o canto da tela.
  */
-export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPanelProps) {
+export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvSearchPanelProps) {
   // O lápis some quando não há como saber onde o admin está: abrir outra aba do
   // próprio PDV parece que o painel quebrou. Ver `lib/admin-links`.
   const adminDisponivel = adminBaseUrl() !== null;
@@ -30,6 +36,10 @@ export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPan
   return (
     <div className="flex-1 flex flex-col relative border-r border-border/50 bg-background/50">
       <div className="p-6 border-b border-border/50 bg-card z-20">
+        {/* O formulário continua existindo sem botão de buscar: a digitação já
+            dispara sozinha a partir de 3 caracteres, mas o Enter é a única saída
+            para um termo mais curto que isso ("oi", "kg"). Um botão que só
+            repete o que o debounce acabou de fazer ocupava um terço do campo. */}
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -42,12 +52,21 @@ export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPan
             ref={inputRef}
             value={search.query}
             onChange={(e) => search.setQuery(e.target.value)}
+            // Esc limpa igual ao "x". O balcão trabalha sem tirar a mão do
+            // teclado: sem isso, recomeçar a busca é apagar tecla a tecla ou
+            // largar o leitor para pegar o mouse.
+            onKeyDown={(event) => {
+              if (event.key !== "Escape") return;
+              event.preventDefault();
+              search.clear();
+            }}
             placeholder="Código de barras ou nome do produto..."
             className={`h-14 text-lg font-medium bg-background border-primary/20 focus-visible:ring-primary shadow-inner pl-12 ${
-              search.query ? "pr-32" : "pr-24"
+              search.query ? "pr-20" : ""
             }`}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {search.isSearching && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
             {/* Some com o campo vazio: um "x" que não limpa nada só ocupa espaço
                 e faz o operador conferir se clicou. O foco volta para o campo
                 porque o balcão trabalha sem tirar a mão do teclado — perder o
@@ -68,21 +87,13 @@ export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPan
                 <X className="w-4 h-4" />
               </Button>
             )}
-            <Button
-              type="submit"
-              size="sm"
-              className="bg-primary text-primary-foreground font-bold hover:scale-105 active:scale-95 transition-transform"
-              disabled={search.isSearching}
-            >
-              {search.isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "BUSCAR"}
-            </Button>
           </div>
         </form>
       </div>
 
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence mode="wait">
-          {search.results.length > 0 ? (
+          {search.results.length > 0 || search.notFound ? (
             <motion.div
               key="results"
               initial={{ opacity: 0 }}
@@ -95,6 +106,22 @@ export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPan
               </h3>
               <ScrollArea className="flex-1">
                 <div className="grid grid-cols-1 gap-2">
+                  {search.notFound && (
+                    <div className="p-6 rounded-xl border border-dashed border-border/60 bg-card/50 text-center">
+                      <p className="font-bold uppercase tracking-wider text-muted-foreground">
+                        Nenhum produto encontrado
+                      </p>
+                      {/* Offline "não encontrei" quase sempre quer dizer "a base
+                          local está velha", e essa diferença decide se o
+                          operador procura outro termo ou vai atrás do
+                          catálogo. */}
+                      {!online && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          A busca rodou na base local. Confira no badge OFFLINE se o catálogo foi baixado.
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {search.results.map((product) => {
                     const outOfStock = product.stock <= 0;
                     return (

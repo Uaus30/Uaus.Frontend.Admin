@@ -77,6 +77,22 @@ O caixa é operado com leitor de código de barras, que digita no campo focado. 
 
 Eram três debounces copiados com números diferentes (600ms/3 no balcão e na baixa, 400ms/2 no consumidor). O par único está documentado em `hooks/use-debounced-value.ts`: 400ms ainda absorve a rajada do leitor (que emite o código inteiro em menos de 100ms) sem meio segundo de tela parada; 3 caracteres evitam disparar no meio de qualquer palavra e voltar com o teto de 20 resultados.
 
+Como a digitação já dispara sozinha, **não há botão de buscar**. O formulário continua ali por causa do Enter, que é a única saída para um termo com menos de 3 caracteres. **Esc limpa o campo**, igual ao "x" — o balcão trabalha sem tirar a mão do teclado.
+
+### 9. Busca sem resultado não é erro
+
+"Não encontrei" aparece dentro da lista de resultados, no lugar do primeiro item, e **não** vira toast. O aviso pipocava a cada termo digitado pela metade (o debounce dispara com 3 caracteres) e gastava o mesmo toast vermelho que carrega "estoque insuficiente" — o operador aprendia a dispensar vermelho sem ler. Offline o texto ganha uma segunda linha sobre a base local: ali "não encontrei" quase sempre quer dizer "o catálogo não foi baixado", e essa diferença decide se ele procura outro termo ou vai atrás do snapshot.
+
+Por isso `useProductSearch` expõe `notFound` separado de `results`: antes da primeira busca a lista também está vazia, e a tela precisa distinguir "ainda não procurei" de "procurei e não existe".
+
+### 10. Produto zerado vai para o fim da lista
+
+`lib/product-search.ts` ordena os dois caminhos da busca (API e base local) deixando estoque zero por último, com ordenação estável para não embaralhar a relevância que a API devolveu. Zerado não pode ser vendido nem baixado; no topo, com o teto de 20 resultados, ele empurrava para fora da tela o item que o operador consegue usar. Continua aparecendo — sumir com ele faria o operador concluir que o cadastro foi apagado.
+
+### 11. Forma de pagamento na ordem de cadastro
+
+O checkout lista as formas por ID crescente. Sem ordenar, a lista herdava a ordem de quem respondeu (paginação da API num caminho, chave do IndexedDB no outro) e as formas trocavam de lugar ao cair a conexão — e o operador clica por posição. Por ID, o que a loja usa desde sempre fica no topo.
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

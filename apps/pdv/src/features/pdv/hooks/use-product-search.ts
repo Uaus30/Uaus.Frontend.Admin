@@ -23,8 +23,6 @@ export interface UseProductSearchOptions {
    * na baixa de estoque.
    */
   onExactBarcodeMatch?: (product: ProductPdvSearchDto) => void;
-  /** A busca terminou sem nenhum produto. Só o balcão avisa o operador. */
-  onEmptyResult?: (term: string) => void;
 }
 
 /** Estado e ações da busca de produtos. */
@@ -34,6 +32,14 @@ export interface ProductSearchState {
   setQuery: (query: string) => void;
   /** Produtos encontrados na última busca concluída. */
   results: ProductPdvSearchDto[];
+  /**
+   * A última busca concluída não achou nada.
+   *
+   * Não é o mesmo que `results` vazio: antes da primeira busca a lista também
+   * está vazia, e a tela precisa distinguir "ainda não procurei" de "procurei e
+   * não existe" para escolher entre o painel ocioso e o aviso na lista.
+   */
+  notFound: boolean;
   /** Uma busca está em andamento. */
   isSearching: boolean;
   /** Dispara a busca agora (submit do formulário, Enter, botão BUSCAR). */
@@ -57,6 +63,12 @@ export interface ProductSearchState {
  * produto — não passa pela lista de resultados: o produto vai direto para o
  * destino e o campo é limpo, para o operador bipar o próximo sem tirar a mão do
  * leitor.
+ *
+ * Busca sem resultado **não** é erro e não vira aviso: ela sai por `notFound`,
+ * que a tela mostra dentro da própria lista. O toast só cobre falha de verdade
+ * (o servidor recusou, a base local não respondeu) — um toast vermelho para
+ * "esse produto não existe" treinava o operador a dispensar aviso vermelho sem
+ * ler, e é o mesmo aviso que carrega "estoque insuficiente".
  */
 export function useProductSearch(options: UseProductSearchOptions): ProductSearchState {
   const { online, enabled = true } = options;
@@ -64,6 +76,7 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ProductPdvSearchDto[]>([]);
+  const [notFound, setNotFound] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
   // Os callbacks ficam numa ref para que `search` não troque de identidade a
@@ -84,13 +97,26 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
    */
   const buscaAtualRef = useRef(0);
 
-  const clear = useCallback(() => {
-    // Invalida o que estiver em voo: sem isso, limpar e receber a resposta
-    // anterior traria a lista de volta sozinha.
+  /**
+   * Abandona a busca corrente e apaga tudo que ela produziu na tela.
+   *
+   * Invalidar é o essencial: sem isso, limpar e receber a resposta anterior
+   * traria a lista de volta sozinha. Desligar o indicador **aqui** é a outra
+   * metade — a partir do incremento a busca em voo deixou de ser a corrente, e o
+   * `finally` dela não desliga mais nada. Sem esta linha o spinner ficava girando
+   * para sempre depois de cada bipe do leitor, que sai por este mesmo caminho.
+   */
+  const descartarBuscaCorrente = useCallback(() => {
     buscaAtualRef.current++;
-    setQuery("");
     setResults([]);
+    setNotFound(false);
+    setIsSearching(false);
   }, []);
+
+  const clear = useCallback(() => {
+    descartarBuscaCorrente();
+    setQuery("");
+  }, [descartarBuscaCorrente]);
 
   /**
    * Atualiza o termo e, quando ele fica VAZIO, apaga a lista na hora.
@@ -99,14 +125,14 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
    * síncrono dentro de efeito dispara render em cascata e o lint reprova. Além
    * disso é mais direto — quem apagou o campo já sabe que apagou.
    */
-  const updateQuery = useCallback((next: string) => {
-    setQuery(next);
+  const updateQuery = useCallback(
+    (next: string) => {
+      setQuery(next);
 
-    if (next.trim().length === 0) {
-      buscaAtualRef.current++;
-      setResults([]);
-    }
-  }, []);
+      if (next.trim().length === 0) descartarBuscaCorrente();
+    },
+    [descartarBuscaCorrente],
+  );
 
   const search = useCallback(
     async (term: string) => {
@@ -115,6 +141,7 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
 
       if (!trimmed) {
         setResults([]);
+        setNotFound(false);
         return;
       }
 
@@ -127,16 +154,14 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
         if (busca !== buscaAtualRef.current) return;
 
         setResults(found);
+        setNotFound(found.length === 0);
 
         // Leitura de código de barras: match exato e único não vira lista.
         const exact = found.filter((product) => (product.barcode ?? "").trim() === trimmed);
         if (exact.length === 1) {
           optionsRef.current.onExactBarcodeMatch?.(exact[0]);
           clear();
-          return;
         }
-
-        if (found.length === 0) optionsRef.current.onEmptyResult?.(trimmed);
       } catch (error) {
         if (busca !== buscaAtualRef.current) return;
 
@@ -166,5 +191,5 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
     return () => clearTimeout(timer);
   }, [enabled, query, search]);
 
-  return { query, setQuery: updateQuery, results, isSearching, search, clear };
+  return { query, setQuery: updateQuery, results, notFound, isSearching, search, clear };
 }

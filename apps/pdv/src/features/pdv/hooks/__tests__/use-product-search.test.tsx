@@ -101,16 +101,73 @@ describe("useProductSearch", () => {
     expect(onExactBarcodeMatch).not.toHaveBeenCalled();
   });
 
-  it("deve avisar quem chama quando a busca não encontra nada", async () => {
-    searchProducts.mockResolvedValue([]);
-    const onEmptyResult = vi.fn();
+  it("não deve deixar o indicador ligado depois de um bipe do leitor", async () => {
+    // O match exato limpa a busca, e a limpeza invalida a busca corrente — então
+    // o `finally` dela não desliga mais nada. Sem desligar na limpeza, o spinner
+    // girava até a busca seguinte, depois de CADA produto bipado.
+    searchProducts.mockResolvedValue([COCA]);
 
-    const { result } = renderHook(() => useProductSearch({ online: false, onEmptyResult }));
+    const { result } = renderHook(() => useProductSearch({ online: true, onExactBarcodeMatch: vi.fn() }));
+
+    await type(result.current.setQuery, COCA.barcode);
+
+    expect(result.current.isSearching).toBe(false);
+  });
+
+  it("deve marcar notFound quando a busca não encontra nada", async () => {
+    // O balcão distingue "ainda não procurei" de "procurei e não existe": o
+    // primeiro é o painel ocioso, o segundo é o aviso dentro da lista. Sem essa
+    // marca os dois seriam `results` vazio.
+    searchProducts.mockResolvedValue([]);
+
+    const { result } = renderHook(() => useProductSearch({ online: false }));
+    expect(result.current.notFound).toBe(false);
 
     await type(result.current.setQuery, "xis");
 
-    expect(onEmptyResult).toHaveBeenCalledWith("xis");
+    expect(result.current.notFound).toBe(true);
     expect(searchProducts).toHaveBeenCalledWith("xis", { online: false });
+  });
+
+  it("busca com resultado apaga o notFound da busca anterior", async () => {
+    searchProducts.mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+
+    await type(result.current.setQuery, "xis");
+    expect(result.current.notFound).toBe(true);
+
+    searchProducts.mockResolvedValueOnce([COCA]);
+    await type(result.current.setQuery, "cola");
+
+    expect(result.current.notFound).toBe(false);
+  });
+
+  it("limpar a busca tira o aviso de nada encontrado da tela", async () => {
+    searchProducts.mockResolvedValue([]);
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+
+    await type(result.current.setQuery, "xis");
+    expect(result.current.notFound).toBe(true);
+
+    await act(async () => {
+      result.current.clear();
+    });
+
+    expect(result.current.notFound).toBe(false);
+  });
+
+  it("apagar o campo tira o aviso de nada encontrado da tela", async () => {
+    searchProducts.mockResolvedValue([]);
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+
+    await type(result.current.setQuery, "xis");
+    expect(result.current.notFound).toBe(true);
+
+    await act(async () => {
+      result.current.setQuery("");
+    });
+
+    expect(result.current.notFound).toBe(false);
   });
 
   it("deve transformar falha da busca em aviso, sem apagar o que já estava na tela", async () => {

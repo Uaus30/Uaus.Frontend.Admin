@@ -190,6 +190,7 @@ export default function Pdv() {
         <PdvSearchPanel
           search={counter.search}
           inputRef={counter.searchInputRef}
+          online={online}
           onPickProduct={counter.addProductToCart}
         />
 

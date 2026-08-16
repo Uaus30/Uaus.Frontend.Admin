@@ -89,6 +89,26 @@ describe("usePdvPaymentMethods", () => {
     await waitFor(() => expect(listLocalPaymentMethods).toHaveBeenCalled());
   });
 
+  it("deve listar as formas da mais antiga para a mais nova", async () => {
+    // O operador clica por posição. Sem ordenar, a lista saía na ordem de quem
+    // respondeu — paginação da API num caminho, chave do IndexedDB no outro — e
+    // as formas trocavam de lugar sozinhas.
+    useGetPaymentMethods.mockReturnValue({
+      data: {
+        data: [
+          { ...CARTAO_API, id: 7, name: "Vale-refeição" },
+          { ...CARTAO_API, id: 1, name: "Dinheiro" },
+          { ...CARTAO_API, id: 3, name: "Pix" },
+        ],
+      },
+    });
+
+    const { result } = renderHook(() => usePdvPaymentMethods(true, true));
+
+    expect(result.current.paymentMethods.map((pm) => pm.name)).toEqual(["Dinheiro", "Pix", "Vale-refeição"]);
+    await waitFor(() => expect(listLocalPaymentMethods).toHaveBeenCalled());
+  });
+
   it("deve montar o nome de cada forma por ID", async () => {
     const { result } = renderHook(() => usePdvPaymentMethods(true, true));
 

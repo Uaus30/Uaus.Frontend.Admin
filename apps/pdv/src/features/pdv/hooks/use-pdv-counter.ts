@@ -76,22 +76,17 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
   );
 
   /**
-   * Busca do balcão. O produto bipado vai direto para o carrinho; a busca vazia
-   * vira aviso — com texto diferente offline, porque ali "não encontrei" quase
-   * sempre quer dizer "a base local está velha".
+   * Busca do balcão. O produto bipado vai direto para o carrinho.
+   *
+   * Busca sem resultado não vira toast: o aviso aparece na própria lista, onde o
+   * operador já está olhando (`PdvSearchPanel`). O toast vermelho de "produto
+   * não encontrado" pipocava a cada termo digitado pela metade — o debounce
+   * dispara com 3 caracteres — e tapava o canto da tela justamente com o aviso
+   * que também carrega "estoque insuficiente".
    */
   const search = useProductSearch({
     online,
     onExactBarcodeMatch: addProductToCart,
-    onEmptyResult: (term) =>
-      toast({
-        title: "Produto não encontrado",
-        description: online
-          ? `Nenhum produto encontrado para "${term}".`
-          : `Nenhum produto com "${term}" na base local. Verifique no badge OFFLINE se o catálogo foi baixado.`,
-        variant: "destructive",
-        duration: 4000,
-      }),
   });
 
   /**

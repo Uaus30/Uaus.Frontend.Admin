@@ -110,4 +110,30 @@ describe("searchProducts", () => {
 
     expect(await searchProducts("café", { online: true })).toEqual([]);
   });
+
+  it("deve empurrar os zerados para o fim sem embaralhar o resto", async () => {
+    // O que o operador consegue vender vem primeiro; entre os vendáveis a ordem
+    // de relevância que a API devolveu tem que sobreviver.
+    searchPdvProducts.mockResolvedValue([
+      { id: 1, name: "Café A", barcode: "1", stock: 0, price: 10 },
+      { id: 2, name: "Café B", barcode: "2", stock: 5, price: 10 },
+      { id: 3, name: "Café C", barcode: "3", stock: 0, price: 10 },
+      { id: 4, name: "Café D", barcode: "4", stock: 2, price: 10 },
+    ]);
+
+    const found = await searchProducts("café", { online: true });
+
+    expect(found.map((p) => p.id)).toEqual([2, 4, 1, 3]);
+  });
+
+  it("deve ordenar também o resultado da base local", async () => {
+    searchLocalProducts.mockResolvedValue([
+      { ...localProduct(1, "Caneta azul"), stock: 0 },
+      localProduct(2, "Caneta preta"),
+    ]);
+
+    const found = await searchProducts("caneta", { online: false });
+
+    expect(found.map((p) => p.id)).toEqual([2, 1]);
+  });
 });

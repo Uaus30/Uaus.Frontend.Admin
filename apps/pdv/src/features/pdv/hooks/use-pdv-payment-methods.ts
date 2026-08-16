@@ -8,7 +8,7 @@ import { listLocalPaymentMethods } from "@/offline";
  *
  * O formato é o mesmo nos dois caminhos, então nada no checkout precisa saber de
  * onde elas vieram — o que importa é o parcelamento com taxa, e ele vem nos
- * dois.
+ * dois. A **ordem** também é a mesma: por ID, ou seja, ordem de cadastro.
  *
  * @param online A API está respondendo. Sem conexão a requisição só falharia.
  * @param hasLocalDatabase A base local existe; muda para recarregar a cópia
@@ -61,7 +61,14 @@ export function usePdvPaymentMethods(online: boolean, hasLocalDatabase: boolean)
     const fromApi = (dbPaymentMethodsData?.data ?? []).filter((pm) => pm.isActive);
     // Lista vazia da API cai para a local: uma resposta sem formas ativas
     // travaria o checkout, e a cópia local tem pelo menos as do último snapshot.
-    return fromApi.length > 0 ? fromApi : localPaymentMethods;
+    const emUso = fromApi.length > 0 ? fromApi : localPaymentMethods;
+
+    // Ordem por ID é a ordem de cadastro: as formas que a loja usa desde sempre
+    // (dinheiro, cartão) ficam no topo e as criadas depois vão para o fim. Sem
+    // ordenar, o checkout herdava a ordem de quem respondeu — a paginação da API
+    // num caminho, a chave do IndexedDB no outro — e a mesma tela trocava as
+    // formas de lugar ao cair a conexão. O operador clica por posição.
+    return [...emUso].sort((a, b) => a.id - b.id);
   }, [dbPaymentMethodsData, localPaymentMethods]);
 
   /**

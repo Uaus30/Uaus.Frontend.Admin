@@ -35,6 +35,21 @@ export function toProductPdvSearchDtos(products: LocalProduct[]): ProductPdvSear
   }));
 }
 
+/**
+ * Joga os produtos zerados para o fim da lista, preservando a ordem dentro de
+ * cada grupo — o `sort` do JavaScript é estável, então a relevância que a API
+ * devolveu continua valendo entre os vendáveis.
+ *
+ * Produto sem estoque não pode ser vendido nem baixado. Com o teto de 20
+ * resultados, alguns deles no topo empurram para fora da tela justamente o item
+ * que o operador consegue usar, e ele digita o termo de novo achando que não
+ * achou. Sumir com eles seria pior: aí a conclusão vira "o cadastro foi
+ * apagado". Por isso vão para o fim, não para fora.
+ */
+function outOfStockLast(products: ProductPdvSearchDto[]): ProductPdvSearchDto[] {
+  return [...products].sort((a, b) => Number(a.stock <= 0) - Number(b.stock <= 0));
+}
+
 /** Nem a API nem a base local puderam responder à busca. */
 export class ProductSearchUnavailableError extends Error {
   constructor() {
@@ -53,7 +68,8 @@ export class ProductSearchUnavailableError extends Error {
  *
  * @param term Termo digitado pelo operador.
  * @param options `online` decide o caminho preferido.
- * @returns Os produtos encontrados, no mesmo formato nos dois caminhos.
+ * @returns Os produtos encontrados, no mesmo formato e na mesma ordem nos dois
+ *   caminhos — vendáveis primeiro, zerados no fim (ver {@link outOfStockLast}).
  * @throws {ApiError} Quando o servidor respondeu recusando a busca.
  * @throws {ProductSearchUnavailableError} Quando a rede caiu e a base local
  *   também não respondeu.
@@ -68,7 +84,7 @@ export async function searchProducts(
   if (!options.online) return searchLocally(query);
 
   try {
-    return await searchPdvProducts(query, SEARCH_LIMIT);
+    return outOfStockLast(await searchPdvProducts(query, SEARCH_LIMIT));
   } catch (error) {
     if (error instanceof ApiError) throw error;
     return searchLocally(query);
@@ -78,7 +94,7 @@ export async function searchProducts(
 /** Busca na base local, traduzindo a indisponibilidade dela num erro próprio. */
 async function searchLocally(term: string): Promise<ProductPdvSearchDto[]> {
   try {
-    return toProductPdvSearchDtos(await searchLocalProducts(term, SEARCH_LIMIT));
+    return outOfStockLast(toProductPdvSearchDtos(await searchLocalProducts(term, SEARCH_LIMIT)));
   } catch {
     throw new ProductSearchUnavailableError();
   }
