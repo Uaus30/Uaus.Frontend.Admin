@@ -24,6 +24,7 @@ import { getDisplayName } from "@/services/mappers";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { ROLE_LABELS, buildMenu, type RoleCode } from "@/routes";
+import { enumCode, USER_ROLE } from "@workspace/api-client-react";
 
 /**
  * O menu vem de `src/routes.tsx`, a mesma fonte do <Switch> do App.
@@ -75,7 +76,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const displayName = getDisplayName(user);
   const initials = displayName.charAt(0).toUpperCase();
-  const roleLabel = ROLE_LABELS[user.role as RoleCode] ?? "Usuário";
+  // Mesmo motivo do `podeAcessar`: a API manda o NOME do papel, não o
+  // código. Sem normalizar, o rodapé do menu dizia "Usuário" para todo mundo.
+  const roleLabel = ROLE_LABELS[enumCode(user.role, USER_ROLE) as RoleCode] ?? "Usuário";
   const navigation = buildMenu(user.role);
 
   const style = {

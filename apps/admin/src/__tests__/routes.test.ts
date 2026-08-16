@@ -179,3 +179,55 @@ describe("buildMenu", () => {
     for (const href of hrefs) expect(paths).toContain(href);
   });
 });
+
+describe("papel vindo da API como NOME do enum", () => {
+  /** Uma rota restrita qualquer, pega da fonte única em vez de inventada. */
+  const restrita = ROUTES.find((r) => r.roles && r.label)!;
+
+  it("aceita o papel em texto, que é o formato que a API manda", () => {
+    // REGRESSÃO que escondeu meia retaguarda: o backend registra
+    // JsonStringEnumConverter, então GET /Users/me devolve role: "Admin", e não
+    // 1. A comparação [1].includes("Admin") dava false, o menu perdia Usuários,
+    // Logs, Configurações, Relatórios, Sócios, Custos Fixos e Fechamentos, e o
+    // RequireRole redirecionava o próprio administrador. Sem erro em lugar
+    // nenhum: o item simplesmente não estava lá.
+    expect(podeAcessar(restrita, "Admin")).toBe(true);
+    expect(podeAcessar(restrita, "Seller")).toBe(false);
+  });
+
+  it("continua aceitando o papel numérico", () => {
+    // Os dois formatos, de propósito: a serialização do backend já mudou uma vez
+    // e uma tela que só entende um dos dois quebra na próxima.
+    expect(podeAcessar(restrita, USER_ROLE.Admin)).toBe(true);
+    expect(podeAcessar(restrita, USER_ROLE.Seller)).toBe(false);
+  });
+
+  it("nega quando o papel não veio", () => {
+    // Ausência não pode virar liberação: sem papel, a rota restrita fica fechada.
+    expect(podeAcessar(restrita, undefined)).toBe(false);
+    expect(podeAcessar(restrita, null)).toBe(false);
+    expect(podeAcessar(restrita, "")).toBe(false);
+  });
+
+  it("o menu do Admin em texto tem os mesmos itens do Admin numérico", () => {
+    // A afirmação que fecha o buraco: o menu não pode depender do FORMATO em que
+    // o papel chegou.
+    const porTexto = JSON.stringify(buildMenu("Admin").map((e) => e.name));
+    const porCodigo = JSON.stringify(buildMenu(USER_ROLE.Admin).map((e) => e.name));
+
+    expect(porTexto).toBe(porCodigo);
+  });
+
+  it("o Admin enxerga MAIS itens que o Vendedor", () => {
+    // Se um dia os dois menus ficarem iguais, ou o SO_ADMIN sumiu das rotas ou a
+    // normalização voltou a falhar — e nos dois casos alguém está vendo o que
+    // não devia.
+    const admin = buildMenu("Admin");
+    const vendedor = buildMenu("Seller");
+
+    const contar = (menu: typeof admin) =>
+      menu.reduce((total, entrada) => total + (entrada.items ? entrada.items.length : 1), 0);
+
+    expect(contar(admin)).toBeGreaterThan(contar(vendedor));
+  });
+});

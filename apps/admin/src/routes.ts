@@ -11,7 +11,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { USER_ROLE } from "@workspace/api-client-react";
+import { enumCode, USER_ROLE, type EnumValue } from "@workspace/api-client-react";
 
 /**
  * Fonte ÚNICA das rotas do admin.
@@ -200,10 +200,37 @@ export const ROLE_LABELS: Record<RoleCode, string> = {
   [USER_ROLE.Seller]: "Vendedor",
 };
 
+/**
+ * Normaliza o papel que veio da API para o código numérico.
+ *
+ * **É o conserto de um defeito que escondia meia retaguarda.** O backend registra
+ * `JsonStringEnumConverter`, então `GET /Users/me` devolve `role: "Admin"` — a
+ * STRING do nome do membro em C#, não o número. O `UserDto` do api-client
+ * declarava `role: number`, e a comparação `[1].includes("Admin")` dava `false`
+ * para todo mundo: as rotas com `roles` sumiam do menu e o `RequireRole`
+ * redirecionava até o próprio administrador. Usuários, logs, configurações,
+ * relatórios, sócios, custos fixos e fechamentos ficaram inalcançáveis, sem
+ * erro em lugar nenhum — o menu simplesmente não tinha o item.
+ *
+ * A conversão mora AQUI, na fronteira, e não em cada chamador: `podeAcessar` e
+ * `buildMenu` são os dois únicos pontos que decidem acesso, e um terceiro
+ * chamador que esquecesse de normalizar reabriria o buraco em silêncio.
+ *
+ * `enumCode` aceita os dois formatos de propósito — o contrato do backend pode
+ * mudar de novo, e uma tela que só entende um dos dois é uma tela que quebra na
+ * próxima configuração de serialização.
+ */
+function codigoDoPapel(role: EnumValue): number | undefined {
+  if (role === null || role === undefined || role === "") return undefined;
+  return enumCode(role, USER_ROLE);
+}
+
 /** O papel pode abrir esta rota? Rota sem `roles` é livre para quem tem sessão. */
-export function podeAcessar(route: AppRoute, role: number | undefined): boolean {
+export function podeAcessar(route: AppRoute, role: EnumValue): boolean {
   if (!route.roles) return true;
-  return role !== undefined && route.roles.includes(role as RoleCode);
+
+  const codigo = codigoDoPapel(role);
+  return codigo !== undefined && route.roles.includes(codigo as RoleCode);
 }
 
 /** Item de primeiro nível do menu — leva direto a uma tela. */
@@ -236,7 +263,7 @@ export type MenuEntry = MenuLink | MenuGroup;
  * Um grupo cujos itens sejam todos restritos some inteiro — mostrar "Sistema"
  * vazio para um Vendedor seria pior que não mostrar.
  */
-export function buildMenu(role: number | undefined): MenuEntry[] {
+export function buildMenu(role: EnumValue): MenuEntry[] {
   const visiveis = ROUTES.filter((r) => r.label && !r.hidden && !r.publica && podeAcessar(r, role));
   const soltas = visiveis.filter((r) => !r.group);
 
