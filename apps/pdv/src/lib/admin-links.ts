@@ -65,19 +65,36 @@ export function adminHomeUrl(): string | null {
   return base === null ? null : `${base}/`;
 }
 
+/** O que o balcão sabe sobre o produto na hora de mandar editar. */
+type ProdutoParaEditar = {
+  id: number;
+  name: string;
+  /** Nome do GRUPO — é por ele que a lista do admin filtra. */
+  groupName?: string | null;
+};
+
 /**
- * URL da tela de produtos do admin já filtrada no produto informado.
+ * URL que abre a modal de edição do produto no admin.
  *
- * A rota de produtos não recebe id na URL — a edição abre por modal depois da
- * busca. Levar o termo por query string é o que existe hoje para chegar perto do
- * produto sem inventar uma rota nova no admin.
+ * São dois parâmetros porque a tela do admin faz duas coisas distintas:
  *
- * @param termo Código de barras ou nome, o que identificar melhor o produto.
+ * - `busca` traz o produto para a página. A listagem é paginada e filtra por
+ *   **grupo de produto** (`/ProductGroups?search=`), então o termo tem que ser o
+ *   nome do grupo. A primeira versão mandava o código de barras, que pertence ao
+ *   produto filho e nunca casa com grupo nenhum: a aba abria numa lista vazia.
+ * - `editar` diz QUAL linha abrir. Sem ele o admin só filtrava, e a pessoa
+ *   tinha que procurar e clicar de novo — com a venda parada no caixa.
+ *
+ * @param produto Produto selecionado no balcão.
  * @returns A URL, ou `null` quando o admin não é alcançável.
  */
-export function adminProductSearchUrl(termo: string): string | null {
+export function adminProductEditUrl(produto: ProdutoParaEditar): string | null {
   const base = adminBaseUrl();
-  return base === null ? null : `${base}/produtos?busca=${encodeURIComponent(termo)}`;
+  if (base === null) return null;
+
+  const termo = produto.groupName?.trim() || produto.name;
+  const query = new URLSearchParams({ busca: termo, editar: String(produto.id) });
+  return `${base}/produtos?${query}`;
 }
 
 /**

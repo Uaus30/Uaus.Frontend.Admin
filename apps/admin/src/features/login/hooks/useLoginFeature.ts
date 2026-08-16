@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
+import { destinoAposLogin } from "@/lib/destino-login";
 
 /**
  * Hook customizado para gerenciar a lógica de autenticação (Login) no painel.
@@ -12,6 +13,7 @@ export function useLoginFeature() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -20,7 +22,9 @@ export function useLoginFeature() {
     mutation: {
       onSuccess: (data) => {
         queryClient.setQueryData(getGetMeQueryKey(), (data as any).user ?? data);
-        setLocation("/dashboard");
+        // O guard de rota carimba o caminho pedido em `?redirect=`. Sem ele o
+        // dashboard continua sendo o destino — é onde todo papel tem acesso.
+        setLocation(destinoAposLogin(search) ?? "/dashboard");
       },
       onError: (err: unknown) => {
         toast({

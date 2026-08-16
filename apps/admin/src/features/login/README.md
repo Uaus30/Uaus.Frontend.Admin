@@ -19,5 +19,11 @@ Este módulo gerencia a autenticação e o formulário de login para o painel ad
 - Após o preenchimento dos campos obrigatórios, os dados são transmitidos à API usando a mutation de login do React Query.
 - Em caso de sucesso:
   - O estado local da sessão ativa (`getGetMeQueryKey`) é atualizado com o usuário retornado.
-  - O painel redireciona o usuário para o `/dashboard`.
+  - O painel devolve o usuário ao caminho que ele pediu, ou ao `/dashboard` quando não há um (ver regra 2).
 - Em caso de erro, uma notificação de toast com variante "destructive" detalha o erro retornado ou exibe mensagem padrão ("Credenciais inválidas. Tente novamente.").
+
+### 2. Destino pós-login (`?redirect=`)
+
+Quem chega por link direto sem sessão — o botão "editar produto" do PDV abre `/produtos?busca=...&editar=...` numa aba nova — é mandado ao login pelo `AuthGate`, que carimba o caminho pedido em `?redirect=`. Depois de autenticar, é para lá que o painel vai; sem carimbo, `/dashboard`.
+
+O caminho é validado no `src/lib/destino-login.ts` e **só caminho relativo deste app passa**. `?redirect=` é texto na URL: sem a validação, `admin.uaus.com.br/login?redirect=https://site-falso` mandado por e-mail transformaria a tela de login numa ponte de phishing — a pessoa confere o domínio verdadeiro, digita a senha, e só então o navegador sai para o site do atacante, já autenticada.

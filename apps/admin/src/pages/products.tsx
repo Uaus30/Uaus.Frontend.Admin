@@ -3,6 +3,7 @@ import { Button } from "@workspace/ui";
 import { Plus } from "lucide-react";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
+import { useProductDeepLink } from "@/features/products/hooks/useProductDeepLink";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductEditorModal } from "@/features/products/components/ProductEditorModal";
 import { ProductHistoryModal } from "@/features/products/components/ProductHistoryModal";
@@ -16,6 +17,14 @@ export default function Products() {
   const [historyProductGroupName, setHistoryProductGroupName] = useState("");
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [searchImageProduct, setSearchImageProduct] = useState<any | null>(null);
+
+  // Link direto do PDV: `/produtos?busca=<grupo>&editar=<id>` abre a modal do
+  // produto assim que a listagem filtrada chega.
+  useProductDeepLink({
+    isLoading: table.isLoading,
+    enrichedProducts: table.enrichedProducts,
+    openModal: editor.openModal,
+  });
 
   return (
     <AppLayout>

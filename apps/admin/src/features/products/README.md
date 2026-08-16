@@ -43,7 +43,21 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - O clique no botão de olho (no topo esquerdo ao lado do título da modal) alterna a visibilidade desses campos.
 - Os campos **Código de Barras** e **Imagens** permanecem sempre visíveis.
 
-### 5. Busca de Imagens na Internet
+### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
+
+O botão de lápis do balcão do PDV abre esta tela em outra aba já na edição do produto. São dois parâmetros porque a tela faz duas coisas distintas:
+
+- **`busca`** traz o produto para a página. A listagem é paginada e filtra por **grupo de produto** (`/ProductGroups?search=`), então o termo tem que ser o nome do grupo — código de barras pertence ao produto filho e não casa com grupo nenhum.
+- **`editar`** escolhe a linha e é consumido pelo `hooks/useProductDeepLink.ts`.
+
+Regras que valem a pena conhecer antes de mexer:
+
+- Quando o id não aparece na lista mas o filtro trouxe **uma única linha**, é essa linha que abre. A tabela mostra um produto _representante_ por grupo, e o produto pedido pode ser uma variação que não é o representante — a modal edita o grupo inteiro de qualquer forma.
+- Filtro sem resultado emite toast em vez de não fazer nada: a aba abriria numa lista e nada explicaria a ausência da modal.
+- O `editar` sai da barra de endereços assim que é consumido. O link é instrução de uma vez só; sem isso, fechar a modal e recarregar reabriria tudo.
+- Sem sessão, o guard de rota carimba o caminho em `/login?redirect=...` e o login devolve a pessoa aqui (ver `src/lib/destino-login.ts`).
+
+### 6. Busca de Imagens na Internet
 
 - **Pela Listagem**: Um ícone de lupa na imagem do produto abre o modal de pesquisa. Ao escolher uma imagem da internet, ela é baixada via proxy autenticado, otimizada localmente no frontend pelo motor de compressão e definida como a foto principal (índice 0) do produto, sem deletar as imagens existentes.
 - **Pela Modal de Edição**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.

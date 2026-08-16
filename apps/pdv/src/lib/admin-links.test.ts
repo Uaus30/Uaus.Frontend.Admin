@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { adminBaseUrl, adminHomeUrl, adminProductSearchUrl, openInNewTab } from "./admin-links";
+import { adminBaseUrl, adminHomeUrl, adminProductEditUrl, openInNewTab } from "./admin-links";
 
 /** Coloca o PDV num endereço específico, como se estivesse servido dali. */
 function servidoEm(href: string) {
@@ -75,28 +75,55 @@ describe("adminBaseUrl", () => {
   });
 });
 
-describe("adminHomeUrl e adminProductSearchUrl", () => {
+describe("adminHomeUrl e adminProductEditUrl", () => {
+  const cafe = { id: 42, name: "Café Torrado 500g", groupName: "Café Torrado" };
+
   it("montam o caminho sobre a base derivada", () => {
     servidoEm("https://pdv.uaus.com.br/");
 
     expect(adminHomeUrl()).toBe("https://admin.uaus.com.br/");
-    expect(adminProductSearchUrl("Café 500g")).toBe(
-      "https://admin.uaus.com.br/produtos?busca=Caf%C3%A9%20500g",
+    expect(adminProductEditUrl(cafe)).toBe(
+      "https://admin.uaus.com.br/produtos?busca=Caf%C3%A9+Torrado&editar=42",
     );
   });
 
-  it("escapam o termo de busca", () => {
-    // Código de barras com & ou # viraria outro parâmetro na query.
+  it("busca pelo nome do GRUPO, não do produto", () => {
+    // REGRESSÃO: o link mandava o código de barras. A listagem do admin filtra
+    // por grupo de produto (`/ProductGroups?search=`), e código de barras é do
+    // produto filho — a aba abria numa lista vazia, sem erro nenhum na tela.
     servidoEm("https://pdv.uaus.com.br/");
 
-    expect(adminProductSearchUrl("a&b#c")).toContain("busca=a%26b%23c");
+    expect(adminProductEditUrl(cafe)).toContain("busca=Caf%C3%A9+Torrado");
+    expect(adminProductEditUrl(cafe)).not.toContain("500g");
+  });
+
+  it("cai no nome do produto quando não veio grupo", () => {
+    servidoEm("https://pdv.uaus.com.br/");
+
+    expect(adminProductEditUrl({ id: 7, name: "Sacola", groupName: null })).toContain("busca=Sacola");
+    expect(adminProductEditUrl({ id: 7, name: "Sacola", groupName: "   " })).toContain("busca=Sacola");
+  });
+
+  it("leva o id do produto para o admin abrir a modal certa", () => {
+    // Sem `editar` o admin só filtra a lista, e quem clicou no lápis tem que
+    // procurar e clicar de novo — com a venda parada no caixa.
+    servidoEm("https://pdv.uaus.com.br/");
+
+    expect(adminProductEditUrl(cafe)).toContain("editar=42");
+  });
+
+  it("escapam o termo de busca", () => {
+    // Nome com & ou # viraria outro parâmetro na query.
+    servidoEm("https://pdv.uaus.com.br/");
+
+    expect(adminProductEditUrl({ id: 1, name: "a&b#c" })).toContain("busca=a%26b%23c");
   });
 
   it("propagam o null em vez de montar um caminho sobre a origem errada", () => {
     servidoEm("http://192.168.0.42:4173/");
 
     expect(adminHomeUrl()).toBeNull();
-    expect(adminProductSearchUrl("qualquer")).toBeNull();
+    expect(adminProductEditUrl(cafe)).toBeNull();
   });
 });
 

@@ -4,7 +4,7 @@ import { Loader2, Pencil, Search, X } from "lucide-react";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 import { Button, Input, ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
-import { adminBaseUrl, adminProductSearchUrl, openInNewTab } from "@/lib/admin-links";
+import { adminBaseUrl, adminProductEditUrl, openInNewTab } from "@/lib/admin-links";
 import type { ProductSearchState } from "../hooks/use-product-search";
 
 type PdvSearchPanelProps = {
@@ -136,7 +136,7 @@ export function PdvSearchPanel({ search, inputRef, onPickProduct }: PdvSearchPan
                             hidden={!adminDisponivel}
                             onClick={(event) => {
                               event.stopPropagation();
-                              openInNewTab(adminProductSearchUrl(product.barcode || product.name));
+                              openInNewTab(adminProductEditUrl(product));
                             }}
                             title="Editar no painel administrativo (abre em nova aba)"
                             aria-label={`Editar ${product.name} no painel administrativo`}

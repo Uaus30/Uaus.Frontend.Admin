@@ -1,8 +1,9 @@
 import { type ReactNode } from "react";
-import { Redirect } from "wouter";
+import { Redirect, useLocation, useSearch } from "wouter";
 import { Spinner } from "@workspace/ui";
 import { podeAcessar, type AppRoute } from "@/routes";
 import { useSessao } from "@/hooks/use-sessao";
+import { urlLoginCom } from "@/lib/destino-login";
 
 /**
  * Proteção das rotas do admin.
@@ -27,16 +28,36 @@ function TelaCarregando() {
 }
 
 /**
+ * Caminho pedido, com query string, para o login saber onde devolver a pessoa.
+ *
+ * Sai do `useLocation`/`useSearch` do wouter, não de `window.location`: o router
+ * roda com `base` (ver `App.tsx`), e o pathname do navegador traria o prefixo da
+ * base — que a volta somaria de novo, gerando `/admin/admin/produtos`.
+ *
+ * O `useSearch` do wouter 3 devolve a query SEM o `?`, então ele é recolocado
+ * aqui.
+ */
+function useCaminhoAtual(): string {
+  const [path] = useLocation();
+  const search = useSearch();
+  return search ? `${path}?${search}` : path;
+}
+
+/**
  * Exige sessão para renderizar o conteúdo.
  *
  * Enquanto a sessão carrega mostra o spinner, e NÃO redireciona: sem essa espera
  * um recarregamento de página jogaria o usuário logado no login por um instante.
+ *
+ * O caminho pedido vai junto para o login. Sem isso, quem abre link direto —
+ * `/produtos?editar=10`, vindo do PDV — perdia o destino ao autenticar.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { data: user, isLoading } = useSessao();
+  const caminho = useCaminhoAtual();
 
   if (isLoading) return <TelaCarregando />;
-  if (!user) return <Redirect to="/login" />;
+  if (!user) return <Redirect to={urlLoginCom(caminho)} />;
 
   return <>{children}</>;
 }
@@ -49,9 +70,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
  */
 export function RequireRole({ route, children }: { route: AppRoute; children: ReactNode }) {
   const { data: user, isLoading } = useSessao();
+  const caminho = useCaminhoAtual();
 
   if (isLoading) return <TelaCarregando />;
-  if (!user) return <Redirect to="/login" />;
+  if (!user) return <Redirect to={urlLoginCom(caminho)} />;
   if (!podeAcessar(route, user.role)) return <Redirect to="/dashboard" />;
 
   return <>{children}</>;
