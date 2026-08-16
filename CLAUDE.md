@@ -6,12 +6,51 @@ ponteiro que ninguém segue não é regra.
 
 ---
 
-## 1. Ações proibidas
+## 1. Git é automático — com três freios
 
-- **Não commite por conta própria.** Nunca rode `git commit` sem o desenvolvedor
-  ter pedido explicitamente naquela conversa.
-- **Não faça push nem abra PR** de forma autônoma, pela mesma razão.
-- Alterações ficam na workspace local. Versionamento e deploy são decisão humana.
+> Esta regra foi **invertida** em 16/08/2026, a pedido do dono do repositório.
+> Antes proibia commit e push autônomos. Se você viu a versão antiga em algum
+> resumo ou memória, vale esta.
+
+**Fluxo padrão, sem pedir permissão:** `git pull` antes de começar, `git commit`
+e `git push` quando o trabalho estiver concluído e verificado. Direto na `main`,
+que é o que o histórico dos dois repositórios da Uaus já faz — sem branch, sem
+PR. Outros comandos de git entram quando forem necessários.
+
+Vale o mesmo no repositório vizinho `Uaus.Backend.Api`, que tem cópia desta
+seção no CLAUDE.md dele.
+
+### Os três freios — pare e mostre antes de commitar
+
+1. **Gate vermelho.** Teste, `typecheck` ou `lint` falhando. Conserte primeiro;
+   nunca suba quebrado. Os comandos estão na seção 8.
+2. **Migração de banco ou de esquema.** Migration do EF no backend, script de
+   esquema, e `DATABASE_VERSION` do IndexedDB do PDV (ver armadilha 4).
+3. **Configuração de deploy e segredo.** `vercel.json`, `railway.json`,
+   `Dockerfile`, `appsettings*.json`, variável de ambiente, workflow de CI.
+
+Push na `main` do front **dispara deploy na Vercel**. É por isso que os freios
+existem: o custo de um commit errado aqui não é um rebase, é a loja com a tela
+quebrada.
+
+### Em dúvida ou em conflito, pergunte
+
+Conflito de merge, divergência com o remoto, histórico que não bate — **nunca
+resolva sozinho**. Traga o estado e pergunte. Vale também para qualquer coisa
+que reescreva histórico já publicado: force-push, `rebase` de commit que já
+subiu, `--amend` depois do push.
+
+### Nunca `git add -A`
+
+Outros chats compartilham este working tree. Adicione **só os arquivos que você
+mesmo tocou**, nominalmente. `git add -A` e `git add .` varrem o trabalho de
+outra conversa para dentro do seu commit, e quem descobre é o `git log`.
+
+### Formato do commit
+
+Conventional commit, assunto em português **sem acento** (é o padrão do
+histórico), corpo explicando o **porquê** — não o quê, que o diff já dá. Um
+tema por commit: se o trabalho misturou feature e correção, são dois commits.
 
 ---
 
