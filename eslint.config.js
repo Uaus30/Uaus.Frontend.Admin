@@ -28,6 +28,15 @@ export default defineConfig([
     '**/dist/**',
     '**/node_modules/**',
     'apps/*/public/**',
+    'coverage/**',
+    // Worktrees de agente são uma CÓPIA do repositório dentro do próprio
+    // repositório, num commit qualquer do passado. O git as ignora
+    // (.git/info/exclude), mas o `eslint .` varre por caminho e não por
+    // rastreamento: uma cópia parada antes da limpeza de `any` fazia o lint
+    // acusar 195 erros que não existem em nenhum arquivo de verdade, e o portão
+    // do baseline — que reprova quando a contagem cresce — reprovava por causa
+    // de código que ninguém escreveu hoje.
+    '.claude/**',
   ]),
   {
     files: ['**/*.{ts,tsx}'],
