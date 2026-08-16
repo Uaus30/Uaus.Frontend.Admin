@@ -4,6 +4,7 @@ import {
   apiPost,
   cancelSale,
   getPdvSessionSales,
+  getPdvTodaySales,
   updatePdvSale,
   type CouponDiscountTypeCode,
   type RegisterPdvSalePayload,
@@ -498,6 +499,16 @@ export async function restoreCancelledSaleStock(saleId: number): Promise<void> {
  */
 export async function getSessionSales(cashRegisterSessionId: number) {
   return getPdvSessionSales(cashRegisterSessionId);
+}
+
+/**
+ * Vendas do dia corrente, mais recentes primeiro.
+ *
+ * É o histórico do balcão quando a loja não usa controle de caixa: sem sessão,
+ * a consulta por sessão nunca devolve nada.
+ */
+export async function getTodaySales() {
+  return getPdvTodaySales();
 }
 
 export { cancelSale };

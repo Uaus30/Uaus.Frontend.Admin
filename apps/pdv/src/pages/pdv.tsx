@@ -216,6 +216,7 @@ export default function Pdv() {
           onLeaveWithoutSession: leaveWithoutSession,
           isCloseOpen: isCloseRegisterOpen,
           setCloseOpen: setIsCloseRegisterOpen,
+          currentUserId: user?.id ?? null,
         }}
         report={report}
         onHeldSaleResumed={counter.handleHeldSaleResumed}

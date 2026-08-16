@@ -41,6 +41,8 @@ type PdvDialogsProps = {
     onLeaveWithoutSession: () => void;
     isCloseOpen: boolean;
     setCloseOpen: (open: boolean) => void;
+    /** Operador logado — o histórico só deixa cada um alterar as próprias vendas. */
+    currentUserId: number | null;
   };
   /** Relatório do turno, acionado de dentro do histórico. */
   report: { printingReport: boolean; printReport: () => Promise<void> };
@@ -124,6 +126,8 @@ export function PdvDialogs({
         queuedSalesCount={register.queuedSalesCount}
         loadingSales={register.loadingSales}
         sales={register.sales}
+        usesCashRegister={register.mode.usesCashRegister}
+        currentUserId={register.currentUserId}
         busySaleId={history.busySaleId}
         sessionId={register.sessionId}
         printingReport={report.printingReport}

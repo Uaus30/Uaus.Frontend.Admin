@@ -72,6 +72,25 @@ export async function getPdvSessionSales(sessionId: number): Promise<SaleDto[]> 
 }
 
 /**
+ * Vendas do DIA CORRENTE, no mesmo formato do histórico por sessão.
+ *
+ * É o histórico do PDV na loja que **não usa controle de caixa**: ali a venda é
+ * gravada sem `cashRegisterSessionId`, e a consulta por sessão devolvia sempre
+ * lista vazia — o operador não conseguia reimprimir o cupom da venda que acabou
+ * de fazer.
+ *
+ * O recorte do dia é feito no SERVIDOR, no relógio da loja. Filtrar por data no
+ * navegador exigiria baixar mais vendas do que a tela usa e ainda erraria o
+ * corte da meia-noite em qualquer máquina com fuso desconfigurado.
+ *
+ * Cada venda traz o `userId` de quem a registrou: a lista é do dia inteiro, mas
+ * quem decide o que pode ser cancelado é a tela.
+ */
+export async function getPdvTodaySales(): Promise<SaleDto[]> {
+  return (await apiGet<SaleDto[]>("/Pdv/sales/today")) ?? [];
+}
+
+/**
  * Consulta o cupom pelo código lido do panfleto e devolve, junto, o
  * questionário a apresentar no balcão (`GET /Pdv/coupons/{code}`, liberado para
  * `Admin` e `Seller`).

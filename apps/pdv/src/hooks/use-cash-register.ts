@@ -11,7 +11,7 @@ import {
   readCachedCashRegisterSession,
   writeCachedCashRegisterSession,
 } from "@/offline";
-import { getSessionSales } from "@/services/sales.service";
+import { getSessionSales, getTodaySales } from "@/services/sales.service";
 
 /**
  * useCashRegister
@@ -92,18 +92,49 @@ export function useCashRegister(options: { enabled?: boolean } = {}) {
   /** A sessão em uso veio da base local porque a API não respondeu. */
   const isSessionFromCache = session === undefined && cachedSession != null;
 
-  const { data: sales = [], isLoading: loadingSales } = useQuery({
+  /**
+   * A loja não usa controle de caixa — não há turno, e nunca haverá sessão.
+   *
+   * É o mesmo `enabled` que desliga a consulta de sessão, lido pelo avesso.
+   */
+  const semControleDeCaixa = !enabled;
+
+  const { data: salesDaSessao = [], isLoading: loadingSalesDaSessao } = useQuery({
     queryKey: ["pdv-session-sales", sessionId],
     queryFn: () => getSessionSales(sessionId as number),
     enabled: !!sessionId,
   });
 
   /**
-   * Recarrega as vendas da sessão e o resumo do caixa. Chamado após registrar,
-   * editar ou cancelar uma venda.
+   * Vendas do dia, para a loja sem controle de caixa.
+   *
+   * Sem turno, a venda é gravada com `cashRegisterSessionId` nulo e a consulta
+   * por sessão devolvia SEMPRE lista vazia: o histórico do balcão nascia vazio e
+   * o operador não conseguia reimprimir o cupom da venda que acabou de fazer.
+   *
+   * As duas consultas nunca ficam ligadas ao mesmo tempo — `enabled` é
+   * excludente —, então não há dois pedidos concorrentes para a mesma lista.
+   */
+  const { data: salesDoDia = [], isLoading: loadingSalesDoDia } = useQuery({
+    queryKey: ["pdv-today-sales"],
+    queryFn: () => getTodaySales(),
+    enabled: semControleDeCaixa,
+  });
+
+  const sales = semControleDeCaixa ? salesDoDia : salesDaSessao;
+  const loadingSales = semControleDeCaixa ? loadingSalesDoDia : loadingSalesDaSessao;
+
+  /**
+   * Recarrega as vendas e o resumo do caixa. Chamado após registrar, editar ou
+   * cancelar uma venda.
+   *
+   * Invalida as DUAS chaves de propósito, mesmo com só uma ligada: invalidar a
+   * chave desligada não custa requisição nenhuma, e esquecer a do modo em uso
+   * deixaria a venda recém-registrada fora do histórico até o próximo refetch.
    */
   const refreshSales = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["pdv-session-sales", sessionId] });
+    await queryClient.invalidateQueries({ queryKey: ["pdv-today-sales"] });
     await queryClient.invalidateQueries({ queryKey: CURRENT_CASH_REGISTER_SESSION_QUERY_KEY });
   }, [queryClient, sessionId]);
 
