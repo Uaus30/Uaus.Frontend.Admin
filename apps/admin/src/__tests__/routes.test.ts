@@ -23,6 +23,12 @@ const RESTRITAS = [
   "/financeiro/custos-fixos",
   "/financeiro/relatorios",
   "/configuracoes",
+  // Marketing inteiro é Admin: todas as actions de CouponsController e
+  // CampaignsController são [Authorize(Role.Admin)], e papel de marketing está
+  // declarado fora de escopo. Sem isto o Vendedor veria o menu e tomaria 403.
+  "/marketing/cupons",
+  "/marketing/campanhas",
+  "/marketing/campanhas/comparativo",
 ];
 
 describe("declaração das rotas", () => {
@@ -46,6 +52,19 @@ describe("declaração das rotas", () => {
     for (const route of ROUTES.filter((r) => r.group)) {
       expect(conhecidos).toContain(route.group);
     }
+  });
+
+  it("caminho literal vem antes do parametrizado no mesmo prefixo", () => {
+    // O `<Switch>` do wouter para no PRIMEIRO casamento. Hoje as duas rotas de
+    // campanha têm contagem de segmentos diferente e não colidem; a ordem é o
+    // que mantém isso verdadeiro quando alguém acrescentar
+    // `/marketing/campanhas/novo`.
+    const indices = (path: string) => ROUTES.findIndex((r) => r.path === path);
+
+    expect(indices("/marketing/campanhas/comparativo")).toBeGreaterThan(-1);
+    expect(indices("/marketing/campanhas/comparativo")).toBeLessThan(
+      indices("/marketing/campanhas/:id/relatorio"),
+    );
   });
 
   it("só /login é pública", () => {
@@ -81,6 +100,17 @@ describe("podeAcessar", () => {
 
     expect(podeAcessar(detalhe, USER_ROLE.Seller)).toBe(false);
   });
+
+  it("o relatório de campanha herda a restrição da listagem", () => {
+    // Mesmo motivo do detalhe do log: a rota é oculta, mas continua respondendo
+    // por link colado. Sem `roles` aqui, o Vendedor abriria o faturamento e o
+    // lucro da loja inteira (o denominador do relatório), que o menu esconde.
+    const relatorio = ROUTES.find((r) => r.path === "/marketing/campanhas/:id/relatorio")!;
+
+    expect(relatorio.roles).toBeDefined();
+    expect(podeAcessar(relatorio, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(relatorio, USER_ROLE.Admin)).toBe(true);
+  });
 });
 
 describe("buildMenu", () => {
@@ -109,6 +139,19 @@ describe("buildMenu", () => {
     const menu = buildMenu(USER_ROLE.Seller);
 
     expect(menu.find((item) => item.name === "Sistema")).toBeUndefined();
+    // "Marketing" está na mesma situação: as três telas são de Admin.
+    expect(menu.find((item) => item.name === "Marketing")).toBeUndefined();
+  });
+
+  it("o Admin vê o grupo Marketing com as três telas", () => {
+    const menu = buildMenu(USER_ROLE.Admin);
+    const marketing = menu.find((item) => item.name === "Marketing");
+
+    expect(marketing?.items?.map((s) => s.href)).toEqual([
+      "/marketing/cupons",
+      "/marketing/campanhas",
+      "/marketing/campanhas/comparativo",
+    ]);
   });
 
   it("começa pelo Dashboard", () => {

@@ -5,6 +5,7 @@ import {
   DollarSign,
   ImageIcon,
   LayoutDashboard,
+  Megaphone,
   Package,
   Settings,
   Users,
@@ -76,11 +77,18 @@ const CompanySettings = lazy(() => import("@/pages/settings"));
 const Logs = lazy(() => import("@/pages/logs"));
 const LogDetails = lazy(() => import("@/pages/log-details"));
 const UsersPage = lazy(() => import("@/pages/users"));
+const Coupons = lazy(() => import("@/pages/coupons"));
+const Campaigns = lazy(() => import("@/pages/campaigns"));
+const CampaignReport = lazy(() => import("@/pages/campaign-report"));
+const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 
 /** Ícone e ordem de cada grupo do menu. */
 export const MENU_GROUPS = [
   { name: "Produtos", icon: Package },
   { name: "Financeiro", icon: DollarSign },
+  // Cupom e campanha não cabem em "Financeiro" (não são lançamento de dinheiro)
+  // nem em "Produtos" (não são cadastro de item): grupo próprio.
+  { name: "Marketing", icon: Megaphone },
   { name: "Estoque", icon: ClipboardList },
   { name: "Sistema", icon: Settings },
 ] as const;
@@ -114,6 +122,18 @@ export const ROUTES: AppRoute[] = [
   // Caminho antigo, mantido para não quebrar link salvo. Fora do menu: a mesma
   // tela em dois lugares confundiria mais do que ajuda.
   { path: "/formas-pagamento", component: PaymentMethodsPage, hidden: true },
+
+  { path: "/marketing/cupons", label: "Cupons", group: "Marketing", component: Coupons, roles: SO_ADMIN },
+  { path: "/marketing/campanhas", label: "Campanhas", group: "Marketing", component: Campaigns, roles: SO_ADMIN },
+  // O comparativo vem ANTES do relatório de propósito: não há colisão (dois
+  // segmentos contra três), mas manter o caminho literal na frente do
+  // parametrizado é o hábito que impede a próxima rota de `/campanhas/algo` ser
+  // engolida por `:id`.
+  { path: "/marketing/campanhas/comparativo", label: "Comparativo de Campanhas", group: "Marketing", component: CampaignComparison, roles: SO_ADMIN },
+  // Detalhe: chega pela lista, não pelo menu. Repete `roles` porque proteger a
+  // listagem e esquecer o detalhe é exatamente a porta dos fundos que o teste
+  // de rotas cobre no log.
+  { path: "/marketing/campanhas/:id/relatorio", component: CampaignReport, roles: SO_ADMIN, hidden: true },
 
   { path: "/fornecedores", label: "Fornecedores", group: "Estoque", component: Suppliers },
   { path: "/estoque/entradas", label: "Entradas", group: "Estoque", component: StockEntries },
