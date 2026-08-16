@@ -5,7 +5,8 @@ import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import type { EnrichedCategory, Department } from "../types";
+import type { UiPagedResult } from "@workspace/api-client-react";
+import type { CategoryDto, EnrichedCategory, Department } from "../types";
 
 type CategoryTableProps = {
   /** Loading state flag */
@@ -25,15 +26,19 @@ type CategoryTableProps = {
   /** List of all departments for filter dropdown options */
   departments: Department[];
   /** Categories page payload response from backend */
-  categoriesPage: any;
+  categoriesPage: UiPagedResult<CategoryDto> | undefined;
   /** Enriched category array to display in table rows */
   categoriesWithDepartment: EnrichedCategory[];
   /** Callback to trigger modal opening for creation (no arguments) or editing */
   onOpenModal: (category?: EnrichedCategory) => void;
   /** Callback to trigger report analytics display modal */
   onOpenReport: (categoryId: number) => void;
-  /** Callback to delete category by ID */
-  onDelete: (categoryId: number) => void;
+  /**
+   * Remoção efetiva, já confirmada pelo `ConfirmDialog` desta tabela. Devolver
+   * a Promise faz o diálogo mostrar o estado de carregando em vez de fechar
+   * antes de a exclusão sair.
+   */
+  onDelete: (categoryId: number) => void | Promise<void>;
 };
 
 /**
@@ -213,9 +218,7 @@ export function CategoryTable({
         }
         confirmLabel="Sim, remover"
         destructive
-        onConfirm={() => {
-          if (categoryToDelete) onDelete(categoryToDelete.id);
-        }}
+        onConfirm={() => (categoryToDelete ? onDelete(categoryToDelete.id) : undefined)}
       />
     </div>
   );

@@ -1,8 +1,8 @@
 import { AppLayout } from "@/components/layout";
-import { PAGE_SIZE, useCampaigns } from "@/features/campaigns/hooks/useCampaigns";
+import { useCampaigns } from "@/features/campaigns/hooks/useCampaigns";
 import { CampaignsTable } from "@/features/campaigns/components/CampaignsTable";
 import { CampaignEditorModal } from "@/features/campaigns/components/CampaignEditorModal";
-import { Button, Input } from "@workspace/ui";
+import { Button, Input, TablePagination } from "@workspace/ui";
 import { Megaphone, Plus, Search } from "lucide-react";
 
 /**
@@ -85,28 +85,14 @@ export default function CampaignsPage() {
         />
 
         {/* Paginação */}
-        {pagination && pagination.total > PAGE_SIZE && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Total: {pagination.total} campanhas</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                Anterior
-              </Button>
-
-              <span>
-                Página {page} de {pagination.totalPages}
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= pagination.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          </div>
+        {pagination && (
+          <TablePagination
+            page={page}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            onPageChange={setPage}
+            itemLabel={{ singular: "campanha", plural: "campanhas" }}
+          />
         )}
 
         {/* Modal Editor */}

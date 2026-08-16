@@ -1,99 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@workspace/ui";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { describeApiError, normalizeSearchText } from "@workspace/core";
-import { getEnumOptions } from "@/services/core";
+import { describeApiError } from "@workspace/core";
 import {
-  createSupplier,
-  deleteSupplier,
-  getSuppliersPage,
-  updateSupplier,
-} from "@/services/suppliers.service";
+  getGetSuppliersQueryKey,
+  useCreateSupplier,
+  useDeleteSupplier,
+  useGetSuppliers,
+  useGetSupplierStatusOptions,
+  useUpdateSupplier,
+  type SupplierDto,
+} from "@workspace/api-client-react";
+import { normalizeStatusName, randomColor } from "../constants";
 import type { SupplierForm } from "../types";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
-export const AVATAR_COLORS = [
-  "#6366f1",
-  "#8b5cf6",
-  "#a855f7",
-  "#ec4899",
-  "#f43f5e",
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#22c55e",
-  "#10b981",
-  "#14b8a6",
-  "#06b6d4",
-  "#3b82f6",
-  "#0ea5e9",
-  "#84cc16",
-  "#d946ef",
-  "#e11d48",
-  "#059669",
-  "#0284c7",
-  "#7c3aed",
-];
-
-export const UF_LIST = [
-  "AC",
-  "AL",
-  "AP",
-  "AM",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MT",
-  "MS",
-  "MG",
-  "PA",
-  "PB",
-  "PR",
-  "PE",
-  "PI",
-  "RJ",
-  "RN",
-  "RS",
-  "RO",
-  "RR",
-  "SC",
-  "SP",
-  "SE",
-  "TO",
-];
-
-/**
- * Retorna uma cor aleatória do catálogo de cores de avatar.
- */
-export function randomColor(): string {
-  return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
-}
-
-/**
- * Remove acentos e caracteres especiais para normalizar o nome de status.
- *
- * Mantido com o nome que descreve o uso na tela; a regra de normalizacao e a
- * mesma do resto do sistema e vive em `@workspace/core`.
- */
-export function normalizeStatusName(name: string): string {
-  return normalizeSearchText(name);
-}
-
-/**
- * Cria a URL do WhatsApp a partir de um telefone.
- */
-export function whatsappUrl(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  const number = digits.startsWith("55") ? digits : `55${digits}`;
-  return `https://wa.me/${number}`;
-}
-
 /**
  * Hook customizado para gerenciar a lógica de negócios da feature de Fornecedores.
+ *
+ * A listagem, o enum de status e as três mutações vêm do api-client. O que
+ * sobra aqui é o que é da tela: busca com debounce, filtro de status, o
+ * formulário e a regra de qual status o cadastro assume por padrão.
  */
 export function useSuppliers() {
   const queryClient = useQueryClient();
@@ -118,7 +46,6 @@ export function useSuppliers() {
   const [limit, setLimit] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState<SupplierForm>({
     name: "",
@@ -141,10 +68,7 @@ export function useSuppliers() {
   }, [search]);
 
   // Consulta das opções de status
-  const { data: statusOptions = [] } = useQuery({
-    queryKey: ["supplier-status-options"],
-    queryFn: () => getEnumOptions("/Suppliers/enums/supplier-status"),
-  });
+  const { data: statusOptions = [] } = useGetSupplierStatusOptions();
 
   const statusLabelById = useMemo(
     () => Object.fromEntries(statusOptions.map((item) => [item.id, item.name])),
@@ -191,23 +115,37 @@ export function useSuppliers() {
     isLoading,
     isError,
     error,
-  } = useQuery({
-    queryKey: ["suppliers-page", { search, status: statusParam, page, limit }],
-    queryFn: () => getSuppliersPage({ search, status: statusParam, page, limit }),
-  });
+  } = useGetSuppliers({ search, status: statusParam, page, limit });
 
   // O aviso de servidor fora do ar é o mesmo em toda tela — mora num hook só.
   useApiErrorToast(isError, error);
 
+  const createSupplier = useCreateSupplier();
+  const updateSupplier = useUpdateSupplier();
+  const deleteSupplier = useDeleteSupplier();
+
+  const saving = createSupplier.isPending || updateSupplier.isPending;
+
   // O filtro já foi aplicado pelo servidor — aqui só se lê o que veio.
   const suppliers = suppliersPage?.data ?? [];
+
+  /**
+   * Invalida o PREFIXO do recurso, não a combinação de parâmetros da tela.
+   *
+   * Sob `["suppliers"]` estão todas as páginas, todas as buscas e também o
+   * catálogo completo que outras telas leem. Invalidar só a página corrente
+   * deixava a lista de fornecedores do lançamento de estoque com o nome antigo.
+   */
+  async function invalidateSuppliers() {
+    await queryClient.invalidateQueries({ queryKey: getGetSuppliersQueryKey() });
+  }
 
   /**
    * Abre a modal de cadastro/edição de fornecedor.
    *
    * @param supplier Fornecedor a ser carregado em modo de edição (opcional).
    */
-  function handleOpenModal(supplier?: any) {
+  function handleOpenModal(supplier?: SupplierDto) {
     if (supplier) {
       setEditingId(supplier.id);
       const supplierStatus = supplier.status == null ? "" : String(supplier.status);
@@ -281,10 +219,8 @@ export function useSuppliers() {
       return;
     }
 
-    setSaving(true);
-
     try {
-      const payload = {
+      const data = {
         name: formData.name.trim(),
         corporateName: formData.corporateName.trim() || null,
         document: formData.document.trim() || null,
@@ -300,48 +236,45 @@ export function useSuppliers() {
       };
 
       if (editingId) {
-        await updateSupplier({
-          id: editingId,
-          ...payload,
-        });
+        await updateSupplier.mutateAsync({ id: editingId, data });
         toast({ title: "Fornecedor atualizado." });
       } else {
-        await createSupplier(payload);
+        await createSupplier.mutateAsync({ data });
         toast({ title: "Fornecedor cadastrado." });
       }
 
-      queryClient.invalidateQueries({ queryKey: ["suppliers-page"] });
+      await invalidateSuppliers();
       setModalOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro ao salvar fornecedor",
         description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   }
 
   /**
    * Remove um fornecedor do sistema.
    *
+   * A confirmação NÃO acontece aqui: quem pergunta é o `ConfirmDialog` da
+   * tabela. O `window.confirm` que morava nesta função travava a thread do
+   * navegador, ignorava o tema e não tinha como ser coberto por teste — o teste
+   * de exclusão precisava dublar `window.confirm` para chegar até a chamada.
+   *
    * @param id Identificador do fornecedor a ser removido.
-   * @param name Nome do fornecedor (para fins de confirmação).
    */
-  async function handleDeleteSupplier(id: number, name: string) {
-    if (confirm(`Remover o fornecedor "${name}"?`)) {
-      try {
-        await deleteSupplier(id);
-        queryClient.invalidateQueries({ queryKey: ["suppliers-page"] });
-        toast({ title: "Fornecedor removido." });
-      } catch (error: any) {
-        toast({
-          title: "Erro ao remover fornecedor",
-          description: describeApiError(error, "Tente novamente."),
-          variant: "destructive",
-        });
-      }
+  async function handleDeleteSupplier(id: number) {
+    try {
+      await deleteSupplier.mutateAsync({ id });
+      await invalidateSuppliers();
+      toast({ title: "Fornecedor removido." });
+    } catch (error) {
+      toast({
+        title: "Erro ao remover fornecedor",
+        description: describeApiError(error, "Tente novamente."),
+        variant: "destructive",
+      });
     }
   }
 

@@ -414,16 +414,19 @@ describe("useCampaigns", () => {
     );
   });
 
-  it("não deve excluir quando a confirmação é recusada", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("deve propagar a falha da exclusão para quem confirmou", async () => {
+    // A confirmação saiu do hook: quem pergunta é o `ConfirmDialog` da tabela,
+    // coberto em `packages/ui`. O que precisa continuar valendo aqui é a
+    // REJEIÇÃO — é ela que mantém o diálogo aberto quando o servidor recusa.
+    mocks.deleteCampaign.mockRejectedValueOnce(new Error("500"));
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useCampaigns(), { wrapper });
 
-    await act(async () => {
-      result.current.handleDelete(campanhaSetembro);
-    });
-
-    expect(mocks.deleteCampaign).not.toHaveBeenCalled();
+    await expect(
+      act(async () => {
+        await result.current.handleDelete(campanhaSetembro);
+      }),
+    ).rejects.toThrow();
   });
 
   it("deve mostrar a mensagem do backend quando o salvamento é recusado", async () => {

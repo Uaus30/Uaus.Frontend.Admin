@@ -271,12 +271,13 @@ describe("useFixedCosts", () => {
     expect(result.current.modalOpen).toBe(true);
   });
 
-  it("deve encerrar o custo na competência atual após confirmação", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("deve encerrar o custo na competência atual", async () => {
+    // A confirmação saiu daqui: ela é o `ConfirmDialog` renderizado pela tabela,
+    // e está coberta em `packages/ui`. O que o hook garante é o payload.
     const { result } = renderHook(() => useFixedCosts(), { wrapper: createWrapper() });
 
     await act(async () => {
-      result.current.handleEndFixedCost(rentCost);
+      await result.current.handleEndFixedCost(rentCost);
     });
 
     await waitFor(() =>
@@ -293,23 +294,24 @@ describe("useFixedCosts", () => {
     );
   });
 
-  it("não deve excluir quando a confirmação é negada", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("deve propagar a falha do encerramento para quem confirmou", async () => {
+    // O `ConfirmDialog` decide ficar aberto pela REJEIÇÃO da promessa. Se o
+    // hook engolisse o erro, o diálogo fecharia como se tivesse dado certo.
+    mocks.updateFixedCost.mockRejectedValueOnce(new Error("500"));
     const { result } = renderHook(() => useFixedCosts(), { wrapper: createWrapper() });
 
-    await act(async () => {
-      result.current.handleDelete(rentCost);
-    });
-
-    expect(mocks.deleteFixedCost).not.toHaveBeenCalled();
+    await expect(
+      act(async () => {
+        await result.current.handleEndFixedCost(rentCost);
+      }),
+    ).rejects.toThrow();
   });
 
-  it("deve excluir após confirmação e avisar o usuário", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("deve excluir e avisar o usuário", async () => {
     const { result } = renderHook(() => useFixedCosts(), { wrapper: createWrapper() });
 
     await act(async () => {
-      result.current.handleDelete(rentCost);
+      await result.current.handleDelete(rentCost);
     });
 
     await waitFor(() => expect(mocks.deleteFixedCost).toHaveBeenCalledWith(7));

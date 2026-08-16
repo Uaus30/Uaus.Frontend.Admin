@@ -2,14 +2,15 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
-import {
-  createCategory,
-  deleteCategory,
-  getCategoriesPage,
-  updateCategory,
-} from "@/services/categories.service";
 import { getCategoryReport } from "@/services/reports.service";
-import { STALE_TIME, getGetCategoriesQueryKey } from "@workspace/api-client-react";
+import {
+  STALE_TIME,
+  getGetCategoriesQueryKey,
+  useCreateCategory,
+  useDeleteCategory,
+  useGetCategories,
+  useUpdateCategory,
+} from "@workspace/api-client-react";
 import type { CategoryForm, EnrichedCategory, CategoryReport } from "../types";
 import { useAllDepartments } from "@/hooks/use-catalog";
 import { describeApiError } from "@workspace/core";
@@ -18,15 +19,19 @@ import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 /**
  * useCategories
  *
- * Custom React hook managing the state, validation, and TanStack Queries/Mutations
- * for the Categories administration view.
+ * Estado, validação e consultas da tela de categorias.
  *
- * Core responsibilities:
- * - Local states for search, filters, pagination, and modal toggles.
- * - Loading list of departments.
- * - Pagination categories querying with search/department filters.
- * - Mapping categories with their departments.
- * - Creating, updating, and deleting categories with query validation.
+ * A leitura e as três mutações vêm do api-client (`useGetCategories`,
+ * `useCreateCategory`, `useUpdateCategory`, `useDeleteCategory`): nenhum caminho
+ * HTTP é montado aqui. O que sobra para o hook é o que de fato é da tela —
+ * busca com debounce, paginação, formulário, enriquecimento com o departamento
+ * e a decisão de quando invalidar o cache.
+ *
+ * Responsabilidades:
+ * - Estados de busca, filtro por departamento, paginação e modais.
+ * - Listagem paginada filtrada no SERVIDOR.
+ * - Casamento de cada categoria com o departamento dela.
+ * - Criação, edição e remoção, com invalidação dirigida ao prefixo do recurso.
  * - Carregamento sob demanda do relatório de vendas da categoria selecionada.
  */
 export function useCategories() {
@@ -46,7 +51,6 @@ export function useCategories() {
   // Modal Dialog states
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<CategoryForm>({
     departmentId: "",
     name: "",
@@ -60,25 +64,34 @@ export function useCategories() {
   // Query: Fetch all departments
   const { data: departments = [] } = useAllDepartments();
 
-  // Query: Paginated and filtered categories
+  // Query: Paginated and filtered categories.
+  //
+  // A chave de cache é do api-client — o hook registra
+  // `[...getGetCategoriesQueryKey(), params]`. É o que faz a invalidação por
+  // prefixo, lá embaixo, alcançar TODAS as páginas e buscas, e não só a
+  // combinação que estava na tela na hora de salvar.
   const {
     data: categoriesPage,
     isLoading,
     isError,
     error,
-  } = useQuery({
-    queryKey: [...getGetCategoriesQueryKey(), { search: debouncedSearch, departmentFilter, page }],
-    queryFn: () =>
-      getCategoriesPage({
-        search: debouncedSearch,
-        departmentId: departmentFilter === "all" ? undefined : Number(departmentFilter),
-        page,
-        limit: 20,
-      }),
+  } = useGetCategories({
+    search: debouncedSearch,
+    departmentId: departmentFilter === "all" ? undefined : Number(departmentFilter),
+    page,
+    limit: 20,
   });
 
   // O aviso de servidor fora do ar é o mesmo em toda tela — mora num hook só.
   useApiErrorToast(isError, error);
+
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+
+  // Salvando é o estado das mutações, não uma cópia dele: manter um `useState`
+  // em paralelo dava divergência sempre que um `catch` esquecia o `finally`.
+  const saving = createCategory.isPending || updateCategory.isPending;
 
   // Derived: Enriched category list with department objects
   const categoriesWithDepartment = useMemo<EnrichedCategory[]>(() => {
@@ -142,19 +155,18 @@ export function useCategories() {
     event.preventDefault();
     if (!formData.departmentId || !formData.name.trim()) return;
 
-    setSaving(true);
     try {
-      const payload = {
+      const data = {
         departmentId: Number(formData.departmentId),
         name: formData.name.trim(),
         description: formData.description.trim() || null,
       };
 
       if (editingId) {
-        await updateCategory({ id: editingId, ...payload });
+        await updateCategory.mutateAsync({ id: editingId, data });
         toast({ title: "Categoria atualizada." });
       } else {
-        await createCategory(payload);
+        await createCategory.mutateAsync({ data });
         toast({ title: "Categoria criada." });
       }
 
@@ -166,8 +178,6 @@ export function useCategories() {
         description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -176,7 +186,7 @@ export function useCategories() {
    */
   async function handleDelete(categoryId: number) {
     try {
-      await deleteCategory(categoryId);
+      await deleteCategory.mutateAsync({ id: categoryId });
       await queryClient.invalidateQueries({ queryKey: getGetCategoriesQueryKey() });
       toast({ title: "Categoria removida." });
     } catch (error) {

@@ -128,9 +128,11 @@ describe("useImages Hook", () => {
 
     // Apenas as imagens do tipo selecionado, vindas do catálogo completo
     expect(result.current.filteredImages.map((item) => item.id)).toEqual([2, 4]);
-    // Contagem e paginação refletem o recorte filtrado, não o total geral
+    // Contagem e paginação refletem o recorte filtrado, não o total geral. O
+    // total de páginas não é mais conferido aqui porque o hook parou de
+    // calculá-lo: quem deriva é o `TablePagination`, a partir destes números.
     expect(result.current.imagePage?.total).toBe(2);
-    expect(result.current.totalPages).toBe(1);
+    expect(result.current.imagePage?.limit).toBe(20);
   });
 
   it("deve voltar à paginação do servidor ao limpar o filtro de tipo", async () => {

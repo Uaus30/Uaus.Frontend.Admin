@@ -5,18 +5,33 @@ import {
   getGetCustomersQueryKey,
   useCreateCustomer,
   useDeleteCustomer,
-  useGetCustomers,
+  useGetCustomerSummaries,
   useUpdateCustomer,
+  type CustomerSummaryDto,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
-import { buildCustomerStats } from "@/services/mappers";
 
-import type { CustomerForm } from "../types";
-import { useAllSales } from "@/hooks/use-catalog";
+import type { CustomerForm, CustomerStats } from "../types";
 import { describeApiError } from "@workspace/core";
 
 /**
  * Hook customizado para gerenciar a lógica de negócios, consultas e mutações da feature de Clientes.
+ *
+ * ## Por que o consolidado vem do servidor (item 4.1)
+ *
+ * Esta tela calculava "total gasto" e "nº de compras" no navegador: chamava
+ * `useAllSales()`, que varria a tabela de vendas INTEIRA — todas as páginas, sem
+ * filtro — e somava por cliente. Quinze linhas na tela custavam a operação
+ * completa da loja em memória.
+ *
+ * Os outros `useAll*` do admin são catálogo (departamento, categoria, etiqueta) e
+ * estabilizam em centenas de linhas. Venda não estabiliza nunca, e o
+ * `fetchAllPages` **lança** ao passar de 20 mil itens em vez de devolver a lista
+ * cortada — a tela tinha data marcada para parar de abrir.
+ *
+ * Hoje `GET /Customers/summary` devolve a página de clientes já com total, número
+ * de compras e data da última: **uma requisição, independente do tamanho da
+ * base**.
  *
  * @returns Um objeto com estados, dados de clientes, estatísticas e funções de manipulação.
  */
@@ -43,14 +58,30 @@ export function useCustomers() {
     setPage(1);
   }, [search]);
 
-  // Query de busca paginada de clientes
-  const { data: customersPage, isLoading } = useGetCustomers({ search, page, limit: 15 });
+  // Query de busca paginada de clientes, já com o consolidado de compras somado
+  // pelo banco.
+  const { data: customersPage, isLoading } = useGetCustomerSummaries({ search, page, limit: 15 });
 
-  // Query de vendas para calcular estatísticas
-  const { data: allSales = [] } = useAllSales();
+  /**
+   * Consolidado indexado por id, do jeito que a tabela consome.
+   *
+   * Não é mais um CÁLCULO: os três números já vêm prontos na linha. O mapa
+   * sobrevive porque é o formato que a tabela e a página recebem por prop, e
+   * porque indexar quinze linhas é de graça — a conta cara saiu do navegador.
+   */
+  const statsByCustomerId = useMemo(() => {
+    const stats = new Map<number, CustomerStats>();
 
-  // Cálculo das estatísticas consolidadas de compras por cliente
-  const statsByCustomerId = useMemo(() => buildCustomerStats(allSales), [allSales]);
+    (customersPage?.data ?? []).forEach((customer) => {
+      stats.set(customer.id, {
+        totalPurchases: customer.totalPurchased,
+        purchaseCount: customer.purchaseCount,
+        lastPurchaseAt: customer.lastPurchaseAt ?? null,
+      });
+    });
+
+    return stats;
+  }, [customersPage?.data]);
 
   // Mutação para criar cliente
   const { mutate: createCustomer, isPending: isCreating } = useCreateCustomer({
@@ -108,7 +139,7 @@ export function useCustomers() {
    *
    * @param customer Cliente opcional para carregar na edição.
    */
-  function handleOpenModal(customer?: any) {
+  function handleOpenModal(customer?: CustomerSummaryDto) {
     if (customer) {
       setEditingId(customer.id);
       setFormData({
@@ -142,7 +173,7 @@ export function useCustomers() {
    *
    * @param payload Objeto contendo os dados do formulário do cliente.
    */
-  function handleSaveCustomer(payload: any) {
+  function handleSaveCustomer(payload: CustomerForm) {
     if (editingId) {
       updateCustomer({ id: editingId, data: payload });
     } else {

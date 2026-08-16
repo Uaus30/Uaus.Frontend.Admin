@@ -14,6 +14,16 @@ import type { PaymentMethodFormValues, InstallmentFormValue } from "../types";
 import { describeApiError } from "@workspace/core";
 
 /**
+ * Tamanho fixo da página da listagem.
+ *
+ * Era um `10` escrito duas vezes — um no `size` pedido à API e outro na conta
+ * `page * 10 >= filteredItems` que decidia o botão "Próxima" lá na página.
+ * Dois literais que precisavam concordar, em arquivos diferentes, sem nada que
+ * garantisse a concordância.
+ */
+export const PAGE_SIZE = 10;
+
+/**
  * Hook customizado para gerenciar o estado e operações de CRUD das Formas de Pagamento.
  */
 export function usePaymentMethods() {
@@ -47,7 +57,7 @@ export function usePaymentMethods() {
     search: debouncedSearch.trim() || undefined,
     isActive: parsedIsActive,
     page,
-    size: 10,
+    size: PAGE_SIZE,
   });
 
   const createMutation = useCreatePaymentMethod();
@@ -181,9 +191,14 @@ export function usePaymentMethods() {
     }
   };
 
+  /**
+   * Exclui a forma de pagamento. A confirmação é do `ConfirmDialog` da tabela.
+   *
+   * Relança o erro depois de mostrar o toast porque o diálogo decide ficar
+   * aberto pela rejeição: engolindo aqui, ele fecharia como se a exclusão
+   * tivesse dado certo, com o aviso de falha aparecendo por trás.
+   */
   const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir esta forma de pagamento?")) return;
-
     try {
       await deleteMutation.mutateAsync({ id });
       toast({ title: "Sucesso", description: "Forma de pagamento excluída com sucesso!" });
@@ -194,13 +209,21 @@ export function usePaymentMethods() {
         description: describeApiError(err, "Ocorreu um erro ao excluir a forma de pagamento."),
         variant: "destructive",
       });
+      throw err;
     }
   };
 
   return {
     items: pagedData?.data ?? [],
+    // Nomes iguais aos das outras features (`pageSize`/`total`), e não o
+    // `size`/`filteredItems` do backend — o rodapé é um componente só.
     pagination: pagedData
-      ? { page: pagedData.page, size: pagedData.limit, filteredItems: pagedData.total }
+      ? {
+          page: pagedData.page,
+          pageSize: pagedData.limit || PAGE_SIZE,
+          total: pagedData.total,
+          totalPages: pagedData.totalPages,
+        }
       : undefined,
     isLoading,
     page,

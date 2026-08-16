@@ -31,6 +31,7 @@ export { Toaster as SonnerToaster } from "./components/sonner";
 export * from "./components/spinner";
 export * from "./components/switch";
 export * from "./components/table";
+export * from "./components/table-pagination";
 export * from "./components/tabs";
 export * from "./components/textarea";
 export * from "./components/toast";

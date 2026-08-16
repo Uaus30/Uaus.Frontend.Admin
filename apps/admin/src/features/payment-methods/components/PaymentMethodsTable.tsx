@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Edit2, Trash2, CreditCard, Percent } from "lucide-react";
 import type { PaymentMethodDto } from "../types";
 
@@ -8,10 +10,20 @@ interface PaymentMethodsTableProps {
   items: PaymentMethodDto[];
   isLoading: boolean;
   onEdit: (item: PaymentMethodDto) => void;
-  onDelete: (id: number) => void;
+  /** Exclui a forma de pagamento. Deve devolver a Promise da mutação — ver o ConfirmDialog. */
+  onDelete: (id: number) => void | Promise<unknown>;
 }
 
+/**
+ * Tabela das formas de pagamento com os parcelamentos e as taxas de cada um.
+ *
+ * A confirmação da exclusão mora aqui porque o aviso precisa citar o nome e a
+ * quantidade de parcelamentos da linha: eles somem junto, e é a informação que
+ * o operador não tem como recuperar depois de confirmar.
+ */
 export function PaymentMethodsTable({ items, isLoading, onEdit, onDelete }: PaymentMethodsTableProps) {
+  const [methodToDelete, setMethodToDelete] = useState<PaymentMethodDto | null>(null);
+
   if (isLoading) {
     return <div className="py-12 text-center text-muted-foreground">Carregando formas de pagamento...</div>;
   }
@@ -96,7 +108,7 @@ export function PaymentMethodsTable({ items, isLoading, onEdit, onDelete }: Paym
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onDelete(item.id)}
+                    onClick={() => setMethodToDelete(item)}
                     title="Excluir forma de pagamento"
                     className="h-8 w-8 text-destructive hover:bg-destructive/10"
                   >
@@ -108,6 +120,23 @@ export function PaymentMethodsTable({ items, isLoading, onEdit, onDelete }: Paym
           ))}
         </TableBody>
       </Table>
+
+      {methodToDelete && (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setMethodToDelete(null)}
+          title="Excluir esta forma de pagamento?"
+          itemName={`${methodToDelete.name} — ${methodToDelete.installments.length} ${
+            methodToDelete.installments.length === 1 ? "parcelamento" : "parcelamentos"
+          }`}
+          description="A forma sai do cadastro junto com todos os parcelamentos e as taxas configuradas neles, e deixa de aparecer no caixa e no registro de vendas. Vendas já registradas com ela continuam como estão. Para apenas tirá-la de circulação sem perder as taxas, prefira desativar pela edição. A ação não pode ser desfeita."
+          confirmLabel="Sim, excluir"
+          destructive
+          onConfirm={async () => {
+            await onDelete(methodToDelete.id);
+          }}
+        />
+      )}
     </div>
   );
 }

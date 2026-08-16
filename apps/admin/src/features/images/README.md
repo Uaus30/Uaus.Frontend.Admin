@@ -29,3 +29,9 @@ Este módulo gerencia o armazenamento, visualização, categorização e recuper
 ### 3. Clipboard Integration
 
 - Ao clicar no ícone de cópia, resolve a URL absoluta correspondente e a grava na área de transferência (`navigator.clipboard`), alterando temporariamente o ícone de feedback por 2 segundos.
+
+### 4. Paginação com duas origens
+
+- Sem filtro de tipo, a página vem do servidor. **Com** filtro, ela é recortada aqui do catálogo inteiro: o endpoint `GET /Images` não filtra por tipo, e paginar no servidor daria um total que não corresponde ao que está na grade. O tipo `ImageCatalogPage` (em `types.ts`) é o que as duas origens têm em comum.
+- Este é o único módulo do admin com **seletor de itens por página** — as miniaturas são o único conteúdo em que caber mais na tela compensa a espera do carregamento. Trocar o tamanho volta para a página 1: com 100 por página, a página 7 costuma deixar de existir e a grade ficaria vazia logo depois da troca.
+- O hook **não** calcula mais `totalPages`: quem deriva é o `TablePagination`, a partir de `total` e do tamanho da página. Duas fórmulas para a mesma resposta era como o admin acumulou três rodapés diferentes.

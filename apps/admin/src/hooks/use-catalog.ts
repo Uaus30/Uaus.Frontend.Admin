@@ -5,7 +5,6 @@ import { getAllCustomers } from "@/services/customers.service";
 import { getAllGrades } from "@/services/grades.service";
 import { getAllImages, getAllProductImages } from "@/services/images.service";
 import { getAllProductGroups, getAllProductTags, getAllProducts } from "@/services/products.service";
-import { getAllSales } from "@/services/sales.service";
 import { getAllSuppliers } from "@/services/suppliers.service";
 import { getAllTags } from "@/services/tags.service";
 
@@ -52,7 +51,6 @@ export const RESOURCE_KEYS = {
   productGroups: ["product-groups"],
   suppliers: ["suppliers"],
   customers: ["customers"],
-  sales: ["sales"],
   images: ["images"],
   productImages: ["product-images"],
   products: ["products"],
@@ -68,7 +66,6 @@ export const CATALOG_KEYS = {
   productGroups: [...RESOURCE_KEYS.productGroups, "all"],
   suppliers: [...RESOURCE_KEYS.suppliers, "all"],
   customers: [...RESOURCE_KEYS.customers, "all"],
-  sales: [...RESOURCE_KEYS.sales, "all"],
   images: [...RESOURCE_KEYS.images, "all"],
   productImages: [...RESOURCE_KEYS.productImages, "all"],
   products: [...RESOURCE_KEYS.products, "all"],
@@ -182,30 +179,23 @@ export function useAllProductImages(options?: CatalogOptions) {
 }
 
 /**
- * Todas as vendas.
+ * NÃO existe mais um `useAllSales`, e não deve voltar a existir.
  *
- * Sem `staleTime` de catálogo: venda entra o tempo todo, e um cache de cinco
- * minutos mostraria a tela de clientes desatualizada logo depois de uma venda.
+ * Ele era o único `useAll*` que varria uma tabela que cresce SEM LIMITE. Os
+ * demais são catálogo — departamento, categoria, etiqueta — e estabilizam em
+ * dezenas ou centenas de linhas. Venda não estabiliza nunca.
  *
- * ATENÇÃO — este é o único `useAll*` que varre uma tabela que cresce SEM LIMITE.
- * Os outros são catálogo (departamento, categoria, etiqueta): estabilizam em
- * dezenas ou centenas de linhas. Venda não estabiliza nunca, e a tela de
- * clientes usa isto só para somar quanto cada cliente já comprou — uma conta que
- * pertence ao servidor, não ao navegador. `fetchAllPages` lança ao passar de
- * `FETCH_ALL_PAGES_MAX_ITEMS`, então esta tela tem prazo de validade: ela para
- * de abrir quando a loja chegar a 20 mil vendas.
+ * O único consumidor era a tela de clientes, que baixava a operação inteira da
+ * loja para somar quanto cada cliente já tinha comprado. Essa conta pertence ao
+ * servidor: hoje sai de `GET /Customers/summary`
+ * (`useGetCustomerSummaries`, no api-client), em UMA requisição, seja qual for o
+ * tamanho da base. Item 4.1 do plano de refatoração.
  *
- * A correção definitiva é o backend devolver o consolidado junto do cliente
- * (total comprado, número de compras, data da última). Está registrado como
- * item 4.1 do plano de refatoração.
+ * Se aparecer a necessidade de "todas as vendas" de novo, o endereço é que
+ * precisa de filtro ou agregação — `fetchAllPages` lança ao passar de
+ * `FETCH_ALL_PAGES_MAX_ITEMS` justamente para essa conversa acontecer antes de a
+ * tela quebrar em produção.
  */
-export function useAllSales(options?: CatalogOptions) {
-  return useQuery({
-    queryKey: CATALOG_KEYS.sales,
-    queryFn: () => getAllSales(),
-    enabled: options?.enabled,
-  });
-}
 
 /** Todos os produtos vendáveis. */
 export function useAllProducts(options?: CatalogOptions) {

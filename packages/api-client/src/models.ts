@@ -168,6 +168,23 @@ export interface CustomerDto {
   address: string | null;
 }
 
+/**
+ * Cliente com o consolidado de compras já somado pelo servidor
+ * (`GET /Customers/summary`).
+ *
+ * Existe porque a tela de clientes calculava isso baixando a tabela de vendas
+ * INTEIRA no navegador. Catálogo estabiliza em centenas de linhas; venda não
+ * estabiliza nunca — a varredura crescia para sempre e `fetchAllPages` lança ao
+ * passar de 20 mil itens, então a tela tinha prazo de validade.
+ */
+export interface CustomerSummaryDto extends CustomerDto {
+  /** Soma de `total` das vendas do cliente, já líquida de desconto e cupom. */
+  totalPurchased: number;
+  purchaseCount: number;
+  /** Nulo para quem nunca comprou — distinto de "comprou hoje". */
+  lastPurchaseAt?: string | null;
+}
+
 export interface DepartmentDto {
   id: number;
   createdAt: string;
@@ -373,6 +390,75 @@ export interface ProductImageDto {
   productId: number;
   imageId: number;
   displayOrder: number;
+}
+
+/** Etiqueta de uma linha da tabela de produtos, já com nome e cor resolvidos. */
+export interface ProductTableTagDto {
+  id: number;
+  name: string;
+  color: string;
+}
+
+/**
+ * Imagem de uma linha da tabela de produtos, já com a URL resolvida.
+ *
+ * `associationId`, `createdAt` e `updatedAt` são da ASSOCIAÇÃO (`ProductImage`),
+ * não do arquivo: é esse id que a troca da imagem principal usa para reordenar e
+ * remover sem consultar `/ProductImages?productId=` de novo.
+ */
+export interface ProductTableImageDto {
+  associationId: number;
+  createdAt: string;
+  updatedAt?: string | null;
+  imageId: number;
+  displayOrder: number;
+  name: string;
+  url: string;
+}
+
+/**
+ * Uma LINHA da tabela de produtos do admin (`GET /Products/table`) — um grupo de
+ * produto com tudo que a tela mostra dele, resolvido no servidor.
+ *
+ * Substitui a cascata de quatro níveis que a tela montava sozinha: grupos,
+ * produtos por grupo, etiquetas e imagens por produto, e cada imagem por id.
+ * Numa página de 20 grupos com variações isso passava de 200 requisições e
+ * quatro idas e voltas em série antes da primeira linha aparecer.
+ *
+ * Os campos do GRUPO e os do PRODUTO representante vêm separados de propósito: a
+ * tabela exibe o nome do grupo, mas a edição rápida de preço faz PUT no produto e
+ * precisa mandar o nome verdadeiro — mandar o nome do grupo renomeia o produto
+ * silenciosamente, com registro no histórico.
+ */
+export interface ProductTableRowDto {
+  productGroupId: number;
+  productGroupName: string;
+  productGroupDescription?: string | null;
+  hasVariations: boolean;
+  showOnSite: boolean;
+  /** Datas do GRUPO — é o grupo que a linha representa. */
+  createdAt: string;
+  updatedAt?: string | null;
+  categoryId: number;
+  categoryName: string;
+  departmentId: number;
+  departmentName: string;
+  /** Zero quando o grupo ainda não tem nenhum produto ativo. */
+  productId: number;
+  productName: string;
+  productDescription?: string | null;
+  barcode: string;
+  price: number;
+  costPrice: number;
+  stock: number;
+  minStock: number;
+  /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
+  status: EnumValue;
+  /** Produtos ativos do grupo. Grupo sem variações tem 1. */
+  variationCount: number;
+  tags: ProductTableTagDto[];
+  /** Na ordem de exibição; a primeira é a principal. */
+  images: ProductTableImageDto[];
 }
 
 export interface SupplierDto {

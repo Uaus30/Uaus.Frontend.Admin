@@ -1,0 +1,150 @@
+name: Contrato
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+# Mesma política do ci.yml: em PR o veredito antigo não interessa mais; em
+# `main` cada commit precisa do próprio.
+concurrency:
+  group: contrato-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NPM_CONFIG_FUND: "false"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Os DTOs de packages/api-client/src/models.ts são escritos à mão e nada
+  # percebia quando o contrato do backend mudava. O caso que motivou o portão:
+  # `changePercentage` era `decimal?` no C#, o servidor serializa com
+  # `JsonIgnoreCondition.WhenWritingNull` (Uaus.Api/Extensions/ControllersExtensions.cs)
+  # e OMITE o campo nulo; o TypeScript declarava `number | null` sem o `?`. O
+  # campo chegava `undefined`, o `=== null` da tela nunca dava true e a tela de
+  # Desempenho do PDV ficou preta. Sem erro de compilação, sem teste vermelho.
+  #
+  # POR QUE ESTE PORTÃO REPROVA, e não só avisa:
+  #
+  # Aviso em log de CI verde é lido zero vez. O que faz portão morrer não é ser
+  # rigoroso, é nascer vermelho: no dia seguinte alguém tira o "required" e ele
+  # vira decoração. Por isso o portão é por BASELINE — as 63 divergências que já
+  # existiam estão registradas em scripts/contrato/divergencias-conhecidas.json
+  # e ele nasce VERDE. Reprova só divergência NOVA, isto é, DTO escrito errado a
+  # partir de agora, que é exatamente o que dá para exigir de quem abriu o PR.
+  #
+  # O que este portão NÃO faz é reprovar por desatualização do retrato: o CI do
+  # front não tem o repositório do backend à mão e não tem como saber o HEAD de
+  # lá. Reprovar por idade deixaria o PR vermelho por um motivo que o autor não
+  # consegue resolver dentro do PR dele — o caminho mais curto para o portão ser
+  # desligado. Idade vira aviso; atualizar o retrato é ato deliberado de quem
+  # tem os dois clones.
+  # ---------------------------------------------------------------------------
+  divergencia:
+    name: Divergência de contrato
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # Sem `npm ci`: o script usa só a biblioteca padrão do Node de propósito,
+      # para que o portão mais barato do pipeline também seja o mais rápido a
+      # dar veredito. Instalar dependência aqui seria pagar dois minutos para
+      # comparar dois arquivos de texto.
+      - name: Conferir models.ts contra o retrato do backend
+        run: node scripts/contrato/conferir-contrato.mjs --limite 20
+
+      # Aviso, nunca reprovação — ver a justificativa no cabeçalho do job.
+      - name: Avisar se o retrato do backend estiver velho
+        if: always()
+        run: |
+          set -euo pipefail
+          node - <<'CJS'
+          const fs = require("node:fs");
+          const contrato = JSON.parse(fs.readFileSync("scripts/contrato/contrato-backend.json", "utf8"));
+          const dias = Math.floor((Date.now() - Date.parse(contrato.geradoEm)) / 86400000);
+          const linha = `Retrato do contrato do backend gerado em ${contrato.geradoEm} (${dias} dia(s) atrás).`;
+          const summary = process.env.GITHUB_STEP_SUMMARY;
+          if (dias >= 30) {
+            console.log(`::warning file=scripts/contrato/contrato-backend.json::${linha} Rode scripts/contrato/extrair-contrato.mjs com o backend em mãos.`);
+            if (summary) fs.appendFileSync(summary, `\n> **Retrato velho:** ${linha}\n`);
+          } else {
+            console.log(linha);
+          }
+          CJS
+
+  # ---------------------------------------------------------------------------
+  # O comparador é análise léxica com expressão regular; se o parser quebrar, ele
+  # deixa de achar classe nenhuma e o portão acima fica VERDE por não ter o que
+  # comparar — o pior tipo de falso negativo, porque parece sucesso.
+  #
+  # Dois anteparos contra isso: o `conferir-contrato.mjs` sai com erro se não
+  # achar nenhuma interface no models.ts, e estes testes reproduzem os defeitos
+  # reais (o `changePercentage`, o enum tipado como número, o `canDelete` que só
+  # existe no front) com C# e TypeScript de mentira. Se o parser parar de
+  # enxergar qualquer um deles, aqui fica vermelho.
+  # ---------------------------------------------------------------------------
+  parser:
+    name: Testes do comparador
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # Mesma chave do ci.yml: quando os dois workflows rodam no mesmo commit,
+      # este job aproveita o node_modules que o outro já montou. Se o cache não
+      # estiver lá, instala — job lento é melhor do que job vermelho por motivo
+      # errado.
+      - name: Restaurar node_modules
+        id: modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('.nvmrc', 'package-lock.json') }}
+
+      - name: Instalar dependências (só se o cache falhar)
+        if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Testes do comparador
+        run: npx vitest run --root scripts/contrato
+
+  # ---------------------------------------------------------------------------
+  # Um nome só para a proteção de branch exigir, como no ci.yml. Sem ele seria
+  # preciso listar cada job na configuração do repositório — o lugar onde
+  # ninguém lembra de mexer quando um job novo entra.
+  # ---------------------------------------------------------------------------
+  contrato:
+    name: Contrato
+    needs: [divergencia, parser]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Conferir o resultado dos portões
+        env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -euo pipefail
+          echo "Portões: $RESULTADOS"
+          case " $RESULTADOS " in
+            *" failure "* | *" cancelled "* | *" skipped "*)
+              echo "O portão de contrato não passou."
+              exit 1
+              ;;
+          esac

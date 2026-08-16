@@ -1,10 +1,11 @@
 import { AppLayout } from "@/components/layout";
-import { PAGE_SIZE, usePartners } from "@/features/partners/hooks/usePartners";
+import { usePartners } from "@/features/partners/hooks/usePartners";
 import { PartnersTable } from "@/features/partners/components/PartnersTable";
 import { PartnerEditorModal } from "@/features/partners/components/PartnerEditorModal";
 import { ProfitSharesCard } from "@/features/partners/components/ProfitSharesCard";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
+import { TablePagination } from "@workspace/ui";
 import { Plus, Search, Handshake } from "lucide-react";
 
 /**
@@ -92,33 +93,14 @@ export default function PartnersPage() {
             />
 
             {/* Paginação */}
-            {pagination && pagination.filteredItems > PAGE_SIZE && (
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Total: {pagination.filteredItems} sócios</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    Anterior
-                  </Button>
-
-                  <span>
-                    Página {page} de {pagination.totalPages}
-                  </span>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= pagination.totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Próxima
-                  </Button>
-                </div>
-              </div>
+            {pagination && (
+              <TablePagination
+                page={page}
+                pageSize={pagination.pageSize}
+                total={pagination.total}
+                onPageChange={setPage}
+                itemLabel={{ singular: "sócio", plural: "sócios" }}
+              />
             )}
           </div>
 

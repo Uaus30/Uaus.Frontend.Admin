@@ -1,33 +1,20 @@
-import { apiDelete, apiPost, apiPut, fetchAllPages, type SupplierDto } from "@workspace/api-client-react";
-import { getPaged } from "./core";
+/**
+ * Fornecedores — REEXPORT, não implementação.
+ *
+ * A implementação está em `packages/api-client/src/hooks/suppliers.ts`, junto
+ * com o enum de status, que antes chegava aqui como string de caminho passada
+ * ao `getEnumOptions` genérico do `services/core.ts`.
+ *
+ * O único importador restante é `hooks/use-catalog.ts` (`getAllSuppliers`), e
+ * os testes de `features/inventory` e `features/stock-entries` dublam este
+ * módulo. A feature de fornecedores já usa os hooks (`useGetSuppliers`,
+ * `useCreateSupplier`…). Não acrescente função aqui.
+ */
 
-export async function getAllSuppliers() {
-  return fetchAllPages<SupplierDto>("/Suppliers");
-}
-
-export async function getSuppliersPage(params?: {
-  search?: string;
-  /** Código do status. Filtra no SERVIDOR — filtrar depois só veria a página atual. */
-  status?: number;
-  page?: number;
-  limit?: number;
-}) {
-  return getPaged<SupplierDto>("/Suppliers", {
-    search: params?.search,
-    status: params?.status,
-    page: params?.page ?? 1,
-    size: params?.limit ?? 20,
-  });
-}
-
-export async function createSupplier(payload: Omit<SupplierDto, "id" | "createdAt" | "updatedAt">) {
-  return apiPost<null>("/Suppliers", payload);
-}
-
-export async function updateSupplier(payload: Omit<SupplierDto, "createdAt" | "updatedAt">) {
-  return apiPut<SupplierDto>("/Suppliers", payload);
-}
-
-export async function deleteSupplier(id: number) {
-  return apiDelete<null>(`/Suppliers/${id}`);
-}
+export {
+  createSupplier,
+  deleteSupplier,
+  getAllSuppliers,
+  getSuppliersPage,
+  updateSupplier,
+} from "@workspace/api-client-react";

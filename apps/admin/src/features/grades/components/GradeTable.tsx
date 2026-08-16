@@ -1,6 +1,7 @@
 import React from "react";
 import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import type { Grade, GradeVariant } from "../types";
 
@@ -15,8 +16,11 @@ type GradeTableProps = {
   filteredGrades: Grade[];
   /** Callback to open editor modal in edit mode */
   onOpenModal: (grade: Grade) => void;
-  /** Callback to delete grade by ID */
-  onDelete: (id: number) => void;
+  /**
+   * Remoção efetiva, já confirmada. A pergunta é do `ConfirmDialog` desta
+   * tabela: o componente é declarativo, então quem renderiza é quem confirma.
+   */
+  onDelete: (id: number) => void | Promise<void>;
 };
 
 /**
@@ -32,6 +36,10 @@ export function GradeTable({
   onOpenModal,
   onDelete,
 }: GradeTableProps) {
+  // A grade inteira, e não só o id: o diálogo mostra o nome e quantas opções
+  // somem junto — é o que separa "Tem certeza?" de uma informação útil.
+  const [gradeToDelete, setGradeToDelete] = React.useState<Grade | null>(null);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <div className="flex gap-3 border-b border-border/50 p-4">
@@ -108,7 +116,7 @@ export function GradeTable({
                         size="icon"
                         variant="ghost"
                         className="text-muted-foreground hover:text-destructive"
-                        onClick={() => onDelete(grade.id)}
+                        onClick={() => setGradeToDelete(grade)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -120,6 +128,21 @@ export function GradeTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={gradeToDelete !== null}
+        onOpenChange={(open) => !open && setGradeToDelete(null)}
+        title="Remover esta grade?"
+        itemName={gradeToDelete?.name}
+        description={
+          gradeToDelete && gradeToDelete.variants.length > 0
+            ? `A grade sai do cadastro com ${gradeToDelete.variants.length === 1 ? "a sua opção" : `as suas ${gradeToDelete.variants.length} opções`}, e as categorias associadas deixam de sugeri-la ao criar variações de produto. A ação não pode ser desfeita.`
+            : "A grade sai do cadastro e as categorias associadas deixam de sugeri-la ao criar variações de produto. A ação não pode ser desfeita."
+        }
+        confirmLabel="Sim, remover"
+        destructive
+        onConfirm={() => (gradeToDelete ? onDelete(gradeToDelete.id) : undefined)}
+      />
     </div>
   );
 }

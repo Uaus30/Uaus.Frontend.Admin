@@ -5,6 +5,7 @@ import { PaymentMethodEditorModal } from "@/features/payment-methods/components/
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { TablePagination } from "@workspace/ui";
 import { Plus, Search, CreditCard, RefreshCw } from "lucide-react";
 
 export default function PaymentMethodsPage() {
@@ -113,26 +114,14 @@ export default function PaymentMethodsPage() {
         />
 
         {/* Paginação */}
-        {pagination && pagination.filteredItems > 10 && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Total: {pagination.filteredItems} formas de pagamento</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                Anterior
-              </Button>
-
-              <span>Página {page}</span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page * 10 >= pagination.filteredItems}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          </div>
+        {pagination && (
+          <TablePagination
+            page={page}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            onPageChange={setPage}
+            itemLabel={{ singular: "forma de pagamento", plural: "formas de pagamento" }}
+          />
         )}
 
         {/* Modal Editor */}

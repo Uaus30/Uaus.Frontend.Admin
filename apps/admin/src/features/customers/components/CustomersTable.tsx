@@ -1,14 +1,17 @@
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { formatCurrency, formatShortDate } from "@workspace/core";
+import type { CustomerSummaryDto, UiPagedResult } from "@workspace/api-client-react";
 import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
+
+import type { CustomerStats } from "../types";
 
 /**
  * Propriedades do componente de tabela de clientes.
  */
 interface CustomersTableProps {
-  /** Dados da página de clientes retornada da API. */
-  customersPage: any;
+  /** Página de clientes com o consolidado de compras já somado pelo servidor. */
+  customersPage: UiPagedResult<CustomerSummaryDto> | undefined;
   /** Estado de carregamento dos clientes. */
   isLoading: boolean;
   /** Valor atual da busca por nome. */
@@ -19,13 +22,25 @@ interface CustomersTableProps {
   page: number;
   /** Função callback para mudança de página. */
   onPageChange: (updater: number | ((current: number) => number)) => void;
-  /** Mapa contendo as estatísticas de compras dos clientes. */
-  statsByCustomerId: Map<number, { totalPurchases: number; purchaseCount: number }>;
+  /**
+   * Consolidado de compras indexado por id do cliente.
+   *
+   * Continua sendo um mapa porque é a forma que a página monta, mas os números
+   * não são mais calculados aqui nem no navegador: vêm somados do banco.
+   */
+  statsByCustomerId: Map<number, CustomerStats>;
   /** Callback executado ao clicar no botão de editar cliente. */
-  onEdit: (customer: any) => void;
+  onEdit: (customer: CustomerSummaryDto) => void;
   /** Callback executado ao clicar no botão de remover cliente. */
   onDelete: (id: number) => void;
 }
+
+/** Cliente sem nenhuma compra: zerado, e sem data de última compra. */
+const SEM_COMPRAS: CustomerStats = {
+  totalPurchases: 0,
+  purchaseCount: 0,
+  lastPurchaseAt: null,
+};
 
 /**
  * Componente que renderiza a tabela de listagem de clientes com busca e paginação.
@@ -63,6 +78,7 @@ export function CustomersTable({
               <th className="px-6 py-4">Contato</th>
               <th className="px-6 py-4">Documento</th>
               <th className="px-6 py-4">Total Gasto</th>
+              <th className="px-6 py-4">Última compra</th>
               <th className="px-6 py-4">Desde</th>
               <th className="px-6 py-4 text-right">Ações</th>
             </tr>
@@ -70,16 +86,13 @@ export function CustomersTable({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center">
+                <td colSpan={7} className="py-12 text-center">
                   <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                 </td>
               </tr>
             ) : (
-              customersPage?.data.map((customer: any) => {
-                const stats = statsByCustomerId.get(customer.id) ?? {
-                  totalPurchases: 0,
-                  purchaseCount: 0,
-                };
+              customersPage?.data.map((customer) => {
+                const stats = statsByCustomerId.get(customer.id) ?? SEM_COMPRAS;
 
                 return (
                   <tr
@@ -108,6 +121,11 @@ export function CustomersTable({
                         </span>
                         <span className="text-xs text-muted-foreground">{stats.purchaseCount} compra(s)</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {/* Traço em vez de data zerada: "nunca comprou" e "comprou
+                          em 01/01/0001" não podem parecer a mesma coisa. */}
+                      {stats.lastPurchaseAt ? formatShortDate(stats.lastPurchaseAt) : "—"}
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">{formatShortDate(customer.createdAt)}</td>
                     <td className="px-6 py-4 text-right">

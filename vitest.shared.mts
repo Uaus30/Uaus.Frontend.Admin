@@ -18,6 +18,87 @@ import type { TestUserConfig } from "vitest/config";
 type CoverageOptions = NonNullable<TestUserConfig["coverage"]>;
 
 /**
+ * Os seis workspaces que medem cobertura.
+ *
+ * É uma união fechada, e não `string`, porque o nome faz duas coisas ao mesmo
+ * tempo: escolhe a pasta do relatório e escolhe o piso na tabela abaixo. Com
+ * `string`, um erro de digitação (`"api_client"`) geraria um relatório numa
+ * pasta órfã e — pior — leria um piso `undefined`, desligando o portão daquele
+ * workspace em silêncio. Fechada a união, o typecheck reprova o typo.
+ */
+export type CoverageWorkspace = "core" | "api-client" | "ui" | "receipt" | "admin" | "pdv";
+
+/** Piso de cada métrica, em porcentagem do total do workspace. */
+type CoverageFloor = {
+  statements: number;
+  branches: number;
+  functions: number;
+  lines: number;
+};
+
+/**
+ * O piso de cobertura de cada workspace — a catraca.
+ *
+ * **De onde saem estes números.** Da primeira medição real, feita em 15/08/2026
+ * rodando `vitest run --coverage` em cada workspace e lendo o `total` do
+ * `coverage/<workspace>/coverage-summary.json`. Nenhum deles foi escolhido a
+ * dedo: o comentário ao lado de cada linha traz o valor medido, e o piso é o
+ * menor valor observado, **arredondado para baixo**.
+ *
+ * **Por que o medido, e não uma meta.** Piso acima do que o repositório alcança
+ * hoje nasce vermelho, e portão que nasce vermelho é desligado na primeira
+ * sexta-feira — aí some também a proteção contra regressão, que é a parte que
+ * valia. O limiar aqui não diz "queremos 80%": diz "não pode piorar".
+ *
+ * **A folga é fina de propósito.** Arredondar para o inteiro deixa menos de um
+ * ponto percentual de sobra. Isso é o que faz a catraca acusar a tela nova sem
+ * teste no PR em que ela entrou, e não três ondas depois, quando ninguém mais
+ * lembra de quem era o código. Quando o portão fechar, a correção é **escrever o
+ * teste**. Baixar o número é uma decisão a ser defendida na revisão do PR, com
+ * justificativa — nunca o conserto rápido para o build ficar verde.
+ *
+ * **Três pisos estão abaixo do medido, e não é descuido.** `ui`, `admin` e `pdv`
+ * foram medidos duas vezes durante a mesma sessão e deram valores diferentes:
+ * havia código entrando na workspace enquanto a medição rodava. O piso deles é o
+ * **menor** dos valores observados, não o último, porque a medição alta dependia
+ * de arquivo que ainda podia mudar — travar no pico faria o portão reprovar por
+ * causa de trabalho de terceiro, que é o jeito mais rápido de a regra virar
+ * ruído. O comentário de cada linha traz o valor mais recente; a diferença entre
+ * ele e o piso é justamente o que a próxima remedição tem para colher.
+ *
+ * **Como subir (e o número só sobe).** Depois de uma onda de testes:
+ * 1. rode a cobertura do workspace (`vitest run --coverage` dentro dele);
+ * 2. leia `total.<métrica>.pct` no `coverage/<workspace>/coverage-summary.json`;
+ * 3. arredonde para baixo e troque a linha aqui, atualizando o comentário com o
+ *    novo valor medido.
+ *
+ * O passo 3 é uma linha de diff e é o registro de que o ganho foi travado. Sem
+ * ele, a onda de testes vira folga: a cobertura sobe, o piso continua onde
+ * estava, e o próximo PR pode desfazer o ganho sem o CI reclamar.
+ *
+ * **`core` está em 100% de linhas e funções, e isso não é enfeite.** Quer dizer
+ * que uma função nova ali sem teste reprova o build. É o efeito desejado: `core`
+ * é dinheiro, data e validação, não tem tela nem rede para dificultar o teste, e
+ * o CLAUDE.md já manda cobrir exatamente esse tipo de código. O custo de manter
+ * o 100 é um `it()`; o custo de perdê-lo é um erro de arredondamento que os dois
+ * apps executam igual.
+ */
+const COVERAGE_FLOOR: Record<CoverageWorkspace, CoverageFloor> = {
+  // medido 97.93 / 94.02 / 100 / 100 — 88 testes, o único workspace no teto
+  core: { statements: 97, branches: 94, functions: 100, lines: 100 },
+  // medido 41.68 / 35.19 / 20.40 / 37.81 — o mais descoberto do repositório
+  "api-client": { statements: 41, branches: 35, functions: 20, lines: 37 },
+  // medido 19.71 / 25.23 / 16.73 / 19.38 — 40 componentes, 4 arquivos de teste
+  ui: { statements: 14, branches: 19, functions: 12, lines: 14 },
+  // medido 67.97 / 82.14 / 68.08 / 70.07 — `print.ts` não roda em jsdom
+  receipt: { statements: 67, branches: 82, functions: 68, lines: 70 },
+  // medido 40.69 / 25.62 / 29.67 / 42.07 — 348 testes para 25 features
+  admin: { statements: 40, branches: 25, functions: 29, lines: 41 },
+  // medido 54.95 / 41.71 / 49.42 / 55.33 — 449 testes
+  pdv: { statements: 52, branches: 41, functions: 45, lines: 52 },
+};
+
+/**
  * O que nunca entra na conta da cobertura.
  *
  * A lista é curta de propósito: cada exclusão esconde código do relatório, e
@@ -56,9 +137,9 @@ const SHARED_EXCLUDE = [
  * **`provider: "v8"`** — usa o contador nativo do V8 em vez de instrumentar o
  * código com Istanbul. Não reescreve o fonte antes de rodar, então o que o teste
  * executa é exatamente o que roda em produção, e o custo em tempo é quase zero.
- * Exige o pacote `@vitest/coverage-v8`, que é separado do vitest e **ainda não
- * está instalado neste monorepo** — sem ele, `vitest --coverage` para e pede a
- * instalação. `vitest run` normal, sem `--coverage`, ignora este bloco inteiro.
+ * Exige o pacote `@vitest/coverage-v8`, que é separado do vitest e já está
+ * instalado. `vitest run` normal, sem `--coverage`, ignora este bloco inteiro —
+ * inclusive os limiares.
  *
  * **`include` explícito** — a partir do Vitest 4, quando `coverage.include` não
  * é informado, só entram na conta os arquivos que algum teste importou. Um
@@ -75,21 +156,37 @@ const SHARED_EXCLUDE = [
  * em sequência e o Vitest **apaga** o `reportsDirectory` antes de cada execução:
  * com um diretório só, o sexto relatório seria o único a sobrar.
  *
- * **Sem `thresholds`** — de propósito. Nenhum limiar é honesto antes da primeira
- * medição, e um número chutado só tem dois destinos: reprovar o build hoje ou
- * ser tão baixo que não exige nada. O caminho é rodar `--coverage`, ler o
- * `coverage-summary.json` e só então travar o piso no valor que o repositório já
- * alcança — subindo-o a cada onda de testes, nunca baixando.
+ * **`thresholds` global, e não `perFile`** — a conta que precisa não piorar é a
+ * do workspace inteiro. Com `perFile: true` o portão reprovaria em cima do
+ * primeiro arquivo legado descoberto, que é a maioria deles em quatro dos seis
+ * workspaces, e o único jeito de voltar ao verde seria desligar a regra. A
+ * catraca global permite o movimento normal de um repositório vivo — um arquivo
+ * novo pouco coberto passa se outro subiu — e ainda assim impede o saldo cair.
  *
- * @param workspace Nome da pasta do relatório em `<raiz>/coverage/`. Precisa ser
- *   único por workspace, senão dois relatórios se apagam.
+ * **Sem `autoUpdate`** — o Vitest sabe reescrever sozinho o limiar quando a
+ * cobertura sobe, e isso parece o sonho da catraca automática. Só que aí rodar
+ * teste vira alteração de fonte: quem só queria ver se algo quebrou termina com
+ * arquivo modificado na workspace, e o ganho entra sem ninguém decidir. Fora
+ * que o `autoUpdate` procura o número literal dentro do arquivo de config, e
+ * aqui ele mora numa tabela compartilhada. Subir o piso é um ato deliberado, com
+ * diff e revisor.
+ *
+ * @param workspace Nome do workspace: escolhe a pasta do relatório em
+ *   `<raiz>/coverage/` e o piso em {@link COVERAGE_FLOOR}.
  * @param extraExclude Exclusões específicas do workspace, somadas às padrão.
  *   Use para ponto de entrada (`main.tsx`) e afins — código que só existe para
  *   ligar o app no DOM e não tem o que asseverar.
  */
-export function createCoverageOptions(workspace: string, extraExclude: string[] = []): CoverageOptions {
+export function createCoverageOptions(
+  workspace: CoverageWorkspace,
+  extraExclude: string[] = [],
+): CoverageOptions {
   return {
     provider: "v8",
+    // Cópia, não a referência: entregar o objeto da tabela deixaria o Vitest com
+    // uma alça para a constante compartilhada, e qualquer escrita dele (hoje só
+    // o `autoUpdate`, que está desligado) vazaria de um workspace para o outro.
+    thresholds: { ...COVERAGE_FLOOR[workspace] },
     // `text` é o número na hora, no terminal; `html` é para navegar até a linha
     // descoberta; `json-summary` gera o coverage-summary.json, que é o que um
     // gate de CI lê sem precisar interpretar texto formatado.

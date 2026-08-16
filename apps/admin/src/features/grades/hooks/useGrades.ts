@@ -1,38 +1,33 @@
 import { useState, useMemo } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { useDebounce } from "@workspace/ui";
-import { useGetGrades, type GradeDto } from "@workspace/api-client-react";
-import { createGrade, updateGrade, deleteGrade } from "@/services/grades.service";
-import { getEnumOptions } from "@/services/core";
-
-import type { Grade, GradeVariant, GradeType } from "../types";
-import { useAllDepartments, useAllCategories } from "@/hooks/use-catalog";
+import {
+  getGetGradesQueryKey,
+  useCreateGrade,
+  useDeleteGrade,
+  useGetGradeTypeOptions,
+  useGetGrades,
+  useUpdateGrade,
+  type GradeDto,
+  type SaveGradeOptionPayload,
+} from "@workspace/api-client-react";
 import { describeApiError } from "@workspace/core";
 
-/**
- * Converte um GradeDto retornado da API para o modelo Grade da aplicação.
- */
-function mapDtoToGrade(dto: GradeDto, typeMap: Record<number | string, GradeType>): Grade {
-  return {
-    id: dto.id,
-    name: dto.name,
-    type: typeMap[dto.type] || "Tamanho",
-    categoryIds: dto.categoryIds || [],
-    variants: dto.options.map((opt: any) => ({
-      id: opt.id,
-      value: opt.value,
-      colorHex: opt.colorHex || undefined,
-      order: opt.displayOrder,
-    })),
-  };
-}
+import type { Grade, GradeType } from "../types";
+import { buildTypeMapFromApi, buildTypeMapToApi, mapDtoToGrade } from "../grade-type-map";
+import { useGradeVariants } from "./useGradeVariants";
+import { useAllDepartments, useAllCategories } from "@/hooks/use-catalog";
 
 /**
  * useGrades
  *
- * Hook customizado para gerenciar regras de negócios, consultas e operações
- * da visualização administrativa de Grades e Dimensões.
+ * Regras, consultas e operações da tela de Grades e Dimensões.
+ *
+ * Leitura, enum de tipo e as três mutações vêm do api-client; a tabela de
+ * opções da grade vive em `useGradeVariants`. O que resta aqui é a costura:
+ * qual grade está aberta, quais categorias foram marcadas e o que vai no
+ * payload.
  */
 export function useGrades() {
   const queryClient = useQueryClient();
@@ -42,53 +37,15 @@ export function useGrades() {
   const debouncedSearch = useDebounce(search, 300);
 
   // Busca opções de tipo de grade dinamicamente
-  const { data: gradeTypeOptions = [] } = useQuery({
-    queryKey: ["grade-type-options"],
-    queryFn: () => getEnumOptions("/Grades/enums/grade-type"),
-  });
+  const { data: gradeTypeOptions = [] } = useGetGradeTypeOptions();
 
   const selectableGradeTypeOptions = useMemo(
-    () => gradeTypeOptions.filter((opt) => opt.allowSelect),
+    () => gradeTypeOptions.filter((option) => option.allowSelect),
     [gradeTypeOptions],
   );
 
-  // Mapeadores entre a API (Numérico/Enum de API) e a UI (Texto em Português)
-  const typeMapFromApi = useMemo(() => {
-    const map: Record<number | string, GradeType> = {
-      1: "Tamanho",
-      2: "Cor",
-      3: "Modelo",
-      4: "Estampa",
-      Size: "Tamanho",
-      Color: "Cor",
-      Model: "Modelo",
-      Print: "Estampa",
-      size: "Tamanho",
-      color: "Cor",
-      model: "Modelo",
-      print: "Estampa",
-    };
-    gradeTypeOptions.forEach((opt) => {
-      const name = opt.name as GradeType;
-      map[opt.id] = name;
-      map[opt.value] = name;
-      map[opt.value.toLowerCase()] = name;
-    });
-    return map;
-  }, [gradeTypeOptions]);
-
-  const typeMapToApi = useMemo(() => {
-    const map: Record<GradeType, number> = {
-      Tamanho: 1,
-      Cor: 2,
-      Modelo: 3,
-      Estampa: 4,
-    };
-    gradeTypeOptions.forEach((opt) => {
-      map[opt.name as GradeType] = opt.id;
-    });
-    return map;
-  }, [gradeTypeOptions]);
+  const typeMapFromApi = useMemo(() => buildTypeMapFromApi(gradeTypeOptions), [gradeTypeOptions]);
+  const typeMapToApi = useMemo(() => buildTypeMapToApi(gradeTypeOptions), [gradeTypeOptions]);
 
   // Busca todas as grades cadastradas
   const { data: apiGrades = [], isLoading } = useGetGrades();
@@ -99,7 +56,6 @@ export function useGrades() {
 
   // Busca categorias e departamentos para vinculação
   const { data: categories = [] } = useAllCategories();
-
   const { data: departments = [] } = useAllDepartments();
 
   const departmentMap = useMemo(() => {
@@ -113,17 +69,31 @@ export function useGrades() {
   const [editingGrade, setEditingGrade] = useState<GradeDto | null>(null);
   const [gradeType, setGradeType] = useState<GradeType>("Tamanho");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
-  const [variants, setVariants] = useState<GradeVariant[]>([]);
-  const [saving, setSaving] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
   const debouncedCategorySearch = useDebounce(categorySearch, 300);
 
-  // Estado para drag & drop de variantes
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const {
+    variants,
+    setVariants,
+    resetVariants,
+    draggedIndex,
+    ghostValue,
+    setGhostValue,
+    ghostColorHex,
+    setGhostColorHex,
+    removeVariantRow,
+    updateVariant,
+    commitGhostRow,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+  } = useGradeVariants(gradeType);
 
-  // Estado para a linha fantasma (ghost row) de adição rápida
-  const [ghostValue, setGhostValue] = useState("");
-  const [ghostColorHex, setGhostColorHex] = useState("#000000");
+  const createGrade = useCreateGrade();
+  const updateGrade = useUpdateGrade();
+  const deleteGrade = useDeleteGrade();
+
+  const saving = createGrade.isPending || updateGrade.isPending;
 
   // Filtra as grades pela busca textual
   const filteredGrades = useMemo(() => {
@@ -143,7 +113,7 @@ export function useGrades() {
       setGradeType(grade.type);
       setSelectedCategoryIds(grade.categoryIds || []);
       const sorted = [...grade.variants].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-      setVariants(JSON.parse(JSON.stringify(sorted)));
+      resetVariants(JSON.parse(JSON.stringify(sorted)));
 
       const rawDto = apiGrades.find((g) => g.id === grade.id) || null;
       setEditingGrade(rawDto);
@@ -152,85 +122,9 @@ export function useGrades() {
       setEditingGrade(null);
       setGradeType("Tamanho");
       setSelectedCategoryIds([]);
-      setVariants([]);
+      resetVariants([]);
     }
-    setGhostValue("");
-    setGhostColorHex("#000000");
     setModalOpen(true);
-  }
-
-  /**
-   * Remove uma linha de variante pelo índice local.
-   */
-  function removeVariantRow(index: number) {
-    setVariants((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  /**
-   * Atualiza o valor ou cor de uma variante existente na lista local.
-   */
-  function updateVariant(index: number, field: keyof GradeVariant, value: string) {
-    setVariants((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  }
-
-  /**
-   * Consolda a linha fantasma (ghost row) transformando-a em uma variante efetiva.
-   */
-  function commitGhostRow() {
-    const val = ghostValue.trim();
-    if (!val) return;
-
-    const valueExists = variants.some((v) => v.value.toLowerCase() === val.toLowerCase());
-    if (valueExists) {
-      toast({ title: "Este valor já existe nas opções.", variant: "destructive" });
-      return;
-    }
-
-    if (gradeType === "Cor") {
-      const colorExists = variants.some((v) => v.colorHex?.toLowerCase() === ghostColorHex.toLowerCase());
-      if (colorExists) {
-        toast({ title: "Esta cor (hexadecimal) já está sendo usada.", variant: "destructive" });
-        return;
-      }
-    }
-
-    setVariants((prev) => [
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        value: val,
-        colorHex: gradeType === "Cor" ? ghostColorHex : undefined,
-        order: prev.length,
-      },
-    ]);
-
-    setGhostValue("");
-  }
-
-  // Drag and Drop de Variantes
-  function handleDragStart(index: number) {
-    setDraggedIndex(index);
-  }
-
-  function handleDragOver(e: React.DragEvent, index: number) {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newVariants = [...variants];
-    const draggedItem = newVariants[draggedIndex];
-    newVariants.splice(draggedIndex, 1);
-    newVariants.splice(index, 0, draggedItem);
-
-    setDraggedIndex(index);
-    setVariants(newVariants);
-  }
-
-  function handleDragEnd() {
-    setDraggedIndex(null);
   }
 
   /**
@@ -238,14 +132,18 @@ export function useGrades() {
    */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    commitGhostRow();
+    // A lista devolvida já inclui a linha fantasma; ler `variants` aqui pegaria
+    // o estado do render anterior e perderia a última opção digitada.
+    const pendingVariants = commitGhostRow();
 
     if (selectedCategoryIds.length === 0) {
       toast({ title: "Selecione pelo menos uma categoria.", variant: "destructive" });
       return;
     }
 
-    const validVariants = variants.filter((v) => v.value.trim() !== "").map((v, i) => ({ ...v, order: i }));
+    const validVariants = pendingVariants
+      .filter((v) => v.value.trim() !== "")
+      .map((v, i) => ({ ...v, order: i }));
     if (validVariants.length === 0) {
       toast({ title: "Adicione ao menos uma opção (Variante).", variant: "destructive" });
       return;
@@ -272,35 +170,36 @@ export function useGrades() {
       }
     }
 
-    setSaving(true);
     try {
       if (editingId) {
+        // Só reenvia o id da opção que JÁ existia na grade. As criadas na sessão
+        // carregam um id local (`Date.now()`), e mandá-lo faria o servidor tentar
+        // atualizar uma linha que não é dele.
         const originalGrade = grades.find((g) => g.id === editingId);
-        await updateGrade({
-          id: editingId,
-          type: typeMapToApi[gradeType],
-          categoryIds: selectedCategoryIds,
-          options: validVariants.map((v, i) => ({
-            id: originalGrade?.variants.some((orig) => orig.id === v.id) ? v.id : undefined,
-            value: v.value.trim(),
-            colorHex: gradeType === "Cor" ? v.colorHex || null : null,
-            displayOrder: i,
-          })),
+        const options: SaveGradeOptionPayload[] = validVariants.map((v, i) => ({
+          id: originalGrade?.variants.some((orig) => orig.id === v.id) ? v.id : undefined,
+          value: v.value.trim(),
+          colorHex: gradeType === "Cor" ? v.colorHex || null : null,
+          displayOrder: i,
+        }));
+
+        await updateGrade.mutateAsync({
+          data: { id: editingId, type: typeMapToApi[gradeType], categoryIds: selectedCategoryIds, options },
         });
         toast({ title: "Grade atualizada com sucesso!" });
       } else {
-        await createGrade({
-          type: typeMapToApi[gradeType],
-          categoryIds: selectedCategoryIds,
-          options: validVariants.map((v, i) => ({
-            value: v.value.trim(),
-            colorHex: gradeType === "Cor" ? v.colorHex || null : null,
-            displayOrder: i,
-          })),
+        const options: SaveGradeOptionPayload[] = validVariants.map((v, i) => ({
+          value: v.value.trim(),
+          colorHex: gradeType === "Cor" ? v.colorHex || null : null,
+          displayOrder: i,
+        }));
+
+        await createGrade.mutateAsync({
+          data: { type: typeMapToApi[gradeType], categoryIds: selectedCategoryIds, options },
         });
         toast({ title: "Grade criada com sucesso!" });
       }
-      await queryClient.invalidateQueries({ queryKey: ["grades"] });
+      await queryClient.invalidateQueries({ queryKey: getGetGradesQueryKey() });
       setModalOpen(false);
     } catch (error) {
       toast({
@@ -308,45 +207,40 @@ export function useGrades() {
         description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   }
 
   /**
-   * Deleta uma grade após confirmação.
+   * Remove a grade. A confirmação é do `ConfirmDialog` da tabela — o
+   * `window.confirm` que ficava aqui travava a thread e não era testável.
    */
   async function handleDelete(id: number) {
-    if (confirm("Tem certeza que deseja remover esta Grade?")) {
-      try {
-        await deleteGrade(id);
-        await queryClient.invalidateQueries({ queryKey: ["grades"] });
-        toast({ title: "Grade removida." });
-      } catch (error) {
-        toast({
-          title: "Erro ao remover grade",
-          description: describeApiError(error, "Tente novamente."),
-          variant: "destructive",
-        });
-      }
+    try {
+      await deleteGrade.mutateAsync({ id });
+      await queryClient.invalidateQueries({ queryKey: getGetGradesQueryKey() });
+      toast({ title: "Grade removida." });
+    } catch (error) {
+      toast({
+        title: "Erro ao remover grade",
+        description: describeApiError(error, "Tente novamente."),
+        variant: "destructive",
+      });
     }
   }
 
   // Filtra as categorias associadas pelo termo de busca local (nome ou departamento)
   const filteredCategories = useMemo(() => {
-    const baseList = [...categories];
-    if (!debouncedCategorySearch.trim()) return baseList;
-    const q = debouncedCategorySearch.toLowerCase().trim();
-    const matched = q
-      ? categories.filter((cat: any) => {
-          const catName = cat.name.toLowerCase();
-          const deptId = cat.departmentId;
-          const deptName = (departmentMap.get(deptId) || "").toLowerCase();
-          return catName.includes(q) || deptName.includes(q);
-        })
-      : [...categories];
+    if (!debouncedCategorySearch.trim()) return [...categories];
+    const query = debouncedCategorySearch.toLowerCase().trim();
+    const matched = categories.filter((cat) => {
+      const catName = cat.name.toLowerCase();
+      const deptName = (departmentMap.get(cat.departmentId) || "").toLowerCase();
+      return catName.includes(query) || deptName.includes(query);
+    });
 
-    return matched.sort((a: any, b: any) => {
+    // Marcadas primeiro: numa lista de dezenas de categorias, a que o operador
+    // acabou de marcar sumia para o fim e ele marcava a mesma duas vezes.
+    return matched.sort((a, b) => {
       const aChecked = selectedCategoryIds.includes(a.id);
       const bChecked = selectedCategoryIds.includes(b.id);
       if (aChecked && !bChecked) return -1;

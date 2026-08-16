@@ -1,3 +1,83 @@
+import type { EnumValue } from "@workspace/api-client-react";
+
+/** Imagem já associada ao produto representante da linha. */
+export type ProductTableRowImage = {
+  /** Id da ASSOCIAÇÃO (`ProductImage`), não do arquivo. */
+  associationId: number;
+  /**
+   * Datas da associação. Não aparecem em lugar nenhum da tela — existem porque a
+   * troca da imagem principal precisa remontar `ProductImageDto` para o
+   * `syncProductImages`, e fabricar data ali seria inventar dado.
+   */
+  createdAt: string;
+  updatedAt: string | null;
+  imageId: number;
+  displayOrder: number;
+  image: {
+    id: number;
+    name: string;
+    url: string;
+  };
+};
+
+/**
+ * Uma LINHA da tabela de produtos, do jeito que a tela usa.
+ *
+ * Substitui o `EnrichedProduct` nesta tela. O `EnrichedProduct` é
+ * `ProductDto & { productGroup, category, department, tags, images }` com os DTOs
+ * COMPLETOS — e o endereço agregado devolve só o que a linha mostra. Montar os
+ * DTOs completos a partir dele exigiria inventar `productCount`, `isPublic`,
+ * `uuid`, `type` e `version`; campo inventado com cara de campo real é a próxima
+ * armadilha, não uma conveniência de tipagem.
+ *
+ * Os nomes do GRUPO e do PRODUTO vivem em campos separados de propósito — ver
+ * {@link ProductTableRow.name} e {@link ProductTableRow.productName}.
+ */
+export type ProductTableRow = {
+  /**
+   * Id do PRODUTO representante. **Zero quando o grupo ainda não tem produto
+   * ativo** — o grupo é criado antes do primeiro produto, e a linha aparece
+   * mesmo assim para o cadastro recém-começado não sumir da listagem.
+   */
+  id: number;
+  productGroupId: number;
+  /**
+   * Nome EXIBIDO na tabela: o do grupo. É o que o usuário reconhece; o produto
+   * representante pode se chamar "Caneca 300ml" dentro do grupo "Caneca".
+   */
+  name: string;
+  /**
+   * Nome verdadeiro do produto representante.
+   *
+   * A edição rápida de preço faz PUT no produto e tem que devolver ESTE nome.
+   * Mandar {@link ProductTableRow.name} renomearia o produto silenciosamente, com
+   * registro no histórico — e o nome errado vazaria para o cupom e para o PDV.
+   */
+  productName: string;
+  description: string | null;
+  barcode: string;
+  price: number;
+  costPrice: number;
+  stock: number;
+  minStock: number;
+  /** Enum ProductStatus — pode vir como número ou nome; leia com `enumCode`. */
+  status: EnumValue;
+  /** Produtos ativos do grupo. Grupo sem variações tem 1. */
+  variationCount: number;
+  productGroup: {
+    id: number;
+    name: string;
+    description: string | null;
+    hasVariations: boolean;
+    showOnSite: boolean;
+  };
+  category: { id: number; name: string };
+  department: { id: number; name: string };
+  tags: Array<{ id: number; name: string; color: string }>;
+  /** Em ordem de exibição; a primeira é a principal. */
+  images: ProductTableRowImage[];
+};
+
 /**
  * Represents the main/parent product group form values.
  * In a variation setup, these fields apply to all variations under the group.

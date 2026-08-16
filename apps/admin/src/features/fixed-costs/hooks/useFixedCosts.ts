@@ -55,6 +55,22 @@ export function isFixedCostActive(cost: FixedCostDto): boolean {
   return cost.endsOn == null || monthKeyOf(cost.endsOn) >= currentMonthKey();
 }
 
+/**
+ * Competência em que o botão "Encerrar" fecha a vigência do custo: o mês
+ * corrente, ou o próprio mês inicial quando o custo só começa no futuro (o
+ * backend exige `endsOn >= startsOn`).
+ *
+ * Exportada porque a confirmação na tela precisa **citar o mês** que vai ser
+ * gravado, e citar o mesmo que o payload envia. Um diálogo que diz só
+ * "encerrar?" obriga o operador a adivinhar se a cobrança para agora ou no
+ * mês que vem.
+ */
+export function endMonthFor(cost: FixedCostDto): string {
+  const startMonth = monthKeyOf(cost.startsOn);
+  const nowMonth = currentMonthKey();
+  return nowMonth >= startMonth ? nowMonth : startMonth;
+}
+
 /** Formulário em branco: começa com a vigência iniciando na competência atual. */
 function emptyForm(): FixedCostForm {
   return { name: "", monthlyAmount: "", startsOn: currentMonthKey(), endsOn: "", notes: "" };
@@ -228,47 +244,34 @@ export function useFixedCosts() {
   }
 
   /**
-   * Ação rápida "Encerrar": preenche a competência final com o mês atual.
+   * Ação rápida "Encerrar": grava a competência final de {@link endMonthFor}.
    *
-   * Se o custo só começa num mês futuro, encerra na própria competência
-   * inicial — o backend exige `endsOn >= startsOn`.
+   * Devolve a Promise porque quem chama é o `ConfirmDialog`, que só fecha
+   * quando ela resolve e permanece aberto se o servidor recusar — sem isso o
+   * operador veria o diálogo sumir e teria que reencontrar a linha para
+   * descobrir que nada mudou. A trava de clique duplo também é do diálogo.
    */
   function handleEndFixedCost(cost: FixedCostDto) {
-    // Segundo clique com a mutação em voo não pode disparar encerramento duplicado.
-    if (endMutation.isPending) return;
-
-    const startMonth = monthKeyOf(cost.startsOn);
-    const nowMonth = currentMonthKey();
-    const endMonth = nowMonth >= startMonth ? nowMonth : startMonth;
-
-    const confirmed = window.confirm(
-      `Encerrar o custo "${cost.name}" em ${formatMonth(endMonth)}? ` +
-        "Ele deixa de entrar nos fechamentos dos meses seguintes.",
-    );
-    if (!confirmed) return;
-
-    endMutation.mutate({ cost, endMonth });
+    return endMutation.mutateAsync({ cost, endMonth: endMonthFor(cost) });
   }
 
-  /** Exclui o custo de vez, após confirmação. Fechamentos já confirmados não mudam. */
+  /** Exclui o custo de vez. Fechamentos já confirmados não mudam. */
   function handleDelete(cost: FixedCostDto) {
-    // Segundo clique com a mutação em voo não pode disparar exclusão duplicada.
-    if (deleteMutation.isPending) return;
-
-    const confirmed = window.confirm(
-      `Excluir o custo "${cost.name}" de vez? ` +
-        'Fechamentos já confirmados não mudam. Para apenas parar a cobrança, prefira "Encerrar".',
-    );
-    if (!confirmed) return;
-
-    deleteMutation.mutate(cost.id);
+    return deleteMutation.mutateAsync(cost.id);
   }
 
   return {
     // Listagem
     fixedCosts: pagedData?.data ?? [],
+    // `pageSize` viaja junto porque o rodapé deriva o total de páginas dele — a
+    // tela não reimporta PAGE_SIZE nem arrisca divergir do que foi pedido à API.
     pagination: pagedData
-      ? { page: pagedData.page, total: pagedData.total, totalPages: pagedData.totalPages }
+      ? {
+          page: pagedData.page,
+          pageSize: pagedData.limit || PAGE_SIZE,
+          total: pagedData.total,
+          totalPages: pagedData.totalPages,
+        }
       : undefined,
     isLoading,
     page,

@@ -14,12 +14,44 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 - `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
 - `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e chamadas de mutations para edição rápida de preço/estoque.
+- `hooks/mapProductTableRow.ts`: Traduz a linha que o servidor devolve para a linha que a tela usa.
 - `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, geração da matriz cartesiana de variações, validações e persistência no banco.
 - `types.ts`: Tipagens TypeScript estritas que modelam os dados de formulários, imagens locais e variações.
 
 ---
 
 ## ⚙️ Regras de Negócio Importantes
+
+### 0. A listagem é UMA requisição — e precisa continuar sendo
+
+A página da tabela vem pronta de `GET /Products/table` (hook `useGetProductTable`, no `packages/api-client`): grupo, categoria, departamento, produto representante, etiquetas e imagens numa resposta só.
+
+Antes do item 4.1 a tela montava a mesma linha em **cascata de quatro níveis**, cada um esperando o anterior terminar:
+
+1. `/ProductGroups` paginado — a página de grupos;
+2. `/Products?productGroupId=` — **uma requisição por grupo**;
+3. `/ProductTags?productId=` e `/ProductImages?productId=` — **duas por produto**;
+4. `/Images/{id}` — **uma por imagem distinta**.
+
+Mais os três catálogos completos (departamentos, categorias, etiquetas), baixados inteiros só para escrever dois nomes por linha. Contando por leitura do código, com 20 grupos por página:
+
+| Cenário                                  | Antes                       | Depois |
+| ---------------------------------------- | --------------------------- | ------ |
+| 20 grupos simples, 1 imagem cada         | 5 + 20 + 40 + 20 = **85**   | **2**  |
+| 20 grupos com 3 variações, 1 imagem cada | 5 + 20 + 120 + 60 = **205** | **2**  |
+| Idas e voltas em série antes da 1ª linha | **4**                       | **1**  |
+
+(as duas de hoje são a página da tabela e o catálogo de status, que é compartilhado e fica 5 min em cache)
+
+Como cada endpoint filtrava por **um id de cada vez**, não havia conserto possível só no navegador — daí o endereço agregado no backend. `useProductTable.test.tsx` conta as chamadas de `fetch` de verdade e falha se a cascata voltar: uma cascata reintroduzida não quebra nada visível, a tela só volta a levar segundos para abrir.
+
+**Quem representa a linha.** A tabela lista GRUPOS e mostra o produto de **maior id** do grupo. Não é escolha estética: é o que o front já exibia (`/Products?productGroupId=` vem ordenado por id decrescente e ele pegava o primeiro). Trocar o critério mudaria a variação exibida — e o preço editado inline — em toda linha de grupo com variações.
+
+**Nome do grupo × nome do produto.** A linha exibe `name` (do grupo) e guarda `productName` (do produto) à parte. A edição rápida de preço faz `PUT /Products` e tem que devolver `productName`; mandar o nome exibido renomeia o produto silenciosamente, com registro no histórico, e o nome errado vaza para o cupom e para o PDV.
+
+**Invalidação.** A tabela é uma query só, sob `["products","table", params]`. Quem salva, exclui ou reordena invalida `RESOURCE_KEYS.products` — o prefixo do recurso alcança a tabela. Invalidar a chave errada não quebra nada: compila, roda, e a célula mostra o valor antigo depois de salvar.
+
+**Virtualização: avaliada e descartada.** O seletor oferece 20 (padrão), 50 e 100 linhas por página. Só o último passa da faixa em que virtualizar compensa, e cada linha carrega menu de contexto, dropdown e hover card em portal — que virtualização quebra de formas difíceis de perceber. Sem a cascata, o custo de uma linha voltou a ser só render. Se o seletor um dia oferecer 500, refaça a conta.
 
 ### 1. Produto Simples vs. Produto com Variações
 
@@ -47,7 +79,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 
 O botão de lápis do balcão do PDV abre esta tela em outra aba já na edição do produto. São dois parâmetros porque a tela faz duas coisas distintas:
 
-- **`busca`** traz o produto para a página. A listagem é paginada e filtra por **grupo de produto** (`/ProductGroups?search=`), então o termo tem que ser o nome do grupo — código de barras pertence ao produto filho e não casa com grupo nenhum.
+- **`busca`** traz o produto para a página. A listagem é paginada e filtra por **grupo de produto** (`/Products/table?search=`, que casa com nome e descrição do GRUPO), então o termo tem que ser o nome do grupo — código de barras pertence ao produto filho e não casa com grupo nenhum. O endereço mudou no item 4.1; o critério de filtro foi mantido de propósito, porque mudá-lo mudaria a composição das páginas e o total do rodapé.
 - **`editar`** escolhe a linha e é consumido pelo `hooks/useProductDeepLink.ts`.
 
 Regras que valem a pena conhecer antes de mexer:

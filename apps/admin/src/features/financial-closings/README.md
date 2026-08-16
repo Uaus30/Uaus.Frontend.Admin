@@ -45,4 +45,7 @@ Fechamento financeiro por período (rota futura `/financeiro/fechamentos`): o do
 
 ### 7. Excluir permite refazer — e é logado
 
-- Excluir um fechamento libera o período para fechar de novo. É ação destrutiva de documento: o backend grava log (`LogType.FinancialClosingDeleted`) com período, lucro líquido e usuário, e o `window.confirm` avisa isso antes.
+- Excluir um fechamento libera o período para fechar de novo. É ação destrutiva de documento: o backend grava log (`LogType.FinancialClosingDeleted`) com período, lucro líquido e usuário.
+- O aviso disso é o `ConfirmDialog` do `ClosingDetailsDialog`, e ele cita o período e o lucro líquido da tela. Mora ali, e não no hook, porque é no detalhe que esses números estão visíveis — e porque um diálogo declarativo precisa de alguém que o renderize.
+- O que o aviso precisa dizer, e o `window.confirm` anterior não dizia: **refazer o fechamento pode dar outro número.** O novo cálculo usa os sócios, percentuais e custos fixos de hoje, não os que estavam vigentes quando o período foi fechado.
+- `handleDeleteClosing` devolve a Promise da mutação. O diálogo só fecha quando ela resolve; falhando, ele permanece aberto com o erro no toast, em vez de sumir sem dizer se o documento saiu.

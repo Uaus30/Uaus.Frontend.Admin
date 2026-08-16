@@ -230,19 +230,16 @@ export function useCampaigns() {
     saveMutation.mutate({ id: editingId, payload });
   }
 
-  /** Exclui a campanha (exclusão lógica no servidor), após confirmação. */
+  /**
+   * Exclui a campanha (exclusão lógica no servidor).
+   *
+   * Devolve a Promise da mutação porque quem confirma é o `ConfirmDialog` da
+   * tabela: ele só fecha quando ela resolve e permanece aberto se o servidor
+   * recusar. A trava de clique duplo também é do diálogo, e por isso não se
+   * repete aqui.
+   */
   function handleDelete(campaign: CampaignDto) {
-    // Segundo clique com a mutação em voo não pode disparar exclusão duplicada.
-    if (deleteMutation.isPending) return;
-
-    const confirmed = window.confirm(
-      `Excluir a campanha "${campaign.name}"? ` +
-        "Os cupons ligados continuam válidos e as respostas já dadas são preservadas; " +
-        "o questionário é que deixa de ser apresentado no caixa.",
-    );
-    if (!confirmed) return;
-
-    deleteMutation.mutate(campaign.id);
+    return deleteMutation.mutateAsync(campaign.id);
   }
 
   /**
@@ -259,8 +256,15 @@ export function useCampaigns() {
   return {
     // Listagem
     campaigns: pagedData?.data ?? [],
+    // `pageSize` viaja junto para o rodapé derivar o total de páginas sem que a
+    // página reimporte PAGE_SIZE e arrisque divergir do tamanho pedido à API.
     pagination: pagedData
-      ? { page: pagedData.page, total: pagedData.total, totalPages: pagedData.totalPages }
+      ? {
+          page: pagedData.page,
+          pageSize: pagedData.limit || PAGE_SIZE,
+          total: pagedData.total,
+          totalPages: pagedData.totalPages,
+        }
       : undefined,
     isLoading,
     page,

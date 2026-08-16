@@ -1,12 +1,21 @@
 import React from "react";
 import { Check, Copy, ExternalLink, ImageIcon, Loader2, Pencil, Search, Trash2 } from "lucide-react";
-import { Button } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { TablePagination } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
+import type { EnumOptionDto } from "@workspace/api-client-react";
 import { buildPublicImageUrl } from "@/services/core";
-import type { CatalogImage } from "../types";
+import type { CatalogImage, ImageCatalogPage } from "../types";
+
+/**
+ * Tamanhos oferecidos no seletor de itens por página.
+ *
+ * O catálogo é a única tela do admin em que ele existe: as miniaturas são o
+ * único conteúdo em que caber mais na tela compensa a espera do carregamento.
+ */
+const IMAGE_PAGE_SIZES = [20, 50, 100];
 
 type ImageCatalogProps = {
   /** Search text filter query */
@@ -17,10 +26,10 @@ type ImageCatalogProps = {
   typeFilter: string;
   /** Callback triggered when type filter dropdown changes */
   setTypeFilter: (val: string) => void;
-  /** List of selectable image types */
-  selectableTypes: any[];
-  /** Full list of image types from backend */
-  imageTypes: any[];
+  /** Tipos de imagem que o formulário deixa escolher (`allowSelect`). */
+  selectableTypes: EnumOptionDto[];
+  /** Catálogo completo de tipos, usado para traduzir o código na miniatura. */
+  imageTypes: EnumOptionDto[];
   /** True if list query is loading */
   isLoading: boolean;
   /** Grid items list */
@@ -35,10 +44,8 @@ type ImageCatalogProps = {
   limit: number;
   /** Callback to update page size limit */
   setLimit: (limit: number) => void;
-  /** Paginated payload object from API */
-  imagePage: any;
-  /** Total count of pages */
-  totalPages: number;
+  /** Página corrente — do servidor, ou a montada localmente sob filtro de tipo. */
+  imagePage: ImageCatalogPage | undefined;
   /** Callback to copy image URL to clipboard */
   copyUrl: (id: number, url: string) => void;
   /** Callback to start image renaming flow */
@@ -67,7 +74,6 @@ export function ImageCatalog({
   limit,
   setLimit,
   imagePage,
-  totalPages,
   copyUrl,
   onRenameOpen,
   onDelete,
@@ -184,49 +190,22 @@ export function ImageCatalog({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border/50 p-4 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span>Itens por página:</span>
-          <Select
-            value={String(limit)}
-            onValueChange={(value) => {
-              setLimit(Number(value));
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="h-8 w-20 bg-background text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="ml-2">Total: {imagePage?.total || 0}</span>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((current) => current - 1)}
-          >
-            Anterior
-          </Button>
-          <span className="px-2 py-1 text-xs">
-            {page} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Próxima
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        className="border-t border-border/50 p-4"
+        page={page}
+        pageSize={limit}
+        total={imagePage?.total ?? 0}
+        onPageChange={setPage}
+        itemLabel={{ singular: "imagem", plural: "imagens" }}
+        pageSizeOptions={IMAGE_PAGE_SIZES}
+        // Voltar para a página 1 é obrigação de quem trata a troca: com 100 por
+        // página, a página 7 costuma deixar de existir e a grade ficaria vazia
+        // logo depois de mudar o tamanho.
+        onPageSizeChange={(nextSize) => {
+          setLimit(nextSize);
+          setPage(1);
+        }}
+      />
 
       <ConfirmDialog
         open={imageToDelete !== null}

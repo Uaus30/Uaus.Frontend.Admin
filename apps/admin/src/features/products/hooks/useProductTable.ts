@@ -1,40 +1,58 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDebounce } from "@workspace/ui";
-import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
-import { buildProductCollections } from "@/services/mappers";
 
 import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.service";
-import {
-  getAllProducts,
-  getAllProductImages,
-  getAllProductTags,
-  getProductGroupsPage,
-  upsertProduct,
-  adjustProductStock,
-  syncProductImages,
-} from "@/services/products.service";
+import { upsertProduct, adjustProductStock, syncProductImages } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
-import { apiGet, STALE_TIME, type ImageDto } from "@workspace/api-client-react";
-import { CATALOG_KEYS, useAllDepartments, useAllCategories, useAllTags } from "@/hooks/use-catalog";
+import { STALE_TIME, useGetProductTable, type EnumOptionDto } from "@workspace/api-client-react";
+import { CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
+import { mapProductTableRow, toProductImageAssociations } from "./mapProductTableRow";
+import type { ProductTableRow } from "../types";
 
 /**
  * useProductTable
  *
- * Hook controlador da tabela de produtos: listagem paginada com busca, os
- * atributos relacionados (departamento, categoria, etiqueta, imagem) e a edição
+ * Hook controlador da tabela de produtos: listagem paginada com busca e a edição
  * de preço e estoque direto na célula.
  *
  * A edição inline existe porque corrigir preço é a operação mais frequente da
  * tela, e abrir a modal do produto para trocar um número era o maior atrito do
  * dia a dia.
  *
- * ATENÇÃO ao custo: os atributos relacionados são carregados em cascata a partir
- * dos ids da página, o que produz muitas requisições numa página cheia. Trocar
- * isso por um endpoint agregado é o item 4.1 do plano de refatoração.
+ * ## Por que a listagem virou UMA requisição (item 4.1)
+ *
+ * Este hook montava a página em CASCATA de quatro níveis, cada um esperando o
+ * anterior:
+ *
+ * 1. `/ProductGroups` paginado — a página de grupos;
+ * 2. `/Products?productGroupId=` — **uma requisição por grupo**;
+ * 3. `/ProductTags?productId=` e `/ProductImages?productId=` — **duas por
+ *    produto**;
+ * 4. `/Images/{id}` — **uma por imagem distinta**.
+ *
+ * Mais os três catálogos completos (departamentos, categorias, etiquetas) só para
+ * escrever nomes nas colunas. Numa página de 20 grupos com variações isso passava
+ * de 200 requisições, e as quatro idas e voltas eram em SÉRIE: a primeira linha
+ * só aparecia depois de todas. Como cada endpoint filtrava por um id de cada vez,
+ * não havia conserto possível só no navegador — daí o endereço agregado
+ * `GET /Products/table`, que devolve a linha pronta.
+ *
+ * Hoje a tela faz **duas** requisições: a página da tabela e o catálogo de status
+ * (compartilhado e cacheado por 5 min).
+ *
+ * ## Virtualização: avaliada e descartada
+ *
+ * A tabela renderiza a página inteira de uma vez. O seletor oferece 20 (padrão),
+ * 50 e 100 linhas — só o último passa da faixa em que virtualizar compensa, e
+ * cada linha carrega menu de contexto, dropdown e hover card em portal, que
+ * virtualização quebra de formas difíceis de perceber. Com a cascata removida, o
+ * custo de uma linha voltou a ser só render. Se o seletor um dia oferecer 500,
+ * refaça a conta.
  */
 /**
  * Termo de busca vindo da URL (`/produtos?busca=...`).
@@ -53,6 +71,7 @@ function initialSearchFromUrl(): string {
 
 export function useProductTable() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState(initialSearchFromUrl);
   const debouncedSearch = useDebounce(search, 300);
   const [page, setPage] = useState(1);
@@ -62,137 +81,43 @@ export function useProductTable() {
     setPage(1);
   }, [debouncedSearch]);
 
-  const { data: departments = [] } = useAllDepartments();
-
-  const { data: categories = [] } = useAllCategories();
-
-  const { data: tags = [] } = useAllTags();
-
-  const { data: statusOptions = [] } = useQuery({
+  const { data: statusOptions = [] } = useQuery<EnumOptionDto[]>({
     queryKey: ["product-status-options"],
     queryFn: () => getEnumOptions("/Products/enums/product-status"),
     staleTime: STALE_TIME.catalogo,
     refetchOnWindowFocus: false,
   });
 
-  // Query: Paginated ProductGroup catalog
-  const { data: groupPage, isLoading: isGroupLoading } = useQuery({
-    queryKey: ["product-groups-page", { search: debouncedSearch, page, limit }],
-    queryFn: () => getProductGroupsPage({ search: debouncedSearch, page, limit }),
+  const { data: tablePage, isLoading } = useGetProductTable({
+    search: debouncedSearch,
+    page,
+    limit,
   });
-
-  const pageGroups = groupPage?.data ?? [];
-  const groupIds = pageGroups.map((g) => g.id);
-
-  const productsQueries = useQueries({
-    queries: groupIds.map((id) => ({
-      queryKey: ["products-by-group", id],
-      queryFn: () => getAllProducts({ productGroupId: id }),
-      staleTime: STALE_TIME.catalogo,
-    })),
-  });
-  const allProducts = productsQueries.flatMap((q) => q.data ?? []);
-  const productIds = allProducts.map((p) => p.id);
-
-  const productTagsQueries = useQueries({
-    queries: productIds.map((id) => ({
-      queryKey: ["tags-by-product", id],
-      queryFn: () => getAllProductTags({ productId: id }),
-      staleTime: STALE_TIME.catalogo,
-    })),
-  });
-  const productTags = productTagsQueries.flatMap((q) => q.data ?? []);
-
-  const productImagesQueries = useQueries({
-    queries: productIds.map((id) => ({
-      queryKey: ["images-by-product", id],
-      queryFn: () => getAllProductImages({ productId: id }),
-      staleTime: STALE_TIME.catalogo,
-    })),
-  });
-  const productImages = productImagesQueries.flatMap((q) => q.data ?? []);
-  const imageIds = Array.from(new Set(productImages.map((pi) => pi.imageId)));
-
-  const imagesCatalogQueries = useQueries({
-    queries: imageIds.map((id) => ({
-      queryKey: ["image-by-id", id],
-      queryFn: () => apiGet<ImageDto>(`/Images/${id}`).catch(() => null),
-      staleTime: STALE_TIME.catalogo,
-    })),
-  });
-  const imagesCatalog = imagesCatalogQueries
-    .map((q) => q.data)
-    .filter((img): img is ImageDto => img !== null && img !== undefined);
-
-  const isLoading =
-    isGroupLoading ||
-    productsQueries.some((q) => q.isLoading) ||
-    productTagsQueries.some((q) => q.isLoading) ||
-    productImagesQueries.some((q) => q.isLoading) ||
-    imagesCatalogQueries.some((q) => q.isLoading);
 
   /**
-   * Enriches list of product groups to build display model representation.
-   * Maps representatives products for variation group details.
+   * As linhas da página, já no vocabulário da tela.
+   *
+   * O nome `enrichedProducts` foi mantido porque é o que a página e a tabela
+   * recebem por prop; o que mudou é a origem — antes era o cruzamento de cinco
+   * consultas no navegador, agora é a resposta do servidor.
    */
-  const enrichedProducts = useMemo(() => {
-    const pageGroups = groupPage?.data ?? [];
+  const enrichedProducts = useMemo<ProductTableRow[]>(
+    () => (tablePage?.data ?? []).map(mapProductTableRow),
+    [tablePage?.data],
+  );
 
-    const representativeProducts = pageGroups.map((group) => {
-      const firstProduct = allProducts.find((p) => p.productGroupId === group.id);
-      if (firstProduct) return firstProduct;
-
-      // Fallback fallback if group has no child products
-      return {
-        id: 0,
-        productGroupId: group.id,
-        name: group.name,
-        description: group.description,
-        barcode: "",
-        price: 0,
-        costPrice: 0,
-        stock: 0,
-        minStock: 0,
-        status: 1,
-        canDelete: true,
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt,
-      };
-    });
-
-    const allEnriched = buildProductCollections({
-      products: representativeProducts,
-      productGroups: pageGroups,
-      categories,
-      departments,
-      tags,
-      productTags,
-      images: imagesCatalog,
-      productImages,
-    }).enrichedProducts;
-
-    // Normalizes names to match the group name in UI
-    return allEnriched.map((item) => ({
-      ...item,
-      name: item.productGroup?.name || item.name,
-    }));
-  }, [
-    categories,
-    departments,
-    imagesCatalog,
-    groupPage?.data,
-    allProducts,
-    productImages,
-    productTags,
-    tags,
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil((groupPage?.total || 0) / limit));
-  const queryClient = useQueryClient();
+  const totalPages = Math.max(1, Math.ceil((tablePage?.total || 0) / limit));
   const [updatingPriceId, setUpdatingPriceId] = useState<number | null>(null);
+  const [updatingStockId, setUpdatingStockId] = useState<number | null>(null);
 
-  /** Helper: Maps status field dynamic inputs into numeric value */
-  const getStatusNumber = (statusVal: any): number => {
+  /**
+   * Converte o status da linha no código numérico que o PUT espera.
+   *
+   * O backend serializa enum ora por nome ("Active"), ora por código, e o catálogo
+   * de status é a tabela de tradução. Sem isso a edição de preço mandaria o status
+   * como texto e o produto voltaria com status inválido.
+   */
+  const getStatusNumber = (statusVal: ProductTableRow["status"]): number => {
     if (statusVal === undefined || statusVal === null) return 0;
     const statusStr = String(statusVal);
     const option = statusOptions.find(
@@ -205,33 +130,37 @@ export function useProductTable() {
   };
 
   /**
-   * Mutation: Updates product selling price inline.
+   * Invalida o que a edição inline muda.
+   *
+   * `RESOURCE_KEYS.products` alcança a tabela (`["products","table", …]`) porque
+   * ela vive sob o prefixo do recurso. O histórico do grupo entra à parte: é a
+   * única chave que não está sob esse prefixo e a edição grava uma linha nele.
    */
-  const updateProductPrice = async (product: any, newPrice: number) => {
+  const invalidateAfterInlineEdit = async (productGroupId: number) => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products }),
+      queryClient.invalidateQueries({ queryKey: ["product-group-history", productGroupId] }),
+    ]);
+  };
+
+  /** Atualiza o preço de venda do produto direto na célula. */
+  const updateProductPrice = async (product: ProductTableRow, newPrice: number) => {
     setUpdatingPriceId(product.id);
     try {
-      // `product` vem de enrichedProducts, que troca o nome pelo nome do GRUPO
-      // para exibição; enviar esse nome no PUT renomearia o produto (com
-      // registro no histórico). O nome verdadeiro sai de allProducts.
-      const original = allProducts.find((item) => item.id === product.id);
+      // A linha exibe o nome do GRUPO; o PUT tem que devolver o nome do PRODUTO,
+      // que vem separado em `productName`. Mandar o nome exibido renomeia o
+      // produto silenciosamente, com registro no histórico.
       await upsertProduct({
         id: product.id,
         productGroupId: product.productGroupId,
-        name: original?.name ?? product.name,
-        description: original?.description ?? product.description,
-        barcode: original?.barcode ?? product.barcode,
+        name: product.productName,
+        description: product.description,
+        barcode: product.barcode,
         price: newPrice,
-        minStock: original?.minStock ?? product.minStock,
-        status: getStatusNumber(original?.status ?? product.status),
+        minStock: product.minStock,
+        status: getStatusNumber(product.status),
       });
-      await Promise.all([
-        // A linha da tabela lê preço/estoque de ["products-by-group"], não do
-        // grupo paginado; sem invalidar essa chave o valor editado só aparecia
-        // depois do staleTime de 5 min.
-        queryClient.invalidateQueries({ queryKey: ["products-by-group", product.productGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
-        queryClient.invalidateQueries({ queryKey: ["product-group-history", product.productGroupId] }),
-      ]);
+      await invalidateAfterInlineEdit(product.productGroupId);
       toast({
         title: "Preço atualizado com sucesso!",
       });
@@ -247,13 +176,11 @@ export function useProductTable() {
     }
   };
 
-  const [updatingStockId, setUpdatingStockId] = useState<number | null>(null);
-
   /**
-   * Mutation: Updates product stock level inline.
-   * Note: The stock can only be increased manually according to system constraints.
+   * Ajusta o estoque do produto direto na célula.
+   * O estoque só pode ser AUMENTADO manualmente — baixa nasce de venda ou perda.
    */
-  const updateProductStock = async (product: any, newStock: number) => {
+  const updateProductStock = async (product: ProductTableRow, newStock: number) => {
     if (newStock < product.stock) {
       toast({
         title: "Ajuste de estoque inválido",
@@ -266,14 +193,7 @@ export function useProductTable() {
     setUpdatingStockId(product.id);
     try {
       await adjustProductStock(product.id, newStock);
-      await Promise.all([
-        // A linha da tabela lê preço/estoque de ["products-by-group"], não do
-        // grupo paginado; sem invalidar essa chave o valor editado só aparecia
-        // depois do staleTime de 5 min.
-        queryClient.invalidateQueries({ queryKey: ["products-by-group", product.productGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
-        queryClient.invalidateQueries({ queryKey: ["product-group-history", product.productGroupId] }),
-      ]);
+      await invalidateAfterInlineEdit(product.productGroupId);
       toast({
         title: "Estoque atualizado com sucesso!",
       });
@@ -290,10 +210,10 @@ export function useProductTable() {
   };
 
   /**
-   * Baixa, otimiza e associa uma imagem da web como a principal (índice 0) do produto,
-   * preservando as imagens atuais dele.
+   * Baixa, otimiza e associa uma imagem da web como a principal (índice 0) do
+   * produto, preservando as imagens atuais dele.
    */
-  const saveWebImageAsPrincipal = async (product: any, webImageUrl: string) => {
+  const saveWebImageAsPrincipal = async (product: ProductTableRow, webImageUrl: string) => {
     // O download passa pelo services/images: o proxy e o tratamento de 401
     // ficam num lugar só, em vez de repetidos aqui e no editor.
     const file = await downloadWebImageAsFile(webImageUrl, product.name);
@@ -312,14 +232,14 @@ export function useProductTable() {
       type: 3,
     });
 
-    const currentAssociations = productImages
-      .filter((pi) => pi.productId === product.id)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
+    // As associações atuais vêm da própria linha — antes custavam uma consulta a
+    // `/ProductImages?productId=` por produto da página.
+    const currentAssociations = toProductImageAssociations(product);
 
     const nextImages = [
       { imageId: uploadedImage.id, displayOrder: 0 },
-      ...currentAssociations.map((pi, idx) => ({
-        imageId: pi.imageId,
+      ...currentAssociations.map((association, idx) => ({
+        imageId: association.imageId,
         displayOrder: idx + 1,
       })),
     ];
@@ -331,10 +251,9 @@ export function useProductTable() {
     });
 
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productImages }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.images }),
-      queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
-      queryClient.invalidateQueries({ queryKey: ["images-by-product", product.id] }),
     ]);
 
     toast({
@@ -350,7 +269,7 @@ export function useProductTable() {
     limit,
     setLimit,
     isLoading,
-    productPage: groupPage,
+    productPage: tablePage,
     enrichedProducts,
     totalPages,
     statusOptions,

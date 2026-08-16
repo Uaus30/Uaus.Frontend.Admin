@@ -44,7 +44,6 @@ export default function Images() {
     imagePage,
     isLoading,
     filteredImages,
-    totalPages,
     resetUploadForm,
     handleFileChange,
     handleUpload,
@@ -90,7 +89,6 @@ export default function Images() {
           limit={limit}
           setLimit={setLimit}
           imagePage={imagePage}
-          totalPages={totalPages}
           copyUrl={copyUrl}
           onRenameOpen={handleRenameOpen}
           onDelete={handleDelete}

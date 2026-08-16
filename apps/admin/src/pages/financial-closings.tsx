@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
+import { TablePagination } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { Lock, Plus, RefreshCw } from "lucide-react";
 import { PAGE_SIZE, useFinancialClosings } from "@/features/financial-closings/hooks/useFinancialClosings";
@@ -106,28 +107,14 @@ export default function FinancialClosingsPage() {
         <FinancialClosingsTable items={closings} isLoading={isLoading} onRowClick={openDetails} />
 
         {/* Paginação */}
-        {closingsPage && closingsPage.total > PAGE_SIZE && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Total: {closingsPage.total} fechamentos</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                Anterior
-              </Button>
-
-              <span>
-                Página {page} de {closingsPage.totalPages}
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= closingsPage.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          </div>
+        {closingsPage && (
+          <TablePagination
+            page={page}
+            pageSize={closingsPage.limit || PAGE_SIZE}
+            total={closingsPage.total}
+            onPageChange={setPage}
+            itemLabel={{ singular: "fechamento", plural: "fechamentos" }}
+          />
         )}
 
         {/* Diálogo de novo fechamento (2 passos) */}

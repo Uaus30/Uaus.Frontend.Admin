@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@workspace/ui";
-import type { EnrichedProduct } from "@/services/mappers";
+import type { ProductTableRow } from "../types";
 
 /**
  * Abertura automática da modal de edição por link direto
@@ -52,9 +52,9 @@ type UseProductDeepLinkParams = {
   /** Carregamento da listagem inteira, incluindo os atributos em cascata. */
   isLoading: boolean;
   /** Linhas da página atual, já enriquecidas — o mesmo objeto que o botão de editar da tabela entrega. */
-  enrichedProducts: EnrichedProduct[];
+  enrichedProducts: ProductTableRow[];
   /** `openModal` do `useProductEditor`. */
-  openModal: (product?: EnrichedProduct) => void;
+  openModal: (product?: ProductTableRow) => void;
 };
 
 export function useProductDeepLink({

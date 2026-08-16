@@ -29,3 +29,8 @@ Este módulo gerencia o histórico de faturamento e registro de novas vendas (Ch
 ### 3. Integração de Descontos e Cálculos
 
 - Os descontos são descontados diretamente sobre o valor do subtotal de itens. O total a pagar é blindado para não ficar negativo (`Math.max(0, subtotal - discount)`).
+
+### 4. Paginação do histórico
+
+- `SALES_PAGE_SIZE` (15) é exportado pelo hook e é o mesmo número usado no `limit` da consulta e no rodapé. Enquanto era um literal no hook e outro de reserva na tabela, mudar um dos dois desalinhava a contagem sem quebrar nada visível.
+- O rodapé antigo decidia o "Próxima" por `data.length < limit`. Isso **erra** quando o total é múltiplo exato da página: com 30 vendas em páginas de 15, a página 2 vem cheia, o botão continua liberado e o operador cai numa página vazia. O `TablePagination` decide pelo total.

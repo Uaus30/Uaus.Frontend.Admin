@@ -13,7 +13,15 @@ import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
+import type { CategoryDto, EnumOptionDto, GradeDto } from "@workspace/api-client-react";
 import type { GradeType, GradeVariant } from "../types";
+
+/**
+ * Grade com os campos de auditoria que o backend devolve e o `GradeDto` do
+ * api-client ainda não declara. Opcionais: a aba de informações só os exibe, e
+ * o `as any` que existia aqui apagava a checagem do resto do objeto junto.
+ */
+type GradeWithAudit = GradeDto & { createdBy?: string | null; updatedBy?: string | null };
 
 type GradeEditorModalProps = {
   /** Visibility status of the modal */
@@ -27,13 +35,13 @@ type GradeEditorModalProps = {
   /** ID of the grade being edited (null for creation mode) */
   editingId: number | null;
   /** DTO payload of the grade being edited (null for creation mode) */
-  editingGrade: any;
+  editingGrade: GradeWithAudit | null;
   /** Selected type of the grade (Tamanho, Cor, etc) */
   gradeType: GradeType;
   /** Callback to change selected grade type */
   setGradeType: (type: GradeType) => void;
   /** Grade type options fetched from API enums */
-  selectableGradeTypeOptions: any[];
+  selectableGradeTypeOptions: EnumOptionDto[];
   /** Selected category IDs linked to this grade */
   selectedCategoryIds: number[];
   /** Callback to update selected category IDs */
@@ -43,7 +51,7 @@ type GradeEditorModalProps = {
   /** Callback triggered when category search query changes */
   setCategorySearch: (search: string) => void;
   /** Categories filtered by search query */
-  filteredCategories: any[];
+  filteredCategories: CategoryDto[];
   /** Map of department ID to department name */
   departmentMap: Map<number, string>;
   /** List of variants added to the grade */
@@ -201,11 +209,11 @@ export function GradeEditorModal({
                     </div>
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground font-medium block">Criado por</span>
-                      <span className="text-foreground">{(editingGrade as any)?.createdBy || "-"}</span>
+                      <span className="text-foreground">{editingGrade?.createdBy || "-"}</span>
                     </div>
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground font-medium block">Alterado por</span>
-                      <span className="text-foreground">{(editingGrade as any)?.updatedBy || "-"}</span>
+                      <span className="text-foreground">{editingGrade?.updatedBy || "-"}</span>
                     </div>
                   </div>
                 )}
@@ -254,7 +262,7 @@ export function GradeEditorModal({
                       Nenhuma categoria encontrada para a busca.
                     </p>
                   ) : (
-                    filteredCategories.map((cat: any) => {
+                    filteredCategories.map((cat) => {
                       const checked = selectedCategoryIds.includes(cat.id);
                       const deptName = departmentMap.get(cat.departmentId);
                       return (

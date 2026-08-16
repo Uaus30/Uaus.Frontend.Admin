@@ -22,6 +22,8 @@ CRUD dos custos mensais recorrentes da empresa (aluguel, contador, energia...). 
 
 - **Encerrar** preenche `endsOn` com o mês atual: o custo ainda conta na competência final e sai dos meses seguintes. É o caminho normal quando um contrato acaba. Se o custo só começa num mês futuro, o encerramento usa a própria competência inicial (o backend exige `endsOn >= startsOn`).
 - **Excluir** apaga a linha de vez (hard delete) — reservado para lançamentos errados. Fechamentos já confirmados **não mudam**: eles congelam os totais na confirmação e não dependem desta linha.
+- As duas ações confirmam antes, pelo `ConfirmDialog` renderizado na própria `FixedCostsTable`. Ele mora ali porque "qual linha está esperando confirmação" é estado da lista, e porque o aviso precisa do nome, do valor e — no encerramento — da competência que vai ser gravada. O `endMonthFor` exportado pelo hook é a fonte única desse mês: se o diálogo calculasse por conta própria, ele poderia prometer um mês e o payload gravar outro.
+- `handleEndFixedCost` e `handleDelete` devolvem a Promise da mutação. O diálogo só fecha quando ela resolve e permanece aberto quando o servidor recusa — sem isso o operador veria o diálogo sumir e teria que reencontrar a linha para descobrir que nada mudou.
 
 ### 3. Busca e cache
 

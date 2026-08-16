@@ -10,7 +10,7 @@ import {
   getImagesPage,
   updateImageRecord,
 } from "@/services/images.service";
-import type { CatalogImage } from "../types";
+import type { CatalogImage, ImageCatalogPage } from "../types";
 import { optimizeImage } from "@/lib/imageOptimizer";
 import { describeApiError } from "@workspace/core";
 
@@ -101,7 +101,7 @@ export function useImages() {
   }, [limit, page, serverPage?.data, typeFilterActive, typeFilteredImages]);
 
   // Página "virtual" com total honesto quando o filtro de tipo está ativo
-  const imagePage = useMemo(() => {
+  const imagePage = useMemo<ImageCatalogPage | undefined>(() => {
     if (!typeFilterActive) return serverPage;
     return {
       data: filteredImages,
@@ -253,8 +253,6 @@ export function useImages() {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  const totalPages = Math.max(1, Math.ceil((imagePage?.total || 0) / limit));
-
   return {
     search,
     setSearch,
@@ -288,7 +286,9 @@ export function useImages() {
     imagePage,
     isLoading,
     filteredImages,
-    totalPages,
+    // `totalPages` saiu daqui de propósito: era uma segunda fórmula para o mesmo
+    // número que o rodapé (`TablePagination`) já deriva de `total` + `limit`.
+    // Duas contas para a mesma resposta é como o admin acumulou três rodapés.
     resetUploadForm,
     handleFileChange,
     handleUpload,

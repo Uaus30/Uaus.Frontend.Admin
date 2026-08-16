@@ -1,9 +1,10 @@
 import { AppLayout } from "@/components/layout";
-import { PAGE_SIZE, useFixedCosts } from "@/features/fixed-costs/hooks/useFixedCosts";
+import { useFixedCosts } from "@/features/fixed-costs/hooks/useFixedCosts";
 import { FixedCostsTable } from "@/features/fixed-costs/components/FixedCostsTable";
 import { FixedCostEditorModal } from "@/features/fixed-costs/components/FixedCostEditorModal";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
+import { TablePagination } from "@workspace/ui";
 import { Plus, ReceiptText, Search } from "lucide-react";
 
 /** Página de custos fixos (rota futura /financeiro/custos-fixos). */
@@ -77,28 +78,14 @@ export default function FixedCostsPage() {
         />
 
         {/* Paginação */}
-        {pagination && pagination.total > PAGE_SIZE && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Total: {pagination.total} custos fixos</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                Anterior
-              </Button>
-
-              <span>
-                Página {page} de {pagination.totalPages}
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= pagination.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          </div>
+        {pagination && (
+          <TablePagination
+            page={page}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            onPageChange={setPage}
+            itemLabel={{ singular: "custo fixo", plural: "custos fixos" }}
+          />
         )}
 
         {/* Modal Editor */}

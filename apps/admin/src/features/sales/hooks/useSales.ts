@@ -30,6 +30,15 @@ import type { NewSaleDraftItem, EnrichedSale, NewSaleDraftPayment } from "../typ
 import { CATALOG_KEYS, useAllCustomers } from "@/hooks/use-catalog";
 
 /**
+ * Itens por página do histórico de vendas.
+ *
+ * Constante em vez de literal porque o rodapé precisa do MESMO número para
+ * derivar o total de páginas: enquanto ele era `15` no hook e `15` de reserva
+ * na tabela, mudar um dos dois desalinhava a contagem sem quebrar nada visível.
+ */
+export const SALES_PAGE_SIZE = 15;
+
+/**
  * useSales
  *
  * Hook customizado para gerenciar a listagem, detalhamento de vendas,
@@ -64,7 +73,7 @@ export function useSales() {
     paymentMethodId: paymentMethodFilter !== "all" ? Number(paymentMethodFilter) : undefined,
     paymentStatus: paymentStatusFilter !== "all" ? Number(paymentStatusFilter) : undefined,
     page,
-    limit: 15,
+    limit: SALES_PAGE_SIZE,
   });
 
   // Query: Carrega formas de pagamento cadastradas

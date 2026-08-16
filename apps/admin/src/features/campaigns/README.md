@@ -67,7 +67,13 @@ Os cupons de uma campanha saem de `useGetCoupons({ campaignId })` — a mesma ta
 
 O atalho "Cupom nesta campanha" leva a `/marketing/cupons?campanha=<id>&novo=1`. A tela de Cupons é quem lê esses parâmetros; se ela os ignorar, o atalho degrada para "abrir a tela de cupons" e nada quebra.
 
-### 6. Cache
+### 6. Excluir a campanha não mexe no cupom
+
+A exclusão é lógica no servidor e derruba **só o questionário**: os cupons ligados continuam válidos, com o mesmo desconto e a mesma vigência, e as respostas já dadas seguem no relatório. É o inverso do que a palavra "excluir" sugere numa tela de marketing, e é o que o `ConfirmDialog` da `CampaignsTable` diz antes de confirmar.
+
+A confirmação mora na tabela porque é lá que está o nome da linha clicada. `handleDelete` devolve a Promise da mutação: o diálogo só fecha quando ela resolve e permanece aberto se o servidor recusar.
+
+### 7. Cache
 
 Toda mutação invalida três prefixos: `["Campaigns"]`, `["CampaignDetails"]` e `["Coupons"]`. O terceiro não é excesso — a linha do cupom carrega `campaignName` já resolvido pelo servidor, então renomear a campanha aqui deixaria a outra tela exibindo o nome antigo até o cache expirar.
 

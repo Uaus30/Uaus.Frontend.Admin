@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Edit2, Trash2, Handshake } from "lucide-react";
 import { formatPercentage } from "@workspace/core";
 import type { PartnerDto } from "../types";
@@ -11,15 +13,23 @@ interface PartnersTableProps {
   /** True enquanto uma exclusão está em andamento — bloqueia o segundo clique. */
   isDeleting: boolean;
   onEdit: (partner: PartnerDto) => void;
-  onDelete: (partner: PartnerDto) => void;
+  /** Remove o sócio. Deve devolver a Promise da mutação — ver o ConfirmDialog. */
+  onDelete: (partner: PartnerDto) => void | Promise<unknown>;
 }
 
 /**
  * PartnersTable
  *
  * Tabela de sócios com percentual de lucro, status e ações rápidas.
+ *
+ * A confirmação da remoção mora aqui porque o aviso precisa citar o percentual
+ * da linha: remover um sócio que ainda tem fatia derruba a soma abaixo de 100 e
+ * trava o próximo fechamento — e é justamente o que não dá para adivinhar de um
+ * "Tem certeza?".
  */
 export function PartnersTable({ partners, isLoading, isDeleting, onEdit, onDelete }: PartnersTableProps) {
+  const [partnerToDelete, setPartnerToDelete] = useState<PartnerDto | null>(null);
+
   if (isLoading) {
     return <div className="py-12 text-center text-muted-foreground">Carregando sócios...</div>;
   }
@@ -87,7 +97,7 @@ export function PartnersTable({ partners, isLoading, isDeleting, onEdit, onDelet
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onDelete(partner)}
+                    onClick={() => setPartnerToDelete(partner)}
                     disabled={isDeleting}
                     title="Excluir sócio"
                     className="h-8 w-8 text-destructive hover:bg-destructive/10"
@@ -100,6 +110,24 @@ export function PartnersTable({ partners, isLoading, isDeleting, onEdit, onDelet
           ))}
         </TableBody>
       </Table>
+
+      <ConfirmDialog
+        open={partnerToDelete !== null}
+        onOpenChange={(open) => !open && setPartnerToDelete(null)}
+        title="Remover este sócio do cadastro?"
+        itemName={
+          partnerToDelete
+            ? `${partnerToDelete.name} — ${formatPercentage(partnerToDelete.profitSharePercentage)} do lucro`
+            : undefined
+        }
+        description="O sócio sai do cadastro e da distribuição de lucros. A soma dos percentuais cai abaixo de 100% e o próximo fechamento fica travado até você rebalancear. Fechamentos já confirmados mantêm o rateio congelado. Se ele só deixou a sociedade agora, prefira desativar pela edição — o histórico continua consultável."
+        confirmLabel="Sim, remover sócio"
+        destructive
+        loading={isDeleting}
+        onConfirm={async () => {
+          if (partnerToDelete) await onDelete(partnerToDelete);
+        }}
+      />
     </div>
   );
 }

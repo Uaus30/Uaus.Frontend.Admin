@@ -6,8 +6,8 @@ import { Label } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Loader2, Phone, RefreshCw } from "lucide-react";
 import { cleanPhone, formatPhone } from "@workspace/core";
-import { UF_LIST, randomColor } from "../hooks/useSuppliers";
-import type { SupplierForm } from "../types";
+import { UF_LIST, randomColor } from "../constants";
+import type { EnumOption, SupplierForm } from "../types";
 
 /**
  * Retorna as iniciais de um nome para exibição no avatar.
@@ -59,7 +59,7 @@ interface SupplierEditorModalProps {
   /** Indica se os dados estão sendo salvos (loading). */
   saving: boolean;
   /** Opções selecionáveis de status do enum. */
-  selectableSupplierStatusOptions: any[];
+  selectableSupplierStatusOptions: EnumOption[];
   /** Valor padrão de status ativo. */
   activeStatusValue: string;
   /** Callback de submissão do formulário. */

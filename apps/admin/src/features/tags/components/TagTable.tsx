@@ -4,7 +4,8 @@ import { Button } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import type { EnrichedTag } from "../types";
+import type { UiPagedResult } from "@workspace/api-client-react";
+import type { EnrichedTag, TagDto } from "../types";
 import type { SortBy, SortDir } from "../hooks/useTags";
 
 type SortIconProps = {
@@ -48,15 +49,19 @@ type TagTableProps = {
   /** List of enriched tags to display */
   tagsWithCount: EnrichedTag[];
   /** Pagination payload response from the API */
-  tagPage: any;
+  tagPage: UiPagedResult<TagDto> | undefined;
   /** Loading state indicator */
   isLoading: boolean;
   /** Callback to open creation (no args) or edit modal */
   onOpenModal: (tag?: EnrichedTag) => void;
   /** Callback to open tag analytics report dialog */
   onOpenReport: (tagId: number) => void;
-  /** Callback to delete tag by ID */
-  onDelete: (tagId: number) => void;
+  /**
+   * Remoção efetiva, já confirmada pelo `ConfirmDialog` desta tabela. Devolver
+   * a Promise faz o diálogo mostrar o estado de carregando em vez de fechar
+   * antes de a exclusão sair.
+   */
+  onDelete: (tagId: number) => void | Promise<void>;
 };
 
 /**
@@ -265,9 +270,7 @@ export function TagTable({
         }
         confirmLabel="Sim, remover"
         destructive
-        onConfirm={() => {
-          if (tagToDelete) void onDelete(tagToDelete.id);
-        }}
+        onConfirm={() => (tagToDelete ? onDelete(tagToDelete.id) : undefined)}
       />
     </div>
   );

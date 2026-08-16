@@ -1,14 +1,19 @@
-import { RESOURCE_KEYS } from "@/hooks/use-catalog";
 import { useState, useMemo, useEffect } from "react";
 import { useDebounce } from "@workspace/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { generateRandomTagColor } from "@/lib/tag-colors";
-import { createTag, deleteTag, getTagsPage, updateTag } from "@/services/tags.service";
 import { getTagReport } from "@/services/reports.service";
 import type { TagForm, EnrichedTag, TagReport } from "../types";
 import { describeApiError } from "@workspace/core";
-import { STALE_TIME } from "@workspace/api-client-react";
+import {
+  STALE_TIME,
+  getGetTagsQueryKey,
+  useCreateTag,
+  useDeleteTag,
+  useGetTags,
+  useUpdateTag,
+} from "@workspace/api-client-react";
 
 export type SortDir = "asc" | "desc";
 export type SortBy = "name" | "productCount" | "createdAt";
@@ -16,8 +21,10 @@ export type SortBy = "name" | "productCount" | "createdAt";
 /**
  * useTags
  *
- * Hook customizado para gerenciar o estado, consultas, mutations e ordenação
- * da tela de gerenciamento de etiquetas (Tags).
+ * Estado, consultas e ordenação da tela de etiquetas.
+ *
+ * Leitura e escrita vêm do api-client (`useGetTags`, `useCreateTag`,
+ * `useUpdateTag`, `useDeleteTag`) — nenhum caminho HTTP mora aqui.
  *
  * Funcionalidades centrais:
  * - Paginação, busca textual e ordenação local da listagem.
@@ -53,17 +60,21 @@ export function useTags() {
     color: generateRandomTagColor(),
     isPublic: false,
   });
-  const [saving, setSaving] = useState(false);
 
-  // Query do TanStack Query para carregar a página de etiquetas
-  const { data: tagPage, isLoading } = useQuery({
-    queryKey: [...RESOURCE_KEYS.tags, "page", { search: debouncedSearch, page, limit }],
-    queryFn: () => getTagsPage({ search: debouncedSearch, page, limit }),
-  });
+  // Página de etiquetas. A chave é a do api-client, `["tags", params]`, a mesma
+  // sob a qual o autocomplete do editor de produtos registra a busca dele — por
+  // isso invalidar o prefixo aqui atualiza as duas.
+  const { data: tagPage, isLoading } = useGetTags({ search: debouncedSearch, page, limit });
+
+  const createTag = useCreateTag();
+  const updateTag = useUpdateTag();
+  const deleteTag = useDeleteTag();
+
+  const saving = createTag.isPending || updateTag.isPending;
 
   // Lista de etiquetas enriquecidas e ordenadas localmente
   const tagsWithCount = useMemo<EnrichedTag[]>(() => {
-    const current = (tagPage?.data ?? []).map((tag: any) => ({
+    const current = (tagPage?.data ?? []).map((tag) => ({
       ...tag,
       productCount: tag.productCount ?? 0,
     }));
@@ -148,26 +159,22 @@ export function useTags() {
     event.preventDefault();
     if (!formData.name.trim()) return;
 
-    setSaving(true);
     try {
+      const data = {
+        name: formData.name.trim(),
+        color: formData.color,
+        isPublic: formData.isPublic,
+      };
+
       if (editingId) {
-        await updateTag({
-          id: editingId,
-          name: formData.name.trim(),
-          color: formData.color,
-          isPublic: formData.isPublic,
-        });
+        await updateTag.mutateAsync({ id: editingId, data });
         toast({ title: "Etiqueta atualizada." });
       } else {
-        await createTag({
-          name: formData.name.trim(),
-          color: formData.color,
-          isPublic: formData.isPublic,
-        });
+        await createTag.mutateAsync({ data });
         toast({ title: "Etiqueta criada." });
       }
 
-      await queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.tags });
+      await queryClient.invalidateQueries({ queryKey: getGetTagsQueryKey() });
       setModalOpen(false);
     } catch (error) {
       toast({
@@ -175,8 +182,6 @@ export function useTags() {
         description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -186,8 +191,8 @@ export function useTags() {
    */
   async function handleDelete(tagId: number) {
     try {
-      await deleteTag(tagId);
-      await queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.tags });
+      await deleteTag.mutateAsync({ id: tagId });
+      await queryClient.invalidateQueries({ queryKey: getGetTagsQueryKey() });
       toast({ title: "Etiqueta removida." });
     } catch (error) {
       toast({

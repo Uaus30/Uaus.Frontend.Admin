@@ -19,6 +19,20 @@ export async function getAllProductImages() {
   return fetchAllPages<ProductImageDto>("/ProductImages");
 }
 
+/**
+ * Uma página do catálogo de imagens.
+ *
+ * O parâmetro chama `limit` aqui e vira `size` no query string porque essa é a
+ * fronteira: **`size` é o nome do backend, `limit` é o nome do front**, e é a
+ * mesma tradução que os hooks do `packages/api-client` fazem
+ * (`useGetFixedCosts`, `useGetSales`...). Trocar `limit` por `size` na
+ * assinatura pareceria mais simples e faria o admin voltar a ter dois nomes
+ * para a mesma coisa no seu próprio código.
+ *
+ * O endpoint aceita apenas `search`, `page` e `size` — **não** filtra por tipo.
+ * Quem precisa desse filtro carrega o catálogo inteiro e recorta no cliente;
+ * ver `features/images/README.md`.
+ */
 export async function getImagesPage(params?: { search?: string; page?: number; limit?: number }) {
   return getPaged<ImageDto>("/Images", {
     search: params?.search,

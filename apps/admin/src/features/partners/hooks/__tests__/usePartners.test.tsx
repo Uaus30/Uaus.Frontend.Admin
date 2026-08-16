@@ -218,23 +218,14 @@ describe("usePartners", () => {
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 
-  it("não deve excluir quando a confirmação é recusada", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("deve excluir o sócio", async () => {
+    // A confirmação saiu do hook: quem pergunta é o `ConfirmDialog` da tabela,
+    // coberto em `packages/ui`. Aqui fica o que o hook garante — a chamada e o
+    // aviso de sucesso.
     const { result } = renderHook(() => usePartners(), { wrapper: createWrapper() });
 
     await act(async () => {
-      result.current.handleDeletePartner(partnerAna);
-    });
-
-    expect(mocks.deletePartner).not.toHaveBeenCalled();
-  });
-
-  it("deve excluir o sócio após a confirmação", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    const { result } = renderHook(() => usePartners(), { wrapper: createWrapper() });
-
-    await act(async () => {
-      result.current.handleDeletePartner(partnerAna);
+      await result.current.handleDeletePartner(partnerAna);
     });
 
     await waitFor(() => expect(mocks.deletePartner).toHaveBeenCalledWith(1));
@@ -243,8 +234,7 @@ describe("usePartners", () => {
     );
   });
 
-  it("deve mostrar a mensagem do backend quando o sócio tem fechamentos registrados", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("deve mostrar a mensagem do backend e rejeitar quando o sócio tem fechamentos registrados", async () => {
     // O `ApiError` já chega com o texto do backend em `message`.
     mocks.deletePartner.mockRejectedValue(
       new Error("Este sócio possui fechamentos registrados! Desative-o em vez de excluir."),
@@ -252,9 +242,13 @@ describe("usePartners", () => {
 
     const { result } = renderHook(() => usePartners(), { wrapper: createWrapper() });
 
-    await act(async () => {
-      result.current.handleDeletePartner(partnerAna);
-    });
+    // A rejeição precisa chegar a quem confirmou: é ela que mantém o diálogo
+    // aberto para o operador ler o motivo e escolher desativar em vez de excluir.
+    await expect(
+      act(async () => {
+        await result.current.handleDeletePartner(partnerAna);
+      }),
+    ).rejects.toThrow("Este sócio possui fechamentos registrados!");
 
     await waitFor(() =>
       expect(mocks.toast).toHaveBeenCalledWith(

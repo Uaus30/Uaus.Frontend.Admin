@@ -11,7 +11,6 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
-import { formatShortDate } from "@workspace/core";
 import type { FinancialClosingDto, FinancialClosingPreviewDto, NewClosingStep } from "../types";
 
 /** Tamanho fixo da página da listagem. */
@@ -237,18 +236,16 @@ export function useFinancialClosings() {
   });
 
   /**
-   * Exclui um fechamento após confirmação do usuário.
+   * Exclui um fechamento.
    *
-   * É ação destrutiva de documento — o backend registra em log quem excluiu,
-   * e o aviso do confirm deixa isso claro antes de prosseguir.
+   * É ação destrutiva de documento — o backend registra em log quem excluiu. O
+   * aviso disso é do `ConfirmDialog` do diálogo de detalhe, que é onde o período
+   * e o lucro líquido estão na tela. Devolve a Promise da mutação porque o
+   * diálogo só fecha quando ela resolve: falhando, ele permanece aberto com o
+   * erro no toast, em vez de sumir sem dizer se o documento saiu.
    */
   function handleDeleteClosing(closing: FinancialClosingDto) {
-    const period = `${formatShortDate(closing.periodStart)} — ${formatShortDate(closing.periodEnd)}`;
-    const confirmed = window.confirm(
-      `Excluir o fechamento do período ${period}?\n\nEsta ação é registrada em log e libera o período para um novo fechamento.`,
-    );
-    if (!confirmed) return;
-    deleteMutation.mutate(closing.id);
+    return deleteMutation.mutateAsync(closing.id);
   }
 
   return {

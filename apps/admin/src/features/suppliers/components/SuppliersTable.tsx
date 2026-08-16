@@ -1,12 +1,15 @@
+import * as React from "react";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { formatPhone } from "@workspace/core";
+import type { ApiError, SupplierDto, UiPagedResult } from "@workspace/api-client-react";
 import { Edit2, Search, Trash2 } from "lucide-react";
-import { whatsappUrl } from "../hooks/useSuppliers";
+import { whatsappUrl } from "../constants";
 import type { EnumOption } from "../types";
 
 /**
@@ -72,7 +75,7 @@ interface SuppliersTableProps {
   /** Mapa de ID para label de status. */
   statusLabelById: Record<number, string>;
   /** Lista filtrada de fornecedores. */
-  suppliers: any[];
+  suppliers: SupplierDto[];
   /** Página ativa. */
   page: number;
   /** Callback para mudança de página. */
@@ -82,17 +85,21 @@ interface SuppliersTableProps {
   /** Callback para alteração do limite de itens por página. */
   onLimitChange: (limit: number) => void;
   /** Dados completos da resposta de paginação da API. */
-  suppliersPage: any;
+  suppliersPage: UiPagedResult<SupplierDto> | undefined;
   /** Indica se está carregando. */
   isLoading: boolean;
   /** Indica erro na consulta. */
   isError: boolean;
   /** Objeto de erro. */
-  error: any;
+  error: ApiError | null;
   /** Callback executado ao clicar em editar. */
-  onEdit: (supplier: any) => void;
-  /** Callback executado ao clicar em remover. */
-  onDelete: (id: number, name: string) => void;
+  onEdit: (supplier: SupplierDto) => void;
+  /**
+   * Remoção efetiva, já confirmada. Quem pergunta é o `ConfirmDialog` desta
+   * tabela — o componente é declarativo, então a confirmação mora em quem
+   * renderiza, não no hook.
+   */
+  onDelete: (id: number) => void | Promise<void>;
 }
 
 /**
@@ -118,6 +125,10 @@ export function SuppliersTable({
   onDelete,
 }: SuppliersTableProps) {
   const totalPages = Math.max(1, Math.ceil((suppliersPage?.total || 0) / limit));
+  // Guarda o fornecedor inteiro, não só o id: o diálogo mostra o nome para o
+  // operador conferir que está apagando a linha que ele acha que está — em
+  // tabela paginada, o clique no ícone errado é o engano mais comum.
+  const [supplierToDelete, setSupplierToDelete] = React.useState<SupplierDto | null>(null);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
@@ -163,7 +174,7 @@ export function SuppliersTable({
             </tr>
           </thead>
           <tbody>
-            {isLoading || (isError && error?.status >= 500) ? (
+            {isLoading || (isError && (error?.status ?? 0) >= 500) ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center">
                   <Spinner />
@@ -260,7 +271,7 @@ export function SuppliersTable({
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                        onClick={() => onDelete(supplier.id, supplier.name)}
+                        onClick={() => setSupplierToDelete(supplier)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -316,6 +327,17 @@ export function SuppliersTable({
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={supplierToDelete !== null}
+        onOpenChange={(open) => !open && setSupplierToDelete(null)}
+        title="Remover este fornecedor?"
+        itemName={supplierToDelete?.name}
+        description="O fornecedor sai do cadastro e deixa de aparecer no lançamento de estoque e nas compras novas. As compras já lançadas continuam como estão. A ação não pode ser desfeita."
+        confirmLabel="Sim, remover"
+        destructive
+        onConfirm={() => (supplierToDelete ? onDelete(supplierToDelete.id) : undefined)}
+      />
     </div>
   );
 }

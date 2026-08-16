@@ -322,14 +322,14 @@ describe("useFinancialClosings", () => {
     expect(result.current.newClosingOpen).toBe(true);
   });
 
-  it("deve excluir o fechamento quando o usuário confirma o aviso", async () => {
-    vi.spyOn(window, "confirm").mockImplementation(() => true);
-
+  it("deve excluir o fechamento e fechar o diálogo de detalhe", async () => {
+    // O aviso saiu do hook: quem pergunta é o `ConfirmDialog` do diálogo de
+    // detalhe, coberto em `packages/ui`. Aqui fica o efeito da exclusão.
     const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
 
     act(() => result.current.openDetails(5));
     await act(async () => {
-      result.current.handleDeleteClosing(closingFixture as never);
+      await result.current.handleDeleteClosing(closingFixture as never);
     });
 
     await waitFor(() => expect(mocks.deleteFinancialClosing).toHaveBeenCalledWith(5));
@@ -337,15 +337,17 @@ describe("useFinancialClosings", () => {
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Fechamento excluído" }));
   });
 
-  it("não deve excluir quando o usuário cancela o aviso", async () => {
-    vi.spyOn(window, "confirm").mockImplementation(() => false);
+  it("deve propagar a falha da exclusão para quem confirmou", async () => {
+    // A rejeição é o que mantém o `ConfirmDialog` aberto: engolindo o erro, ele
+    // fecharia como se o documento tivesse saído, com o toast de falha atrás.
+    mocks.deleteFinancialClosing.mockRejectedValueOnce(new Error("500"));
 
     const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
 
-    await act(async () => {
-      result.current.handleDeleteClosing(closingFixture as never);
-    });
-
-    expect(mocks.deleteFinancialClosing).not.toHaveBeenCalled();
+    await expect(
+      act(async () => {
+        await result.current.handleDeleteClosing(closingFixture as never);
+      }),
+    ).rejects.toThrow();
   });
 });

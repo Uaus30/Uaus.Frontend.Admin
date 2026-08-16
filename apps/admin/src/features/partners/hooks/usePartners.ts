@@ -169,17 +169,17 @@ export function usePartners() {
   });
 
   /**
-   * Remove um sócio após confirmação.
+   * Remove um sócio. A confirmação é do `ConfirmDialog` da tabela, que também
+   * trava o segundo clique.
    *
-   * Ignora o clique com uma exclusão em andamento — segundo clique no mesmo
-   * botão não pode disparar a mutação duplicada.
+   * Devolve a Promise porque o diálogo só fecha quando ela resolve — e sócio
+   * com fechamento registrado é recusado pelo backend, caso frequente o
+   * bastante para o diálogo precisar continuar aberto com a explicação.
    *
-   * @param partner Sócio a ser removido (o nome entra na confirmação).
+   * @param partner Sócio a ser removido.
    */
   function handleDeletePartner(partner: PartnerDto) {
-    if (deleteMutation.isPending) return;
-    if (!window.confirm(`Remover o sócio "${partner.name}"?`)) return;
-    deleteMutation.mutate(partner.id);
+    return deleteMutation.mutateAsync(partner.id);
   }
 
   // ------------------------------------------------- Distribuição de lucros
@@ -303,11 +303,14 @@ export function usePartners() {
     page,
     setPage,
     partners,
+    // Nomes iguais aos das outras features (`pageSize`/`total`), não o
+    // `size`/`filteredItems` do backend: o rodapé é um componente só, e três
+    // apelidos para os mesmos dois números eram metade do problema.
     pagination: partnersPage
       ? {
           page: partnersPage.page,
-          size: PAGE_SIZE,
-          filteredItems: partnersPage.total,
+          pageSize: partnersPage.limit || PAGE_SIZE,
+          total: partnersPage.total,
           totalPages: partnersPage.totalPages,
         }
       : undefined,

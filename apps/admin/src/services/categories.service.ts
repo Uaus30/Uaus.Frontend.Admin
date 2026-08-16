@@ -1,72 +1,31 @@
-import {
-  apiDelete,
-  apiPost,
-  apiPut,
-  fetchAllPages,
-  type CategoryDto,
-  type DepartmentDto,
+/**
+ * Categorias e departamentos — REEXPORT, não implementação.
+ *
+ * A implementação mudou de casa: caminho HTTP, tradução de `limit` para `size`
+ * e DTO agora vivem em `packages/api-client/src/hooks/categories.ts`, como manda
+ * a seção 3 do CLAUDE.md. Este arquivo continua existindo só porque três pontos
+ * do admin ainda o importam por `@/services/categories.service`:
+ *
+ * - `hooks/use-catalog.ts` (`getAllCategories`, `getAllDepartments`);
+ * - `features/departments` (a página inteira de departamentos);
+ * - `features/sales` (catálogo para os filtros do relatório).
+ *
+ * Não acrescente função aqui. Quando esses três passarem a importar os hooks do
+ * api-client (`useGetCategories`, `useGetDepartments`, `useCreateCategory`…),
+ * este arquivo some — é isso que o reexport torna possível sem um passo grande
+ * e arriscado: ninguém precisa mudar de import e de implementação no mesmo
+ * commit.
+ */
+
+export {
+  createCategory,
+  createDepartment,
+  deleteCategory,
+  deleteDepartment,
+  getAllCategories,
+  getAllDepartments,
+  getCategoriesPage,
+  getDepartmentsPage,
+  updateCategory,
+  updateDepartment,
 } from "@workspace/api-client-react";
-import { getPaged } from "./core";
-
-export async function getAllDepartments() {
-  return fetchAllPages<DepartmentDto>("/Departments");
-}
-
-export async function getAllCategories(params?: { departmentId?: number }) {
-  return fetchAllPages<CategoryDto>("/Categories", params);
-}
-
-export async function getCategoriesPage(params?: {
-  search?: string;
-  departmentId?: number;
-  page?: number;
-  limit?: number;
-}) {
-  return getPaged<CategoryDto>("/Categories", {
-    search: params?.search,
-    departmentId: params?.departmentId,
-    page: params?.page ?? 1,
-    size: params?.limit ?? 20,
-  });
-}
-
-export async function getDepartmentsPage(params?: { search?: string; page?: number; limit?: number }) {
-  return getPaged<DepartmentDto>("/Departments", {
-    search: params?.search,
-    page: params?.page ?? 1,
-    size: params?.limit ?? 20,
-  });
-}
-
-export async function createCategory(payload: {
-  departmentId: number;
-  name: string;
-  description?: string | null;
-}) {
-  return apiPost<null>("/Categories", payload);
-}
-
-export async function updateCategory(payload: {
-  id: number;
-  departmentId: number;
-  name: string;
-  description?: string | null;
-}) {
-  return apiPut<CategoryDto>("/Categories", payload);
-}
-
-export async function deleteCategory(id: number) {
-  return apiDelete<null>(`/Categories/${id}`);
-}
-
-export async function createDepartment(payload: { name: string; description?: string | null }) {
-  return apiPost<null>("/Departments", payload);
-}
-
-export async function updateDepartment(payload: { id: number; name: string; description?: string | null }) {
-  return apiPut<DepartmentDto>("/Departments", payload);
-}
-
-export async function deleteDepartment(id: number) {
-  return apiDelete<null>(`/Departments/${id}`);
-}

@@ -195,9 +195,11 @@ export function useProductForm({
     try {
       await deleteProductGroup(productGroupId);
       await Promise.all([
+        // `RESOURCE_KEYS.products` é o que tira a linha excluída da TABELA: desde
+        // o item 4.1 ela é uma query só, sob `["products","table", params]`.
+        queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products }),
         queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroups }),
         queryClient.invalidateQueries({ queryKey: ["products-page"] }),
-        queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
         queryClient.invalidateQueries({ queryKey: ["products-by-group", productGroupId] }),
         queryClient.invalidateQueries({ queryKey: ["product-group-history", productGroupId] }),
       ]);

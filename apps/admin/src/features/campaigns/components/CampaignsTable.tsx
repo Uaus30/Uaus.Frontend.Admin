@@ -1,5 +1,16 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui";
 import { BarChart3, Edit2, Megaphone, Trash2 } from "lucide-react";
 import { formatDate } from "@workspace/core";
 import type { CampaignDto } from "../types";
@@ -11,7 +22,8 @@ interface CampaignsTableProps {
   /** True enquanto uma exclusão está em andamento — bloqueia o segundo clique. */
   isDeleting: boolean;
   onEdit: (item: CampaignDto) => void;
-  onDelete: (item: CampaignDto) => void;
+  /** Exclui a campanha. Deve devolver a Promise da mutação — ver o ConfirmDialog. */
+  onDelete: (item: CampaignDto) => void | Promise<unknown>;
 }
 
 type StatusKey = "no-ar" | "programada" | "encerrada" | "inativa";
@@ -53,6 +65,10 @@ export function CampaignsTable({ items, isLoading, isDeleting, onEdit, onDelete 
   // com botão dentro é marcação inválida, e é assim que a tabela de produtos e
   // a de logs já navegam.
   const [, setLocation] = useLocation();
+
+  // A confirmação guarda a campanha inteira porque o diálogo mostra o nome — na
+  // lista paginada, é a única chance de perceber o clique na linha vizinha.
+  const [campaignToDelete, setCampaignToDelete] = useState<CampaignDto | null>(null);
 
   if (isLoading) {
     return <div className="py-12 text-center text-muted-foreground">Carregando campanhas...</div>;
@@ -142,7 +158,7 @@ export function CampaignsTable({ items, isLoading, isDeleting, onEdit, onDelete 
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onDelete(item)}
+                      onClick={() => setCampaignToDelete(item)}
                       disabled={isDeleting}
                       title="Excluir campanha"
                       className="h-8 w-8 text-destructive hover:bg-destructive/10"
@@ -156,6 +172,20 @@ export function CampaignsTable({ items, isLoading, isDeleting, onEdit, onDelete 
           })}
         </TableBody>
       </Table>
+
+      <ConfirmDialog
+        open={campaignToDelete !== null}
+        onOpenChange={(open) => !open && setCampaignToDelete(null)}
+        title="Excluir esta campanha?"
+        itemName={campaignToDelete?.name}
+        description="O questionário desta campanha deixa de ser apresentado no caixa. Os cupons ligados a ela continuam válidos com o mesmo desconto e a mesma vigência, e as respostas já dadas seguem no relatório. A ação não pode ser desfeita."
+        confirmLabel="Sim, excluir campanha"
+        destructive
+        loading={isDeleting}
+        onConfirm={async () => {
+          if (campaignToDelete) await onDelete(campaignToDelete);
+        }}
+      />
     </div>
   );
 }

@@ -9,8 +9,26 @@ Este módulo gerencia a visualização, ordenação, criação, edição e relat
 - `components/TagTable.tsx`: Renderiza a listagem de etiquetas com pesquisa, cabeçalhos clicáveis para ordenação por nome, quantidade de produtos ou data de cadastro, controles de paginação e botões de ação (editar, deletar, abrir relatório).
 - `components/TagEditorModal.tsx`: Modal contendo o formulário para criação e edição de etiquetas, incluindo picker de cor e opção de definir como pública.
 - `components/TagReportModal.tsx`: Modal com o desempenho real de vendas dos produtos da etiqueta nos últimos 30 dias (`GET /Tags/{id}/report`). O corpo é compartilhado com o relatório de categorias em `@/components/catalog-report-body.tsx`.
-- `hooks/useTags.ts`: Centraliza as consultas do TanStack Query, estados de paginação, busca e ordenação, mutations para salvar e remover etiquetas, além do gerenciamento de exibição do relatório.
-- `types.ts`: Definições de tipos TypeScript para formulários, etiquetas e relatórios.
+- `hooks/useTags.ts`: Estados de paginação, busca e ordenação, formulário e exibição do relatório. Leitura e escrita vêm dos hooks do api-client.
+- `types.ts`: `TagForm` (formulário) e `EnrichedTag`, que DERIVA de `TagDto` em vez de repetir seus campos.
+
+---
+
+## 🔌 De onde vêm os dados
+
+`/Tags` mora em `packages/api-client/src/hooks/tags.ts` e chega aqui como
+`useGetTags`, `useCreateTag`, `useUpdateTag` e `useDeleteTag`.
+
+**Invalidação:** o prefixo `["tags"]` (de `getGetTagsQueryKey()`) cobre três
+consultas de telas diferentes — a tabela desta feature, o catálogo completo lido
+por `useAllTags` e a busca do autocomplete de etiquetas do editor de produtos.
+Por isso a invalidação é do prefixo: criar uma etiqueta pelo editor de produtos
+já a fazia aparecer na tabela, mas não na busca da própria tela em que foi
+criada, e o operador criava a duplicata.
+
+**`createTag` devolve a etiqueta criada**, diferente das outras criações do
+pacote, que devolvem `null`. O autocomplete precisa do id recém-gerado para
+vincular a etiqueta ao produto na mesma interação.
 
 ---
 
@@ -29,6 +47,10 @@ Este módulo gerencia a visualização, ordenação, criação, edição e relat
   - **Quantidade de Produtos**: Comparação numérica, usando o `productCount` devolvido pela própria listagem da API.
   - **Data de Cadastro**: Comparação cronológica dos registros.
 
-### 3. Relatório da Etiqueta
+### 3. Confirmação de exclusão
+
+- A pergunta é do `ConfirmDialog` do `packages/ui`, renderizado pela própria `TagTable`. O texto diz de quantos produtos a etiqueta é retirada e, quando ela é pública, avisa que sai também da vitrine do site — informação que o `window.confirm` não tinha como dar.
+
+### 4. Relatório da Etiqueta
 
 - Exibe métricas consolidadas (faturamento, lucro, vendas e estoque) e a listagem de produtos que possuem a etiqueta. Produtos sem venda no período aparecem zerados em vez de sumirem: o relatório também serve para descobrir o que está parado na prateleira.

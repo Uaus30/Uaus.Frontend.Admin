@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useProductDeepLink } from "../useProductDeepLink";
-import type { EnrichedProduct } from "@/services/mappers";
+import type { ProductTableRow } from "../../types";
 
 const mockToast = vi.fn();
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -10,8 +10,8 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 }));
 
 /** Linha da tabela: só o que o hook usa para escolher o alvo. */
-function linha(id: number, name: string): EnrichedProduct {
-  return { id, name } as EnrichedProduct;
+function linha(id: number, name: string): ProductTableRow {
+  return { id, name } as ProductTableRow;
 }
 
 /** Coloca a aba no endereço que o PDV abriria. */
@@ -51,13 +51,13 @@ describe("useProductDeepLink", () => {
 
   it("espera a listagem carregar antes de decidir", async () => {
     // Decidir com a lista ainda vazia daria "produto não encontrado" em todo
-    // link que funciona — a listagem carrega os atributos em cascata.
+    // link que funciona — a página da tabela ainda está viajando.
     abertoEm("?editar=42");
     const openModal = vi.fn();
     const { rerender } = renderHook(
-      ({ isLoading, produtos }: { isLoading: boolean; produtos: EnrichedProduct[] }) =>
+      ({ isLoading, produtos }: { isLoading: boolean; produtos: ProductTableRow[] }) =>
         useProductDeepLink({ isLoading, enrichedProducts: produtos, openModal }),
-      { initialProps: { isLoading: true, produtos: [] as EnrichedProduct[] } },
+      { initialProps: { isLoading: true, produtos: [] as ProductTableRow[] } },
     );
 
     expect(openModal).not.toHaveBeenCalled();
@@ -118,7 +118,7 @@ describe("useProductDeepLink", () => {
     const openModal = vi.fn();
     const produtos = [linha(42, "Café Torrado")];
     const { rerender } = renderHook(
-      ({ p }: { p: EnrichedProduct[] }) =>
+      ({ p }: { p: ProductTableRow[] }) =>
         useProductDeepLink({ isLoading: false, enrichedProducts: p, openModal }),
       { initialProps: { p: produtos } },
     );

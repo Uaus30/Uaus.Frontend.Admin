@@ -26,7 +26,8 @@ import {
   Package,
   History,
 } from "lucide-react";
-import type { EnrichedProduct } from "@/services/mappers";
+import type { EnumOptionDto } from "@workspace/api-client-react";
+import type { ProductTableRow } from "../types";
 import React, { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@workspace/ui";
@@ -44,16 +45,16 @@ type ProductTableProps = {
   setLimit: (value: number) => void;
   totalPages: number;
   productPageTotal: number;
-  enrichedProducts: EnrichedProduct[];
-  statusOptions: any[];
-  onEdit: (product: EnrichedProduct) => void;
-  onDelete: (product: EnrichedProduct) => void;
-  onViewHistory?: (product: EnrichedProduct) => void;
-  onUpdatePrice?: (product: EnrichedProduct, newPrice: number) => Promise<void>;
+  enrichedProducts: ProductTableRow[];
+  statusOptions: EnumOptionDto[];
+  onEdit: (product: ProductTableRow) => void;
+  onDelete: (product: ProductTableRow) => void;
+  onViewHistory?: (product: ProductTableRow) => void;
+  onUpdatePrice?: (product: ProductTableRow, newPrice: number) => Promise<void>;
   updatingPriceId?: number | null;
-  onUpdateStock?: (product: EnrichedProduct, newStock: number) => Promise<void>;
+  onUpdateStock?: (product: ProductTableRow, newStock: number) => Promise<void>;
   updatingStockId?: number | null;
-  onSearchInternetImage?: (product: EnrichedProduct) => void;
+  onSearchInternetImage?: (product: ProductTableRow) => void;
 };
 
 function CurrencyInputInline({
@@ -200,7 +201,7 @@ export function ProductTable({
   updatingStockId,
   onSearchInternetImage,
 }: ProductTableProps) {
-  const [productToDelete, setProductToDelete] = useState<EnrichedProduct | null>(null);
+  const [productToDelete, setProductToDelete] = useState<ProductTableRow | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
   const [, setLocation] = useLocation();
   return (

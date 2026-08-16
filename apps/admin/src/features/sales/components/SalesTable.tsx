@@ -8,7 +8,10 @@ import { Label } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { TablePagination } from "@workspace/ui";
 import { formatCurrency, formatDate } from "@workspace/core";
+import type { SaleDto, UiPagedResult } from "@workspace/api-client-react";
+import { SALES_PAGE_SIZE } from "../hooks/useSales";
 import type { EnrichedSale } from "../types";
 
 type SalesTableProps = {
@@ -22,8 +25,11 @@ type SalesTableProps = {
   page: number;
   /** Callback to update page index */
   setPage: React.Dispatch<React.SetStateAction<number>>;
-  /** Paginated sale object from the API */
-  salesPage: any;
+  /**
+   * Página de vendas devolvida pela API. `undefined` enquanto a primeira busca
+   * não volta — nesse intervalo o rodapé não tem total e não se desenha.
+   */
+  salesPage: UiPagedResult<SaleDto> | undefined;
   /** Callback to view specific sale detail by ID */
   onViewDetails: (id: number) => void;
   /** Callback to delete specific sale by ID */
@@ -304,30 +310,18 @@ export function SalesTable({
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/50 p-4 text-sm text-muted-foreground">
-          <span>
-            Mostrando página {salesPage?.page || 1} de{" "}
-            {Math.ceil((salesPage?.total || 0) / (salesPage?.limit || 15)) || 1}
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage((current) => current - 1)}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={salesPage ? salesPage.data.length < salesPage.limit : true}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Próxima
-            </Button>
-          </div>
-        </div>
+        {/* O "Próxima" era decidido por `data.length < limit`: com o total
+            múltiplo exato da página, a última vinha cheia, o botão ficava
+            liberado e o operador caía numa página vazia. O rodapé unificado
+            decide pelo total. */}
+        <TablePagination
+          className="border-t border-border/50 p-4"
+          page={page}
+          pageSize={salesPage?.limit || SALES_PAGE_SIZE}
+          total={salesPage?.total ?? 0}
+          onPageChange={setPage}
+          itemLabel={{ singular: "venda", plural: "vendas" }}
+        />
 
         <ConfirmDialog
           open={saleToDelete !== null}

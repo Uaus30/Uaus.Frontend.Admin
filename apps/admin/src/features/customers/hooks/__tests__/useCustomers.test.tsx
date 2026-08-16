@@ -1,18 +1,79 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CustomerSummaryDto } from "@workspace/api-client-react";
 import { useCustomers } from "../useCustomers";
 
-// Mock das dependências externas
-vi.mock("@/services/sales.service", () => ({
-  getAllSales: vi.fn(() =>
-    Promise.resolve([
-      { id: 101, customerId: 1, total: 150 },
-      { id: 102, customerId: 1, total: 50 },
-    ]),
-  ),
-}));
+/**
+ * A tela de clientes depois do item 4.1.
+ *
+ * O que estes testes protegem, além do comportamento: o consolidado de compras
+ * vem SOMADO do servidor. Antes a tela chamava `useAllSales()`, que varria a
+ * tabela de vendas inteira — todas as páginas, sem filtro — para calcular três
+ * colunas de quinze linhas, e lançava ao passar de 20 mil vendas. Reintroduzir
+ * aquela varredura não quebraria nada visível; por isso "não pede /Sales" é
+ * teste, não comentário.
+ */
+
+const maria: CustomerSummaryDto = {
+  id: 1,
+  createdAt: "2026-06-18T00:00:00",
+  updatedAt: null,
+  name: "Maria Silva",
+  email: "maria@test.com",
+  phone: "11999999999",
+  document: "123.456.789-00",
+  address: "Rua A, 123",
+  totalPurchased: 200,
+  purchaseCount: 2,
+  lastPurchaseAt: "2026-08-01T10:00:00",
+};
+
+/** Cliente novo: existe, nunca comprou. */
+const joao: CustomerSummaryDto = {
+  id: 2,
+  createdAt: "2026-08-10T00:00:00",
+  updatedAt: null,
+  name: "João Santos",
+  email: null,
+  phone: null,
+  document: null,
+  address: null,
+  totalPurchased: 0,
+  purchaseCount: 0,
+  lastPurchaseAt: null,
+};
+
+/**
+ * `fetch` dublado no nível mais baixo de propósito: dublar o hook de consulta
+ * esconderia exatamente o que mudou — quantas e quais requisições a tela faz.
+ */
+const fetchMock = vi.fn(async (url: string | URL) => {
+  const href = String(url);
+
+  if (href.includes("/Customers/summary")) {
+    return new Response(
+      JSON.stringify({
+        items: [maria, joao],
+        pagination: { page: 1, size: 15, filteredItems: 2 },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  throw new Error(`Requisição inesperada: ${href}`);
+});
+
+vi.stubGlobal("fetch", fetchMock);
+
+/** URLs pedidas ao servidor, sem o host. */
+function caminhosPedidos(): string[] {
+  return fetchMock.mock.calls.map((call) => {
+    const url = new URL(String(call[0]));
+    return `${url.pathname}${url.search}`;
+  });
+}
 
 const mockToast = vi.fn();
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -20,47 +81,19 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-// Mock do QueryClient e Mutações do API Client
 const mockCreateCustomer = vi.fn();
 const mockUpdateCustomer = vi.fn();
 const mockDeleteCustomer = vi.fn();
 
+// Só as MUTAÇÕES são dubladas. A consulta roda de verdade contra o `fetch`
+// acima — é ela que carrega a mudança deste item.
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
-  useGetCustomers: vi.fn(() => ({
-    data: {
-      data: [
-        {
-          id: 1,
-          name: "Maria Silva",
-          email: "maria@test.com",
-          phone: "11999999999",
-          document: "123.456.789-00",
-          address: "Rua A, 123",
-          createdAt: "2026-06-18",
-        },
-      ],
-      total: 1,
-      page: 1,
-      limit: 15,
-    },
-    isLoading: false,
-  })),
-  useCreateCustomer: vi.fn(() => ({
-    mutate: mockCreateCustomer,
-    isPending: false,
-  })),
-  useUpdateCustomer: vi.fn(() => ({
-    mutate: mockUpdateCustomer,
-    isPending: false,
-  })),
-  useDeleteCustomer: vi.fn(() => ({
-    mutate: mockDeleteCustomer,
-    isPending: false,
-  })),
+  useCreateCustomer: vi.fn(() => ({ mutate: mockCreateCustomer, isPending: false })),
+  useUpdateCustomer: vi.fn(() => ({ mutate: mockUpdateCustomer, isPending: false })),
+  useDeleteCustomer: vi.fn(() => ({ mutate: mockDeleteCustomer, isPending: false })),
 }));
 
-// Wrapper de testes para prover o QueryClient
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -77,6 +110,45 @@ const createWrapper = () => {
 describe("useCustomers Hook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("carrega a página com UMA requisição e sem varrer as vendas", async () => {
+    const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.statsByCustomerId.size).toBe(2));
+
+    const caminhos = caminhosPedidos();
+    expect(caminhos).toHaveLength(1);
+    expect(caminhos[0]).toContain("/Customers/summary");
+    // A varredura de /Sales é o custo que este item eliminou: ela crescia com a
+    // operação da loja e derrubava a tela ao passar de 20 mil vendas.
+    expect(caminhos.some((caminho) => caminho.includes("/Sales"))).toBe(false);
+  });
+
+  it("expõe o consolidado que o servidor somou, sem recalcular no navegador", async () => {
+    const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.statsByCustomerId.size).toBe(2));
+
+    expect(result.current.statsByCustomerId.get(1)).toEqual({
+      totalPurchases: 200,
+      purchaseCount: 2,
+      lastPurchaseAt: "2026-08-01T10:00:00",
+    });
+  });
+
+  it("distingue quem nunca comprou de quem comprou hoje", async () => {
+    // `lastPurchaseAt` nulo tem que continuar nulo até a tela: uma data zerada
+    // apareceria na coluna como 01/01/0001, com cara de compra real.
+    const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.statsByCustomerId.size).toBe(2));
+
+    expect(result.current.statsByCustomerId.get(2)).toEqual({
+      totalPurchases: 0,
+      purchaseCount: 0,
+      lastPurchaseAt: null,
+    });
   });
 
   it("deve inicializar com os estados padrão corretos", () => {
@@ -104,17 +176,8 @@ describe("useCustomers Hook", () => {
   it("deve gerenciar a abertura da modal em modo de edição", () => {
     const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
 
-    const customerToEdit = {
-      id: 1,
-      name: "Maria Silva",
-      email: "maria@test.com",
-      phone: "11999999999",
-      document: "123.456.789-00",
-      address: "Rua A, 123",
-    };
-
     act(() => {
-      result.current.handleOpenModal(customerToEdit);
+      result.current.handleOpenModal(maria);
     });
 
     expect(result.current.modalOpen).toBe(true);

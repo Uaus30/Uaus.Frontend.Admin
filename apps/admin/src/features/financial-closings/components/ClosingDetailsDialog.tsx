@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,8 +8,9 @@ import {
   DialogDescription,
 } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Loader2, Lock, Trash2 } from "lucide-react";
-import { formatDate, formatShortDate } from "@workspace/core";
+import { formatCurrency, formatDate, formatShortDate } from "@workspace/core";
 import { ClosingSummary } from "./ClosingSummary";
 import type { FinancialClosingDto } from "../types";
 
@@ -18,8 +20,8 @@ interface ClosingDetailsDialogProps {
   isLoading: boolean;
   isDeleting: boolean;
   onClose: () => void;
-  /** Exclui o fechamento (com confirmação e aviso de registro em log). */
-  onDelete: (closing: FinancialClosingDto) => void;
+  /** Exclui o fechamento. Deve devolver a Promise da mutação — ver o ConfirmDialog. */
+  onDelete: (closing: FinancialClosingDto) => void | Promise<unknown>;
 }
 
 /**
@@ -28,6 +30,10 @@ interface ClosingDetailsDialogProps {
  * Detalhe de um fechamento confirmado: números congelados, rateio por sócio,
  * observações e autoria. Não há edição — para refazer o período, o caminho é
  * excluir (ação registrada em log) e fechar de novo.
+ *
+ * A confirmação da exclusão mora aqui porque é daqui que ela é disparada, e
+ * porque o aviso precisa citar o período e o lucro líquido que estão na tela —
+ * é o que separa "excluir um rascunho" de "apagar o documento oficial do mês".
  */
 export function ClosingDetailsDialog({
   open,
@@ -37,8 +43,20 @@ export function ClosingDetailsDialog({
   onClose,
   onDelete,
 }: ClosingDetailsDialogProps) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
   return (
-    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(val) => {
+        if (val) return;
+        // Sem zerar aqui, fechar o detalhe com a confirmação aberta deixaria o
+        // pedido de exclusão pendurado, e o próximo fechamento aberto já
+        // apareceria com o aviso na tela.
+        setConfirmingDelete(false);
+        onClose();
+      }}
+    >
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -79,7 +97,7 @@ export function ClosingDetailsDialog({
             <DialogFooter className="gap-2 sm:justify-between">
               <Button
                 variant="destructive"
-                onClick={() => onDelete(closing)}
+                onClick={() => setConfirmingDelete(true)}
                 disabled={isDeleting}
                 className="gap-2"
               >
@@ -90,6 +108,20 @@ export function ClosingDetailsDialog({
                 Fechar
               </Button>
             </DialogFooter>
+
+            <ConfirmDialog
+              open={confirmingDelete}
+              onOpenChange={setConfirmingDelete}
+              title="Excluir este fechamento financeiro?"
+              itemName={`${formatShortDate(closing.periodStart)} — ${formatShortDate(closing.periodEnd)} · lucro líquido ${formatCurrency(closing.netProfit)}`}
+              description="O documento oficial do período some, junto com o rateio congelado entre os sócios. O período volta a ficar livre para um novo fechamento, e um novo cálculo pode dar outro número: ele usa os sócios, percentuais e custos fixos de HOJE. A exclusão fica registrada em log com o seu usuário. A ação não pode ser desfeita."
+              confirmLabel="Sim, excluir fechamento"
+              destructive
+              loading={isDeleting}
+              onConfirm={async () => {
+                await onDelete(closing);
+              }}
+            />
           </>
         )}
       </DialogContent>

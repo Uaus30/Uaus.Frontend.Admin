@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { CalendarOff, Edit2, ReceiptText, Trash2 } from "lucide-react";
 import { formatCurrency } from "@workspace/core";
-import { formatMonth, isFixedCostActive } from "../hooks/useFixedCosts";
+import { endMonthFor, formatMonth, isFixedCostActive } from "../hooks/useFixedCosts";
 import type { FixedCostDto } from "../types";
 
 interface FixedCostsTableProps {
@@ -14,13 +16,20 @@ interface FixedCostsTableProps {
   /** True enquanto uma exclusão está em andamento — bloqueia o segundo clique. */
   isDeleting: boolean;
   onEdit: (item: FixedCostDto) => void;
-  onEnd: (item: FixedCostDto) => void;
-  onDelete: (item: FixedCostDto) => void;
+  /** Encerra a vigência. Deve devolver a Promise da mutação — ver o ConfirmDialog. */
+  onEnd: (item: FixedCostDto) => void | Promise<unknown>;
+  /** Exclui o custo. Deve devolver a Promise da mutação — ver o ConfirmDialog. */
+  onDelete: (item: FixedCostDto) => void | Promise<unknown>;
 }
 
 /**
  * Tabela dos custos fixos com a vigência por competência ("jan/2026 — atual")
  * e as ações de editar, encerrar (só para vigentes) e excluir.
+ *
+ * As duas confirmações moram aqui, e não na página, porque "qual linha está
+ * esperando confirmação" é estado da lista: é aqui que o operador clicou, e é
+ * aqui que se sabe o nome e a competência a citar no aviso. A página só recebe
+ * a tabela pronta.
  */
 export function FixedCostsTable({
   items,
@@ -31,6 +40,12 @@ export function FixedCostsTable({
   onEnd,
   onDelete,
 }: FixedCostsTableProps) {
+  // Guarda o custo inteiro (não só o id) porque o diálogo precisa mostrar o
+  // nome: na tabela paginada o clique no ícone da linha vizinha é o engano mais
+  // comum, e o nome é a única chance de perceber antes de confirmar.
+  const [costToEnd, setCostToEnd] = useState<FixedCostDto | null>(null);
+  const [costToDelete, setCostToDelete] = useState<FixedCostDto | null>(null);
+
   if (isLoading) {
     return <div className="py-12 text-center text-muted-foreground">Carregando custos fixos...</div>;
   }
@@ -99,7 +114,7 @@ export function FixedCostsTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEnd(item)}
+                        onClick={() => setCostToEnd(item)}
                         disabled={isEnding}
                         title="Encerrar vigência no mês atual"
                         className="h-8 w-8"
@@ -121,7 +136,7 @@ export function FixedCostsTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onDelete(item)}
+                      onClick={() => setCostToDelete(item)}
                       disabled={isDeleting}
                       title="Excluir custo fixo"
                       className="h-8 w-8 text-destructive hover:bg-destructive/10"
@@ -135,6 +150,41 @@ export function FixedCostsTable({
           })}
         </TableBody>
       </Table>
+
+      {/* Montado só com um custo escolhido: a descrição cita a competência que
+          vai ser gravada, e não existe texto honesto para "nenhum custo". */}
+      {costToEnd && (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setCostToEnd(null)}
+          title="Encerrar a vigência deste custo fixo?"
+          itemName={`${costToEnd.name} — ${formatCurrency(costToEnd.monthlyAmount)}/mês`}
+          description={`A vigência passa a terminar em ${formatMonth(endMonthFor(costToEnd))}. O custo ainda entra no fechamento dessa competência e sai dos meses seguintes — o cadastro continua na lista e pode ser reaberto pela edição.`}
+          confirmLabel="Sim, encerrar"
+          loading={isEnding}
+          onConfirm={async () => {
+            await onEnd(costToEnd);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={costToDelete !== null}
+        onOpenChange={(open) => !open && setCostToDelete(null)}
+        title="Excluir este custo fixo?"
+        itemName={
+          costToDelete
+            ? `${costToDelete.name} — ${formatCurrency(costToDelete.monthlyAmount)}/mês`
+            : undefined
+        }
+        description='O cadastro sai da lista de vez e deixa de entrar em qualquer fechamento futuro. Fechamentos já confirmados não mudam — eles congelaram os totais na confirmação. Para apenas parar a cobrança daqui para frente, prefira "Encerrar". A ação não pode ser desfeita.'
+        confirmLabel="Sim, excluir"
+        destructive
+        loading={isDeleting}
+        onConfirm={async () => {
+          if (costToDelete) await onDelete(costToDelete);
+        }}
+      />
     </div>
   );
 }

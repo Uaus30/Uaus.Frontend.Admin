@@ -10,7 +10,7 @@ import { useProductForm } from "./editor/useProductForm";
 import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
 import { useProductSubmit } from "./editor/useProductSubmit";
-import { CATALOG_KEYS, useAllImages, useAllProductImages } from "@/hooks/use-catalog";
+import { CATALOG_KEYS, RESOURCE_KEYS, useAllImages, useAllProductImages } from "@/hooks/use-catalog";
 
 export function useProductEditor() {
   const queryClient = useQueryClient();
@@ -92,11 +92,23 @@ export function useProductEditor() {
     productForm.tags,
   ]);
 
+  /**
+   * Invalida tudo que reflete um produto salvo, excluído ou reordenado.
+   *
+   * `RESOURCE_KEYS.products` é o que alcança a TABELA. Desde o item 4.1 ela é uma
+   * query só, registrada como `["products","table", params]`; a chave
+   * `["product-groups-page"]`, que a listagem em cascata usava, deixou de existir
+   * e foi retirada daqui. Invalidar a chave errada não quebra nada visível —
+   * compila, roda, e a tela mostra o preço antigo depois de salvar.
+   *
+   * `["products-by-group", id]` continua na lista porque é a query da MODAL (a
+   * lista de variações), não da tabela.
+   */
   async function invalidateProductQueries(groupId?: number | null) {
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products }),
       queryClient.invalidateQueries({ queryKey: ["products-page"] }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroups }),
-      queryClient.invalidateQueries({ queryKey: ["product-groups-page"] }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productTags }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productImages }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.images }),
