@@ -1,5 +1,5 @@
 import React from "react";
-import { FileText, PlusCircle, Receipt, Trash2 } from "lucide-react";
+import { FileText, Receipt, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { DatePicker } from "@workspace/ui";
 import { formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
@@ -8,6 +8,9 @@ import { Textarea } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
+import type { SupplierDto } from "@workspace/api-client-react";
+import { ProductSearchPicker, type ProductSearchOption } from "@/components/product-search-picker";
+import type { EditableEntryItemField } from "../hooks/useStockEntries";
 import type { NewEntryItem } from "../types";
 
 type NewStockEntryModalProps = {
@@ -34,17 +37,15 @@ type NewStockEntryModalProps = {
   /** Current items draft list */
   items: NewEntryItem[];
   /** List of suppliers options */
-  suppliers: any[];
-  /** List of products options */
-  products: any[];
+  suppliers: SupplierDto[];
   /** True if request is actively saving to backend */
   isSavingEntry: boolean;
-  /** Callback to append an empty item draft row */
-  onAddEmptyItem: () => void;
+  /** Callback to append the product chosen in the search */
+  onAddItem: (product: ProductSearchOption) => void;
   /** Callback to remove item draft row at index */
   onRemoveItem: (index: number) => void;
-  /** Callback to update specific fields on item draft row */
-  onItemChange: (index: number, field: keyof NewEntryItem, value: any) => void;
+  /** Callback to update a numeric field on item draft row */
+  onItemChange: (index: number, field: EditableEntryItemField, value: number) => void;
   /** Callback triggered on form submission */
   onSubmit: (e: React.FormEvent) => void;
 };
@@ -53,6 +54,11 @@ type NewStockEntryModalProps = {
  * NewStockEntryModal
  *
  * Form dialog hosting inputs to record new supplier physical stock purchases.
+ *
+ * O produto entra pela busca (`ProductSearchPicker`), e não por um `Select` com
+ * o catálogo inteiro: são mais de mil produtos, e rolar essa lista para achar um
+ * item de nota fiscal não é trabalho de operador. A busca aceita nome e código
+ * de barras — o mesmo termo que funciona na tela de produtos e no PDV.
  */
 export function NewStockEntryModal({
   open,
@@ -67,13 +73,14 @@ export function NewStockEntryModal({
   setNotes,
   items,
   suppliers,
-  products,
   isSavingEntry,
-  onAddEmptyItem,
+  onAddItem,
   onRemoveItem,
   onItemChange,
   onSubmit,
 }: NewStockEntryModalProps) {
+  const selectedIds = items.map((item) => item.productId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/*
@@ -153,67 +160,63 @@ export function NewStockEntryModal({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                <FileText className="h-4 w-4 text-primary" />
-                Produtos da Entrada
-              </h4>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onAddEmptyItem}
-                className="gap-1.5 h-8 hover:bg-primary/5 hover:text-primary transition-all duration-200"
-              >
-                <PlusCircle className="h-4 w-4" /> Adicionar Produto
-              </Button>
-            </div>
+            <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
+              <FileText className="h-4 w-4 text-primary" />
+              Produtos da Entrada
+            </h4>
 
-            <div className="border border-border/40 rounded-xl overflow-hidden bg-muted/5">
-              <Table>
-                <TableHeader className="bg-muted/40">
-                  <TableRow>
-                    <TableHead className="px-3 py-2">
-                      Produto <span className="text-red-500">*</span>
-                    </TableHead>
-                    <TableHead className="px-3 py-2 w-28 text-center">
-                      Quantidade <span className="text-red-500">*</span>
-                    </TableHead>
-                    <TableHead className="px-3 py-2 w-32 text-center">
-                      Custo Unit. <span className="text-red-500">*</span>
-                    </TableHead>
-                    <TableHead className="px-3 py-2 w-32 text-center">
-                      Preço Venda <span className="text-red-500">*</span>
-                    </TableHead>
-                    <TableHead className="px-3 py-2 text-right w-16">Remover</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.length === 0 ? (
+            <ProductSearchPicker
+              onSelect={onAddItem}
+              selectedIds={selectedIds}
+              disabled={isSavingEntry}
+              placeholder="Buscar produto por nome ou código de barras..."
+            />
+
+            {items.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border/40 py-8 text-center text-xs text-muted-foreground">
+                Nenhum produto lançado. Use a busca acima para adicionar os itens da nota.
+              </p>
+            ) : (
+              <div className="border border-border/40 rounded-xl overflow-hidden bg-muted/5">
+                {/*
+                  `table-fixed` com largura declarada por coluna: sem ele o
+                  navegador redistribui tudo pelo conteúdo, e o cabeçalho deixa de
+                  cair sobre a célula que nomeia. O `whitespace-nowrap` impede que
+                  o asterisco de obrigatório quebre para a linha de baixo.
+                */}
+                <Table className="table-fixed">
+                  <TableHeader className="bg-muted/40">
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground text-xs">
-                        Nenhum produto adicionado. Clique em "Adicionar Produto".
-                      </TableCell>
+                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap">
+                        Produto <span className="text-red-500">*</span>
+                      </TableHead>
+                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap w-36">
+                        Cód. Barras
+                      </TableHead>
+                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap text-center w-24">
+                        Qtd. <span className="text-red-500">*</span>
+                      </TableHead>
+                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap text-center w-28">
+                        Custo Unit. <span className="text-red-500">*</span>
+                      </TableHead>
+                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap text-center w-28">
+                        Preço Venda <span className="text-red-500">*</span>
+                      </TableHead>
+                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap text-center w-16">
+                        Remover
+                      </TableHead>
                     </TableRow>
-                  ) : (
-                    items.map((item, index) => (
-                      <TableRow key={index} className="hover:bg-muted/5">
-                        <TableCell className="px-3 py-2">
-                          <Select
-                            value={item.productId}
-                            onValueChange={(val) => onItemChange(index, "productId", val)}
-                          >
-                            <SelectTrigger className="h-8 text-xs bg-background">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id.toString()} className="text-xs">
-                                  {p.name} {p.barcode ? `(${p.barcode})` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item, index) => (
+                      <TableRow key={item.productId} className="hover:bg-muted/5">
+                        <TableCell className="px-3 py-2 text-xs">
+                          <span className="block truncate" title={item.productName}>
+                            {item.productName}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                          <span className="block truncate">{item.barcode || "-"}</span>
                         </TableCell>
                         <TableCell className="px-3 py-2">
                           <Input
@@ -223,6 +226,7 @@ export function NewStockEntryModal({
                             onChange={(e) =>
                               onItemChange(index, "quantity", Math.max(1, Number(e.target.value)))
                             }
+                            aria-label={`Quantidade de ${item.productName}`}
                             className="h-8 text-center text-xs bg-background"
                           />
                         </TableCell>
@@ -235,6 +239,7 @@ export function NewStockEntryModal({
                             onChange={(e) =>
                               onItemChange(index, "unitCost", Math.max(0, Number(e.target.value)))
                             }
+                            aria-label={`Custo unitário de ${item.productName}`}
                             className="h-8 text-center text-xs bg-background"
                           />
                         </TableCell>
@@ -247,26 +252,28 @@ export function NewStockEntryModal({
                             onChange={(e) =>
                               onItemChange(index, "price", Math.max(0, Number(e.target.value)))
                             }
+                            aria-label={`Preço de venda de ${item.productName}`}
                             className="h-8 text-center text-xs bg-background"
                           />
                         </TableCell>
-                        <TableCell className="px-3 py-2 text-right">
+                        <TableCell className="px-3 py-2 text-center">
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             onClick={() => onRemoveItem(index)}
+                            aria-label={`Remover ${item.productName}`}
                             className="h-7 w-7 text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between border-t border-border/40 pt-4 mt-2">

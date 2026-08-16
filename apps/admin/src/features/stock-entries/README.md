@@ -8,7 +8,7 @@ Este módulo gerencia o recebimento de mercadorias no estoque, permitindo o regi
 
 - `components/StockEntriesTable.tsx`: Exibe o histórico de entradas de estoque registradas com suporte a filtragem por fornecedor e controles de paginação.
 - `components/StockEntryDetailsModal.tsx`: Modal exibindo o espelho da nota fiscal, produtos recebidos com seus respectivos custos e preços, além do controle para exclusão de lançamento (cancelamento de entrada).
-- `components/NewStockEntryModal.tsx`: Modal contendo formulário de cabeçalho da nota (fornecedor, NF, data, observações) e uma grade dinâmica onde o usuário pode adicionar, configurar e remover itens recebidos. A data usa o `DatePicker` do [padrão de calendário](../../components/ui/README.md); como ele abre num portal fora do modal, o `DialogContent` aplica `guardCalendarDismiss` para não fechar o formulário ao escolher um dia.
+- `components/NewStockEntryModal.tsx`: Modal contendo formulário de cabeçalho da nota (fornecedor, NF, data, observações) e a grade dos itens recebidos. O produto entra pelo [`ProductSearchPicker`](../../components/product-search-picker.tsx) compartilhado com as baixas de estoque. A data usa o `DatePicker` do [padrão de calendário](../../components/ui/README.md); como ele abre num portal fora do modal, o `DialogContent` aplica `guardCalendarDismiss` para não fechar o formulário ao escolher um dia.
 - `hooks/useStockEntries.ts`: Centraliza requisições paginadas (`useGetPurchaseEntries`), detalhes (`useGetPurchaseEntryDetails`), mutations de recebimento (`useReceivePurchaseEntry`), mutations de exclusão (`useDeletePurchaseEntry`), e sincronização de query strings.
 - `types.ts`: Tipagens estruturadas locais.
 
@@ -16,17 +16,25 @@ Este módulo gerencia o recebimento de mercadorias no estoque, permitindo o regi
 
 ## ⚙️ Regras de Negócio Importantes
 
-### 1. Preenchimento Automático Inteligente
+### 1. O produto entra por busca, não por lista
 
-- Ao adicionar um item e selecionar um produto no select, o sistema busca automaticamente no catálogo o preço de venda (`price`) e o custo médio (`costPrice`) vigentes para preencher os respectivos campos, otimizando o fluxo de digitação.
+- O catálogo passa de mil produtos: quem escolhe é a API, pelo `ProductSearchPicker`, que aceita **nome ou código de barras** (o backend decide qual dos dois pelo formato do termo, a mesma regra da tela de produtos e do PDV).
+- Escolher o mesmo produto duas vezes **soma na linha existente**. Duas linhas do mesmo produto virariam dois lotes com o mesmo custo, e conferir a nota contra a tela ficaria mais difícil sem ganho nenhum.
+- A escolha já sugere o preço de venda (`price`) e o custo (`costPrice`) vigentes no cadastro. É sugestão, não imposição: a nota manda no custo, e os dois campos seguem editáveis.
 
-### 2. Validações ao Salvar
+### 2. A data viaja como instante LOCAL, sem fuso
 
-- O fornecedor é obrigatório.
+- O payload leva `2026-08-16T00:00:00` — **nunca** `toISOString()`.
+- Não é preciosismo de fuso: `entry_date` é `timestamp without time zone` e o Npgsql **recusa** gravar um `DateTime` com `Kind=Utc` nessa coluna. O `...T00:00:00.000Z` que o `toISOString()` produzia derrubava a gravação com **500**. Mesmo que gravasse, a entrada do dia 16 cairia no dia 15 no Brasil.
+- A convenção completa está em `docs/fuso-horario.md` do backend.
+
+### 3. Validações ao Salvar
+
+- O fornecedor e a data são obrigatórios.
 - Pelo menos um item deve ser adicionado.
-- Todos os itens devem ter um produto selecionado, quantidade maior que zero, e custos/preços não-negativos.
+- Todos os itens precisam de quantidade maior que zero e custos/preços não-negativos.
 
-### 3. Cancelamento de Entrada
+### 4. Cancelamento de Entrada
 
 - A exclusão de uma entrada é permitida (controlada pelo flag `canDelete` do backend).
 - O cancelamento remove os lotes de estoque lançados por esta entrada e atualiza/recalcula os saldos físicos vigentes dos produtos relacionados.

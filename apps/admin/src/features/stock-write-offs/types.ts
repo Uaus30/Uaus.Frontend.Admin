@@ -33,14 +33,6 @@ export type StockWriteOffDraftItem = {
   quantity: number;
 };
 
-/** Produto devolvido pela busca do modal de registro. */
-export type ProductSearchOption = {
-  id: number;
-  name: string;
-  barcode: string | null;
-  stock: number;
-};
-
 /** Opção de um `Select` de filtro. */
 export type StockWriteOffSelectOption = {
   value: string;

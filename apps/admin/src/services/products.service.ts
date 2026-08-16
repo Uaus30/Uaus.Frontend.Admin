@@ -313,3 +313,7 @@ export async function syncProductImages(payload: {
 export async function getProductGroupById(id: number) {
   return apiGetOrThrow<ProductGroupDto>(`/ProductGroups/${id}`);
 }
+
+export async function getProductById(id: number) {
+  return apiGetOrThrow<ProductDto>(`/Products/${id}`);
+}

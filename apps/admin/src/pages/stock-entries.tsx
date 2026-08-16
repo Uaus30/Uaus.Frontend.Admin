@@ -38,10 +38,9 @@ export default function StockEntries() {
     entryDetails,
     isLoadingDetails,
     suppliers,
-    products,
     isSavingEntry,
     resetNewEntryForm,
-    handleAddEmptyItem,
+    handleAddItem,
     handleRemoveItem,
     handleItemChange,
     handleSaveEntry,
@@ -110,9 +109,8 @@ export default function StockEntries() {
         setNotes={setNotes}
         items={items}
         suppliers={suppliers}
-        products={products}
         isSavingEntry={isSavingEntry}
-        onAddEmptyItem={handleAddEmptyItem}
+        onAddItem={handleAddItem}
         onRemoveItem={handleRemoveItem}
         onItemChange={handleItemChange}
         onSubmit={handleSaveEntry}

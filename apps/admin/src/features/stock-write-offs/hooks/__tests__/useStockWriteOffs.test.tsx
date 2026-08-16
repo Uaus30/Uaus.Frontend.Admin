@@ -32,9 +32,14 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 
 const { useStockWriteOffs } = await import("../useStockWriteOffs");
 
-/** Produto devolvido pela busca do modal. */
+/**
+ * Produto devolvido pela busca do modal.
+ *
+ * `price` e `costPrice` vêm junto porque a busca é compartilhada com a entrada
+ * de estoque, que os usa para sugerir custo e preço. A baixa ignora os dois.
+ */
 function product(id: number, name = `Produto ${id}`) {
-  return { id, name, barcode: `789${id}`, stock: 50 };
+  return { id, name, barcode: `789${id}`, stock: 50, price: 10, costPrice: 6 };
 }
 
 /** Baixa da listagem: `status` 1 é efetivada, 2 é estornada. */

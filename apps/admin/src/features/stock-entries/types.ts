@@ -60,10 +60,19 @@ export type StockEntryDetails = {
 
 /**
  * Representa uma linha de rascunho de item ao registrar nova entrada.
+ *
+ * Nome e código de barras são cópias do momento da escolha, só para a linha ter
+ * o que mostrar: o produto entra pela busca (`ProductSearchPicker`), então a
+ * tela não tem mais o catálogo inteiro em memória para procurar o nome depois.
+ * Ao backend vão apenas `productId`, `quantity`, `unitCost` e `price`.
  */
 export type NewEntryItem = {
-  /** ID do produto em formato string para select */
-  productId: string;
+  /** ID do produto escolhido na busca */
+  productId: number;
+  /** Nome do produto, para exibição na linha */
+  productName: string;
+  /** Código de barras do produto, para exibição na linha */
+  barcode: string | null;
   /** Quantidade física */
   quantity: number;
   /** Custo unitário lançado */

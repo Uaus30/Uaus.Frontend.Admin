@@ -9,10 +9,10 @@ Saída de mercadoria **sem venda**: consumo interno, perda, doação e a falta a
 - `components/StockWriteOffsTable.tsx`: Listagem com a barra de filtros (período, motivo, situação e quem registrou) e a paginação. O período usa o `DateRangePicker` do [padrão de calendário](../../components/ui/README.md).
 - `components/StockWriteOffDetailsModal.tsx`: Espelho da baixa com os itens (produto, código de barras, quantidade e custo) e o bloco do estorno quando ele existe.
 - `components/RegisterStockWriteOffModal.tsx`: Formulário de registro — motivo, itens e observação.
-- `components/ProductSearchPicker.tsx`: Busca de produto no molde do `TagMultiSelect`: `Command` com `shouldFilter` desligado, porque quem filtra é a API.
 - `components/ReverseStockWriteOffDialog.tsx`: Confirmação do estorno, com o campo de motivo.
 - `hooks/useStockWriteOffs.ts`: Listagem (`useGetStockWriteOffs`), detalhes, rascunho do registro e as mutations de registro e estorno.
-- `types.ts`: Estado dos filtros, rascunho de item e opção de produto.
+- `types.ts`: Estado dos filtros e rascunho de item.
+- A busca de produto é o [`ProductSearchPicker`](../../components/product-search-picker.tsx) compartilhado — a entrada de estoque usa o mesmo componente.
 - Acesso a dados e montagem de payload: [`@/features/stock-write-offs/domain.ts`](../../services/stock-write-offs.service.ts).
 
 ---

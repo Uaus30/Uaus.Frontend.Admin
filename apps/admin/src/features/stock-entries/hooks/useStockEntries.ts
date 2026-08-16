@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useToast } from "@workspace/ui";
@@ -9,11 +9,49 @@ import {
   useDeletePurchaseEntry,
 } from "@workspace/api-client-react";
 
-import { getAllProducts } from "@/services/products.service";
+import { getProductById } from "@/services/products.service";
+import type { ProductSearchOption } from "@/components/product-search-picker";
 import type { NewEntryItem } from "../types";
-import { CATALOG_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
+import { useAllSuppliers } from "@/hooks/use-catalog";
 import { describeApiError } from "@workspace/core";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
+
+/** Campos numéricos que o operador digita direto na linha do rascunho. */
+export type EditableEntryItemField = "quantity" | "unitCost" | "price";
+
+/** O que o rascunho precisa saber de um produto, venha da busca ou do `?productId=`. */
+type ProductForDraft = {
+  id: number;
+  name: string;
+  barcode: string | null;
+  price: number;
+  costPrice: number;
+};
+
+/**
+ * Monta a linha do rascunho já com custo e preço sugeridos pelo cadastro.
+ *
+ * Sugerir não é impor: a nota manda no custo, e é comum ela chegar com preço
+ * diferente do último. Os dois campos seguem editáveis na linha.
+ */
+function toDraftItem(product: ProductForDraft, quantity = 1): NewEntryItem {
+  return {
+    productId: product.id,
+    productName: product.name,
+    barcode: product.barcode || null,
+    quantity,
+    unitCost: product.costPrice ?? 0,
+    price: product.price ?? 0,
+  };
+}
+
+/** Lê o `?productId=` da URL, ignorando lixo (`abc`, `0`, negativo). */
+function readPreloadProductId(): number | null {
+  const param = new URLSearchParams(window.location.search).get("productId");
+  if (!param) return null;
+  const id = Number(param);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
 
 /**
  * useStockEntries
@@ -68,32 +106,28 @@ export function useStockEntries() {
   // Query: Carrega fornecedores ativos para listagem/formulário
   const { data: suppliers = [] } = useAllSuppliers();
 
-  // Query: Carrega todos os produtos para seleção rápida na nota
-  const { data: products = [] } = useQuery({
-    queryKey: CATALOG_KEYS.products,
-    queryFn: () => getAllProducts(),
+  // Atalho "registrar entrada" da tela de produtos: o produto vem pela URL.
+  // Busca-se UM produto por ID em vez do catálogo inteiro — a tela não carrega
+  // mais a lista completa desde que a escolha passou a ser por busca.
+  const [preloadProductId] = useState(readPreloadProductId);
+  const preloadAppliedRef = useRef(false);
+
+  const { data: preloadProduct } = useQuery({
+    queryKey: ["product-for-entry", preloadProductId],
+    enabled: preloadProductId !== null,
+    queryFn: () => getProductById(preloadProductId as number),
   });
 
-  // Sincroniza parâmetros de URL para pré-carregar um produto vindo da listagem principal
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const productIdParam = searchParams.get("productId");
-    if (productIdParam && products.length > 0) {
-      const prod = products.find((p) => p.id === Number(productIdParam));
-      if (prod) {
-        setNewEntryModalOpen(true);
-        setItems([
-          {
-            productId: String(prod.id),
-            quantity: 1,
-            unitCost: prod.costPrice || 0,
-            price: prod.price || 0,
-          },
-        ]);
-        window.history.replaceState(null, "", window.location.pathname);
-      }
-    }
-  }, [products]);
+    if (!preloadProduct || preloadAppliedRef.current) return;
+
+    // A guarda de uma vez só existe porque o efeito também roda quando a query
+    // revalida; sem ela, voltar para a aba repetiria o item já lançado.
+    preloadAppliedRef.current = true;
+    setNewEntryModalOpen(true);
+    setItems([toDraftItem(preloadProduct)]);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [preloadProduct]);
 
   // Mutation: Registrar entrada no estoque
   const { mutate: receiveEntry, isPending: isSavingEntry } = useReceivePurchaseEntry({
@@ -141,42 +175,53 @@ export function useStockEntries() {
     setItems([]);
   }
 
-  function handleAddEmptyItem() {
-    setItems((prev) => [...prev, { productId: "", quantity: 1, unitCost: 0, price: 0 }]);
+  /**
+   * Coloca o produto escolhido na busca no rascunho da nota.
+   *
+   * Escolher o mesmo produto de novo soma na linha existente em vez de
+   * duplicá-la: duas linhas do mesmo produto viram dois lotes com o mesmo custo,
+   * e conferir a nota contra a tela fica mais difícil sem ganho nenhum.
+   */
+  function handleAddItem(product: ProductSearchOption, quantity = 1) {
+    setItems((prev) => {
+      const existing = prev.find((item) => item.productId === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.productId === product.id ? { ...item, quantity: item.quantity + quantity } : item,
+        );
+      }
+
+      return [...prev, toDraftItem(product, quantity)];
+    });
   }
 
   function handleRemoveItem(index: number) {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleItemChange(index: number, field: keyof NewEntryItem, value: any) {
-    setItems((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
-
-        const updated = { ...item, [field]: value };
-
-        // Auto preenche o preço e custo sugeridos caso mude o produto selecionado
-        if (field === "productId") {
-          const prod = products.find((p) => p.id === Number(value));
-          if (prod) {
-            updated.price = prod.price;
-            updated.unitCost = prod.costPrice;
-          }
-        }
-
-        return updated;
-      }),
-    );
+  /** Atualiza um dos campos numéricos da linha. O produto não muda mais aqui. */
+  function handleItemChange(index: number, field: EditableEntryItemField, value: number) {
+    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
   }
 
   /**
    * Valida e submete a gravação da nova entrada de mercadoria.
+   *
+   * A data viaja como instante LOCAL sem fuso (`2026-08-16T00:00:00`), que é a
+   * convenção de datas do sistema (`docs/fuso-horario.md` do backend). O
+   * `toISOString()` que estava aqui devolvia `...T00:00:00.000Z`: a coluna
+   * `entry_date` é `timestamp without time zone` e o Npgsql **recusa** gravar um
+   * `DateTime` com `Kind=Utc` nela — era isso que virava 500 ao salvar. Mesmo se
+   * gravasse, a entrada do dia 16 cairia no dia 15 no Brasil.
    */
   function handleSaveEntry(e: React.FormEvent) {
     e.preventDefault();
     if (!supplierId) {
       toast({ title: "Atenção", description: "Selecione um fornecedor.", variant: "warning" });
+      return;
+    }
+    if (!entryDate) {
+      toast({ title: "Atenção", description: "Informe a data da entrada.", variant: "warning" });
       return;
     }
     if (items.length === 0) {
@@ -185,12 +230,12 @@ export function useStockEntries() {
     }
 
     const invalidItem = items.some(
-      (item) => !item.productId || item.quantity <= 0 || item.unitCost < 0 || item.price < 0,
+      (item) => item.productId <= 0 || item.quantity <= 0 || item.unitCost < 0 || item.price < 0,
     );
     if (invalidItem) {
       toast({
         title: "Atenção",
-        description: "Verifique se todos os produtos foram selecionados e se os valores são válidos.",
+        description: "Verifique as quantidades e os valores lançados.",
         variant: "warning",
       });
       return;
@@ -199,11 +244,11 @@ export function useStockEntries() {
     receiveEntry({
       data: {
         supplierId: Number(supplierId),
-        entryDate: new Date(entryDate).toISOString(),
+        entryDate: `${entryDate}T00:00:00`,
         invoiceNumber: invoiceNumber || null,
         notes: notes || null,
         items: items.map((i) => ({
-          productId: Number(i.productId),
+          productId: i.productId,
           quantity: i.quantity,
           unitCost: i.unitCost,
           price: i.price,
@@ -255,10 +300,9 @@ export function useStockEntries() {
     entryDetails,
     isLoadingDetails,
     suppliers,
-    products,
     isSavingEntry,
     resetNewEntryForm,
-    handleAddEmptyItem,
+    handleAddItem,
     handleRemoveItem,
     handleItemChange,
     handleSaveEntry,

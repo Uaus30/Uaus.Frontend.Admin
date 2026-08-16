@@ -242,11 +242,6 @@
       "count": 1
     }
   },
-  "apps/admin/src/features/stock-entries/components/NewStockEntryModal.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 3
-    }
-  },
   "apps/admin/src/features/stock-entries/components/StockEntriesTable.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 3
@@ -257,14 +252,6 @@
       "count": 2
     },
     "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "apps/admin/src/features/stock-entries/hooks/useStockEntries.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },

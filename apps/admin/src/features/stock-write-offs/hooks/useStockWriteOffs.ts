@@ -17,7 +17,8 @@ import {
   submitStockWriteOff,
   submitStockWriteOffReversal,
 } from "@/features/stock-write-offs/domain";
-import type { ProductSearchOption, StockWriteOffDraftItem, StockWriteOffFilterState } from "../types";
+import type { ProductSearchOption } from "@/components/product-search-picker";
+import type { StockWriteOffDraftItem, StockWriteOffFilterState } from "../types";
 
 const PAGE_SIZE = 15;
 

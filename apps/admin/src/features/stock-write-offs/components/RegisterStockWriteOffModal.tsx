@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@workspace/ui";
 import { formatQuantity } from "@workspace/core";
 import { SELECTABLE_STOCK_WRITE_OFF_REASON_OPTIONS } from "@/features/stock-write-offs/domain";
-import { ProductSearchPicker } from "./ProductSearchPicker";
-import type { ProductSearchOption, StockWriteOffDraftItem } from "../types";
+import { ProductSearchPicker, type ProductSearchOption } from "@/components/product-search-picker";
+import type { StockWriteOffDraftItem } from "../types";
 
 type RegisterStockWriteOffModalProps = {
   open: boolean;
