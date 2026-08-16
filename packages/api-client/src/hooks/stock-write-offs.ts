@@ -213,6 +213,15 @@ export interface CompanySettingsDto {
   storeName?: string;
   /** Endereço da loja em linha única, como sai impresso no cupom. */
   addressLine?: string;
+  /**
+   * Cidade e UF impressas na linha abaixo do endereço (ex.: "TAPIRA-PR").
+   *
+   * Sai impresso como foi digitado — o cupom não monta separador nenhum, pela
+   * mesma razão do telefone e do documento. Vazio não imprime linha, e este é o
+   * único campo de identidade **sem** fallback embutido: ele nunca existiu
+   * hardcoded no `store-info.ts`, então não há valor anterior a preservar.
+   */
+  cityState?: string;
   /** Telefone de contato, impresso exatamente como informado (rótulo incluso, se desejado). */
   phone?: string;
   /** CNPJ cru, sem rótulo — é o cupom que imprime o prefixo "CNPJ: ". */

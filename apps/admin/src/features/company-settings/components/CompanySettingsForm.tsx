@@ -33,6 +33,15 @@ const IDENTITY_INPUTS: Array<{
   { field: "storeName", label: "Nome da loja", placeholder: "MÁXIMO 30" },
   { field: "addressLine", label: "Endereço", placeholder: "RUA PARANAGUÁ, 663" },
   {
+    field: "cityState",
+    label: "Cidade/UF",
+    placeholder: "TAPIRA-PR",
+    // A descrição do card diz que campo em branco usa o padrão de exemplo. Aqui
+    // não usa: é o único campo sem valor embutido no cupom, e em branco a linha
+    // some. O aviso fica no campo porque é onde a pessoa está olhando.
+    hint: "Impresso logo abaixo do endereço, como digitado. Em branco, a linha não sai no cupom.",
+  },
+  {
     field: "phone",
     label: "Telefone",
     placeholder: "Cel: (44) 99137-2305",

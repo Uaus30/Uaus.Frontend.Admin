@@ -22,6 +22,13 @@ export interface StoreIdentityFields {
   storeName: string;
   /** Endereço em linha única, como sai impresso. */
   addressLine: string;
+  /**
+   * Cidade e UF, impressas na linha abaixo do endereço.
+   *
+   * Sai como for digitado — "TAPIRA-PR", "TAPIRA/PR", "Tapira - Paraná". O
+   * separador é escolha de quem cadastra, não do código. Vazio não imprime linha.
+   */
+  cityState: string;
   /** Telefone de contato, impresso exatamente como digitado. */
   phone: string;
   /** CNPJ cru, sem rótulo — o cupom imprime com o prefixo "CNPJ: ". */
@@ -33,6 +40,7 @@ export interface StoreIdentityFields {
 const EMPTY_IDENTITY: StoreIdentityFields = {
   storeName: "",
   addressLine: "",
+  cityState: "",
   phone: "",
   document: "",
   receiptFooterMessage: "",
@@ -59,6 +67,7 @@ export function useCompanySettings() {
   // campos que aquele backend ignora).
   const serverStoreName = settings ? (settings.storeName ?? "") : undefined;
   const serverAddressLine = settings ? (settings.addressLine ?? "") : undefined;
+  const serverCityState = settings ? (settings.cityState ?? "") : undefined;
   const serverPhone = settings ? (settings.phone ?? "") : undefined;
   const serverDocument = settings ? (settings.document ?? "") : undefined;
   const serverFooterMessage = settings ? (settings.receiptFooterMessage ?? "") : undefined;
@@ -81,11 +90,12 @@ export function useCompanySettings() {
     setIdentity({
       storeName: serverStoreName,
       addressLine: serverAddressLine ?? "",
+      cityState: serverCityState ?? "",
       phone: serverPhone ?? "",
       document: serverDocument ?? "",
       receiptFooterMessage: serverFooterMessage ?? "",
     });
-  }, [serverStoreName, serverAddressLine, serverPhone, serverDocument, serverFooterMessage]);
+  }, [serverStoreName, serverAddressLine, serverCityState, serverPhone, serverDocument, serverFooterMessage]);
 
   /** Altera um campo da identidade sem tocar nos demais. */
   function setIdentityField(field: keyof StoreIdentityFields, value: string) {
@@ -97,6 +107,7 @@ export function useCompanySettings() {
     serverStoreName != null &&
     (identity.storeName !== serverStoreName ||
       identity.addressLine !== serverAddressLine ||
+      identity.cityState !== serverCityState ||
       identity.phone !== serverPhone ||
       identity.document !== serverDocument ||
       identity.receiptFooterMessage !== serverFooterMessage);
@@ -116,6 +127,7 @@ export function useCompanySettings() {
         maxSellerDiscountPercentage,
         storeName: identity.storeName.trim(),
         addressLine: identity.addressLine.trim(),
+        cityState: identity.cityState.trim(),
         phone: identity.phone.trim(),
         document: identity.document.trim(),
         receiptFooterMessage: identity.receiptFooterMessage.trim(),

@@ -15,8 +15,10 @@ Opções de operação e identidade da loja (`company_settings` no backend, uma 
 
 ### 1. Identidade da loja nos cupons
 
-- Os cinco campos (`storeName`, `addressLine`, `phone`, `document`, `receiptFooterMessage`) saem impressos no cabeçalho e no rodapé de todo cupom — do PDV e da reimpressão do painel.
+- Os seis campos (`storeName`, `addressLine`, `cityState`, `phone`, `document`, `receiptFooterMessage`) saem impressos no cabeçalho e no rodapé de todo cupom — do PDV e da reimpressão do painel.
 - **Campo em branco cai no valor padrão embutido** (`resolveStoreInfo`, no pacote `@workspace/receipt`): um cadastro pela metade não imprime cupom com buraco. Os placeholders do formulário mostram exatamente esses padrões.
+- **`cityState` é a exceção, e é deliberada.** Ele imprime a linha de cidade/UF logo abaixo do endereço e **não tem padrão embutido**: os outros cinco substituíram valores que já viviam hardcoded no pacote de cupom, e o fallback existe para o cupom não mudar no deploy. Cidade/UF nunca esteve lá — não há impressão anterior a preservar, e chutar uma cidade imprimiria a loja errada. Em branco, a linha simplesmente não sai. O aviso está no `hint` do campo, porque a descrição do card promete o contrário para os demais.
+- O valor sai **como foi digitado**: "TAPIRA-PR", "TAPIRA/PR" ou "Tapira - Paraná". O separador é escolha de quem cadastra, pela mesma razão do rótulo do telefone — template que monta separador acaba discordando do que a loja quer.
 - `document` é o **CNPJ cru, sem rótulo** — o cupom imprime o prefixo "CNPJ: " sozinho. O telefone, ao contrário, sai exatamente como digitado (rótulo incluso, se desejado).
 - O PUT envia o **objeto completo** (linha única, não patch por campo), com os textos já `trim`ados.
 

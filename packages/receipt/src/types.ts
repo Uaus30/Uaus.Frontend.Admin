@@ -23,6 +23,14 @@ export interface StoreInfo {
   storeName: string;
   /** Endereço em linha única, como cadastrado. */
   addressLine: string;
+  /**
+   * Cidade e UF impressas na linha abaixo do endereço (ex.: "TAPIRA-PR").
+   *
+   * Vazio é estado legítimo: a linha some do cupom. É o único campo daqui sem
+   * fallback — os outros substituem valores que já viviam hardcoded neste
+   * pacote, e este nunca existiu.
+   */
+  cityState: string;
   /** Telefone de contato, impresso exatamente como cadastrado. */
   phone: string;
   /** CNPJ cru, sem rótulo — o cupom imprime com o prefixo "CNPJ: ". */

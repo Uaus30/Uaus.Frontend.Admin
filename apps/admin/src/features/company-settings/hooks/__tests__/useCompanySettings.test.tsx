@@ -40,6 +40,7 @@ const serverSettings = {
   usesCashRegister: true,
   storeName: "MÁXIMO 30",
   addressLine: "RUA PARANAGUÁ, 663",
+  cityState: "TAPIRA-PR",
   phone: "Cel: (44) 99137-2305",
   document: "64.958.682/0001-22",
   receiptFooterMessage: "Obrigado pela preferência!",
@@ -63,6 +64,7 @@ describe("useCompanySettings", () => {
     expect(result.current.identity).toEqual({
       storeName: "MÁXIMO 30",
       addressLine: "RUA PARANAGUÁ, 663",
+      cityState: "TAPIRA-PR",
       phone: "Cel: (44) 99137-2305",
       document: "64.958.682/0001-22",
       receiptFooterMessage: "Obrigado pela preferência!",
@@ -161,6 +163,27 @@ describe("useCompanySettings", () => {
     await waitFor(() =>
       expect(mocks.updateCompanySettings).toHaveBeenCalledWith(
         expect.objectContaining({ storeName: "LOJA NOVA" }),
+      ),
+    );
+  });
+
+  it("deve marcar alteração pendente e gravar a cidade/UF", async () => {
+    // Campo mais novo da identidade, e o único cujo vazio NÃO cai em fallback —
+    // vazio some do cupom. Precisa entrar na conta do "sujo" como os outros,
+    // senão o botão de salvar fica desabilitado com a mudança na tela.
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.identity.cityState).toBe("TAPIRA-PR"));
+    act(() => result.current.setIdentityField("cityState", "CIANORTE-PR"));
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() =>
+      expect(mocks.updateCompanySettings).toHaveBeenCalledWith(
+        expect.objectContaining({ cityState: "CIANORTE-PR" }),
       ),
     );
   });

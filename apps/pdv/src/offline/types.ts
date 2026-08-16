@@ -379,6 +379,15 @@ export interface LocalCompanySettings {
   storeName?: string;
   /** Endereço da loja em linha única, como sai impresso no cupom. */
   addressLine?: string;
+  /**
+   * Cidade e UF impressas na linha abaixo do endereço (ex.: "TAPIRA-PR").
+   *
+   * Acrescentar campo a este objeto **não** muda o esquema do IndexedDB e não
+   * pede `DATABASE_VERSION` novo (ver `docs/offline.md`). Uma cópia gravada por
+   * uma versão anterior simplesmente não tem o campo, e o cupom sai sem a linha
+   * até o próximo snapshot.
+   */
+  cityState?: string;
   /** Telefone de contato, impresso exatamente como cadastrado. */
   phone?: string;
   /** CNPJ cru, sem rótulo — é o cupom que imprime o prefixo "CNPJ: ". */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RECEIPT_FOOTER_MESSAGE, STORE_INFO, resolveStoreInfo } from "./store-info";
+import { RECEIPT_FOOTER_MESSAGE, STORE_INFO, resolveStoreInfo, toReceiptStore } from "./store-info";
 import { buildReceiptHtml } from "./render";
 import { buildSalesReportHtml } from "./sales-report";
 import type { ReceiptData } from "./types";
@@ -21,6 +21,9 @@ describe("resolveStoreInfo", () => {
     expect(resolveStoreInfo()).toEqual({
       storeName: "MÁXIMO 30",
       addressLine: "RUA PARANAGUÁ, 663",
+      // Único campo cujo padrão é vazio: ele nunca esteve hardcoded aqui, então
+      // não há impressão anterior a preservar e chutar uma cidade sairia errado.
+      cityState: "",
       phone: "Cel: (44) 99137-2305",
       document: "64.958.682/0001-22",
       receiptFooterMessage: "Obrigado pela preferência!",
@@ -31,6 +34,7 @@ describe("resolveStoreInfo", () => {
     const info = resolveStoreInfo({
       storeName: "LOJA NOVA",
       addressLine: "AV. BRASIL, 100",
+      cityState: "TAPIRA-PR",
       phone: "(11) 90000-0000",
       document: "11.222.333/0001-44",
       receiptFooterMessage: "Volte sempre!",
@@ -39,6 +43,7 @@ describe("resolveStoreInfo", () => {
     expect(info).toEqual({
       storeName: "LOJA NOVA",
       addressLine: "AV. BRASIL, 100",
+      cityState: "TAPIRA-PR",
       phone: "(11) 90000-0000",
       document: "11.222.333/0001-44",
       receiptFooterMessage: "Volte sempre!",
@@ -83,6 +88,29 @@ describe("identidade do cadastro no cupom", () => {
     expect(html).toContain("AV. BRASIL, 100");
     expect(html).toContain("(11) 90000-0000");
     expect(html).not.toContain(STORE_INFO.name);
+  });
+
+  it("imprime cidade/UF na linha logo abaixo do endereço", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        store: resolveStoreInfo({ addressLine: "AV. BRASIL, 100", cityState: "TAPIRA-PR" }),
+      }),
+    );
+
+    expect(html).toContain("AV. BRASIL, 100");
+    expect(html).toContain("TAPIRA-PR");
+    // A ordem importa: cidade/UF é a segunda linha do endereço, não uma linha
+    // solta em qualquer lugar do cabeçalho.
+    expect(html.indexOf("AV. BRASIL, 100")).toBeLessThan(html.indexOf("TAPIRA-PR"));
+  });
+
+  it("cidade/UF em branco não deixa linha vazia no cabeçalho", () => {
+    // Sem o filtro, o cupom ganharia uma linha em branco entre o endereço e o
+    // telefone em toda loja que ainda não preencheu o campo — que é o estado de
+    // TODAS elas logo depois do deploy.
+    const semCidade = resolveStoreInfo({ addressLine: "AV. BRASIL, 100" });
+
+    expect(toReceiptStore(semCidade).addressLines).toEqual(["AV. BRASIL, 100"]);
   });
 
   it("imprime o rótulo CNPJ no documento cru vindo do cadastro", () => {

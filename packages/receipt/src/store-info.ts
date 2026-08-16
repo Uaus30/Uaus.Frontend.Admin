@@ -12,6 +12,11 @@ import type { ReceiptStore, StoreInfo } from "./types";
 const FALLBACK_STORE_INFO: StoreInfo = {
   storeName: "MÁXIMO 30",
   addressLine: "RUA PARANAGUÁ, 663",
+  // Vazio de propósito, e é o único assim. Os demais valores daqui são os que
+  // estavam hardcoded antes de o cadastro existir, e o fallback preserva o cupom
+  // de quem ainda não preencheu. Cidade/UF nunca esteve aqui: não há impressão
+  // anterior a preservar, e chutar uma cidade imprimiria a loja errada.
+  cityState: "",
   phone: "Cel: (44) 99137-2305",
   // Cru, sem rótulo, como no cadastro: o "CNPJ: " é impresso por `toReceiptStore`.
   document: "64.958.682/0001-22",
@@ -38,6 +43,9 @@ export function resolveStoreInfo(overrides?: Partial<StoreInfo>): StoreInfo {
   return {
     storeName: orFallback(overrides?.storeName, FALLBACK_STORE_INFO.storeName),
     addressLine: orFallback(overrides?.addressLine, FALLBACK_STORE_INFO.addressLine),
+    // Passa por `orFallback` como os outros, mas o padrão é vazio: sem cadastro,
+    // a linha de cidade/UF não é impressa em vez de sair errada.
+    cityState: orFallback(overrides?.cityState, FALLBACK_STORE_INFO.cityState),
     phone: orFallback(overrides?.phone, FALLBACK_STORE_INFO.phone),
     document: orFallback(overrides?.document, FALLBACK_STORE_INFO.document),
     receiptFooterMessage: orFallback(
@@ -68,7 +76,10 @@ export function isStoreInfo(value: Partial<ReceiptStore> | StoreInfo): value is 
 export function toReceiptStore(info: StoreInfo): ReceiptStore {
   return {
     name: info.storeName,
-    addressLines: [info.addressLine],
+    // Cidade/UF é a segunda linha do endereço, não um campo à parte no cabeçalho:
+    // é assim que ela aparece em cupom não fiscal. O filtro é o que faz o campo
+    // vazio SUMIR em vez de imprimir uma linha em branco no meio do cabeçalho.
+    addressLines: [info.addressLine, info.cityState].filter((line) => line.trim().length > 0),
     phone: info.phone || undefined,
     document: info.document
       ? /\b(CNPJ|CPF)\b/i.test(info.document)
