@@ -15,8 +15,9 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  Button,
 } from "@workspace/ui";
-import { ChevronDown, Loader2, LogOut } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, LogOut, Store } from "lucide-react";
 import { STALE_TIME, useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
@@ -24,6 +25,7 @@ import { getDisplayName } from "@/services/mappers";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { ROLE_LABELS, buildMenu, type RoleCode } from "@/routes";
+import { pdvHomeUrl } from "@/lib/pdv-links";
 import { enumCode, USER_ROLE } from "@workspace/api-client-react";
 
 /**
@@ -80,6 +82,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // código. Sem normalizar, o rodapé do menu dizia "Usuário" para todo mundo.
   const roleLabel = ROLE_LABELS[enumCode(user.role, USER_ROLE) as RoleCode] ?? "Usuário";
   const navigation = buildMenu(user.role);
+
+  // `null` quando não dá para saber onde o PDV está — aí o botão nem aparece,
+  // em vez de abrir uma aba do próprio admin. Detalhe em `lib/pdv-links.ts`.
+  const pdvUrl = pdvHomeUrl();
 
   const style = {
     "--sidebar-width": "18rem",
@@ -220,6 +226,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <header className="h-16 flex items-center px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
             <SidebarTrigger className="hover-elevate mr-4" />
             <div className="flex-1" />
+            {pdvUrl && (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/15"
+              >
+                <a href={pdvUrl} target="_blank" rel="noopener noreferrer">
+                  <Store />
+                  <span>PDV</span>
+                  <ExternalLink className="opacity-60" />
+                </a>
+              </Button>
+            )}
           </header>
           <main className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-7xl mx-auto">{children}</div>
