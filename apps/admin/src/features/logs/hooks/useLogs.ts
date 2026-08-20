@@ -57,7 +57,19 @@ export function useLogs() {
   });
 
   const selectableLogTypeOptions = useMemo(
-    () => logTypeOptions.filter((item) => item.allowSelect),
+    () =>
+      logTypeOptions
+        .filter((item: any) => item.allowSelect)
+        .map((item: any) => {
+          let translatedName = item.name;
+          const norm = (item.name || "").toLowerCase();
+          if (norm.includes("err") || norm.includes("fail") || norm.includes("crit")) translatedName = "Erro";
+          else if (norm.includes("warn") || norm.includes("alerta")) translatedName = "Alerta";
+          else if (norm.includes("info")) translatedName = "Informação";
+          else if (norm.includes("success") || norm.includes("ok")) translatedName = "Sucesso";
+          else if (norm.includes("coupon") || norm.includes("cupom")) translatedName = "Cupom";
+          return { ...item, name: translatedName };
+        }),
     [logTypeOptions],
   );
 
@@ -121,6 +133,7 @@ export function useLogs() {
     page,
     setPage,
     limit,
+    logTypeOptions,
     selectableLogTypeOptions,
     data,
     isLoading,

@@ -15,31 +15,39 @@ export function getLogTypeBadge(type: string) {
         className="gap-1 px-2.5 py-1 text-xs font-semibold uppercase animate-pulse"
       >
         <AlertTriangle className="h-3 w-3 shrink-0" />
-        {type || "ERROR"}
+        ERRO
       </Badge>
     );
   }
-  if (normType.includes("warn")) {
+  if (normType.includes("warn") || normType.includes("alerta")) {
     return (
       <Badge className="bg-amber-500 hover:bg-amber-600 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
         <AlertCircle className="h-3 w-3 shrink-0" />
-        {type || "WARN"}
+        ALERTA
       </Badge>
     );
   }
-  if (normType.includes("info")) {
+  if (normType.includes("info") || normType.includes("informacao") || normType.includes("informação")) {
     return (
       <Badge className="bg-blue-500 hover:bg-blue-600 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
         <Info className="h-3 w-3 shrink-0" />
-        {type || "INFO"}
+        INFORMAÇÃO
       </Badge>
     );
   }
-  if (normType.includes("success") || normType.includes("ok")) {
+  if (normType.includes("success") || normType.includes("ok") || normType.includes("sucesso")) {
     return (
       <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
         <CheckCircle2 className="h-3 w-3 shrink-0" />
-        {type || "SUCCESS"}
+        SUCESSO
+      </Badge>
+    );
+  }
+  if (normType.includes("coupon") || normType.includes("cupom")) {
+    return (
+      <Badge variant="secondary" className="gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
+        <Terminal className="h-3 w-3 shrink-0" />
+        CUPOM
       </Badge>
     );
   }
@@ -57,6 +65,8 @@ export function getLogTypeBadge(type: string) {
 interface LogsTableProps {
   /** Lista de logs do sistema a serem exibidos. */
   logsList: SystemLogDto[];
+  /** Opções de tipos de log do Enum. */
+  logTypeOptions?: any[];
   /** Indica se os dados estão carregando. */
   isLoading: boolean;
   /** Callback acionado ao clicar em uma linha da tabela de logs. */
@@ -66,7 +76,17 @@ interface LogsTableProps {
 /**
  * Componente que exibe a tabela principal de logs do sistema de forma estruturada.
  */
-export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
+export function LogsTable({ logsList, logTypeOptions = [], isLoading, onRowClick }: LogsTableProps) {
+  const allowedLogs = logsList.filter(log => {
+    if (!logTypeOptions || logTypeOptions.length === 0) return true;
+    
+    // Filtra para exibir apenas os logs cujo tipo existe no ENUM
+    return logTypeOptions.some(
+      (option: any) => 
+        (option.value || "").toLowerCase() === (log.type || "").toLowerCase()
+    );
+  });
+
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card w-full overflow-x-auto">
       <table
@@ -126,7 +146,7 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
                 </div>
               </td>
             </tr>
-          ) : logsList.length === 0 ? (
+          ) : allowedLogs.length === 0 ? (
             <tr>
               <td colSpan={6} className="py-12 text-center text-muted-foreground">
                 <div className="flex flex-col items-center">
@@ -136,7 +156,7 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
               </td>
             </tr>
           ) : (
-            logsList.map((log: SystemLogDto) => (
+            allowedLogs.map((log: SystemLogDto) => (
               <tr
                 key={log.id}
                 className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors duration-150 h-12"
