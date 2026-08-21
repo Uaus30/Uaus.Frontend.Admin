@@ -44,13 +44,15 @@ describe("LogsTable", () => {
     expect(onRowClick).toHaveBeenCalledWith(42);
   });
 
-  it("reserva largura para o badge completo sem um contêiner de recorte", () => {
+  it("reserva largura e centraliza o badge completo sem um contêiner de recorte", () => {
     render(<LogsTable logsList={[createLog(1)]} isLoading={false} onRowClick={vi.fn()} />);
 
     const typeHeader = screen.getByRole("columnheader", { name: "Tipo" });
     const informationBadge = screen.getByText("INFORMAÇÃO");
 
     expect(typeHeader.style.width).toBe("170px");
+    expect(typeHeader.classList.contains("text-center")).toBe(true);
     expect(informationBadge.parentElement?.tagName).toBe("TD");
+    expect(informationBadge.parentElement?.classList.contains("text-center")).toBe(true);
   });
 });

@@ -119,7 +119,7 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
               ID
             </th>
             <th
-              className="px-4 text-left font-medium text-muted-foreground text-sm"
+              className="px-4 text-center font-medium text-muted-foreground text-sm"
               style={{ width: "170px" }}
             >
               Tipo
@@ -176,7 +176,9 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
                     {log.id}
                   </div>
                 </td>
-                <td className="px-4 py-3 font-medium align-middle">{getLogTypeBadge(log.type)}</td>
+                <td className="px-4 py-3 text-center font-medium align-middle">
+                  {getLogTypeBadge(log.type)}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle">
                   <div className="truncate" style={{ width: "158px" }}>
                     {formatDateTime(log.createdAt)}
