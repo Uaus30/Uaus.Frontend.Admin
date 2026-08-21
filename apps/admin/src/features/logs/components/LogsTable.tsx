@@ -104,7 +104,7 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
       >
         <colgroup>
           <col style={{ width: "70px" }} />
-          <col style={{ width: "110px" }} />
+          <col style={{ width: "170px" }} />
           <col style={{ width: "190px" }} />
           <col style={{ width: "310px" }} />
           <col style={{ width: "240px" }} />
@@ -120,7 +120,7 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
             </th>
             <th
               className="px-4 text-left font-medium text-muted-foreground text-sm"
-              style={{ width: "110px" }}
+              style={{ width: "170px" }}
             >
               Tipo
             </th>
@@ -176,11 +176,7 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
                     {log.id}
                   </div>
                 </td>
-                <td className="px-4 py-3 font-medium align-middle">
-                  <div className="truncate" style={{ width: "78px" }}>
-                    {getLogTypeBadge(log.type)}
-                  </div>
-                </td>
+                <td className="px-4 py-3 font-medium align-middle">{getLogTypeBadge(log.type)}</td>
                 <td className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle">
                   <div className="truncate" style={{ width: "158px" }}>
                     {formatDateTime(log.createdAt)}
