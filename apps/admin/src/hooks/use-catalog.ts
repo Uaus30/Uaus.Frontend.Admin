@@ -7,6 +7,7 @@ import { getAllImages, getAllProductImages } from "@/services/images.service";
 import { getAllProductGroups, getAllProductTags, getAllProducts } from "@/services/products.service";
 import { getAllSuppliers } from "@/services/suppliers.service";
 import { getAllTags } from "@/services/tags.service";
+import { orderSupplierOptions } from "@/lib/supplier-options";
 
 /**
  * Catálogos completos, com UMA chave de cache por recurso.
@@ -146,6 +147,7 @@ export function useAllSuppliers(options?: CatalogOptions) {
   return useQuery({
     queryKey: CATALOG_KEYS.suppliers,
     queryFn: () => getAllSuppliers(),
+    select: orderSupplierOptions,
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });

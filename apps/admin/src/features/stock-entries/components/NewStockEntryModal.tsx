@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { SupplierDto } from "@workspace/api-client-react";
 import { ProductSearchPicker, type ProductSearchOption } from "@/components/product-search-picker";
 import type { EditableEntryItemField } from "../hooks/useStockEntries";
-import { orderStockEntrySuppliers } from "../supplier-order";
 import type { NewEntryItem } from "../types";
 
 type NewStockEntryModalProps = {
@@ -81,7 +80,6 @@ export function NewStockEntryModal({
   onSubmit,
 }: NewStockEntryModalProps) {
   const selectedIds = items.map((item) => item.productId);
-  const orderedSuppliers = orderStockEntrySuppliers(suppliers);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,7 +114,7 @@ export function NewStockEntryModal({
                   <SelectValue placeholder="Selecione um fornecedor..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {orderedSuppliers.map((s) => (
+                  {suppliers.map((s) => (
                     <SelectItem key={s.id} value={s.id.toString()}>
                       {s.name}
                     </SelectItem>
