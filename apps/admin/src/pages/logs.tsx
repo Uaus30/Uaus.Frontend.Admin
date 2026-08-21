@@ -21,7 +21,6 @@ export default function Logs() {
     setDraftDateRange,
     page,
     setPage,
-    logTypeOptions,
     selectableLogTypeOptions,
     data,
     isLoading,
@@ -53,7 +52,6 @@ export default function Logs() {
 
         <LogsTable
           logsList={logsList}
-          logTypeOptions={logTypeOptions}
           isLoading={isLoading}
           onRowClick={(id) => setLocation(`/sistema/logs/${id}`)}
         />
