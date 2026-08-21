@@ -27,6 +27,10 @@ Este módulo gerencia a visualização, busca e filtragem avançada de logs do s
   - `INFO`: Badge azul.
   - `SUCCESS/OK`: Badge verde de sucesso.
   - `Outros`: Badge cinza padrão.
+- A API pode entregar `LogType` pelo nome ou pelo valor numérico do enum
+  (`Information=1`, `Alert=2`, `Error=3`, `Critical=4`). A tabela aceita os dois
+  formatos; valores desconhecidos usam o badge `LOG` e nunca impedem a tela de
+  renderizar.
 
 ### 3. Detalhes de Log
 

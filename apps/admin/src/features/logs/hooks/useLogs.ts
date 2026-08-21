@@ -57,7 +57,7 @@ export function useLogs() {
   });
 
   const selectableLogTypeOptions = useMemo(
-    () => logTypeOptions.filter((item: any) => item.allowSelect),
+    () => logTypeOptions.filter((item) => item.allowSelect),
     [logTypeOptions],
   );
 

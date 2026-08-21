@@ -19,7 +19,12 @@ export interface SystemLogDto {
   updatedAt: string | null;
   code: string;
   requestId: string | null;
-  type: string;
+  /**
+   * O backend atual serializa o enum como nome, mas versões já publicadas
+   * também devolveram seu valor numérico. Manter as duas formas no contrato
+   * impede que uma divergência de deploy derrube a tela inteira.
+   */
+  type: string | number;
   origin: string;
   message: string;
   details: string | null;

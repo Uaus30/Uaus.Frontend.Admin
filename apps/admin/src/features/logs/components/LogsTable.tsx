@@ -3,16 +3,35 @@ import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Loader2, Skul
 import { formatDateTime } from "../hooks/useLogs";
 import type { SystemLogDto } from "../types";
 
+/** Nomes canônicos do `LogType` para APIs que ainda serializam o enum como número. */
+const NUMERIC_LOG_TYPES: Readonly<Record<number, string>> = {
+  0: "None",
+  1: "Information",
+  2: "Alert",
+  3: "Error",
+  4: "Critical",
+};
+
+/**
+ * Normaliza o tipo vindo da API sem confiar no DTO em tempo de execução.
+ * Respostas antigas usam o número do enum; valores inesperados viram um badge
+ * genérico, mas nunca impedem a tabela de renderizar.
+ */
+function normalizeLogType(type: unknown): string {
+  if (typeof type === "string") return type.trim();
+  if (typeof type === "number") return NUMERIC_LOG_TYPES[type] ?? "";
+  return "";
+}
+
 /**
  * Retorna o Badge estilizado de acordo com o tipo de Log.
  */
-export function getLogTypeBadge(type: string) {
-  const normType = type?.toLowerCase() || "";
+export function getLogTypeBadge(type: unknown) {
+  const safeType = normalizeLogType(type);
+  const normType = safeType.toLowerCase();
   if (normType.includes("critical")) {
     return (
-      <Badge
-        className="bg-rose-900 hover:bg-rose-950 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase animate-pulse"
-      >
+      <Badge className="bg-rose-900 hover:bg-rose-950 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase animate-pulse">
         <Skull className="h-3 w-3 shrink-0" />
         CRÍTICO
       </Badge>
@@ -56,7 +75,7 @@ export function getLogTypeBadge(type: string) {
   return (
     <Badge variant="secondary" className="gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
       <FileText className="h-3 w-3 shrink-0" />
-      {type || "LOG"}
+      {safeType || "LOG"}
     </Badge>
   );
 }
@@ -77,7 +96,6 @@ interface LogsTableProps {
  * Componente que exibe a tabela principal de logs do sistema de forma estruturada.
  */
 export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
-
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card w-full overflow-x-auto">
       <table
