@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPut, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
 
 // ==========================================
@@ -25,12 +25,14 @@ export interface SystemLogDto {
    * impede que uma divergência de deploy derrube a tela inteira.
    */
   type: string | number;
+  requiresVerification: boolean;
   origin: string;
   message: string;
   details: string | null;
 }
 
 export const getGetLogsQueryKey = (): QueryKey => ["logs"];
+export const getGetLogQueryKey = (): QueryKey => ["log-details"];
 
 export function useGetLogs(
   params?: {
@@ -72,11 +74,34 @@ export function useGetLog(
   },
 ) {
   return useQuery<SystemLogDto, ApiError, SystemLogDto, QueryKey>({
-    queryKey: ["log-details", id],
+    queryKey: [...getGetLogQueryKey(), id],
     enabled: !isNaN(id) && id > 0,
     queryFn: async () => {
       return apiGetOrThrow<SystemLogDto>(`/Logs/${id}`);
     },
     ...options?.query,
   });
+}
+
+/**
+ * Encerra a pendência humana de um log crítico.
+ *
+ * O endpoint é idempotente: repetir a chamada mantém o log verificado. O
+ * backend não expõe uma atualização genérica para preservar mensagem e tipo,
+ * que são dados imutáveis do evento original.
+ */
+export async function markLogAsVerified(id: number): Promise<SystemLogDto> {
+  const response = await apiPut<SystemLogDto>(`/Logs/${id}/verification`);
+
+  if (response.data == null) {
+    throw new ApiError(
+      `A resposta de /Logs/${id}/verification veio sem conteúdo.`,
+      204,
+      null,
+      "PUT",
+      `/Logs/${id}/verification`,
+    );
+  }
+
+  return response.data;
 }

@@ -1,12 +1,12 @@
 {
   "versao": 1,
-  "geradoEm": "2026-08-15",
+  "geradoEm": "2026-08-21",
   "origem": {
     "repositorio": "Uaus.Backend.Api",
-    "commit": "9a853e9efdf0d066331fb42ed51267d833a8acf6",
-    "commitData": "2026-08-15T22:43:12-03:00",
+    "commit": "4e2296fd33118b5264cb5c8796970f9926b65fbc",
+    "commitData": "2026-08-21T18:59:40-03:00",
     "pastas": ["Uaus.Application/DTOs"],
-    "arquivos": 64
+    "arquivos": 65
   },
   "serializacao": {
     "ignoreCondition": "WhenWritingNull",
@@ -2322,6 +2322,19 @@
           "linha": 20
         },
         {
+          "nome": "cityState",
+          "nomeCSharp": "CityState",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 26
+        },
+        {
           "nome": "phone",
           "nomeCSharp": "Phone",
           "tipo": "string",
@@ -2332,7 +2345,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 23
+          "linha": 29
         },
         {
           "nome": "document",
@@ -2345,7 +2358,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 26
+          "linha": 32
         },
         {
           "nome": "receiptFooterMessage",
@@ -2358,7 +2371,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 29
+          "linha": 35
         },
         {
           "nome": "maxSellerDiscountPercentage",
@@ -2371,7 +2384,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 35
+          "linha": 41
         }
       ]
     },
@@ -6316,6 +6329,19 @@
           "linha": 15
         },
         {
+          "nome": "requiresVerification",
+          "nomeCSharp": "RequiresVerification",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 17
+        },
+        {
           "nome": "origin",
           "nomeCSharp": "Origin",
           "tipo": "string",
@@ -6326,7 +6352,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 17
+          "linha": 19
         },
         {
           "nome": "message",
@@ -6339,7 +6365,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 19
+          "linha": 21
         },
         {
           "nome": "details",
@@ -6352,7 +6378,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 21
+          "linha": 23
         }
       ]
     },
@@ -12391,6 +12417,42 @@
           "nuloPerdoado": false,
           "somenteLeitura": false,
           "linha": 15
+        }
+      ]
+    },
+    {
+      "nome": "UserFirstAccessDto",
+      "arquivo": "Uaus.Application/DTOs/Users/UserFirstAccessDto.cs",
+      "linha": 16,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "user",
+          "nomeCSharp": "User",
+          "tipo": "UserDto",
+          "tipoBase": "UserDto",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 18
+        },
+        {
+          "nome": "firstAccessPassword",
+          "nomeCSharp": "FirstAccessPassword",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 24
         }
       ]
     },

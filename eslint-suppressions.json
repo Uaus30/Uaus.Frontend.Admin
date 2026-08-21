@@ -104,11 +104,6 @@
       "count": 1
     }
   },
-  "apps/admin/src/features/logs/components/LogsTable.tsx": {
-    "react-refresh/only-export-components": {
-      "count": 1
-    }
-  },
   "apps/admin/src/features/partners/hooks/usePartners.ts": {
     "react-hooks/set-state-in-effect": {
       "count": 3

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { SystemLogDto } from "../../types";
 import { LogsTable } from "../LogsTable";
 
-function createLog(type: SystemLogDto["type"]): SystemLogDto {
+function createLog(type: SystemLogDto["type"], requiresVerification = false): SystemLogDto {
   return {
     id: 42,
     createdAt: "2026-08-21T16:00:00-03:00",
@@ -11,6 +11,7 @@ function createLog(type: SystemLogDto["type"]): SystemLogDto {
     code: "LOG-042",
     requestId: null,
     type,
+    requiresVerification,
     origin: "Admin",
     message: "Teste de regressão",
     details: null,
@@ -54,5 +55,23 @@ describe("LogsTable", () => {
     expect(typeHeader.classList.contains("text-center")).toBe(true);
     expect(informationBadge.parentElement?.tagName).toBe("TD");
     expect(informationBadge.parentElement?.classList.contains("text-center")).toBe(true);
+  });
+
+  it("destaca toda a linha do log crítico com verificação pendente", () => {
+    render(<LogsTable logsList={[createLog(4, true)]} isLoading={false} onRowClick={vi.fn()} />);
+
+    const row = screen.getByText("Teste de regressão").closest("tr");
+
+    expect(row?.classList.contains("bg-red-600")).toBe(true);
+    expect(row?.className).toContain("[&_td]:text-white");
+  });
+
+  it("mantém a linha normal quando o log crítico já foi verificado", () => {
+    render(<LogsTable logsList={[createLog("Critical", false)]} isLoading={false} onRowClick={vi.fn()} />);
+
+    const row = screen.getByText("Teste de regressão").closest("tr");
+
+    expect(row?.classList.contains("bg-red-600")).toBe(false);
+    expect(row?.className).toContain("hover:bg-muted/30");
   });
 });

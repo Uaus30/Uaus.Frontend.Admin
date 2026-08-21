@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui";
-import { useGetLog } from "@workspace/api-client-react";
 import { ArrowLeft, Copy, Check, Loader2, Terminal, Calendar, Hash, Globe, Tag } from "lucide-react";
 import { useToast } from "@workspace/ui";
-import { getLogTypeBadge } from "@/features/logs/components/LogsTable";
+import { LogTypeBadge } from "@/features/logs/components/LogTypeBadge";
+import { LogVerificationBanner } from "@/features/logs/components/LogVerificationBanner";
 import { formatDateTime } from "@/features/logs/hooks/useLogs";
-import { describeApiError } from "@workspace/core";
+import { useLogDetails } from "@/features/logs/hooks/useLogDetails";
+import { isCriticalLogType } from "@/features/logs/logType";
 
 /**
  * Página de Detalhes de um Registro de Log específico.
@@ -19,19 +20,7 @@ export default function LogDetails() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  const { data: log, isLoading, isError, error } = useGetLog(Number(id));
-
-  useEffect(() => {
-    if (isError && error) {
-      toast({
-        title: "Erro ao carregar detalhes do log",
-        description: describeApiError(error, "Log não encontrado."),
-        variant: "destructive",
-      });
-      setLocation("/sistema/logs");
-    }
-  }, [isError, error, toast, setLocation]);
+  const { log, isLoading, isVerifying, markAsVerified } = useLogDetails(id);
 
   function copyToClipboard(text: string, field: string) {
     if (!text) return;
@@ -82,7 +71,7 @@ export default function LogDetails() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-display font-bold">Log #{log.id}</h1>
-                {getLogTypeBadge(log.type)}
+                <LogTypeBadge type={log.type} />
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Detalhes completos do registro de log do sistema.
@@ -106,6 +95,14 @@ export default function LogDetails() {
             )}
           </Button>
         </div>
+
+        {isCriticalLogType(log.type) ? (
+          <LogVerificationBanner
+            requiresVerification={log.requiresVerification}
+            isVerifying={isVerifying}
+            onVerify={markAsVerified}
+          />
+        ) : null}
 
         <div className="flex flex-col gap-6">
           <Card className="border-border/50 bg-card/60 backdrop-blur-sm shadow-sm">

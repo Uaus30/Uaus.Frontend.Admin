@@ -1,84 +1,8 @@
-import { Badge } from "@workspace/ui";
-import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Loader2, Skull } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { formatDateTime } from "../hooks/useLogs";
+import { isCriticalLogType } from "../logType";
 import type { SystemLogDto } from "../types";
-
-/** Nomes canônicos do `LogType` para APIs que ainda serializam o enum como número. */
-const NUMERIC_LOG_TYPES: Readonly<Record<number, string>> = {
-  0: "None",
-  1: "Information",
-  2: "Alert",
-  3: "Error",
-  4: "Critical",
-};
-
-/**
- * Normaliza o tipo vindo da API sem confiar no DTO em tempo de execução.
- * Respostas antigas usam o número do enum; valores inesperados viram um badge
- * genérico, mas nunca impedem a tabela de renderizar.
- */
-function normalizeLogType(type: unknown): string {
-  if (typeof type === "string") return type.trim();
-  if (typeof type === "number") return NUMERIC_LOG_TYPES[type] ?? "";
-  return "";
-}
-
-/**
- * Retorna o Badge estilizado de acordo com o tipo de Log.
- */
-export function getLogTypeBadge(type: unknown) {
-  const safeType = normalizeLogType(type);
-  const normType = safeType.toLowerCase();
-  if (normType.includes("critical")) {
-    return (
-      <Badge className="bg-rose-900 hover:bg-rose-950 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase animate-pulse">
-        <Skull className="h-3 w-3 shrink-0" />
-        CRÍTICO
-      </Badge>
-    );
-  }
-  if (normType.includes("err") || normType.includes("fail") || normType.includes("crit")) {
-    return (
-      <Badge
-        variant="destructive"
-        className="gap-1 px-2.5 py-1 text-xs font-semibold uppercase animate-pulse"
-      >
-        <AlertTriangle className="h-3 w-3 shrink-0" />
-        ERRO
-      </Badge>
-    );
-  }
-  if (normType.includes("warn") || normType.includes("alert")) {
-    return (
-      <Badge className="bg-amber-500 hover:bg-amber-600 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
-        <AlertCircle className="h-3 w-3 shrink-0" />
-        ALERTA
-      </Badge>
-    );
-  }
-  if (normType.includes("info")) {
-    return (
-      <Badge className="bg-blue-500 hover:bg-blue-600 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
-        <Info className="h-3 w-3 shrink-0" />
-        INFORMAÇÃO
-      </Badge>
-    );
-  }
-  if (normType.includes("success") || normType.includes("ok")) {
-    return (
-      <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
-        <CheckCircle2 className="h-3 w-3 shrink-0" />
-        SUCESSO
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="secondary" className="gap-1 px-2.5 py-1 text-xs font-semibold uppercase">
-      <FileText className="h-3 w-3 shrink-0" />
-      {safeType || "LOG"}
-    </Badge>
-  );
-}
+import { LogTypeBadge } from "./LogTypeBadge";
 
 /**
  * Propriedades do componente LogsTable.
@@ -165,43 +89,51 @@ export function LogsTable({ logsList, isLoading, onRowClick }: LogsTableProps) {
               </td>
             </tr>
           ) : (
-            logsList.map((log: SystemLogDto) => (
-              <tr
-                key={log.id}
-                className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors duration-150 h-12"
-                onClick={() => onRowClick(log.id)}
-              >
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground align-middle">
-                  <div className="truncate" style={{ width: "38px" }}>
-                    {log.id}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-center font-medium align-middle">
-                  {getLogTypeBadge(log.type)}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle">
-                  <div className="truncate" style={{ width: "158px" }}>
-                    {formatDateTime(log.createdAt)}
-                  </div>
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-foreground align-middle">
-                  <div className="truncate" style={{ width: "278px" }}>
-                    {log.code || "-"}
-                  </div>
-                </td>
-                <td
-                  className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle"
-                  title={log.origin}
+            logsList.map((log: SystemLogDto) => {
+              const isPendingCritical = isCriticalLogType(log.type) && log.requiresVerification;
+
+              return (
+                <tr
+                  key={log.id}
+                  className={
+                    isPendingCritical
+                      ? "h-12 cursor-pointer border-b border-red-700 bg-red-600 text-white transition-colors duration-150 hover:bg-red-700 [&_td]:text-white [&_td_*]:text-white"
+                      : "h-12 cursor-pointer border-b border-border transition-colors duration-150 hover:bg-muted/30"
+                  }
+                  onClick={() => onRowClick(log.id)}
                 >
-                  <div className="truncate" style={{ width: "208px" }}>
-                    {log.origin || "-"}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-foreground align-middle" title={log.message}>
-                  <div className="line-clamp-2 text-xs leading-snug">{log.message || "-"}</div>
-                </td>
-              </tr>
-            ))
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground align-middle">
+                    <div className="truncate" style={{ width: "38px" }}>
+                      {log.id}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center font-medium align-middle">
+                    <LogTypeBadge type={log.type} />
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle">
+                    <div className="truncate" style={{ width: "158px" }}>
+                      {formatDateTime(log.createdAt)}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-foreground align-middle">
+                    <div className="truncate" style={{ width: "278px" }}>
+                      {log.code || "-"}
+                    </div>
+                  </td>
+                  <td
+                    className="px-4 py-3 text-muted-foreground text-sm font-mono align-middle"
+                    title={log.origin}
+                  >
+                    <div className="truncate" style={{ width: "208px" }}>
+                      {log.origin || "-"}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-foreground align-middle" title={log.message}>
+                    <div className="line-clamp-2 text-xs leading-snug">{log.message || "-"}</div>
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
