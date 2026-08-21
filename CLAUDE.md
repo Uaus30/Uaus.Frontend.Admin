@@ -23,7 +23,7 @@ seção no CLAUDE.md dele.
 ### Os três freios — pare e mostre antes de commitar
 
 1. **Gate vermelho.** Teste, `typecheck` ou `lint` falhando. Conserte primeiro;
-   nunca suba quebrado. Os comandos estão na seção 8.
+   nunca suba quebrado. Os comandos e o smoke test obrigatório estão na seção 8.
 2. **Migração de banco ou de esquema.** Migration do EF no backend, script de
    esquema, e `DATABASE_VERSION` do IndexedDB do PDV (ver armadilha 4).
 3. **Configuração de deploy e segredo.** `vercel.json`, `railway.json`,
@@ -176,6 +176,22 @@ npm run lint:prune       # tira do baseline o que já foi limpo
 
 O CI roda typecheck, lint, testes e build dos dois apps. Rode `npm test` e
 `npm run lint` antes de dizer que terminou.
+
+### Gate de regressão antes de produção
+
+Push na `main` publica o Admin. Portanto, **build verde sozinho não autoriza
+push** quando houve alteração de comportamento, tela ou integração:
+
+1. Reproduza a falha antes de corrigir e adicione um teste de regressão com o
+   mesmo formato de dado ou sequência que a provocou.
+2. Depois da correção, execute os testes, `typecheck`, `lint` e build aplicáveis.
+3. Faça um smoke test do fluxo afetado, localmente ou em preview: a tela deve
+   renderizar, a ação principal deve funcionar, o console não pode ter exceções
+   e as requisições essenciais não podem falhar.
+4. Registre no handoff quais comandos e qual cenário foram verificados. Se
+   autenticação, ambiente ou dependência externa impedir o smoke test, **pare
+   antes do commit/push** e informe o bloqueio; não presuma que compilação prova
+   que a implementação funciona.
 
 ---
 
