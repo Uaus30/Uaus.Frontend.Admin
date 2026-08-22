@@ -66,6 +66,7 @@ export default function Pdv() {
     queuedCount,
     queuedSalesCount,
     hasLocalDatabase,
+    refreshingSnapshot,
     sync: syncPendingQueuesNow,
   } = useOfflinePdv(sessionId);
 
@@ -164,10 +165,16 @@ export default function Pdv() {
    * Esperar pela configuração fecha a janela: quando ela chega, a consulta de
    * sessão já liga com o spinner ainda na tela, e o balcão é montado uma vez só.
    */
-  if (loadingSettings || isLoading || loadingSession) {
+  if (loadingSettings || isLoading || loadingSession || (!hasLocalDatabase && refreshingSnapshot)) {
+    const mensagem =
+      !hasLocalDatabase && refreshingSnapshot
+        ? "Atualizando a base de dados local..."
+        : "Carregando o caixa...";
+
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="text-sm font-medium text-muted-foreground">{mensagem}</span>
       </div>
     );
   }

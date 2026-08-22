@@ -34,8 +34,9 @@ function PdvAutenticado() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="text-sm font-medium text-muted-foreground">Carregando o caixa...</span>
       </div>
     );
   }

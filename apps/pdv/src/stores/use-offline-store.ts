@@ -44,6 +44,8 @@ interface OfflineState {
 
   /** Estado da base local: quando foi baixada e em que formato. */
   snapshot: LocalDatabaseState | null;
+  /** A verificação inicial do estado da base local (IndexedDB) já terminou. */
+  snapshotChecked: boolean;
   /** Motivo da última falha ao baixar o snapshot, ou `null`. */
   snapshotError: string | null;
 
@@ -121,6 +123,7 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
   pendingWriteOffs: 0,
   failedWriteOffs: 0,
   snapshot: null,
+  snapshotChecked: false,
   snapshotError: null,
   lastSync: null,
   snapshotSessionId: null,
@@ -145,9 +148,10 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
   refreshSnapshotState: async () => {
     try {
       const snapshot = await readLocalDatabaseState();
-      set(() => ({ snapshot }));
+      set(() => ({ snapshot, snapshotChecked: true }));
     } catch {
       // Idem: o estado da base é informativo, não pode travar o PDV.
+      set(() => ({ snapshotChecked: true }));
     }
   },
 
@@ -217,5 +221,6 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       snapshotError: null,
       lastSync: null,
       snapshotSessionId: null,
+      snapshotChecked: false,
     })),
 }));

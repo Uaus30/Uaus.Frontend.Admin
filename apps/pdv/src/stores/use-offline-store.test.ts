@@ -146,3 +146,28 @@ describe("refreshSnapshot", () => {
     expect(useOfflineStore.getState().refreshingSnapshot).toBe(false);
   });
 });
+
+describe("refreshSnapshotState", () => {
+  it("deve marcar snapshotChecked como true apos a leitura do estado", async () => {
+    useOfflineStore.getState().reset();
+    expect(useOfflineStore.getState().snapshotChecked).toBe(false);
+
+    await useOfflineStore.getState().refreshSnapshotState();
+
+    expect(useOfflineStore.getState().snapshotChecked).toBe(true);
+    expect(useOfflineStore.getState().snapshot).toEqual({
+      downloadedAt: "2026-08-08T10:00:00.000Z",
+      generatedAt: "2026-08-08T10:00:00.000Z",
+      schemaVersion: 1,
+    });
+  });
+
+  it("deve marcar snapshotChecked como true mesmo se a leitura falhar", async () => {
+    useOfflineStore.getState().reset();
+    readLocalDatabaseState.mockRejectedValueOnce(new Error("IDB indisponivel"));
+
+    await useOfflineStore.getState().refreshSnapshotState();
+
+    expect(useOfflineStore.getState().snapshotChecked).toBe(true);
+  });
+});

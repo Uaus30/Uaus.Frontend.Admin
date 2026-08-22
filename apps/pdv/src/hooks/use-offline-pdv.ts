@@ -28,6 +28,7 @@ export function useOfflinePdv(sessionId: number | null) {
   const pendingWriteOffs = useOfflineStore((state) => state.pendingWriteOffs);
   const failedWriteOffs = useOfflineStore((state) => state.failedWriteOffs);
   const snapshot = useOfflineStore((state) => state.snapshot);
+  const snapshotChecked = useOfflineStore((state) => state.snapshotChecked);
   const snapshotError = useOfflineStore((state) => state.snapshotError);
   const lastSync = useOfflineStore((state) => state.lastSync);
   const snapshotSessionId = useOfflineStore((state) => state.snapshotSessionId);
@@ -47,6 +48,7 @@ export function useOfflinePdv(sessionId: number | null) {
 
   useEffect(() => {
     if (!online) return;
+    if (!snapshotChecked) return;
     if (sessionId !== null && snapshotSessionId === sessionId) return;
 
     // Garante que o catálogo local seja baixado/atualizado se:
@@ -55,7 +57,7 @@ export function useOfflinePdv(sessionId: number | null) {
     if (sessionId !== null || !isSnapshotValid) {
       void refreshSnapshot(sessionId);
     }
-  }, [sessionId, snapshotSessionId, online, isSnapshotValid, refreshSnapshot]);
+  }, [sessionId, snapshotSessionId, online, snapshotChecked, isSnapshotValid, refreshSnapshot]);
 
   /**
    * Sincroniza as filas agora, a pedido do operador.
@@ -94,6 +96,8 @@ export function useOfflinePdv(sessionId: number | null) {
     queuedCount: pending + failed + pendingWriteOffs + failedWriteOffs,
     syncing,
     refreshingSnapshot,
+    /** A verificação inicial da base local já terminou. */
+    snapshotChecked,
     /** Estado da base local: quando foi baixada, em que formato. */
     snapshot,
     /** Motivo da última falha ao baixar o snapshot. */
