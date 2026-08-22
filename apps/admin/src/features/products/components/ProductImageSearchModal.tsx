@@ -64,7 +64,7 @@ export function ProductImageSearchModal({
     }
   }, [toast]);
 
-  // Inicializa o termo de busca padrão com o nome do produto
+  // Inicializa o termo de busca padrão com o nome do produto ao abrir
   useEffect(() => {
     if (isOpen) {
       const initialTerm = productName?.trim() || barcode?.trim() || "";
@@ -79,7 +79,8 @@ export function ProductImageSearchModal({
     } else {
       setImages([]);
     }
-  }, [isOpen, productName, barcode, fetchImages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, productName, barcode]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
