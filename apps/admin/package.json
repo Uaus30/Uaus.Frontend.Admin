@@ -1,6 +1,6 @@
 {
   "name": "@workspace/admin",
-  "version": "0.0.0",
+  "version": "1.0.147",
   "private": true,
   "type": "module",
   "engines": {

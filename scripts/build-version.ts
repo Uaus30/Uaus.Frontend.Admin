@@ -35,38 +35,48 @@ function getCommitHash(cwd: string): string {
   }
 }
 
-function getBaseVersion(workspaceRoot: string): string {
+function getPackageVersion(workspaceRoot: string): string {
   try {
     const pkgPath = path.resolve(workspaceRoot, "package.json");
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as { version?: string };
       if (pkg.version && pkg.version !== "0.0.0") {
-        const parts = pkg.version.split(".");
-        return `${parts[0]}.${parts[1] ?? "0"}`;
+        return pkg.version;
       }
     }
   } catch {
     // fallback
   }
-  return "1.0";
+  return "1.0.0";
 }
 
 /**
  * Obtém os metadados de build e versionamento da aplicação.
  *
  * Deriva a versão a partir do número de commits git (`git rev-list --count HEAD`)
- * gerando um versionamento incremental automático `1.0.<commits>`.
- * Em builds sem repositório git completo (ex: CI superficial), recorre a
- * variáveis de ambiente (`VITE_APP_VERSION`, `VERCEL_GIT_COMMIT_SHA`) ou package.json.
+ * quando o histórico completo estiver disponível.
+ * Em builds superficiais (shallow clone no Vercel/CI onde depth=1) ou sem git,
+ * utiliza a versão registrada e commitada no package.json.
  */
 export function getBuildInfo(workspaceRoot: string = path.resolve(__dirname, "..")): BuildInfo {
-  const commitCount = getCommitCount(workspaceRoot);
+  const commitCountStr = getCommitCount(workspaceRoot);
+  const commitCount = parseInt(commitCountStr, 10);
   const commitHash = getCommitHash(workspaceRoot);
-  const baseVersion = getBaseVersion(workspaceRoot);
+  const pkgVersion = getPackageVersion(workspaceRoot);
 
-  const version =
-    process.env.VITE_APP_VERSION ||
-    (commitCount ? `${baseVersion}.${commitCount}` : `${baseVersion}.0`);
+  let version = process.env.VITE_APP_VERSION;
+  if (!version) {
+    // Quando o clone do repositório for completo (mais de 1 commit no histórico):
+    if (!Number.isNaN(commitCount) && commitCount > 1) {
+      const parts = pkgVersion.split(".");
+      const major = parts[0] || "1";
+      const minor = parts[1] || "0";
+      version = `${major}.${minor}.${commitCount}`;
+    } else {
+      // No Vercel ou CI com clone superficial (depth=1), recorre à versão do package.json
+      version = pkgVersion;
+    }
+  }
 
   const buildTime = process.env.VITE_BUILD_TIME || new Date().toISOString();
 
