@@ -3,7 +3,7 @@ import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
 import { Loader2, Search, Globe, AlertTriangle } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { searchInternetImages, type ImageSearchResult } from "@/services/images.service";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
@@ -46,27 +46,11 @@ export function ProductImageSearchModal({
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [submittingUrl, setSubmittingUrl] = useState<string | null>(null);
 
-  // Inicializa o termo de busca padrão
-  useEffect(() => {
-    if (isOpen) {
-      const defaultSearch = `${productName} ${barcode || ""}`.trim();
-      setSearchTerm(defaultSearch);
-      setLimit(6);
-      setSelectedUrl(null);
-      setSubmittingUrl(null);
-      if (defaultSearch) {
-        void fetchImages(defaultSearch, 6);
-      }
-    } else {
-      setImages([]);
-    }
-  }, [isOpen, productName, barcode]);
-
-  const fetchImages = async (query: string, currentLimit: number) => {
+  const fetchImages = useCallback(async (query: string, currentLimit: number) => {
     setIsLoading(true);
     try {
       const results = await searchInternetImages(query, currentLimit);
-      setImages(results);
+      setImages(Array.isArray(results) ? results : []);
     } catch (error) {
       console.error("Erro ao buscar imagens:", error);
       toast({
@@ -74,10 +58,28 @@ export function ProductImageSearchModal({
         description: "Não foi possível carregar as imagens da internet.",
         variant: "destructive",
       });
+      setImages([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  // Inicializa o termo de busca padrão com o nome do produto
+  useEffect(() => {
+    if (isOpen) {
+      const initialTerm = productName?.trim() || barcode?.trim() || "";
+      const searchPayload = `${productName || ""} ${barcode || ""}`.trim() || initialTerm;
+      setSearchTerm(initialTerm);
+      setLimit(6);
+      setSelectedUrl(null);
+      setSubmittingUrl(null);
+      if (searchPayload) {
+        void fetchImages(searchPayload, 6);
+      }
+    } else {
+      setImages([]);
+    }
+  }, [isOpen, productName, barcode, fetchImages]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,12 +146,12 @@ export function ProductImageSearchModal({
 
         {/* Grade de Imagens */}
         <ScrollArea className="h-[320px] pr-3">
-          {isLoading && images.length === 0 ? (
+          {isLoading && (!images || images.length === 0) ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="text-sm font-medium">Buscando imagens na web...</p>
             </div>
-          ) : images.length === 0 ? (
+          ) : !images || images.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-2">
               <AlertTriangle className="h-12 w-12 text-muted-foreground/30 stroke-[1.5]" />
               <p className="text-sm font-medium">Nenhuma imagem encontrada na internet.</p>
@@ -205,7 +207,7 @@ export function ProductImageSearchModal({
         {/* Rodapé e Paginação */}
         <div className="flex items-center justify-between border-t border-border/40 pt-4 text-xs text-muted-foreground">
           <span>Clique numa imagem para usá-la como foto do produto.</span>
-          {images.length > 0 && (
+          {images && images.length > 0 && (
             <Button
               type="button"
               variant="outline"
