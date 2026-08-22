@@ -276,6 +276,36 @@ describe("buildReceiptHtml", () => {
     expect(buildReceiptHtml(makeReceipt({ cancelled: true }))).toContain("VENDA CANCELADA");
   });
 
+  it("imprime itens em cupom de venda cancelada com segunda via", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        cancelled: true,
+        reprint: true,
+        items: [{ name: "CAMISA POLO", quantity: 2, unitPrice: 49.9 }],
+        total: 99.8,
+        notes: "Cancelada no PDV",
+      }),
+    );
+
+    expect(html).toContain("VENDA CANCELADA");
+    expect(html).toContain("SEGUNDA VIA");
+    expect(html).toContain("CAMISA POLO");
+    expect(html).toContain("2 UN x");
+    expect(html).toContain("Cancelada no PDV");
+    expect(html).not.toContain("Cancelamento: Cancelada");
+  });
+
+  it("sanitiza redundância histórica em observação de cancelamento", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        notes: "Cancelamento: Cancelada no PDV",
+      }),
+    );
+
+    expect(html).toContain("<strong>Obs.:</strong> Cancelada no PDV");
+    expect(html).not.toContain("Cancelamento: Cancelada");
+  });
+
   it("carimba a venda registrada sem conexão", () => {
     expect(buildReceiptHtml(makeReceipt())).not.toContain("VENDA OFFLINE");
     expect(buildReceiptHtml(makeReceipt({ offline: true }))).toContain("VENDA OFFLINE");

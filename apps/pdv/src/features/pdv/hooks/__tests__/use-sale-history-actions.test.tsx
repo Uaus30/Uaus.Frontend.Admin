@@ -33,6 +33,8 @@ vi.mock("@workspace/ui", () => ({
   useToast: () => ({ toast }),
 }));
 
+import { PAYMENT_STATUS } from "@workspace/api-client-react";
+
 const { useSaleHistoryActions } = await import("../use-sale-history-actions");
 const { usePdvStore } = await import("@/stores/use-pdv-store");
 
@@ -42,7 +44,7 @@ const SALE = {
   createdAt: "2026-08-15T12:00:00",
   total: 16,
   discount: 1,
-  paymentStatus: 2,
+  paymentStatus: PAYMENT_STATUS.Paid,
   payments: [{ paymentMethodId: 1, paymentMethodName: "Dinheiro", amount: 16 }],
 } as unknown as Parameters<ReturnType<typeof useSaleHistoryActions>["cancelSale"]>[0];
 
@@ -132,6 +134,25 @@ describe("useSaleHistoryActions", () => {
 
     expect(getSaleItems).toHaveBeenCalledWith(42);
     expect(printReceipt).toHaveBeenCalledWith(expect.objectContaining({ reprint: true, saleId: 42 }));
+  });
+
+  it("deve reimprimir o cupom de venda cancelada com itens e carimbo de cancelada", async () => {
+    const cancelledSale = { ...SALE, paymentStatus: PAYMENT_STATUS.Cancelled };
+    const { result } = render();
+
+    await act(() => result.current.printSaleReceipt(cancelledSale));
+
+    expect(getSaleItems).toHaveBeenCalledWith(42);
+    expect(printReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reprint: true,
+        cancelled: true,
+        saleId: 42,
+        items: expect.arrayContaining([
+          expect.objectContaining({ name: "Coca-Cola 350ml", quantity: 2, unitPrice: 8 }),
+        ]),
+      }),
+    );
   });
 
   it("deve reabrir a venda no carrinho com o preço de tabela da própria venda", async () => {

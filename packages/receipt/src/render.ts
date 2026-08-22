@@ -22,6 +22,16 @@ export function computeItemsSubtotal(items: ReceiptItem[]) {
 }
 
 /**
+ * Sanitiza o texto das observações eliminando redundâncias históricas
+ * (como "Cancelamento: Cancelada no PDV" -> "Cancelada no PDV").
+ */
+export function sanitizeReceiptNotes(notes?: string | null): string {
+  if (!notes) return "";
+  const trimmed = notes.trim();
+  return trimmed.replace(/Cancelamento:\s*Cancelad([ao])/gi, "Cancelad$1");
+}
+
+/**
  * Monta o HTML completo do cupom, pronto para ser impresso em bobina de 80mm.
  *
  * @param data Venda, itens, pagamentos e dados de identificação da loja.
@@ -112,8 +122,9 @@ export function buildReceiptHtml(data: ReceiptData): string {
     data.offline ? banner("VENDA OFFLINE") : "",
   ].join("");
 
-  const notesBlock = data.notes?.trim()
-    ? `${divider}<div class="notes"><strong>Obs.:</strong> ${escapeHtml(data.notes.trim())}</div>`
+  const cleanedNotes = sanitizeReceiptNotes(data.notes);
+  const notesBlock = cleanedNotes
+    ? `${divider}<div class="notes"><strong>Obs.:</strong> ${escapeHtml(cleanedNotes)}</div>`
     : "";
 
   const operatorBlock = data.operatorName?.trim()
