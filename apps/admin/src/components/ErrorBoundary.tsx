@@ -2,6 +2,7 @@ import React, { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@workspace/ui";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { reportClientError } from "../lib/clientLogger";
+import { isChunkLoadError, reloadOnChunkLoadError } from "../lib/chunk-reload";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -19,6 +20,9 @@ interface ErrorBoundaryState {
  * Captura exceções não tratadas durante a renderização da árvore React,
  * exibe uma interface amigável de recuperação e envia o log estruturado
  * para o backend através do clientLogger.
+ *
+ * Se a falha decorrer de chunk desatualizado pós-deploy (stale chunk), dispara
+ * recarga segura automática para baixar o novo bundle sem alarmar o operador.
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
@@ -32,6 +36,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Erro capturado pelo ErrorBoundary:", error, errorInfo);
+
+    // Se for erro de chunk desatualizado pós-deploy e a recarga for disparada,
+    // não polui a base com um Crash Crítico alarmista.
+    if (isChunkLoadError(error) && reloadOnChunkLoadError(error)) {
+      return;
+    }
 
     void reportClientError(error, {
       type: 4, // 4 = Critical
