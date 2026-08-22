@@ -6,8 +6,9 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPut, ApiError, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
+
 
 // ==========================================
 // SYSTEM LOGS TYPES & HOOKS
@@ -105,3 +106,25 @@ export async function markLogAsVerified(id: number): Promise<SystemLogDto> {
 
   return response.data;
 }
+
+export interface CreateLogPayload {
+  /** 1=Information, 2=Alert, 3=Error, 4=Critical */
+  type?: number | string;
+  origin: string;
+  message: string;
+  details?: string | null;
+}
+
+/**
+ * Cria um registro de log no backend.
+ */
+export async function createLog(payload: CreateLogPayload): Promise<SystemLogDto> {
+  const response = await apiPost<SystemLogDto>("/Logs", payload);
+
+  if (response.data == null) {
+    throw new ApiError("A resposta de /Logs veio sem conteúdo.", 204, null, "POST", "/Logs");
+  }
+
+  return response.data;
+}
+

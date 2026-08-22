@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { markLogAsVerified, type SystemLogDto } from "./logs";
+import { createLog, markLogAsVerified, type SystemLogDto } from "./logs";
 
 const verifiedLog: SystemLogDto = {
   id: 188,
@@ -34,4 +34,44 @@ describe("logs API", () => {
       expect.objectContaining({ method: "PUT" }),
     );
   });
+
+  it("cria um registro de log via POST /Logs", async () => {
+    const createdLog: SystemLogDto = {
+      ...verifiedLog,
+      id: 200,
+      type: "Error",
+      origin: "[Front-Admin] /produtos",
+      message: "Erro ao renderizar tabela",
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(createdLog), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createLog({
+      type: 3,
+      origin: "[Front-Admin] /produtos",
+      message: "Erro ao renderizar tabela",
+      details: '{"stack": "..."}',
+    });
+
+    expect(result).toEqual(createdLog);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.uaus.com.br/Logs",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          type: 3,
+          origin: "[Front-Admin] /produtos",
+          message: "Erro ao renderizar tabela",
+          details: '{"stack": "..."}',
+        }),
+      }),
+    );
+  });
 });
+

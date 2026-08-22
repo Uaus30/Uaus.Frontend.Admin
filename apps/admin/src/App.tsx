@@ -8,6 +8,8 @@ import { WifiOff, Loader2 } from "lucide-react";
 import { useToast } from "@workspace/ui";
 import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
 import { AuthGate, RequireRole } from "@/components/route-guards";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 
 const queryClient = createQueryClient();
 
@@ -150,7 +152,9 @@ function App() {
           <OfflineBanner />
           <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
+              <ErrorBoundary>
+                <Router />
+              </ErrorBoundary>
             </WouterRouter>
           </div>
         </div>
