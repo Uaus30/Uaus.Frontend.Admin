@@ -4,7 +4,7 @@ import {
   apiGetOrThrow,
   apiPost,
   apiPut,
-  API_BASE_URL,
+  buildUrl,
   fetchAllPages,
   type ImageDto,
   type ProductImageDto,
@@ -91,7 +91,7 @@ export async function searchInternetImages(query: string, limit: number = 15): P
  * Cria a URL de proxy para fazer download de uma imagem externa.
  */
 export function buildImageProxyUrl(url: string): string {
-  return `${API_BASE_URL}/Images/proxy?url=${encodeURIComponent(url)}`;
+  return buildUrl("/Images/proxy", { url });
 }
 
 /**
@@ -106,8 +106,11 @@ export function buildImageProxyUrl(url: string): string {
  * @param baseName Nome do produto, usado para batizar o arquivo.
  */
 export async function downloadWebImageAsFile(webImageUrl: string, baseName: string): Promise<File> {
-  const { blob } = await apiGetBlob(buildImageProxyUrl(webImageUrl), "imagem.jpg");
+  const { blob } = await apiGetBlob("/Images/proxy", "imagem.jpg", {
+    params: { url: webImageUrl },
+  });
   const cleanName = baseName.toLowerCase().replace(/[^a-z0-9]/g, "_") || "produto";
 
   return new File([blob], `${cleanName}.jpg`, { type: blob.type });
 }
+

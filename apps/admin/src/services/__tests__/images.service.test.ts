@@ -1,11 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createImageFromFile, updateImageRecord } from "../images.service";
-import { apiPost, apiPut } from "@workspace/api-client-react";
+import {
+  createImageFromFile,
+  updateImageRecord,
+  downloadWebImageAsFile,
+  buildImageProxyUrl,
+  searchInternetImages,
+} from "../images.service";
+import { apiPost, apiPut, apiGetBlob, apiGetOrThrow } from "@workspace/api-client-react";
 
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   apiPost: vi.fn(() => Promise.resolve({ data: { id: 1, name: "test" } })),
   apiPut: vi.fn(() => Promise.resolve({ data: { id: 1, name: "updated" } })),
+  apiGetBlob: vi.fn(() =>
+    Promise.resolve({
+      blob: new Blob(["fake-image-bytes"], { type: "image/jpeg" }),
+      fileName: "imagem.jpg",
+    }),
+  ),
+  apiGetOrThrow: vi.fn(() => Promise.resolve([])),
   fetchAllPages: vi.fn(),
   apiDelete: vi.fn(),
 }));
@@ -73,4 +86,37 @@ describe("Images Service", () => {
     expect(calledFormData.get("Type")).toBe("2");
     expect(calledFormData.get("File")).toBeNull();
   });
+
+  it("baixa imagem da web passando o endpoint /Images/proxy com a url nos parâmetros", async () => {
+    const file = await downloadWebImageAsFile(
+      "https://down-br.img.susercontent.com/file/br-11134207-7r98o-lwta6dbptf3z2c",
+      "MINI LIXA DE UNHA ROSA 8CM",
+    );
+
+    expect(apiGetBlob).toHaveBeenCalledWith("/Images/proxy", "imagem.jpg", {
+      params: { url: "https://down-br.img.susercontent.com/file/br-11134207-7r98o-lwta6dbptf3z2c" },
+    });
+    expect(file).toBeInstanceOf(File);
+    expect(file.name).toBe("mini_lixa_de_unha_rosa_8cm.jpg");
+    expect(file.type).toBe("image/jpeg");
+  });
+
+  it("monta a URL de proxy usando buildUrl apontando para /Images/proxy", () => {
+    const proxyUrl = buildImageProxyUrl("https://example.com/foto.png");
+    expect(proxyUrl).toContain("/Images/proxy");
+    expect(proxyUrl).toContain(`url=${encodeURIComponent("https://example.com/foto.png")}`);
+  });
+
+  it("busca imagens na internet chamando /Images/search-internet", async () => {
+    vi.mocked(apiGetOrThrow).mockResolvedValueOnce([
+      { imageUrl: "https://example.com/img1.jpg", thumbnailUrl: "https://example.com/thumb1.jpg", title: "Img 1" },
+    ]);
+
+    const results = await searchInternetImages("lixa de unha", 6);
+
+    expect(apiGetOrThrow).toHaveBeenCalledWith("/Images/search-internet", { q: "lixa de unha", limit: 6 });
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe("Img 1");
+  });
 });
+
