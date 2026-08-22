@@ -4,10 +4,10 @@ import { buildBarcodeSvg } from "./barcode";
 import { getLabelTypeInfo, type PrintableLabel } from "./types";
 
 /**
- * Folha A4 com as etiquetas em duas colunas (16 por página). As medidas são
- * absolutas em milímetros para o layout não depender do viewport do iframe de
- * impressão, e `print-color-adjust: exact` garante o fundo amarelo/vermelho no
- * papel.
+ * Folha A4 com as etiquetas em duas colunas (20 por página, 10 linhas × 2 colunas).
+ * As medidas são absolutas em milímetros para o layout não depender do viewport
+ * do iframe de impressão, e `print-color-adjust: exact` garante o fundo
+ * amarelo/vermelho no papel.
  */
 const SHEET_STYLES = `
   @page { size: A4 portrait; margin: 8mm; }
@@ -26,10 +26,10 @@ const SHEET_STYLES = `
     gap: 3mm 4mm;
   }
   .label {
-    height: 32mm;
+    height: 24mm;
     border: 0.35mm solid #9a9a9a;
-    border-radius: 2.5mm;
-    padding: 2mm 3.5mm;
+    border-radius: 2mm;
+    padding: 1.5mm 3.5mm;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -38,32 +38,54 @@ const SHEET_STYLES = `
     page-break-inside: avoid;
   }
   .label-name {
-    font-weight: 800;
-    font-size: 10.5pt;
-    line-height: 1.15;
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    line-height: 1.05;
     text-align: center;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
-    max-height: 9mm;
+    letter-spacing: -0.01em;
+    max-height: 7.2mm;
     overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
   .label-bottom {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 3mm;
+    gap: 2mm;
+  }
+  .label-bottom.no-barcode {
+    justify-content: center;
   }
   .label-barcode { display: flex; align-items: flex-end; }
-  .label-barcode svg { height: 12mm; width: auto; max-width: 46mm; }
+  .label-barcode svg { height: 13.5mm; width: auto; max-width: 50mm; }
   .label-price {
     display: flex;
     align-items: baseline;
-    gap: 1mm;
+    gap: 0.8mm;
     white-space: nowrap;
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
   }
-  .label-currency { font-size: 13pt; font-weight: 800; }
-  .label-value { font-size: 30pt; font-weight: 900; letter-spacing: -0.03em; line-height: 0.85; }
+  .label-currency { font-size: 13pt; font-weight: 900; }
+  .label-value { font-size: 32pt; font-weight: 900; letter-spacing: -0.04em; line-height: 0.8; }
 `;
+
+/**
+ * Retorna o tamanho da fonte (em pt) do nome do produto conforme o comprimento
+ * do texto, garantindo destaque com fonte Arial Black em caixa alta para nomes
+ * curtos/médios e redução suave para que nomes longos caibam sem corte nas duas
+ * linhas disponíveis.
+ */
+export function getProductNameFontSizePt(name: string): number {
+  const length = name.trim().length;
+  if (length <= 20) return 11.5;
+  if (length <= 34) return 9.5;
+  if (length <= 48) return 8;
+  return 7;
+}
 
 /** Formata o preço como na etiqueta: "1.234,56". O "R$" é um elemento menor à parte. */
 export function formatLabelPrice(value: number): string {
@@ -90,12 +112,16 @@ export function buildLabelSheetHtml(
   const cells = labels.flatMap((label) => {
     const info = getLabelTypeInfo(label.labelType);
     const barcodeSvg = label.barcode ? buildBarcode(label.barcode) : null;
+    const hasBarcode = Boolean(label.barcode && barcodeSvg);
+    const bottomClass = hasBarcode ? "label-bottom" : "label-bottom no-barcode";
+
+    const fontSizePt = getProductNameFontSizePt(label.productName);
 
     const cell = [
       `<div class="label" style="background:${info.background};color:${info.foreground};">`,
-      `<div class="label-name">${escapeHtml(label.productName)}</div>`,
-      `<div class="label-bottom">`,
-      `<div class="label-barcode">${barcodeSvg ?? ""}</div>`,
+      `<div class="label-name" style="font-size:${fontSizePt}pt;">${escapeHtml(label.productName)}</div>`,
+      `<div class="${bottomClass}">`,
+      hasBarcode ? `<div class="label-barcode">${barcodeSvg}</div>` : "",
       `<div class="label-price"><span class="label-currency">R$</span>` +
         `<span class="label-value">${formatLabelPrice(label.price)}</span></div>`,
       `</div>`,

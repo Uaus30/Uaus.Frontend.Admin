@@ -1,51 +1,73 @@
-import Barcode from "react-barcode";
-import { resolveBarcodeFormat } from "../barcode";
-import { formatLabelPrice } from "../print";
+import { useMemo } from "react";
+import { buildBarcodeSvg } from "../barcode";
+import { formatLabelPrice, getProductNameFontSizePt } from "../print";
 import { getLabelTypeInfo, type PrintableLabel } from "../types";
 
 /**
- * Réplica em tela de uma etiqueta impressa (proporção ~92mm × 32mm): nome em
- * caixa alta no topo, código de barras à esquerda e preço grande à direita,
- * com o fundo do tipo (branca, amarela ou vermelha).
+ * Réplica em tela de uma etiqueta impressa (proporção ~95mm × 24mm): nome em
+ * caixa alta no topo com tamanho dinâmico, código de barras SVG à esquerda
+ * e preço grande à direita, com o fundo do tipo (branca, amarela ou vermelha).
  */
 export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
   const info = getLabelTypeInfo(label.labelType);
+  const barcodeSvg = useMemo(() => {
+    return label.barcode ? buildBarcodeSvg(label.barcode) : null;
+  }, [label.barcode]);
+
+  const fontSizePt = getProductNameFontSizePt(label.productName);
+  const hasBarcode = Boolean(label.barcode && barcodeSvg);
 
   return (
     <div
-      className="relative flex h-28 flex-col justify-between overflow-hidden rounded-lg border border-border/60 px-3 py-2 shadow-sm"
+      className="relative flex h-[24mm] flex-col justify-between overflow-hidden rounded-[2mm] border border-[#9a9a9a] px-[3.5mm] py-[1.5mm] shadow-sm select-none"
       style={{ background: info.background, color: info.foreground }}
     >
       {label.quantity > 1 && (
-        <span className="absolute right-1.5 top-1.5 rounded-full bg-black/75 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+        <span className="absolute right-1.5 top-1.5 z-10 rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
           ×{label.quantity}
         </span>
       )}
 
-      <div className="line-clamp-2 px-4 text-center text-[11px] font-extrabold uppercase leading-tight">
+      <div
+        className="line-clamp-2 px-[1mm] text-center uppercase tracking-tight"
+        style={{
+          fontFamily: '"Arial Black", Arial, sans-serif',
+          fontWeight: 900,
+          fontSize: `${fontSizePt}pt`,
+          lineHeight: 1.05,
+          maxHeight: "7.2mm",
+        }}
+      >
         {label.productName}
       </div>
 
-      <div className="flex items-end justify-between gap-2">
-        <div className="flex min-h-8 items-end overflow-hidden">
-          {label.barcode ? (
-            <Barcode
-              value={label.barcode}
-              format={resolveBarcodeFormat(label.barcode)}
-              height={26}
-              width={1.1}
-              fontSize={9}
-              margin={0}
-              background="transparent"
+      <div
+        className={`flex items-end gap-[2mm] ${
+          hasBarcode ? "justify-between" : "justify-center"
+        }`}
+      >
+        {hasBarcode && (
+          <div className="flex items-end overflow-hidden max-w-[55%]">
+            <div
+              className="flex items-end [&>svg]:h-[13.5mm] [&>svg]:w-auto [&>svg]:max-w-[50mm]"
+              dangerouslySetInnerHTML={{ __html: barcodeSvg! }}
             />
-          ) : (
-            <span className="text-[9px] font-medium text-black/50">sem código de barras</span>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="flex items-baseline gap-0.5 whitespace-nowrap">
-          <span className="text-xs font-extrabold">R$</span>
-          <span className="text-3xl font-black leading-none tracking-tight">
+        <div
+          className="flex items-baseline gap-[0.8mm] whitespace-nowrap"
+          style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900 }}
+        >
+          <span style={{ fontSize: "13pt", fontWeight: 900, lineHeight: 1 }}>R$</span>
+          <span
+            style={{
+              fontSize: "32pt",
+              fontWeight: 900,
+              letterSpacing: "-0.04em",
+              lineHeight: 0.8,
+            }}
+          >
             {formatLabelPrice(label.price)}
           </span>
         </div>
@@ -53,3 +75,4 @@ export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
     </div>
   );
 }
+

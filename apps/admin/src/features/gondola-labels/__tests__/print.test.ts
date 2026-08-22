@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PRODUCT_LABEL_TYPE } from "@workspace/api-client-react";
 import { hasValidEanCheckDigit, resolveBarcodeFormat } from "../barcode";
-import { buildLabelSheetHtml, escapeHtml, formatLabelPrice } from "../print";
+import { buildLabelSheetHtml, escapeHtml, formatLabelPrice, getProductNameFontSizePt } from "../print";
 import type { PrintableLabel } from "../types";
 
 /** Etiqueta de exemplo; os testes ajustam só o que interessa. */
@@ -23,6 +23,26 @@ describe("formatLabelPrice", () => {
   it("formata com vírgula, duas casas e separador de milhar", () => {
     expect(formatLabelPrice(1.9)).toBe("1,90");
     expect(formatLabelPrice(1234.5)).toBe("1.234,50");
+  });
+});
+
+describe("getProductNameFontSizePt", () => {
+  it("retorna 11.5pt para nomes curtos (<= 20 chars)", () => {
+    expect(getProductNameFontSizePt("Caneca Branca")).toBe(11.5);
+    expect(getProductNameFontSizePt("BONECA NICINHA 20CM")).toBe(11.5);
+  });
+
+  it("retorna 9.5pt para nomes médios (21 a 34 chars)", () => {
+    expect(getProductNameFontSizePt("BONECA NICINHA BOLHA DE SABÃO")).toBe(9.5);
+    expect(getProductNameFontSizePt("COFFEE AND JESSIE CART PICA PAU")).toBe(9.5);
+  });
+
+  it("retorna 8pt para nomes longos (35 a 48 chars)", () => {
+    expect(getProductNameFontSizePt("CONJUNTO DE POTES DE VIDRO HERMETICO 3 PECAS")).toBe(8);
+  });
+
+  it("retorna 7pt para nomes muito longos (> 48 chars)", () => {
+    expect(getProductNameFontSizePt("CONJUNTO DE POTES DE VIDRO HERMETICO RETANGULAR COM TAMPA 3 UNIDADES")).toBe(7);
   });
 });
 
@@ -82,6 +102,8 @@ describe("buildLabelSheetHtml", () => {
     );
 
     expect(html).toContain("Café &lt;&quot;Forte&quot;&gt; &amp; Cia");
+    expect(html).toContain("font-size:11.5pt;");
+    expect(html).toContain('class="label-bottom no-barcode"');
     expect(html).not.toContain("<svg");
   });
 
@@ -91,11 +113,13 @@ describe("buildLabelSheetHtml", () => {
     expect(html).toContain('<svg data-code="7891234567895"></svg>');
   });
 
-  it("monta a folha A4 com grade de duas colunas", () => {
+  it("monta a folha A4 com grade de duas colunas e altura de 24mm", () => {
     const html = buildLabelSheetHtml([label()], stubBarcode);
 
     expect(html).toContain("size: A4 portrait");
     expect(html).toContain("repeat(2, 1fr)");
+    expect(html).toContain("height: 24mm;");
     expect(html).toContain("print-color-adjust: exact");
   });
 });
+

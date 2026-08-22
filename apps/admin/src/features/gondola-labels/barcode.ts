@@ -43,14 +43,14 @@ export function buildBarcodeSvg(value: string): string | null {
   try {
     JsBarcode(svg, trimmed, {
       format: resolveBarcodeFormat(trimmed),
-      width: 1.6,
-      height: 44,
+      width: 1.8,
+      height: 52,
       margin: 0,
       background: "transparent",
       lineColor: "#000000",
       displayValue: true,
       font: "Arial",
-      fontSize: 13,
+      fontSize: 14,
       textMargin: 1,
     });
   } catch {

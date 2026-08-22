@@ -1,7 +1,7 @@
 # Etiquetas de Gôndola
 
 Geração e impressão de etiquetas de preço para fixar na gôndola, em folha A4
-com duas colunas (16 etiquetas por página), com histórico de lotes e
+com duas colunas (20 etiquetas por página, ~95mm × 24mm), com histórico de lotes e
 reimpressão.
 
 > Não confundir com a feature `tags` (rota `/etiquetas`), que classifica
