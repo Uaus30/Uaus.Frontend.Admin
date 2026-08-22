@@ -45,6 +45,16 @@ export default function Products() {
           isLoading={table.isLoading}
           search={table.search}
           setSearch={table.setSearch}
+          departmentId={table.departmentId}
+          setDepartmentId={table.setDepartmentId}
+          departments={table.departments}
+          categoryId={table.categoryId}
+          setCategoryId={table.setCategoryId}
+          categories={table.categories}
+          status={table.status}
+          setStatus={table.setStatus}
+          statusOptions={table.statusOptions}
+          onResetFilters={table.resetFilters}
           page={table.page}
           setPage={table.setPage}
           limit={table.limit}
@@ -52,7 +62,6 @@ export default function Products() {
           totalPages={table.totalPages}
           productPageTotal={table.productPage?.total || 0}
           enrichedProducts={table.enrichedProducts}
-          statusOptions={table.statusOptions}
           onEdit={editor.openModal}
           onDelete={(product) => {
             void editor.handleDeleteProductGroup(product.productGroupId);

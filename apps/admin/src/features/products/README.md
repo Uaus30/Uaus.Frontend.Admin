@@ -7,13 +7,14 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 ## 📂 Estrutura de Arquivos
 
 - `components/ProductTable.tsx`: Renderiza a listagem de produtos com paginação e suporte a edição rápida inline de preço e estoque.
+- `components/ProductTableFilters.tsx`: Filtros da tabela (busca por texto, select de Departamento, select de Categoria e select de Status com ordenação alfabética).
 - `components/ProductEditorModal.tsx`: Formulário principal (Modal) para criação e edição de produtos simples ou com variações.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
 - `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 - `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
-- `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e chamadas de mutations para edição rápida de preço/estoque.
+- `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e chamadas de mutations para edição rápida de preço/estoque.
 - `hooks/mapProductTableRow.ts`: Traduz a linha que o servidor devolve para a linha que a tela usa.
 - `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, geração da matriz cartesiana de variações, validações e persistência no banco.
 - `types.ts`: Tipagens TypeScript estritas que modelam os dados de formulários, imagens locais e variações.
@@ -24,7 +25,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 
 ### 0. A listagem é UMA requisição — e precisa continuar sendo
 
-A página da tabela vem pronta de `GET /Products/table` (hook `useGetProductTable`, no `packages/api-client`): grupo, categoria, departamento, produto representante, etiquetas e imagens numa resposta só.
+A página da tabela vem pronta de `GET /Products/table` (hook `useGetProductTable`, no `packages/api-client`): grupo, categoria, departamento, produto representante, etiquetas e imagens numa resposta só. A ordenação padrão é por **ID decrescente** (mais recentes primeiro), e por padrão a tela inicializa filtrada por **Status: Ativo** (`PRODUCT_STATUS.Active = 2`). Todos os selects de filtro (Departamento, Categoria e Status) exibem as opções em ordem alfabética.
 
 Antes do item 4.1 a tela montava a mesma linha em **cascata de quatro níveis**, cada um esperando o anterior terminar:
 

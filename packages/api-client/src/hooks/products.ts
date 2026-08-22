@@ -20,6 +20,16 @@ import type { BackendPagedResult, ProductTableRowDto, QueryKey, UiPagedResult } 
  */
 export const getGetProductTableQueryKey = (): QueryKey => ["products", "table"];
 
+/** Filtros da página da tabela de produtos. */
+export interface ProductTableParams {
+  search?: string;
+  departmentId?: number;
+  categoryId?: number;
+  status?: number;
+  page?: number;
+  limit?: number;
+}
+
 /**
  * Página da tabela de produtos do admin, montada pelo servidor.
  *
@@ -31,10 +41,10 @@ export const getGetProductTableQueryKey = (): QueryKey => ["products", "table"];
  * variações passava de 200 requisições, e as quatro idas e voltas eram em série:
  * nenhuma começava antes de a anterior terminar.
  *
- * @param params Busca (pelo nome/descrição do GRUPO), página e linhas por página.
+ * @param params Busca, departamento, categoria, status, página e linhas por página.
  */
 export function useGetProductTable(
-  params?: { search?: string; page?: number; limit?: number },
+  params?: ProductTableParams,
   options?: {
     query?: Omit<
       UseQueryOptions<
@@ -52,6 +62,9 @@ export function useGetProductTable(
     queryFn: async () => {
       const result = await apiGetOrThrow<BackendPagedResult<ProductTableRowDto>>("/Products/table", {
         search: params?.search,
+        departmentId: params?.departmentId,
+        categoryId: params?.categoryId,
+        status: params?.status,
         page: params?.page ?? 1,
         size: params?.limit ?? 10,
       });

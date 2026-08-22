@@ -26,8 +26,9 @@ import {
   Package,
   History,
 } from "lucide-react";
-import type { EnumOptionDto } from "@workspace/api-client-react";
+import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-client-react";
 import type { ProductTableRow } from "../types";
+import { ProductTableFilters } from "./ProductTableFilters";
 import React, { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@workspace/ui";
@@ -39,6 +40,16 @@ type ProductTableProps = {
   isLoading: boolean;
   search: string;
   setSearch: (value: string) => void;
+  departmentId?: number;
+  setDepartmentId: (value?: number) => void;
+  departments: DepartmentDto[];
+  categoryId?: number;
+  setCategoryId: (value?: number) => void;
+  categories: CategoryDto[];
+  status?: number;
+  setStatus: (value?: number) => void;
+  statusOptions: EnumOptionDto[];
+  onResetFilters: () => void;
   page: number;
   setPage: (value: number | ((current: number) => number)) => void;
   limit: number;
@@ -46,7 +57,6 @@ type ProductTableProps = {
   totalPages: number;
   productPageTotal: number;
   enrichedProducts: ProductTableRow[];
-  statusOptions: EnumOptionDto[];
   onEdit: (product: ProductTableRow) => void;
   onDelete: (product: ProductTableRow) => void;
   onViewHistory?: (product: ProductTableRow) => void;
@@ -184,6 +194,16 @@ export function ProductTable({
   isLoading,
   search,
   setSearch,
+  departmentId,
+  setDepartmentId,
+  departments,
+  categoryId,
+  setCategoryId,
+  categories,
+  status,
+  setStatus,
+  statusOptions,
+  onResetFilters,
   page,
   setPage,
   limit,
@@ -191,7 +211,6 @@ export function ProductTable({
   totalPages,
   productPageTotal,
   enrichedProducts,
-  statusOptions,
   onEdit,
   onDelete,
   onViewHistory,
@@ -206,20 +225,20 @@ export function ProductTable({
   const [, setLocation] = useLocation();
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
-      <div className="border-b border-border/50 p-4">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar produtos..."
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            className="bg-background pl-9"
-          />
-        </div>
-      </div>
+      <ProductTableFilters
+        search={search}
+        setSearch={setSearch}
+        departmentId={departmentId}
+        setDepartmentId={setDepartmentId}
+        departments={departments}
+        categoryId={categoryId}
+        setCategoryId={setCategoryId}
+        categories={categories}
+        status={status}
+        setStatus={setStatus}
+        statusOptions={statusOptions}
+        onResetFilters={onResetFilters}
+      />
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">

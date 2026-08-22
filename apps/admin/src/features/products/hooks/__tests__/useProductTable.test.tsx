@@ -103,10 +103,32 @@ vi.mock("@/services/images.service", () => ({
   downloadWebImageAsFile: vi.fn(() => Promise.resolve(new File([""], "img.png"))),
 }));
 
+vi.mock("@/services/categories.service", () => ({
+  getAllDepartments: vi.fn(() =>
+    Promise.resolve([
+      { id: 3, name: "Papelaria" },
+      { id: 1, name: "Alimentos" },
+    ]),
+  ),
+  getAllCategories: vi.fn(() =>
+    Promise.resolve([
+      { id: 5, departmentId: 3, name: "Presentes" },
+      { id: 2, departmentId: 1, name: "Bebidas" },
+      { id: 4, departmentId: 3, name: "Cadernos" },
+    ]),
+  ),
+}));
+
 // O catálogo de status é a tabela de tradução do enum; dublado aqui porque não
 // é o que este item mede, e porque ele é compartilhado e cacheado por 5 min.
 vi.mock("@/services/core", () => ({
-  getEnumOptions: vi.fn(() => Promise.resolve([{ id: 2, value: "Active", name: "Ativo" }])),
+  getEnumOptions: vi.fn(() =>
+    Promise.resolve([
+      { id: 2, value: "Active", name: "Ativo" },
+      { id: 4, value: "Inactive", name: "Inativo" },
+      { id: 1, value: "Draft", name: "Rascunho" },
+    ]),
+  ),
 }));
 
 vi.mock("@/lib/imageOptimizer", () => ({
@@ -268,5 +290,79 @@ describe("useProductTable Hook", () => {
         ],
       }),
     );
+  });
+
+  it("inicia com status Ativo selecionado por padrão e repassa para a API", async () => {
+    const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.enrichedProducts).toHaveLength(1));
+
+    expect(result.current.status).toBe(2);
+    const caminhos = caminhosPedidos();
+    expect(caminhos.some((c) => c.includes("status=2"))).toBe(true);
+  });
+
+  it("ordena departamentos, categorias e status em ordem alfabética", async () => {
+    const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.departments).toHaveLength(2));
+
+    expect(result.current.departments.map((d) => d.name)).toEqual(["Alimentos", "Papelaria"]);
+    expect(result.current.statusOptions.map((s) => s.name)).toEqual(["Ativo", "Inativo", "Rascunho"]);
+  });
+
+  it("filtra categorias pelo departamento selecionado e reseta categoria órfã", async () => {
+    const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.departments).toHaveLength(2));
+
+    // Seleciona departamento 3 (Papelaria)
+    act(() => {
+      result.current.setDepartmentId(3);
+    });
+
+    // Categorias de Papelaria ordenadas alfabeticamente
+    expect(result.current.categories.map((c) => c.name)).toEqual(["Cadernos", "Presentes"]);
+
+    // Seleciona categoria 4 (Cadernos)
+    act(() => {
+      result.current.setCategoryId(4);
+    });
+    expect(result.current.categoryId).toBe(4);
+
+    // Muda para departamento 1 (Alimentos) -> categoria 4 (Cadernos) deve ser resetada
+    act(() => {
+      result.current.setDepartmentId(1);
+    });
+    expect(result.current.categoryId).toBeUndefined();
+    expect(result.current.categories.map((c) => c.name)).toEqual(["Bebidas"]);
+  });
+
+  it("limpa todos os filtros e restaura status Ativo ao chamar resetFilters", async () => {
+    const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.departments).toHaveLength(2));
+
+    act(() => {
+      result.current.setSearch("teste");
+      result.current.setDepartmentId(3);
+      result.current.setCategoryId(5);
+      result.current.setStatus(4); // Inativo
+    });
+
+    expect(result.current.search).toBe("teste");
+    expect(result.current.departmentId).toBe(3);
+    expect(result.current.categoryId).toBe(5);
+    expect(result.current.status).toBe(4);
+
+    act(() => {
+      result.current.resetFilters();
+    });
+
+    expect(result.current.search).toBe("");
+    expect(result.current.departmentId).toBeUndefined();
+    expect(result.current.categoryId).toBeUndefined();
+    expect(result.current.status).toBe(2); // Ativo por padrão
+    expect(result.current.page).toBe(1);
   });
 });

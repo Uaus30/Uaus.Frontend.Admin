@@ -9,16 +9,16 @@ import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.s
 import { upsertProduct, adjustProductStock, syncProductImages } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
-import { STALE_TIME, useGetProductTable, type EnumOptionDto } from "@workspace/api-client-react";
-import { CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
+import { PRODUCT_STATUS, STALE_TIME, useGetProductTable, type EnumOptionDto } from "@workspace/api-client-react";
+import { useAllCategories, useAllDepartments, CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
 import { mapProductTableRow, toProductImageAssociations } from "./mapProductTableRow";
 import type { ProductTableRow } from "../types";
 
 /**
  * useProductTable
  *
- * Hook controlador da tabela de produtos: listagem paginada com busca e a edição
- * de preço e estoque direto na célula.
+ * Hook controlador da tabela de produtos: listagem paginada com busca, filtros
+ * (departamento, categoria, status) e a edição de preço e estoque direto na célula.
  *
  * A edição inline existe porque corrigir preço é a operação mais frequente da
  * tela, e abrir a modal do produto para trocar um número era o maior atrito do
@@ -74,22 +74,64 @@ export function useProductTable() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState(initialSearchFromUrl);
   const debouncedSearch = useDebounce(search, 300);
+  const [departmentId, setDepartmentId] = useState<number | undefined>(undefined);
+  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+  const [status, setStatus] = useState<number | undefined>(PRODUCT_STATUS.Active);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch]);
+  const { data: rawDepartments = [] } = useAllDepartments();
+  const { data: rawCategories = [] } = useAllCategories();
 
-  const { data: statusOptions = [] } = useQuery<EnumOptionDto[]>({
+  const { data: rawStatusOptions = [] } = useQuery<EnumOptionDto[]>({
     queryKey: ["product-status-options"],
     queryFn: () => getEnumOptions("/Products/enums/product-status"),
     staleTime: STALE_TIME.catalogo,
     refetchOnWindowFocus: false,
   });
 
+  const departments = useMemo(
+    () => [...rawDepartments].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    [rawDepartments],
+  );
+
+  const categories = useMemo(() => {
+    const list = departmentId ? rawCategories.filter((c) => c.departmentId === departmentId) : rawCategories;
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [rawCategories, departmentId]);
+
+  const statusOptions = useMemo(
+    () => [...rawStatusOptions].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    [rawStatusOptions],
+  );
+
+  const handleSetDepartmentId = (newDeptId?: number) => {
+    setDepartmentId(newDeptId);
+    if (newDeptId && categoryId) {
+      const cat = rawCategories.find((c) => c.id === categoryId);
+      if (cat && cat.departmentId !== newDeptId) {
+        setCategoryId(undefined);
+      }
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setDepartmentId(undefined);
+    setCategoryId(undefined);
+    setStatus(PRODUCT_STATUS.Active);
+    setPage(1);
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, departmentId, categoryId, status]);
+
   const { data: tablePage, isLoading } = useGetProductTable({
     search: debouncedSearch,
+    departmentId,
+    categoryId,
+    status,
     page,
     limit,
   });
@@ -264,6 +306,16 @@ export function useProductTable() {
   return {
     search,
     setSearch,
+    departmentId,
+    setDepartmentId: handleSetDepartmentId,
+    departments,
+    categoryId,
+    setCategoryId,
+    categories,
+    status,
+    setStatus,
+    statusOptions,
+    resetFilters: handleResetFilters,
     page,
     setPage,
     limit,
@@ -272,7 +324,6 @@ export function useProductTable() {
     productPage: tablePage,
     enrichedProducts,
     totalPages,
-    statusOptions,
     updatingPriceId,
     updateProductPrice,
     updatingStockId,
