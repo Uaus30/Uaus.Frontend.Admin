@@ -22,7 +22,6 @@ export * from "./payment-methods";
 export * from "./cash-register";
 export * from "./pdv";
 export * from "./stock-write-offs";
-export * from "./inventory-count";
 export * from "./financial";
 export * from "./product-labels";
 export * from "./coupons";

@@ -179,7 +179,6 @@ describe("buildMenu", () => {
     expect(nomes).toEqual([
       "Dashboard",
       "Produtos",
-      "Estoque",
       "Financeiro",
       "Relatórios",
       "Marketing",
@@ -227,14 +226,14 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("Inventário mora no grupo Relatórios; Estoque fica com a Contagem", () => {
+  it("Inventário mora no grupo Relatórios e o grupo Estoque foi descontinuado", () => {
     const menu = buildMenu(USER_ROLE.Admin);
 
     const relatorios = menu.find((item) => item.name === "Relatórios");
     expect(relatorios?.items?.map((s) => s.href)).toEqual(["/estoque/inventario"]);
 
     const estoque = menu.find((item) => item.name === "Estoque");
-    expect(estoque?.items?.map((s) => s.href)).toEqual(["/estoque/contagem"]);
+    expect(estoque).toBeUndefined();
   });
 
   it("Usuários é item de primeiro nível, e não item do grupo Sistema", () => {

@@ -2,7 +2,6 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import {
   BarChart3,
   Building2,
-  ClipboardList,
   DollarSign,
   ImageIcon,
   LayoutDashboard,
@@ -71,7 +70,6 @@ const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods"));
 const Suppliers = lazy(() => import("@/pages/suppliers"));
 const StockEntries = lazy(() => import("@/pages/stock-entries"));
 const StockWriteOffs = lazy(() => import("@/pages/stock-write-offs"));
-const InventoryCount = lazy(() => import("@/pages/inventory-count"));
 const Inventory = lazy(() => import("@/pages/inventory"));
 const Images = lazy(() => import("@/pages/images"));
 const Customers = lazy(() => import("@/pages/customers"));
@@ -96,7 +94,6 @@ export const MENU_GROUPS = [
   // Cupom e campanha não cabem em "Financeiro" (não são lançamento de dinheiro)
   // nem em "Produtos" (não são cadastro de item): grupo próprio.
   { name: "Marketing", icon: Megaphone },
-  { name: "Estoque", icon: ClipboardList },
   { name: "Sistema", icon: Settings },
 ] as const;
 
@@ -119,7 +116,6 @@ export const MENU_GROUPS = [
 export const MENU_ORDER: readonly string[] = [
   "/dashboard",
   "Produtos",
-  "Estoque",
   "Financeiro",
   "Relatórios",
   "Marketing",
@@ -217,7 +213,6 @@ export const ROUTES: AppRoute[] = [
   // de rotas cobre no log.
   { path: "/marketing/campanhas/:id/relatorio", component: CampaignReport, roles: SO_ADMIN, hidden: true },
 
-  { path: "/estoque/contagem", label: "Contagem", group: "Estoque", component: InventoryCount },
   { path: "/estoque/inventario", label: "Inventário", group: "Relatórios", component: Inventory },
 
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },

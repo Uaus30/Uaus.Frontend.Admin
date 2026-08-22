@@ -238,14 +238,14 @@ describe("cabeçalhos e corpo da requisição", () => {
 
   it("deixa FormData passar intacto, sem Content-Type", async () => {
     // O boundary do multipart é gerado pelo navegador na hora do envio. Fixar
-    // `application/json` aqui faria o upload da planilha de contagem chegar
+    // `application/json` aqui faria o upload multipart chegar
     // ilegível ao backend, com erro que não aponta para o client.
     const fetchMock = vi.fn(async () => mockResponse({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);
     const form = new FormData();
-    form.append("file", new Blob(["a"]), "contagem.xlsx");
+    form.append("file", new Blob(["a"]), "arquivo.xlsx");
 
-    await apiRequest("POST", "/InventoryCounts/import", { body: form });
+    await apiRequest("POST", "/Images/upload", { body: form });
 
     const { headers, body } = lastRequest(fetchMock);
     expect(headers.get("Content-Type")).toBeNull();
@@ -515,7 +515,7 @@ describe("apiGetBlob", () => {
       ),
     );
 
-    const file = await apiGetBlob("/InventoryCounts/export", "padrao.xlsx");
+    const file = await apiGetBlob("/Reports/export", "padrao.xlsx");
 
     expect(file.fileName).toBe("contagem 2026.xlsx");
   });
@@ -528,7 +528,7 @@ describe("apiGetBlob", () => {
       vi.fn(async () => mockBlobResponse({ "Content-Disposition": "attachment; filename=contagem.xlsx" })),
     );
 
-    await expect(apiGetBlob("/InventoryCounts/export", "padrao.xlsx")).resolves.toMatchObject({
+    await expect(apiGetBlob("/Reports/export", "padrao.xlsx")).resolves.toMatchObject({
       fileName: "contagem.xlsx",
     });
   });
@@ -607,7 +607,7 @@ describe("apiGetBlob", () => {
     const fetchMock = vi.fn(async () => mockBlobResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    await apiGetBlob("/InventoryCounts/export", "padrao.xlsx");
+    await apiGetBlob("/Reports/export", "padrao.xlsx");
 
     expect(lastRequest(fetchMock).headers.get("Authorization")).toBe("Bearer token-do-download");
   });
@@ -622,7 +622,7 @@ describe("apiGetBlob", () => {
       vi.fn(async () => ({ ok: false, status: 401 }) as unknown as Response),
     );
 
-    await expect(apiGetBlob("/InventoryCounts/export", "padrao.xlsx")).rejects.toBeInstanceOf(ApiError);
+    await expect(apiGetBlob("/Reports/export", "padrao.xlsx")).rejects.toBeInstanceOf(ApiError);
 
     expect(getAuthSession()).toBeNull();
     expect(assign).toHaveBeenCalledTimes(1);
@@ -651,9 +651,9 @@ describe("apiGetBlob", () => {
     await apiGetBlob("https://cdn.uaus.com.br/img.png", "imagem.jpg");
     expect(lastRequest(fetchMock).url).toBe("https://cdn.uaus.com.br/img.png");
 
-    await apiGetBlob("/InventoryCounts/export", "padrao.xlsx", { params: { countId: 7 } });
+    await apiGetBlob("/Reports/export", "padrao.xlsx", { params: { countId: 7 } });
     const { url } = lastRequest(fetchMock);
-    expect(url).toContain("/InventoryCounts/export");
+    expect(url).toContain("/Reports/export");
     expect(url).toContain("countId=7");
   });
 });

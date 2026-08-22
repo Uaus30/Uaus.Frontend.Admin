@@ -25,9 +25,8 @@ README próprio explicando a **regra**, não a lista de arquivos:
 `cash-register-sessions` · `categories` · `company-settings` · `customers` ·
 `dashboard` · `departments` · `financial-closings` · `financial-reports` ·
 `fixed-costs` · `gondola-labels` · `grades` · `images` · `inventory` ·
-`inventory-count` · `login` · `logs` · `partners` · `payment-methods` ·
-`products` · `sales` · `stock-entries` · `stock-write-offs` · `suppliers` ·
-`tags` · `users`
+`login` · `logs` · `partners` · `payment-methods` · `products` · `sales` ·
+`stock-entries` · `stock-write-offs` · `suppliers` · `tags` · `users`
 
 O contrato de cada uma está no CLAUDE.md da raiz, seção 4. O que vale repetir
 aqui:
@@ -36,9 +35,7 @@ aqui:
   que o hook devolve. Query dentro da página é o começo do caminho em que a mesma
   listagem passa a existir em dois lugares com dois `staleTime` diferentes.
 - **Modelo canônico: `features/fixed-costs/`.** Copie essa, não "uma qualquer".
-- 24 das 25 features têm teste de hook em `hooks/__tests__/`. A exceção é
-  `inventory-count` — a única cujo hook não tem teste, e justamente a que
-  processa planilha importada.
+- As features têm teste de hook em `hooks/__tests__/`.
 
 ---
 
@@ -144,11 +141,10 @@ carregado, e quem só abre a tela de clientes baixava o motor de gráficos.
   do navegador, que ignora o tema e bloqueia a thread — e num deles o retorno é
   atribuído a uma const chamada `confirm`, que sombreia o global. A troca pelo
   `AlertDialog` do `@workspace/ui` está em andamento; use-o em código novo.
-- **Duas listagens sem paginação.** `grades` renderiza todas as grades vezes
-  todas as variantes (`GET /Grades` devolve array cru, sem página), e a prévia da
-  contagem de estoque (`inventory-count`) renderiza a planilha importada inteira
-  em duas tabelas. As outras 19 listagens são paginadas; 5 delas deixam o usuário
-  escolher 100 linhas por página. Nada no repositório é virtualizado.
+- **Listagem sem paginação.** `grades` renderiza todas as grades vezes
+  todas as variantes (`GET /Grades` devolve array cru, sem página). As outras
+  listagens são paginadas; várias delas deixam o usuário escolher 100 linhas por
+  página. Nada no repositório é virtualizado.
 - **Os DTOs não têm detecção de divergência com o backend.** Risco herdado do
   api-client, documentado lá.
 
