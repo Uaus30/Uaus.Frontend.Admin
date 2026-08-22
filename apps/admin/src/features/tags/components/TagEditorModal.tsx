@@ -45,7 +45,7 @@ export function TagEditorModal({
       <DialogContent className="bg-card sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">
-            {editingId ? "Editar Etiqueta" : "Nova Etiqueta"}
+            {editingId ? "Editar Tag" : "Nova Tag"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4 py-4">
@@ -67,7 +67,7 @@ export function TagEditorModal({
                 onChange={(event) => setFormData((current) => ({ ...current, color: event.target.value }))}
                 className="h-12 w-16 cursor-pointer bg-background p-1"
               />
-              <span className="font-mono text-sm text-muted-foreground">{formData.color}</span>
+                <span className="font-mono text-sm text-muted-foreground">{formData.color}</span>
               <Button type="button" variant="outline" onClick={randomizeColor} className="ml-auto">
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 Gerar aleatoria
@@ -79,7 +79,7 @@ export function TagEditorModal({
               <div className="space-y-1">
                 <label className="text-sm font-medium">Exibir no site</label>
                 <p className="text-sm text-muted-foreground">
-                  Use esta opcao para tornar a etiqueta publica no catalogo.
+                  Use esta opcao para tornar a tag publica no catalogo.
                 </p>
               </div>
               <Switch

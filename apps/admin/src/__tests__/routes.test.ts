@@ -189,21 +189,29 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("Produtos absorve Fornecedores e Entradas ao fim do grupo", () => {
-    // Reorganização pedida pelo dono: compra de mercadoria (fornecedor e
-    // entrada) mora junto do catálogo. O path segue /estoque/entradas — URL é
-    // contrato com link salvo, grupo é só decisão de menu.
+  it("Produtos segue a ordem: Cadastros, Entradas, Grades, Categorias, Departamentos, Fornecedores, Tags, Etiquetas", () => {
     const produtos = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Produtos");
+
+    expect(produtos?.items?.map((s) => s.name)).toEqual([
+      "Cadastros",
+      "Entradas",
+      "Grades",
+      "Categorias",
+      "Departamentos",
+      "Fornecedores",
+      "Tags",
+      "Etiquetas",
+    ]);
 
     expect(produtos?.items?.map((s) => s.href)).toEqual([
       "/produtos",
-      "/departamentos",
-      "/categorias",
-      "/grades",
-      "/etiquetas",
-      "/etiquetas-gondola",
-      "/fornecedores",
       "/estoque/entradas",
+      "/grades",
+      "/categorias",
+      "/departamentos",
+      "/fornecedores",
+      "/tags",
+      "/etiquetas-gondola",
     ]);
   });
 

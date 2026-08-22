@@ -139,18 +139,16 @@ export const ROUTES: AppRoute[] = [
 
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, component: Dashboard },
 
-  { path: "/produtos", label: "Cadastro", group: "Produtos", component: Products },
-  { path: "/departamentos", label: "Departamentos", group: "Produtos", component: Departments },
-  { path: "/categorias", label: "Categorias", group: "Produtos", component: Categories },
-  { path: "/grades", label: "Grades", group: "Produtos", component: Grades },
-  { path: "/etiquetas", label: "Etiquetas", group: "Produtos", component: Tags },
-  { path: "/etiquetas-gondola", label: "Etiquetas de Gôndola", group: "Produtos", component: GondolaLabels },
-  // Fornecedores, Entradas, Baixas e Inventário saíram do grupo "Estoque", mas o
-  // PATH de cada um fica onde está: grupo é decisão de menu, URL é contrato com
-  // link salvo (mesma regra que manteve /sistema/usuarios quando Usuários virou
-  // item de primeiro nível).
-  { path: "/fornecedores", label: "Fornecedores", group: "Produtos", component: Suppliers },
+  { path: "/produtos", label: "Cadastros", group: "Produtos", component: Products },
   { path: "/estoque/entradas", label: "Entradas", group: "Produtos", component: StockEntries },
+  { path: "/grades", label: "Grades", group: "Produtos", component: Grades },
+  { path: "/categorias", label: "Categorias", group: "Produtos", component: Categories },
+  { path: "/departamentos", label: "Departamentos", group: "Produtos", component: Departments },
+  { path: "/fornecedores", label: "Fornecedores", group: "Produtos", component: Suppliers },
+  { path: "/tags", label: "Tags", group: "Produtos", component: Tags },
+  // Caminho antigo mantido para não quebrar links salvos.
+  { path: "/etiquetas", component: Tags, hidden: true },
+  { path: "/etiquetas-gondola", label: "Etiquetas", group: "Produtos", component: GondolaLabels },
 
   // Dentro do grupo, o menu segue a ordem DESTA lista. Em "Financeiro" ela é
   // escolhida: o Resumo Financeiro abre o grupo e Baixas vem logo após Vendas.

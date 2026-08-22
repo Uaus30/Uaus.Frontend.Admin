@@ -21,7 +21,7 @@ export default function GondolaLabels() {
     <AppLayout>
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Etiquetas de Gôndola</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground">Etiquetas</h1>
           <p className="mt-1 text-muted-foreground">
             Monte o lote, imprima em A4 (duas etiquetas por linha) e reimprima pelo histórico.
           </p>

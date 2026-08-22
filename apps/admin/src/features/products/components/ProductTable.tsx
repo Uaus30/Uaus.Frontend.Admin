@@ -231,7 +231,7 @@ export function ProductTable({
               <th className="px-6 py-4">Categoria</th>
               <th className="px-6 py-4">Preço</th>
               <th className="px-6 py-4">Estoque</th>
-              <th className="px-6 py-4">Etiquetas</th>
+              <th className="px-6 py-4">Tags</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Ações</th>
             </tr>

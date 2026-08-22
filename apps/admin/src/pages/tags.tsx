@@ -49,11 +49,11 @@ export default function Tags() {
       <div className="mx-auto flex max-w-5xl flex-col gap-6">
         <div className="flex justify-between items-center gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Etiquetas</h1>
+            <h1 className="text-3xl font-display font-bold text-foreground">Tags</h1>
             <p className="mt-1 text-muted-foreground">Classifique produtos para análises personalizadas.</p>
           </div>
           <Button onClick={() => openModal()} className="hover-elevate">
-            <Plus className="mr-2 h-4 w-4" /> Nova Etiqueta
+            <Plus className="mr-2 h-4 w-4" /> Nova Tag
           </Button>
         </div>
 

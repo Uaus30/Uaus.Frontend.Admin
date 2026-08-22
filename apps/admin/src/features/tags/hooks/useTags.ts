@@ -168,17 +168,17 @@ export function useTags() {
 
       if (editingId) {
         await updateTag.mutateAsync({ id: editingId, data });
-        toast({ title: "Etiqueta atualizada." });
+        toast({ title: "Tag atualizada." });
       } else {
         await createTag.mutateAsync({ data });
-        toast({ title: "Etiqueta criada." });
+        toast({ title: "Tag criada." });
       }
 
       await queryClient.invalidateQueries({ queryKey: getGetTagsQueryKey() });
       setModalOpen(false);
     } catch (error) {
       toast({
-        title: "Erro ao salvar etiqueta",
+        title: "Erro ao salvar tag",
         description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
@@ -186,17 +186,17 @@ export function useTags() {
   }
 
   /**
-   * Remove uma etiqueta pelo seu ID.
-   * @param tagId ID único da etiqueta.
+   * Remove uma tag pelo seu ID.
+   * @param tagId ID único da tag.
    */
   async function handleDelete(tagId: number) {
     try {
       await deleteTag.mutateAsync({ id: tagId });
       await queryClient.invalidateQueries({ queryKey: getGetTagsQueryKey() });
-      toast({ title: "Etiqueta removida." });
+      toast({ title: "Tag removida." });
     } catch (error) {
       toast({
-        title: "Erro ao remover etiqueta",
+        title: "Erro ao remover tag",
         description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });

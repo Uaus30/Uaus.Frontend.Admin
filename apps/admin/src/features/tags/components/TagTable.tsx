@@ -143,7 +143,7 @@ export function TagTable({
             ) : tagsWithCount.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                  Nenhuma etiqueta encontrada.
+                  Nenhuma tag encontrada.
                 </td>
               </tr>
             ) : (
@@ -261,12 +261,12 @@ export function TagTable({
       <ConfirmDialog
         open={tagToDelete !== null}
         onOpenChange={(open) => !open && setTagToDelete(null)}
-        title="Remover esta etiqueta?"
+        title="Remover esta tag?"
         itemName={tagToDelete?.name}
         description={
           tagToDelete && tagToDelete.productCount > 0
-            ? `A etiqueta sai do cadastro e é retirada ${tagToDelete.productCount === 1 ? "do 1 produto que a usa" : `dos ${tagToDelete.productCount} produtos que a usam`}${tagToDelete.isPublic ? ", inclusive na vitrine do site" : ""}. A ação não pode ser desfeita.`
-            : "A etiqueta sai do cadastro. A ação não pode ser desfeita."
+            ? `A tag sai do cadastro e é retirada ${tagToDelete.productCount === 1 ? "do 1 produto que a usa" : `dos ${tagToDelete.productCount} produtos que a usam`}${tagToDelete.isPublic ? ", inclusive na vitrine do site" : ""}. A ação não pode ser desfeita.`
+            : "A tag sai do cadastro. A ação não pode ser desfeita."
         }
         confirmLabel="Sim, remover"
         destructive

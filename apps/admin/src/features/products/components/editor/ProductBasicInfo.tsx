@@ -205,13 +205,13 @@ export function ProductBasicInfo({
 
       {showOptionalFields && (
         <div className="space-y-2 sm:col-span-2">
-          <label className="text-sm font-medium">Etiquetas</label>
+          <label className="text-sm font-medium">Tags</label>
           <TagMultiSelect
             allTags={tags}
             selectedIds={productEditor.tagIds}
             onChange={(tagIds) => setProductEditor((current) => ({ ...current, tagIds }))}
             onTagCreated={registerTag}
-            placeholder="Selecione ou crie uma nova etiqueta"
+            placeholder="Selecione ou crie uma nova tag"
           />
         </div>
       )}

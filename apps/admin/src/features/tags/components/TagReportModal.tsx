@@ -41,7 +41,7 @@ export function TagReportModal({
                 style={{ backgroundColor: selectedReport?.tag.color }}
                 aria-hidden
               />
-              {selectedReport?.tag.name ?? "etiqueta"}
+              {selectedReport?.tag.name ?? "tag"}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -54,7 +54,7 @@ export function TagReportModal({
           ) : (
             <CatalogReportBody
               report={selectedReport}
-              emptyMessage="Nenhum produto ativo está marcado com esta etiqueta."
+              emptyMessage="Nenhum produto ativo está marcado com esta tag."
             />
           )}
         </div>
