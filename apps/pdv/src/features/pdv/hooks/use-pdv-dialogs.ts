@@ -34,7 +34,9 @@ export function usePdvDialogs() {
     stockWriteOff: useDialogControl(),
     performance: useDialogControl(),
     preferences: useDialogControl(),
+    about: useDialogControl(),
   };
 }
+
 
 export type PdvDialogs = ReturnType<typeof usePdvDialogs>;

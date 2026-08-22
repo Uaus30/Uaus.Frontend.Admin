@@ -27,6 +27,8 @@ import { Spinner } from "@workspace/ui";
 import { ROLE_LABELS, buildMenu, type RoleCode } from "@/routes";
 import { pdvHomeUrl } from "@/lib/pdv-links";
 import { enumCode, USER_ROLE } from "@workspace/api-client-react";
+import { formatUpdatedAt, formatVersion } from "@workspace/core";
+
 
 /**
  * O menu vem de `src/routes.tsx`, a mesma fonte do <Switch> do App.
@@ -225,6 +227,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex flex-col flex-1 min-w-0">
           <header className="h-16 flex items-center px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
             <SidebarTrigger className="hover-elevate mr-4" />
+            <div className="flex flex-col justify-center select-none" data-testid="header-version">
+              <span className="text-xs text-muted-foreground leading-tight">
+                {formatVersion(import.meta.env.VITE_APP_VERSION)}
+              </span>
+              <span className="text-[11px] text-muted-foreground/80 leading-tight">
+                {formatUpdatedAt(import.meta.env.VITE_BUILD_TIME)}
+              </span>
+            </div>
             <div className="flex-1" />
             {pdvUrl && (
               <Button

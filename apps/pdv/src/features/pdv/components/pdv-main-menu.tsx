@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FileBarChart,
   History,
+  Info,
   LayoutDashboard,
   Lock,
   LogOut,
@@ -33,8 +34,10 @@ type PdvMainMenuProps = {
   onHeldSales: () => void;
   onPrintReport: () => void;
   onPreferences: () => void;
+  onAbout: () => void;
   onExit: () => void;
 };
+
 
 /** Classe compartilhada por todo item do menu. */
 const ITEM_CLASS =
@@ -61,6 +64,7 @@ export function PdvMainMenu({
   onHeldSales,
   onPrintReport,
   onPreferences,
+  onAbout,
   onExit,
 }: PdvMainMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -180,6 +184,11 @@ export function PdvMainMenu({
                   <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
               )}
+
+              <button onClick={run(onAbout)} className={ITEM_CLASS}>
+                <Info className="w-4 h-4 text-primary" />
+                Sobre
+              </button>
 
               <div className="h-px bg-border my-1" />
 

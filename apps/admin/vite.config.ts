@@ -3,9 +3,18 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { createCoverageOptions } from "../../vitest.shared.mts";
+import { getBuildInfo } from "../../scripts/build-version.ts";
+
+const buildInfo = getBuildInfo();
+
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
+  define: {
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(buildInfo.version),
+    "import.meta.env.VITE_BUILD_TIME": JSON.stringify(buildInfo.buildTime),
+    "import.meta.env.VITE_COMMIT_HASH": JSON.stringify(buildInfo.commitHash),
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

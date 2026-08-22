@@ -3,9 +3,18 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { getBuildInfo } from "../../scripts/build-version.ts";
+
+const buildInfo = getBuildInfo();
+
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(buildInfo.version),
+    "import.meta.env.VITE_BUILD_TIME": JSON.stringify(buildInfo.buildTime),
+    "import.meta.env.VITE_COMMIT_HASH": JSON.stringify(buildInfo.commitHash),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -125,10 +134,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
     dedupe: ["react", "react-dom"],
   },
+
   server: {
     port: 5174,
     proxy: {
