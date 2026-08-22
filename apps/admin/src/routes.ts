@@ -161,10 +161,11 @@ export const ROUTES: AppRoute[] = [
   },
   { path: "/vendas", label: "Vendas", group: "Financeiro", component: Sales },
   { path: "/estoque/baixas", label: "Baixas", group: "Financeiro", component: StockWriteOffs },
-  { path: "/financeiro/caixas", label: "Caixas", group: "Financeiro", component: CashRegisterSessions },
+  // Caminho mantido, oculto temporariamente do menu a pedido.
+  { path: "/financeiro/caixas", component: CashRegisterSessions, hidden: true },
   {
     path: "/financeiro/fechamentos",
-    label: "Fechamentos",
+    label: "Fechamentos Mensais",
     group: "Financeiro",
     component: FinancialClosings,
     roles: SO_ADMIN,

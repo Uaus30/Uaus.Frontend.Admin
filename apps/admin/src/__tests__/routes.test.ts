@@ -163,8 +163,9 @@ describe("buildMenu", () => {
     const hrefs = menu.flatMap((item) => (item.items ? item.items.map((s) => s.href) : [item.href]));
 
     // O caminho antigo de formas de pagamento continua respondendo, mas fora do
-    // menu: a mesma tela em dois lugares confundiria.
+    // menu: a mesma tela em dois lugares confundiria. Caixas está temporariamente oculto.
     expect(hrefs).not.toContain("/formas-pagamento");
+    expect(hrefs).not.toContain("/financeiro/caixas");
     expect(hrefs).toContain("/financeiro/formas-pagamento");
     expect(hrefs).not.toContain("/login");
   });
@@ -226,8 +227,7 @@ describe("buildMenu", () => {
       "Resumo Financeiro",
       "Vendas",
       "Baixas",
-      "Caixas",
-      "Fechamentos",
+      "Fechamentos Mensais",
       "Custos Fixos",
       "Sócios",
       "Formas de Pagamento",
