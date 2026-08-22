@@ -181,12 +181,60 @@ describe("buildMenu", () => {
       "Produtos",
       "Estoque",
       "Financeiro",
+      "Relatórios",
       "Marketing",
       "Mídia",
       "Clientes",
       "Usuários",
       "Sistema",
     ]);
+  });
+
+  it("Produtos absorve Fornecedores e Entradas ao fim do grupo", () => {
+    // Reorganização pedida pelo dono: compra de mercadoria (fornecedor e
+    // entrada) mora junto do catálogo. O path segue /estoque/entradas — URL é
+    // contrato com link salvo, grupo é só decisão de menu.
+    const produtos = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Produtos");
+
+    expect(produtos?.items?.map((s) => s.href)).toEqual([
+      "/produtos",
+      "/departamentos",
+      "/categorias",
+      "/grades",
+      "/etiquetas",
+      "/etiquetas-gondola",
+      "/fornecedores",
+      "/estoque/entradas",
+    ]);
+  });
+
+  it("Financeiro abre pelo Resumo Financeiro e põe Baixas logo após Vendas", () => {
+    // "Resumo Financeiro" é a tela que se chamava "Relatórios" — o rótulo
+    // antigo colidiria com o grupo novo de mesmo nome. A posição dos dois é
+    // escolhida, não alfabética nem acidental: a ordem dentro do grupo é a
+    // ordem das ROUTES.
+    const financeiro = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Financeiro");
+
+    expect(financeiro?.items?.map((s) => s.name)).toEqual([
+      "Resumo Financeiro",
+      "Vendas",
+      "Baixas",
+      "Caixas",
+      "Fechamentos",
+      "Custos Fixos",
+      "Sócios",
+      "Formas de Pagamento",
+    ]);
+  });
+
+  it("Inventário mora no grupo Relatórios; Estoque fica com a Contagem", () => {
+    const menu = buildMenu(USER_ROLE.Admin);
+
+    const relatorios = menu.find((item) => item.name === "Relatórios");
+    expect(relatorios?.items?.map((s) => s.href)).toEqual(["/estoque/inventario"]);
+
+    const estoque = menu.find((item) => item.name === "Estoque");
+    expect(estoque?.items?.map((s) => s.href)).toEqual(["/estoque/contagem"]);
   });
 
   it("Usuários é item de primeiro nível, e não item do grupo Sistema", () => {

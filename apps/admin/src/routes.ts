@@ -1,5 +1,6 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import {
+  BarChart3,
   Building2,
   ClipboardList,
   DollarSign,
@@ -89,6 +90,9 @@ const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 export const MENU_GROUPS = [
   { name: "Produtos", icon: Package },
   { name: "Financeiro", icon: DollarSign },
+  // Consulta, não lançamento: o que só LÊ a operação mora aqui. Hoje é o
+  // Inventário; relatório novo entra neste grupo, não espalhado nos outros.
+  { name: "Relatórios", icon: BarChart3 },
   // Cupom e campanha não cabem em "Financeiro" (não são lançamento de dinheiro)
   // nem em "Produtos" (não são cadastro de item): grupo próprio.
   { name: "Marketing", icon: Megaphone },
@@ -117,6 +121,7 @@ export const MENU_ORDER: readonly string[] = [
   "Produtos",
   "Estoque",
   "Financeiro",
+  "Relatórios",
   "Marketing",
   "/imagens",
   "/clientes",
@@ -144,16 +149,25 @@ export const ROUTES: AppRoute[] = [
   { path: "/grades", label: "Grades", group: "Produtos", component: Grades },
   { path: "/etiquetas", label: "Etiquetas", group: "Produtos", component: Tags },
   { path: "/etiquetas-gondola", label: "Etiquetas de Gôndola", group: "Produtos", component: GondolaLabels },
+  // Fornecedores, Entradas, Baixas e Inventário saíram do grupo "Estoque", mas o
+  // PATH de cada um fica onde está: grupo é decisão de menu, URL é contrato com
+  // link salvo (mesma regra que manteve /sistema/usuarios quando Usuários virou
+  // item de primeiro nível).
+  { path: "/fornecedores", label: "Fornecedores", group: "Produtos", component: Suppliers },
+  { path: "/estoque/entradas", label: "Entradas", group: "Produtos", component: StockEntries },
 
-  { path: "/vendas", label: "Vendas", group: "Financeiro", component: Sales },
-  { path: "/financeiro/caixas", label: "Caixas", group: "Financeiro", component: CashRegisterSessions },
+  // Dentro do grupo, o menu segue a ordem DESTA lista. Em "Financeiro" ela é
+  // escolhida: o Resumo Financeiro abre o grupo e Baixas vem logo após Vendas.
   {
     path: "/financeiro/relatorios",
-    label: "Relatórios",
+    label: "Resumo Financeiro",
     group: "Financeiro",
     component: FinancialReports,
     roles: SO_ADMIN,
   },
+  { path: "/vendas", label: "Vendas", group: "Financeiro", component: Sales },
+  { path: "/estoque/baixas", label: "Baixas", group: "Financeiro", component: StockWriteOffs },
+  { path: "/financeiro/caixas", label: "Caixas", group: "Financeiro", component: CashRegisterSessions },
   {
     path: "/financeiro/fechamentos",
     label: "Fechamentos",
@@ -203,11 +217,8 @@ export const ROUTES: AppRoute[] = [
   // de rotas cobre no log.
   { path: "/marketing/campanhas/:id/relatorio", component: CampaignReport, roles: SO_ADMIN, hidden: true },
 
-  { path: "/fornecedores", label: "Fornecedores", group: "Estoque", component: Suppliers },
-  { path: "/estoque/entradas", label: "Entradas", group: "Estoque", component: StockEntries },
-  { path: "/estoque/baixas", label: "Baixas", group: "Estoque", component: StockWriteOffs },
   { path: "/estoque/contagem", label: "Contagem", group: "Estoque", component: InventoryCount },
-  { path: "/estoque/inventario", label: "Inventário", group: "Estoque", component: Inventory },
+  { path: "/estoque/inventario", label: "Inventário", group: "Relatórios", component: Inventory },
 
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },
   { path: "/clientes", label: "Clientes", icon: Users, component: Customers },
