@@ -2,11 +2,16 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ProductImageSearchModal } from "../ProductImageSearchModal";
 import * as imagesService from "@/services/images.service";
+import * as bingClient from "@/features/products/lib/bingClientSearch";
 
 vi.mock("@/services/images.service", () => ({
-  searchInternetImages: vi.fn(),
+  searchByBarcode: vi.fn(),
   downloadWebImageAsFile: vi.fn(),
   buildImageProxyUrl: vi.fn((url: string) => `/Images/proxy?url=${encodeURIComponent(url)}`),
+}));
+
+vi.mock("@/features/products/lib/bingClientSearch", () => ({
+  searchBingClientSide: vi.fn(),
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => {
@@ -26,8 +31,14 @@ describe("ProductImageSearchModal", () => {
     cleanup();
   });
 
-  it("renderiza o modal com o nome limpo no input de busca e código no cabeçalho", async () => {
-    vi.mocked(imagesService.searchInternetImages).mockResolvedValueOnce([
+  it("renderiza o modal e busca via client-side Bing + barcode OpenFacts", async () => {
+    vi.mocked(imagesService.searchByBarcode).mockResolvedValueOnce({
+      imageUrl: "https://openfacts.org/rodo-oficial.jpg",
+      thumbnailUrl: "https://openfacts.org/rodo-oficial.jpg",
+      title: "Rodinho de Pia (Open Facts)",
+    });
+
+    vi.mocked(bingClient.searchBingClientSide).mockResolvedValueOnce([
       {
         imageUrl: "https://example.com/rodo.jpg",
         thumbnailUrl: "https://example.com/rodo-thumb.jpg",
@@ -52,16 +63,21 @@ describe("ProductImageSearchModal", () => {
     expect(input.value).toBe("RODINHO DE PIA");
 
     await waitFor(() => {
-      expect(imagesService.searchInternetImages).toHaveBeenCalledWith("RODINHO DE PIA 0986333180612", 6);
+      expect(imagesService.searchByBarcode).toHaveBeenCalledWith("0986333180612");
     });
 
     await waitFor(() => {
+      expect(bingClient.searchBingClientSide).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByAltText("Rodinho de Pia (Open Facts)")).toBeTruthy();
       expect(screen.getByAltText("Rodo de Pia Sanremo")).toBeTruthy();
     });
   });
 
   it("permite submeter uma nova pesquisa personalizada pelo input", async () => {
-    vi.mocked(imagesService.searchInternetImages)
+    vi.mocked(bingClient.searchBingClientSide)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
@@ -85,7 +101,7 @@ describe("ProductImageSearchModal", () => {
     fireEvent.submit(input.closest("form")!);
 
     await waitFor(() => {
-      expect(imagesService.searchInternetImages).toHaveBeenCalledWith("SAL REFINADO", 6);
+      expect(bingClient.searchBingClientSide).toHaveBeenCalledWith("SAL REFINADO", 6);
     });
 
     await waitFor(() => {
@@ -97,7 +113,7 @@ describe("ProductImageSearchModal", () => {
     const onSelectImage = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
-    vi.mocked(imagesService.searchInternetImages).mockResolvedValueOnce([
+    vi.mocked(bingClient.searchBingClientSide).mockResolvedValueOnce([
       {
         imageUrl: "https://example.com/rodo.jpg",
         thumbnailUrl: "https://example.com/rodo-thumb.jpg",

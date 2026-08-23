@@ -88,6 +88,23 @@ export async function searchInternetImages(query: string, limit: number = 15): P
 }
 
 /**
+ * Busca a imagem oficial de um produto pelo código de barras via Open Facts.
+ *
+ * Usa o novo endpoint `/Images/barcode-search` do backend que consulta
+ * Open Food Facts, Open Beauty Facts e Open Products Facts.
+ * Retorna null se o código não for encontrado em nenhuma base.
+ */
+export async function searchByBarcode(barcode: string): Promise<ImageSearchResult | null> {
+  if (!barcode?.trim()) return null;
+  try {
+    const result = await apiGetOrThrow<ImageSearchResult>("/Images/barcode-search", { barcode });
+    return result ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Cria a URL de proxy para fazer download de uma imagem externa.
  */
 export function buildImageProxyUrl(url: string): string {

@@ -4,10 +4,11 @@ import { Button } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
 import { Loader2, Search, Globe, AlertTriangle } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
-import { searchInternetImages, type ImageSearchResult } from "@/services/images.service";
+import { type ImageSearchResult, searchByBarcode } from "@/services/images.service";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { getSearchFallbacks } from "@/features/products/lib/searchFallbacks";
+import { searchBingClientSide } from "@/features/products/lib/bingClientSearch";
 
 /**
  * Propriedades para o componente ProductImageSearchModal.
@@ -29,8 +30,20 @@ type ProductImageSearchModalProps = {
  * ProductImageSearchModal
  *
  * Componente modal desacoplado para consulta e seleção de imagens da internet.
- * Realiza buscas baseadas no nome e código de barras do produto e permite
- * selecionar a imagem desejada aplicando as regras de otimização.
+ *
+ * ## Arquitetura de busca (client-side)
+ *
+ * A busca de imagens é feita do **navegador do usuário**, não do servidor:
+ *
+ * 1. **Bing (client-side):** A raspagem HTML do Bing passa pelo proxy da Vercel
+ *    (`/bing-images/...`), usando IPs do edge distribuídos globalmente. Isso
+ *    elimina o bloqueio que o Bing faz a IPs de datacenter, que era a causa raiz
+ *    das buscas retornando vazio em produção.
+ *
+ * 2. **Open Facts (backend):** A busca por código de barras continua no backend
+ *    porque Open Food/Beauty/Products Facts não bloqueia IPs de servidor.
+ *
+ * Os resultados são combinados e deduplicados antes de exibir.
  */
 export function ProductImageSearchModal({
   productName,
@@ -47,21 +60,36 @@ export function ProductImageSearchModal({
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [submittingUrl, setSubmittingUrl] = useState<string | null>(null);
 
-  const fetchImages = useCallback(async (query: string, currentLimit: number) => {
+  const fetchImages = useCallback(async (query: string, currentLimit: number, barcodeToSearch?: string) => {
     setIsLoading(true);
     try {
-      const candidates = getSearchFallbacks(query);
-      let found: ImageSearchResult[] = [];
+      const seenUrls = new Set<string>();
+      const combined: ImageSearchResult[] = [];
 
+      const addResult = (item: ImageSearchResult) => {
+        if (seenUrls.has(item.imageUrl)) return;
+        seenUrls.add(item.imageUrl);
+        combined.push(item);
+      };
+
+      // 1. Busca por código de barras (backend — Open Facts, confiável)
+      if (barcodeToSearch) {
+        const barcodeResult = await searchByBarcode(barcodeToSearch);
+        if (barcodeResult) addResult(barcodeResult);
+      }
+
+      // 2. Busca no Bing (client-side via proxy Vercel)
+      const candidates = getSearchFallbacks(query);
       for (const term of candidates) {
-        const results = await searchInternetImages(term, currentLimit);
-        if (Array.isArray(results) && results.length > 0) {
-          found = results;
+        if (combined.length >= currentLimit) break;
+        const bingResults = await searchBingClientSide(term, currentLimit - combined.length);
+        if (bingResults.length > 0) {
+          bingResults.forEach(addResult);
           break;
         }
       }
 
-      setImages(found);
+      setImages(combined);
     } catch (error) {
       console.error("Erro ao buscar imagens:", error);
       toast({
@@ -79,13 +107,12 @@ export function ProductImageSearchModal({
   useEffect(() => {
     if (isOpen) {
       const initialTerm = productName?.trim() || barcode?.trim() || "";
-      const searchPayload = `${productName || ""} ${barcode || ""}`.trim() || initialTerm;
       setSearchTerm(initialTerm);
       setLimit(6);
       setSelectedUrl(null);
       setSubmittingUrl(null);
-      if (searchPayload) {
-        void fetchImages(searchPayload, 6);
+      if (initialTerm) {
+        void fetchImages(initialTerm, 6, barcode?.trim());
       }
     } else {
       setImages([]);
