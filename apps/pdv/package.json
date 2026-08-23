@@ -1,7 +1,7 @@
 {
   "name": "@workspace/pdv",
   "private": true,
-  "version": "1.0.157",
+  "version": "1.0.158",
   "type": "module",
   "engines": {
     "node": "24.x",

@@ -13,6 +13,7 @@ export * from "./components/context-menu";
 export * from "./components/date-field";
 export * from "./components/date-picker";
 export * from "./components/date-range-picker";
+export * from "./components/dev-environment-banner";
 export * from "./components/dialog";
 export * from "./components/dropdown-menu";
 export * from "./components/hover-card";
@@ -38,6 +39,7 @@ export * from "./components/toast";
 export * from "./components/toaster";
 export * from "./components/toggle";
 export * from "./components/tooltip";
+export * from "./lib/environment";
 export * from "./lib/utils";
 
 // Hooks que os componentes deste pacote consomem.

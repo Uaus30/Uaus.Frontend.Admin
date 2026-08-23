@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient, STALE_TIME, useGetMe } from "@workspace/api-client-react";
 import { Toaster } from "@workspace/ui";
 import { TooltipProvider } from "@workspace/ui";
+import { DevEnvironmentBanner } from "@workspace/ui";
 import { CloudOff, Loader2 } from "lucide-react";
 import { useConnectivity } from "@/hooks/use-connectivity";
 import { useOfflineStore } from "@/stores/use-offline-store";
@@ -96,6 +97,7 @@ function Shell() {
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
       <OfflineBanner />
+      <DevEnvironmentBanner />
       <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
