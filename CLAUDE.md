@@ -234,3 +234,17 @@ push** quando houve alteração de comportamento, tela ou integração:
 - `buildCommand` no `vercel.json` aponta para o script do workspace hospedado.
 - `package.json` da raiz mantém `"build"` como fallback para o mesmo alvo.
 - `outputDirectory` mapeia a pasta final do Vite (`apps/admin/dist/public`).
+
+### Qual API o front chama — decide o host, não a branch
+
+O rewrite de `/api/` existe porque a API **não tem CORS**: o front só a alcança
+na mesma origem. Qual API ele alcança é escolhido pelo `has: host` do
+`vercel.json` — e não por um arquivo diferente em cada branch. Assim o
+`vercel.json` fica idêntico na `dev` e na `main`, e o merge nunca leva a API de
+dev para produção nem gera conflito recorrente nesse arquivo.
+
+A ordem das regras é deliberada: **só** `admin.uaus.com.br` (e `pdv.uaus.com.br`
+no `apps/pdv/vercel.json`) cai em `api.uaus.com.br`; todo o resto — `*-dev`,
+previews de branch, `*.vercel.app` — cai em `api-dev.uaus.com.br`. O padrão
+seguro é dev, não produção. Invertendo a ordem ou apagando o `has`, qualquer
+preview passa a gravar venda no banco da loja.

@@ -5,7 +5,12 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
+      "has": [{ "type": "host", "value": "pdv\\.uaus\\.com\\.br" }],
       "destination": "https://api.uaus.com.br/$1"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "https://api-dev.uaus.com.br/$1"
     },
     {
       "source": "/(.*)",
