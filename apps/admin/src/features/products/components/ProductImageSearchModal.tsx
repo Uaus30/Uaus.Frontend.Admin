@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { searchInternetImages, type ImageSearchResult } from "@/services/images.service";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
+import { getSearchFallbacks } from "@/features/products/lib/searchFallbacks";
 
 /**
  * Propriedades para o componente ProductImageSearchModal.
@@ -49,8 +50,18 @@ export function ProductImageSearchModal({
   const fetchImages = useCallback(async (query: string, currentLimit: number) => {
     setIsLoading(true);
     try {
-      const results = await searchInternetImages(query, currentLimit);
-      setImages(Array.isArray(results) ? results : []);
+      const candidates = getSearchFallbacks(query);
+      let found: ImageSearchResult[] = [];
+
+      for (const term of candidates) {
+        const results = await searchInternetImages(term, currentLimit);
+        if (Array.isArray(results) && results.length > 0) {
+          found = results;
+          break;
+        }
+      }
+
+      setImages(found);
     } catch (error) {
       console.error("Erro ao buscar imagens:", error);
       toast({

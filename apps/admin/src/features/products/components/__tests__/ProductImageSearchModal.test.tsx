@@ -122,4 +122,21 @@ describe("ProductImageSearchModal", () => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
+
+  it("getSearchFallbacks gera alternativas válidas para diminutivos, ruídos de ERP e código de barras", async () => {
+    const { getSearchFallbacks } = await import("@/features/products/lib/searchFallbacks");
+
+    const rodinho = getSearchFallbacks("RODINHO DE PIA 0986333180612");
+    expect(rodinho).toContain("RODINHO DE PIA 0986333180612");
+    expect(rodinho).toContain("RODINHO DE PIA");
+    expect(rodinho).toContain("RODO DE PIA");
+
+    const farmax = getSearchFallbacks("PF.FARMAX ACETONA AZUL 100ML UN");
+    expect(farmax).toContain("PF.FARMAX ACETONA AZUL 100ML UN");
+    expect(farmax).toContain("FARMAX ACETONA AZUL 100ML");
+
+    const presilha = getSearchFallbacks("GRAMPOS DE CABELO ESTRELA prisilia");
+    expect(presilha).toContain("GRAMPOS DE CABELO ESTRELA prisilia");
+    expect(presilha).toContain("GRAMPOS DE CABELO ESTRELA presilha");
+  });
 });
