@@ -48,8 +48,9 @@ export default defineConfig({
         /**
          * O `sizes` precisa bater com o pixel real do arquivo.
          *
-         * Declarar 512x512 apontando para o `logo-icon.png` (que tem 126x132)
-         * fazia o Chrome DESCARTAR o icone e avisar no console. Sem icone valido
+         * Declarar 512x512 apontando para o `logo-icon.png` (o logo das telas,
+         * que na epoca tinha 126x132 e hoje tem 492x512 — nunca 512x512) fazia
+         * o Chrome DESCARTAR o icone e avisar no console. Sem icone valido
          * de 192px ou mais, o PDV nao passa no criterio de instalacao: o
          * `display: "standalone"` logo acima vira letra morta, porque nao ha
          * como instalar o caixa como aplicativo.
