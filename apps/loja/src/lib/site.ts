@@ -21,9 +21,20 @@ export const SITE_CONTACT = {
   addressDistrict: "Centro, Tapira-PR",
   landmark: "Pertinho do Correios",
   cnpjLine: "CNPJ: 64.958.682/0001-22",
-  mapsShareUrl: "https://share.google/ryVm9lKIGuVFk0sN2",
-  mapsEmbedUrl:
-    "https://maps.google.com/maps?q=Rua+Paranagu%C3%A1,+663,+centro,+Tapira-PR&t=&z=16&ie=UTF8&iwloc=&output=embed",
+  /**
+   * Ficha da loja no Google Maps — abre o cartão do estabelecimento (nome,
+   * fotos, horário, avaliações, "Como chegar"), não um alfinete solto no
+   * endereço. O `cid` é o identificador permanente do lugar (0x864f37992156cdb8
+   * em hexadecimal, como aparece na URL longa do Maps). Não troque pela URL que
+   * o navegador mostra na barra: ela carrega token de sessão (`g_ep`, `entry`)
+   * e enquadramento de câmera, que vencem — esta forma curta não vence.
+   */
+  mapsPlaceUrl: "https://maps.google.com/?cid=9678015255071346104",
+  /**
+   * O mesmo lugar dentro de um `<iframe>`. `output=embed` é o modo público do
+   * Maps, sem chave de API; o Google redireciona para /maps/embed com o cid.
+   */
+  mapsEmbedUrl: "https://maps.google.com/maps?cid=9678015255071346104&output=embed",
 } as const;
 
 /** Tagline longa do rodapé, verbatim do site original. */

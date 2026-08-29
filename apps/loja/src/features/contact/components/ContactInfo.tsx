@@ -30,7 +30,7 @@ export function ContactInfo() {
       value: `${company?.addressLine || SITE_CONTACT.addressLine} — ${
         company?.cityState || SITE_CONTACT.addressDistrict
       }`,
-      href: SITE_CONTACT.mapsShareUrl,
+      href: SITE_CONTACT.mapsPlaceUrl,
     },
   ];
 
