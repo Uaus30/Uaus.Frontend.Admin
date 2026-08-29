@@ -32,7 +32,7 @@ export function SiteFooter() {
             <div className="flex items-center gap-3">
               <img src={logoUrl} alt="" className="h-12 w-12 object-contain" />
               <div className="flex flex-col">
-                <span className="font-display text-3xl leading-none font-extrabold text-primary">
+                <span className="font-display text-3xl leading-none font-black text-primary">
                   {SITE_NAME}
                 </span>
                 <span className="font-display text-xs font-bold tracking-[0.2em] text-white/80">

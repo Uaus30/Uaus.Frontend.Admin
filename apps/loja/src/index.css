@@ -83,8 +83,8 @@
  * mapear --radius-* como o admin faz mudaria esses três tamanhos de uma vez.
  */
 :root {
-  --app-font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
-  --app-font-display: "Archivo", var(--app-font-sans);
+  --app-font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --app-font-display: "Outfit", var(--app-font-sans);
 
   --button-outline: rgba(0, 0, 0, 0.1);
   --badge-outline: rgba(0, 0, 0, 0.05);
@@ -171,23 +171,21 @@ body {
 }
 
 /*
- * Títulos em Archivo, corpo em Inter.
+ * Títulos em Outfit, corpo em Plus Jakarta Sans.
  *
  * No site original as classes `font-display`/`font-body` eram usadas mas nunca
  * foram definidas (bug documentado no requirements.md de lá) — só h1–h6 saíam
  * na fonte de display. Aqui as utilities existem de verdade via @theme, então
  * o wordmark e os preços também usam a de display.
  *
- * A troca do par (era Outfit + Plus Jakarta Sans) é de 29/08/2026: o corpo
- * virou Inter porque o texto pequeno do site — nav 14px em caixa alta,
- * categoria 12px, preço, rodapé — é onde a Plus Jakarta Sans embola, e a Inter
- * foi desenhada para essa faixa. Os títulos viraram Archivo, uma grotesca com
- * peso editorial, no lugar da redondeza da Outfit.
+ * Em 29/08/2026 o par chegou a virar Archivo + Inter e **foi revertido no mesmo
+ * dia, a pedido do dono**: a redondeza da Outfit é a marca, não um acidente. Se
+ * a ideia de trocar a fonte voltar, esta é a decisão que ela precisa reabrir.
  *
- * Só os pesos usados são carregados (Archivo 600/700/800, Inter 400..700);
- * antes se carregava Outfit 400→900 e se usava três. E `font-black` (900) não
- * existe mais no projeto: os dois CTAs de WhatsApp pediam 900 numa família
- * carregada só até 700, então o destaque que o autor quis nunca aconteceu.
+ * O que NÃO voltou é `font-black` fora dos títulos: 900 só existe na Outfit.
+ * Nos dois CTAs de WhatsApp, que são `<a>` e por isso usam a fonte de corpo, o
+ * `font-black` renderizava 700 — a Plus Jakarta Sans é carregada até esse peso.
+ * Lá ficou `font-bold`, que é o que sempre desenhou na tela.
  */
 h1,
 h2,

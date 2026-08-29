@@ -41,17 +41,30 @@ export const SITE_CONTACT = {
 export const SITE_FOOTER_TAGLINE =
   "Tudo o que você precisa por no máximo R$ 30,00. Qualidade e preço baixo em um só lugar.";
 
+/** Uma regra de horário: para quais dias vale e em que janelas a loja abre. */
+export interface OpeningHoursRule {
+  days: string;
+  hours: string;
+}
+
 /**
- * Horário de funcionamento exibido na faixa do cabeçalho — **PENDENTE**.
+ * Horário de funcionamento da loja, informado pelo dono em 29/08/2026.
  *
  * Para comércio local, horário é o dado mais consultado depois do endereço, e
- * a ausência dele é lida como "site abandonado". Ele não existe em nenhum
- * sistema: o `StorefrontCompanyDto` (nome, endereço, telefone, CNPJ) não tem o
- * campo, e inventar horário de loja física é pior do que omitir — manda o
- * cliente para porta fechada.
+ * a ausência dele é lida como "site abandonado". Ele NÃO vem da API: o
+ * `StorefrontCompanyDto` (nome, endereço, telefone, CNPJ) não tem o campo, e
+ * este arquivo é o cadastro enquanto isso for verdade. Mudou o horário da
+ * loja? É aqui, e vai junto com um deploy.
  *
- * Enquanto for `undefined`, a faixa mostra o ponto de referência no lugar.
- * Preenchido (ex.: "Seg–Sex 9h–18h · Sáb 9h–13h"), ele aparece sozinho, e a
- * terceira linha do cartão do `VisitBanner` passa a exibi-lo também.
+ * É lista, e não uma frase só, porque o sábado tem duas regras — a diferença
+ * entre o 1º/2º sábado e os demais é justamente o que o cliente precisa
+ * conferir antes de sair de casa, e ela se perde quando vira texto corrido.
+ *
+ * Quem exibe: o cartão do `VisitBanner` na home e a coluna de informações da
+ * página de contato.
  */
-export const SITE_OPENING_HOURS: string | undefined = undefined;
+export const SITE_OPENING_HOURS: readonly OpeningHoursRule[] = [
+  { days: "Segunda a sexta", hours: "8h30 às 12h e 13h30 às 18h" },
+  { days: "1º e 2º sábado do mês", hours: "8h30 às 18h" },
+  { days: "Demais sábados", hours: "8h30 às 13h" },
+];

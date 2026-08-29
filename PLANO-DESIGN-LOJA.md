@@ -8,23 +8,24 @@
 > **STATUS (29/08/2026, mesmo dia): Fases 0 a 6 executadas.** O dono escolheu a
 > Opção A da Fase 1 (**Archivo + Inter**) e mandou executar tudo.
 >
-> Duas coisas ficaram de fora, e nenhuma por esquecimento:
+> Uma coisa ficou de fora, e não por esquecimento:
 >
 > - **Ladrilhos de categoria (Fase 4, item 3).** Era condicional — "depende de a
 >   busca aceitar categoria". Não aceita: `/Storefront/products?search=BELEZA`
 >   devolve zero para o produto de categoria "BELEZA EM GERAL" (só nome e
 >   descrição entram na busca). Filtrar por categoria exige mudança no
 >   `StorefrontController` do repo vizinho `Uaus.Backend.Api`.
-> - **Horário de funcionamento.** Continua não existindo em sistema nenhum, e
->   inventar horário manda cliente para porta fechada. A faixa do cabeçalho e o
->   cartão do `VisitBanner` já têm o lugar pronto: basta preencher
->   `SITE_OPENING_HOURS` em `apps/loja/src/lib/site.ts` e os dois passam a
->   mostrá-lo.
 >
 > Verificado: `npm test` (1.474 testes, 7 workspaces), `npm run typecheck:loja`,
 > `npm run lint` (0 erros), `npm run build:loja`, e smoke test das quatro telas
 > em `localhost:5175` — home, vitrine, detalhe do produto e contato, com
-> auditoria de contraste medida no DOM (tabela no fim deste arquivo).
+> auditoria de contraste medida no DOM (tabela na seção 4).
+>
+> **Segunda rodada, no mesmo dia — o dono reverteu parte da Fase 1 e da Fase 3.**
+> O que voltou ao estado anterior, e o que ficou, está na seção 3.5. Em uma
+> linha: a **identidade** voltou (Outfit, cabeçalho laranja, logo com glow), o
+> **contraste do conteúdo** ficou. E o horário de funcionamento deixou de ser
+> pendência: chegou do dono e está em `SITE_OPENING_HOURS`.
 
 ---
 
@@ -326,6 +327,58 @@ mudam tela, então o push só sai depois do smoke test descrito acima.
 
 ---
 
+## 3.5. Segunda rodada — o que o dono reverteu, e por quê
+
+Depois de ver o resultado, o dono pediu a identidade de volta. O pedido tem um
+argumento que o plano original não tinha: **a fachada física da loja é
+laranja**, e o cabeçalho é a fachada do site. Isso não é gosto — é
+continuidade de marca entre a rua e a tela, e vale mais que a régua da WCAG num
+elemento que carrega três palavras de navegação.
+
+| O que | Estado |
+| ----- | ------ |
+| Fonte Archivo + Inter | **Revertida** para Outfit + Plus Jakarta Sans |
+| `font-black` (900) nos títulos | **Voltou** — só na Outfit, que tem o peso |
+| Cabeçalho branco de 72px | **Revertido** para laranja de 96px |
+| Logo de 44px sem halo | **Revertida** para 80px com glow e `scale-110` |
+| Faixa de endereço acima do cabeçalho | **Movida para baixo** dele, em fundo claro |
+| CTA de WhatsApp no cabeçalho | **Ficou**, agora com contorno branco |
+| Tudo da Fase 2 fora do cabeçalho | **Ficou** (preço, mastheads, rodapé, botões) |
+| Fases 4, 5 e 6 | **Ficaram** inteiras |
+
+Três coisas sobreviveram à reversão do cabeçalho porque não custam identidade
+nenhuma: a nav em **branco puro** (era `white/80`, 2,20:1 — agora 2,69:1, o
+teto de qualquer texto branco sobre esse laranja), o **anel de foco branco**
+para navegação por teclado, e o **CTA de WhatsApp**, que antes só existia no
+rodapé, no contato e no detalhe do produto.
+
+O que continua reprovando na WCAG AA, com o dono ciente: **texto branco sobre o
+laranja da marca, dentro do cabeçalho** (2,69:1). É o preço da fachada, e está
+restrito a nav, wordmark e tagline. Nenhum outro texto do site depende disso.
+
+`font-black` **não** voltou nos dois CTAs de WhatsApp: são `<a>`, usam a fonte
+de corpo, e a Plus Jakarta Sans é carregada até 700 — lá o 900 nunca desenhou.
+
+### Horário de funcionamento — resolvido
+
+Informado pelo dono em 29/08/2026 e agora em `apps/loja/src/lib/site.ts`
+(`SITE_OPENING_HOURS`), como **lista de regras**, não frase corrida: o sábado
+tem duas, e a diferença entre elas é justamente o que o cliente confere antes
+de sair de casa.
+
+| Dias | Horário |
+| ---- | ------- |
+| Segunda a sexta | 8h30 às 12h e 13h30 às 18h |
+| 1º e 2º sábado do mês | 8h30 às 18h |
+| Demais sábados | 8h30 às 13h |
+
+Exibido no cartão do `VisitBanner` (home) e na coluna de informações da página
+de contato. **Não** entrou no JSON-LD do `index.html`: o
+`openingHoursSpecification` do schema.org não sabe dizer "primeiro e segundo
+sábado do mês", e publicar sábado como 8h30–13h faria o Google anunciar loja
+fechada num dia em que ela está aberta até as 18h. Se o horário de sábado
+uniformizar, entra.
+
 ## 4. Resultado — contraste medido no DOM depois da execução
 
 Números tirados do estilo computado das telas rodando, não do código. A régua
@@ -333,8 +386,7 @@ da WCAG AA é 4,5:1 para texto normal.
 
 | Elemento | Antes | Depois |
 | -------- | ----- | ------ |
-| Nav do cabeçalho, item inativo | 2,20:1 ✗ | **4,70:1** ✓ |
-| Nav do cabeçalho, item ativo | 2,69:1 ✗ | **17,87:1** ✓ |
+| Nav do cabeçalho, item inativo | 2,20:1 ✗ | 2,69:1 ✗ (ver 3.5) |
 | `<h1>` dos mastheads | 2,69:1 ✗ | **17,87:1** ✓ |
 | Subtítulo dos mastheads | 2,43:1 ✗ | **9,10:1** ✓ |
 | **Preço no card e no detalhe** | 2,69:1 ✗ | **4,79:1** ✓ |

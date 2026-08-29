@@ -40,7 +40,7 @@ export function FeaturedProducts() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <h2 className="text-3xl font-extrabold text-foreground md:text-4xl">Novidades na loja</h2>
+            <h2 className="text-3xl font-black text-foreground md:text-4xl">Novidades na loja</h2>
             <p className="mt-3 text-muted-foreground">
               Uma amostra do que está nas prateleiras agora — e nenhum passa de R$ 30,00.
             </p>

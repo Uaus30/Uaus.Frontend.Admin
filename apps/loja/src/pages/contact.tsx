@@ -10,7 +10,7 @@ export default function ContactPage() {
     <div className="min-h-screen pb-24">
       <section className="mb-14 bg-foreground pt-16 pb-14 text-center">
         <div className="mx-auto max-w-3xl px-4">
-          <h1 className="text-3xl font-extrabold text-white md:text-5xl">
+          <h1 className="text-3xl font-black text-white md:text-5xl">
             Fale <span className="text-primary">Conosco</span>
           </h1>
           <p className="mt-4 text-white/70">

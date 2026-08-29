@@ -1,7 +1,7 @@
-import { Mail, MapPin } from "lucide-react";
+import { Clock, Mail, MapPin } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useGetStorefrontCompany } from "@workspace/api-client-react";
-import { SITE_CONTACT } from "@/lib/site";
+import { SITE_CONTACT, SITE_OPENING_HOURS } from "@/lib/site";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
 /**
@@ -59,6 +59,21 @@ export function ContactInfo() {
           </li>
         ))}
       </ul>
+
+      <div className="mt-6 rounded-2xl border border-border bg-surface p-5">
+        <p className="flex items-center gap-2 font-bold text-foreground">
+          <Clock aria-hidden className="h-5 w-5 text-primary-strong" />
+          Horário de funcionamento
+        </p>
+        <dl className="mt-4 space-y-2">
+          {SITE_OPENING_HOURS.map((rule) => (
+            <div key={rule.days} className="flex flex-wrap justify-between gap-x-4 text-sm">
+              <dt className="font-medium text-foreground">{rule.days}</dt>
+              <dd className="text-muted-foreground">{rule.hours}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
 
       <a
         href={buildWhatsAppUrl("Olá! Vim pelo site da Uaus.")}

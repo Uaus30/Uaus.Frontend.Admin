@@ -39,7 +39,7 @@ export function HeroSection() {
           Nova loja em Tapira-PR
         </span>
 
-        <h1 className="mt-7 text-4xl leading-[1.12] font-extrabold text-balance text-foreground md:text-6xl">
+        <h1 className="mt-7 text-4xl leading-[1.12] font-black text-balance text-foreground md:text-6xl">
           Chegou em Tapira...
           <span className="mt-3 block text-primary-strong">Uma loja com tudo por no máximo 30 reais!</span>
         </h1>

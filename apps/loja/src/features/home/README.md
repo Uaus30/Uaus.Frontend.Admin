@@ -25,9 +25,11 @@ regras abaixo.
   regressiva para 07/03/2026 e o componente devolvia `null` depois da data —
   desde março a seção renderizava um cartão de evento passado. `VisitBanner`
   mantém o visual (cartão laranja sobre faixa escura) com conteúdo perene:
-  endereço e a promessa do preço máximo. **Pendência:** horário de
-  funcionamento, que não existe em nenhum sistema; o cartão já tem a terceira
-  linha pronta, condicionada a `SITE_OPENING_HOURS` (ver `lib/site.ts`).
+  endereço, o horário de funcionamento e a promessa do preço máximo. O horário
+  chegou do dono em 29/08/2026 e vive em `SITE_OPENING_HOURS` (`lib/site.ts`),
+  não na API — o `StorefrontCompanyDto` não tem o campo. Ele vem em segundo no
+  cartão, entre "onde" e "quanto custa": é a ordem em que a decisão de sair de
+  casa acontece.
 - **Carrossel pausa no hover e aceita swipe** — melhorias sobre o original,
   que só tinha autoplay de 5 s. A justificativa está no JSDoc de
   `hooks/useCarousel.ts`; o timer reinicia após interação manual para o

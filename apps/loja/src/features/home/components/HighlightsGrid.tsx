@@ -20,7 +20,7 @@ export function HighlightsGrid() {
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-primary-strong">
             <Star className="h-10 w-10" />
           </div>
-          <h3 className="mt-6 text-2xl font-extrabold">MÁXIMO 30 REAIS</h3>
+          <h3 className="mt-6 text-2xl font-black">MÁXIMO 30 REAIS</h3>
           <p className="mt-3 text-white/90">
             Nenhum produto da loja passa de R$ 30,00. É a regra da casa, sem exceção e sem letra miúda.
           </p>

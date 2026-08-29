@@ -31,7 +31,7 @@ export function StoreCarousel() {
   return (
     <section className="bg-background py-20">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-extrabold text-foreground md:text-4xl">Conheça nossa loja</h2>
+        <h2 className="text-3xl font-black text-foreground md:text-4xl">Conheça nossa loja</h2>
         <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
           Um ambiente preparado para receber você com bom atendimento e muitos produtos.
         </p>

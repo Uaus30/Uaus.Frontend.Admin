@@ -1,19 +1,22 @@
+import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Clock, MapPin, ShoppingBag } from "lucide-react";
 import { SITE_CONTACT, SITE_OPENING_HOURS } from "@/lib/site";
 import storefrontPhoto from "@/assets/store/01_frente_loja.jpeg";
 
-/** Uma informação do cartão: ícone quadrado, rótulo e duas linhas de detalhe. */
+/** Uma informação do cartão: ícone quadrado, rótulo e as linhas de detalhe. */
 function InfoRow({
   icon: Icon,
   label,
   title,
-  lines,
+  lines = [],
+  children,
 }: {
   icon: typeof MapPin;
   label: string;
-  title: string;
-  lines: string[];
+  title?: string;
+  lines?: string[];
+  children?: ReactNode;
 }) {
   return (
     <div className="flex items-start gap-4">
@@ -22,15 +25,21 @@ function InfoRow({
       </div>
       <div>
         <p className="text-sm font-medium text-white/80">{label}</p>
-        <p className="font-semibold">{title}</p>
+        {title && <p className="font-semibold">{title}</p>}
         {lines.map((line) => (
           <p key={line} className="text-sm text-white/90">
             {line}
           </p>
         ))}
+        {children}
       </div>
     </div>
   );
+}
+
+/** Separador entre as informações do cartão. */
+function Divider() {
+  return <div className="my-4 h-px bg-white/20" aria-hidden />;
 }
 
 /**
@@ -42,9 +51,10 @@ function InfoRow({
  * O cartão era um gradiente `primary → orange-600`; virou o laranja sólido que
  * escreve (`primary-strong`), porque é ele que carrega texto branco aqui.
  *
- * A terceira linha só aparece quando o horário de funcionamento existir — ver
- * `SITE_OPENING_HOURS`, que segue pendente por não haver o dado em sistema
- * nenhum.
+ * O horário de funcionamento entrou no cartão em 29/08/2026, informado pelo
+ * dono (`SITE_OPENING_HOURS`), e vem em segundo — entre "onde" e "quanto
+ * custa". É a ordem em que a decisão de sair de casa acontece: sei onde fica,
+ * sei se está aberto, aí sim penso no preço.
  */
 export function VisitBanner() {
   const reduceMotion = useReducedMotion();
@@ -66,7 +76,7 @@ export function VisitBanner() {
           className="flex flex-col items-center gap-8 rounded-3xl bg-primary-strong p-8 shadow-lg md:flex-row md:justify-between md:p-12"
         >
           <div className="max-w-xl text-center md:text-left">
-            <h2 className="text-3xl font-extrabold md:text-4xl">Venha conhecer a loja!</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">Venha conhecer a loja!</h2>
             <p className="mt-4 text-lg text-white/90">
               Milhares de produtos esperando por você — e nenhum deles passa de R$ 30,00.
             </p>
@@ -80,7 +90,20 @@ export function VisitBanner() {
               lines={[SITE_CONTACT.addressDistrict, SITE_CONTACT.landmark]}
             />
 
-            <div className="my-4 h-px bg-white/20" aria-hidden />
+            <Divider />
+
+            <InfoRow icon={Clock} label="Horário">
+              <dl className="mt-0.5 space-y-1.5">
+                {SITE_OPENING_HOURS.map((rule) => (
+                  <div key={rule.days}>
+                    <dt className="text-sm font-semibold">{rule.days}</dt>
+                    <dd className="text-sm text-white/90">{rule.hours}</dd>
+                  </div>
+                ))}
+              </dl>
+            </InfoRow>
+
+            <Divider />
 
             <InfoRow
               icon={ShoppingBag}
@@ -88,13 +111,6 @@ export function VisitBanner() {
               title="R$ 30,00 em tudo"
               lines={["Sem pegadinha e sem letra miúda"]}
             />
-
-            {SITE_OPENING_HOURS && (
-              <>
-                <div className="my-4 h-px bg-white/20" aria-hidden />
-                <InfoRow icon={Clock} label="Quando" title={SITE_OPENING_HOURS} lines={[]} />
-              </>
-            )}
           </div>
         </motion.div>
       </div>
