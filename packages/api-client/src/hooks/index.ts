@@ -26,3 +26,4 @@ export * from "./financial";
 export * from "./product-labels";
 export * from "./coupons";
 export * from "./campaigns";
+export * from "./storefront";

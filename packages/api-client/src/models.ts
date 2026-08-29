@@ -1461,3 +1461,79 @@ export interface ChangePasswordPayload {
 
 /** Grade de variação. O `values` é a lista de opções (P, M, G). */
 export type SaveGradePayload = Omit<GradeDto, CamposDoServidor>;
+
+// ---------------------------------------------------------------------------
+// Vitrine pública do site (/Storefront) — endpoints ANÔNIMOS.
+//
+// Estes DTOs são deliberadamente mais pobres que os do admin: o backend projeta
+// tipos próprios (DTOs/Storefront) sem custo, estoque, ids internos e
+// auditoria, porque o consumidor é visitante não autenticado. Não "complete"
+// estes tipos com campos dos DTOs internos — se o campo não está aqui, é
+// porque ele não pode sair para o público.
+// ---------------------------------------------------------------------------
+
+/** Etiqueta pública exibida no card e no detalhe (só as com `Tag.IsPublic`). */
+export interface StorefrontTagDto {
+  name: string;
+  color: string;
+}
+
+/** Imagem da galeria do detalhe, com a URL do S3 já resolvida. */
+export interface StorefrontImageDto {
+  url: string;
+  displayOrder: number;
+}
+
+/**
+ * Card da vitrine — um por grupo de produto com "Exibir no site" ligado.
+ *
+ * O card é o GRUPO (`ProductGroup.ShowOnSite`): produto simples é grupo de um;
+ * grupo com variações vira um card só com faixa de preço (`price`..`priceMax`).
+ */
+export interface StorefrontProductDto {
+  productGroupId: number;
+  name: string;
+  description?: string | null;
+  /** Menor preço entre os produtos ativos do grupo. */
+  price: number;
+  /** Maior preço; ausente quando igual ao `price` (o front esconde o "A partir de"). */
+  priceMax?: number | null;
+  hasVariations: boolean;
+  categoryName: string;
+  /** Imagem principal do card; ausente quando o produto não tem foto. */
+  imageUrl?: string | null;
+  tags: StorefrontTagDto[];
+}
+
+/** Variação ativa exibida no detalhe ("Caneca 300ml — R$ 25,00"). */
+export interface StorefrontVariationDto {
+  name: string;
+  price: number;
+}
+
+/** Detalhe de um grupo exibível: galeria completa, etiquetas e variações. */
+export interface StorefrontProductDetailDto {
+  productGroupId: number;
+  name: string;
+  description?: string | null;
+  price: number;
+  priceMax?: number | null;
+  hasVariations: boolean;
+  categoryName: string;
+  images: StorefrontImageDto[];
+  tags: StorefrontTagDto[];
+  /** Vazia quando o grupo não tem variações. */
+  variations: StorefrontVariationDto[];
+}
+
+/**
+ * Identidade da loja para rodapé/contato do site. Campos vazios significam
+ * "não configurado" — o site cai no fallback hardcoded dele.
+ */
+export interface StorefrontCompanyDto {
+  storeName: string;
+  addressLine: string;
+  cityState: string;
+  phone: string;
+  document: string;
+}
