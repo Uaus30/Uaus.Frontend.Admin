@@ -1,0 +1,16 @@
+{
+  "//": "tsconfig proprio da funcao de borda. Ver README do app, secao 'Preview do link no WhatsApp'.",
+  "include": ["**/*", "../server/**/*"],
+  "exclude": ["**/*.test.ts", "../server/**/*.test.ts"],
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["esnext", "dom"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": [],
+    "strict": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  }
+}

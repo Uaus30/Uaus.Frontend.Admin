@@ -55,6 +55,14 @@ navegador**:
   `index.html` publicado com as tags trocadas.
 - `server/link-preview.ts` — o que monta o cartão (título, preço, foto, escape)
   e o que injeta no `<head>`. É puro e testado; a função de borda é só a casca.
+- `api/tsconfig.json` — o `tsconfig` que a Vercel enxerga a partir da função, e
+  ele existe por um motivo concreto: o `tsconfig.json` do app é escrito para o
+  Vite (`allowImportingTsExtensions`, `types: ["vite/client"]`,
+  `customConditions: ["workspace"]`) e essas opções reprovam uma compilação que
+  emite — foi o que derrubou o primeiro deploy. Por isso também **nada em
+  `api/` e `server/` importa do monorepo**, nem tipo: sem `@workspace/*`, o
+  `tsconfig` daqui fica trivial e portável. O `npm run typecheck --workspace=@workspace/loja`
+  roda os dois projetos, então esse código continua coberto.
 
 O `vercel.json` desvia para a função **apenas** os user-agents de preview
 (`WhatsApp`, `facebookexternalhit`, Telegram, Slack…): o visitante comum

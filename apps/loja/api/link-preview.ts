@@ -51,8 +51,14 @@ async function fetchWithTimeout(url: string, accept: string): Promise<Response |
  * hosts aqui criaria um segundo lugar para errar — e o erro apareceria como
  * preço de dev no compartilhamento de produção.
  */
-async function fetchPreviewProduct(origin: string, productGroupId: number): Promise<PreviewProduct | undefined> {
-  const response = await fetchWithTimeout(`${origin}/api/Storefront/products/${productGroupId}`, "application/json");
+async function fetchPreviewProduct(
+  origin: string,
+  productGroupId: number,
+): Promise<PreviewProduct | undefined> {
+  const response = await fetchWithTimeout(
+    `${origin}/api/Storefront/products/${productGroupId}`,
+    "application/json",
+  );
   if (!response) return undefined;
 
   try {
