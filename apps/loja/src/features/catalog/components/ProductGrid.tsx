@@ -46,7 +46,10 @@ export function ProductGrid({ products, hasNextPage, isFetchingNextPage, fetchNe
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      {/* Uma coluna a menos que antes em cada faixa: a grade divide a largura
+          com a lista de filtros a partir de `lg`, e manter cinco cards deixava
+          a foto menor que a miniatura do card. */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
           <ProductCard key={product.productGroupId} product={product} />
         ))}

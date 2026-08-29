@@ -3,8 +3,11 @@ import { Link, useParams } from "wouter";
 import { formatCurrency } from "@workspace/core";
 import { Skeleton } from "@workspace/ui";
 import { usePageTitle } from "@/lib/page-title";
+import { buildBreadcrumbJsonLd, useJsonLd } from "@/lib/structured-data";
+import { catalogPath, productDetailPath } from "@/routes";
 import { useProductDetail } from "@/features/catalog/hooks/useProductDetail";
 import { PriceTag } from "@/features/catalog/components/PriceTag";
+import { ProductBreadcrumb } from "@/features/catalog/components/ProductBreadcrumb";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
@@ -32,6 +35,34 @@ export default function ProductDetailPage() {
   const productGroupId = Number(params.id);
   const detail = useProductDetail(productGroupId);
   usePageTitle(detail.product ? `Uaus | ${detail.product.name}` : undefined);
+
+  // A mesma trilha da tela, em dados estruturados: é assim que o resultado do
+  // Google troca a URL crua pelo caminho legível. Fica na página, e não dentro
+  // do componente da trilha, porque é metadado do documento — o mesmo lugar de
+  // onde o `usePageTitle` escreve.
+  const product = detail.product;
+  useJsonLd(
+    "breadcrumb-produto",
+    product
+      ? buildBreadcrumbJsonLd(
+          [
+            {
+              name: product.departmentName,
+              path: catalogPath({ departmentId: product.departmentId }),
+            },
+            {
+              name: product.categoryName,
+              path: catalogPath({
+                departmentId: product.departmentId,
+                categoryId: product.categoryId,
+              }),
+            },
+            { name: product.name, path: productDetailPath(product.productGroupId) },
+          ],
+          window.location.origin,
+        )
+      : undefined,
+  );
 
   return (
     <div className="min-h-screen bg-surface pt-10 pb-24">
@@ -66,91 +97,93 @@ export default function ProductDetailPage() {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-10 md:grid-cols-2">
-              <ProductGallery
-                product={detail.product}
-                selectedIndex={detail.selectedImageIndex}
-                onSelect={detail.selectImage}
-                isLightboxOpen={detail.isLightboxOpen}
-                onLightboxChange={detail.setLightboxOpen}
-              />
+            <>
+              <ProductBreadcrumb product={detail.product} />
 
-              <div>
-                <p className="text-sm font-semibold tracking-wide text-primary uppercase">
-                  {detail.product.categoryName}
-                </p>
-                <h1 className="mt-2 text-3xl font-black text-foreground md:text-4xl">
-                  {detail.product.name}
-                </h1>
+              <div className="mt-6 grid gap-10 md:grid-cols-2">
+                <ProductGallery
+                  product={detail.product}
+                  selectedIndex={detail.selectedImageIndex}
+                  onSelect={detail.selectImage}
+                  isLightboxOpen={detail.isLightboxOpen}
+                  onLightboxChange={detail.setLightboxOpen}
+                />
 
-                {detail.product.tags.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {detail.product.tags.map((tag) => (
-                      <span
-                        key={tag.name}
-                        style={{ backgroundColor: tag.color }}
-                        className="rounded-full px-3 py-1 text-xs font-bold uppercase text-white"
-                      >
-                        {tag.name}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div>
+                  {/* A categoria era um texto solto aqui; agora ela é o segundo
+                    degrau da trilha, no topo da página, e leva à vitrine
+                    filtrada em vez de só informar. */}
+                  <h1 className="text-3xl font-black text-foreground md:text-4xl">{detail.product.name}</h1>
 
-                {detail.product.description && (
-                  <p className="mt-5 leading-relaxed text-muted-foreground">{detail.product.description}</p>
-                )}
-
-                <div className="mt-6 rounded-2xl border border-border bg-white p-5">
-                  <PriceTag price={detail.product.price} priceMax={detail.product.priceMax} size="lg" />
-                </div>
-
-                {detail.product.variations.length > 0 && (
-                  <div className="mt-6">
-                    <p className="font-bold text-foreground">Escolha uma opção:</p>
+                  {detail.product.tags.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {detail.product.variations.map((variation) => (
-                        <button
-                          key={variation.name}
-                          type="button"
-                          onClick={() =>
-                            detail.selectVariation(
-                              detail.selectedVariation === variation.name ? undefined : variation.name,
-                            )
-                          }
-                          aria-pressed={detail.selectedVariation === variation.name}
-                          className={
-                            detail.selectedVariation === variation.name
-                              ? "rounded-xl border-2 border-primary-strong bg-accent px-4 py-2 text-sm font-semibold text-primary"
-                              : "rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/60"
-                          }
+                      {detail.product.tags.map((tag) => (
+                        <span
+                          key={tag.name}
+                          style={{ backgroundColor: tag.color }}
+                          className="rounded-full px-3 py-1 text-xs font-bold uppercase text-white"
                         >
-                          {variation.name} — {formatCurrency(variation.price)}
-                        </button>
+                          {tag.name}
+                        </span>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {detail.reservationUrl && (
-                  <>
-                    <a
-                      href={detail.reservationUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 px-6 py-5 text-center font-bold text-white shadow-sm transition-colors duration-200 hover:bg-green-600 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 focus-visible:outline-none"
-                    >
-                      <WhatsAppIcon className="h-5 w-5" />
-                      RESERVAR PELO WHATSAPP
-                    </a>
-                    <p className="mt-3 text-center text-xs text-muted-foreground">
-                      A reserva abre no seu WhatsApp com o produto já preenchido — nada é enviado sem você
-                      confirmar.
-                    </p>
-                  </>
-                )}
+                  {detail.product.description && (
+                    <p className="mt-5 leading-relaxed text-muted-foreground">{detail.product.description}</p>
+                  )}
+
+                  <div className="mt-6 rounded-2xl border border-border bg-white p-5">
+                    <PriceTag price={detail.product.price} priceMax={detail.product.priceMax} size="lg" />
+                  </div>
+
+                  {detail.product.variations.length > 0 && (
+                    <div className="mt-6">
+                      <p className="font-bold text-foreground">Escolha uma opção:</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {detail.product.variations.map((variation) => (
+                          <button
+                            key={variation.name}
+                            type="button"
+                            onClick={() =>
+                              detail.selectVariation(
+                                detail.selectedVariation === variation.name ? undefined : variation.name,
+                              )
+                            }
+                            aria-pressed={detail.selectedVariation === variation.name}
+                            className={
+                              detail.selectedVariation === variation.name
+                                ? "rounded-xl border-2 border-primary-strong bg-accent px-4 py-2 text-sm font-semibold text-primary"
+                                : "rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/60"
+                            }
+                          >
+                            {variation.name} — {formatCurrency(variation.price)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {detail.reservationUrl && (
+                    <>
+                      <a
+                        href={detail.reservationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 px-6 py-5 text-center font-bold text-white shadow-sm transition-colors duration-200 hover:bg-green-600 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 focus-visible:outline-none"
+                      >
+                        <WhatsAppIcon className="h-5 w-5" />
+                        RESERVAR PELO WHATSAPP
+                      </a>
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        A reserva abre no seu WhatsApp com o produto já preenchido — nada é enviado sem você
+                        confirmar.
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>

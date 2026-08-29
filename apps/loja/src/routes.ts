@@ -35,6 +35,48 @@ export function productDetailPath(productGroupId: number): string {
 }
 
 /**
+ * Nomes dos parâmetros de filtro na URL da vitrine, em português como as rotas.
+ *
+ * Existem como constante, e não como string solta, porque três arquivos leem os
+ * mesmos parâmetros (a vitrine, a trilha do detalhe e os chips): string digitada
+ * em cada um diverge no primeiro rename, e o sintoma é filtro que some ao
+ * navegar — sem erro nenhum no caminho.
+ */
+export const CATALOG_PARAMS = {
+  department: "departamento",
+  category: "categoria",
+  search: "busca",
+} as const;
+
+/** Filtros da vitrine. Ausente = sem filtro; a URL é o estado. */
+export interface CatalogFilters {
+  departmentId?: number;
+  categoryId?: number;
+  search?: string;
+}
+
+/** Query string dos filtros, em ordem estável. Vazia quando não há filtro. */
+export function catalogSearchParams(filters: CatalogFilters = {}): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.departmentId) params.set(CATALOG_PARAMS.department, String(filters.departmentId));
+  if (filters.categoryId) params.set(CATALOG_PARAMS.category, String(filters.categoryId));
+
+  const search = filters.search?.trim();
+  if (search) params.set(CATALOG_PARAMS.search, search);
+
+  return params;
+}
+
+/**
+ * Caminho da vitrine já filtrada — o que a trilha do detalhe e os chips usam
+ * como `href`. Sem filtro, devolve `/produtos` limpo, sem "?" pendurado.
+ */
+export function catalogPath(filters: CatalogFilters = {}): string {
+  const query = catalogSearchParams(filters).toString();
+  return query ? `/produtos?${query}` : "/produtos";
+}
+
+/**
  * Slugs do site antigo (Front-Loja usava rotas em inglês). Redirecionar em vez
  * de quebrar preserva link salvo e indexação existente.
  */

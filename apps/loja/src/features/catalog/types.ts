@@ -1,4 +1,6 @@
 import type {
+  StorefrontCategoryDto,
+  StorefrontDepartmentDto,
   StorefrontProductDetailDto,
   StorefrontProductDto,
   StorefrontTagDto,
@@ -15,3 +17,5 @@ export type CatalogProduct = StorefrontProductDto;
 export type CatalogProductDetail = StorefrontProductDetailDto;
 export type CatalogTag = StorefrontTagDto;
 export type CatalogVariation = StorefrontVariationDto;
+export type CatalogDepartment = StorefrontDepartmentDto;
+export type CatalogCategory = StorefrontCategoryDto;

@@ -30,6 +30,21 @@ consome a API **como visitante anônimo**.
   texto ler — ver `lib/contrast.ts`. O front não pode pedir para ela escolher
   outra cor: ele se adapta.
 
+- **A contagem do filtro obedece à busca.** A árvore de departamentos vem de
+  `/Storefront/departments` com o MESMO `search` da grade, e o backend a monta
+  com o mesmo predicado de visibilidade da listagem. É o que impede a faceta de
+  mentir: sem isso, "Cozinha (7)" apareceria ao lado de três cards, e o
+  desencontro não geraria erro nenhum — só um número errado na cara do cliente.
+
+- **Departamento e categoria filtram por E, não por OU.** Vindo os dois, o
+  backend aplica os dois; categoria de outro departamento devolve vitrine
+  vazia, de propósito. A tela nunca monta essa combinação — trocar de
+  departamento limpa a categoria —, então o vazio só aparece para link
+  adulterado, e escondê-lo seria esconder o link errado.
+
+- **Filtro que leva a lugar nenhum não é oferecido.** Departamento sem grupo
+  visível não entra na árvore; categoria idem.
+
 ## Decisões de implementação
 
 - **Scroll infinito com `useInfiniteQuery`** (páginas de 24) em vez de baixar
@@ -47,9 +62,41 @@ consome a API **como visitante anônimo**.
 - **404 do detalhe não distingue motivo** (oculto/excluído/inexistente) — o
   backend responde igual de propósito, para não vazar existência de cadastro
   oculto a anônimos.
+- **A URL é o estado do filtro** (`?departamento=2&categoria=10&busca=panela`,
+  em `useCatalogFilters`). Com `useState` o filtro morreria em três gestos que
+  o visitante dá o tempo todo: compartilhar o link, recarregar e voltar do
+  detalhe do produto — o último é o pior, porque quem abre um produto e volta
+  espera a lista como deixou. Departamento e categoria navegam com **push** (o
+  Voltar tem que desfazer o filtro); a busca grava com **replace**, senão cada
+  letra digitada vira uma entrada de histórico.
+- **Quem navega entre filtros são links, não botões** (`catalogPath` em
+  `routes.ts` monta o `href`). Link é rastreável pelo buscador, abre em aba
+  nova e empilha histórico sozinho. É também o que faz a trilha do detalhe e os
+  chips falarem o mesmo dialeto de query string que a vitrine lê.
+- **Sem slug nas URLs de filtro.** Não existe coluna `Slug` em lugar nenhum, e
+  derivar do nome resolve a ida e não a volta — além de quebrar todo link salvo
+  quando a lojista corrigir um acento no nome. Slug é trabalho próprio (coluna,
+  unicidade, redirect do slug antigo) e vale junto com slug de produto.
+- **A troca de filtro sobe a página na mão.** O `ScrollToTop` global não cobre
+  esse caso: o `useLocation` do wouter lê só o pathname, e filtro mexe na query
+  string — sem o `scrollTo` da página de produtos, quem filtra no meio da lista
+  continua no meio, agora olhando outra categoria.
+- **A árvore é lida duas vezes, com papéis diferentes.** Com a busca, é a lista
+  que a tela mostra (contagem coerente com a grade). Sem a busca, é o retrato do
+  catálogo: quais filtros existem e como se chamam. O segundo existe porque uma
+  busca estreita pode tirar da lista justamente a categoria escolhida — sem ele,
+  o chip ficaria sem rótulo e a tela acusaria "filtro inexistente" para um
+  cadastro que existe. Sem busca as duas leituras dividem a chave de cache e
+  viram uma requisição só.
 
 ## Artefatos
 
 Hooks testados em `hooks/__tests__/` (a página nunca contém query — regra do
 CLAUDE.md §4). Modelos de dados em `types.ts`, aliases dos DTOs públicos do
 `@workspace/api-client-react`.
+
+A vitrine consome **um** hook: `useCatalog` compõe `useCatalogFilters` (URL),
+`useDepartmentTree` (árvore + nomes) e a grade infinita, e a página só desenha.
+A trilha do detalhe (`ProductBreadcrumb`) é visual; o `BreadcrumbList` de dados
+estruturados sai da própria página, via `lib/structured-data.ts`, no mesmo
+lugar de onde o `usePageTitle` escreve.
