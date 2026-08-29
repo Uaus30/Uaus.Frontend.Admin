@@ -38,6 +38,48 @@ API_PROXY_TARGET=https://api-dev.uaus.com.br npm run dev:loja  # sem backend loc
 
 Verificação: `npm run typecheck:loja`, `npm run test:loja`, `npm run build:loja`.
 
+## Preview do link no WhatsApp (`api/` + `server/`)
+
+A reserva termina numa mensagem de WhatsApp que carrega o link do produto — e o
+cartão que o WhatsApp desenha vem das tags Open Graph do HTML. Como o site é
+SPA, o HTML servido é sempre o `index.html` com as tags da LOJA, e **robô de
+preview não executa JavaScript**: toda reserva aparecia com a logo da Uaus no
+lugar da foto do produto.
+
+Por isso estas duas pastas, que são o único código deste app que **não roda no
+navegador**:
+
+- `api/link-preview.ts` — função de borda da Vercel. Busca o produto pela
+  própria origem (`/api/Storefront/...`), para herdar o `has: host` do
+  `vercel.json` em vez de repetir a lista de hosts (CLAUDE.md §10), e devolve o
+  `index.html` publicado com as tags trocadas.
+- `server/link-preview.ts` — o que monta o cartão (título, preço, foto, escape)
+  e o que injeta no `<head>`. É puro e testado; a função de borda é só a casca.
+
+O `vercel.json` desvia para a função **apenas** os user-agents de preview
+(`WhatsApp`, `facebookexternalhit`, Telegram, Slack…): o visitante comum
+continua recebendo o `index.html` estático do CDN, sem passar por função
+nenhuma. Googlebot fica **de fora** de propósito — ele executa JavaScript e
+indexa a página real.
+
+Três detalhes que valem a leitura antes de mexer:
+
+- A resposta é o **site inteiro**, não uma casca com meta tags. É isso que torna
+  a regra de user-agent não crítica: se um navegador embutido casar com ela por
+  engano, a pessoa recebe o site funcionando, só com meta tags melhores. Com
+  casca, receberia uma página morta — no exato fluxo que o site existe para
+  atender.
+- A resposta vai com `cache-control: no-store`. Ela depende do user-agent; se o
+  CDN a guardasse sob a chave `/produtos/:id`, o próximo visitante receberia o
+  HTML de um produto qualquer.
+- Nada de `meta refresh` para a própria URL: o robô buscaria o mesmo endereço,
+  cairia na função de novo e o preview nunca fecharia.
+
+WhatsApp e Facebook **guardam o preview por URL**. Link já compartilhado antes
+desta mudança pode continuar mostrando a logo por horas — teste com um produto
+que ainda não circulou, ou force o re-scrape no
+[Sharing Debugger](https://developers.facebook.com/tools/debug/) do Facebook.
+
 ## Deploy (Vercel)
 
 Projeto próprio com **Root Directory = `apps/loja`** (mesmo modelo do PDV); o
