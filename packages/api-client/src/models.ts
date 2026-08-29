@@ -1511,7 +1511,13 @@ export interface StorefrontVariationDto {
   price: number;
 }
 
-/** Detalhe de um grupo exibível: galeria completa, etiquetas e variações. */
+/**
+ * Detalhe de um grupo exibível: galeria completa, etiquetas e variações.
+ *
+ * Só ele carrega os ids da taxonomia — o card não. Quem precisa deles é a trilha
+ * "Departamento > Categoria > Produto", que só existe nesta tela; repetir três
+ * campos em 24 cards por página engordaria o payload público à toa.
+ */
 export interface StorefrontProductDetailDto {
   productGroupId: number;
   name: string;
@@ -1519,11 +1525,39 @@ export interface StorefrontProductDetailDto {
   price: number;
   priceMax?: number | null;
   hasVariations: boolean;
+  /** Primeiro nível da trilha; vira link para a vitrine filtrada. */
+  departmentId: number;
+  departmentName: string;
+  /** Segundo nível da trilha. */
+  categoryId: number;
   categoryName: string;
   images: StorefrontImageDto[];
   tags: StorefrontTagDto[];
   /** Vazia quando o grupo não tem variações. */
   variations: StorefrontVariationDto[];
+}
+
+/** Categoria na lista de filtros da vitrine. */
+export interface StorefrontCategoryDto {
+  id: number;
+  name: string;
+  /** Produtos visíveis nesta categoria, já considerando a busca ativa. */
+  productCount: number;
+}
+
+/**
+ * Departamento na lista de filtros, com as categorias que têm produto visível.
+ *
+ * Departamento sem vitrine não vem, e a contagem obedece à mesma busca da
+ * listagem: faceta que promete número que a grade não entrega é pior que faceta
+ * sem número.
+ */
+export interface StorefrontDepartmentDto {
+  id: number;
+  name: string;
+  /** Soma das categorias — o grupo pertence a uma só, então não conta duas vezes. */
+  productCount: number;
+  categories: StorefrontCategoryDto[];
 }
 
 /**

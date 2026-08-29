@@ -5,6 +5,7 @@ import type { StorefrontProductDto, UiPagedResult } from "../models";
 import {
   getNextStorefrontPageParam,
   getStorefrontCompany,
+  getStorefrontDepartments,
   getStorefrontProduct,
   getStorefrontProductsPage,
 } from "./storefront";
@@ -94,6 +95,49 @@ describe("storefront API", () => {
       status: 404,
       message: "Produto não encontrado ou indisponível no site.",
     });
+  });
+
+  it("leva departamento e categoria na query string quando há filtro", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(emptyPage(1, 24, 0));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getStorefrontProductsPage({ departmentId: 2, categoryId: 10 });
+
+    const url = String(fetchMock.mock.calls[0][0]);
+    expect(url).toContain("departmentId=2");
+    expect(url).toContain("categoryId=10");
+  });
+
+  it("omite os filtros ausentes em vez de mandar parâmetro vazio", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(emptyPage(1, 24, 0));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getStorefrontProductsPage({ search: "caneca" });
+
+    // `departmentId=` vazio chegaria ao backend como filtro presente e sem
+    // valor — o `buildUrl` descarta nulo, e este teste é o que garante que a
+    // vitrine sem filtro continue pedindo a vitrine inteira.
+    const url = String(fetchMock.mock.calls[0][0]);
+    expect(url).not.toContain("departmentId");
+    expect(url).not.toContain("categoryId");
+  });
+
+  it("busca a árvore de filtros no endpoint público, sem Authorization", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([{ id: 2, name: "Casa", productCount: 4, categories: [] }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const tree = await getStorefrontDepartments("caneca");
+
+    expect(tree[0].name).toBe("Casa");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toContain("/Storefront/departments");
+    expect(String(url)).toContain("search=caneca");
+    expect(new Headers(init.headers).has("Authorization")).toBe(false);
   });
 
   it("busca a identidade da loja no endpoint público", async () => {
