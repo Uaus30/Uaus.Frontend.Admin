@@ -1,5 +1,3 @@
-import type { StorefrontProductDetailDto } from "@workspace/api-client-react";
-
 /**
  * Preview de link do produto — o cartão que WhatsApp, Facebook e Telegram
  * montam quando alguém compartilha `/produtos/:id`.
@@ -17,21 +15,35 @@ import type { StorefrontProductDetailDto } from "@workspace/api-client-react";
  * `api/link-preview.ts`; o visitante de verdade continua recebendo o
  * `index.html` estático do CDN, idêntico ao de hoje.
  *
- * ## Por que este arquivo não importa nada de runtime do monorepo
+ * ## Por que este arquivo não importa NADA do monorepo — nem tipo
  *
- * A função é empacotada pela Vercel, fora do toolchain do monorepo: o alias
- * `@/` não existe lá, e `@workspace/core` publica TypeScript cru numa condição
- * de exportação (`workspace`) que o bundler da Vercel não conhece. Daí o
- * formatador de moeda repetido em cinco linhas aqui. O DTO entra como
- * `import type` — é apagado na compilação e ainda assim prende a forma dos
- * dados ao contrato do api-client, que é onde ela nasce (CLAUDE.md §3).
+ * A função é compilada pela Vercel, fora do toolchain daqui: o alias `@/` não
+ * existe lá, os packages `@workspace/*` publicam TypeScript cru numa condição
+ * de exportação (`workspace`) que só o Vite conhece, e o `tsconfig` que a
+ * Vercel enxerga é o de `api/`, deliberadamente sem essas opções. Foi
+ * exatamente esse acoplamento que reprovou o primeiro build (65d3010).
+ *
+ * Daí o formatador de moeda repetido em cinco linhas e a forma do produto
+ * redeclarada abaixo. O contrato continua sendo o `StorefrontProductDetailDto`
+ * do api-client (CLAUDE.md §3); quem garante que os dois não divergiram é o
+ * `parsePreviewProduct`, testado contra a resposta real do endpoint — que é a
+ * única guarda que serviria de qualquer jeito, já que aquele DTO é escrito à
+ * mão e não gerado do backend.
  */
 
-/** O recorte do detalhe da vitrine que vira cartão. Nada além disso é usado. */
-export type PreviewProduct = Pick<
-  StorefrontProductDetailDto,
-  "productGroupId" | "name" | "description" | "price" | "priceMax" | "categoryName" | "images"
->;
+/**
+ * O recorte do detalhe da vitrine que vira cartão — subconjunto de
+ * `StorefrontProductDetailDto`. Nada além disso é usado.
+ */
+export interface PreviewProduct {
+  productGroupId: number;
+  name: string;
+  description?: string | null;
+  price: number;
+  priceMax?: number | null;
+  categoryName: string;
+  images: { url: string; displayOrder: number }[];
+}
 
 /** O cartão pronto, com as URLs já absolutas (robô não resolve caminho relativo). */
 export interface LinkPreview {
@@ -232,7 +244,10 @@ export function injectLinkPreview(html: string, preview: LinkPreview): string {
   const headEnd = html.toLowerCase().lastIndexOf("</head>");
   if (headEnd < 0) return renderLinkPreviewDocument(preview);
 
-  const head = html.slice(0, headEnd).replace(REPLACED_HEAD_TAGS, "").replace(/\n\s*\n+/g, "\n");
+  const head = html
+    .slice(0, headEnd)
+    .replace(REPLACED_HEAD_TAGS, "")
+    .replace(/\n\s*\n+/g, "\n");
 
   return `${head.trimEnd()}\n${renderLinkPreviewTags(preview)}\n  ${html.slice(headEnd)}`;
 }
