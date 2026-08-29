@@ -170,13 +170,32 @@ passar batida.
 npm run build:types      # obrigatório depois de mexer em packages/
 npm run typecheck:admin
 npm run typecheck:pdv
-npm test                 # core, admin, pdv, receipt, api-client
+npm run typecheck:loja
+npm test                 # core, admin, pdv, loja, receipt, api-client, ui
 npm run lint             # monorepo inteiro
+npm run format:check     # Prettier — gate separado, ver abaixo
 npm run lint:prune       # tira do baseline o que já foi limpo
 ```
 
-O CI roda typecheck, lint, testes e build dos dois apps. Rode `npm test` e
-`npm run lint` antes de dizer que terminou.
+O CI roda typecheck, lint, formatação, testes e build dos três apps. Rode
+`npm test`, `npm run lint` e `npm run format:check` antes de dizer que terminou.
+
+### `format:check` é um gate à parte — o lint não o cobre
+
+Os dois moram no mesmo job (`Lint`) do CI, e é fácil confundir. O `npm run lint`
+passa com o arquivo fora do formato do Prettier; quem reprova é o
+`format:check`, e quem descobre é o CI — **depois** do push, que na `main` já
+disparou deploy.
+
+Para corrigir, formate **só o que você tocou**:
+
+```bash
+npx prettier --write <arquivos que você mexeu>
+```
+
+`npm run format` é `prettier --write .` e reescreve o repositório inteiro — no
+working tree compartilhado, isso varre o trabalho de outro chat exatamente como
+o `git add -A` da seção 1.
 
 ### Gate de regressão antes de produção
 
