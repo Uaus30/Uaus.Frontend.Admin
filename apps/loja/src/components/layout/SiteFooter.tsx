@@ -32,7 +32,7 @@ export function SiteFooter() {
             <div className="flex items-center gap-3">
               <img src={logoUrl} alt="" className="h-12 w-12 object-contain" />
               <div className="flex flex-col">
-                <span className="font-display text-3xl leading-none font-black text-primary">
+                <span className="font-display text-3xl leading-none font-extrabold text-primary">
                   {SITE_NAME}
                 </span>
                 <span className="font-display text-xs font-bold tracking-[0.2em] text-white/80">
@@ -40,7 +40,7 @@ export function SiteFooter() {
                 </span>
               </div>
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-white/60">{SITE_FOOTER_TAGLINE}</p>
+            <p className="mt-4 text-sm leading-relaxed text-white/70">{SITE_FOOTER_TAGLINE}</p>
             <div className="mt-6 flex gap-3">
               <a
                 href={SITE_CONTACT.instagramUrl}
@@ -115,7 +115,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-6 text-sm text-white/40 sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-6 text-sm text-white/60 sm:flex-row">
           <span>© 2026 Uaus! Máximo 30. Todos os direitos reservados.</span>
           <span>{documentLine}</span>
         </div>

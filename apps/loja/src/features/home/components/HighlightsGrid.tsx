@@ -6,28 +6,28 @@ import { ShoppingBag, Star, Store } from "lucide-react";
  */
 export function HighlightsGrid() {
   return (
-    <section className="border-t border-border bg-orange-50/50 py-24">
+    <section className="border-t border-border bg-surface py-20">
       <div className="mx-auto grid max-w-7xl items-stretch gap-8 px-4 sm:px-6 md:grid-cols-3 lg:px-8">
-        <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-100 text-primary">
+        <div className="rounded-3xl border border-border bg-white p-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary-strong">
             <ShoppingBag className="h-8 w-8" />
           </div>
           <h3 className="mt-6 text-xl font-bold text-foreground">Presentes</h3>
           <p className="mt-3 text-muted-foreground">Brinquedos, utilidades de casa, livros e muito mais</p>
         </div>
 
-        <div className="z-10 rounded-3xl bg-primary p-8 text-center text-white shadow-xl shadow-primary/20 md:-my-4">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-primary">
+        <div className="z-10 rounded-3xl bg-primary-strong p-8 text-center text-white shadow-lg md:-my-4">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-primary-strong">
             <Star className="h-10 w-10" />
           </div>
-          <h3 className="mt-6 text-2xl font-black">MÁXIMO 30 REAIS</h3>
+          <h3 className="mt-6 text-2xl font-extrabold">MÁXIMO 30 REAIS</h3>
           <p className="mt-3 text-white/90">
-            Nenhum produto custa mais que R$ 30,00 reais! Se encontrar um produto caro, reclame ;D
+            Nenhum produto da loja passa de R$ 30,00. É a regra da casa, sem exceção e sem letra miúda.
           </p>
         </div>
 
-        <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-100 text-primary">
+        <div className="rounded-3xl border border-border bg-white p-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary-strong">
             <Store className="h-8 w-8" />
           </div>
           <h3 className="mt-6 text-xl font-bold text-foreground">Diversidade</h3>

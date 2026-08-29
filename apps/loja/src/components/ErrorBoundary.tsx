@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.hasError) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-orange-50/30 px-6 text-center">
-          <h1 className="text-3xl font-black text-foreground">Ops! Algo deu errado</h1>
+          <h1 className="text-3xl font-extrabold text-foreground">Ops! Algo deu errado</h1>
           <p className="max-w-md text-muted-foreground">
             Ocorreu um problema ao carregar a página. Recarregue e, se persistir, fale com a gente pelo
             WhatsApp.

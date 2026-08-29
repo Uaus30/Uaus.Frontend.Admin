@@ -27,6 +27,10 @@
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-primary-border: var(--primary-border);
+  --color-primary-strong: hsl(var(--primary-strong));
+
+  /* Fundo de pagina neutro morno: e o repouso entre as secoes. */
+  --color-surface: hsl(var(--surface));
 
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
@@ -79,8 +83,8 @@
  * mapear --radius-* como o admin faz mudaria esses três tamanhos de uma vez.
  */
 :root {
-  --app-font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
-  --app-font-display: "Outfit", var(--app-font-sans);
+  --app-font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --app-font-display: "Archivo", var(--app-font-sans);
 
   --button-outline: rgba(0, 0, 0, 0.1);
   --badge-outline: rgba(0, 0, 0, 0.05);
@@ -114,6 +118,15 @@
   /* O laranja da marca (#FF751A). */
   --primary: 24 100% 55%;
   --primary-foreground: 0 0% 100%;
+  /*
+   * O MESMO laranja escurecido (#C24F09) para tudo que carrega TEXTO.
+   * Branco sobre o laranja da marca da 2,69:1 e reprova na WCAG AA (pede
+   * 4,5:1); o laranja da marca sobre branco da os mesmos 2,69:1 — era o
+   * contraste do PRECO, o numero mais importante da loja. Este da 4,76:1 nos
+   * dois sentidos. Regra: --primary pinta (icone, faixa, selo, borda),
+   * --primary-strong escreve.
+   */
+  --primary-strong: 22 91% 40%;
 
   --secondary: 210 40% 96%;
   --secondary-foreground: 222 47% 11%;
@@ -128,7 +141,11 @@
   --destructive-foreground: 210 40% 98%;
 
   --input: 214 32% 91%;
-  --ring: 24 100% 55%;
+  --ring: 22 91% 40%;
+
+  /* Fundo alternado das secoes. Era orange-50/50, um lavado alaranjado que
+     tingia a foto do produto — quem traz cor para a pagina e o produto. */
+  --surface: 60 9% 98%;
 
   /* Sem gráficos na loja; valores coerentes com o tema para o CSS gerado
      pelos componentes do pacote não referenciar variável indefinida. */
@@ -141,6 +158,7 @@
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --primary-border: hsl(var(--primary));
+  --primary-strong-border: hsl(var(--primary-strong));
   --secondary-border: hsl(var(--secondary));
   --muted-border: hsl(var(--muted));
   --accent-border: hsl(var(--accent));
@@ -153,11 +171,23 @@ body {
 }
 
 /*
- * Títulos em Outfit. No site original as classes `font-display`/`font-body`
- * eram usadas mas nunca foram definidas (bug documentado no requirements.md de
- * lá) — só h1–h6 saíam na fonte de display. Aqui as utilities existem de
- * verdade via @theme, então o wordmark e os preços também usam Outfit; é
- * correção deliberada, não regressão.
+ * Títulos em Archivo, corpo em Inter.
+ *
+ * No site original as classes `font-display`/`font-body` eram usadas mas nunca
+ * foram definidas (bug documentado no requirements.md de lá) — só h1–h6 saíam
+ * na fonte de display. Aqui as utilities existem de verdade via @theme, então
+ * o wordmark e os preços também usam a de display.
+ *
+ * A troca do par (era Outfit + Plus Jakarta Sans) é de 29/08/2026: o corpo
+ * virou Inter porque o texto pequeno do site — nav 14px em caixa alta,
+ * categoria 12px, preço, rodapé — é onde a Plus Jakarta Sans embola, e a Inter
+ * foi desenhada para essa faixa. Os títulos viraram Archivo, uma grotesca com
+ * peso editorial, no lugar da redondeza da Outfit.
+ *
+ * Só os pesos usados são carregados (Archivo 600/700/800, Inter 400..700);
+ * antes se carregava Outfit 400→900 e se usava três. E `font-black` (900) não
+ * existe mais no projeto: os dois CTAs de WhatsApp pediam 900 numa família
+ * carregada só até 700, então o destaque que o autor quis nunca aconteceu.
  */
 h1,
 h2,
@@ -169,28 +199,54 @@ h6 {
   letter-spacing: -0.025em;
 }
 
-/* Pulso do botão de WhatsApp, portado do site original. */
+/*
+ * Pulso do botão de WhatsApp, portado do site original — agora FINITO.
+ *
+ * Piscar para sempre é a assinatura visual de página de captura de lead: o
+ * olho aprende a ignorar em segundos e o que sobra é a impressão de anúncio.
+ * Três repetições chamam a atenção na chegada e devolvem a página ao repouso.
+ * O `scale` saiu junto: botão que muda de tamanho sozinho empurra o texto.
+ */
 @keyframes pulse-glow {
   0% {
-    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.15);
-    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.18);
   }
-  50% {
-    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
-    transform: scale(1.005);
+  70% {
+    box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
-    transform: scale(1);
   }
 }
 
 @layer utilities {
   .animate-pulse-glow {
-    animation: pulse-glow 2s infinite;
+    animation: pulse-glow 2.4s ease-out 3;
   }
 
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+/*
+ * Freio global de movimento.
+ *
+ * Quem liga "reduzir movimento" no sistema costuma fazê-lo por enxaqueca,
+ * vertigem ou epilepsia fotossensível — e o site tinha ZERO tratamento: nem
+ * aqui, nem no framer-motion. Este bloco cobre o CSS; os componentes com
+ * `motion.*` usam `useReducedMotion()` e entram sem deslocamento.
+ *
+ * `0.01ms` em vez de `none` de propósito: mantém o evento `transitionend`
+ * disparando, do qual dependem componentes que esperam o fim da animação.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,56 +1,79 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Store } from "lucide-react";
 import { Link } from "wouter";
 
-/** Hero da home — texto e hierarquia portados verbatim do site original. */
+/**
+ * As três provas que respondem "isso aqui é loja de verdade?" antes do
+ * primeiro clique: a regra de preço, como se compra e onde fica. Ficam abaixo
+ * dos botões porque quem já decidiu clica antes de ler.
+ */
+const PROOF_POINTS = ["Nenhum produto acima de R$ 30,00", "Reserva pelo WhatsApp", "Tapira-PR, no Centro"];
+
+/**
+ * Hero da home — o texto é o do site original; a ênfase, não.
+ *
+ * O que saiu, e por quê: o `<h1>` tinha 72px em peso 900 com `bg-clip-text`
+ * gradiente, e o gradiente laranja→laranja a 15° de diferença não comunica
+ * nada — só tira nitidez da borda da letra. Saiu também o `<span>` espaçador
+ * de altura fixa que existia dentro do heading só para forçar a quebra de
+ * linha: dois blocos resolvem sem elemento fantasma no meio do título.
+ */
 export function HeroSection() {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <section className="relative overflow-hidden bg-orange-50/50 pb-32 pt-20">
+    <section className="relative overflow-hidden bg-surface pt-16 pb-20">
       <div
         aria-hidden
-        className="absolute -right-40 -top-40 h-[800px] w-[800px] rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-3xl"
+        className="absolute -top-48 -right-48 h-[620px] w-[620px] rounded-full bg-primary/10 blur-3xl"
       />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
+        animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.5 }}
         className="relative mx-auto max-w-3xl px-4 text-center sm:px-6"
       >
-        <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-primary shadow-sm">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-primary-strong">
           <Store className="h-4 w-4" />
           Nova loja em Tapira-PR
         </span>
 
-        <h1 className="mt-8 text-5xl font-black leading-[1.1] text-foreground md:text-7xl">
+        <h1 className="mt-7 text-4xl leading-[1.12] font-extrabold text-balance text-foreground md:text-6xl">
           Chegou em Tapira...
-          <span className="block h-4 md:h-8" aria-hidden />
-          <span className="bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">
-            Uma loja com tudo por no máximo 30 reais!
-          </span>
+          <span className="mt-3 block text-primary-strong">Uma loja com tudo por no máximo 30 reais!</span>
         </h1>
 
-        <p className="mt-8 text-lg text-muted-foreground md:text-xl">
+        <p className="mt-7 text-lg text-muted-foreground">
           A Uaus fica na rua da prefeitura, pertinho do Correio e traz até você um conceito inovador:
           qualidade, variedade e preço baixo de verdade. Nenhum produto em nossa loja custa mais que 30
           reais... Surpreenda-se!
         </p>
 
-        <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
+        <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
           <Link
             href="/produtos"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-400 px-8 py-4 font-bold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-strong px-8 py-4 font-semibold text-white transition-colors duration-200 hover:bg-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Ver Super Ofertas
             <ArrowRight className="h-5 w-5" />
           </Link>
           <Link
             href="/contato"
-            className="inline-flex items-center justify-center rounded-xl border-2 border-border bg-white px-8 py-4 font-bold text-foreground shadow-sm transition-all duration-300 hover:border-primary/50 hover:bg-orange-50"
+            className="inline-flex items-center justify-center rounded-xl border border-border bg-background px-8 py-4 font-semibold text-foreground transition-colors duration-200 hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Fale Conosco
           </Link>
         </div>
+
+        <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+          {PROOF_POINTS.map((point) => (
+            <li key={point} className="flex items-center gap-2">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary" />
+              {point}
+            </li>
+          ))}
+        </ul>
       </motion.div>
     </section>
   );

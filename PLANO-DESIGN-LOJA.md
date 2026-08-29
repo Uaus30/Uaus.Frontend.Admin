@@ -5,9 +5,26 @@
 > _"revisar o design e sugerir melhorias — fonte, cores, seções, cabeçalho — eu
 > queria um site com aparência um pouco mais profissional"_.
 >
-> **STATUS:** Fase 0 **executada** (ícones de marca). Fases 1 a 6 aguardam
-> aprovação da direção — em especial a escolha de fonte da Fase 1 e a inversão
-> do cabeçalho da Fase 3, que são decisões de marca, não técnicas.
+> **STATUS (29/08/2026, mesmo dia): Fases 0 a 6 executadas.** O dono escolheu a
+> Opção A da Fase 1 (**Archivo + Inter**) e mandou executar tudo.
+>
+> Duas coisas ficaram de fora, e nenhuma por esquecimento:
+>
+> - **Ladrilhos de categoria (Fase 4, item 3).** Era condicional — "depende de a
+>   busca aceitar categoria". Não aceita: `/Storefront/products?search=BELEZA`
+>   devolve zero para o produto de categoria "BELEZA EM GERAL" (só nome e
+>   descrição entram na busca). Filtrar por categoria exige mudança no
+>   `StorefrontController` do repo vizinho `Uaus.Backend.Api`.
+> - **Horário de funcionamento.** Continua não existindo em sistema nenhum, e
+>   inventar horário manda cliente para porta fechada. A faixa do cabeçalho e o
+>   cartão do `VisitBanner` já têm o lugar pronto: basta preencher
+>   `SITE_OPENING_HOURS` em `apps/loja/src/lib/site.ts` e os dois passam a
+>   mostrá-lo.
+>
+> Verificado: `npm test` (1.474 testes, 7 workspaces), `npm run typecheck:loja`,
+> `npm run lint` (0 erros), `npm run build:loja`, e smoke test das quatro telas
+> em `localhost:5175` — home, vitrine, detalhe do produto e contato, com
+> auditoria de contraste medida no DOM (tabela no fim deste arquivo).
 
 ---
 
@@ -309,7 +326,31 @@ mudam tela, então o push só sai depois do smoke test descrito acima.
 
 ---
 
-## 4. O que NÃO fazer
+## 4. Resultado — contraste medido no DOM depois da execução
+
+Números tirados do estilo computado das telas rodando, não do código. A régua
+da WCAG AA é 4,5:1 para texto normal.
+
+| Elemento | Antes | Depois |
+| -------- | ----- | ------ |
+| Nav do cabeçalho, item inativo | 2,20:1 ✗ | **4,70:1** ✓ |
+| Nav do cabeçalho, item ativo | 2,69:1 ✗ | **17,87:1** ✓ |
+| `<h1>` dos mastheads | 2,69:1 ✗ | **17,87:1** ✓ |
+| Subtítulo dos mastheads | 2,43:1 ✗ | **9,10:1** ✓ |
+| **Preço no card e no detalhe** | 2,69:1 ✗ | **4,79:1** ✓ |
+| CTA de WhatsApp (era `green-600`) | 3,22:1 ✗ | **4,95:1** ✓ |
+| Copyright/CNPJ do rodapé | 3,81:1 ✗ | **6,99:1** ✓ |
+| Faixa de endereço do cabeçalho | — (nova) | **9,10:1** ✓ |
+
+Outras verificações do smoke test:
+
+- Fontes: só os pesos usados são carregados (Archivo 600/700/800, Inter
+  400–700). O `<h1>` sai em Archivo 800 de verdade; antes o `font-black` dos
+  CTAs pedia 900 numa família carregada até 700.
+- O pulso do CTA de reserva agora é `3 x 2.4s`, não `infinite`.
+- O glifo do botão de reserva é o oficial do WhatsApp (`M17.472 14.3…`).
+
+## 5. O que NÃO fazer
 
 - **Não trocar o laranja da marca.** `#FF751A` é a identidade da loja e está na
   logo, na fachada e na sacola. O que muda é onde ele encosta em texto.

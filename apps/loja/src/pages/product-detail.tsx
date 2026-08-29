@@ -34,11 +34,11 @@ export default function ProductDetailPage() {
   usePageTitle(detail.product ? `Uaus | ${detail.product.name}` : undefined);
 
   return (
-    <div className="min-h-screen bg-orange-50/30 pb-24 pt-10">
+    <div className="min-h-screen bg-surface pt-10 pb-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Link
           href="/produtos"
-          className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground transition-colors hover:text-primary"
+          className="inline-flex items-center gap-2 rounded text-sm font-semibold text-muted-foreground transition-colors hover:text-primary-strong focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar aos produtos
@@ -49,7 +49,7 @@ export default function ProductDetailPage() {
             <DetailSkeleton />
           ) : detail.isNotFound || detail.isError || !detail.product ? (
             <div className="flex flex-col items-center gap-3 py-24 text-center">
-              <PackageSearch className="h-12 w-12 text-orange-300" aria-hidden />
+              <PackageSearch className="h-12 w-12 text-primary" aria-hidden />
               <h1 className="text-2xl font-black text-foreground">
                 {detail.isNotFound ? "Produto não encontrado" : "Ops! Não conseguimos carregar o produto."}
               </h1>
@@ -60,7 +60,7 @@ export default function ProductDetailPage() {
               </p>
               <Link
                 href="/produtos"
-                className="mt-2 rounded-xl bg-gradient-to-r from-primary to-orange-400 px-6 py-3 font-bold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl"
+                className="mt-2 rounded-xl bg-primary-strong px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-primary"
               >
                 Ver todos os produtos
               </Link>
@@ -76,7 +76,7 @@ export default function ProductDetailPage() {
               />
 
               <div>
-                <p className="text-sm font-bold uppercase tracking-wide text-primary">
+                <p className="text-sm font-semibold tracking-wide text-primary-strong uppercase">
                   {detail.product.categoryName}
                 </p>
                 <h1 className="mt-2 text-3xl font-black text-foreground md:text-4xl">
@@ -101,7 +101,7 @@ export default function ProductDetailPage() {
                   <p className="mt-5 leading-relaxed text-muted-foreground">{detail.product.description}</p>
                 )}
 
-                <div className="mt-6 rounded-2xl border border-orange-100 bg-white p-5">
+                <div className="mt-6 rounded-2xl border border-border bg-white p-5">
                   <PriceTag price={detail.product.price} priceMax={detail.product.priceMax} size="lg" />
                 </div>
 
@@ -121,8 +121,8 @@ export default function ProductDetailPage() {
                           aria-pressed={detail.selectedVariation === variation.name}
                           className={
                             detail.selectedVariation === variation.name
-                              ? "rounded-xl border-2 border-primary bg-orange-50 px-4 py-2 text-sm font-bold text-primary"
-                              : "rounded-xl border-2 border-border bg-white px-4 py-2 text-sm font-bold text-foreground transition-colors hover:border-primary/50"
+                              ? "rounded-xl border-2 border-primary-strong bg-accent px-4 py-2 text-sm font-semibold text-primary-strong"
+                              : "rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/60"
                           }
                         >
                           {variation.name} — {formatCurrency(variation.price)}
@@ -138,7 +138,7 @@ export default function ProductDetailPage() {
                       href={detail.reservationUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-6 py-5 text-center font-black text-white shadow-xl transition-all duration-700 hover:-translate-y-1 hover:bg-green-500"
+                      className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 px-6 py-5 text-center font-bold text-white shadow-sm transition-colors duration-200 hover:bg-green-600 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                       <WhatsAppIcon className="h-5 w-5" />
                       RESERVAR PELO WHATSAPP

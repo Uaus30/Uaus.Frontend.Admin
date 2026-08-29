@@ -1,5 +1,6 @@
 import { usePageTitle } from "@/lib/page-title";
 import { HeroSection } from "@/features/home/components/HeroSection";
+import { FeaturedProducts } from "@/features/home/components/FeaturedProducts";
 import { VisitBanner } from "@/features/home/components/VisitBanner";
 import { StoreCarousel } from "@/features/home/components/StoreCarousel";
 import { HighlightsGrid } from "@/features/home/components/HighlightsGrid";
@@ -11,6 +12,7 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
+      <FeaturedProducts />
       <VisitBanner />
       <StoreCarousel />
       <HighlightsGrid />

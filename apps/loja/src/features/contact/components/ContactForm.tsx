@@ -2,7 +2,7 @@ import { MessageSquare, Send } from "lucide-react";
 import { useContactForm } from "../hooks/useContactForm";
 
 const inputClass =
-  "w-full rounded-xl border-2 border-border bg-white px-4 py-3 text-foreground outline-none transition-colors focus:border-primary focus:ring-4 focus:ring-primary/10";
+  "w-full rounded-xl border border-border bg-white px-4 py-3 text-foreground transition-colors outline-none focus:border-primary-strong focus:ring-4 focus:ring-primary-strong/15";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -14,9 +14,9 @@ export function ContactForm() {
   const form = useContactForm();
 
   return (
-    <div className="rounded-3xl border border-orange-100 bg-orange-50/50 p-8 md:p-10">
+    <div className="rounded-3xl border border-border bg-surface p-8 md:p-10">
       <h2 className="flex items-center gap-3 text-2xl font-bold text-foreground">
-        <MessageSquare className="h-6 w-6 text-primary" />
+        <MessageSquare className="h-6 w-6 text-primary-strong" />
         Envie uma mensagem
       </h2>
 
@@ -75,7 +75,7 @@ export function ContactForm() {
 
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-400 py-4 font-bold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-strong py-4 font-semibold text-white transition-colors duration-200 hover:bg-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           Enviar pelo WhatsApp
           <Send className="h-5 w-5" />

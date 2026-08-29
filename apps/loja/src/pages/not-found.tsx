@@ -12,7 +12,7 @@ export default function NotFoundPage() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-orange-50/30 px-6 text-center">
       <Compass className="h-14 w-14 text-orange-300" aria-hidden />
-      <h1 className="text-3xl font-black text-foreground md:text-4xl">Página não encontrada</h1>
+      <h1 className="text-3xl font-extrabold text-foreground md:text-4xl">Página não encontrada</h1>
       <p className="max-w-md text-muted-foreground">
         O endereço que você tentou abrir não existe — mas a loja continua cheia de coisas por no máximo R$
         30,00.

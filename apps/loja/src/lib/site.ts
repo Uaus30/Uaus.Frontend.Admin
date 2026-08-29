@@ -40,3 +40,18 @@ export const SITE_CONTACT = {
 /** Tagline longa do rodapé, verbatim do site original. */
 export const SITE_FOOTER_TAGLINE =
   "Tudo o que você precisa por no máximo R$ 30,00. Qualidade e preço baixo em um só lugar.";
+
+/**
+ * Horário de funcionamento exibido na faixa do cabeçalho — **PENDENTE**.
+ *
+ * Para comércio local, horário é o dado mais consultado depois do endereço, e
+ * a ausência dele é lida como "site abandonado". Ele não existe em nenhum
+ * sistema: o `StorefrontCompanyDto` (nome, endereço, telefone, CNPJ) não tem o
+ * campo, e inventar horário de loja física é pior do que omitir — manda o
+ * cliente para porta fechada.
+ *
+ * Enquanto for `undefined`, a faixa mostra o ponto de referência no lugar.
+ * Preenchido (ex.: "Seg–Sex 9h–18h · Sáb 9h–13h"), ele aparece sozinho, e a
+ * terceira linha do cartão do `VisitBanner` passa a exibi-lo também.
+ */
+export const SITE_OPENING_HOURS: string | undefined = undefined;

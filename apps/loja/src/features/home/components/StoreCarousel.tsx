@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useCarousel } from "../hooks/useCarousel";
 import photo1 from "@/assets/store/01_frente_loja.jpeg";
@@ -25,18 +25,19 @@ const SLIDES = [
  */
 export function StoreCarousel() {
   const carousel = useCarousel(SLIDES.length);
+  const reduceMotion = useReducedMotion();
   const slide = SLIDES[carousel.index];
 
   return (
-    <section className="bg-white py-24">
+    <section className="bg-background py-20">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-black text-foreground md:text-5xl">Conheça nossa loja</h2>
+        <h2 className="text-3xl font-extrabold text-foreground md:text-4xl">Conheça nossa loja</h2>
         <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
           Um ambiente preparado para receber você com bom atendimento e muitos produtos.
         </p>
 
         <div
-          className="group relative mx-auto mt-12 aspect-[16/9] max-w-4xl touch-pan-y overflow-hidden rounded-3xl border border-border bg-gray-100 shadow-2xl"
+          className="group relative mx-auto mt-10 aspect-[16/9] max-w-4xl touch-pan-y overflow-hidden rounded-3xl border border-border bg-muted shadow-lg"
           onMouseEnter={carousel.pause}
           onMouseLeave={carousel.resume}
           onPointerDown={(event) => carousel.onPointerDown(event.clientX)}
@@ -48,10 +49,10 @@ export function StoreCarousel() {
               src={slide.src}
               alt={slide.alt}
               draggable={false}
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 80 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, x: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -80 }}
+              transition={{ duration: reduceMotion ? 0 : 0.4, ease: "easeInOut" }}
               className="h-full w-full select-none object-cover"
             />
           </AnimatePresence>
@@ -60,7 +61,7 @@ export function StoreCarousel() {
             type="button"
             onClick={carousel.prev}
             aria-label="Foto anterior"
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 opacity-0 shadow-lg transition-all duration-300 hover:bg-primary hover:text-white group-hover:opacity-100"
+            className="absolute top-1/2 left-4 -translate-y-1/2 rounded-full bg-white/90 p-3 shadow-md transition-colors duration-200 hover:bg-primary-strong hover:text-white focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
           >
             <ArrowRight className="h-5 w-5 rotate-180" />
           </button>
@@ -68,7 +69,7 @@ export function StoreCarousel() {
             type="button"
             onClick={carousel.next}
             aria-label="Próxima foto"
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 opacity-0 shadow-lg transition-all duration-300 hover:bg-primary hover:text-white group-hover:opacity-100"
+            className="absolute top-1/2 right-4 -translate-y-1/2 rounded-full bg-white/90 p-3 shadow-md transition-colors duration-200 hover:bg-primary-strong hover:text-white focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
           >
             <ArrowRight className="h-5 w-5" />
           </button>
@@ -84,8 +85,8 @@ export function StoreCarousel() {
               aria-current={index === carousel.index}
               className={
                 index === carousel.index
-                  ? "h-3 w-8 rounded-full bg-primary transition-all duration-300"
-                  : "h-3 w-3 rounded-full bg-orange-200 transition-all duration-300 hover:bg-orange-300"
+                  ? "h-2.5 w-8 rounded-full bg-primary-strong transition-all duration-200"
+                  : "h-2.5 w-2.5 rounded-full bg-border transition-all duration-200 hover:bg-primary/60"
               }
             />
           ))}

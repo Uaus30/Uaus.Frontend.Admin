@@ -8,12 +8,12 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <section className="mb-16 bg-primary pb-16 pt-20 text-center">
+      <section className="mb-14 bg-foreground pt-16 pb-14 text-center">
         <div className="mx-auto max-w-3xl px-4">
-          <h1 className="text-4xl font-black text-white md:text-6xl">
-            Fale <span className="text-white/90">Conosco</span>
+          <h1 className="text-3xl font-extrabold text-white md:text-5xl">
+            Fale <span className="text-primary">Conosco</span>
           </h1>
-          <p className="mt-4 text-lg text-white/90">
+          <p className="mt-4 text-white/70">
             Dúvidas, sugestões ou elogios? Queremos ouvir você. Preencha o formulário ou entre em contato pelo
             nosso WhatsApp.
           </p>

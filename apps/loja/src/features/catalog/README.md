@@ -24,14 +24,26 @@ consome a API **como visitante anônimo**.
   permite à lojista achar o cadastro certo (nome repete, URL não). Nada é
   enviado sem o cliente confirmar no próprio WhatsApp.
 
+- **A cor do selo vem do cadastro; a cor do texto, não.** A lojista escolhe a
+  cor da etiqueta no admin, e etiqueta clara (amarelo, bege) com texto branco
+  fixo saía ilegível sobre a foto. `TagRibbons` calcula por luminância qual
+  texto ler — ver `lib/contrast.ts`. O front não pode pedir para ela escolher
+  outra cor: ele se adapta.
+
 ## Decisões de implementação
 
 - **Scroll infinito com `useInfiniteQuery`** (páginas de 24) em vez de baixar
   tudo: visitante típico vê a primeira dúzia e vai embora. O sentinela usa
   `IntersectionObserver` com folga de 600px (`useInfiniteScrollSentinel`) e há
   um botão "Carregar mais" como caminho acessível equivalente.
+- **`useFeaturedProducts` é uma página só**, e mora aqui — não na feature
+  `home`, que é quem a renderiza. Dado de produto é desta feature; a home
+  compõe. O hook usa `useGetStorefrontProducts` (query simples) em vez do
+  infinito: a faixa da home pede oito produtos e nada mais.
 - **Cards sem framer-motion.** Hover por transição CSS: numa grade que cresce,
-  motion por card paga JavaScript por frame; CSS anima na composição.
+  motion por card paga JavaScript por frame; CSS anima na composição. O card
+  usa `object-contain` sobre fundo branco, e não `object-cover`: foto de
+  produto vertical era decapitada pelo recorte quadrado.
 - **404 do detalhe não distingue motivo** (oculto/excluído/inexistente) — o
   backend responde igual de propósito, para não vazar existência de cadastro
   oculto a anônimos.

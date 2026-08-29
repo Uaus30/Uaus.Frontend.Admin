@@ -46,9 +46,9 @@ export function ContactInfo() {
               href={row.href}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-orange-50"
+              className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-primary-strong">
                 <row.icon className="h-5 w-5" />
               </span>
               <span>
@@ -64,8 +64,9 @@ export function ContactInfo() {
         href={buildWhatsAppUrl("Olá! Vim pelo site da Uaus.")}
         target="_blank"
         rel="noreferrer"
-        className="animate-pulse-glow mt-8 block w-full rounded-2xl bg-green-600 px-6 py-5 text-center font-black text-white shadow-xl transition-all duration-700 hover:-translate-y-1 hover:bg-green-500"
+        className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 px-6 py-5 text-center font-bold text-white shadow-sm transition-colors duration-200 hover:bg-green-600 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
+        <WhatsAppIcon className="h-5 w-5" />
         CHAMAR NO WHATSAPP
       </a>
     </div>

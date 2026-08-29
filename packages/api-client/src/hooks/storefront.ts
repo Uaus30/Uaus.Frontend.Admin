@@ -95,6 +95,26 @@ export function useGetStorefrontProductsInfinite(
   });
 }
 
+/** Prefixo de uma PÁGINA avulsa da vitrine — quem consulta acrescenta os filtros. */
+export const getGetStorefrontProductsPageQueryKey = (): QueryKey => ["storefront-products-page"];
+
+/**
+ * Uma página só da vitrine, sem scroll infinito: a faixa de destaques da home,
+ * que pede os primeiros N produtos e nada mais.
+ *
+ * Prefixo PRÓPRIO, e não o de `useGetStorefrontProductsInfinite`: as duas
+ * guardam formatos diferentes no cache (`UiPagedResult` contra `InfiniteData`
+ * de páginas), e dividir prefixo faria um `invalidateQueries` futuro derrubar
+ * as duas esperando o mesmo shape.
+ */
+export function useGetStorefrontProducts(params?: StorefrontProductsPageParams) {
+  return useQuery<UiPagedResult<StorefrontProductDto>, ApiError>({
+    queryKey: [...getGetStorefrontProductsPageQueryKey(), params ?? {}],
+    queryFn: () => getStorefrontProductsPage(params),
+    staleTime: STALE_TIME.catalogo,
+  });
+}
+
 /** Detalhe de um grupo exibível. 404 vira `ApiError` (sem redirect — anônimo). */
 export function getStorefrontProduct(productGroupId: number): Promise<StorefrontProductDetailDto> {
   return apiGetOrThrow<StorefrontProductDetailDto>(`/Storefront/products/${productGroupId}`, undefined, {
