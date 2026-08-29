@@ -116,11 +116,7 @@ export default function ProductsPage() {
         {catalog.totalCount > 0 && (
           <p className="mt-4 text-center text-sm text-muted-foreground">
             {catalog.totalCount === 1 ? "1 produto" : `${catalog.totalCount} produtos`}
-            {catalog.hasFilters
-              ? catalog.totalCount === 1
-                ? " encontrado"
-                : " encontrados"
-              : " na loja"}
+            {catalog.hasFilters ? (catalog.totalCount === 1 ? " encontrado" : " encontrados") : " na loja"}
           </p>
         )}
 

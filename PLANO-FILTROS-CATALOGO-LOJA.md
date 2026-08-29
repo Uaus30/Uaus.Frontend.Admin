@@ -5,7 +5,25 @@
 > fase tem escopo, arquivos, esboço de código, testes e o gate que precisa ficar
 > verde antes da fase seguinte.
 
-> **STATUS: não executado.** Nada deste plano foi para o código ainda.
+> **STATUS (29/08/2026, mesmo dia): executado.** Backend em
+> `Uaus.Backend.Api@dev` (`e9c6a2d`), front nesta branch (`777bf88`,
+> `ab4deb6`). Três diferenças em relação ao planejado, todas por motivo
+> descoberto na execução:
+>
+> 1. **Filtro navega por link, não por callback.** O plano previa
+>    `selectDepartment`/`selectCategory` no hook; virou `<Link>` com `href` de
+>    `catalogPath`. Link é rastreável pelo buscador, abre em aba nova e empilha
+>    histórico sozinho — os três de graça.
+> 2. **A árvore é lida duas vezes** (com busca e sem). O plano resolvia o
+>    rótulo perdido com cache de nomes; a segunda leitura resolve rótulo E
+>    "filtro inexistente" de uma vez, e sem busca as duas dividem a chave de
+>    cache — uma requisição só.
+> 3. **A grade perdeu uma coluna por faixa** (`lg:3`, `xl:4`): com a coluna de
+>    filtros ao lado, cinco cards deixavam a foto menor que a miniatura.
+>
+> Pendente: **catálogo do dev tem só 3 produtos visíveis** (3 departamentos,
+> 1 categoria cada). O smoke test cobriu todos os caminhos, mas não a
+> densidade. Para ampliar, ver a seção 12.
 
 ---
 
@@ -771,3 +789,42 @@ categoria` · `feat(loja): trilha de navegacao no detalhe do produto`.
 - [ ] READMEs atualizados com as regras de negócio novas
 - [ ] `build:types`, `typecheck:loja`, `test`, `lint`, `format:check` verdes
 - [ ] Smoke test da seção 7.4 executado e registrado no handoff
+
+---
+
+## 12. Ampliar o catálogo visível do ambiente de dev
+
+O banco de dev tem **922 grupos**, 693 deles com produto ativo, em 21
+departamentos e 80 categorias — e apenas **4** com "Exibir no site" ligado. O
+filtro funciona, mas com uma categoria por departamento e contagem 1 não dá
+para ver densidade, paginação com filtro nem categoria com irmãs.
+
+A escrita direta no banco foi **bloqueada pela política de permissões da
+sessão**, então fica registrado o comando. Ele liga a vitrine para todo grupo
+não excluído que tenha ao menos um produto ativo:
+
+```sql
+UPDATE product_groups g
+   SET show_on_site = true
+ WHERE NOT g.is_deleted
+   AND NOT g.show_on_site
+   AND EXISTS (SELECT 1 FROM products p
+                WHERE p.product_group_id = g.id
+                  AND NOT p.is_deleted
+                  AND p.status = 2);
+```
+
+Para desfazer, os quatro que já estavam ligados antes são os grupos
+`903, 905, 907, 909`:
+
+```sql
+UPDATE product_groups SET show_on_site = false
+ WHERE show_on_site AND id NOT IN (903, 905, 907, 909);
+```
+
+> Só no banco **de dev** (`uaus_db_dev`, host `altaria.proxy.rlwy.net`). Em
+> produção, quem decide o que aparece no site é a lojista, pelo admin.
+
+Notado de passagem, **não corrigido** (é dado, não código): nomes de categoria
+do dev estão com mojibake — "UtensÃ­lios Diversos" em vez de "Utensílios
+Diversos", UTF-8 lido como Latin-1 em alguma importação antiga.
