@@ -21,11 +21,13 @@
 > em `localhost:5175` — home, vitrine, detalhe do produto e contato, com
 > auditoria de contraste medida no DOM (tabela na seção 4).
 >
-> **Segunda rodada, no mesmo dia — o dono reverteu parte da Fase 1 e da Fase 3.**
-> O que voltou ao estado anterior, e o que ficou, está na seção 3.5. Em uma
-> linha: a **identidade** voltou (Outfit, cabeçalho laranja, logo com glow), o
-> **contraste do conteúdo** ficou. E o horário de funcionamento deixou de ser
-> pendência: chegou do dono e está em `SITE_OPENING_HOURS`.
+> **Rodadas 2 e 3, no mesmo dia.** O dono reverteu a fonte e o cabeçalho, e
+> depois achou a saída que fecha a briga entre marca e contraste: **cabeçalho
+> escuro, igual ao rodapé**. O caminho inteiro está na seção 3.5. Em uma linha:
+> a **identidade** voltou (Outfit, logo com glow, laranja vivo nos textos), e o
+> contraste do cabeçalho foi resolvido escurecendo a barra em vez de clarear.
+> E o horário de funcionamento deixou de ser pendência: chegou do dono e está
+> em `SITE_OPENING_HOURS`.
 
 ---
 
@@ -339,7 +341,7 @@ elemento que carrega três palavras de navegação.
 | ----- | ------ |
 | Fonte Archivo + Inter | **Revertida** para Outfit + Plus Jakarta Sans |
 | `font-black` (900) nos títulos | **Voltou** — só na Outfit, que tem o peso |
-| Cabeçalho branco de 72px | **Revertido** para laranja de 96px |
+| Cabeçalho branco de 72px | **Revertido** para laranja de 96px — e depois para navy (rodada 3) |
 | Logo de 44px sem halo | **Revertida** para 80px com glow e `scale-110` |
 | Faixa de endereço acima do cabeçalho | **Movida para baixo** dele, em fundo claro |
 | CTA de WhatsApp no cabeçalho | **Ficou**, agora com contorno branco |
@@ -352,9 +354,50 @@ teto de qualquer texto branco sobre esse laranja), o **anel de foco branco**
 para navegação por teclado, e o **CTA de WhatsApp**, que antes só existia no
 rodapé, no contato e no detalhe do produto.
 
-O que continua reprovando na WCAG AA, com o dono ciente: **texto branco sobre o
-laranja da marca, dentro do cabeçalho** (2,69:1). É o preço da fachada, e está
-restrito a nav, wordmark e tagline. Nenhum outro texto do site depende disso.
+### Terceira rodada — o cabeçalho escuro resolve a briga
+
+A pergunta do dono foi direta: com o laranja de volta, o problema de contraste
+voltou também? Voltou — e a resposta útil não era "é o preço da fachada", era
+desfazer a premissa. **O problema nunca foi o laranja, foi o branco em cima
+dele.**
+
+Medida a rampa inteira do laranja da marca (hue 24, saturação 100%), não existe
+lightness que passe em 4,5:1 com texto branco sem virar marrom: em L=40% ainda
+são 4,4:1 e a cor já não é a da fachada. Mas o navy `#0F1729` sobre o **mesmo**
+`#FF751A` dá **6,65:1**.
+
+Cinco variantes foram renderizadas com a logo e as fontes reais para o dono
+escolher: (A) laranja + branco, como estava; (B) laranja + texto navy; (C)
+híbrida, nav navy e wordmark branco; (D) laranja escurecido + branco; e (E)
+**escuro como o rodapé** — ideia do dono, e a escolhida.
+
+A E resolve as duas coisas de uma vez:
+
+- **Contraste:** wordmark laranja **6,65:1**, nav branca **17,87:1**, tagline
+  **11,68:1**. Tudo passa, com folga.
+- **Presença:** a objeção à barra branca era que ela sumia como única faixa
+  clara brigando com as seções escuras. O navy não briga — ele **fecha o par
+  com o rodapé**, e a página ganha moldura escura em cima e embaixo com o
+  laranja vivendo no meio.
+- **Identidade:** o laranja não saiu do cabeçalho. Mudou de papel: era o fundo
+  de três palavras de navegação, virou o wordmark e o filete do item ativo.
+
+Efeito colateral resolvido junto: os mastheads de `/produtos` e `/contato`
+haviam virado navy na Fase 2, e com o cabeçalho também navy a faixa clara de
+endereço entre os dois virou uma emenda. Foram para **laranja com texto navy**
+(6,65:1) — a variante B aplicada onde ela não custa nada, e que devolve ao
+laranja uma faixa grande de verdade.
+
+### O laranja dos textos voltou ao tom vivo
+
+Ainda na rodada 3, o dono pediu o `#FF751A` de volta em todo texto laranja — o
+titulo do hero, o preço, os ícones. `--primary-strong` deixou de ser cor de
+texto e ficou só como **superfície** que carrega branco (botão primário, cartão
+do VisitBanner) e como anel de foco.
+
+O custo, assumido: **o preço no card volta a 2,69:1** sobre branco. É o único
+ponto do conteúdo que reprova na AA depois de tudo. Reverter só o preço para
+`--primary-strong` é uma linha em `PriceTag.tsx`, se o dono mudar de ideia.
 
 `font-black` **não** voltou nos dois CTAs de WhatsApp: são `<a>`, usam a fonte
 de corpo, e a Plus Jakarta Sans é carregada até 700 — lá o 900 nunca desenhou.
@@ -386,10 +429,12 @@ da WCAG AA é 4,5:1 para texto normal.
 
 | Elemento | Antes | Depois |
 | -------- | ----- | ------ |
-| Nav do cabeçalho, item inativo | 2,20:1 ✗ | 2,69:1 ✗ (ver 3.5) |
-| `<h1>` dos mastheads | 2,69:1 ✗ | **17,87:1** ✓ |
-| Subtítulo dos mastheads | 2,43:1 ✗ | **9,10:1** ✓ |
-| **Preço no card e no detalhe** | 2,69:1 ✗ | **4,79:1** ✓ |
+| Nav do cabeçalho, item inativo | 2,20:1 ✗ | **11,68:1** ✓ |
+| Nav do cabeçalho, item ativo | 2,69:1 ✗ | **17,87:1** ✓ |
+| Wordmark "Uaus!" | 2,69:1 ✗ | **6,65:1** ✓ |
+| `<h1>` dos mastheads | 2,69:1 ✗ | **6,65:1** ✓ |
+| Subtítulo dos mastheads | 2,43:1 ✗ | **5,02:1** ✓ |
+| **Preço no card e no detalhe** | 2,69:1 ✗ | 2,69:1 ✗ (tom vivo, a pedido) |
 | CTA de WhatsApp (era `green-600`) | 3,22:1 ✗ | **4,95:1** ✓ |
 | Copyright/CNPJ do rodapé | 3,81:1 ✗ | **6,99:1** ✓ |
 | Faixa de endereço do cabeçalho | — (nova) | **9,10:1** ✓ |

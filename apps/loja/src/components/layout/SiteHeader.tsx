@@ -9,30 +9,42 @@ import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import logoUrl from "@/assets/logo.png";
 
 /**
- * Anel de foco do cabeçalho. Branco, e não laranja: sobre o laranja da marca o
- * anel nativo do navegador some, e quem navega por teclado perde a posição.
+ * Anel de foco do cabeçalho. Branco sobre a barra escura, com o deslocamento
+ * na cor dela — o anel nativo do navegador some sobre fundo saturado, e quem
+ * navega por teclado perde a posição.
  */
 const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-foreground";
 
 /** Mensagem do CTA do cabeçalho — nomeia a origem para a lojista saber de onde veio. */
 const HEADER_WHATSAPP_MESSAGE = "Olá! Vim pelo site da Uaus.";
 
 /**
- * Cabeçalho laranja fixo: logo com glow no hover, wordmark em duas linhas e
+ * Cabeçalho escuro fixo: logo com glow no hover, wordmark em duas linhas e
  * navegação derivada de `NAV_LINKS` — o menu nunca diverge das rotas porque
  * nasce delas.
  *
- * O laranja chapado é decisão do dono (29/08/2026): a fachada da loja é
- * laranja, e o cabeçalho é a fachada do site. Chegou a virar barra branca por
- * causa do contraste — branco sobre `#FF751A` dá 2,69:1, abaixo dos 4,5:1 da
- * WCAG AA — e voltou. O que sobrou da tentativa, porque não custa a
- * identidade: nav em branco puro (era `white/80`, 2,20:1), anel de foco
- * visível e o CTA de WhatsApp, que antes só existia no rodapé, no contato e no
- * detalhe do produto.
+ * O fundo é o MESMO `--foreground` (#0F1729) do rodapé, e o lockup é o mesmo:
+ * "Uaus!" em laranja, "MÁXIMO 30" em branco. Cabeçalho e rodapé fecham a
+ * página como um par, e o laranja vive entre os dois como acento.
  *
- * O CTA leva contorno branco por pedido do dono: o verde sobre o laranja tem
- * borda fraca, e a linha é o que separa os dois.
+ * Decisão de 29/08/2026, em três rodadas — vale registrar o caminho para
+ * ninguém reabrir pelo mesmo motivo:
+ *
+ * 1. Era laranja chapado com texto branco: **2,69:1**, contra os 4,5:1 da WCAG
+ *    AA. Virou barra branca.
+ * 2. A barra branca foi rejeitada pelo dono, com razão: era a única faixa
+ *    clara do site brigando com as seções escuras, e o cabeçalho perdia
+ *    presença. Voltou ao laranja — e o 2,69:1 junto.
+ * 3. A saída veio do dono: escurecer a barra em vez de clarear. Não existe
+ *    tom do laranja da marca que passe em 4,5:1 com texto branco sem virar
+ *    marrom (medido na rampa inteira), mas sobre o navy o laranja dá
+ *    **6,65:1** e o branco, **17,87:1**. O laranja não saiu do cabeçalho:
+ *    mudou de fundo para wordmark e para o filete do item ativo.
+ *
+ * O CTA de WhatsApp leva contorno branco por pedido do dono: o verde precisa
+ * da linha para se destacar da barra, e isso vale sobre navy como valia sobre
+ * laranja.
  *
  * A faixa de endereço e referência fica ABAIXO do cabeçalho, não acima: ela
  * empurrava a marca para o meio da tela e roubava o primeiro olhar de quem
@@ -49,7 +61,7 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-primary shadow-lg">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-foreground shadow-lg">
         <div className="mx-auto flex h-24 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
@@ -65,8 +77,8 @@ export function SiteHeader() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-display text-4xl leading-none font-black text-white">{SITE_NAME}</span>
-              <span className="font-display text-sm font-bold tracking-[0.2em] text-white/90">
+              <span className="font-display text-4xl leading-none font-black text-primary">{SITE_NAME}</span>
+              <span className="font-display text-sm font-bold tracking-[0.2em] text-white/80">
                 {SITE_TAGLINE}
               </span>
             </div>
@@ -79,8 +91,8 @@ export function SiteHeader() {
                 href={link.path}
                 className={
                   isActive(link.path)
-                    ? `border-b-2 border-white py-1 text-sm font-bold text-white uppercase ${FOCUS_RING}`
-                    : `border-b-2 border-transparent py-1 text-sm font-bold text-white uppercase transition-opacity duration-200 hover:opacity-80 ${FOCUS_RING}`
+                    ? `border-b-2 border-primary py-1 text-sm font-bold text-white uppercase ${FOCUS_RING}`
+                    : `border-b-2 border-transparent py-1 text-sm font-bold text-white/80 uppercase transition-colors duration-200 hover:text-white ${FOCUS_RING}`
                 }
               >
                 {link.label}
@@ -129,8 +141,8 @@ export function SiteHeader() {
                     onClick={() => setMobileOpen(false)}
                     className={
                       isActive(link.path)
-                        ? `block rounded-xl bg-white px-4 py-3 text-sm font-bold text-primary-strong uppercase ${FOCUS_RING}`
-                        : `block rounded-xl px-4 py-3 text-sm font-bold text-white uppercase hover:bg-white/10 ${FOCUS_RING}`
+                        ? `block rounded-xl bg-white px-4 py-3 text-sm font-bold text-primary uppercase ${FOCUS_RING}`
+                        : `block rounded-xl px-4 py-3 text-sm font-bold text-white/80 uppercase hover:bg-white/10 hover:text-white ${FOCUS_RING}`
                     }
                   >
                     {link.label}
@@ -159,9 +171,9 @@ export function SiteHeader() {
             href={SITE_CONTACT.mapsPlaceUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-w-0 items-center gap-1.5 rounded text-muted-foreground transition-colors hover:text-primary-strong focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="inline-flex min-w-0 items-center gap-1.5 rounded text-muted-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            <MapPin aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary-strong" />
+            <MapPin aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary" />
             <span className="truncate">
               {SITE_CONTACT.addressLine} — {SITE_CONTACT.addressDistrict}
             </span>

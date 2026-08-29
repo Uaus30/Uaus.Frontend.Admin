@@ -20,7 +20,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-4">
-      <div className="rounded-xl bg-white p-3 text-primary-strong">
+      <div className="rounded-xl bg-white p-3 text-primary">
         <Icon className="h-6 w-6" />
       </div>
       <div>

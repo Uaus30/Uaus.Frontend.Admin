@@ -9,7 +9,7 @@ export function HighlightsGrid() {
     <section className="border-t border-border bg-surface py-20">
       <div className="mx-auto grid max-w-7xl items-stretch gap-8 px-4 sm:px-6 md:grid-cols-3 lg:px-8">
         <div className="rounded-3xl border border-border bg-white p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary-strong">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary">
             <ShoppingBag className="h-8 w-8" />
           </div>
           <h3 className="mt-6 text-xl font-bold text-foreground">Presentes</h3>
@@ -17,7 +17,7 @@ export function HighlightsGrid() {
         </div>
 
         <div className="z-10 rounded-3xl bg-primary-strong p-8 text-center text-white shadow-lg md:-my-4">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-primary-strong">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-primary">
             <Star className="h-10 w-10" />
           </div>
           <h3 className="mt-6 text-2xl font-black">MÁXIMO 30 REAIS</h3>
@@ -27,7 +27,7 @@ export function HighlightsGrid() {
         </div>
 
         <div className="rounded-3xl border border-border bg-white p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary-strong">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary">
             <Store className="h-8 w-8" />
           </div>
           <h3 className="mt-6 text-xl font-bold text-foreground">Diversidade</h3>

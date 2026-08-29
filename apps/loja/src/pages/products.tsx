@@ -35,12 +35,12 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-surface pb-24">
-      <section className="mb-14 bg-foreground pt-16 pb-14 text-center">
+      <section className="mb-14 bg-primary pt-16 pb-14 text-center">
         <div className="mx-auto max-w-3xl px-4">
-          <h1 className="text-3xl font-black text-white md:text-5xl">
-            Promoções e <span className="text-primary">Novidades</span>
+          <h1 className="text-3xl font-black text-foreground/75 md:text-5xl">
+            Promoções e <span className="text-foreground">Novidades</span>
           </h1>
-          <p className="mt-4 text-white/70">Todas as imagens são meramente ilustrativas.</p>
+          <p className="mt-4 text-foreground/80">Todas as imagens são meramente ilustrativas.</p>
         </div>
       </section>
 
@@ -61,7 +61,7 @@ export default function ProductsPage() {
         <div className="mt-12">
           {catalog.isLoading ? (
             <div className="flex flex-col items-center gap-3 py-24 text-muted-foreground">
-              <Loader2 className="h-10 w-10 animate-spin text-primary-strong" aria-hidden />
+              <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
               Carregando produtos...
             </div>
           ) : catalog.isError ? (

@@ -38,7 +38,7 @@ export default function ProductDetailPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Link
           href="/produtos"
-          className="inline-flex items-center gap-2 rounded text-sm font-semibold text-muted-foreground transition-colors hover:text-primary-strong focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="inline-flex items-center gap-2 rounded text-sm font-semibold text-muted-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar aos produtos
@@ -76,7 +76,7 @@ export default function ProductDetailPage() {
               />
 
               <div>
-                <p className="text-sm font-semibold tracking-wide text-primary-strong uppercase">
+                <p className="text-sm font-semibold tracking-wide text-primary uppercase">
                   {detail.product.categoryName}
                 </p>
                 <h1 className="mt-2 text-3xl font-black text-foreground md:text-4xl">
@@ -121,7 +121,7 @@ export default function ProductDetailPage() {
                           aria-pressed={detail.selectedVariation === variation.name}
                           className={
                             detail.selectedVariation === variation.name
-                              ? "rounded-xl border-2 border-primary-strong bg-accent px-4 py-2 text-sm font-semibold text-primary-strong"
+                              ? "rounded-xl border-2 border-primary-strong bg-accent px-4 py-2 text-sm font-semibold text-primary"
                               : "rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/60"
                           }
                         >

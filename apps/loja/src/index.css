@@ -119,12 +119,14 @@
   --primary: 24 100% 55%;
   --primary-foreground: 0 0% 100%;
   /*
-   * O MESMO laranja escurecido (#C24F09) para tudo que carrega TEXTO.
-   * Branco sobre o laranja da marca da 2,69:1 e reprova na WCAG AA (pede
-   * 4,5:1); o laranja da marca sobre branco da os mesmos 2,69:1 — era o
-   * contraste do PRECO, o numero mais importante da loja. Este da 4,76:1 nos
-   * dois sentidos. Regra: --primary pinta (icone, faixa, selo, borda),
-   * --primary-strong escreve.
+   * O MESMO laranja escurecido (#C24F09), para SUPERFICIE que carrega texto
+   * branco: botao primario, cartao do VisitBanner, anel de foco. Branco sobre
+   * ele da 4,79:1 e passa na WCAG AA; sobre o laranja da marca daria 2,69:1.
+   *
+   * NAO use para texto. Chegou a ser a cor de todo texto laranja do site, e o
+   * dono reverteu em 29/08/2026: o tom escurecido puxa para o marrom e nao e a
+   * marca. Texto laranja e --primary, com o custo assumido de 2,69:1 sobre
+   * fundo claro — decisao registrada em PLANO-DESIGN-LOJA.md, secao 3.5.
    */
   --primary-strong: 22 91% 40%;
 

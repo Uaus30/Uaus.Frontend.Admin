@@ -34,14 +34,14 @@ export function HeroSection() {
         transition={{ duration: reduceMotion ? 0 : 0.5 }}
         className="relative mx-auto max-w-3xl px-4 text-center sm:px-6"
       >
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-primary-strong">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-primary">
           <Store className="h-4 w-4" />
           Nova loja em Tapira-PR
         </span>
 
         <h1 className="mt-7 text-4xl leading-[1.12] font-black text-balance text-foreground md:text-6xl">
           Chegou em Tapira...
-          <span className="mt-3 block text-primary-strong">Uma loja com tudo por no máximo 30 reais!</span>
+          <span className="mt-3 block text-primary">Uma loja com tudo por no máximo 30 reais!</span>
         </h1>
 
         <p className="mt-7 text-lg text-muted-foreground">

@@ -25,7 +25,7 @@ export function CatalogSearch({ value, onChange, isSearching }: CatalogSearchPro
       {isSearching && (
         <Loader2
           aria-label="Buscando"
-          className="absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 animate-spin text-primary-strong"
+          className="absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 animate-spin text-primary"
         />
       )}
     </div>

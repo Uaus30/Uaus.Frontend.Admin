@@ -48,7 +48,7 @@ export function ContactInfo() {
               rel="noreferrer"
               className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-primary-strong">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
                 <row.icon className="h-5 w-5" />
               </span>
               <span>
@@ -62,7 +62,7 @@ export function ContactInfo() {
 
       <div className="mt-6 rounded-2xl border border-border bg-surface p-5">
         <p className="flex items-center gap-2 font-bold text-foreground">
-          <Clock aria-hidden className="h-5 w-5 text-primary-strong" />
+          <Clock aria-hidden className="h-5 w-5 text-primary" />
           Horário de funcionamento
         </p>
         <dl className="mt-4 space-y-2">

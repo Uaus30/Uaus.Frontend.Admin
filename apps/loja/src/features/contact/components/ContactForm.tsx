@@ -16,7 +16,7 @@ export function ContactForm() {
   return (
     <div className="rounded-3xl border border-border bg-surface p-8 md:p-10">
       <h2 className="flex items-center gap-3 text-2xl font-bold text-foreground">
-        <MessageSquare className="h-6 w-6 text-primary-strong" />
+        <MessageSquare className="h-6 w-6 text-primary" />
         Envie uma mensagem
       </h2>
 

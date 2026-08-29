@@ -25,8 +25,8 @@ export function PriceTag({ price, priceMax, size = "md" }: PriceTagProps) {
       <p
         className={
           size === "lg"
-            ? "font-display text-4xl font-black text-primary-strong"
-            : "font-display text-xl font-black text-primary-strong"
+            ? "font-display text-4xl font-black text-primary"
+            : "font-display text-xl font-black text-primary"
         }
       >
         {formatCurrency(price)}
