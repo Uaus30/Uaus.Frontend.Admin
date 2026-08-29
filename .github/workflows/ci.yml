@@ -327,6 +327,9 @@ jobs:
       - name: Typecheck do PDV
         run: npm run typecheck:pdv
 
+      - name: Typecheck da loja
+        run: npm run typecheck:loja
+
       - name: Typecheck do packages/ui
         run: npm run typecheck --workspace=@workspace/ui
 
@@ -387,7 +390,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [admin, pdv]
+        app: [admin, pdv, loja]
     steps:
       - uses: actions/checkout@v4
 

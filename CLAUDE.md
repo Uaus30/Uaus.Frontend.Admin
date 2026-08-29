@@ -60,6 +60,7 @@ tema por commit: se o trabalho misturou feature e correção, são dois commits.
 | --------------------- | ------------------------------------------------------------- | ---------------- |
 | `apps/admin`          | Retaguarda. 25 features.                                      | —                |
 | `apps/pdv`            | Ponto de venda, offline-first.                                | —                |
+| `apps/loja`           | Site público (uaus.com.br). Só leitura anônima (`/storefront`, hooks com `auth: false`). | Login, sessão, chamada autenticada |
 | `packages/api-client` | Cliente HTTP, DTOs e hooks React Query. Escrito à mão.        | Regra de negócio |
 | `packages/core`       | Regra de domínio pura: dinheiro, datas, texto, máscara, erro. | React, rede, DOM |
 | `packages/ui`         | Componentes visuais (shadcn).                                 | Regra de domínio |
@@ -244,7 +245,13 @@ na mesma origem. Qual API ele alcança é escolhido pelo `has: host` do
 dev para produção nem gera conflito recorrente nesse arquivo.
 
 A ordem das regras é deliberada: **só** `admin.uaus.com.br` (e `pdv.uaus.com.br`
-no `apps/pdv/vercel.json`) cai em `api.uaus.com.br`; todo o resto — `*-dev`,
+no `apps/pdv/vercel.json`, e `uaus.com.br`/`www.uaus.com.br` no
+`apps/loja/vercel.json`) cai em `api.uaus.com.br`; todo o resto — `*-dev`,
 previews de branch, `*.vercel.app` — cai em `api-dev.uaus.com.br`. O padrão
 seguro é dev, não produção. Invertendo a ordem ou apagando o `has`, qualquer
 preview passa a gravar venda no banco da loja.
+
+São **três projetos Vercel**: o do admin usa a raiz do repo (este
+`vercel.json`); PDV e loja usam Root Directory no próprio app, com
+`vercel.json` local. Host novo de produção também entra em
+`packages/ui/src/lib/environment.ts`, senão a faixa de dev aparece em produção.

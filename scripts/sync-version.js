@@ -45,6 +45,7 @@ export function syncVersion() {
   const pkgFiles = [
     path.resolve(workspaceRoot, "package.json"),
     path.resolve(workspaceRoot, "apps/admin/package.json"),
+    path.resolve(workspaceRoot, "apps/loja/package.json"),
     path.resolve(workspaceRoot, "apps/pdv/package.json"),
   ];
 

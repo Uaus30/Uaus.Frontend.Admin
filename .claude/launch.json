@@ -18,6 +18,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview", "--workspace=@workspace/pdv"],
       "port": 4173
+    },
+    {
+      "name": "loja",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:loja"],
+      "port": 5175
     }
   ]
 }

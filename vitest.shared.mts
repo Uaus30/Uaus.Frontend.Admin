@@ -26,7 +26,7 @@ type CoverageOptions = NonNullable<TestUserConfig["coverage"]>;
  * pasta órfã e — pior — leria um piso `undefined`, desligando o portão daquele
  * workspace em silêncio. Fechada a união, o typecheck reprova o typo.
  */
-export type CoverageWorkspace = "core" | "api-client" | "ui" | "receipt" | "admin" | "pdv";
+export type CoverageWorkspace = "core" | "api-client" | "ui" | "receipt" | "admin" | "pdv" | "loja";
 
 /** Piso de cada métrica, em porcentagem do total do workspace. */
 type CoverageFloor = {
@@ -96,6 +96,11 @@ const COVERAGE_FLOOR: Record<CoverageWorkspace, CoverageFloor> = {
   admin: { statements: 40, branches: 25, functions: 29, lines: 41 },
   // medido 54.95 / 41.71 / 49.42 / 55.33 — 449 testes
   pdv: { statements: 52, branches: 41, functions: 45, lines: 52 },
+  // medido 51.55 / 36 / 32.11 / 49.35 na primeira medição real (28/08/2026,
+  // dia em que o workspace nasceu) — mesma regra dos demais: medido,
+  // arredondado para baixo. O descoberto é casca (App, layout, páginas);
+  // os hooks com lógica nasceram todos testados.
+  loja: { statements: 51, branches: 36, functions: 32, lines: 49 },
 };
 
 /**
