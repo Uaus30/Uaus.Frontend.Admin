@@ -5,6 +5,17 @@
 > guia de execução: cada fase tem escopo, arquivos com conteúdo pronto, gates de
 > verificação e os pontos onde os freios do CLAUDE.md disparam.
 
+> **STATUS (28/08/2026, mesmo dia):** Fases 0 a 3 **executadas** — backend em
+> `Uaus.Backend.Api@dev` (commit `15acdbd`), app em `apps/loja` nesta branch
+> (commits `21190d1..1bdb71e`). Diferenças em relação ao planejado: scroll
+> infinito com busca no servidor (pedido posterior do dono) no lugar do
+> fetch-all com filtro no cliente; tela de detalhe `/produtos/:id` com reserva
+> por WhatsApp; código em inglês/docs em pt-BR. Pendentes: Fase 4 (criação
+> manual dos projetos na Vercel — instruções na seção 8 e no README do app),
+> Fase 5 (descomissionar o Front-Loja), deploy da `dev` do backend no Railway
+> da api-dev (conferir qual branch o serviço acompanha) e o horário de
+> funcionamento (seção 11).
+
 ---
 
 ## 1. Resumo
