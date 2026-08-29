@@ -39,6 +39,7 @@ export * from "./components/toast";
 export * from "./components/toaster";
 export * from "./components/toggle";
 export * from "./components/tooltip";
+export * from "./lib/chunk-reload";
 export * from "./lib/environment";
 export * from "./lib/utils";
 

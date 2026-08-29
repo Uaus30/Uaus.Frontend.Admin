@@ -9,7 +9,7 @@
  * de teste passar por produção — e é justamente isso que a faixa existe para
  * impedir.
  */
-const PRODUCTION_HOSTS = ["admin.uaus.com.br", "pdv.uaus.com.br"];
+const PRODUCTION_HOSTS = ["admin.uaus.com.br", "pdv.uaus.com.br", "uaus.com.br", "www.uaus.com.br"];
 
 /**
  * Diz se o app está rodando fora de produção.

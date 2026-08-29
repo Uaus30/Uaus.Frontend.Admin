@@ -1,9 +1,16 @@
-/*
- * NOTA DE UNIFICAÇÃO (28/08/2026): este módulo ganhou cópia canônica em
- * `packages/ui/src/lib/chunk-reload.ts` quando o apps/loja passou a precisar
- * dele. O admin ainda usa esta cópia local porque o `vi.spyOn` de namespace no
- * teste do ErrorBoundary não sobrevive a re-export. Ao alterar comportamento,
- * altere as DUAS cópias; unificar o admin para importar do pacote é pendência.
+/**
+ * Recuperação automática de chunk desatualizado pós-deploy.
+ *
+ * Todo deploy troca o hash dos chunks; uma aba aberta desde antes do deploy
+ * falha ao carregar a rota lazy seguinte ("Failed to fetch dynamically imported
+ * module") e ficaria morta sem este reload. Mora no pacote — e não num app —
+ * porque o site público (apps/loja) sofre disso mais que o admin: visitante não
+ * recarrega aba por conta própria.
+ *
+ * Nota de unificação: `apps/admin/src/lib/chunk-reload.ts` mantém uma cópia
+ * idêntica anterior a esta (o spy de namespace dos testes do ErrorBoundary não
+ * sobrevive a re-export). Unificar o admin para importar daqui é tarefa
+ * pendente; até lá, alteração de comportamento deve ser aplicada nos dois.
  */
 
 /**
