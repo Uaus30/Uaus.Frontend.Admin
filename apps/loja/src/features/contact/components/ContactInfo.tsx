@@ -1,4 +1,5 @@
-import { Mail, MapPin, MessageCircle } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useGetStorefrontCompany } from "@workspace/api-client-react";
 import { SITE_CONTACT } from "@/lib/site";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
@@ -13,7 +14,7 @@ export function ContactInfo() {
 
   const rows = [
     {
-      icon: MessageCircle,
+      icon: WhatsAppIcon,
       label: "WhatsApp / Telefone",
       value: company?.phone || SITE_CONTACT.whatsappDisplay,
       href: buildWhatsAppUrl("Olá! Vim pelo site da Uaus."),

@@ -1,4 +1,4 @@
-import { ArrowLeft, MessageCircle, PackageSearch } from "lucide-react";
+import { ArrowLeft, PackageSearch } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { formatCurrency } from "@workspace/core";
 import { Skeleton } from "@workspace/ui";
@@ -6,6 +6,7 @@ import { usePageTitle } from "@/lib/page-title";
 import { useProductDetail } from "@/features/catalog/hooks/useProductDetail";
 import { PriceTag } from "@/features/catalog/components/PriceTag";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 function DetailSkeleton() {
   return (
@@ -139,7 +140,7 @@ export default function ProductDetailPage() {
                       rel="noreferrer"
                       className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-6 py-5 text-center font-black text-white shadow-xl transition-all duration-700 hover:-translate-y-1 hover:bg-green-500"
                     >
-                      <MessageCircle className="h-5 w-5" />
+                      <WhatsAppIcon className="h-5 w-5" />
                       RESERVAR PELO WHATSAPP
                     </a>
                     <p className="mt-3 text-center text-xs text-muted-foreground">

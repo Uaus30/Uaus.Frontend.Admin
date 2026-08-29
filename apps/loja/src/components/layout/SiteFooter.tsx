@@ -1,6 +1,7 @@
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "wouter";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useGetStorefrontCompany } from "@workspace/api-client-react";
 import { NAV_LINKS } from "@/routes";
 import { SITE_CONTACT, SITE_FOOTER_TAGLINE, SITE_NAME, SITE_TAGLINE } from "@/lib/site";
@@ -57,7 +58,7 @@ export function SiteFooter() {
                 aria-label="WhatsApp da Uaus"
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors duration-300 hover:bg-primary"
               >
-                <MessageCircle className="h-5 w-5" />
+                <WhatsAppIcon className="h-5 w-5" />
               </a>
             </div>
           </div>
