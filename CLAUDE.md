@@ -56,15 +56,15 @@ tema por commit: se o trabalho misturou feature e correção, são dois commits.
 
 ## 2. Mapa dos workspaces
 
-| Workspace             | O que é                                                       | O que NÃO entra  |
-| --------------------- | ------------------------------------------------------------- | ---------------- |
-| `apps/admin`          | Retaguarda. 25 features.                                      | —                |
-| `apps/pdv`            | Ponto de venda, offline-first.                                | —                |
+| Workspace             | O que é                                                                                  | O que NÃO entra                    |
+| --------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------- |
+| `apps/admin`          | Retaguarda. 25 features.                                                                 | —                                  |
+| `apps/pdv`            | Ponto de venda, offline-first.                                                           | —                                  |
 | `apps/loja`           | Site público (uaus.com.br). Só leitura anônima (`/storefront`, hooks com `auth: false`). | Login, sessão, chamada autenticada |
-| `packages/api-client` | Cliente HTTP, DTOs e hooks React Query. Escrito à mão.        | Regra de negócio |
-| `packages/core`       | Regra de domínio pura: dinheiro, datas, texto, máscara, erro. | React, rede, DOM |
-| `packages/ui`         | Componentes visuais (shadcn).                                 | Regra de domínio |
-| `packages/receipt`    | Montagem e impressão do cupom.                                | Chamada de API   |
+| `packages/api-client` | Cliente HTTP, DTOs e hooks React Query. Escrito à mão.                                   | Regra de negócio                   |
+| `packages/core`       | Regra de domínio pura: dinheiro, datas, texto, máscara, erro.                            | React, rede, DOM                   |
+| `packages/ui`         | Componentes visuais (shadcn).                                                            | Regra de domínio                   |
+| `packages/receipt`    | Montagem e impressão do cupom.                                                           | Chamada de API                     |
 
 Cada package tem README próprio. Leia o do pacote antes de mexer nele.
 
