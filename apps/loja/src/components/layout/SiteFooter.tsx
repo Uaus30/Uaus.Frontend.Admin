@@ -76,7 +76,7 @@ export function SiteFooter() {
               <li className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <a
-                  href={SITE_CONTACT.mapsShareUrl}
+                  href={SITE_CONTACT.mapsPlaceUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="transition-colors hover:text-white"
