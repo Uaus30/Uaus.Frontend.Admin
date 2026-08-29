@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createQueryClient, STALE_TIME } from "@workspace/api-client-react";
+import { ApiError, createQueryClient, STALE_TIME } from "@workspace/api-client-react";
 import { DevEnvironmentBanner, Spinner } from "@workspace/ui";
 import { Redirect, Route, Router as WouterRouter, Switch } from "wouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -19,16 +19,22 @@ import {
  *
  * - `staleTime` de catálogo: o dado só muda quando o admin edita, e ninguém
  *   invalida cache no navegador de um visitante — o tempo é o único mecanismo.
- * - `retry: 2`: o `createQueryClient` desliga retry porque no admin/PDV erro
- *   rápido é melhor que spinner longo. Aqui é o inverso — visitante em 4G
- *   oscilante não sabe recarregar; duas tentativas silenciosas salvam a visita.
+ * - Retry seletivo: o `createQueryClient` desliga retry porque no admin/PDV
+ *   erro rápido é melhor que spinner longo. Aqui é o inverso — visitante em 4G
+ *   oscilante não sabe recarregar; duas tentativas silenciosas salvam a
+ *   visita. MAS só para o que pode sarar (falha de rede, 5xx): re-tentar um
+ *   404 do detalhe deixava o esqueleto na tela por segundos para no fim dizer
+ *   a mesma coisa — 4xx não muda de resposta.
  * - Sem `refetchOnWindowFocus`: vitrine não é dashboard.
  */
 const queryClient = createQueryClient({
   defaultOptions: {
     queries: {
       staleTime: STALE_TIME.catalogo,
-      retry: 2,
+      retry: (failureCount, error) => {
+        if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
+        return failureCount < 2;
+      },
       refetchOnWindowFocus: false,
     },
   },
