@@ -4,10 +4,22 @@ import { render, screen } from "@testing-library/react";
 import React from "react";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { reportClientError } from "../../lib/clientLogger";
-import * as chunkReload from "../../lib/chunk-reload";
+
+const mocks = vi.hoisted(() => ({
+  reloadOnChunkLoadError: vi.fn(),
+}));
 
 vi.mock("../../lib/clientLogger", () => ({
   reportClientError: vi.fn(),
+}));
+
+// Só o reload é dublado; `isChunkLoadError` e o Button vêm do módulo real.
+// `vi.spyOn` sobre o namespace não serve aqui: o chunk-reload chega ao
+// componente por re-export do barrel do @workspace/ui, e o spy no namespace
+// re-exportado não intercepta a chamada feita dentro do componente.
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
+  reloadOnChunkLoadError: mocks.reloadOnChunkLoadError,
 }));
 
 const ProblemChild = () => {
@@ -55,7 +67,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("suprime o envio de Crash Crítico caso seja erro de chunk e o auto-reload for disparado", () => {
-    vi.spyOn(chunkReload, "reloadOnChunkLoadError").mockReturnValueOnce(true);
+    mocks.reloadOnChunkLoadError.mockReturnValueOnce(true);
 
     render(
       <ErrorBoundary>
@@ -67,7 +79,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("aciona o clientLogger caso o erro de chunk persista e o reload tenha sido bloqueado pela trava", () => {
-    vi.spyOn(chunkReload, "reloadOnChunkLoadError").mockReturnValueOnce(false);
+    mocks.reloadOnChunkLoadError.mockReturnValueOnce(false);
 
     render(
       <ErrorBoundary>
