@@ -7,7 +7,6 @@ import { getBuildInfo } from "../../scripts/build-version.ts";
 
 const buildInfo = getBuildInfo();
 
-
 // https://vite.dev/config/
 export default defineConfig({
   define: {

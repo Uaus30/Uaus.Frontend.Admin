@@ -2,11 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { reportClientError } from "./lib/clientLogger";
-import {
-  isChunkLoadError,
-  reloadOnChunkLoadError,
-  setupChunkLoadErrorHandler,
-} from "./lib/chunk-reload";
+import { isChunkLoadError, reloadOnChunkLoadError, setupChunkLoadErrorHandler } from "./lib/chunk-reload";
 
 if (typeof window !== "undefined") {
   setupChunkLoadErrorHandler();
@@ -36,4 +32,3 @@ if (typeof window !== "undefined") {
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
-

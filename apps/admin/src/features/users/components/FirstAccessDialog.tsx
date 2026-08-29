@@ -69,7 +69,11 @@ export function FirstAccessDialog({ info, onClose }: FirstAccessDialogProps) {
                   onClick={copiar}
                   aria-label="Copiar senha"
                 >
-                  {copiado ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiado ? (
+                    <Check className="h-3.5 w-3.5 text-primary" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               </div>
             </div>

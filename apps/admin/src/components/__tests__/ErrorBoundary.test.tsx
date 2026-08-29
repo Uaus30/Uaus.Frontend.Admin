@@ -15,7 +15,9 @@ const ProblemChild = () => {
 };
 
 const ChunkProblemChild = () => {
-  throw new TypeError("Failed to fetch dynamically imported module: https://domain/assets/payment-methods.js");
+  throw new TypeError(
+    "Failed to fetch dynamically imported module: https://domain/assets/payment-methods.js",
+  );
 };
 
 describe("ErrorBoundary", () => {

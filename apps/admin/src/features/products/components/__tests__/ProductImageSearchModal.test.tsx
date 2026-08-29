@@ -59,7 +59,9 @@ describe("ProductImageSearchModal", () => {
     expect(screen.getByText("Buscar imagem na internet")).toBeTruthy();
     expect(screen.getByText("· cód. 0986333180612")).toBeTruthy();
 
-    const input = screen.getByPlaceholderText("Digite o nome ou código de barras para pesquisar...") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Digite o nome ou código de barras para pesquisar...",
+    ) as HTMLInputElement;
     expect(input.value).toBe("RODINHO DE PIA");
 
     await waitFor(() => {
@@ -96,7 +98,9 @@ describe("ProductImageSearchModal", () => {
       />,
     );
 
-    const input = screen.getByPlaceholderText("Digite o nome ou código de barras para pesquisar...") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Digite o nome ou código de barras para pesquisar...",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "SAL REFINADO" } });
     fireEvent.submit(input.closest("form")!);
 

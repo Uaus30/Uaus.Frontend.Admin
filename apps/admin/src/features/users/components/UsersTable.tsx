@@ -128,7 +128,12 @@ export function UsersTable({
                     <div className="flex items-center justify-end gap-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(user)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onEdit(user)}
+                          >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger>

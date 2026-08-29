@@ -78,7 +78,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-foreground">Algo deu errado</h2>
               <p className="text-sm text-muted-foreground">
-                Ocorreu uma falha inesperada ao carregar esta tela. O erro foi registrado automaticamente para análise.
+                Ocorreu uma falha inesperada ao carregar esta tela. O erro foi registrado automaticamente para
+                análise.
               </p>
             </div>
 
@@ -89,18 +90,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             )}
 
             <div className="flex gap-2 w-full pt-2">
-              <Button
-                variant="outline"
-                className="flex-1 gap-2"
-                onClick={this.handleGoHome}
-              >
+              <Button variant="outline" className="flex-1 gap-2" onClick={this.handleGoHome}>
                 <Home className="h-4 w-4" />
                 Início
               </Button>
-              <Button
-                className="flex-1 gap-2 bg-primary text-primary-foreground"
-                onClick={this.handleReset}
-              >
+              <Button className="flex-1 gap-2 bg-primary text-primary-foreground" onClick={this.handleReset}>
                 <RotateCcw className="h-4 w-4" />
                 Recarregar
               </Button>

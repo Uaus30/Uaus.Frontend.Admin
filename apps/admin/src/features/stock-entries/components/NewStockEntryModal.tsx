@@ -190,9 +190,7 @@ export function NewStockEntryModal({
                       <TableHead className="px-3 py-2 text-xs whitespace-nowrap">
                         Produto <span className="text-red-500">*</span>
                       </TableHead>
-                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap w-36">
-                        Cód. Barras
-                      </TableHead>
+                      <TableHead className="px-3 py-2 text-xs whitespace-nowrap w-36">Cód. Barras</TableHead>
                       <TableHead className="px-3 py-2 text-xs whitespace-nowrap text-center w-24">
                         Qtd. <span className="text-red-500">*</span>
                       </TableHead>

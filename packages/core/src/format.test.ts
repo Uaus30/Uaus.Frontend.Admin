@@ -101,4 +101,3 @@ describe("formatUpdatedAt", () => {
     expect(formatUpdatedAt("invalid")).toBe("");
   });
 });
-

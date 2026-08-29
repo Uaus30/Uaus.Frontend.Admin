@@ -9,7 +9,6 @@ import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
 
-
 // ==========================================
 // SYSTEM LOGS TYPES & HOOKS
 // ==========================================
@@ -127,4 +126,3 @@ export async function createLog(payload: CreateLogPayload): Promise<SystemLogDto
 
   return response.data;
 }
-

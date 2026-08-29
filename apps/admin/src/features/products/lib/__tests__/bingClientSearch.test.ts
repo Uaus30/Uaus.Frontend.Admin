@@ -69,17 +69,26 @@ describe("bingClientSearch", () => {
   describe("parseResults", () => {
     const buildHtml = (tiles: { murl: string; turl: string; t: string }[]) =>
       tiles
-        .map(
-          (tile) =>
-            `<div class="iusc" m="${JSON.stringify(tile).replace(/"/g, "&quot;")}"></div>`,
-        )
+        .map((tile) => `<div class="iusc" m="${JSON.stringify(tile).replace(/"/g, "&quot;")}"></div>`)
         .join("");
 
     it("extrai resultados pertinentes e descarta irrelevantes", () => {
       const html = buildHtml([
-        { murl: "https://img1.com/grampo.jpg", turl: "https://img1.com/t.jpg", t: "Grampos De Cabelo Estrela 16pcs" },
-        { murl: "https://img2.com/random.jpg", turl: "https://img2.com/t.jpg", t: "Random Video Game Screenshot" },
-        { murl: "https://img3.com/grampo2.jpg", turl: "https://img3.com/t.jpg", t: "Kit Grampo Cabelo Estrela Infantil" },
+        {
+          murl: "https://img1.com/grampo.jpg",
+          turl: "https://img1.com/t.jpg",
+          t: "Grampos De Cabelo Estrela 16pcs",
+        },
+        {
+          murl: "https://img2.com/random.jpg",
+          turl: "https://img2.com/t.jpg",
+          t: "Random Video Game Screenshot",
+        },
+        {
+          murl: "https://img3.com/grampo2.jpg",
+          turl: "https://img3.com/t.jpg",
+          t: "Kit Grampo Cabelo Estrela Infantil",
+        },
       ]);
 
       const results = parseResults(html, 10, "GRAMPOS DE CABELO ESTRELA");

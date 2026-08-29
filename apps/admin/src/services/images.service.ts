@@ -130,4 +130,3 @@ export async function downloadWebImageAsFile(webImageUrl: string, baseName: stri
 
   return new File([blob], `${cleanName}.jpg`, { type: blob.type });
 }
-

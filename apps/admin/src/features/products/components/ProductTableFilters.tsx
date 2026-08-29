@@ -1,6 +1,11 @@
 import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Search, RotateCcw } from "lucide-react";
-import { PRODUCT_STATUS, type CategoryDto, type DepartmentDto, type EnumOptionDto } from "@workspace/api-client-react";
+import {
+  PRODUCT_STATUS,
+  type CategoryDto,
+  type DepartmentDto,
+  type EnumOptionDto,
+} from "@workspace/api-client-react";
 
 export interface ProductTableFiltersProps {
   search: string;

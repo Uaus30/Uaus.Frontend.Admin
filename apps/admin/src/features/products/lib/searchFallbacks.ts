@@ -26,7 +26,19 @@ export function getSearchFallbacks(query: string): string[] {
   // 2. Limpeza de prefixos de ERP (PF., DIST., etc.) e unidades de medida no final (UN, CX, etc.)
   const cleanPunctuation = withoutBarcode.replace(/[.\-/_,\\]/g, " ");
   const tokens = cleanPunctuation.split(/\s+/).filter(Boolean);
-  const erpPrefixes = new Set(["pf", "dist", "forn", "fab", "alim", "beb", "limp", "prod", "ind", "imp", "exp"]);
+  const erpPrefixes = new Set([
+    "pf",
+    "dist",
+    "forn",
+    "fab",
+    "alim",
+    "beb",
+    "limp",
+    "prod",
+    "ind",
+    "imp",
+    "exp",
+  ]);
   const stockUnits = new Set(["un", "und", "pc", "cx", "fd", "pct", "gr", "kg", "lt", "ml", "cm", "mm"]);
 
   const cleanTokens = tokens.filter((t, i) => {

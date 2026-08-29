@@ -38,7 +38,6 @@ type PdvMainMenuProps = {
   onExit: () => void;
 };
 
-
 /** Classe compartilhada por todo item do menu. */
 const ITEM_CLASS =
   "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";

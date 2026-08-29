@@ -74,7 +74,7 @@ de `codigoDoPapel` lá.
 ### 4. Quem pode entrar
 
 `AuthenticateAsync` só aceita **Pendente** e **Ativo**. Pendente entra de
-propósito: a troca da senha acontece *depois* de autenticar, e barrá-lo deixaria
+propósito: a troca da senha acontece _depois_ de autenticar, e barrá-lo deixaria
 a conta impossível de estrear.
 
 A verificação de status vem **depois** da verificação da senha — responder
@@ -90,8 +90,8 @@ O formulário usa um campo único ("Nome completo") e a API espera `firstName` e
 
 ## 🔌 Endpoints
 
-| Verbo  | Caminho                      | Quem   | O que faz                                |
-| ------ | ---------------------------- | ------ | ---------------------------------------- |
+| Verbo  | Caminho                      | Quem   | O que faz                                 |
+| ------ | ---------------------------- | ------ | ----------------------------------------- |
 | `POST` | `/Users`                     | Admin  | Cadastra Pendente; devolve a senha padrão |
 | `PUT`  | `/Users`                     | Admin  | Edita; recusa promover Pendente a Ativo   |
 | `POST` | `/Users/change-password`     | Logado | Troca a própria senha; Pendente → Ativo   |

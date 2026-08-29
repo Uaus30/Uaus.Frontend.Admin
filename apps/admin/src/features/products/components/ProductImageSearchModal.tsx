@@ -60,48 +60,51 @@ export function ProductImageSearchModal({
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [submittingUrl, setSubmittingUrl] = useState<string | null>(null);
 
-  const fetchImages = useCallback(async (query: string, currentLimit: number, barcodeToSearch?: string) => {
-    setIsLoading(true);
-    try {
-      const seenUrls = new Set<string>();
-      const combined: ImageSearchResult[] = [];
+  const fetchImages = useCallback(
+    async (query: string, currentLimit: number, barcodeToSearch?: string) => {
+      setIsLoading(true);
+      try {
+        const seenUrls = new Set<string>();
+        const combined: ImageSearchResult[] = [];
 
-      const addResult = (item: ImageSearchResult) => {
-        if (seenUrls.has(item.imageUrl)) return;
-        seenUrls.add(item.imageUrl);
-        combined.push(item);
-      };
+        const addResult = (item: ImageSearchResult) => {
+          if (seenUrls.has(item.imageUrl)) return;
+          seenUrls.add(item.imageUrl);
+          combined.push(item);
+        };
 
-      // 1. Busca por código de barras (backend — Open Facts, confiável)
-      if (barcodeToSearch) {
-        const barcodeResult = await searchByBarcode(barcodeToSearch);
-        if (barcodeResult) addResult(barcodeResult);
-      }
-
-      // 2. Busca no Bing (client-side via proxy Vercel)
-      const candidates = getSearchFallbacks(query);
-      for (const term of candidates) {
-        if (combined.length >= currentLimit) break;
-        const bingResults = await searchBingClientSide(term, currentLimit - combined.length);
-        if (bingResults.length > 0) {
-          bingResults.forEach(addResult);
-          break;
+        // 1. Busca por código de barras (backend — Open Facts, confiável)
+        if (barcodeToSearch) {
+          const barcodeResult = await searchByBarcode(barcodeToSearch);
+          if (barcodeResult) addResult(barcodeResult);
         }
-      }
 
-      setImages(combined);
-    } catch (error) {
-      console.error("Erro ao buscar imagens:", error);
-      toast({
-        title: "Erro na busca",
-        description: "Não foi possível carregar as imagens da internet.",
-        variant: "destructive",
-      });
-      setImages([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+        // 2. Busca no Bing (client-side via proxy Vercel)
+        const candidates = getSearchFallbacks(query);
+        for (const term of candidates) {
+          if (combined.length >= currentLimit) break;
+          const bingResults = await searchBingClientSide(term, currentLimit - combined.length);
+          if (bingResults.length > 0) {
+            bingResults.forEach(addResult);
+            break;
+          }
+        }
+
+        setImages(combined);
+      } catch (error) {
+        console.error("Erro ao buscar imagens:", error);
+        toast({
+          title: "Erro na busca",
+          description: "Não foi possível carregar as imagens da internet.",
+          variant: "destructive",
+        });
+        setImages([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [toast],
+  );
 
   // Inicializa o termo de busca padrão com o nome do produto ao abrir
   useEffect(() => {

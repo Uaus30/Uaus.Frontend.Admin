@@ -41,11 +41,7 @@ export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
         {label.productName}
       </div>
 
-      <div
-        className={`flex items-end gap-[2mm] ${
-          hasBarcode ? "justify-between" : "justify-center"
-        }`}
-      >
+      <div className={`flex items-end gap-[2mm] ${hasBarcode ? "justify-between" : "justify-center"}`}>
         {hasBarcode && (
           <div className="flex items-end overflow-hidden max-w-[55%]">
             <div
@@ -75,4 +71,3 @@ export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
     </div>
   );
 }
-

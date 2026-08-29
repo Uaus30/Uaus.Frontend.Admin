@@ -109,7 +109,11 @@ describe("Images Service", () => {
 
   it("busca imagens na internet chamando /Images/search-internet", async () => {
     vi.mocked(apiGetOrThrow).mockResolvedValueOnce([
-      { imageUrl: "https://example.com/img1.jpg", thumbnailUrl: "https://example.com/thumb1.jpg", title: "Img 1" },
+      {
+        imageUrl: "https://example.com/img1.jpg",
+        thumbnailUrl: "https://example.com/thumb1.jpg",
+        title: "Img 1",
+      },
     ]);
 
     const results = await searchInternetImages("lixa de unha", 6);
@@ -119,4 +123,3 @@ describe("Images Service", () => {
     expect(results[0].title).toBe("Img 1");
   });
 });
-

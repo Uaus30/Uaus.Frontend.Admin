@@ -209,7 +209,6 @@ export default function Pdv() {
             onAbout={dialogs.about.show}
             onExit={exit}
           />
-
         }
       />
 

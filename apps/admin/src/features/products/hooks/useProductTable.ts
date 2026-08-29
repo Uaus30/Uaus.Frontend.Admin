@@ -9,7 +9,12 @@ import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.s
 import { upsertProduct, adjustProductStock, syncProductImages } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
-import { PRODUCT_STATUS, STALE_TIME, useGetProductTable, type EnumOptionDto } from "@workspace/api-client-react";
+import {
+  PRODUCT_STATUS,
+  STALE_TIME,
+  useGetProductTable,
+  type EnumOptionDto,
+} from "@workspace/api-client-react";
 import { useAllCategories, useAllDepartments, CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
 import { mapProductTableRow, toProductImageAssociations } from "./mapProductTableRow";
 import type { ProductTableRow } from "../types";

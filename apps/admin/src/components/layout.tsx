@@ -29,7 +29,6 @@ import { pdvHomeUrl } from "@/lib/pdv-links";
 import { enumCode, USER_ROLE } from "@workspace/api-client-react";
 import { formatUpdatedAt, formatVersion } from "@workspace/core";
 
-
 /**
  * O menu vem de `src/routes.tsx`, a mesma fonte do <Switch> do App.
  *

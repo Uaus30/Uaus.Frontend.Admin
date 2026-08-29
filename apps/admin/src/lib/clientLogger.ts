@@ -77,10 +77,7 @@ function extractMessage(error: unknown): string {
 /**
  * Extrai o stack trace ou informações detalhadas do erro.
  */
-function extractDetails(
-  error: unknown,
-  extraDetails?: Record<string, unknown>,
-): string {
+function extractDetails(error: unknown, extraDetails?: Record<string, unknown>): string {
   const detailsObj: Record<string, unknown> = {
     ...extraDetails,
     url: typeof window !== "undefined" ? window.location.href : undefined,
@@ -123,10 +120,7 @@ export interface ReportErrorOptions {
  * @param error O erro ou exceção capturado.
  * @param options Opções de contexto e origem do erro.
  */
-export async function reportClientError(
-  error: unknown,
-  options?: ReportErrorOptions,
-): Promise<boolean> {
+export async function reportClientError(error: unknown, options?: ReportErrorOptions): Promise<boolean> {
   if (isLoggingInProgress || shouldIgnoreError(error)) {
     return false;
   }
@@ -153,9 +147,7 @@ export async function reportClientError(
   }
 
   const defaultOrigin =
-    typeof window !== "undefined"
-      ? `[Front-Admin] ${window.location.pathname}`
-      : "[Front-Admin]";
+    typeof window !== "undefined" ? `[Front-Admin] ${window.location.pathname}` : "[Front-Admin]";
 
   const origin = options?.origin || defaultOrigin;
   const details = extractDetails(error, options?.extraDetails);

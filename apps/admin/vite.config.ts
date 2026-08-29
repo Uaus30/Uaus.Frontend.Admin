@@ -7,7 +7,6 @@ import { getBuildInfo } from "../../scripts/build-version.ts";
 
 const buildInfo = getBuildInfo();
 
-
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
   define: {

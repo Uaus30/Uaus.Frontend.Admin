@@ -42,7 +42,9 @@ describe("getProductNameFontSizePt", () => {
   });
 
   it("retorna 7pt para nomes muito longos (> 48 chars)", () => {
-    expect(getProductNameFontSizePt("CONJUNTO DE POTES DE VIDRO HERMETICO RETANGULAR COM TAMPA 3 UNIDADES")).toBe(7);
+    expect(
+      getProductNameFontSizePt("CONJUNTO DE POTES DE VIDRO HERMETICO RETANGULAR COM TAMPA 3 UNIDADES"),
+    ).toBe(7);
   });
 });
 
@@ -122,4 +124,3 @@ describe("buildLabelSheetHtml", () => {
     expect(html).toContain("print-color-adjust: exact");
   });
 });
-

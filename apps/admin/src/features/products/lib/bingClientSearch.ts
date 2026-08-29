@@ -28,13 +28,41 @@ const IMAGE_BLOB_REGEX = /m="([^"]*?murl[^"]*?)"/gi;
  * Idêntica à lista do backend C# para manter o comportamento consistente.
  */
 const STOP_WORDS = new Set([
-  "a", "o", "as", "os", "e", "c",
-  "de", "da", "do", "dos", "das",
-  "em", "no", "na", "nos", "nas",
-  "um", "uma", "uns", "umas",
-  "com", "sem", "por", "pra", "para",
-  "que", "aos", "sob", "sobre", "ao",
-  "kit", "pct", "un", "und", "cx",
+  "a",
+  "o",
+  "as",
+  "os",
+  "e",
+  "c",
+  "de",
+  "da",
+  "do",
+  "dos",
+  "das",
+  "em",
+  "no",
+  "na",
+  "nos",
+  "nas",
+  "um",
+  "uma",
+  "uns",
+  "umas",
+  "com",
+  "sem",
+  "por",
+  "pra",
+  "para",
+  "que",
+  "aos",
+  "sob",
+  "sobre",
+  "ao",
+  "kit",
+  "pct",
+  "un",
+  "und",
+  "cx",
 ]);
 
 /**
@@ -54,9 +82,7 @@ export function tokenize(text: string): string[] {
   const cleaned = normalized.replace(/[^a-zA-Z0-9]/g, " ").toLowerCase();
   const rawTokens = cleaned.split(/\s+/).filter(Boolean);
 
-  const alphaTokens = rawTokens.filter(
-    (t) => !STOP_WORDS.has(t) && !/\d/.test(t) && t.length >= 3,
-  );
+  const alphaTokens = rawTokens.filter((t) => !STOP_WORDS.has(t) && !/\d/.test(t) && t.length >= 3);
 
   if (alphaTokens.length > 0) return alphaTokens;
 
@@ -69,9 +95,14 @@ export function tokenize(text: string): string[] {
  */
 export function getStem(token: string): string {
   const suffixes: [string, number][] = [
-    ["zinhos", 6], ["zinhas", 6],
-    ["zinho", 5], ["zinha", 5], ["inhos", 5], ["inhas", 5],
-    ["inho", 4], ["inha", 4],
+    ["zinhos", 6],
+    ["zinhas", 6],
+    ["zinho", 5],
+    ["zinha", 5],
+    ["inhos", 5],
+    ["inhas", 5],
+    ["inho", 4],
+    ["inha", 4],
   ];
 
   for (const [suffix, len] of suffixes) {
@@ -117,14 +148,10 @@ export function matchesQuery(title: string, queryTokens: string[]): boolean {
   const titleTokens = tokenize(title);
   if (titleTokens.length === 0) return false;
 
-  const matchedCount = queryTokens.filter((qt) =>
-    titleTokens.some((tt) => tokenMatches(qt, tt)),
-  ).length;
+  const matchedCount = queryTokens.filter((qt) => titleTokens.some((tt) => tokenMatches(qt, tt))).length;
 
   const minRequired =
-    queryTokens.length === 1 ? 1
-    : queryTokens.length <= 3 ? 2
-    : Math.ceil(queryTokens.length / 2);
+    queryTokens.length === 1 ? 1 : queryTokens.length <= 3 ? 2 : Math.ceil(queryTokens.length / 2);
 
   return matchedCount >= minRequired;
 }
@@ -213,10 +240,7 @@ export function parseResults(html: string, count: number, query: string): ImageS
  * @param count Máximo de resultados a retornar
  * @returns Lista de resultados filtrados por pertinência
  */
-export async function searchBingClientSide(
-  query: string,
-  count: number,
-): Promise<ImageSearchResult[]> {
+export async function searchBingClientSide(query: string, count: number): Promise<ImageSearchResult[]> {
   if (!query?.trim() || count <= 0) return [];
 
   const searchUrl = `/bing-images/search?q=${encodeURIComponent(query)}&setmkt=pt-BR&setlang=pt-BR&cc=BR&safesearch=strict`;
@@ -224,7 +248,7 @@ export async function searchBingClientSide(
   try {
     const response = await fetch(searchUrl, {
       headers: {
-        "Accept": "text/html",
+        Accept: "text/html",
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
       },
     });

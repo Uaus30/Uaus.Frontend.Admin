@@ -34,7 +34,6 @@ describe("AppLayout header version", () => {
     vi.stubEnv("VITE_APP_VERSION", "1.0.144");
     vi.stubEnv("VITE_BUILD_TIME", "2026-08-22T15:45:12Z");
 
-
     mocks.useGetMe.mockReturnValue({
       data: {
         id: 1,
@@ -60,7 +59,7 @@ describe("AppLayout header version", () => {
         <AppLayout>
           <div>Conteúdo Principal</div>
         </AppLayout>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     const versionBlock = screen.getByTestId("header-version");
@@ -69,4 +68,3 @@ describe("AppLayout header version", () => {
     expect(versionBlock.textContent).toContain("Atualizado em 22/08/2026 às 12:45:12");
   });
 });
-

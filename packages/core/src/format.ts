@@ -112,4 +112,3 @@ export function formatUpdatedAt(timestamp?: string | Date | number): string {
   if (!formatted) return "";
   return `Atualizado em ${formatted}`;
 }
-
