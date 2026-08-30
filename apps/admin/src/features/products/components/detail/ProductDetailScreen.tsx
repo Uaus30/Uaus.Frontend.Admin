@@ -4,12 +4,14 @@ import { Button } from "@workspace/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
 import type { useProductEditor } from "../../hooks/useProductEditor";
-import type { Grade, VariationDraft } from "../../types";
+import type { ProductGrade, VariationDraft } from "../../types";
 import { buildDisplayBarcode, isFactoryEan, printBarcodeLabel } from "../../lib/barcode";
+import { nomeExibidoDaVariacao } from "../../lib/variationMatrix";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
 import { ProductOptionalFields } from "../editor/ProductOptionalFields";
 import { ProductEditorDialogs } from "./ProductEditorDialogs";
+import { VariationGradesModal } from "./VariationGradesModal";
 import { ProductGeneralTab } from "./ProductGeneralTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductWebImageSearch } from "./ProductWebImageSearch";
@@ -51,26 +53,20 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
     saving,
     handleSubmit,
     handleDeleteVariation,
-    activeGrades,
+    selectedGrades,
     generateVariationsMatrix,
-    gradesList,
   } = editor;
 
   const [activeTab, setActiveTab] = useState("dados");
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [gridModalOpen, setGridModalOpen] = useState(false);
-  const [selectedGradesInModal, setSelectedGradesInModal] = useState<number[]>([]);
+  const [gradesModalOpen, setGradesModalOpen] = useState(false);
   const [variationToDelete, setVariationToDelete] = useState<VariationDraft | null>(null);
   // Código cuja piscada já terminou. É ESTE o estado, e não um `flashSuccess`
   // booleano: com o booleano, desligar a piscada exigia um `setState` síncrono
   // dentro do efeito — cascata de render que o lint recusa. Guardando o código,
   // a piscada é derivada, e o único `setState` acontece no fim do temporizador.
   const [flashedBarcode, setFlashedBarcode] = useState<string | null>(null);
-  // Regerar a matriz apaga rascunho de variação que o operador digitou à mão
-  // (preço, SKU, estoque por variação). O aviso vira estado para poder mostrar
-  // QUANTAS variações se perdem, em vez de só gritar em caixa alta.
-  const [matrixConfirmOpen, setMatrixConfirmOpen] = useState(false);
   const [pickedStockProductId, setPickedStockProductId] = useState<number | null>(null);
 
   const currentBarcode = productEditor.barcode || "";
@@ -81,8 +77,10 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
     () =>
       variationDrafts
         .filter((draft): draft is VariationDraft & { id: number } => draft.id != null && draft.id > 0)
-        .map((draft) => ({ id: draft.id, name: draft.name })),
-    [variationDrafts],
+        // Nome COMPOSTO: o seletor precisa distinguir as variações, e `name` é
+        // o do grupo em todas elas.
+        .map((draft) => ({ id: draft.id, name: nomeExibidoDaVariacao(form.productGroupName, draft.values) })),
+    [variationDrafts, form.productGroupName],
   );
 
   const defaultStockProductId = form.hasVariations
@@ -97,7 +95,11 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
       : defaultStockProductId;
 
   const stockVariation = variationDrafts.find((draft) => draft.id === stockProductId);
-  const stockProductName = stockVariation?.name || productEditor.name || form.productGroupName;
+  // Nome COMPOSTO: o `name` da variação é o do grupo, igual em todas. Sem o
+  // colchete, a modal de entrada não diria QUAL variação está recebendo.
+  const stockProductName = stockVariation
+    ? nomeExibidoDaVariacao(form.productGroupName, stockVariation.values)
+    : productEditor.name || form.productGroupName;
   const stockProductBarcode = (stockVariation?.barcode ?? productEditor.barcode) || null;
 
   /** Pisca a borda do campo enquanto o código bipado for EAN de fábrica. */
@@ -110,21 +112,15 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
     return () => clearTimeout(timer);
   }, [flashSuccess, currentBarcode]);
 
-  /** Abre a escolha de grades já marcando as que a categoria usa hoje. */
-  function abrirEscolhaDeGrades() {
-    setSelectedGradesInModal(activeGrades.map((g) => g.id));
-    setGridModalOpen(true);
-  }
-
   function fecharTela() {
     setModalOpen(false);
     resetForm();
   }
 
   /** Gera a matriz e leva o operador até a tabela recém-criada. */
-  function applyGenerateMatrix() {
-    generateVariationsMatrix(selectedGradesInModal);
-    setGridModalOpen(false);
+  function aplicarGrades(grades: ProductGrade[]) {
+    generateVariationsMatrix(grades);
+    setGradesModalOpen(false);
     setActiveTab("dados");
 
     setTimeout(() => {
@@ -133,17 +129,6 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
         block: "center",
       });
     }, 150);
-  }
-
-  function handleGenerateMatrix() {
-    // Só há o que perder quando já existe matriz configurada. Sem rascunho, a
-    // confirmação seria um clique a mais sem informação nenhuma.
-    if (variationDrafts.length > 0) {
-      setMatrixConfirmOpen(true);
-      return;
-    }
-
-    applyGenerateMatrix();
   }
 
   async function handleLocalSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -264,7 +249,7 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
               onPrintVariationBarcode={(barcode, name, price) => printBarcodeLabel({ barcode, name, price })}
               setSearchModalOpen={setSearchModalOpen}
               setVariationToDelete={setVariationToDelete}
-              onOpenGradePicker={abrirEscolhaDeGrades}
+              onOpenGradePicker={() => setGradesModalOpen(true)}
             />
           </TabsContent>
 
@@ -285,23 +270,17 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
       </form>
 
       <ProductEditorDialogs
-        gradesList={gradesList as Grade[]}
-        gridModalOpen={gridModalOpen}
-        setGridModalOpen={setGridModalOpen}
-        selectedGradesInModal={selectedGradesInModal}
-        toggleGradeInModal={(gradeId) =>
-          setSelectedGradesInModal((prev) =>
-            prev.includes(gradeId) ? prev.filter((id) => id !== gradeId) : [...prev, gradeId],
-          )
-        }
-        onGenerateMatrix={handleGenerateMatrix}
         variationToDelete={variationToDelete}
         setVariationToDelete={setVariationToDelete}
         onConfirmDeleteVariation={handleDeleteVariation}
-        matrixConfirmOpen={matrixConfirmOpen}
-        setMatrixConfirmOpen={setMatrixConfirmOpen}
+      />
+
+      <VariationGradesModal
+        open={gradesModalOpen}
+        onOpenChange={setGradesModalOpen}
+        selectedGrades={selectedGrades}
         variationCount={variationDrafts.length}
-        onConfirmMatrix={applyGenerateMatrix}
+        onConfirm={aplicarGrades}
       />
 
       <ProductWebImageSearch editor={editor} open={searchModalOpen} onOpenChange={setSearchModalOpen} />

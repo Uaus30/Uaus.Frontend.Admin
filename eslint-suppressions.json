@@ -142,24 +142,14 @@
       "count": 2
     }
   },
-  "apps/admin/src/features/products/components/ProductVariationsSection.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
   "apps/admin/src/features/products/components/editor/ProductVariationsManager.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
   },
-  "apps/admin/src/features/products/hooks/__tests__/useProductEditor.test.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 4
-    }
-  },
   "apps/admin/src/features/products/hooks/editor/useProductForm.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 6
+      "count": 3
     },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -175,25 +165,12 @@
       "count": 4
     }
   },
-  "apps/admin/src/features/products/hooks/editor/useProductVariations.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "apps/admin/src/features/products/hooks/editor/utils.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 3
-    }
-  },
   "apps/admin/src/features/products/hooks/useProductEditor.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
     },
     "react-hooks/set-state-in-effect": {
-      "count": 4
+      "count": 3
     }
   },
   "apps/admin/src/features/products/hooks/useProductTable.ts": {

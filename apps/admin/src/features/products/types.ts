@@ -1,4 +1,4 @@
-import type { EnumValue } from "@workspace/api-client-react";
+import type { EnumValue, GradeTypeCode } from "@workspace/api-client-react";
 
 /** Imagem já associada ao produto representante da linha. */
 export type ProductTableRowImage = {
@@ -148,39 +148,39 @@ export type VariationDraft = ProductEditorForm & {
   images: LocalImage[];
   /** True if this variation can be deleted (e.g., has no stock or transaction history) */
   canDelete: boolean;
-  /** Map of Grade ID to GradeVariant ID (e.g. { [ColorGradeId]: RedVariantId, [SizeGradeId]: LVariantId }) */
-  variantMap?: Record<number, number>;
+  /**
+   * Valores de grade desta variação, na ordem de exibição.
+   *
+   * São eles que dão nome à variação: o `name` guarda o nome do GRUPO, igual
+   * para todas, e o que a tela e a venda mostram é o composto
+   * "NOME [VALOR1, VALOR2]". Duas variações do mesmo grupo não podem ter a
+   * mesma combinação — é o que a validação do salvamento cobra.
+   */
+  values: VariationValue[];
 };
 
 /**
- * Represents an option variant under a grade category.
+ * Valor de grade que identifica uma variação: "Cor = AZUL".
+ *
+ * Substituiu o `variantMap` (grade -> id da opção do catálogo global) quando o
+ * catálogo de grades foi removido, em 30/08/2026. A opção deixou de ter id
+ * porque deixou de existir fora do produto.
  */
-export type GradeVariant = {
-  /** Variant Database ID */
-  id: number;
-  /** Variant text value (e.g. "Vermelho", "G", "Vasco") */
+export type VariationValue = {
+  gradeType: GradeTypeCode;
   value: string;
-  /** Optional color code in hexadecimal (for visual color selectors) */
-  colorHex?: string;
-  /** Sorting weight order */
-  order?: number;
 };
 
-/** Enumeration of supported grade types */
-export type GradeType = "Cor" | "Tamanho" | "Modelo" | "Estampa";
-
 /**
- * Estrutura de product grade category containing variants.
+ * Uma grade escolhida para o produto e os valores dela NESTE produto.
+ *
+ * É o que a modal de variações edita. Os valores não saem de catálogo nenhum:
+ * "Cor" pode ter duas opções aqui e cinco no produto vizinho, e é justamente
+ * isso que o desenho antigo — catálogo global com CRUD — não permitia sem
+ * cadastrar uma grade por combinação.
  */
-export type Grade = {
-  /** Grade Database ID */
-  id: number;
-  /** Grade display name (e.g. "Tamanho", "Cor") */
-  name: string;
-  /** Type classification */
-  type: GradeType;
-  /** Category IDs associated with this grade */
-  categoryIds: number[];
-  /** Array of available options under this grade */
-  variants: GradeVariant[];
+export type ProductGrade = {
+  type: GradeTypeCode;
+  /** Na ordem em que o operador digitou; é ela que ordena a matriz. */
+  values: string[];
 };

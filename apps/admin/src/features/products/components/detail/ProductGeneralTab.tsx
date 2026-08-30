@@ -5,7 +5,7 @@ import { ProductPricing } from "../editor/ProductPricing";
 import { ProductImageGallery } from "../editor/ProductImageGallery";
 import { ProductVariationsManager } from "../editor/ProductVariationsManager";
 import type { useProductEditor } from "../../hooks/useProductEditor";
-import type { Grade, VariationDraft } from "../../types";
+import type { VariationDraft } from "../../types";
 
 type ProductGeneralTabProps = {
   editor: ReturnType<typeof useProductEditor>;
@@ -18,7 +18,7 @@ type ProductGeneralTabProps = {
   onPrintVariationBarcode: (barcode: string, name: string, price: number) => void;
   setSearchModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setVariationToDelete: React.Dispatch<React.SetStateAction<VariationDraft | null>>;
-  /** Abre a escolha de grades quando a categoria não tem grade própria. */
+  /** Abre a escolha de grades e valores da variação. */
   onOpenGradePicker: () => void;
 };
 
@@ -42,7 +42,7 @@ export function ProductGeneralTab({
   setVariationToDelete,
   onOpenGradePicker,
 }: ProductGeneralTabProps) {
-  const { form, variationDrafts, categoryGrades, generateVariationsMatrix } = editor;
+  const { form, variationDrafts } = editor;
 
   return (
     <div className="space-y-6">
@@ -76,24 +76,17 @@ export function ProductGeneralTab({
       />
 
       {/*
-        O atalho para variações some assim que existe uma matriz: dali em diante
-        quem acrescenta variação é a linha fantasma da própria tabela.
+        O botão continua disponível DEPOIS de gerar a matriz: reconfigurar as
+        grades (acrescentar uma cor, trocar Tamanho por Modelo) é operação
+        normal, e a modal reabre marcada com o que o produto já tem.
       */}
-      {!form.hasVariations && variationDrafts.length === 0 && (
-        <Button
-          type="button"
-          className="bg-orange-500 hover:bg-orange-600 text-white"
-          onClick={() => {
-            if (categoryGrades && categoryGrades.length > 0) {
-              generateVariationsMatrix(categoryGrades.map((g: Grade) => g.id));
-            } else {
-              onOpenGradePicker();
-            }
-          }}
-        >
-          Cadastrar Variações
-        </Button>
-      )}
+      <Button
+        type="button"
+        className="bg-orange-500 hover:bg-orange-600 text-white"
+        onClick={onOpenGradePicker}
+      >
+        {form.hasVariations || variationDrafts.length > 0 ? "Configurar Variações" : "Cadastrar Variações"}
+      </Button>
     </div>
   );
 }

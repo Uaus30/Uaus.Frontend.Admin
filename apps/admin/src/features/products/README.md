@@ -19,6 +19,8 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
+- `lib/variationMatrix.ts`: Cruzamento das grades, nome exibido da variação e reconstrução das grades a partir das variações gravadas.
+- `components/detail/VariationGradesModal.tsx`: Escolha das grades (Cor/Tamanho/Modelo) e dos valores de cada uma.
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
 - `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
@@ -68,11 +70,48 @@ Como cada endpoint filtrava por **um id de cada vez**, não havia conserto poss�
 - **Produto Simples**: Possui preço, estoque e status definidos no próprio produto principal.
 - **Produto com Variações**: O produto principal funciona apenas como um "Grupo de Produtos" (`ProductGroup`). O preço, estoque, código de barras e imagens são definidos individualmente em cada variação (SKU). É necessário ter pelo menos 2 variações cadastradas para salvar.
 
-### 2. Geração da Matriz Cartesiana de Grades
+### 2. Grades: fixas, e definidas dentro do produto (30/08/2026)
 
-- Ao selecionar grades (ex: Cor, Tamanho), o hook `generateVariationsMatrix` realiza o cruzamento cartesiano de todos os variantes destas grades.
-- A matriz resultante pré-popula a tabela de variações com nomes e combinações correspondentes.
-- Se o usuário tentar salvar variações com combinações de grades repetidas, o sistema bloqueia e emite um erro de validação.
+Havia um **catálogo global** de grades, com CRUD próprio em `/grades`: para
+cadastrar um produto com duas cores era preciso antes criar a grade "Cor",
+associá-la à categoria e cadastrar as opções. Ninguém pagou esse preço — o banco
+de dev tinha **8 grades e 99 opções cadastradas e ZERO produtos ligados a
+elas**. As variações existiam mesmo assim, com a grade escrita à mão no nome
+(`CHICLETE BUBBALOO [uva]`): 159 dos 162 produtos com variação.
+
+Hoje:
+
+- **Os tipos são fixos**: Cor, Tamanho e Modelo (`GRADE_TYPE` no api-client,
+  espelhando o enum `GradeType` do backend). Não há tela de cadastro de grade —
+  o CRUD, os endpoints `/Grades` e as quatro tabelas do banco foram removidos.
+- **Os valores pertencem ao produto.** "Cor" pode ter duas opções aqui e cinco
+  no produto vizinho, sem que os dois disputem um cadastro comum. É o que o
+  desenho antigo não permitia sem criar uma grade por combinação.
+- **A modal `VariationGradesModal`** marca as grades e recebe os valores
+  separados por vírgula; `gerarCombinacoes` cruza tudo (`lib/variationMatrix.ts`).
+- **Reabrir a modal mostra o que o produto já tem.** As grades e os valores são
+  reconstruídos das próprias variações (`gradesDasVariacoes`), e não de estado
+  guardado à parte — o formulário é remontado por `key` a cada abertura.
+- **Combinação repetida é bloqueada no salvamento** (`chaveDaCombinacao`, que
+  ignora ordem e caixa). O NOME deixou de servir de critério: ele é o mesmo em
+  todas as variações.
+
+#### O nome da variação não é editável
+
+Toda variação grava em `products.name` o **nome do grupo**. O que a distingue
+são os valores de grade, e o colchete é montado **na leitura**, nunca gravado —
+`ProductDisplayName.Compose`, no backend. A tela mostra o mesmo formato
+(`nomeExibidoDaVariacao`) para que a tabela de variações exiba hoje o nome que a
+venda vai exibir amanhã.
+
+A consequência é grande e vale saber: **todo caminho de leitura que mostra nome
+de produto precisa compor** — são catorze serviços no backend, do cupom ao
+inventário. Um caminho esquecido não gera erro; ele mostra três linhas idênticas
+e ninguém entende por quê. Quem escrever uma leitura nova de produto usa o
+`IProductVariationNameResolver`.
+
+Os 159 cadastros antigos, que têm o colchete dentro do próprio nome, continuam
+como estão: sem valores de grade não há o que compor, e o nome volta intacto.
 
 ### 3. Associação de Imagens e Etiquetas (Tags)
 

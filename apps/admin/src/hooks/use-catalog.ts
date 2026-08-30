@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { STALE_TIME } from "@workspace/api-client-react";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
 import { getAllCustomers } from "@/services/customers.service";
-import { getAllGrades } from "@/services/grades.service";
 import { getAllImages, getAllProductImages } from "@/services/images.service";
 import { getAllProductGroups, getAllProductTags, getAllProducts } from "@/services/products.service";
 import { getAllSuppliers } from "@/services/suppliers.service";
@@ -46,7 +45,6 @@ import { orderSupplierOptions } from "@/lib/supplier-options";
 export const RESOURCE_KEYS = {
   departments: ["departments"],
   categories: ["categories"],
-  grades: ["grades"],
   tags: ["tags"],
   productTags: ["product-tags"],
   productGroups: ["product-groups"],
@@ -61,7 +59,6 @@ export const RESOURCE_KEYS = {
 export const CATALOG_KEYS = {
   departments: [...RESOURCE_KEYS.departments, "all"],
   categories: [...RESOURCE_KEYS.categories, "all"],
-  grades: [...RESOURCE_KEYS.grades, "all"],
   tags: [...RESOURCE_KEYS.tags, "all"],
   productTags: [...RESOURCE_KEYS.productTags, "all"],
   productGroups: [...RESOURCE_KEYS.productGroups, "all"],
@@ -102,15 +99,6 @@ export function useAllCategories(options?: CatalogOptions) {
   return useQuery({
     queryKey: CATALOG_KEYS.categories,
     queryFn: () => getAllCategories(),
-    staleTime: CATALOG_STALE_TIME,
-    enabled: options?.enabled,
-  });
-}
-
-export function useAllGrades(options?: CatalogOptions) {
-  return useQuery({
-    queryKey: CATALOG_KEYS.grades,
-    queryFn: () => getAllGrades(),
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });

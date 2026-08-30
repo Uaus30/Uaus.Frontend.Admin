@@ -35,6 +35,8 @@ function produto(overrides: Partial<ProductDto> = {}): ProductDto {
     canDelete: true,
     createdAt: "2026-08-01T00:00:00",
     updatedAt: null,
+    displayName: "COPO TÉRMICO 500ML",
+    variationValues: [],
     ...overrides,
   };
 }

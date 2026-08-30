@@ -1,4 +1,4 @@
-import { Grade, ProductEditorForm, VariationDraft } from "../../types";
+import { ProductEditorForm, VariationDraft } from "../../types";
 
 /**
  * Helper: Reorders an array by shifting an item at `index` left (-1) or right (+1).
@@ -21,24 +21,6 @@ export function moveItemTo<T>(list: T[], fromIndex: number, toIndex: number): T[
   const [removed] = copy.splice(fromIndex, 1);
   copy.splice(toIndex, 0, removed);
   return copy;
-}
-
-/**
- * Mapper: Converts a raw DTO from the API into a strongly-typed `Grade` model.
- */
-export function mapDtoToGrade(dto: any, typeMap: Record<number | string, any>): Grade {
-  return {
-    id: dto.id,
-    name: dto.name,
-    type: typeMap[dto.type] || "Tamanho",
-    categoryIds: dto.categoryIds || [],
-    variants: (dto.variants || []).map((v: any) => ({
-      id: v.id,
-      value: v.value,
-      colorHex: v.colorHex || undefined,
-      order: v.order || 0,
-    })),
-  };
 }
 
 /**
@@ -69,5 +51,6 @@ export function createVariationDraft(defaultStatus = "", name = ""): VariationDr
     name,
     images: [],
     canDelete: true,
+    values: [],
   };
 }

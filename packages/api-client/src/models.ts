@@ -402,6 +402,17 @@ export interface ProductDto {
   /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
   status: EnumValue;
   canDelete: boolean;
+  /**
+   * Nome como o usuário vê: `name` mais os valores de grade entre colchetes, em
+   * caixa alta. Igual a `name` em produto simples.
+   *
+   * Vem separado porque `name` é o que volta no PUT. Mandar o composto de volta
+   * gravaria o colchete dentro do nome, e na leitura seguinte ele apareceria
+   * duas vezes.
+   */
+  displayName: string;
+  /** Valores de grade desta variação. Vazio em produto simples. */
+  variationValues: ProductVariationValueDto[];
 }
 
 export interface TagDto {
@@ -423,22 +434,43 @@ export interface ProductTagDto {
   tagId: number;
 }
 
-export interface GradeOptionDto {
-  id: number;
-  gradeId: number;
-  value: string;
-  colorHex: string | null;
-  displayOrder: number;
-}
+/**
+ * Os três tipos de grade que uma variação pode ter. Espelha o enum `GradeType`
+ * do backend.
+ *
+ * A lista é FIXA desde 30/08/2026: não há mais catálogo de grades nem CRUD. O
+ * catálogo global existia, tinha 8 grades e 99 opções cadastradas no banco de
+ * dev — e ZERO produtos ligados a ele. A grade passou a nascer dentro da
+ * variação, e é por isso que "Cor" pode ter duas opções num produto e cinco em
+ * outro sem que os dois disputem um cadastro comum.
+ */
+export const GRADE_TYPE = {
+  Size: 1,
+  Color: 2,
+  Model: 3,
+} as const;
 
-export interface GradeDto {
-  id: number;
-  createdAt?: string;
-  updatedAt?: string | null;
-  name: string;
-  type: number; // GradeType (1 = Size, 2 = Color, 3 = Model, 4 = Print)
-  categoryIds: number[];
-  options: GradeOptionDto[];
+export type GradeTypeCode = (typeof GRADE_TYPE)[keyof typeof GRADE_TYPE];
+
+/** Rótulo de cada grade, para a tela não repetir o mapa em três lugares. */
+export const GRADE_TYPE_LABELS: Record<GradeTypeCode, string> = {
+  [GRADE_TYPE.Size]: "Tamanho",
+  [GRADE_TYPE.Color]: "Cor",
+  [GRADE_TYPE.Model]: "Modelo",
+};
+
+/** Um valor de grade de uma variação: "Cor = AZUL". */
+export interface ProductVariationValueDto {
+  /**
+   * Enum GradeType — chega como NOME ("Color"), não como código.
+   *
+   * O backend registra `JsonStringEnumConverter`, e foi essa mesma armadilha que
+   * já fez meia retaguarda sumir do menu (ver `routes.ts` do admin). Normalize
+   * com `enumCode(valor, GRADE_TYPE)` na fronteira, nunca compare direto.
+   */
+  gradeType: EnumValue;
+  value: string;
+  displayOrder: number;
 }
 
 export interface ImageDto {
@@ -1458,9 +1490,6 @@ export interface ChangePasswordPayload {
   currentPassword: string;
   newPassword: string;
 }
-
-/** Grade de variação. O `values` é a lista de opções (P, M, G). */
-export type SaveGradePayload = Omit<GradeDto, CamposDoServidor>;
 
 // ---------------------------------------------------------------------------
 // Vitrine pública do site (/Storefront) — endpoints ANÔNIMOS.

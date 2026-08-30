@@ -1,10 +1,9 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useProductEditor } from "../useProductEditor";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { updateProductGroup, syncProductImages } from "@/services/products.service";
-import { getGradesByCategoryId, getAllGrades } from "@/services/grades.service";
 import { createImageFromFile } from "@/services/images.service";
 
 // Mock services and utilities
@@ -26,11 +25,6 @@ vi.mock("@/services/categories.service", () => ({
   getAllCategories: vi.fn(() => Promise.resolve([])),
   getGradesByCategoryId: vi.fn(() => Promise.resolve([])),
   getAllDepartments: vi.fn(() => Promise.resolve([])),
-}));
-
-vi.mock("@/services/grades.service", () => ({
-  getAllGrades: vi.fn(() => Promise.resolve([])),
-  getGradesByCategoryId: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("@/services/tags.service", () => ({
@@ -229,98 +223,5 @@ describe("useProductEditor Hook", () => {
         ],
       }),
     );
-  });
-
-  it("não deve regenerar a matriz de variações sobre drafts reais em modo de edição", async () => {
-    // Regressão: o efeito de grades por categoria substituía o draft real (com
-    // id) por drafts temporários da matriz cartesiana (sem id, estoque 0);
-    // salvar nesse estado criava variações duplicadas.
-    const sizeGrade = {
-      id: 50,
-      name: "Tamanho",
-      type: 1,
-      categoryIds: [5],
-      variants: [
-        { id: 501, value: "P" },
-        { id: 502, value: "M" },
-      ],
-    };
-    vi.mocked(getGradesByCategoryId).mockResolvedValue([sizeGrade] as any);
-    vi.mocked(getAllGrades).mockResolvedValue([sizeGrade] as any);
-
-    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
-
-    const variationProduct = {
-      id: 10,
-      name: "CAMISETA P",
-      description: "",
-      price: 10,
-      stock: 3,
-      minStock: 0,
-      status: 2,
-      barcode: "",
-      department: { id: 2 },
-      category: { id: 5 },
-      productGroup: { id: 1, name: "CAMISETA", description: "", hasVariations: true, showOnSite: true },
-      tags: [],
-      images: [],
-    };
-
-    act(() => {
-      result.current.openModal(variationProduct);
-    });
-
-    expect(result.current.variationDrafts).toHaveLength(1);
-    expect(result.current.variationDrafts[0].id).toBe(10);
-
-    // Aguarda as grades da categoria resolverem (gatilho do efeito com bug)
-    await waitFor(() => expect(result.current.categoryGrades.length).toBeGreaterThan(0));
-
-    // O draft real permanece — nada de matriz temporária por cima dele
-    expect(result.current.variationDrafts).toHaveLength(1);
-    expect(result.current.variationDrafts[0].id).toBe(10);
-  });
-
-  it("não deve ressuscitar a matriz ao apagar variações até sobrar uma (criação)", async () => {
-    const sizeGrade = {
-      id: 50,
-      name: "Tamanho",
-      type: 1,
-      categoryIds: [5],
-      variants: [
-        { id: 501, value: "P" },
-        { id: 502, value: "M" },
-      ],
-    };
-    vi.mocked(getGradesByCategoryId).mockResolvedValue([sizeGrade] as any);
-    vi.mocked(getAllGrades).mockResolvedValue([sizeGrade] as any);
-
-    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.openModal();
-    });
-    act(() => {
-      result.current.setForm((current) => ({
-        ...current,
-        departmentId: "2",
-        categoryId: "5",
-        productGroupName: "CAMISETA",
-      }));
-    });
-    act(() => {
-      result.current.toggleHasVariations(true);
-    });
-
-    // A matriz P/M é gerada automaticamente para a categoria selecionada
-    await waitFor(() => expect(result.current.variationDrafts).toHaveLength(2));
-
-    // Usuário apaga uma variação (sem id, remoção local)
-    await act(async () => {
-      await result.current.handleDeleteVariation(result.current.variationDrafts[0]);
-    });
-
-    // A matriz completa não pode reaparecer sozinha
-    expect(result.current.variationDrafts).toHaveLength(1);
   });
 });

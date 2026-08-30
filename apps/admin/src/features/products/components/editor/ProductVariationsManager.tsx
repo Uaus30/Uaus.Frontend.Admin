@@ -16,8 +16,9 @@ export function ProductVariationsManager({
   setVariationToDelete,
 }: ProductVariationsManagerProps) {
   const {
+    form,
     variationDrafts,
-    activeGrades,
+    selectedGrades,
     isFetchingGroupProducts,
     selectableStatusOptions,
     updateVariationDraft,
@@ -28,7 +29,8 @@ export function ProductVariationsManager({
   return (
     <ProductVariationsSection
       variationDrafts={variationDrafts}
-      activeGrades={activeGrades}
+      selectedGrades={selectedGrades}
+      productGroupName={form.productGroupName}
       isFetchingGroupProducts={isFetchingGroupProducts}
       selectableStatusOptions={selectableStatusOptions}
       validationErrors={validationErrors}

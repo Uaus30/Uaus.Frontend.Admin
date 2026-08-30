@@ -14,7 +14,6 @@ export * from "./sales";
 export * from "./categories";
 export * from "./tags";
 export * from "./suppliers";
-export * from "./grades";
 export * from "./purchases";
 export * from "./logs";
 export * from "./health";

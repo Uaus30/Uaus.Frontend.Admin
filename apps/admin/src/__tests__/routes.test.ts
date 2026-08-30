@@ -190,13 +190,12 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("Estoque segue a ordem: Produtos, Entradas, Grades, Categorias, Departamentos, Fornecedores, Tags, Etiquetas", () => {
+  it("Estoque segue a ordem: Produtos, Entradas, Categorias, Departamentos, Fornecedores, Tags, Etiquetas", () => {
     const produtos = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Estoque");
 
     expect(produtos?.items?.map((s) => s.name)).toEqual([
       "Produtos",
       "Entradas",
-      "Grades",
       "Categorias",
       "Departamentos",
       "Fornecedores",
@@ -207,7 +206,6 @@ describe("buildMenu", () => {
     expect(produtos?.items?.map((s) => s.href)).toEqual([
       "/produtos",
       "/estoque/entradas",
-      "/grades",
       "/categorias",
       "/departamentos",
       "/fornecedores",

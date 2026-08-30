@@ -57,7 +57,6 @@ const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Products = lazy(() => import("@/pages/products"));
 const Departments = lazy(() => import("@/pages/departments"));
 const Categories = lazy(() => import("@/pages/categories"));
-const Grades = lazy(() => import("@/pages/grades"));
 const Tags = lazy(() => import("@/pages/tags"));
 const GondolaLabels = lazy(() => import("@/pages/gondola-labels"));
 const Sales = lazy(() => import("@/pages/sales"));
@@ -143,7 +142,6 @@ export const ROUTES: AppRoute[] = [
 
   { path: "/produtos", label: "Produtos", group: "Estoque", component: Products },
   { path: "/estoque/entradas", label: "Entradas", group: "Estoque", component: StockEntries },
-  { path: "/grades", label: "Grades", group: "Estoque", component: Grades },
   { path: "/categorias", label: "Categorias", group: "Estoque", component: Categories },
   { path: "/departamentos", label: "Departamentos", group: "Estoque", component: Departments },
   { path: "/fornecedores", label: "Fornecedores", group: "Estoque", component: Suppliers },

@@ -1,10 +1,17 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProductsPage } from "@/services/products.service";
 
 import { buildProductCollections } from "@/services/mappers";
-import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft, Grade } from "../types";
+import {
+  GRADE_TYPE,
+  enumCode,
+  type GradeTypeCode,
+  type ProductVariationValueDto,
+} from "@workspace/api-client-react";
+import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft } from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
+import { gradesDasVariacoes } from "../lib/variationMatrix";
 
 import { useBarcodeLookup } from "./editor/useBarcodeLookup";
 import { useProductForm } from "./editor/useProductForm";
@@ -33,9 +40,15 @@ export function useProductEditor() {
   });
   const [productEditor, setProductEditor] = useState<ProductEditorForm>(createEmptyProductEditor());
   const [variationDrafts, setVariationDrafts] = useState<VariationDraft[]>([]);
-  const [activeGrades, setActiveGrades] = useState<Grade[]>([]);
-
-  const matrixGeneratedForCategoryRef = useRef<string | null>(null);
+  /**
+   * Grades deste produto e os valores de cada uma, DERIVADOS das variações.
+   *
+   * Não é estado nem catálogo: as variações já carregam os valores, venham da
+   * matriz recém-gerada ou do servidor. Guardar à parte exigiria um efeito para
+   * sincronizar ao abrir um produto salvo — e a tabela mostraria as colunas de
+   * grade só depois de um render a mais.
+   */
+  const selectedGrades = useMemo(() => gradesDasVariacoes(variationDrafts), [variationDrafts]);
 
   const productForm = useProductForm({
     form,
@@ -45,10 +58,8 @@ export function useProductEditor() {
     setEditingGroupId,
     setLoadedGroupId,
     setActiveVariationKey,
-    matrixGeneratedForCategoryRef,
     setVariationDrafts,
     setImages,
-    setActiveGrades,
   });
 
   const {
@@ -146,8 +157,6 @@ export function useProductEditor() {
     setVariationDrafts,
     activeVariationKey,
     setActiveVariationKey,
-    gradesList: productForm.gradesList,
-    setActiveGrades,
     defaultStatus: productForm.defaultStatus,
     editingGroupId,
     invalidateProductQueries,
@@ -170,7 +179,6 @@ export function useProductEditor() {
     setVariationDrafts,
     images,
     setImages,
-    activeGrades,
     setActiveVariationKey,
     setSaving,
     invalidateProductQueries,
@@ -194,6 +202,11 @@ export function useProductEditor() {
       status: productForm.getStatusIdAsString(product.status),
       tagIds: product.tags.map((tag: any) => tag.id),
       barcode: product.barcode || "",
+      // O servidor devolve os valores de grade já na ordem de exibição.
+      values: (product.variationValues ?? []).map((value: ProductVariationValueDto) => ({
+        gradeType: enumCode(value.gradeType, GRADE_TYPE) as GradeTypeCode,
+        value: value.value,
+      })),
       images: productImagesHook.toLocalImages(product.images),
       canDelete: product.canDelete,
     };
@@ -250,47 +263,18 @@ export function useProductEditor() {
     if (!modalOpen || !form.hasVariations) return;
     setVariationDrafts((current) => {
       if (current.length > 0) return current;
-      const draft = {
+      const draft: VariationDraft = {
         ...createEmptyProductEditor(productForm.defaultStatus),
         key: `temp-${Math.random().toString(36).substring(2, 9)}`,
         name: form.productGroupName.trim(),
         images: [],
         canDelete: true,
-      } as VariationDraft;
+        values: [],
+      };
       setActiveVariationKey(draft.key);
       return [draft];
     });
   }, [productForm.defaultStatus, form.hasVariations, form.productGroupName, modalOpen]);
-
-  useEffect(() => {
-    if (!modalOpen) return;
-    if (!form.categoryId || productForm.categoryGrades.length === 0) {
-      return;
-    }
-    setActiveGrades(productForm.categoryGrades);
-
-    if (editingGroupId != null) return;
-    if (productForm.gradesList.length === 0) return;
-
-    const hasPersistedDraft = variationDrafts.some((draft) => draft.id != null);
-    if (hasPersistedDraft) return;
-    if (matrixGeneratedForCategoryRef.current === form.categoryId) return;
-
-    if (form.hasVariations && variationDrafts.length <= 1) {
-      matrixGeneratedForCategoryRef.current = form.categoryId;
-      const gradeIds = productForm.categoryGrades.map((g: Grade) => g.id);
-      productVariations.generateVariationsMatrix(gradeIds);
-    }
-  }, [
-    productForm.categoryGrades,
-    editingGroupId,
-    form.categoryId,
-    form.hasVariations,
-    productForm.gradesList.length,
-    modalOpen,
-    variationDrafts,
-    productVariations,
-  ]);
 
   useEffect(() => {
     if (
@@ -347,9 +331,7 @@ export function useProductEditor() {
     handleDeleteProductGroup: productForm.handleDeleteProductGroup,
     handleSubmit: productSubmit.handleSubmit,
     toLocalImages: productImagesHook.toLocalImages,
-    activeGrades,
+    selectedGrades,
     generateVariationsMatrix: productVariations.generateVariationsMatrix,
-    gradesList: productForm.gradesList,
-    categoryGrades: productForm.categoryGrades,
   };
 }

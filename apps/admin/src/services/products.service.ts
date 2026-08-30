@@ -9,6 +9,7 @@ import {
   type ProductGroupDto,
   type ProductImageDto,
   type ProductTagDto,
+  type ProductVariationValueDto,
 } from "@workspace/api-client-react";
 import { getPaged } from "./core";
 
@@ -175,7 +176,7 @@ export async function upsertProduct(payload: {
   price: number;
   minStock?: number;
   status: number;
-  gradeOptionIds?: number[];
+  variationValues?: Array<{ gradeType: number; value: string; displayOrder: number }>;
 }) {
   const request = {
     productGroupId: payload.productGroupId,
@@ -187,7 +188,7 @@ export async function upsertProduct(payload: {
     stock: 0,
     minStock: payload.minStock ?? 0,
     status: payload.status,
-    gradeOptionIds: payload.gradeOptionIds ?? [],
+    variationValues: payload.variationValues ?? [],
   };
 
   if (payload.id) {
@@ -227,6 +228,15 @@ export async function upsertProduct(payload: {
     minStock: payload.minStock ?? 0,
     status: payload.status,
     canDelete: true,
+    // Reconstrução local para o POST que não devolve corpo. O nome composto e
+    // os valores de grade vêm do que acabou de ser enviado — a próxima leitura
+    // do servidor traz a versão oficial.
+    displayName: payload.name.trim(),
+    variationValues: (payload.variationValues ?? []).map((value) => ({
+      gradeType: value.gradeType as ProductVariationValueDto["gradeType"],
+      value: value.value,
+      displayOrder: value.displayOrder,
+    })),
   } satisfies ProductDto;
 }
 

@@ -24,6 +24,8 @@ export type EditableEntryItemField = "quantity" | "unitCost" | "price";
 type ProductForDraft = {
   id: number;
   name: string;
+  /** Nome com os valores de grade entre colchetes. Igual a `name` em produto simples. */
+  displayName?: string;
   barcode: string | null;
   price: number;
   costPrice: number;
@@ -38,7 +40,9 @@ type ProductForDraft = {
 function toDraftItem(product: ProductForDraft, quantity = 1): NewEntryItem {
   return {
     productId: product.id,
-    productName: product.name,
+    // Nome COMPOSTO: `name` guarda só o nome do grupo desde 30/08/2026, e três
+    // variações do mesmo produto sairiam idênticas na grade da nota.
+    productName: product.displayName || product.name,
     barcode: product.barcode || null,
     quantity,
     unitCost: product.costPrice ?? 0,

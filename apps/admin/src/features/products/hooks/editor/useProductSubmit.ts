@@ -8,7 +8,8 @@ import {
   syncProductImages,
 } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
-import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft, Grade } from "../../types";
+import { chaveDaCombinacao } from "../../lib/variationMatrix";
+import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft } from "../../types";
 import { describeApiError } from "@workspace/core";
 
 export interface UseProductSubmitProps {
@@ -21,7 +22,6 @@ export interface UseProductSubmitProps {
   setVariationDrafts: React.Dispatch<React.SetStateAction<VariationDraft[]>>;
   images: LocalImage[];
   setImages: React.Dispatch<React.SetStateAction<LocalImage[]>>;
-  activeGrades: Grade[];
   setActiveVariationKey: React.Dispatch<React.SetStateAction<string | null>>;
   setSaving: React.Dispatch<React.SetStateAction<boolean>>;
   invalidateProductQueries: (groupId?: number | null) => Promise<void>;
@@ -43,7 +43,6 @@ export function useProductSubmit({
   setVariationDrafts,
   images,
   setImages,
-  activeGrades,
   setActiveVariationKey,
   setSaving,
   invalidateProductQueries,
@@ -157,46 +156,47 @@ export function useProductSubmit({
           throw new Error("O cadastro com variações deve ter no mínimo duas variações.");
         }
 
-        if (activeGrades.length > 0) {
-          const combinations = new Set();
-          for (const draft of variationDrafts) {
-            const comboStr = JSON.stringify(draft.variantMap || {});
-            if (combinations.has(comboStr)) {
-              throw new Error(
-                "Existem variações com as mesmas combinações de grades selecionadas. Remova a duplicidade para continuar.",
-              );
-            }
-            combinations.add(comboStr);
+        // Duas variações do mesmo grupo não podem ter a mesma combinação de
+        // grades: elas teriam o mesmo nome exibido e ninguém saberia qual vender.
+        // O nome não serve mais de critério — ele é o do grupo em todas.
+        const combinacoes = new Set<string>();
+        for (const draft of variationDrafts) {
+          if (draft.values.length === 0) {
+            throw new Error("Toda variação precisa de pelo menos um valor de grade.");
           }
-        } else {
-          const names = new Set();
-          for (const draft of variationDrafts) {
-            const nameKey = draft.name.trim().toUpperCase();
-            if (names.has(nameKey)) {
-              throw new Error(
-                `Existem variações com o mesmo nome ("${draft.name.trim()}"). Como não há grades selecionadas, cada variação deve ter um nome único.`,
-              );
-            }
-            names.add(nameKey);
+
+          const chave = chaveDaCombinacao(draft.values);
+          if (combinacoes.has(chave)) {
+            throw new Error(
+              "Existem variações com a mesma combinação de grades. Remova a duplicidade para continuar.",
+            );
           }
+          combinacoes.add(chave);
         }
 
         const nextDrafts: VariationDraft[] = [];
         for (const draft of variationDrafts) {
-          if (!draft.name.trim() || !draft.status) {
-            throw new Error("Preencha nome e status em todas as variações.");
+          if (!draft.status) {
+            throw new Error("Preencha o status em todas as variações.");
           }
 
+          // O nome gravado é o do GRUPO, igual em todas as variações. O que
+          // distingue uma da outra são os valores de grade, e o colchete é
+          // montado na leitura — ver `ProductDisplayName` no backend.
           const product = await upsertProduct({
             id: draft.id,
             productGroupId: group.id,
-            name: draft.name,
+            name: form.productGroupName,
             description: draft.description,
             barcode: draft.barcode,
             price: draft.price,
             minStock: draft.minStock,
             status: getStatusNumber(draft.status),
-            gradeOptionIds: Object.values(draft.variantMap || {}),
+            variationValues: draft.values.map((value, index) => ({
+              gradeType: value.gradeType,
+              value: value.value.trim(),
+              displayOrder: index,
+            })),
           });
 
           const normalizedImages = await persistProductAssociations(product.id, draft.tagIds, draft.images);
