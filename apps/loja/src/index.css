@@ -29,7 +29,7 @@
   --color-primary-border: var(--primary-border);
   --color-primary-strong: hsl(var(--primary-strong));
 
-  /* Fundo de pagina neutro morno: e o repouso entre as secoes. */
+  /* Superficie elevada, branca, sobre o fundo tingido da pagina. */
   --color-surface: hsl(var(--surface));
 
   --color-secondary: hsl(var(--secondary));
@@ -92,7 +92,20 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 0 0% 100%;
+  /*
+   * Fundo da PÁGINA — creme quente (#FFF4EB), não branco.
+   *
+   * Era `0 0% 100%`, e com ele o site inteiro era uma folha branca com cartões
+   * brancos por cima: o cartão de produto, a caixa de busca e os painéis só
+   * existiam pela borda de 1px, que some em tela de brilho baixo e em celular
+   * na rua. O creme é o mesmo laranja da marca a 96% de luminosidade — dá o
+   * degrau de fundo sem virar cor de fundo.
+   *
+   * Quem é branco agora é a SUPERFÍCIE elevada (`--surface` e `bg-white`):
+   * cartão, busca, faixa de endereço, painel do formulário. A hierarquia é
+   * fundo tingido → superfície branca, e não o contrário.
+   */
+  --background: 28 100% 96%;
   /* Também é o fundo do rodapé e da faixa escura da home (#0F1729). */
   --foreground: 222 47% 11%;
 
@@ -119,14 +132,23 @@
   --primary: 24 100% 55%;
   --primary-foreground: 0 0% 100%;
   /*
-   * O MESMO laranja escurecido (#C24F09), para SUPERFICIE que carrega texto
-   * branco: botao primario, cartao do VisitBanner, anel de foco. Branco sobre
-   * ele da 4,79:1 e passa na WCAG AA; sobre o laranja da marca daria 2,69:1.
+   * O MESMO laranja escurecido (#C24F09) — hoje o tom de HOVER e de ANEL DE
+   * FOCO, nao mais o de repouso. Branco sobre ele da 4,79:1 (passa na WCAG AA);
+   * sobre o laranja da marca daria 2,69:1.
    *
-   * NAO use para texto. Chegou a ser a cor de todo texto laranja do site, e o
-   * dono reverteu em 29/08/2026: o tom escurecido puxa para o marrom e nao e a
-   * marca. Texto laranja e --primary, com o custo assumido de 2,69:1 sobre
-   * fundo claro — decisao registrada em PLANO-DESIGN-LOJA.md, secao 3.5.
+   * A troca e de 30/08/2026, a pedido do dono: o botao, o cartao "Venha
+   * conhecer a loja!" e o "MAXIMO 30 REAIS" nasciam escurecidos e puxavam para
+   * o marrom — a mesma objecao que ja tinha tirado o tom escuro dos TEXTOS em
+   * 29/08. Agora o repouso e --primary e o escurecido entra no hover, que e a
+   * direcao convencional de um botao. O custo esta assumido e e o mesmo de la:
+   * texto branco sobre o repouso da 2,69:1.
+   *
+   * Onde ele CONTINUA sendo o padrao: `focus-visible:ring-*` e a borda de foco
+   * dos campos. O anel so existe para ser visto por quem navega no teclado, e
+   * a WCAG pede 3:1 para componente nao textual — o laranja vivo nao entrega.
+   *
+   * NAO use para texto. Decisao de 29/08/2026 registrada em
+   * PLANO-DESIGN-LOJA.md, secao 3.5.
    */
   --primary-strong: 22 91% 40%;
 
@@ -145,9 +167,14 @@
   --input: 214 32% 91%;
   --ring: 22 91% 40%;
 
-  /* Fundo alternado das secoes. Era orange-50/50, um lavado alaranjado que
-     tingia a foto do produto — quem traz cor para a pagina e o produto. */
-  --surface: 60 9% 98%;
+  /*
+   * SUPERFÍCIE elevada: branco puro, o mesmo `bg-white` que os cartões já
+   * usavam literalmente. Era `60 9% 98%`, um quase-branco que fazia par com o
+   * fundo branco — 2% de diferença que ninguém enxergava. Com o fundo agora
+   * tingido, o papel dela inverteu: é o que sobe da página (faixa de endereço,
+   * painel do formulário, caixa de horários), não mais "a seção alternada".
+   */
+  --surface: 0 0% 100%;
 
   /* Sem gráficos na loja; valores coerentes com o tema para o CSS gerado
      pelos componentes do pacote não referenciar variável indefinida. */

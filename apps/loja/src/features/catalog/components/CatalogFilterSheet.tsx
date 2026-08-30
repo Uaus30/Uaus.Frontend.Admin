@@ -40,7 +40,7 @@ export function CatalogFilterSheet({ departments, isLoading, totalCount, filters
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
           Filtrar
           {activeCount > 0 && (
-            <span className="rounded-full bg-primary-strong px-2 py-0.5 text-xs font-bold text-white">
+            <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
               {activeCount}
             </span>
           )}

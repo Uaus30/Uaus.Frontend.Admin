@@ -85,7 +85,7 @@ export function StoreCarousel() {
               aria-current={index === carousel.index}
               className={
                 index === carousel.index
-                  ? "h-2.5 w-8 rounded-full bg-primary-strong transition-all duration-200"
+                  ? "h-2.5 w-8 rounded-full bg-primary transition-all duration-200"
                   : "h-2.5 w-2.5 rounded-full bg-border transition-all duration-200 hover:bg-primary/60"
               }
             />

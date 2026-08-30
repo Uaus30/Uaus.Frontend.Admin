@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Clock, MapPin, ShoppingBag } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { SITE_CONTACT, SITE_OPENING_HOURS } from "@/lib/site";
 import storefrontPhoto from "@/assets/store/01_frente_loja.jpeg";
 
@@ -48,13 +48,16 @@ function Divider() {
  * countdown de lá renderizava nada. A textura de fundo era uma foto hotlinkada
  * do Pixabay; aqui é a fachada real da loja, servida do próprio bundle.
  *
- * O cartão era um gradiente `primary → orange-600`; virou o laranja sólido que
- * escreve (`primary-strong`), porque é ele que carrega texto branco aqui.
+ * O cartão era um gradiente `primary → orange-600`, depois o laranja escurecido
+ * (`primary-strong`); em 30/08/2026 o dono trouxe o laranja da marca de volta
+ * para o repouso — a mesma reversão que já tinha acontecido nos textos.
  *
- * O horário de funcionamento entrou no cartão em 29/08/2026, informado pelo
- * dono (`SITE_OPENING_HOURS`), e vem em segundo — entre "onde" e "quanto
- * custa". É a ordem em que a decisão de sair de casa acontece: sei onde fica,
- * sei se está aberto, aí sim penso no preço.
+ * O cartão responde a duas perguntas, e só: **onde fica** e **está aberto?**.
+ * A terceira linha, "Preço máximo — R$ 30,00 em tudo", saiu em 30/08/2026: o
+ * parágrafo ao lado já diz "nenhum deles passa de R$ 30,00", o nome da loja é
+ * "Máximo 30" e o cartão do meio da home repete a regra em caixa alta. Dizer de
+ * novo aqui não informava nada e ainda empurrava o horário — que é o dado
+ * realmente consultado antes de sair de casa — para o meio de uma lista de três.
  */
 export function VisitBanner() {
   const reduceMotion = useReducedMotion();
@@ -73,7 +76,7 @@ export function VisitBanner() {
           whileInView={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: reduceMotion ? 0 : 0.4 }}
-          className="flex flex-col items-center gap-8 rounded-3xl bg-primary-strong p-8 shadow-lg md:flex-row md:justify-between md:p-12"
+          className="flex flex-col items-center gap-8 rounded-3xl bg-primary p-8 shadow-lg md:flex-row md:justify-between md:p-12"
         >
           <div className="max-w-xl text-center md:text-left">
             <h2 className="text-3xl font-bold md:text-4xl">Venha conhecer a loja!</h2>
@@ -102,15 +105,6 @@ export function VisitBanner() {
                 ))}
               </dl>
             </InfoRow>
-
-            <Divider />
-
-            <InfoRow
-              icon={ShoppingBag}
-              label="Preço máximo"
-              title="R$ 30,00 em tudo"
-              lines={["Sem pegadinha e sem letra miúda"]}
-            />
           </div>
         </motion.div>
       </div>

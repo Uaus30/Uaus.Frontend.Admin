@@ -6,7 +6,7 @@ import { ShoppingBag, Star, Store } from "lucide-react";
  */
 export function HighlightsGrid() {
   return (
-    <section className="border-t border-border bg-surface py-20">
+    <section className="border-t border-border bg-background py-20">
       <div className="mx-auto grid max-w-7xl items-stretch gap-8 px-4 sm:px-6 md:grid-cols-3 lg:px-8">
         <div className="rounded-3xl border border-border bg-white p-8 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary">
@@ -16,7 +16,7 @@ export function HighlightsGrid() {
           <p className="mt-3 text-muted-foreground">Brinquedos, utilidades de casa, livros e muito mais</p>
         </div>
 
-        <div className="z-10 rounded-3xl bg-primary-strong p-8 text-center text-white shadow-lg md:-my-4">
+        <div className="z-10 rounded-3xl bg-primary p-8 text-center text-white shadow-lg md:-my-4">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-primary">
             <Star className="h-10 w-10" />
           </div>

@@ -36,7 +36,7 @@ function ClearFiltersLink() {
   return (
     <Link
       href={catalogPath()}
-      className="mt-2 rounded-xl bg-primary-strong px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="mt-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-primary-strong focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       Ver todos os produtos
     </Link>
@@ -68,7 +68,7 @@ export default function ProductsPage() {
   }, [departmentId, categoryId]);
 
   return (
-    <div className="min-h-screen bg-surface pb-24">
+    <div className="min-h-screen bg-background pb-24">
       <section className="mb-14 bg-primary pt-16 pb-14 text-center">
         <div className="mx-auto max-w-3xl px-4">
           {filterLabel ? (
@@ -80,7 +80,7 @@ export default function ProductsPage() {
             </>
           ) : (
             <>
-              <h1 className="text-3xl font-black text-foreground/75 md:text-5xl">
+              <h1 className="text-3xl font-black text-white md:text-5xl">
                 Promoções e <span className="text-foreground">Novidades</span>
               </h1>
               <p className="mt-4 text-foreground/80">Todas as imagens são meramente ilustrativas.</p>
@@ -147,7 +147,7 @@ export default function ProductsPage() {
                 <button
                   type="button"
                   onClick={catalog.refetch}
-                  className="mt-2 inline-flex items-center gap-2 rounded-xl bg-primary-strong px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+                  className="mt-2 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-primary-strong focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                   <RefreshCcw className="h-4 w-4" />
                   Tentar de novo

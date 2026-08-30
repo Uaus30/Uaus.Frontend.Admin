@@ -65,7 +65,7 @@ export default function ProductDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-surface pt-10 pb-24">
+    <div className="min-h-screen bg-background pt-10 pb-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Link
           href="/produtos"
@@ -91,7 +91,7 @@ export default function ProductDetailPage() {
               </p>
               <Link
                 href="/produtos"
-                className="mt-2 rounded-xl bg-primary-strong px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-primary"
+                className="mt-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-primary-strong"
               >
                 Ver todos os produtos
               </Link>
@@ -153,7 +153,7 @@ export default function ProductDetailPage() {
                             aria-pressed={detail.selectedVariation === variation.name}
                             className={
                               detail.selectedVariation === variation.name
-                                ? "rounded-xl border-2 border-primary-strong bg-accent px-4 py-2 text-sm font-semibold text-primary"
+                                ? "rounded-xl border-2 border-primary bg-accent px-4 py-2 text-sm font-semibold text-primary"
                                 : "rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/60"
                             }
                           >

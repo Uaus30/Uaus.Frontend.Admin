@@ -22,7 +22,7 @@ export function HeroSection() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section className="relative overflow-hidden bg-surface pt-16 pb-20">
+    <section className="relative overflow-hidden bg-background pt-16 pb-20">
       <div
         aria-hidden
         className="absolute -top-48 -right-48 h-[620px] w-[620px] rounded-full bg-primary/10 blur-3xl"
@@ -34,7 +34,7 @@ export function HeroSection() {
         transition={{ duration: reduceMotion ? 0 : 0.5 }}
         className="relative mx-auto max-w-3xl px-4 text-center sm:px-6"
       >
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-primary">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-primary">
           <Store className="h-4 w-4" />
           Nova loja em Tapira-PR
         </span>
@@ -53,14 +53,14 @@ export function HeroSection() {
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
           <Link
             href="/produtos"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-strong px-8 py-4 font-semibold text-white transition-colors duration-200 hover:bg-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 font-semibold text-white transition-colors duration-200 hover:bg-primary-strong focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Ver Super Ofertas
             <ArrowRight className="h-5 w-5" />
           </Link>
           <Link
             href="/contato"
-            className="inline-flex items-center justify-center rounded-xl border border-border bg-background px-8 py-4 font-semibold text-foreground transition-colors duration-200 hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="inline-flex items-center justify-center rounded-xl border border-border bg-white px-8 py-4 font-semibold text-foreground transition-colors duration-200 hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Fale Conosco
           </Link>
