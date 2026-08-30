@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
-import { useDebounce } from "@workspace/ui";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   PRODUCT_LABEL_TYPE,
   createProductLabelBatch,
   getGetProductLabelBatchesQueryKey,
-  type ProductDto,
+  type ProductPdvSearchDto,
 } from "@workspace/api-client-react";
-import { getProductsPage } from "@/services/products.service";
 import { useToast } from "@workspace/ui";
+import { useLabelProductSearch } from "./useLabelProductSearch";
 import { describeApiError } from "@workspace/core";
 import { printLabelSheet } from "../print";
 import {
@@ -27,23 +26,18 @@ import {
  *
  * O preço de cada item nasce do cadastro mas é editável — é assim que a
  * etiqueta de promoção sai com o valor da oferta sem mexer no produto.
+ *
+ * A busca de produtos é do {@link useLabelProductSearch}: a tela abre com a
+ * lista vazia e consulta o balcão, com os mesmos gatilhos do PDV.
  */
 export function useLabelComposer() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
+  const productSearch = useLabelProductSearch();
   const [description, setDescription] = useState("");
   const [items, setItems] = useState<LabelDraftItem[]>([]);
   const [printing, setPrinting] = useState(false);
-
-  const { data: productPage, isLoading: isSearching } = useQuery({
-    queryKey: ["gondola-labels-product-search", { search: debouncedSearch }],
-    queryFn: () => getProductsPage({ search: debouncedSearch, page: 1, limit: 8 }),
-  });
-
-  const searchResults = productPage?.data ?? [];
 
   const totalLabels = useMemo(
     () => items.reduce((acc, item) => acc + Math.max(0, parseQuantityInput(item.quantityInput)), 0),
@@ -55,7 +49,7 @@ export function useLabelComposer() {
   const previewLabels = useMemo<PrintableLabel[]>(() => items.map(draftToPrintable), [items]);
 
   /** Adiciona o produto com tipo Normal; se já estiver na lista com esse tipo, soma uma cópia. */
-  const addProduct = (product: ProductDto) => {
+  const addProduct = (product: ProductPdvSearchDto) => {
     setItems((current) => {
       const existingIndex = current.findIndex(
         (item) => item.productId === product.id && item.labelType === PRODUCT_LABEL_TYPE.Normal,
@@ -180,10 +174,13 @@ export function useLabelComposer() {
   };
 
   return {
-    search,
-    setSearch,
-    searchResults,
-    isSearching,
+    search: productSearch.search,
+    setSearch: productSearch.setSearch,
+    submitSearch: productSearch.submit,
+    searchResults: productSearch.results,
+    isSearching: productSearch.isSearching,
+    hasSearched: productSearch.hasSearched,
+    searchFailed: productSearch.hasFailed,
     description,
     setDescription,
     items,

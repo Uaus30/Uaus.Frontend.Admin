@@ -10,8 +10,8 @@ reimpressão.
 
 ## Fluxo
 
-1. **Gerar Etiquetas**: busca produtos (`GET /Products`), monta a lista com
-   tipo, preço e quantidade por item e pré-visualiza as etiquetas.
+1. **Gerar Etiquetas**: busca produtos (`GET /Pdv/products/search`), monta a
+   lista com tipo, preço e quantidade por item e pré-visualiza as etiquetas.
 2. **Salvar e Imprimir**: grava o lote (`POST /ProductLabelBatches`) e abre a
    caixa de impressão com a folha A4. O backend congela nome, código de barras
    e preço de cada item — a reimpressão reproduz o papel original mesmo que o
@@ -22,6 +22,21 @@ reimpressão.
 
 ## Regras de negócio
 
+- **A busca abre vazia e é a mesma do balcão.** A lista só aparece depois de
+  uma busca: a partir de 3 caracteres com 400ms sem digitar, ou no Enter (que
+  é a única saída para termo mais curto que isso). Antes ela abria com os 8
+  primeiros produtos do catálogo — uma lista que não responde pergunta nenhuma
+  e faz parecer que já há um filtro aplicado.
+- **Por que `/Pdv/products/search` e não `/Products`**: interpreta o termo com
+  a mesma regra (só dígitos = código de barras), já devolve a URL da primeira
+  imagem — que é a miniatura da lista — e é liberado para `Seller`, enquanto a
+  listagem do cadastro não é.
+- **Miniatura na listagem**: o catálogo tem muito nome parecido, e conferir
+  pela foto é mais rápido do que ler o código de barras inteiro. A etiqueta
+  errada só aparece depois de impressa e colada na gôndola.
+- **Lápis abre o produto no cadastro, em NOVA aba** (`/produtos?busca=&editar=`,
+  montado em `features/products/product-edit-link.ts`). Nova aba porque o lote
+  montado até ali só existe em memória e some se a tela sair.
 - **Tipos de etiqueta** (enum `ProductLabelType` do backend): Normal = branca,
   Promoção = amarela, Queima de Estoque = vermelha — texto preto em todas,
   como nos cartazes de oferta de mercado.
@@ -43,8 +58,10 @@ reimpressão.
 
 ## Arquitetura
 
-- `hooks/useLabelComposer.ts` — estado da aba de geração (busca, itens,
-  totais, gravar → imprimir).
+- `hooks/useLabelComposer.ts` — estado da aba de geração (itens, totais,
+  gravar → imprimir).
+- `hooks/useLabelProductSearch.ts` — a busca de produtos: gatilhos, termo em
+  vigor e resultados.
 - `hooks/useLabelBatchHistory.ts` — listagem paginada, detalhes, reimpressão e
   exclusão.
 - `components/` — subcomponentes puros ligados pela página
