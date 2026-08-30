@@ -86,13 +86,15 @@ const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
  * Ícone de cada grupo do menu. A ORDEM de exibição não sai daqui — ver `MENU_ORDER`.
  */
 export const MENU_GROUPS = [
-  { name: "Produtos", icon: Package },
+  // "Estoque" e não "Produtos": o grupo junta o cadastro do item e a entrada
+  // de mercadoria, que é o par que o operador percorre num dia de loja.
+  { name: "Estoque", icon: Package },
   { name: "Financeiro", icon: DollarSign },
   // Consulta, não lançamento: o que só LÊ a operação mora aqui. Hoje é o
   // Inventário; relatório novo entra neste grupo, não espalhado nos outros.
   { name: "Relatórios", icon: BarChart3 },
   // Cupom e campanha não cabem em "Financeiro" (não são lançamento de dinheiro)
-  // nem em "Produtos" (não são cadastro de item): grupo próprio.
+  // nem em "Estoque" (não são cadastro nem entrada de item): grupo próprio.
   { name: "Marketing", icon: Megaphone },
   { name: "Sistema", icon: Settings },
 ] as const;
@@ -115,7 +117,7 @@ export const MENU_GROUPS = [
  */
 export const MENU_ORDER: readonly string[] = [
   "/dashboard",
-  "Produtos",
+  "Estoque",
   "Financeiro",
   "Relatórios",
   "Marketing",
@@ -139,16 +141,16 @@ export const ROUTES: AppRoute[] = [
 
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, component: Dashboard },
 
-  { path: "/produtos", label: "Cadastros", group: "Produtos", component: Products },
-  { path: "/estoque/entradas", label: "Entradas", group: "Produtos", component: StockEntries },
-  { path: "/grades", label: "Grades", group: "Produtos", component: Grades },
-  { path: "/categorias", label: "Categorias", group: "Produtos", component: Categories },
-  { path: "/departamentos", label: "Departamentos", group: "Produtos", component: Departments },
-  { path: "/fornecedores", label: "Fornecedores", group: "Produtos", component: Suppliers },
-  { path: "/tags", label: "Tags", group: "Produtos", component: Tags },
+  { path: "/produtos", label: "Produtos", group: "Estoque", component: Products },
+  { path: "/estoque/entradas", label: "Entradas", group: "Estoque", component: StockEntries },
+  { path: "/grades", label: "Grades", group: "Estoque", component: Grades },
+  { path: "/categorias", label: "Categorias", group: "Estoque", component: Categories },
+  { path: "/departamentos", label: "Departamentos", group: "Estoque", component: Departments },
+  { path: "/fornecedores", label: "Fornecedores", group: "Estoque", component: Suppliers },
+  { path: "/tags", label: "Tags", group: "Estoque", component: Tags },
   // Caminho antigo mantido para não quebrar links salvos.
   { path: "/etiquetas", component: Tags, hidden: true },
-  { path: "/etiquetas-gondola", label: "Etiquetas", group: "Produtos", component: GondolaLabels },
+  { path: "/etiquetas-gondola", label: "Etiquetas", group: "Estoque", component: GondolaLabels },
 
   // Dentro do grupo, o menu segue a ordem DESTA lista. Em "Financeiro" ela é
   // escolhida: o Resumo Financeiro abre o grupo e Baixas vem logo após Vendas.
