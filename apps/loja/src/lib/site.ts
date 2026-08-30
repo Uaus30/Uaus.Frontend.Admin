@@ -49,6 +49,10 @@ const STORE_PHONE: SitePhone = {
  * singular, e ele não comporta três números com nome. Enquanto isso for
  * verdade, o cadastro dos telefones é este arquivo — mudou um número, é aqui,
  * e vai junto com um deploy.
+ *
+ * Quem exibe: a coluna "Contato" do rodapé, presente em toda página, e a
+ * coluna de informações da página de contato. Os dois listam os três, na
+ * ordem desta lista.
  */
 export const SITE_PHONES: readonly SitePhone[] = [
   STORE_PHONE,

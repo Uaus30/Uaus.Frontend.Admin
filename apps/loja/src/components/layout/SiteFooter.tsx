@@ -1,27 +1,37 @@
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useGetStorefrontCompany } from "@workspace/api-client-react";
 import { NAV_LINKS } from "@/routes";
-import { SITE_CONTACT, SITE_FOOTER_TAGLINE, SITE_NAME, SITE_TAGLINE } from "@/lib/site";
+import { SITE_CONTACT, SITE_FOOTER_TAGLINE, SITE_NAME, SITE_PHONES, SITE_TAGLINE } from "@/lib/site";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import logoUrl from "@/assets/logo.png";
+
+/** Mensagem que já abre digitada no WhatsApp — diz a quem atende de onde veio o contato. */
+const FOOTER_WHATSAPP_MESSAGE = "Olá! Vim pelo site da Uaus.";
 
 /**
  * Rodapé escuro em quatro colunas, portado do site original.
  *
- * Endereço, telefone e CNPJ preferem o cadastro de Configurações da Empresa
- * (endpoint público `/Storefront/company`) e caem nas constantes de
- * `lib/site.ts` quando vazios — o admin vira a fonte, sem quebrar o rodapé
- * se a API estiver fora do ar.
+ * Endereço e CNPJ preferem o cadastro de Configurações da Empresa (endpoint
+ * público `/Storefront/company`) e caem nas constantes de `lib/site.ts` quando
+ * vazios — o admin vira a fonte, sem quebrar o rodapé se a API estiver fora do
+ * ar.
+ *
+ * Os TELEFONES são a exceção, e é deliberado. O `StorefrontCompanyDto` tem um
+ * `phone` só, sem nome de quem atende, e o que está gravado nele hoje é o
+ * celular de um sócio — o rodapé anunciava "Cel: (44) 99137-2305" como se
+ * fosse o número da loja. A coluna passa a listar os três canais de
+ * `SITE_PHONES`, cada um com rótulo e link para o próprio WhatsApp, e é o
+ * único lugar do site onde os três aparecem: o rodapé está em toda página, e
+ * quem procura falar com uma pessoa específica encontra sem precisar navegar.
  */
 export function SiteFooter() {
   const { data: company } = useGetStorefrontCompany();
 
   const addressLine = company?.addressLine || SITE_CONTACT.addressLine;
   const addressDistrict = company?.cityState || SITE_CONTACT.addressDistrict;
-  const phone = company?.phone || SITE_CONTACT.whatsappDisplay;
   const documentLine = company?.document || SITE_CONTACT.cnpjLine;
 
   return (
@@ -52,7 +62,7 @@ export function SiteFooter() {
                 <InstagramIcon className="h-5 w-5" />
               </a>
               <a
-                href={buildWhatsAppUrl("Olá! Vim pelo site da Uaus.")}
+                href={buildWhatsAppUrl(FOOTER_WHATSAPP_MESSAGE)}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp da Uaus"
@@ -66,10 +76,19 @@ export function SiteFooter() {
           <div>
             <h3 className="text-lg font-bold">Contato</h3>
             <ul className="mt-4 space-y-3 text-sm text-white/70">
-              <li className="flex items-center gap-3">
-                <Phone className="h-4 w-4 shrink-0 text-primary" />
-                {phone}
-              </li>
+              {SITE_PHONES.map((sitePhone) => (
+                <li key={sitePhone.number} className="flex items-center gap-3">
+                  <WhatsAppIcon className="h-4 w-4 shrink-0 text-primary" />
+                  <a
+                    href={buildWhatsAppUrl(FOOTER_WHATSAPP_MESSAGE, sitePhone.number)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition-colors hover:text-white"
+                  >
+                    {sitePhone.label}: {sitePhone.display}
+                  </a>
+                </li>
+              ))}
               <li className="flex items-center gap-3">
                 <Mail className="h-4 w-4 shrink-0 text-primary" />
                 {SITE_CONTACT.email}

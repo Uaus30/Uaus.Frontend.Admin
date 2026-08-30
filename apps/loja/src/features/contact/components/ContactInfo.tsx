@@ -19,12 +19,12 @@ interface ContactRow {
 /**
  * Coluna de informações + o botão verde de WhatsApp do site original.
  *
- * Os TELEFONES vêm de `SITE_PHONES`, não da API. O `/Storefront/company`
- * devolve um `phone` só, e a página passou a listar três (loja e os dois
- * sócios) — com o campo único no comando, a linha da loja mostraria o que
- * estivesse em Configurações da Empresa, que pode não ser o número que o dono
- * quer como padrão. O endereço continua preferindo o cadastro do admin: lá o
- * campo e o dado são o mesmo, e a API é a fonte mais fresca.
+ * Os TELEFONES vêm de `SITE_PHONES` — os mesmos três do rodapé, na mesma
+ * ordem — e não da API. O `/Storefront/company` devolve um `phone` só, sem
+ * nome de quem atende, e o que está gravado nele hoje é o celular de um
+ * sócio: por ele a página anunciaria como número da loja um número que não é
+ * o canal padrão dela. O endereço continua preferindo o cadastro do admin, lá
+ * o campo e o dado são o mesmo e a API é a fonte mais fresca.
  *
  * Todas as três linhas abrem o wa.me do respectivo número, e não um `tel:`:
  * o site inteiro converte por WhatsApp, e ligação de voz para celular de
@@ -67,7 +67,7 @@ export function ContactInfo() {
               href={row.href}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+              className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
                 <row.icon className="h-5 w-5" />
