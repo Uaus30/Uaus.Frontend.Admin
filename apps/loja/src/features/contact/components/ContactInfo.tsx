@@ -1,24 +1,45 @@
+import type { ComponentType } from "react";
 import { Clock, Mail, MapPin } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useGetStorefrontCompany } from "@workspace/api-client-react";
-import { SITE_CONTACT, SITE_OPENING_HOURS } from "@/lib/site";
+import { SITE_CONTACT, SITE_OPENING_HOURS, SITE_PHONES } from "@/lib/site";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+
+/** Mensagem que já abre digitada no WhatsApp — diz a quem atende de onde veio o contato. */
+const CONTACT_WHATSAPP_MESSAGE = "Olá! Vim pelo site da Uaus.";
+
+/** Uma linha clicável da coluna de informações. */
+interface ContactRow {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  href: string;
+}
 
 /**
  * Coluna de informações + o botão verde de WhatsApp do site original.
- * Endereço e telefone preferem o cadastro do admin (endpoint público) e caem
- * nas constantes locais quando vazios.
+ *
+ * Os TELEFONES vêm de `SITE_PHONES`, não da API. O `/Storefront/company`
+ * devolve um `phone` só, e a página passou a listar três (loja e os dois
+ * sócios) — com o campo único no comando, a linha da loja mostraria o que
+ * estivesse em Configurações da Empresa, que pode não ser o número que o dono
+ * quer como padrão. O endereço continua preferindo o cadastro do admin: lá o
+ * campo e o dado são o mesmo, e a API é a fonte mais fresca.
+ *
+ * Todas as três linhas abrem o wa.me do respectivo número, e não um `tel:`:
+ * o site inteiro converte por WhatsApp, e ligação de voz para celular de
+ * comércio local costuma cair na caixa.
  */
 export function ContactInfo() {
   const { data: company } = useGetStorefrontCompany();
 
-  const rows = [
-    {
+  const rows: ContactRow[] = [
+    ...SITE_PHONES.map((phone) => ({
       icon: WhatsAppIcon,
-      label: "WhatsApp / Telefone",
-      value: company?.phone || SITE_CONTACT.whatsappDisplay,
-      href: buildWhatsAppUrl("Olá! Vim pelo site da Uaus."),
-    },
+      label: `WhatsApp — ${phone.label}`,
+      value: phone.display,
+      href: buildWhatsAppUrl(CONTACT_WHATSAPP_MESSAGE, phone.number),
+    })),
     {
       icon: Mail,
       label: "E-mail",
@@ -76,7 +97,7 @@ export function ContactInfo() {
       </div>
 
       <a
-        href={buildWhatsAppUrl("Olá! Vim pelo site da Uaus.")}
+        href={buildWhatsAppUrl(CONTACT_WHATSAPP_MESSAGE)}
         target="_blank"
         rel="noreferrer"
         className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 px-6 py-5 text-center font-bold text-white shadow-sm transition-colors duration-200 hover:bg-green-600 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 focus-visible:outline-none"
