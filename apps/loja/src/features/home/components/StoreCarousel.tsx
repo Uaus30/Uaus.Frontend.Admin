@@ -61,7 +61,7 @@ export function StoreCarousel() {
             type="button"
             onClick={carousel.prev}
             aria-label="Foto anterior"
-            className="absolute top-1/2 left-4 -translate-y-1/2 rounded-full bg-white/90 p-3 shadow-md transition-colors duration-200 hover:bg-primary-strong hover:text-white focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
+            className="absolute top-1/2 left-4 -translate-y-1/2 rounded-full bg-white/90 p-3 shadow-md transition-colors duration-200 hover:bg-primary-strong hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
           >
             <ArrowRight className="h-5 w-5 rotate-180" />
           </button>
@@ -69,7 +69,7 @@ export function StoreCarousel() {
             type="button"
             onClick={carousel.next}
             aria-label="Próxima foto"
-            className="absolute top-1/2 right-4 -translate-y-1/2 rounded-full bg-white/90 p-3 shadow-md transition-colors duration-200 hover:bg-primary-strong hover:text-white focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
+            className="absolute top-1/2 right-4 -translate-y-1/2 rounded-full bg-white/90 p-3 shadow-md transition-colors duration-200 hover:bg-primary-strong hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
           >
             <ArrowRight className="h-5 w-5" />
           </button>

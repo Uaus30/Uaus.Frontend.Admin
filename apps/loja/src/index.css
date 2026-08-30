@@ -132,23 +132,25 @@
   --primary: 24 100% 55%;
   --primary-foreground: 0 0% 100%;
   /*
-   * O MESMO laranja escurecido (#C24F09) — hoje o tom de HOVER e de ANEL DE
-   * FOCO, nao mais o de repouso. Branco sobre ele da 4,79:1 (passa na WCAG AA);
-   * sobre o laranja da marca daria 2,69:1.
+   * O MESMO laranja escurecido (#C24F09) — hoje SO o tom de HOVER.
    *
    * A troca e de 30/08/2026, a pedido do dono: o botao, o cartao "Venha
    * conhecer a loja!" e o "MAXIMO 30 REAIS" nasciam escurecidos e puxavam para
    * o marrom — a mesma objecao que ja tinha tirado o tom escuro dos TEXTOS em
-   * 29/08. Agora o repouso e --primary e o escurecido entra no hover, que e a
-   * direcao convencional de um botao. O custo esta assumido e e o mesmo de la:
-   * texto branco sobre o repouso da 2,69:1.
+   * 29/08. O repouso passou a ser --primary e o escurecido foi para o hover,
+   * que e a direcao convencional de um botao.
    *
-   * Onde ele CONTINUA sendo o padrao: `focus-visible:ring-*` e a borda de foco
-   * dos campos. O anel so existe para ser visto por quem navega no teclado, e
-   * a WCAG pede 3:1 para componente nao textual — o laranja vivo nao entrega.
+   * ATENCAO, e o ponto que mais foi reaberto neste arquivo: **contraste WCAG
+   * nao decide mais a cor deste site.** O tom escurecido existiu tres vezes por
+   * causa da regua — nos textos, nas superficies e no anel de foco — e as tres
+   * foram revertidas pelo dono, a ultima em 30/08/2026, quando ele dispensou
+   * explicitamente o criterio de 3:1 para componente nao textual. Ficar fora da
+   * norma aqui e escolha assumida, nao esquecimento: nao reintroduza o
+   * escurecido em texto, superficie ou foco "para passar no contraste".
    *
-   * NAO use para texto. Decisao de 29/08/2026 registrada em
-   * PLANO-DESIGN-LOJA.md, secao 3.5.
+   * Os numeros, para quem precisar deles em outro contexto e nao para reabrir
+   * esta decisao: branco sobre #C24F09 da 4,79:1; sobre o laranja da marca,
+   * 2,69:1. Historico completo em PLANO-DESIGN-LOJA.md, secao 3.5.
    */
   --primary-strong: 22 91% 40%;
 
@@ -165,7 +167,8 @@
   --destructive-foreground: 210 40% 98%;
 
   --input: 214 32% 91%;
-  --ring: 22 91% 40%;
+  /* Anel de foco no laranja da marca — ver a nota de --primary-strong. */
+  --ring: 24 100% 55%;
 
   /*
    * SUPERFÍCIE elevada: branco puro, o mesmo `bg-white` que os cartões já

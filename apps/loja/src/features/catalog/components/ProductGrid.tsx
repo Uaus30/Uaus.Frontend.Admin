@@ -64,7 +64,7 @@ export function ProductGrid({ products, hasNextPage, isFetchingNextPage, fetchNe
             type="button"
             onClick={fetchNextPage}
             disabled={isFetchingNextPage}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-8 py-3 font-semibold text-foreground transition-colors duration-200 hover:border-primary/50 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-8 py-3 font-semibold text-foreground transition-colors duration-200 hover:border-primary/50 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
           >
             {isFetchingNextPage && <Loader2 className="h-4 w-4 animate-spin" />}
             {isFetchingNextPage ? "Carregando..." : "Carregar mais produtos"}

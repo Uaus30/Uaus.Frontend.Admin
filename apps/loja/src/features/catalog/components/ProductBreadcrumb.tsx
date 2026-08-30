@@ -21,7 +21,7 @@ export function ProductBreadcrumb({ product }: { product: CatalogProductDetail }
         <li className="shrink-0">
           <Link
             href={catalogPath({ departmentId: product.departmentId })}
-            className="rounded font-semibold transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none"
+            className="rounded font-semibold transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
           >
             {product.departmentName}
           </Link>
@@ -37,7 +37,7 @@ export function ProductBreadcrumb({ product }: { product: CatalogProductDetail }
               departmentId: product.departmentId,
               categoryId: product.categoryId,
             })}
-            className="rounded font-semibold transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none"
+            className="rounded font-semibold transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
           >
             {product.categoryName}
           </Link>

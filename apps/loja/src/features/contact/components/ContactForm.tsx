@@ -2,7 +2,7 @@ import { MessageSquare, Send } from "lucide-react";
 import { useContactForm } from "../hooks/useContactForm";
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-white px-4 py-3 text-foreground transition-colors outline-none focus:border-primary-strong focus:ring-4 focus:ring-primary-strong/15";
+  "w-full rounded-xl border border-border bg-white px-4 py-3 text-foreground transition-colors outline-none focus:border-primary focus:ring-4 focus:ring-primary/15";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -75,7 +75,7 @@ export function ContactForm() {
 
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-semibold text-white transition-colors duration-200 hover:bg-primary-strong focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-semibold text-white transition-colors duration-200 hover:bg-primary-strong focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           Enviar pelo WhatsApp
           <Send className="h-5 w-5" />

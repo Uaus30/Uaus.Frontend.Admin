@@ -18,7 +18,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
   return (
     <Link
       href={productDetailPath(product.productGroupId)}
-      className="group block overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="group block overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       <div className="relative aspect-square overflow-hidden bg-white p-3">
         <TagRibbons tags={product.tags} />

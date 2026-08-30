@@ -20,7 +20,7 @@ export function CatalogSearch({ value, onChange, isSearching }: CatalogSearchPro
         onChange={(event) => onChange(event.target.value)}
         placeholder="Buscar produtos por nome ou descrição"
         aria-label="Buscar produtos"
-        className="h-12 w-full rounded-2xl border border-border bg-white pr-12 pl-12 text-foreground transition-colors outline-none focus:border-primary-strong focus:ring-4 focus:ring-primary-strong/15"
+        className="h-12 w-full rounded-2xl border border-border bg-white pr-12 pl-12 text-foreground transition-colors outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
       />
       {isSearching && (
         <Loader2

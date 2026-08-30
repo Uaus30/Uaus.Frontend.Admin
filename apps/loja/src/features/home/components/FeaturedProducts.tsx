@@ -48,7 +48,7 @@ export function FeaturedProducts() {
 
           <Link
             href="/produtos"
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 font-semibold text-foreground transition-colors duration-200 hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 font-semibold text-foreground transition-colors duration-200 hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             {featured.totalCount > FEATURED_COUNT
               ? `Ver todos os ${featured.totalCount} produtos`

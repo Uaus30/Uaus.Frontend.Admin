@@ -28,7 +28,7 @@ function FilterLink({ href, label, count, isActive, onSelect }: FilterLinkProps)
       className={
         isActive
           ? "flex items-center justify-between gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-bold text-primary"
-          : "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none"
+          : "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
       }
     >
       <span className="truncate">{label}</span>

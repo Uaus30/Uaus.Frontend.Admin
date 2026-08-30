@@ -12,7 +12,7 @@ function Chip({ label, href }: ChipProps) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white py-1.5 pr-2 pl-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/50 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none"
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white py-1.5 pr-2 pl-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/50 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
     >
       <span className="max-w-[14rem] truncate">{label}</span>
       <X className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
@@ -58,7 +58,7 @@ export function ActiveFilters({ filters, departmentName, categoryName }: ActiveF
 
       <Link
         href={catalogPath()}
-        className="rounded-full px-3 py-1.5 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none"
+        className="rounded-full px-3 py-1.5 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
       >
         Limpar tudo
       </Link>

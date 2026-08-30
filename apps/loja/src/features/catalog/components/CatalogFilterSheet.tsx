@@ -35,7 +35,7 @@ export function CatalogFilterSheet({ departments, isLoading, totalCount, filters
       <SheetTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white px-4 py-3 font-semibold text-foreground transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:outline-none lg:hidden"
+          className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white px-4 py-3 font-semibold text-foreground transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none lg:hidden"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
           Filtrar

@@ -171,7 +171,7 @@ export function SiteHeader() {
             href={SITE_CONTACT.mapsPlaceUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-w-0 items-center gap-1.5 rounded text-muted-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="inline-flex min-w-0 items-center gap-1.5 rounded text-muted-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <MapPin aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary" />
             <span className="truncate">
