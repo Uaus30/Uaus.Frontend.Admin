@@ -20,6 +20,7 @@ export * from "./components/hover-card";
 export * from "./components/input";
 export * from "./components/item";
 export * from "./components/label";
+export * from "./components/not-found-screen";
 export * from "./components/pagination";
 export * from "./components/popover";
 export * from "./components/scroll-area";

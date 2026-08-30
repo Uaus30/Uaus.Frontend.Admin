@@ -1,6 +1,6 @@
 {
   "name": "uaus-frontend-office",
-  "version": "1.9.5",
+  "version": "1.9.6",
   "type": "module",
   "license": "MIT",
   "workspaces": [

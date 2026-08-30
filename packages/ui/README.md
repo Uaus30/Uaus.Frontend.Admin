@@ -47,11 +47,11 @@ Duas consequências que já custaram tempo:
 - `npm run build:types` compila `core`, `api-client` e `receipt` — **não** o
   `ui`. Não falta nada: sem `.d.ts` para gerar, não há o que compilar.
 - `packages/ui/tsconfig.json` é standalone (não estende o `tsconfig.base.json`) e
-  liga `strict`, `noUnusedLocals` e `noUnusedParameters`. O script `typecheck`
-  existe, mas **nenhum script da raiz e nenhum passo do CI o chama**. Na prática
-  essas três regras nunca rodam: um parâmetro não usado neste pacote passa pelo
-  pipeline inteiro. Quem quiser exercê-las precisa rodar
-  `npm run typecheck --workspace=@workspace/ui` à mão.
+  liga `strict`, `noUnusedLocals` e `noUnusedParameters`. Ele roda por conta
+  própria: `npm run typecheck:ui` na raiz e um passo dedicado no job `typecheck`
+  do CI. É um programa SEPARADO do de cada app — o que os apps declaram no
+  tsconfig deles (por exemplo `types: ["vite/client"]`) não vale aqui, e por isso
+  este pacote precisa declarar o que usa. Ver `src/assets.d.ts`.
 
 ---
 
@@ -139,6 +139,31 @@ a cobertura continua sendo o calendário e mais nada.
 
 ---
 
+## Imagem dentro do pacote
+
+`src/assets/` guarda a arte que pertence a um componente daqui — hoje só a do
+`NotFoundScreen`, a tela de rota inexistente que os três apps renderizam. Ela
+mora no pacote, e não no `public/images/` de cada app, pelo mesmo motivo do
+componente: uma cópia por app significa três arquivos para trocar quando a arte
+mudar, e o esquecido vira a tela de um app só.
+
+Duas exigências vêm junto:
+
+- **Importe, não escreva o caminho.** `import img from "../assets/x.png"` deixa o
+  Vite versionar o arquivo (hash no nome) e o Rollup incluí-lo no bundle. Uma
+  string `/images/x.png` daqui apontaria para o `public/` do app que estivesse
+  consumindo — que não tem o arquivo.
+- **`src/assets.d.ts` declara `*.png`.** O `typecheck` deste pacote não carrega
+  os tipos do Vite (ver a seção acima); sem a declaração ele reprova sozinho,
+  enquanto os três apps passam.
+
+O PNG entra otimizado: a arte do 404 veio em 1224 px e 229 KB e foi para 512 px
+com paleta de 192 cores, 30 KB. O componente a exibe em no máximo 260 px, então
+512 px já é o dobro para telas densas — o resto era peso que os três bundles
+carregariam.
+
+---
+
 ## Versões divergentes com o admin
 
 Três dependências deste pacote estão declaradas em versões diferentes no
@@ -165,3 +190,4 @@ de comportamento.
 | Mudar o padrão de calendário           | `src/components/date-field.tsx` (primitivos) — leia `src/components/README.md` antes            |
 | Mudar aparência/duração de um toast    | `src/components/toaster.tsx`, no mapa único de variantes                                        |
 | Novo import de CSS puro num componente | acrescente o arquivo ao `sideEffects` do `package.json`                                         |
+| Imagem nova de um componente           | `src/assets/`, importada pelo componente — nunca `public/` de um app                            |
