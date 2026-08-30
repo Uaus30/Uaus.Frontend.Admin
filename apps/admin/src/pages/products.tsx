@@ -1,30 +1,50 @@
+import { useState } from "react";
+import { Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
-import { Plus } from "lucide-react";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
 import { useProductDeepLink } from "@/features/products/hooks/useProductDeepLink";
 import { ProductTable } from "@/features/products/components/ProductTable";
-import { ProductEditorModal } from "@/features/products/components/ProductEditorModal";
+import { ProductDetailScreen } from "@/features/products/components/detail/ProductDetailScreen";
 import { ProductHistoryModal } from "@/features/products/components/ProductHistoryModal";
 import { ProductImageSearchModal } from "@/features/products/components/ProductImageSearchModal";
-import { useState } from "react";
+import type { ProductTableRow } from "@/features/products/types";
 
+/**
+ * Página de Produtos: a listagem e, no lugar dela, o detalhe do produto.
+ *
+ * O cadastro era uma modal sobre a lista; virou TELA em 30/08/2026 (ver
+ * `features/products/components/detail/ProductDetailScreen.tsx`). A troca é
+ * feita aqui, por `editor.modalOpen`, e não por rota nova: a lista continua
+ * montada por trás, com filtro, página e busca intactos, e voltar do detalhe
+ * devolve a pessoa exatamente onde ela estava. Uma rota `/produtos/:id`
+ * remontaria a listagem do zero a cada volta — e o link direto do PDV
+ * (`?busca=&editar=`) precisaria ser reescrito por nada.
+ */
 export default function Products() {
   const table = useProductTable();
   const editor = useProductEditor();
   const [historyProductGroupId, setHistoryProductGroupId] = useState<number | null>(null);
   const [historyProductGroupName, setHistoryProductGroupName] = useState("");
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [searchImageProduct, setSearchImageProduct] = useState<any | null>(null);
+  const [searchImageProduct, setSearchImageProduct] = useState<ProductTableRow | null>(null);
 
-  // Link direto do PDV: `/produtos?busca=<grupo>&editar=<id>` abre a modal do
+  // Link direto do PDV: `/produtos?busca=<grupo>&editar=<id>` abre o detalhe do
   // produto assim que a listagem filtrada chega.
   useProductDeepLink({
     isLoading: table.isLoading,
     enrichedProducts: table.enrichedProducts,
     openModal: editor.openModal,
   });
+
+  if (editor.modalOpen) {
+    return (
+      <AppLayout>
+        <ProductDetailScreen editor={editor} />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -79,7 +99,6 @@ export default function Products() {
         />
       </div>
 
-      <ProductEditorModal editor={editor} />
       <ProductHistoryModal
         productGroupId={historyProductGroupId}
         productGroupName={historyProductGroupName}

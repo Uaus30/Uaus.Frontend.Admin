@@ -9,7 +9,9 @@ Este módulo gerencia o recebimento de mercadorias no estoque, permitindo o regi
 - `components/StockEntriesTable.tsx`: Exibe o histórico de entradas de estoque registradas com suporte a filtragem por fornecedor e controles de paginação.
 - `components/StockEntryDetailsModal.tsx`: Modal exibindo o espelho da nota fiscal, produtos recebidos com seus respectivos custos e preços, além do controle para exclusão de lançamento (cancelamento de entrada).
 - `components/NewStockEntryModal.tsx`: Modal contendo formulário de cabeçalho da nota (fornecedor, NF, data, observações) e a grade dos itens recebidos. O produto entra pelo [`ProductSearchPicker`](../../components/product-search-picker.tsx) compartilhado com as baixas de estoque. A data usa o `DatePicker` do [padrão de calendário](../../components/ui/README.md); como ele abre num portal fora do modal, o `DialogContent` aplica `guardCalendarDismiss` para não fechar o formulário ao escolher um dia.
+- `components/SimpleStockEntryModal.tsx`: Lançamento de UM produto, aberto de dentro da tela do produto. Mesmo `POST /PurchaseEntries/receive`, com um item só e sem busca de produto. Ver seção 6.
 - `hooks/useStockEntries.ts`: Centraliza requisições paginadas (`useGetPurchaseEntries`), detalhes (`useGetPurchaseEntryDetails`), mutations de recebimento (`useReceivePurchaseEntry`), mutations de exclusão (`useDeletePurchaseEntry`), e sincronização de query strings.
+- `hooks/useProductStockEntries.ts`: A mesma coisa recortada em UM produto — alimenta a aba **Estoque** da tela de detalhe do produto. Ver seção 6.
 - `types.ts`: Tipagens estruturadas locais.
 
 ---
@@ -46,3 +48,30 @@ Este módulo gerencia o recebimento de mercadorias no estoque, permitindo o regi
 - A exclusão de uma entrada é permitida (controlada pelo flag `canDelete` do backend).
 - O cancelamento remove os lotes de estoque lançados por esta entrada e atualiza/recalcula os saldos físicos vigentes dos produtos relacionados.
 - Se o estoque de algum item da entrada já tiver sido vendido/consumido abaixo da quantidade de cancelamento, o backend retornará um erro impedindo a remoção.
+
+### 6. A entrada simplificada, lançada de dentro do produto (30/08/2026)
+
+A tela de detalhe do produto (`features/products`) ganhou uma aba **Estoque**, e
+ela é servida por `useProductStockEntries` — daqui, não de lá. O motivo é que
+tudo o que ela sabe é regra desta feature: a data sem fuso da seção 2, as
+validações da seção 3 e a invalidação por prefixo da seção 4. Duplicar isso na
+outra feature reabriria a armadilha que o `toISOString()` já custou uma vez.
+
+O que muda em relação ao formulário completo:
+
+- **Um item, sem busca de produto.** Quem chegou pela aba já escolheu o produto;
+  reapresentar a busca era o atrito que a tela veio resolver. Nota com vários
+  itens continua sendo assunto desta tela aqui — a modal simplificada diz isso
+  no rodapé em vez de deixar lançar dez notas de um item cada.
+- **Custo e preço vêm sugeridos do cadastro**, lidos por `GET /Products/{id}`. É
+  sugestão, não imposição, igual à seção 1.
+- **A listagem da aba é filtrada por `productId`** e mostra o total da NOTA, não
+  o do produto: `GET /PurchaseEntries` não quebra por item. Quantidade e custo
+  daquele produto saem nos detalhes.
+- **A invalidação inclui `RESOURCE_KEYS.products`.** Receber mercadoria grava
+  custo, preço e saldo no PRODUTO; sem essa chave, a listagem de produtos atrás
+  da tela continuaria mostrando o estoque de antes. O formulário completo não
+  precisava disso porque não há tela de produto por baixo dele.
+- **Trocar de produto volta para a página 1.** Numa aba com seletor de variação,
+  manter a página 3 do SKU anterior mostraria "nenhuma entrada" para um produto
+  que tem entradas.

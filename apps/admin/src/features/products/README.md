@@ -8,8 +8,16 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 
 - `components/ProductTable.tsx`: Renderiza a listagem de produtos com paginação e suporte a edição rápida inline de preço e estoque.
 - `components/ProductTableFilters.tsx`: Filtros da tabela (busca por texto, select de Departamento, select de Categoria e select de Status com ordenação alfabética).
-- `components/ProductEditorModal.tsx`: Formulário principal (Modal) para criação e edição de produtos simples ou com variações.
+- `components/detail/ProductDetailScreen.tsx`: Tela de detalhe do produto, em três abas — orquestra o formulário, as confirmações e o salvar. Substituiu a modal de edição.
+- `components/detail/ProductGeneralTab.tsx`: Aba **Dados** (obrigatórios + código de barras + imagens + variações).
+- `components/detail/ProductStockTab.tsx`: Aba **Estoque** (histórico de entradas do produto e lançamento simplificado).
+- `components/detail/ProductEditorDialogs.tsx`: Confirmações de fora do formulário (configurar grades, excluir variação, regerar matriz).
+- `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
+- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Campos Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
+- `lib/barcode.ts`: Validação de EAN, dígito verificador, código de prévia e impressão da etiqueta de 80mm.
+- `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
+- `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
 - `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
@@ -70,11 +78,61 @@ Como cada endpoint filtrava por **um id de cada vez**, não havia conserto poss�
 - As imagens do produto podem ser ordenadas via drag-and-drop. A primeira imagem é considerada a "principal".
 - Ao salvar, o sistema sincroniza de forma incremental as tags e imagens de cada variação com o servidor através das funções `syncProductTags` e `syncProductImages`.
 
-### 4. Visibilidade Simplificada (Botão de Olho)
+### 4. A tela de detalhe e suas três abas (30/08/2026)
 
-- Por padrão, ao abrir a modal, os campos opcionais (**Descrição**, **Estoque mínimo/atual**, **Visibilidade** e **Etiquetas**) são ocultados para focar no fluxo principal do usuário.
-- O clique no botão de olho (no topo esquerdo ao lado do título da modal) alterna a visibilidade desses campos.
-- Os campos **Código de Barras** e **Imagens** permanecem sempre visíveis.
+O cadastro era uma **modal** sobre a lista. Virou tela, com abas, porque a modal
+cobrava dois pedágios no fluxo mais comum da loja — cadastrar o produto e lançar
+o que chegou dele:
+
+- os campos opcionais (**Descrição**, **Etiquetas**, **Estoque mínimo/atual** e
+  **Visibilidade**) ficavam atrás de um botão de olho que nada na tela
+  anunciava. Quem não conhecia o ícone nunca marcava "exibir no site", e o
+  produto não aparecia na loja sem ninguém entender por quê;
+- o estoque ficava a uma navegação de distância (`/estoque/entradas?productId=`),
+  que tirava a pessoa de dentro do cadastro.
+
+As abas separam por **frequência de uso**, não por assunto:
+
+| Aba                  | O que tem                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| **Dados**            | Código de barras, nome, departamento, categoria, preço, status, imagens e variações.     |
+| **Estoque**          | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                |
+| **Campos Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura) e visibilidade no site. |
+
+Regras que valem a pena conhecer antes de mexer:
+
+- **A troca é de RENDERIZAÇÃO, não de rota.** `pages/products.tsx` mostra a
+  tela no lugar da listagem quando `editor.modalOpen` está ligado. A lista fica
+  montada por trás com filtro, página e busca intactos, e voltar devolve a
+  pessoa exatamente onde ela estava. Uma rota `/produtos/:id` remontaria a
+  listagem do zero a cada volta e obrigaria a reescrever o link direto do PDV
+  (seção 5) sem devolver nada em troca.
+- **O `<form>` envolve as três abas.** O salvar do cabeçalho vale de qualquer
+  aba, e trocar de aba com alteração pendente não perde nada. As modais são
+  portais do Radix e ficam **fora** do form — o lançamento de estoque tem
+  `<form>` próprio, e aninhar os dois seria HTML inválido.
+- **Validação reprovada traz a aba Dados para a frente.** Todo campo obrigatório
+  mora lá; focar um elemento de aba fechada não faz nada, e o salvar pareceria
+  simplesmente não responder.
+- O estado do editor ainda se chama `modalOpen`/`openModal` no
+  `useProductEditor`. É nome histórico: significa "o editor está aberto".
+
+#### A aba Estoque, em detalhe
+
+- Lista as **notas** que trouxeram o produto (`GET /PurchaseEntries?productId=`),
+  da mais recente para a mais antiga. A ordenação é do backend (data de entrada
+  decrescente e, no empate, id decrescente) — a tela não reordena nada.
+- A coluna de valor é o total da **nota inteira**, não o deste produto: a
+  listagem de notas não quebra por item. Quantidade e custo deste produto saem
+  nos detalhes, pelo olho da linha.
+- **Produto novo não tem aba de estoque útil**: sem id gravado não há lote para
+  lançar, e a aba explica isso em vez de abrir um formulário que falharia.
+- **Grupo com variações ganha um seletor de variação**, porque estoque é do SKU,
+  não do grupo. A modal antiga mandava sempre a variação ativa para
+  `/estoque/entradas` — na prática, a primeira da lista.
+- O lançamento em si mora na feature de entradas
+  (`features/stock-entries/hooks/useProductStockEntries.ts`), junto das regras de
+  data e validação que ele compartilha com a nota completa.
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
@@ -85,12 +143,12 @@ O botão de lápis do balcão do PDV abre esta tela em outra aba já na edição
 
 Regras que valem a pena conhecer antes de mexer:
 
-- Quando o id não aparece na lista mas o filtro trouxe **uma única linha**, é essa linha que abre. A tabela mostra um produto _representante_ por grupo, e o produto pedido pode ser uma variação que não é o representante — a modal edita o grupo inteiro de qualquer forma.
-- Filtro sem resultado emite toast em vez de não fazer nada: a aba abriria numa lista e nada explicaria a ausência da modal.
-- O `editar` sai da barra de endereços assim que é consumido. O link é instrução de uma vez só; sem isso, fechar a modal e recarregar reabriria tudo.
+- Quando o id não aparece na lista mas o filtro trouxe **uma única linha**, é essa linha que abre. A tabela mostra um produto _representante_ por grupo, e o produto pedido pode ser uma variação que não é o representante — a tela de detalhe edita o grupo inteiro de qualquer forma.
+- Filtro sem resultado emite toast em vez de não fazer nada: a aba do navegador abriria numa lista e nada explicaria por que o detalhe não veio.
+- O `editar` sai da barra de endereços assim que é consumido. O link é instrução de uma vez só; sem isso, fechar o detalhe e recarregar reabriria tudo.
 - Sem sessão, o guard de rota carimba o caminho em `/login?redirect=...` e o login devolve a pessoa aqui (ver `src/lib/destino-login.ts`).
 
 ### 6. Busca de Imagens na Internet
 
 - **Pela Listagem**: Um ícone de lupa na imagem do produto abre o modal de pesquisa. Ao escolher uma imagem da internet, ela é baixada via proxy autenticado, otimizada localmente no frontend pelo motor de compressão e definida como a foto principal (índice 0) do produto, sem deletar as imagens existentes.
-- **Pela Modal de Edição**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.
+- **Pela Tela de Detalhe**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.

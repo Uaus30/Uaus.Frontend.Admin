@@ -5,40 +5,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { HelpCircle, Plus, Printer } from "lucide-react";
 import Barcode from "react-barcode";
-import { TagMultiSelect } from "@/components/tag-multi-select";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 
 type ProductBasicInfoProps = {
   editor: ReturnType<typeof useProductEditor>;
   validationErrors: Record<string, boolean>;
   setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  showOptionalFields: boolean;
   displayBarcode: string;
   currentBarcode: string;
   flashSuccess: boolean;
-  handlePrintBarcode: (barcodeValue: string, customName?: string, customPrice?: number) => void;
+  onPrintBarcode: () => void;
 };
 
+/**
+ * Campos obrigatórios de identificação: código de barras, nome, departamento e
+ * categoria.
+ *
+ * Descrição e etiquetas moravam aqui atrás do botão de olho; foram para a aba
+ * **Campos Opcionais** da tela de detalhe. O que sobrou é o que impede o
+ * cadastro de ser salvo — e é por isso que abre a tela.
+ */
 export function ProductBasicInfo({
   editor,
   validationErrors,
   setValidationErrors,
-  showOptionalFields,
   displayBarcode,
   currentBarcode,
   flashSuccess,
-  handlePrintBarcode,
+  onPrintBarcode,
 }: ProductBasicInfoProps) {
-  const {
-    form,
-    setForm,
-    productEditor,
-    setProductEditor,
-    departments,
-    filteredCategories,
-    tags,
-    registerTag,
-  } = editor;
+  const { form, setForm, productEditor, setProductEditor, departments, filteredCategories } = editor;
 
   return (
     <>
@@ -81,7 +77,7 @@ export function ProductBasicInfo({
             variant="outline"
             size="icon"
             className="shrink-0"
-            onClick={() => handlePrintBarcode(displayBarcode)}
+            onClick={onPrintBarcode}
             title="Imprimir etiqueta (80mm)"
             disabled={currentBarcode.length === 0}
           >
@@ -110,17 +106,6 @@ export function ProductBasicInfo({
           <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
         )}
       </div>
-
-      {showOptionalFields && (
-        <div className="space-y-2 sm:col-span-2">
-          <label className="text-sm font-medium">Descrição</label>
-          <Input
-            value={form.description}
-            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-            className="bg-background"
-          />
-        </div>
-      )}
 
       <div className="space-y-2">
         <label className="text-sm font-medium">
@@ -202,19 +187,6 @@ export function ProductBasicInfo({
           <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
         )}
       </div>
-
-      {showOptionalFields && (
-        <div className="space-y-2 sm:col-span-2">
-          <label className="text-sm font-medium">Tags</label>
-          <TagMultiSelect
-            allTags={tags}
-            selectedIds={productEditor.tagIds}
-            onChange={(tagIds) => setProductEditor((current) => ({ ...current, tagIds }))}
-            onTagCreated={registerTag}
-            placeholder="Selecione ou crie uma nova tag"
-          />
-        </div>
-      )}
     </>
   );
 }

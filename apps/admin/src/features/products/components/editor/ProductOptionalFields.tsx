@@ -1,82 +1,53 @@
-import React from "react";
 import { Input } from "@workspace/ui";
 import { Switch } from "@workspace/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { HelpCircle } from "lucide-react";
-import { CurrencyInput } from "../CurrencyInput";
+import { TagMultiSelect } from "@/components/tag-multi-select";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 
-type ProductPricingAndStockProps = {
+type ProductOptionalFieldsProps = {
   editor: ReturnType<typeof useProductEditor>;
-  validationErrors: Record<string, boolean>;
-  setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  showOptionalFields: boolean;
 };
 
-export function ProductPricingAndStock({
-  editor,
-  validationErrors,
-  setValidationErrors,
-  showOptionalFields,
-}: ProductPricingAndStockProps) {
-  const { form, setForm, productEditor, setProductEditor, selectableStatusOptions } = editor;
+/**
+ * Campos que o cadastro do dia a dia não preenche: descrição, etiquetas,
+ * estoque mínimo, estoque atual e visibilidade no site.
+ *
+ * Ficavam escondidos atrás do botão de olho da modal. O olho tinha um problema
+ * que a aba resolve: nada na tela dizia que existiam cinco campos ali dentro —
+ * quem não conhecia o ícone nunca marcava "exibir no site", e o produto não
+ * aparecia na loja sem ninguém entender por quê.
+ *
+ * Estoque mínimo e visibilidade são do PRODUTO representante e do GRUPO,
+ * respectivamente. Num grupo com variações o estoque mínimo daqui não é usado:
+ * cada variação tem o seu, salvo pela tabela de variações.
+ */
+export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
+  const { form, setForm, productEditor, setProductEditor, tags, registerTag } = editor;
 
   return (
-    <>
-      {!form.hasVariations && (
-        <>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Preço de venda (R$) <span className="text-red-500">*</span>
-            </label>
-            <CurrencyInput
-              id="input-price"
-              value={productEditor.price}
-              onChange={(val) => {
-                setProductEditor((current) => ({ ...current, price: val }));
-                if (validationErrors.price) setValidationErrors((prev) => ({ ...prev, price: false }));
-              }}
-              className={`bg-background w-full ${validationErrors.price ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}
-            />
-            {validationErrors.price && (
-              <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
-            )}
-          </div>
+    <div className="space-y-6 rounded-2xl border border-border/50 bg-background/40 p-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2 sm:col-span-2">
+          <label className="text-sm font-medium">Descrição</label>
+          <Input
+            value={form.description}
+            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+            className="bg-background"
+          />
+        </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Status <span className="text-red-500">*</span>
-            </label>
-            <Select
-              value={productEditor.status}
-              onValueChange={(value) => {
-                setProductEditor((current) => ({ ...current, status: value }));
-                if (validationErrors.status) setValidationErrors((prev) => ({ ...prev, status: false }));
-              }}
-            >
-              <SelectTrigger
-                id="select-status"
-                className={`bg-background w-full ${validationErrors.status ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}
-              >
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                {selectableStatusOptions.map((status) => (
-                  <SelectItem key={status.id} value={status.id.toString()}>
-                    {status.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {validationErrors.status && (
-              <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
-            )}
-          </div>
-        </>
-      )}
+        <div className="space-y-2 sm:col-span-2">
+          <label className="text-sm font-medium">Tags</label>
+          <TagMultiSelect
+            allTags={tags}
+            selectedIds={productEditor.tagIds}
+            onChange={(tagIds) => setProductEditor((current) => ({ ...current, tagIds }))}
+            onTagCreated={registerTag}
+            placeholder="Selecione ou crie uma nova tag"
+          />
+        </div>
 
-      {showOptionalFields && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
           <div className="space-y-2">
             <div className="flex items-center gap-1">
@@ -100,7 +71,6 @@ export function ProductPricingAndStock({
                 setProductEditor((current) => ({ ...current, minStock: Number(event.target.value) }))
               }
               className="bg-background"
-              required
             />
           </div>
 
@@ -139,7 +109,7 @@ export function ProductPricingAndStock({
             </label>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
