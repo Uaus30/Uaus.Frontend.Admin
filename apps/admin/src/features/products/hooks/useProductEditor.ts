@@ -6,6 +6,7 @@ import { buildProductCollections } from "@/services/mappers";
 import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft, Grade } from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
 
+import { useBarcodeLookup } from "./editor/useBarcodeLookup";
 import { useProductForm } from "./editor/useProductForm";
 import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
@@ -68,6 +69,25 @@ export function useProductEditor() {
   const { data: imagesCatalog = [] } = useAllImages();
 
   const { data: productImagesAll = [] } = useAllProductImages();
+
+  /**
+   * Código de barras já cadastrado carrega o produto existente na tela.
+   *
+   * Só em cadastro NOVO: na edição o operador já escolheu o produto, e trocá-lo
+   * no meio da digitação jogaria fora o que ele preencheu. `openModal` é
+   * declaração de função, então já existe aqui — a chamada abaixo é hoisted.
+   */
+  const { lookupBarcode } = useBarcodeLookup({
+    podeCarregar: modalOpen && editingGroupId === null,
+    carregarProduto: openModal,
+    productGroups: productForm.productGroups,
+    categories: productForm.categories,
+    departments: productForm.departments,
+    tags: productForm.tags,
+    productTags: productForm.productTags,
+    images: imagesCatalog,
+    productImages: productImagesAll,
+  });
 
   const enrichedGroupProducts = useMemo(() => {
     const groupProducts = groupProductsPage?.data ?? [];
@@ -312,6 +332,7 @@ export function useProductEditor() {
     isFetchingGroupProducts,
     editingGroupId,
     openModal,
+    lookupBarcode,
     resetForm: productForm.resetForm,
     registerTag: productForm.registerTag,
     updateVariationDraft: productVariations.updateVariationDraft,

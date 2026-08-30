@@ -17,7 +17,7 @@ type ProductPricingProps = {
  * para lugar nenhum — e o operador o preencheria achando que vale para todas.
  *
  * Estoque mínimo, estoque atual e visibilidade moravam aqui atrás do botão de
- * olho; foram para a aba **Campos Opcionais** da tela de detalhe.
+ * olho; foram para a aba **Opcionais** da tela de detalhe.
  */
 export function ProductPricing({ editor, validationErrors, setValidationErrors }: ProductPricingProps) {
   const { form, productEditor, setProductEditor, selectableStatusOptions } = editor;

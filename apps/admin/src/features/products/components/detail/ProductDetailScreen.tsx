@@ -30,7 +30,7 @@ type ProductDetailScreenProps = {
  *
  * - **Dados** — o que o cadastro do dia a dia preenche e sem o que não salva.
  * - **Estoque** — o histórico de entradas do produto e o lançamento rápido.
- * - **Campos Opcionais** — o que era o olho fechado.
+ * - **Opcionais** — o que era o olho fechado.
  *
  * O `<form>` envolve as três: o salvar do cabeçalho vale de qualquer aba, e
  * quem troca de aba com alterações pendentes não as perde. As modais são
@@ -243,7 +243,7 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
           <TabsList>
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="estoque">Estoque</TabsTrigger>
-            <TabsTrigger value="opcionais">Campos Opcionais</TabsTrigger>
+            <TabsTrigger value="opcionais">Opcionais</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dados" className="mt-4">

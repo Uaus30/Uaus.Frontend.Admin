@@ -22,7 +22,7 @@ type ProductBasicInfoProps = {
  * categoria.
  *
  * Descrição e etiquetas moravam aqui atrás do botão de olho; foram para a aba
- * **Campos Opcionais** da tela de detalhe. O que sobrou é o que impede o
+ * **Opcionais** da tela de detalhe. O que sobrou é o que impede o
  * cadastro de ser salvo — e é por isso que abre a tela.
  */
 export function ProductBasicInfo({
@@ -34,7 +34,8 @@ export function ProductBasicInfo({
   flashSuccess,
   onPrintBarcode,
 }: ProductBasicInfoProps) {
-  const { form, setForm, productEditor, setProductEditor, departments, filteredCategories } = editor;
+  const { form, setForm, productEditor, setProductEditor, departments, filteredCategories, lookupBarcode } =
+    editor;
 
   return (
     <>
@@ -55,7 +56,14 @@ export function ProductBasicInfo({
         <div className="flex items-center gap-4">
           <Input
             value={productEditor.barcode || ""}
-            onChange={(event) => setProductEditor((current) => ({ ...current, barcode: event.target.value }))}
+            onChange={(event) => {
+              const value = event.target.value;
+              setProductEditor((current) => ({ ...current, barcode: value }));
+              // Código já cadastrado troca o assunto da tela: em vez de deixar
+              // a pessoa terminar um cadastro que o backend vai recusar, carrega
+              // o produto que já existe. Só vale para cadastro novo.
+              lookupBarcode(value);
+            }}
             className={`bg-background flex-1 font-mono transition-all duration-300 ${flashSuccess ? "animate-border-flash" : ""}`}
             placeholder="Ex: 7891234567890"
           />

@@ -13,7 +13,8 @@ type ProductOptionalFieldsProps = {
  * Campos que o cadastro do dia a dia não preenche: descrição, etiquetas,
  * estoque mínimo, estoque atual e visibilidade no site.
  *
- * Ficavam escondidos atrás do botão de olho da modal. O olho tinha um problema
+ * Ficavam escondidos atrás do botão de olho da modal, e hoje são a aba
+ * **Opcionais** da tela de detalhe. O olho tinha um problema
  * que a aba resolve: nada na tela dizia que existiam cinco campos ali dentro —
  * quem não conhecia o ícone nunca marcava "exibir no site", e o produto não
  * aparecia na loja sem ninguém entender por quê.

@@ -13,9 +13,10 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductStockTab.tsx`: Aba **Estoque** (histórico de entradas do produto e lançamento simplificado).
 - `components/detail/ProductEditorDialogs.tsx`: Confirmações de fora do formulário (configurar grades, excluir variação, regerar matriz).
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
-- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Campos Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
+- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
 - `lib/barcode.ts`: Validação de EAN, dígito verificador, código de prévia e impressão da etiqueta de 80mm.
+- `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
@@ -93,11 +94,11 @@ o que chegou dele:
 
 As abas separam por **frequência de uso**, não por assunto:
 
-| Aba                  | O que tem                                                                                |
-| -------------------- | ---------------------------------------------------------------------------------------- |
-| **Dados**            | Código de barras, nome, departamento, categoria, preço, status, imagens e variações.     |
-| **Estoque**          | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                |
-| **Campos Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura) e visibilidade no site. |
+| Aba           | O que tem                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| **Dados**     | Código de barras, nome, departamento, categoria, preço, status, imagens e variações.     |
+| **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                |
+| **Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura) e visibilidade no site. |
 
 Regras que valem a pena conhecer antes de mexer:
 
@@ -133,6 +134,42 @@ Regras que valem a pena conhecer antes de mexer:
 - O lançamento em si mora na feature de entradas
   (`features/stock-entries/hooks/useProductStockEntries.ts`), junto das regras de
   data e validação que ele compartilha com a nota completa.
+
+#### 4.2. Código de barras já cadastrado carrega o produto existente
+
+Bipar, digitar ou colar no campo de código de barras um código que **já
+pertence a outro produto**, durante um cadastro NOVO, carrega esse produto na
+tela e emite um toast âmbar de aviso.
+
+Antes disso o operador só descobria a duplicata ao salvar: preenchia nome,
+departamento, categoria, preço e foto, clicava em Salvar e recebia o
+`Já existe um produto cadastrado com este código de barras!` do backend
+(`EnsureBarcodeIsAvailableAsync`) — com o cadastro certo em algum lugar da lista
+e o trabalho todo para refazer. O caso é comum porque bipar é justamente o
+primeiro gesto de quem vai cadastrar: é assim que se descobre se o item já
+existe.
+
+O que vale a pena saber antes de mexer:
+
+- **Só em cadastro novo.** Na edição o operador já escolheu o produto; trocá-lo
+  no meio da digitação jogaria fora o que ele preencheu. Duplicata na edição
+  continua sendo recusada pelo backend ao salvar.
+- **Só termo todo numérico, com 8 dígitos ou mais.** É a regra do backend:
+  `GET /Products?search=` decide entre buscar por código e buscar por NOME
+  olhando se o termo é numérico (`IsBarcodeSearch`). Mandar "COPO" carregaria um
+  produto que ninguém pediu. O 8 é o EAN-8, o menor código de verdade.
+- **A comparação é de IGUALDADE, não de semelhança.** O backend filtra por
+  `Contains`, então buscar `78912345678` também traz o EAN-13 que o contém.
+  Quem decide é a comparação exata no cliente.
+- **Espera 400ms antes de consultar.** O leitor de código não "bipa": ele digita
+  caractere por caractere em milissegundos, e sem a espera um EAN-13 dispararia
+  treze consultas — doze delas por prefixos que não são código de ninguém.
+- **A consulta é reação a um evento, não efeito.** Num efeito, além do
+  `setState` síncrono que o lint recusa, seria preciso guardar "já carreguei
+  este" para não reabrir o mesmo produto a cada render.
+- **Erro de rede é silencioso de propósito.** A busca é conveniência; o backend
+  continua recusando código repetido ao salvar, e quem está apenas digitando não
+  deve receber aviso de servidor fora do ar.
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
