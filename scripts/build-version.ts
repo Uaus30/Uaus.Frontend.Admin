@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { versionFromCommitCount } from "./version-from-commits.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -54,9 +55,12 @@ function getPackageVersion(workspaceRoot: string): string {
  * Obtém os metadados de build e versionamento da aplicação.
  *
  * Deriva a versão a partir do número de commits git (`git rev-list --count HEAD`)
- * quando o histórico completo estiver disponível.
+ * quando o histórico completo estiver disponível — os dígitos da contagem viram
+ * os três campos do semver (188 commits -> `1.8.8`), regra em
+ * {@link versionFromCommitCount}.
  * Em builds superficiais (shallow clone no Vercel/CI onde depth=1) ou sem git,
- * utiliza a versão registrada e commitada no package.json.
+ * utiliza a versão registrada e commitada no package.json — que o hook
+ * `pre-commit` grava com a mesma regra, então os dois caminhos coincidem.
  */
 export function getBuildInfo(workspaceRoot: string = path.resolve(__dirname, "..")): BuildInfo {
   const commitCountStr = getCommitCount(workspaceRoot);
@@ -68,10 +72,7 @@ export function getBuildInfo(workspaceRoot: string = path.resolve(__dirname, "..
   if (!version) {
     // Quando o clone do repositório for completo (mais de 1 commit no histórico):
     if (!Number.isNaN(commitCount) && commitCount > 1) {
-      const parts = pkgVersion.split(".");
-      const major = parts[0] || "1";
-      const minor = parts[1] || "0";
-      version = `${major}.${minor}.${commitCount}`;
+      version = versionFromCommitCount(commitCount);
     } else {
       // No Vercel ou CI com clone superficial (depth=1), recorre à versão do package.json
       version = pkgVersion;

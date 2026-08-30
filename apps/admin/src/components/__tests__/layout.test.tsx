@@ -31,7 +31,7 @@ describe("AppLayout header version", () => {
       })),
     });
 
-    vi.stubEnv("VITE_APP_VERSION", "1.0.144");
+    vi.stubEnv("VITE_APP_VERSION", "1.8.9");
     vi.stubEnv("VITE_BUILD_TIME", "2026-08-22T15:45:12Z");
 
     mocks.useGetMe.mockReturnValue({
@@ -64,7 +64,7 @@ describe("AppLayout header version", () => {
 
     const versionBlock = screen.getByTestId("header-version");
     expect(versionBlock).toBeDefined();
-    expect(versionBlock.textContent).toContain("Versão 1.0.144");
+    expect(versionBlock.textContent).toContain("Versão 1.8.9");
     expect(versionBlock.textContent).toContain("Atualizado em 22/08/2026 às 12:45:12");
   });
 });

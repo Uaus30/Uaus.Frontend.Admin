@@ -77,11 +77,11 @@ describe("formatBrasiliaDateTime", () => {
 
 describe("formatVersion", () => {
   it("formata a versão sem prefixo 'v'", () => {
-    expect(formatVersion("1.0.144")).toBe("Versão 1.0.144");
+    expect(formatVersion("1.8.9")).toBe("Versão 1.8.9");
   });
 
   it("remove o prefixo 'v' se já vier com ele", () => {
-    expect(formatVersion("v1.0.144")).toBe("Versão 1.0.144");
+    expect(formatVersion("v1.8.9")).toBe("Versão 1.8.9");
   });
 
   it("usa fallback para versão indefinida ou vazia", () => {

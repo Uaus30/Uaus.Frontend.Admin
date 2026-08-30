@@ -90,9 +90,14 @@ export function formatBrasiliaDateTime(dateInput: Date | string | number): strin
 }
 
 /**
- * Formata o rótulo de versão do sistema (ex: "Versão 1.0.144").
+ * Formata o rótulo de versão do sistema (ex: "Versão 1.8.9").
  *
- * @param version String da versão (ex: "1.0.144" ou "v1.0.144").
+ * A versão em si é derivada da contagem de commits no build, em
+ * `scripts/version-from-commits.js` — 189 commits viram `1.8.9`. Aqui só entra
+ * o rótulo: esta função não interpreta nem reescreve os campos, senão a tela
+ * passaria a exibir um número diferente do que está gravado no package.json.
+ *
+ * @param version String da versão (ex: "1.8.9" ou "v1.8.9").
  */
 export function formatVersion(version?: string): string {
   if (!version) return "Versão 0.0.0";

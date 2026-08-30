@@ -4,7 +4,7 @@ import { AboutDialog } from "../about-dialog";
 
 describe("AboutDialog", () => {
   beforeEach(() => {
-    vi.stubEnv("VITE_APP_VERSION", "1.0.144");
+    vi.stubEnv("VITE_APP_VERSION", "1.8.9");
     vi.stubEnv("VITE_BUILD_TIME", "2026-08-22T15:45:12Z");
   });
 
@@ -14,7 +14,7 @@ describe("AboutDialog", () => {
     const versionElement = screen.getByTestId("about-version");
     const updatedAtElement = screen.getByTestId("about-updated-at");
 
-    expect(versionElement.textContent).toBe("Versão 1.0.144");
+    expect(versionElement.textContent).toBe("Versão 1.8.9");
     expect(updatedAtElement.textContent).toBe("22/08/2026 às 12:45:12");
   });
 
