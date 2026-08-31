@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProductsPage } from "@/services/products.service";
 
@@ -9,7 +9,7 @@ import {
   type GradeTypeCode,
   type ProductVariationValueDto,
 } from "@workspace/api-client-react";
-import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft } from "../types";
+import type { LocalImage, ProductGroupForm, ProductEditorForm, ProductGrade, VariationDraft } from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
 import { gradesDasVariacoes } from "../lib/variationMatrix";
 
@@ -23,11 +23,21 @@ import { CATALOG_KEYS, RESOURCE_KEYS, useAllImages, useAllProductImages } from "
 export function useProductEditor() {
   const queryClient = useQueryClient();
 
-  const [modalOpen, setModalOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [loadedGroupId, setLoadedGroupId] = useState<number | null>(null);
   const [activeVariationKey, setActiveVariationKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  /**
+   * Há alterações não salvas na tela aberta.
+   *
+   * É o que alimenta o aviso ao sair (`beforeunload`, confirmação ao fechar e a
+   * intercepção do voltar do navegador). Sujam o formulário só os setters
+   * ENVIADOS à tela; o carregamento e o salvar usam os setters crus.
+   */
+  const [dirty, setDirty] = useState(false);
+  /** Espelho de `detailOpen` legível dentro de handlers, sem esperar efeito. */
+  const detailOpenRef = useRef(false);
 
   const [images, setImages] = useState<LocalImage[]>([]);
   const [form, setForm] = useState<ProductGroupForm>({
@@ -50,6 +60,20 @@ export function useProductEditor() {
    */
   const selectedGrades = useMemo(() => gradesDasVariacoes(variationDrafts), [variationDrafts]);
 
+  useEffect(() => {
+    detailOpenRef.current = detailOpen;
+  }, [detailOpen]);
+
+  /** Marca a tela como alterada. Ignorado se o detalhe nem está aberto. */
+  function markDirty() {
+    if (detailOpenRef.current) setDirty(true);
+  }
+
+  /** Limpa a marcação — usado ao abrir um produto e após salvar. */
+  function markClean() {
+    setDirty(false);
+  }
+
   const productForm = useProductForm({
     form,
     setForm,
@@ -68,7 +92,7 @@ export function useProductEditor() {
     refetch: refetchGroupProducts,
   } = useQuery({
     queryKey: ["products-by-group", editingGroupId],
-    enabled: modalOpen && editingGroupId != null && form.hasVariations,
+    enabled: detailOpen && editingGroupId != null && form.hasVariations,
     queryFn: () =>
       getProductsPage({
         productGroupId: editingGroupId ?? undefined,
@@ -85,12 +109,12 @@ export function useProductEditor() {
    * Código de barras já cadastrado carrega o produto existente na tela.
    *
    * Só em cadastro NOVO: na edição o operador já escolheu o produto, e trocá-lo
-   * no meio da digitação jogaria fora o que ele preencheu. `openModal` é
+   * no meio da digitação jogaria fora o que ele preencheu. `openDetail` é
    * declaração de função, então já existe aqui — a chamada abaixo é hoisted.
    */
   const { lookupBarcode } = useBarcodeLookup({
-    podeCarregar: modalOpen && editingGroupId === null,
-    carregarProduto: openModal,
+    podeCarregar: detailOpen && editingGroupId === null,
+    carregarProduto: openDetail,
     productGroups: productForm.productGroups,
     categories: productForm.categories,
     departments: productForm.departments,
@@ -132,8 +156,8 @@ export function useProductEditor() {
    * e foi retirada daqui. Invalidar a chave errada não quebra nada visível —
    * compila, roda, e a tela mostra o preço antigo depois de salvar.
    *
-   * `["products-by-group", id]` continua na lista porque é a query da MODAL (a
-   * lista de variações), não da tabela.
+   * `["products-by-group", id]` continua na lista porque é a query da TELA DE
+   * DETALHE (a lista de variações), não da tabela.
    */
   async function invalidateProductQueries(groupId?: number | null) {
     await Promise.all([
@@ -163,10 +187,20 @@ export function useProductEditor() {
     refetchGroupProducts,
   });
 
+  /**
+   * `updateVariationDraft` que suja o formulário. Envolver aqui, e não lá dentro,
+   * mantém TODO o critério de sujeira neste hook — inclusive para as imagens da
+   * variação, que chegam por ele via `useProductImages`.
+   */
+  function updateVariationDraft(key: string, updater: (draft: VariationDraft) => VariationDraft) {
+    markDirty();
+    productVariations.updateVariationDraft(key, updater);
+  }
+
   const productImagesHook = useProductImages({
     setImages,
     activeVariation: productVariations.activeVariation,
-    updateVariationDraft: productVariations.updateVariationDraft,
+    updateVariationDraft,
   });
 
   const productSubmit = useProductSubmit({
@@ -186,7 +220,8 @@ export function useProductEditor() {
     productTags: productForm.productTags,
     productImages: productImagesAll,
     getStatusNumber: productForm.getStatusNumber,
-    setModalOpen,
+    setDetailOpen,
+    markClean,
     resetForm: productForm.resetForm,
   });
 
@@ -212,7 +247,8 @@ export function useProductEditor() {
     };
   }
 
-  function openModal(product?: any) {
+  function openDetail(product?: any) {
+    setDirty(false);
     if (product) {
       setEditingGroupId(product.productGroup?.id ?? product.productGroupId);
       setForm({
@@ -249,18 +285,18 @@ export function useProductEditor() {
     } else {
       productForm.resetForm();
     }
-    setModalOpen(true);
+    setDetailOpen(true);
   }
 
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!detailOpen) return;
     setProductEditor((current) =>
       current.status ? current : { ...current, status: productForm.defaultStatus },
     );
-  }, [productForm.defaultStatus, modalOpen]);
+  }, [productForm.defaultStatus, detailOpen]);
 
   useEffect(() => {
-    if (!modalOpen || !form.hasVariations) return;
+    if (!detailOpen || !form.hasVariations) return;
     setVariationDrafts((current) => {
       if (current.length > 0) return current;
       const draft: VariationDraft = {
@@ -274,11 +310,11 @@ export function useProductEditor() {
       setActiveVariationKey(draft.key);
       return [draft];
     });
-  }, [productForm.defaultStatus, form.hasVariations, form.productGroupName, modalOpen]);
+  }, [productForm.defaultStatus, form.hasVariations, form.productGroupName, detailOpen]);
 
   useEffect(() => {
     if (
-      !modalOpen ||
+      !detailOpen ||
       !form.hasVariations ||
       !editingGroupId ||
       enrichedGroupProducts.length === 0 ||
@@ -291,21 +327,31 @@ export function useProductEditor() {
     setVariationDrafts(drafts);
     setActiveVariationKey((current) => current ?? drafts[0]?.key ?? null);
     setLoadedGroupId(editingGroupId);
-  }, [editingGroupId, enrichedGroupProducts, form.hasVariations, modalOpen, loadedGroupId]);
+  }, [editingGroupId, enrichedGroupProducts, form.hasVariations, detailOpen, loadedGroupId]);
 
   return {
-    modalOpen,
-    setModalOpen,
+    detailOpen,
+    setDetailOpen,
+    isDirty: dirty,
     form,
-    setForm,
+    setForm: (update: React.SetStateAction<ProductGroupForm>) => {
+      markDirty();
+      setForm(update);
+    },
     productEditor,
-    setProductEditor,
+    setProductEditor: (update: React.SetStateAction<ProductEditorForm>) => {
+      markDirty();
+      setProductEditor(update);
+    },
     variationDrafts,
     activeVariationKey,
     setActiveVariationKey,
     activeVariation: productVariations.activeVariation,
     images,
-    setImages,
+    setImages: (update: React.SetStateAction<LocalImage[]>) => {
+      markDirty();
+      setImages(update);
+    },
     saving,
     departments: productForm.departments,
     categories: productForm.categories,
@@ -315,23 +361,47 @@ export function useProductEditor() {
     selectableStatusOptions: productForm.selectableStatusOptions,
     isFetchingGroupProducts,
     editingGroupId,
-    openModal,
+    openDetail,
     lookupBarcode,
     resetForm: productForm.resetForm,
     registerTag: productForm.registerTag,
-    updateVariationDraft: productVariations.updateVariationDraft,
+    updateVariationDraft,
 
-    moveProductImage: productImagesHook.moveProductImage,
-    reorderProductImage: productImagesHook.reorderProductImage,
-    handleSimpleFileSelection: productImagesHook.handleSimpleFileSelection,
-    handleVariationFileSelection: productImagesHook.handleVariationFileSelection,
-    toggleHasVariations: productForm.toggleHasVariations,
-    addVariationDraft: productVariations.addVariationDraft,
-    handleDeleteVariation: productVariations.handleDeleteVariation,
+    moveProductImage: (index: number, direction: -1 | 1) => {
+      markDirty();
+      productImagesHook.moveProductImage(index, direction);
+    },
+    reorderProductImage: (oldIndex: number, newIndex: number) => {
+      markDirty();
+      productImagesHook.reorderProductImage(oldIndex, newIndex);
+    },
+    handleSimpleFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => {
+      markDirty();
+      return productImagesHook.handleSimpleFileSelection(event);
+    },
+    handleVariationFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => {
+      markDirty();
+      return productImagesHook.handleVariationFileSelection(event);
+    },
+    toggleHasVariations: (checked: boolean) => {
+      markDirty();
+      productForm.toggleHasVariations(checked);
+    },
+    addVariationDraft: (initialValues?: Partial<VariationDraft>) => {
+      markDirty();
+      productVariations.addVariationDraft(initialValues);
+    },
+    handleDeleteVariation: (draft: VariationDraft) => {
+      markDirty();
+      return productVariations.handleDeleteVariation(draft);
+    },
     handleDeleteProductGroup: productForm.handleDeleteProductGroup,
     handleSubmit: productSubmit.handleSubmit,
     toLocalImages: productImagesHook.toLocalImages,
     selectedGrades,
-    generateVariationsMatrix: productVariations.generateVariationsMatrix,
+    generateVariationsMatrix: (grades: ProductGrade[]) => {
+      markDirty();
+      productVariations.generateVariationsMatrix(grades);
+    },
   };
 }

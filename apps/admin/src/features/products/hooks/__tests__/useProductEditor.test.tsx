@@ -66,27 +66,27 @@ describe("useProductEditor Hook", () => {
     vi.clearAllMocks();
   });
 
-  it("should initialize default form values and modal status", () => {
+  it("should initialize default form values and detail status", () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
 
-    expect(result.current.modalOpen).toBe(false);
+    expect(result.current.detailOpen).toBe(false);
     expect(result.current.saving).toBe(false);
     expect(result.current.form.productGroupName).toBe("");
     expect(result.current.form.hasVariations).toBe(false);
   });
 
-  it("should handle openModal in create mode", () => {
+  it("should handle openDetail in create mode", () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
 
     act(() => {
-      result.current.openModal();
+      result.current.openDetail();
     });
 
-    expect(result.current.modalOpen).toBe(true);
+    expect(result.current.detailOpen).toBe(true);
     expect(result.current.editingGroupId).toBeNull();
   });
 
-  it("should handle openModal in edit mode", () => {
+  it("should handle openDetail in edit mode", () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
 
     const mockProduct = {
@@ -106,10 +106,10 @@ describe("useProductEditor Hook", () => {
     };
 
     act(() => {
-      result.current.openModal(mockProduct);
+      result.current.openDetail(mockProduct);
     });
 
-    expect(result.current.modalOpen).toBe(true);
+    expect(result.current.detailOpen).toBe(true);
     expect(result.current.editingGroupId).toBe(1);
     expect(result.current.productEditor.name).toBe("COPO VERDE");
     expect(result.current.productEditor.price).toBe(15.5);
@@ -154,7 +154,7 @@ describe("useProductEditor Hook", () => {
     };
 
     act(() => {
-      result.current.openModal(mockProduct);
+      result.current.openDetail(mockProduct);
     });
 
     // O formulário carrega os valores persistidos do grupo
@@ -197,7 +197,7 @@ describe("useProductEditor Hook", () => {
     };
 
     act(() => {
-      result.current.openModal(mockProduct);
+      result.current.openDetail(mockProduct);
     });
 
     // Usuário adiciona a imagem nova "C" e a arrasta para a primeira posição

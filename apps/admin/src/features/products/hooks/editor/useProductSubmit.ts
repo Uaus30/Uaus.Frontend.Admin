@@ -29,7 +29,8 @@ export interface UseProductSubmitProps {
   productTags: any[];
   productImages: any[];
   getStatusNumber: (statusVal: any) => number;
-  setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setDetailOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  markClean: () => void;
   resetForm: () => void;
 }
 
@@ -50,7 +51,8 @@ export function useProductSubmit({
   productTags,
   productImages,
   getStatusNumber,
-  setModalOpen,
+  setDetailOpen,
+  markClean,
   resetForm,
 }: UseProductSubmitProps) {
   const { toast } = useToast();
@@ -233,8 +235,12 @@ export function useProductSubmit({
             : "Produto criado.",
       });
 
+      // O que está na tela agora é o que o servidor gravou — nem o grupo com
+      // variações, que continua aberto, pode seguir contando como alterado.
+      markClean();
+
       if (!form.hasVariations) {
-        setModalOpen(false);
+        setDetailOpen(false);
         resetForm();
       }
     } catch (error) {

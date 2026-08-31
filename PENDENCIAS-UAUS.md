@@ -64,7 +64,7 @@
 | 4.6 | Extrair `@workspace/ui` — componentes duplicados entre admin e PDV já divergiram (`toast`, `dialog`, `formatters`, `utils`) | A política "replique no Admin" não se sustenta |
 | 4.7 | ESLint no admin (reusar o flat config do PDV) + config do Prettier com script `format` | Admin não tem lint |
 | 4.8 | Alinhar versões entre workspaces (`date-fns` 3↔4, `lucide-react`, TS 5.9↔6.0, Vite 7↔8); remover deps mortas (`zod`, `react-input-mask`, `@hookform/resolvers`) e **arquivos mortos que ainda existem**: `features/products/mockData.ts`, `apps/admin/src/lib/backend.ts`, `apps/pdv/src/lib/backend.ts` | — |
-| 4.9 | Fatiar `useProductEditor.ts` (949 linhas) + `ProductEditorModal.tsx` (787) | — |
+| 4.9 | Terminar de fatiar `useProductEditor.ts` (a modal virou a tela de detalhe em abas, `components/detail/`) | — |
 | 4.10 | Mocks restantes: empacotar **JsBarcode** (hoje via CDN — etiqueta falha sem internet), **self-host das fontes** (PDV offline-first), URL da API por env, `roleLabels` vindo da API, remover o link morto "Esqueceu a senha?" | — |
 | 4.11 | **CSP** nos `vercel.json` — adiada da Etapa 2, depende do self-host das fontes (4.10) | — |
 

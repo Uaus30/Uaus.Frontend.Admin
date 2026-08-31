@@ -5,8 +5,11 @@ import { Button } from "@workspace/ui";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
 import { useProductDeepLink } from "@/features/products/hooks/useProductDeepLink";
+import { useProductDetailFromUrl } from "@/features/products/hooks/useProductDetailFromUrl";
+import { useProductDetailHistory } from "@/features/products/hooks/useProductDetailHistory";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductDetailScreen } from "@/features/products/components/detail/ProductDetailScreen";
+import { ProductDetailDiscardDialog } from "@/features/products/components/detail/ProductDetailDiscardDialog";
 import { ProductHistoryModal } from "@/features/products/components/ProductHistoryModal";
 import { ProductImageSearchModal } from "@/features/products/components/ProductImageSearchModal";
 import type { ProductTableRow } from "@/features/products/types";
@@ -16,11 +19,16 @@ import type { ProductTableRow } from "@/features/products/types";
  *
  * O cadastro era uma modal sobre a lista; virou TELA em 30/08/2026 (ver
  * `features/products/components/detail/ProductDetailScreen.tsx`). A troca é
- * feita aqui, por `editor.modalOpen`, e não por rota nova: a lista continua
+ * feita aqui, por `editor.detailOpen`, e não por rota nova: a lista continua
  * montada por trás, com filtro, página e busca intactos, e voltar do detalhe
  * devolve a pessoa exatamente onde ela estava. Uma rota `/produtos/:id`
  * remontaria a listagem do zero a cada volta — e o link direto do PDV
  * (`?busca=&editar=`) precisaria ser reescrito por nada.
+ *
+ * O que a tela empresta do navegador mora nos hooks, não aqui: `?id=` na barra
+ * de endereços e voltar fechando o detalhe (`useProductDetailHistory`), o mesmo
+ * `?id=` reabrindo o produto em quem chega por link (`useProductDetailFromUrl`)
+ * e o aviso de alterações não salvas antes de sair (`isDirty` do editor).
  */
 export default function Products() {
   const table = useProductTable();
@@ -29,19 +37,53 @@ export default function Products() {
   const [historyProductGroupName, setHistoryProductGroupName] = useState("");
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [searchImageProduct, setSearchImageProduct] = useState<ProductTableRow | null>(null);
+  // Saída suspensa esperando a confirmação de descartar alterações. `"history"`
+  // é o voltar do navegador; `"ui"`, os botões da própria tela.
+  const [pendingClose, setPendingClose] = useState<null | "ui" | "history">(null);
 
   // Link direto do PDV: `/produtos?busca=<grupo>&editar=<id>` abre o detalhe do
   // produto assim que a listagem filtrada chega.
   useProductDeepLink({
     isLoading: table.isLoading,
     enrichedProducts: table.enrichedProducts,
-    openModal: editor.openModal,
+    openDetail: editor.openDetail,
   });
 
-  if (editor.modalOpen) {
+  // Quem chega em `/produtos?id=<grupo>` (recarga ou link compartilhado) cai
+  // direto no detalhe do produto prometido pela URL.
+  useProductDetailFromUrl({ openDetail: editor.openDetail });
+
+  function fecharDetalhe() {
+    setPendingClose(null);
+    editor.setDetailOpen(false);
+    editor.resetForm();
+  }
+
+  function pedirParaFechar() {
+    if (editor.isDirty) {
+      setPendingClose("ui");
+      return;
+    }
+    fecharDetalhe();
+  }
+
+  useProductDetailHistory({
+    open: editor.detailOpen,
+    productId: editor.editingGroupId,
+    isDirty: editor.isDirty,
+    close: fecharDetalhe,
+    interceptClose: () => setPendingClose("history"),
+  });
+
+  if (editor.detailOpen) {
     return (
       <AppLayout>
-        <ProductDetailScreen editor={editor} />
+        <ProductDetailScreen editor={editor} onRequestClose={pedirParaFechar} />
+        <ProductDetailDiscardDialog
+          open={pendingClose !== null}
+          onCancel={() => setPendingClose(null)}
+          onConfirm={fecharDetalhe}
+        />
       </AppLayout>
     );
   }
@@ -54,7 +96,7 @@ export default function Products() {
             <h1 className="text-3xl font-display font-bold text-foreground">Produtos</h1>
           </div>
           <Button
-            onClick={() => editor.openModal()}
+            onClick={() => editor.openDetail()}
             className="bg-primary text-primary-foreground hover-elevate"
           >
             <Plus className="mr-2 h-4 w-4" /> Adicionar
@@ -82,7 +124,7 @@ export default function Products() {
           totalPages={table.totalPages}
           productPageTotal={table.productPage?.total || 0}
           enrichedProducts={table.enrichedProducts}
-          onEdit={editor.openModal}
+          onEdit={editor.openDetail}
           onDelete={(product) => {
             void editor.handleDeleteProductGroup(product.productGroupId);
           }}

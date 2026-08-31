@@ -3,7 +3,7 @@ import { useToast } from "@workspace/ui";
 import type { ProductTableRow } from "../types";
 
 /**
- * Abertura automática da modal de edição por link direto
+ * Abertura automática da tela de detalhe por link direto
  * (`/produtos?busca=<grupo>&editar=<id do produto>`).
  *
  * Existe para o botão de editar do balcão do PDV: o operador vê preço errado na
@@ -22,7 +22,7 @@ const PARAM_EDITAR = "editar";
 /**
  * Id pedido na URL, lido UMA vez na montagem.
  *
- * Continuar reagindo à URL reabriria a modal que o usuário acabou de fechar,
+ * Continuar reagindo à URL reabriria a tela que o usuário acabou de fechar,
  * porque o parâmetro só some depois — ver {@link limparParametro}.
  */
 function idInicialDaUrl(): number | null {
@@ -37,7 +37,7 @@ function idInicialDaUrl(): number | null {
 /**
  * Tira o `editar` da barra de endereços preservando o resto.
  *
- * Sem isso, fechar a modal e recarregar (ou voltar para a aba depois) abriria
+ * Sem isso, fechar o detalhe e recarregar (ou voltar para a aba depois) abriria
  * tudo de novo: o link é uma instrução de uma vez só, não um estado da tela.
  */
 function limparParametro(): void {
@@ -53,14 +53,14 @@ type UseProductDeepLinkParams = {
   isLoading: boolean;
   /** Linhas da página atual, já enriquecidas — o mesmo objeto que o botão de editar da tabela entrega. */
   enrichedProducts: ProductTableRow[];
-  /** `openModal` do `useProductEditor`. */
-  openModal: (product?: ProductTableRow) => void;
+  /** `openDetail` do `useProductEditor`. */
+  openDetail: (product?: ProductTableRow) => void;
 };
 
 export function useProductDeepLink({
   isLoading,
   enrichedProducts,
-  openModal,
+  openDetail,
 }: UseProductDeepLinkParams): void {
   const [idPedido] = useState(idInicialDaUrl);
   const jaResolvido = useRef(false);
@@ -71,8 +71,9 @@ export function useProductDeepLink({
 
     // A tabela mostra UM produto representante por grupo. Quando o produto
     // pedido é uma variação, ele não é o representante e o id não bate — mas o
-    // grupo é o mesmo, e a modal edita o grupo inteiro. Por isso a linha única
-    // do filtro serve de segunda chance: é o produto certo, por outro caminho.
+    // grupo é o mesmo, e a tela de detalhe edita o grupo inteiro. Por isso a
+    // linha única do filtro serve de segunda chance: é o produto certo, por
+    // outro caminho.
     const alvo =
       enrichedProducts.find((produto) => produto.id === idPedido) ??
       (enrichedProducts.length === 1 ? enrichedProducts[0] : undefined);
@@ -82,7 +83,7 @@ export function useProductDeepLink({
 
     if (!alvo) {
       // Silenciar aqui seria o pior desfecho: a pessoa clicou em "editar", a
-      // aba abriu numa lista e nada explica por que a modal não veio.
+      // aba abriu numa lista e nada explica por que o detalhe não veio.
       toast({
         title: "Produto não encontrado no catálogo",
         description: "Ajuste a busca e use o botão de editar da linha.",
@@ -91,6 +92,6 @@ export function useProductDeepLink({
       return;
     }
 
-    openModal(alvo);
-  }, [enrichedProducts, idPedido, isLoading, openModal, toast]);
+    openDetail(alvo);
+  }, [enrichedProducts, idPedido, isLoading, openDetail, toast]);
 }

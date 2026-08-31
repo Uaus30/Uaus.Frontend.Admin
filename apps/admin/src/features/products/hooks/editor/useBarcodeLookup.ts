@@ -60,7 +60,7 @@ type UseBarcodeLookupParams = CatalogosDoProduto & {
    * pelo backend na hora de salvar.
    */
   podeCarregar: boolean;
-  /** Carrega o produto encontrado na tela. É o `openModal` do editor. */
+  /** Carrega o produto encontrado na tela. É o `openDetail` do editor. */
   carregarProduto: (produto: EnrichedProduct) => void;
 };
 

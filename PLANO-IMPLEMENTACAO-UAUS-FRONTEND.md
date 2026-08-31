@@ -97,7 +97,7 @@ Dashboard 100% alimentado pela API; offline usa snapshot real; zero `TODO/FIXME`
 |---|---|---|---|
 | M1 | **Identidade da loja (CNPJ/endereço/telefone) hardcoded** em todo cupom e relatório de caixa — `packages/receipt/src/store-info.ts:10` | Implementar cadastro real em CompanySettings | M |
 | M2 | "Esqueceu a senha?" com `href="#"` — `LoginForm.tsx:90` | Remover (P) ou implementar fluxo (G) | P/G |
-| M3 | JsBarcode via CDN na etiqueta (falha offline em silêncio) — `ProductEditorModal.tsx:283` | Empacotar no bundle | P |
+| M3 | JsBarcode via CDN na etiqueta (falha offline em silêncio) — hoje em `features/products/lib/barcode.ts` | Empacotar no bundle | P |
 | M4 | Google Fonts via CDN no PDV offline-first — `apps/pdv/index.html:7` | Self-host | P |
 | M5 | `mockData.ts` e 2× `backend.ts` mortos | Excluir | P |
 | M6 | URL de produção hardcoded (`api-client/index.ts:436`, `vercel.json:8`) | Parametrizar por env | P |
@@ -212,7 +212,7 @@ Decisão a validar com o dono: custos fixos em período parcial — **pró-rata*
 | 4.6 | Extrair `@workspace/ui` (ou ao menos os arquivos hoje idênticos) para estancar o drift admin↔pdv | M |
 | 4.7 | ESLint no admin (reusar flat config do pdv) + Prettier com script `format` | P |
 | 4.8 | Alinhar versões (date-fns 3→4, lucide, TS 5.9/6.0, vite 7/8); remover deps mortas (`zod`, `react-input-mask`, `@hookform/resolvers`…) e arquivos mortos (`mockData.ts`, 2× `backend.ts`) | P |
-| 4.9 | Fatiar `useProductEditor.ts` (949) + `ProductEditorModal.tsx` (787) por seções | M |
+| 4.9 | Terminar de fatiar `useProductEditor.ts` (a modal virou tela de detalhe em abas: `components/detail/`) | M |
 | 4.10 | Demais mocks: JsBarcode no bundle (M3), fontes self-hosted (M4), URL por env (M6), roleLabels da API (M7), remover "Esqueceu a senha?" (M2) | P |
 
 ## ETAPA 5 — Testes

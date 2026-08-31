@@ -142,7 +142,7 @@ As abas separam por **frequência de uso**, não por assunto:
 Regras que valem a pena conhecer antes de mexer:
 
 - **A troca é de RENDERIZAÇÃO, não de rota.** `pages/products.tsx` mostra a
-  tela no lugar da listagem quando `editor.modalOpen` está ligado. A lista fica
+  tela no lugar da listagem quando `editor.detailOpen` está ligado. A lista fica
   montada por trás com filtro, página e busca intactos, e voltar devolve a
   pessoa exatamente onde ela estava. Uma rota `/produtos/:id` remontaria a
   listagem do zero a cada volta e obrigaria a reescrever o link direto do PDV
@@ -154,8 +154,35 @@ Regras que valem a pena conhecer antes de mexer:
 - **Validação reprovada traz a aba Dados para a frente.** Todo campo obrigatório
   mora lá; focar um elemento de aba fechada não faz nada, e o salvar pareceria
   simplesmente não responder.
-- O estado do editor ainda se chama `modalOpen`/`openModal` no
-  `useProductEditor`. É nome histórico: significa "o editor está aberto".
+
+#### O que a tela empresta do navegador (30/08/2026)
+
+Sem rota própria, a tela pede emprestados três comportamentos de página, todos
+fiados entre `pages/products.tsx` e dois hooks:
+
+- **`?id=` na barra de endereços** (`hooks/useProductDetailHistory.ts`): abrir
+  o detalhe empurra uma entrada de histórico com `/produtos?id=<grupo>`, e o id
+  que nasce de um primeiro salvar entra por `replaceState`. Fechar pela
+  interface devolve a entrada da listagem (`history.back()`), então o próximo
+  voltar continua indo para onde o usuário estava antes.
+- **O voltar do navegador fecha o detalhe** (mesmo hook): o `popstate` chega e
+  só fecha, sem sair de `/produtos`. Com alterações não salvas, o voltar é
+  interceptado — a entrada é reempurrada e a confirmação de descarte pergunta
+  antes. Quem CHEGA por link (`?id=` colado na barra) não tem entrada empurrada:
+  voltar sai da página, como em qualquer link direto.
+- **`?id=` reabre o produto** (`hooks/useProductDetailFromUrl.ts`): recarregar
+  a página ou compartilhar o link cai direto no detalhe — o hook busca o grupo
+  no servidor (`/Products?productGroupId=`, primeiro resultado = representante)
+  e abre. Não confundir com o `?editar=` do PDV (seção 5): aquele abre pela
+  linha da tabela porque precisa do filtro para paginar; este busca direto,
+  porque o id já é conhecido.
+- **Guarda de alterações não salvas**: todo setter ENVIADO à tela passa por um
+  embrulho no `useProductEditor` que marca `isDirty` (o carregamento e o salvar
+  usam os setters crus, e `markClean` limpa a marca). Com a marca ligada,
+  recarregar/fechar a aba dispara `beforeunload` e Cancelar/voltar abrem o
+  `ProductDetailDiscardDialog`.
+- **Nomes**: o estado do editor se chama `detailOpen`/`openDetail` desde a
+  migração para tela — era `modalOpen`/`openModal`, herança da modal antiga.
 
 #### A aba Estoque, em detalhe
 

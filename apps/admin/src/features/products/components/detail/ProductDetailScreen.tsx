@@ -18,6 +18,8 @@ import { ProductWebImageSearch } from "./ProductWebImageSearch";
 
 type ProductDetailScreenProps = {
   editor: ReturnType<typeof useProductEditor>;
+  /** Pediu para sair (voltar, cancelar) — a página decide se confirma antes. */
+  onRequestClose: () => void;
 };
 
 /**
@@ -39,11 +41,10 @@ type ProductDetailScreenProps = {
  * portais do Radix, então ficam FORA do form — o formulário simplificado de
  * entrada tem `<form>` próprio e aninhar os dois seria HTML inválido.
  */
-export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
+export function ProductDetailScreen({ editor, onRequestClose }: ProductDetailScreenProps) {
   const { toast } = useToast();
   const {
-    setModalOpen,
-    resetForm,
+    isDirty,
     form,
     productEditor,
     variationDrafts,
@@ -112,9 +113,21 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
     return () => clearTimeout(timer);
   }, [flashSuccess, currentBarcode]);
 
+  // Recarregar ou fechar a aba com alterações pendentes ganha o aviso nativo do
+  // navegador — a confirmação bonita fica para os caminhos que a tela controla.
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const avisar = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", avisar);
+    return () => window.removeEventListener("beforeunload", avisar);
+  }, [isDirty]);
+
   function fecharTela() {
-    setModalOpen(false);
-    resetForm();
+    onRequestClose();
   }
 
   /** Gera a matriz e leva o operador até a tabela recém-criada. */
@@ -198,7 +211,7 @@ export function ProductDetailScreen({ editor }: ProductDetailScreenProps) {
                 {form.productGroupName || "Novo Produto"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {editingGroupId ? `Grupo #${editingGroupId}` : "Cadastro novo"}
+                {editingGroupId ? `ID #${editingGroupId}` : "Cadastro novo"}
               </p>
             </div>
           </div>
