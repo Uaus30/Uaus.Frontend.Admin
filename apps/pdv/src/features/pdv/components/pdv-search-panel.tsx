@@ -164,7 +164,10 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                             filho não consegue ser mais opaco que o pai — com ele
                             na linha, o lápis herdava os 50% e parecia
                             desabilitado justamente quando é mais necessário. */}
-                        <div className={`flex items-center gap-4 min-w-0 ${outOfStock ? "opacity-50" : ""}`}>
+                        {/* `items-start` porque o nome agora quebra em várias
+                            linhas: centralizado, a miniatura descia junto e o
+                            card ficava desalinhado com o preço da direita. */}
+                        <div className={`flex items-start gap-4 min-w-0 ${outOfStock ? "opacity-50" : ""}`}>
                           {product.imageUrl ? (
                             <img
                               loading="lazy"
@@ -179,7 +182,15 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                             </div>
                           )}
                           <div className="min-w-0">
-                            <h4 className="font-bold text-lg truncate">{product.name}</h4>
+                            {/*
+                              Nome INTEIRO, em quantas linhas precisar. Truncar
+                              com reticências escondia justamente o fim do nome,
+                              que é onde mora a diferença entre duas variações do
+                              mesmo produto ("...CONICA" × "...RETA"): o operador
+                              via dois resultados idênticos e tinha que adivinhar.
+                              Card mais alto é preço barato por isso.
+                            */}
+                            <h4 className="font-bold text-lg leading-tight break-words">{product.name}</h4>
                             <p className="text-xs text-muted-foreground font-mono">
                               {product.barcode} · Estoque: {product.stock}
                             </p>
