@@ -34,6 +34,15 @@ export interface PdvItem {
   discount: number;
   /** Estoque disponível no momento em que o item entrou no carrinho. */
   availableStock: number;
+  /**
+   * Caminho da imagem principal do produto, como a busca devolve, ou nulo.
+   *
+   * Vem junto do resultado da busca, sem requisição nova — é o mesmo dado que a
+   * lista de produtos já usa na miniatura dela. Fica no item porque o carrinho
+   * também é conferido no balcão: reconhecer a foto é mais rápido que ler o
+   * nome, e a venda pausada volta do `localStorage` sem consultar nada.
+   */
+  imageUrl?: string | null;
 }
 
 /**

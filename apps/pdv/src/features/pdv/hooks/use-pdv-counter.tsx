@@ -5,7 +5,6 @@ import { useToast } from "@workspace/ui";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
 import type { CheckoutState } from "@/hooks/use-checkout";
 import { useProductSearch } from "./use-product-search";
-import { AddedItemToast } from "../components/added-item-toast";
 
 export interface UsePdvCounterParams {
   online: boolean;
@@ -61,6 +60,11 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
         return;
       }
 
+      // A confirmação de que o item entrou é o realce pulsando na própria linha
+      // do carrinho (ver `PdvCartItem`), e não um toast. O aviso nascia no canto
+      // oposto ao carrinho e durava mais que o bipe seguinte: numa sequência
+      // rápida o operador via avisos empilhados e nenhum deles apontava a linha
+      // que tinha acabado de entrar. A imagem foi junto para o carrinho.
       addItem({
         productId: product.id,
         name: product.name,
@@ -69,15 +73,7 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
         quantity: 1,
         discount: 0,
         availableStock: product.stock,
-      });
-
-      // A descrição leva a miniatura do produto: no bipe o operador está olhando
-      // para o item na mão, não para a tela, e a imagem confirma que o código
-      // lido é o produto certo mais rápido do que ler o nome.
-      toast({
-        title: "Item adicionado",
-        description: <AddedItemToast name={product.name} imageUrl={product.imageUrl} />,
-        duration: 1500,
+        imageUrl: product.imageUrl,
       });
     },
     [addItem, toast],

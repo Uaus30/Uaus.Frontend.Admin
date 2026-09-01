@@ -237,7 +237,9 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
               exit={{ opacity: 0, scale: 1.05 }}
               className="absolute inset-0 flex flex-col items-center justify-center text-center p-12"
             >
-              <h2 className="text-7xl font-display font-bold text-foreground/20 uppercase tracking-widest">
+              {/* Um degrau menor que o original: na escala de fonte maior ele
+                  encostava nas bordas do painel. */}
+              <h2 className="text-6xl font-display font-bold text-foreground/20 uppercase tracking-widest">
                 Caixa Livre
               </h2>
             </motion.div>

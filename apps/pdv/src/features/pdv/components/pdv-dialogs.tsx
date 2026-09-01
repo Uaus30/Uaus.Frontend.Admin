@@ -20,7 +20,6 @@ import type { useSaleHistoryActions } from "../hooks/use-sale-history-actions";
 import { ConfirmDiscardDialog } from "./confirm-discard-dialog";
 import { CouponDialog } from "./coupon-dialog";
 import { PreferencesDialog } from "./preferences-dialog";
-import { AboutDialog } from "./about-dialog";
 
 type PdvDialogsProps = {
   dialogs: PdvDialogControls;
@@ -143,8 +142,6 @@ export function PdvDialogs({
       />
 
       <PreferencesDialog open={dialogs.preferences.open} onOpenChange={dialogs.preferences.setOpen} />
-
-      <AboutDialog open={dialogs.about.open} onOpenChange={dialogs.about.setOpen} />
 
       <ConfirmDiscardDialog
         open={history.isConfirmDiscardOpen}

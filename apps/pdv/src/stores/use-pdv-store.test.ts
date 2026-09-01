@@ -10,6 +10,8 @@ const EMPTY = {
   consumer: EMPTY_CONSUMER,
   heldSales: [],
   saleClientReference: null,
+  lastAddedItemId: null,
+  lastAddedSeq: 0,
 };
 
 /** Produto de referência: R$ 10,00 com 20 unidades em estoque. */
@@ -404,37 +406,68 @@ describe("usePdvStore", () => {
     });
   });
 
-  describe("layout do resumo da venda", () => {
-    it("deve abrir no estendido quando não há preferência salva", async () => {
-      // O layout é lido na carga do módulo, então o teste precisa de uma
-      // instância nova. O estendido é o padrão porque é o layout com que o PDV
-      // nasceu — abrir no compacto esconderia os quatro botões de quem nunca
-      // pediu isso.
-      localStorage.removeItem("pdv-cart-layout");
-      vi.resetModules();
+  describe("realce do item recém-bipado", () => {
+    it("deve apontar a linha criada pelo bipe", () => {
+      usePdvStore.getState().addItem(product());
 
-      const fresh = await import("./use-pdv-store");
-
-      expect(fresh.usePdvStore.getState().cartLayout).toBe("extended");
+      const state = usePdvStore.getState();
+      expect(state.lastAddedItemId).toBe(state.items[0].id);
+      expect(state.lastAddedSeq).toBe(1);
     });
 
-    it("deve abrir no compacto quando o terminal foi configurado assim", async () => {
-      localStorage.setItem("pdv-cart-layout", "compact");
+    it("deve apontar a linha que já existia quando o mesmo produto é bipado de novo", () => {
+      // Bipar duas vezes não cria linha nova, só soma a quantidade. O contador
+      // precisa avançar mesmo assim: é ele que faz o realce piscar outra vez, e
+      // sem isso o segundo bipe não teria confirmação nenhuma na tela.
+      usePdvStore.getState().addItem(product());
+      const primeiraLinha = usePdvStore.getState().items[0].id;
+
+      usePdvStore.getState().addItem(product());
+
+      const state = usePdvStore.getState();
+      expect(state.items).toHaveLength(1);
+      expect(state.lastAddedItemId).toBe(primeiraLinha);
+      expect(state.lastAddedSeq).toBe(2);
+    });
+
+    it("deve esquecer a linha realçada quando o carrinho é esvaziado", () => {
+      usePdvStore.getState().addItem(product());
+      usePdvStore.getState().cancelSale();
+
+      expect(usePdvStore.getState().lastAddedItemId).toBeNull();
+    });
+  });
+
+  describe("layout do resumo da venda", () => {
+    it("deve abrir no compacto quando não há preferência salva", async () => {
+      // O layout é lido na carga do módulo, então o teste precisa de uma
+      // instância nova. O compacto virou o padrão em 01/09/2026: as três faixas
+      // de botões do rodapé estendido custavam a altura que falta na lista.
+      localStorage.removeItem("pdv-cart-layout");
       vi.resetModules();
 
       const fresh = await import("./use-pdv-store");
 
       expect(fresh.usePdvStore.getState().cartLayout).toBe("compact");
-      localStorage.removeItem("pdv-cart-layout");
     });
 
-    it("deve cair no estendido quando a chave salva não é um layout conhecido", async () => {
-      localStorage.setItem("pdv-cart-layout", "gaveta");
+    it("deve abrir no estendido quando o terminal foi configurado assim", async () => {
+      localStorage.setItem("pdv-cart-layout", "extended");
       vi.resetModules();
 
       const fresh = await import("./use-pdv-store");
 
       expect(fresh.usePdvStore.getState().cartLayout).toBe("extended");
+      localStorage.removeItem("pdv-cart-layout");
+    });
+
+    it("deve cair no compacto quando a chave salva não é um layout conhecido", async () => {
+      localStorage.setItem("pdv-cart-layout", "gaveta");
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+
+      expect(fresh.usePdvStore.getState().cartLayout).toBe("compact");
       localStorage.removeItem("pdv-cart-layout");
     });
 

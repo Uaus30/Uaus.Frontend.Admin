@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PdvMainMenu } from "../pdv-main-menu";
 
 describe("PdvMainMenu", () => {
@@ -14,22 +14,38 @@ describe("PdvMainMenu", () => {
     onHeldSales: vi.fn(),
     onPrintReport: vi.fn(),
     onPreferences: vi.fn(),
-    onAbout: vi.fn(),
     onExit: vi.fn(),
   };
 
-  it("abre o menu ao clicar no botão e exibe a opção Sobre", () => {
+  beforeEach(() => {
+    vi.stubEnv("VITE_APP_VERSION", "1.8.9");
+    vi.stubEnv("VITE_BUILD_TIME", "2026-08-22T15:45:12Z");
+  });
+
+  it("abre o menu ao clicar no botão e dispara a ação escolhida", () => {
     render(<PdvMainMenu {...defaultProps} />);
 
     // Clica no botão sanduíche para abrir o menu
     const menuButton = screen.getByRole("button");
     fireEvent.click(menuButton);
 
-    const aboutButton = screen.getByRole("button", { name: /Sobre/i });
-    expect(aboutButton).toBeDefined();
+    const preferencias = screen.getByRole("button", { name: /Preferências/i });
+    expect(preferencias).toBeDefined();
 
-    fireEvent.click(aboutButton);
-    expect(defaultProps.onAbout).toHaveBeenCalledTimes(1);
+    fireEvent.click(preferencias);
+    expect(defaultProps.onPreferences).toHaveBeenCalledTimes(1);
+  });
+
+  it("mostra versão e data de atualização no rodapé do próprio menu", () => {
+    // Elas moravam num diálogo "Sobre", removido em 01/09/2026: abrir uma modal
+    // para ler dois campos era um clique a mais na pergunta que o suporte faz
+    // por telefone. A data vem em UTC e sai no fuso de Brasília.
+    render(<PdvMainMenu {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByTestId("menu-version").textContent).toBe("Versão 1.8.9");
+    expect(screen.getByTestId("menu-updated-at").textContent).toBe("22/08/2026 às 12:45:12");
+    expect(screen.queryByRole("button", { name: /^Sobre$/i })).toBeNull();
   });
 
   it("fecha ao apontar para fora do menu", async () => {
@@ -45,24 +61,24 @@ describe("PdvMainMenu", () => {
     );
 
     fireEvent.click(screen.getAllByRole("button")[0]);
-    expect(screen.queryByRole("button", { name: /Sobre/i })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Preferências/i })).not.toBeNull();
 
     fireEvent.pointerDown(screen.getByTestId("fora"));
 
     // `waitFor` porque a saída é animada (AnimatePresence): o nó só deixa o DOM
     // quando a animação termina.
-    await waitFor(() => expect(screen.queryByRole("button", { name: /Sobre/i })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Preferências/i })).toBeNull());
   });
 
   it("fecha com Escape", async () => {
     render(<PdvMainMenu {...defaultProps} />);
 
     fireEvent.click(screen.getByRole("button"));
-    expect(screen.queryByRole("button", { name: /Sobre/i })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Preferências/i })).not.toBeNull();
 
     fireEvent.keyDown(document, { key: "Escape" });
 
-    await waitFor(() => expect(screen.queryByRole("button", { name: /Sobre/i })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Preferências/i })).toBeNull());
   });
 
   it("não reabre ao apontar para o próprio botão que fecha", async () => {
@@ -72,11 +88,11 @@ describe("PdvMainMenu", () => {
 
     const botao = screen.getByRole("button");
     fireEvent.click(botao);
-    expect(screen.queryByRole("button", { name: /Sobre/i })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Preferências/i })).not.toBeNull();
 
     fireEvent.pointerDown(botao);
     fireEvent.click(botao);
 
-    await waitFor(() => expect(screen.queryByRole("button", { name: /Sobre/i })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Preferências/i })).toBeNull());
   });
 });

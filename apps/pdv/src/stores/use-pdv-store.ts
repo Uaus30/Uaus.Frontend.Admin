@@ -70,6 +70,16 @@ interface PdvState {
   theme: "light" | "dark";
   /** Como o rodapé do resumo da venda apresenta as ações secundárias. */
   cartLayout: CartLayout;
+  /** Linha do carrinho que acabou de receber o bipe, ou `null`. */
+  lastAddedItemId: string | null;
+  /**
+   * Contador de itens adicionados, usado só para reiniciar o realce.
+   *
+   * O id sozinho não basta: bipar DUAS vezes o mesmo produto não cria linha
+   * nova, só soma a quantidade, e `lastAddedItemId` não mudaria — o realce não
+   * piscaria de novo, que é justamente quando o operador mais precisa dele.
+   */
+  lastAddedSeq: number;
   /** Índice em {@link FONT_SCALES} da escala de fonte escolhida. */
   fontScaleIndex: number;
   /** Vendas pausadas, das mais recentes para as mais antigas. */
@@ -182,12 +192,13 @@ const generateId = () => Math.random().toString(36).slice(2, 11);
 /**
  * Lê o layout do resumo da venda salvo no navegador.
  *
- * Qualquer valor que não seja exatamente `compact` cai no estendido: é o layout
- * com que o PDV nasceu, e um terminal com a chave corrompida deve abrir na tela
- * que o operador já conhece, não numa em que os botões estão escondidos.
+ * Qualquer valor que não seja exatamente `extended` cai no compacto, que virou o
+ * padrão em 01/09/2026 depois do teste no balcão: as três faixas de botões do
+ * rodapé estendido custavam a altura que falta na lista de itens. Só quem pediu
+ * o estendido de propósito o recebe.
  */
 const initialCartLayout: CartLayout =
-  localStorage.getItem(CART_LAYOUT_STORAGE_KEY) === "compact" ? "compact" : "extended";
+  localStorage.getItem(CART_LAYOUT_STORAGE_KEY) === "extended" ? "extended" : "compact";
 
 /**
  * Recupera as vendas em espera gravadas no navegador.
@@ -273,6 +284,8 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   saleClientReference: null,
   theme: initialTheme,
   cartLayout: initialCartLayout,
+  lastAddedItemId: null,
+  lastAddedSeq: 0,
   fontScaleIndex: initialFontScaleIndex,
   heldSales: readHeldSales(),
 
@@ -280,18 +293,25 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set((state) => {
       const existing = state.items.find((i) => i.productId === item.productId);
 
+      // Qual linha recebeu o bipe sai daqui, e não de quem chamou: só o store
+      // sabe se o produto virou linha nova ou somou na que já estava lá.
       if (existing) {
         return {
           status: "SELLING",
           items: state.items.map((i) =>
             i.id === existing.id ? { ...i, quantity: i.quantity + item.quantity } : i,
           ),
+          lastAddedItemId: existing.id,
+          lastAddedSeq: state.lastAddedSeq + 1,
         };
       }
 
+      const id = generateId();
       return {
         status: "SELLING",
-        items: [...state.items, { ...item, id: generateId() }],
+        items: [...state.items, { ...item, id }],
+        lastAddedItemId: id,
+        lastAddedSeq: state.lastAddedSeq + 1,
       };
     }),
 
@@ -327,6 +347,8 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({
       status: "IDLE",
       items: [],
+      // Carrinho vazio não tem linha realçada para apontar.
+      lastAddedItemId: null,
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       // O cupom é da VENDA, não do caixa: mantê-lo aqui daria o desconto de
@@ -342,6 +364,8 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({
       status: "IDLE",
       items: [],
+      // Carrinho vazio não tem linha realçada para apontar.
+      lastAddedItemId: null,
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       // O cupom já foi resgatado nesta venda; deixá-lo de pé o resgataria de
@@ -387,6 +411,8 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       heldSales,
       status: "IDLE",
       items: [],
+      // Carrinho vazio não tem linha realçada para apontar.
+      lastAddedItemId: null,
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       // O cupom foi junto com a venda pausada; o caixa fica limpo para a próxima.
@@ -478,6 +504,8 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({
       status: "IDLE",
       items: [],
+      // Carrinho vazio não tem linha realçada para apontar.
+      lastAddedItemId: null,
       globalDiscount: 0,
       consumer: EMPTY_CONSUMER,
       coupon: null,

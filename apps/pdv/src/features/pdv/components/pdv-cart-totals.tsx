@@ -101,14 +101,14 @@ export function PdvCartTotals({ subtotal, total }: PdvCartTotalsProps) {
         )}
       </div>
 
-      <div className="pt-2 border-t border-border/50">
-        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-0.5">
-          Total Final
-        </p>
-        {/* Dois degraus menor que o original: continua legível de pé, a um
-            metro da tela, e devolve altura para a lista de itens — que é o que
-            falta quando o operador põe a fonte em 120% e o nome do produto
-            ocupa duas linhas. */}
+      {/* Rótulo e valor na MESMA linha, como o subtotal logo acima. Empilhados
+          eles gastavam duas faixas do rodapé, e essa altura é a que falta na
+          lista de itens quando o operador põe a fonte em 120% e o nome do
+          produto ocupa duas linhas. O valor mantém o corpo grande: é o número
+          que o operador dita para o cliente, e precisa ser legível de pé, a um
+          metro da tela. */}
+      <div className="flex items-baseline justify-between gap-2 pt-2 border-t border-border/50">
+        <p className="text-base text-foreground font-bold uppercase tracking-widest">Total Final</p>
         <p className="text-3xl font-mono font-bold text-foreground tracking-tight">{formatCurrency(total)}</p>
       </div>
     </>

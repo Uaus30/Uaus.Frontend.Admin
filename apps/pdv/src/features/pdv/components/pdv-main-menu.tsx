@@ -6,7 +6,6 @@ import {
   ExternalLink,
   FileBarChart,
   History,
-  Info,
   LayoutDashboard,
   Lock,
   LogOut,
@@ -16,6 +15,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { formatBrasiliaDateTime, formatVersion } from "@workspace/core";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { adminBaseUrl, adminHomeUrl, openInNewTab } from "@/lib/admin-links";
@@ -34,7 +34,6 @@ type PdvMainMenuProps = {
   onHeldSales: () => void;
   onPrintReport: () => void;
   onPreferences: () => void;
-  onAbout: () => void;
   onExit: () => void;
 };
 
@@ -74,13 +73,18 @@ export function PdvMainMenu({
   onHeldSales,
   onPrintReport,
   onPreferences,
-  onAbout,
   onExit,
 }: PdvMainMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const heldSalesCount = usePdvStore((state) => state.heldSales.length);
   const toggleCalculator = useCalculatorStore((state) => state.toggleOpen);
+
+  // Injetadas no build pelo Vite; lidas a cada render porque são constantes do
+  // bundle, não estado. A data vem em UTC e é exibida no fuso de Brasília.
+  const versionText = formatVersion(import.meta.env.VITE_APP_VERSION);
+  const buildTime = import.meta.env.VITE_BUILD_TIME;
+  const updatedAtText = buildTime ? formatBrasiliaDateTime(buildTime) : "";
 
   // Lido a cada render de propósito: é leitura de `window.location`, barata, e
   // guardá-la em estado só criaria um valor que pode ficar velho.
@@ -221,11 +225,6 @@ export function PdvMainMenu({
               </button>
             )}
 
-            <button onClick={run(onAbout)} className={ITEM_CLASS}>
-              <Info className="w-4 h-4 text-primary" />
-              Sobre
-            </button>
-
             <div className="h-px bg-border my-1" />
 
             <button
@@ -235,6 +234,26 @@ export function PdvMainMenu({
               <LogOut className="w-4 h-4" />
               Sair
             </button>
+
+            {/* Versão e data do deploy como rodapé do menu, no lugar do diálogo
+                "Sobre" que existia só para mostrar estes dois campos. Abrir uma
+                modal para ler dois valores era um clique a mais para a pergunta
+                que o suporte faz por telefone ("qual versão está aí?"); aqui
+                eles já estão na tela em que o operador foi procurar. */}
+            <div className="mt-1 border-t border-border px-3 pt-2 pb-1 space-y-0.5">
+              <p className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                <span className="uppercase tracking-wider">Versão</span>
+                <span className="font-mono font-semibold text-foreground" data-testid="menu-version">
+                  {versionText}
+                </span>
+              </p>
+              <p className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                <span className="uppercase tracking-wider">Atualizado</span>
+                <span className="font-mono text-foreground/80" data-testid="menu-updated-at">
+                  {updatedAtText || "—"}
+                </span>
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

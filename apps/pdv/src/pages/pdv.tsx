@@ -206,7 +206,6 @@ export default function Pdv() {
             onHeldSales={dialogs.heldSales.show}
             onPrintReport={() => void report.printReport()}
             onPreferences={dialogs.preferences.show}
-            onAbout={dialogs.about.show}
             onExit={exit}
           />
         }

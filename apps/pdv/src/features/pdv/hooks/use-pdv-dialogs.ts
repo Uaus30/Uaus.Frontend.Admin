@@ -34,7 +34,6 @@ export function usePdvDialogs() {
     stockWriteOff: useDialogControl(),
     performance: useDialogControl(),
     preferences: useDialogControl(),
-    about: useDialogControl(),
   };
 }
 
