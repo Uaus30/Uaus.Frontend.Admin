@@ -178,14 +178,16 @@ export async function upsertProduct(payload: {
   status: number;
   variationValues?: Array<{ gradeType: number; value: string; displayOrder: number }>;
 }) {
+  // Sem costPrice nem stock de propósito: os requests do backend não têm esses
+  // campos — custo e saldo nascem das entradas de estoque, nunca do cadastro.
+  // Mandar `0` aqui era uma bomba armada para o dia em que alguém os adicionasse
+  // ao request e o PUT passasse a zerar o estoque de quem edita preço.
   const request = {
     productGroupId: payload.productGroupId,
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     barcode: payload.barcode || null,
     price: payload.price,
-    costPrice: 0,
-    stock: 0,
     minStock: payload.minStock ?? 0,
     status: payload.status,
     variationValues: payload.variationValues ?? [],
