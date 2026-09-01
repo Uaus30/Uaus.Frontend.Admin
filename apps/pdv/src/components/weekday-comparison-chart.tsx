@@ -1,6 +1,7 @@
 import { accumulateWeekComparison, formatCurrency, type WeekComparisonPoint } from "@workspace/core";
 import type { WeekdayComparisonDto } from "@workspace/api-client-react";
 import { weekComparisonScale, weekdayLabel } from "@/lib/performance";
+import { Hint } from "./hint";
 
 /**
  * Semana atual sobre a anterior, pela curva acumulada dia a dia — o mesmo
@@ -124,7 +125,9 @@ export function WeekdayComparisonChart({ days }: WeekdayComparisonChartProps) {
 
         <div className="absolute inset-0 flex">
           {pontos.map((ponto) => (
-            <div key={ponto.weekday} className="flex-1" title={tituloDoDia(ponto)} />
+            <Hint key={ponto.weekday} label={tituloDoDia(ponto)}>
+              <div className="flex-1" />
+            </Hint>
           ))}
         </div>
       </div>

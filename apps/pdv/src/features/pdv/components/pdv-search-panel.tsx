@@ -4,6 +4,7 @@ import { ImageIcon, Loader2, Pencil, Search, X } from "lucide-react";
 import { buildPublicImageUrl, type ProductPdvSearchDto } from "@workspace/api-client-react";
 import { Button, Input, ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
+import { Hint } from "@/components/hint";
 import { adminBaseUrl, adminProductEditUrl, openInNewTab } from "@/lib/admin-links";
 import type { ProductSearchState } from "../hooks/use-product-search";
 
@@ -78,20 +79,21 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                 porque o balcão trabalha sem tirar a mão do teclado — perder o
                 cursor aqui obriga a clicar antes de bipar o próximo produto. */}
             {search.query && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  search.clear();
-                  inputRef.current?.focus();
-                }}
-                title="Limpar busca (Esc)"
-                aria-label="Limpar busca"
-                className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              <Hint label="Limpar busca (Esc)" side="bottom">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    search.clear();
+                    inputRef.current?.focus();
+                  }}
+                  aria-label="Limpar busca"
+                  className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </Hint>
             )}
           </div>
         </form>
@@ -209,19 +211,20 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                               preço errado e estoque furado aparecem justamente
                               aqui, na hora de vender. O stopPropagation impede
                               que o clique também adicione o item ao carrinho. */}
-                          <button
-                            type="button"
-                            hidden={!adminDisponivel}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openInNewTab(adminProductEditUrl(product));
-                            }}
-                            title="Editar no painel administrativo (abre em nova aba)"
-                            aria-label={`Editar ${product.name} no painel administrativo`}
-                            className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
+                          <Hint label="Editar no painel administrativo (abre em nova aba)" side="left">
+                            <button
+                              type="button"
+                              hidden={!adminDisponivel}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openInNewTab(adminProductEditUrl(product));
+                              }}
+                              aria-label={`Editar ${product.name} no painel administrativo`}
+                              className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          </Hint>
                         </div>
                       </motion.div>
                     );

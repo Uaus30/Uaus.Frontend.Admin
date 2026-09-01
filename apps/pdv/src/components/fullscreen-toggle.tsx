@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Maximize, Minimize } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { Hint } from "./hint";
 
 /** O navegador sabe abrir tela cheia? Chrome em quiosque e Firefox sabem; nem todo WebView sabe. */
 const suportaTelaCheia = () =>
@@ -45,17 +46,19 @@ export function FullscreenToggle() {
     void document.documentElement.requestFullscreen().catch(() => undefined);
   };
 
+  // A dica abre para BAIXO: o botão mora no cabeçalho, e acima dele é a borda da tela.
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={alternar}
-      title={emTelaCheia ? "Sair da tela cheia (F11)" : "Tela cheia (F11)"}
-      aria-label={emTelaCheia ? "Sair da tela cheia" : "Entrar em tela cheia"}
-      aria-pressed={emTelaCheia}
-      className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
-    >
-      {emTelaCheia ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-    </Button>
+    <Hint label={emTelaCheia ? "Sair da tela cheia (F11)" : "Tela cheia (F11)"} side="bottom">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={alternar}
+        aria-label={emTelaCheia ? "Sair da tela cheia" : "Entrar em tela cheia"}
+        aria-pressed={emTelaCheia}
+        className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
+      >
+        {emTelaCheia ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+      </Button>
+    </Hint>
   );
 }

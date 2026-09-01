@@ -1,5 +1,6 @@
 import { AlertTriangle, Minus, Plus, Trash2 } from "lucide-react";
 import { Button, Input, Label } from "@workspace/ui";
+import { Hint } from "@/components/hint";
 import { totalDraftQuantity, type WriteOffDraftItem } from "@/lib/write-off-draft";
 
 type WriteOffItemsListProps = {
@@ -81,15 +82,17 @@ export function WriteOffItemsList({ items, shortages, onChangeQuantity, onRemove
                     </Button>
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
-                    title="Tirar o produto da baixa"
-                    onClick={() => onRemove(item.productId)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Hint label="Tirar o produto da baixa">
+                    <Button
+                      aria-label="Tirar o produto da baixa"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                      onClick={() => onRemove(item.productId)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </Hint>
                 </div>
               </div>
             );

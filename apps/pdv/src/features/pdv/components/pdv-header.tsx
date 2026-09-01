@@ -4,6 +4,7 @@ import type { CashRegisterSessionDto } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
 import { Clock } from "@/components/clock";
 import { FontSizeControl } from "@/components/font-size-control";
+import { Hint } from "@/components/hint";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { OfflineStatus } from "@/components/offline-status";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
@@ -70,18 +71,19 @@ export function PdvHeader({
 
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
         {heldSalesCount > 0 && (
-          <button
-            type="button"
-            onClick={onOpenHeldSales}
-            title="Ver vendas em espera"
-            className="relative flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/15 px-4 py-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-          >
-            <PauseCircle className="w-4 h-4" />
-            Vendas em espera
-            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 font-mono text-[10px] font-bold text-white">
-              {heldSalesCount}
-            </span>
-          </button>
+          <Hint label="Ver vendas em espera" side="bottom">
+            <button
+              type="button"
+              onClick={onOpenHeldSales}
+              className="relative flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/15 px-4 py-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <PauseCircle className="w-4 h-4" />
+              Vendas em espera
+              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 font-mono text-[10px] font-bold text-white">
+                {heldSalesCount}
+              </span>
+            </button>
+          </Hint>
         )}
 
         <OfflineStatus sessionId={session?.id ?? null} onSynced={onSynced} />
@@ -97,15 +99,16 @@ export function PdvHeader({
             quanto afasta o operador e o menu — o olho lia quatro coisas soltas
             no lugar de duas. */}
         <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleCalculator}
-            title="Calculadora"
-            className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
-          >
-            <CalculatorIcon className="w-5 h-5" />
-          </Button>
+          <Hint label="Calculadora" side="bottom">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleCalculator}
+              className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
+            >
+              <CalculatorIcon className="w-5 h-5" />
+            </Button>
+          </Hint>
 
           <FullscreenToggle />
         </div>

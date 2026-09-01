@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { AnimatePresence, motion, useDragControls, useMotionValue } from "framer-motion";
 import { Calculator as CalculatorIcon, History, Trash2, X } from "lucide-react";
+import { Hint } from "./hint";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { evaluate, formatResult } from "@/lib/calculator";
 import { KEYBOARD_INPUT, KEYS, KEY_STYLES, type Key } from "./calculator-keys";
@@ -267,27 +268,33 @@ export function Calculator() {
               <CalculatorIcon className="h-4 w-4 text-primary" /> Calculadora
             </span>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={toggleHistory}
-                title="Histórico de cálculos"
-                aria-pressed={historyOpen}
-                className={`rounded-md p-1.5 transition-colors cursor-pointer ${
-                  historyOpen ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-foreground/10"
-                }`}
-              >
-                <History className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={close}
-                title="Fechar calculadora"
-                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <Hint label="Histórico de cálculos">
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={toggleHistory}
+                  aria-label="Histórico de cálculos"
+                  aria-pressed={historyOpen}
+                  className={`rounded-md p-1.5 transition-colors cursor-pointer ${
+                    historyOpen
+                      ? "bg-primary/20 text-primary"
+                      : "text-muted-foreground hover:bg-foreground/10"
+                  }`}
+                >
+                  <History className="h-4 w-4" />
+                </button>
+              </Hint>
+              <Hint label="Fechar calculadora">
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={close}
+                  aria-label="Fechar calculadora"
+                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </Hint>
             </div>
           </div>
 
@@ -314,15 +321,17 @@ export function Calculator() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       Histórico
                     </span>
-                    <button
-                      type="button"
-                      onClick={clearHistory}
-                      disabled={history.length === 0}
-                      title="Limpar histórico"
-                      className="rounded p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <Hint label="Limpar histórico">
+                      <button
+                        type="button"
+                        onClick={clearHistory}
+                        aria-label="Limpar histórico"
+                        disabled={history.length === 0}
+                        className="rounded p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </Hint>
                   </div>
                   {/* Piso de altura para a lista não sumir de vez quando o espaço aperta. */}
                   <div className="max-h-40 min-h-14 flex-1 overflow-y-auto">
@@ -332,20 +341,21 @@ export function Calculator() {
                       </p>
                     ) : (
                       history.map((entry) => (
-                        <button
-                          key={entry.id}
-                          type="button"
-                          onClick={() => recall(entry.id)}
-                          title="Reaproveitar este cálculo"
-                          className="flex w-full flex-col items-end px-3 py-1.5 text-right transition-colors hover:bg-foreground/10 cursor-pointer"
-                        >
-                          <span className="font-mono text-[10px] text-muted-foreground">
-                            {entry.expression}
-                          </span>
-                          <span className="font-mono text-sm font-bold text-foreground">
-                            {formatResult(entry.result)}
-                          </span>
-                        </button>
+                        <Hint label="Reaproveitar este cálculo" side="left">
+                          <button
+                            key={entry.id}
+                            type="button"
+                            onClick={() => recall(entry.id)}
+                            className="flex w-full flex-col items-end px-3 py-1.5 text-right transition-colors hover:bg-foreground/10 cursor-pointer"
+                          >
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {entry.expression}
+                            </span>
+                            <span className="font-mono text-sm font-bold text-foreground">
+                              {formatResult(entry.result)}
+                            </span>
+                          </button>
+                        </Hint>
                       ))
                     )}
                   </div>

@@ -1,5 +1,6 @@
 import { AArrowDown, AArrowUp, RotateCcw } from "lucide-react";
 import { FONT_SCALES, usePdvStore } from "@/stores/use-pdv-store";
+import { Hint } from "./hint";
 
 /**
  * Controle de tamanho da fonte do PDV.
@@ -22,39 +23,42 @@ export function FontSizeControl() {
 
   return (
     <div className="flex items-center rounded-lg border border-border/50 bg-muted/20 p-0.5">
-      <button
-        type="button"
-        onClick={() => stepFontScale(-1)}
-        disabled={fontScaleIndex === 0}
-        title="Diminuir o tamanho do texto"
-        aria-label="Diminuir o tamanho do texto"
-        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-      >
-        <AArrowDown className="h-3.5 w-3.5" />
-      </button>
+      <Hint label="Diminuir o tamanho do texto" side="bottom">
+        <button
+          type="button"
+          onClick={() => stepFontScale(-1)}
+          disabled={fontScaleIndex === 0}
+          aria-label="Diminuir o tamanho do texto"
+          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+        >
+          <AArrowDown className="h-3.5 w-3.5" />
+        </button>
+      </Hint>
 
-      <button
-        type="button"
-        onClick={resetFontScale}
-        disabled={isDefault}
-        title="Voltar ao tamanho padrão"
-        aria-label="Voltar ao tamanho padrão"
-        className="flex min-w-[2.5rem] items-center justify-center gap-0.5 rounded-md px-0.5 py-1 font-mono text-[10px] font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-muted-foreground cursor-pointer"
-      >
-        {!isDefault && <RotateCcw className="h-2.5 w-2.5" />}
-        {Math.round(scale * 100)}%
-      </button>
+      <Hint label="Voltar ao tamanho padrão" side="bottom">
+        <button
+          type="button"
+          onClick={resetFontScale}
+          disabled={isDefault}
+          aria-label="Voltar ao tamanho padrão"
+          className="flex min-w-[2.5rem] items-center justify-center gap-0.5 rounded-md px-0.5 py-1 font-mono text-[10px] font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-muted-foreground cursor-pointer"
+        >
+          {!isDefault && <RotateCcw className="h-2.5 w-2.5" />}
+          {Math.round(scale * 100)}%
+        </button>
+      </Hint>
 
-      <button
-        type="button"
-        onClick={() => stepFontScale(1)}
-        disabled={fontScaleIndex === FONT_SCALES.length - 1}
-        title="Aumentar o tamanho do texto"
-        aria-label="Aumentar o tamanho do texto"
-        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-      >
-        <AArrowUp className="h-3.5 w-3.5" />
-      </button>
+      <Hint label="Aumentar o tamanho do texto" side="bottom">
+        <button
+          type="button"
+          onClick={() => stepFontScale(1)}
+          disabled={fontScaleIndex === FONT_SCALES.length - 1}
+          aria-label="Aumentar o tamanho do texto"
+          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+        >
+          <AArrowUp className="h-3.5 w-3.5" />
+        </button>
+      </Hint>
     </div>
   );
 }

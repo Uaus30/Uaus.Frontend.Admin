@@ -8,6 +8,7 @@ import { Label } from "@workspace/ui";
 import { searchLocalCustomers } from "@/offline";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import { EMPTY_CONSUMER, type PdvConsumer } from "@/stores/use-pdv-store";
+import { Hint } from "./hint";
 import { MIN_SEARCH_LENGTH, useDebouncedValue } from "@/features/pdv/hooks/use-debounced-value";
 
 type ConsumerPickerProps = {
@@ -98,16 +99,18 @@ export function ConsumerPicker({ consumer, onChange }: ConsumerPickerProps) {
               </p>
             </div>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            title="Remover cliente"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive cursor-pointer"
-            onClick={clear}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <Hint label="Remover cliente">
+            <Button
+              aria-label="Remover cliente"
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive cursor-pointer"
+              onClick={clear}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </Hint>
         </div>
       </div>
     );

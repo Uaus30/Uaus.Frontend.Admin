@@ -3,6 +3,7 @@ import { STOCK_WRITE_OFF_REASON_LABEL } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { PendingSale, PendingWriteOff } from "@/offline";
+import { Hint } from "@/components/hint";
 import { formatQueueTime } from "../lib/format-queue-time";
 
 /** Selo "A enviar" / "Recusada" de um movimento da fila. */
@@ -28,24 +29,28 @@ type RowActionsProps = {
 function RowActions({ onRetry, onAskDiscard, discardTitle }: RowActionsProps) {
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-primary"
-        title="Tentar enviar novamente"
-        onClick={onRetry}
-      >
-        <RotateCcw className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
-        title={discardTitle}
-        onClick={onAskDiscard}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      <Hint label="Tentar enviar novamente">
+        <Button
+          aria-label="Tentar enviar novamente"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-primary"
+          onClick={onRetry}
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+      </Hint>
+      <Hint label={discardTitle}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
+          aria-label={discardTitle}
+          onClick={onAskDiscard}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </Hint>
     </>
   );
 }

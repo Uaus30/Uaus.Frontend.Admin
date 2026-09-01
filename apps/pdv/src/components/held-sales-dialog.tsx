@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspac
 import { ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
+import { Hint } from "./hint";
 import { ConfirmActionDialog } from "@/features/pdv/components/confirm-action-dialog";
 
 type HeldSalesDialogProps = {
@@ -156,15 +157,17 @@ export function HeldSalesDialog({ open, onOpenChange, onResumed, onHeldToMakeRoo
                             <Play className="h-3.5 w-3.5" /> Continuar
                           </Button>
 
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Descartar venda em espera"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
-                            onClick={() => setDiscardingId(sale.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Hint label="Descartar venda em espera">
+                            <Button
+                              aria-label="Descartar venda em espera"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
+                              onClick={() => setDiscardingId(sale.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </Hint>
                         </div>
                       </div>
 

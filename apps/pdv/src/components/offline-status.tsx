@@ -4,6 +4,7 @@ import { Button } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
 import { useCompanySettings } from "@/hooks/use-company-settings";
+import { Hint } from "./hint";
 import { useOfflineQueue } from "@/features/pdv/hooks/use-offline-queue";
 import { PendingSaleRow, PendingWriteOffRow } from "@/features/pdv/components/offline-queue-rows";
 import { ConnectionCard, LocalDatabaseCard } from "@/features/pdv/components/offline-status-cards";
@@ -81,30 +82,31 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
   return (
     <>
       {showChip && (
-        <button
-          type="button"
-          onClick={openPanel}
-          title="Estado da conexão e fila de vendas offline"
-          className={`relative flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wider transition-transform hover:scale-105 active:scale-95 cursor-pointer ${
-            online
-              ? "border-sky-500/30 bg-sky-500/15 text-sky-600 dark:text-sky-400"
-              : "border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400"
-          }`}
-        >
-          {syncing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : online ? (
-            <Cloud className="h-4 w-4" />
-          ) : (
-            <CloudOff className="h-4 w-4" />
-          )}
-          {online ? "Fila offline" : "Offline"}
-          {queuedCount > 0 && (
-            <span className="rounded-full bg-amber-500 px-1.5 font-mono text-[10px] font-bold text-white">
-              {queuedCount}
-            </span>
-          )}
-        </button>
+        <Hint label="Estado da conexão e fila de vendas offline" side="bottom">
+          <button
+            type="button"
+            onClick={openPanel}
+            className={`relative flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wider transition-transform hover:scale-105 active:scale-95 cursor-pointer ${
+              online
+                ? "border-sky-500/30 bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                : "border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400"
+            }`}
+          >
+            {syncing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : online ? (
+              <Cloud className="h-4 w-4" />
+            ) : (
+              <CloudOff className="h-4 w-4" />
+            )}
+            {online ? "Fila offline" : "Offline"}
+            {queuedCount > 0 && (
+              <span className="rounded-full bg-amber-500 px-1.5 font-mono text-[10px] font-bold text-white">
+                {queuedCount}
+              </span>
+            )}
+          </button>
+        </Hint>
       )}
 
       <Dialog open={isPanelOpen} onOpenChange={setIsPanelOpen}>

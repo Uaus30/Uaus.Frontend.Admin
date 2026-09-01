@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { screen, fireEvent, act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FullscreenToggle } from "../fullscreen-toggle";
+import { renderWithHints } from "@/test/render-with-hints";
 
 /** Instala a API de tela cheia do navegador no jsdom, que não a implementa. */
 function givenFullscreenApi({ suportado = true } = {}) {
@@ -32,7 +33,7 @@ describe("FullscreenToggle", () => {
 
   it("deve pedir tela cheia ao navegador", () => {
     const { requestFullscreen } = givenFullscreenApi();
-    render(<FullscreenToggle />);
+    renderWithHints(<FullscreenToggle />);
 
     fireEvent.click(screen.getByRole("button", { name: "Entrar em tela cheia" }));
 
@@ -41,7 +42,7 @@ describe("FullscreenToggle", () => {
 
   it("deve oferecer a saída depois que o navegador entra em tela cheia", () => {
     const { exitFullscreen } = givenFullscreenApi();
-    render(<FullscreenToggle />);
+    renderWithHints(<FullscreenToggle />);
 
     // Quem manda é o `document.fullscreenElement`: o operador pode ter entrado
     // pelo F11, sem passar pelo botão, e o rótulo tem que acompanhar.
@@ -55,7 +56,7 @@ describe("FullscreenToggle", () => {
   it("deve voltar a oferecer a entrada quando o operador sai pelo Esc", () => {
     // O Esc sai da tela cheia sem avisar o React. Sem ouvir o evento, o botão
     // continuaria oferecendo "sair" de um modo em que ninguém mais está.
-    render(<FullscreenToggle />);
+    renderWithHints(<FullscreenToggle />);
     whenBrowserFullscreenChanges(document.documentElement);
     expect(screen.getByRole("button", { name: "Sair da tela cheia" })).toBeTruthy();
 
@@ -68,7 +69,7 @@ describe("FullscreenToggle", () => {
     // Um botão que não faz nada ensina o operador a desconfiar dos outros.
     givenFullscreenApi({ suportado: false });
 
-    render(<FullscreenToggle />);
+    renderWithHints(<FullscreenToggle />);
 
     expect(screen.queryByRole("button")).toBeNull();
   });

@@ -3,6 +3,7 @@ import { History, Loader2, Printer, MoreVertical, FileBarChart } from "lucide-re
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@workspace/ui";
 import { ScrollArea } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { Hint } from "./hint";
 import { formatCurrency } from "@workspace/core";
 import { enumCode, PAYMENT_STATUS, type SaleDto } from "@workspace/api-client-react";
 
@@ -144,16 +145,18 @@ export function SalesHistoryDialog({
                       </div>
 
                       <div className="relative flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary cursor-pointer"
-                          onClick={() => onPrintSaleReceipt(sale)}
-                          disabled={busySaleId === sale.id}
-                          title="Reimprimir cupom"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </Button>
+                        <Hint label="Reimprimir cupom">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary cursor-pointer"
+                            onClick={() => onPrintSaleReceipt(sale)}
+                            disabled={busySaleId === sale.id}
+                            aria-label="Reimprimir cupom"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </Button>
+                        </Hint>
 
                         <Button
                           variant="ghost"
@@ -161,6 +164,10 @@ export function SalesHistoryDialog({
                           className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
                           onClick={() => setActiveRowMenuId(activeRowMenuId === sale.id ? null : sale.id)}
                           disabled={isCancelled || busySaleId === sale.id || !podeAlterar}
+                          // `title` nativo, e não o `Hint`: esta dica só existe
+                          // quando o botão está DESABILITADO, e botão desabilitado
+                          // não dispara evento de ponteiro — o tooltip do Radix
+                          // nunca abriria justamente no caso que ele explica.
                           title={
                             podeAlterar
                               ? undefined

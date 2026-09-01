@@ -111,7 +111,15 @@ function Shell() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+      {/* 100ms em vez dos 700ms padrão do Radix: a dica do PDV é lida de
+          passagem, com o cliente no balcão. Era o que o `title` nativo não
+          entregava — o atraso dele é do sistema operacional, perto de um
+          segundo, e sem como configurar. Ver `components/hint.tsx`.
+
+          `skipDelayDuration` mantém a dica instantânea enquanto o operador
+          percorre botões vizinhos: passar pela fileira do rodapé não pode
+          recomeçar a contagem a cada um. */}
+      <TooltipProvider delayDuration={100} skipDelayDuration={300}>
         <Shell />
         <Toaster />
       </TooltipProvider>

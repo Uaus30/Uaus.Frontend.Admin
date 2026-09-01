@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PauseCircle, Settings, Tag, Ticket, X } from "lucide-react";
 import { Button } from "@workspace/ui";
+import { Hint } from "@/components/hint";
 import { COUPON_SHORTCUT_KEY } from "./coupon-dialog";
 
 export type PdvCartActionsProps = {
@@ -71,16 +72,17 @@ export function PdvCartActionsExtended({
         >
           DESCONTO
         </Button>
-        <Button
-          variant="outline"
-          className="h-9 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
-          onMouseDown={keepFocusOnSearch}
-          onClick={onCoupon}
-          disabled={!hasItems}
-          title={`Aplicar cupom de desconto (${COUPON_SHORTCUT_KEY})`}
-        >
-          CUPOM
-        </Button>
+        <Hint label={`Aplicar cupom de desconto (${COUPON_SHORTCUT_KEY})`}>
+          <Button
+            variant="outline"
+            className="h-9 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
+            onMouseDown={keepFocusOnSearch}
+            onClick={onCoupon}
+            disabled={!hasItems}
+          >
+            CUPOM
+          </Button>
+        </Hint>
       </div>
 
       <Button
@@ -93,16 +95,17 @@ export function PdvCartActionsExtended({
 
       {hasItems && (
         <div className="grid grid-cols-2 gap-1 -mt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-[10px] font-bold tracking-wider text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 gap-1.5 cursor-pointer disabled:opacity-40"
-            onClick={onHoldSale}
-            disabled={editingSaleId !== null}
-            title={holdTitle(editingSaleId)}
-          >
-            <PauseCircle className="w-3.5 h-3.5" /> PAUSAR
-          </Button>
+          <Hint label={holdTitle(editingSaleId)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-[10px] font-bold tracking-wider text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 gap-1.5 cursor-pointer disabled:opacity-40"
+              onClick={onHoldSale}
+              disabled={editingSaleId !== null}
+            >
+              <PauseCircle className="w-3.5 h-3.5" /> PAUSAR
+            </Button>
+          </Hint>
           <Button
             variant="ghost"
             size="sm"
@@ -184,19 +187,21 @@ export function PdvCartActionsCompact({
         >
           FINALIZAR
         </Button>
-        <Button
-          ref={gearRef}
-          variant="outline"
-          // Quadrado da altura do finalizar: é botão de balcão, tocado com o
-          // polegar, e um alvo menor que o dedo erraria o clique.
-          className="h-12 w-12 shrink-0 border-primary/20 hover:bg-primary/5 cursor-pointer"
-          onMouseDown={keepFocusOnSearch}
-          onClick={() => setIsOpen((open) => !open)}
-          aria-expanded={isOpen}
-          title="Mais ações da venda"
-        >
-          <Settings className="w-5 h-5 text-primary" />
-        </Button>
+        <Hint label="Mais ações da venda">
+          <Button
+            ref={gearRef}
+            variant="outline"
+            // Quadrado da altura do finalizar: é botão de balcão, tocado com o
+            // polegar, e um alvo menor que o dedo erraria o clique.
+            className="h-12 w-12 shrink-0 border-primary/20 hover:bg-primary/5 cursor-pointer"
+            onMouseDown={keepFocusOnSearch}
+            onClick={() => setIsOpen((open) => !open)}
+            aria-expanded={isOpen}
+            aria-label="Mais ações da venda"
+          >
+            <Settings className="w-5 h-5 text-primary" />
+          </Button>
+        </Hint>
       </div>
 
       <AnimatePresence>
@@ -234,25 +239,27 @@ export function PdvCartActionsCompact({
               >
                 <Tag className="h-3.5 w-3.5" /> DESCONTO
               </Button>
-              <Button
-                variant="outline"
-                className="h-9 gap-1 text-[10px] font-bold tracking-wider border-primary/20 hover:bg-primary/5 cursor-pointer"
-                onMouseDown={keepFocusOnSearch}
-                onClick={run(onCoupon)}
-                disabled={!hasItems}
-                title={`Aplicar cupom de desconto (${COUPON_SHORTCUT_KEY})`}
-              >
-                <Ticket className="h-3.5 w-3.5" /> CUPOM
-              </Button>
-              <Button
-                variant="outline"
-                className="h-9 gap-1 text-[10px] font-bold tracking-wider border-primary/20 hover:bg-primary/5 cursor-pointer disabled:opacity-40"
-                onClick={run(onHoldSale)}
-                disabled={!hasItems || editingSaleId !== null}
-                title={holdTitle(editingSaleId)}
-              >
-                <PauseCircle className="h-3.5 w-3.5" /> PAUSAR
-              </Button>
+              <Hint label={`Aplicar cupom de desconto (${COUPON_SHORTCUT_KEY})`}>
+                <Button
+                  variant="outline"
+                  className="h-9 gap-1 text-[10px] font-bold tracking-wider border-primary/20 hover:bg-primary/5 cursor-pointer"
+                  onMouseDown={keepFocusOnSearch}
+                  onClick={run(onCoupon)}
+                  disabled={!hasItems}
+                >
+                  <Ticket className="h-3.5 w-3.5" /> CUPOM
+                </Button>
+              </Hint>
+              <Hint label={holdTitle(editingSaleId)}>
+                <Button
+                  variant="outline"
+                  className="h-9 gap-1 text-[10px] font-bold tracking-wider border-primary/20 hover:bg-primary/5 cursor-pointer disabled:opacity-40"
+                  onClick={run(onHoldSale)}
+                  disabled={!hasItems || editingSaleId !== null}
+                >
+                  <PauseCircle className="h-3.5 w-3.5" /> PAUSAR
+                </Button>
+              </Hint>
               <Button
                 variant="outline"
                 className="h-9 text-[10px] font-bold tracking-wider border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer"
