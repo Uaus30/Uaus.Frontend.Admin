@@ -4,7 +4,8 @@ import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { CurrencyInput } from "./CurrencyInput";
-import { nomeExibidoDaVariacao, rotuloDaGrade } from "../lib/variationMatrix";
+import { VariationGradeHeader } from "./VariationGradeHeader";
+import { nomeExibidoDaVariacao } from "../lib/variationMatrix";
 import type { VariationDraft, ProductGrade } from "../types";
 
 type ProductVariationsSectionProps = {
@@ -30,6 +31,8 @@ type ProductVariationsSectionProps = {
   handleDeleteVariation: (variation: VariationDraft) => void;
   /** Acrescenta uma linha fora da matriz, para o operador preencher a grade à mão */
   addVariationDraft: (initialValues?: Partial<VariationDraft>) => void;
+  /** Troca o TIPO de uma coluna de grade em todas as variações de uma vez */
+  changeGradeType: (de: ProductGrade["type"], para: ProductGrade["type"]) => void;
 };
 
 /**
@@ -57,6 +60,7 @@ export function ProductVariationsSection({
   setVariationToDelete,
   handleDeleteVariation,
   addVariationDraft,
+  changeGradeType,
 }: ProductVariationsSectionProps) {
   if (variationDrafts.length === 0) return null;
 
@@ -93,9 +97,16 @@ export function ProductVariationsSection({
               {selectedGrades.map((grade) => (
                 <th
                   key={grade.type}
-                  className="px-3 py-3 font-medium w-32 border-l border-border/30 bg-muted/20 text-foreground"
+                  className="px-2 py-2 font-medium w-32 border-l border-border/30 bg-muted/20 text-foreground"
                 >
-                  {rotuloDaGrade(grade.type)} <span className="text-red-500">*</span>
+                  <div className="flex items-center gap-1">
+                    <VariationGradeHeader
+                      type={grade.type}
+                      tiposEmUso={selectedGrades.map((outra) => outra.type)}
+                      onChangeType={changeGradeType}
+                    />
+                    <span className="text-red-500">*</span>
+                  </div>
                 </th>
               ))}
               <th className="px-4 py-3 font-medium">Variação</th>
@@ -249,8 +260,9 @@ export function ProductVariationsSection({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
-          O nome da variação é montado a partir do nome do produto e dos valores de grade. Para mudar as
-          grades ou acrescentar valores, use <strong>Configurar Variações</strong>.
+          O nome da variação é montado a partir do nome do produto e dos valores de grade. O título de cada
+          coluna troca o tipo da grade. Para acrescentar valores ou uma grade nova, use{" "}
+          <strong>Configurar Variações</strong>.
         </p>
         {/*
           Acrescentar uma linha avulsa evita regerar a matriz só para incluir uma

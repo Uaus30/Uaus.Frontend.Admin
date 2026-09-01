@@ -24,6 +24,7 @@ export function ProductVariationsManager({
     updateVariationDraft,
     handleDeleteVariation,
     addVariationDraft,
+    changeGradeType,
   } = editor;
 
   return (
@@ -39,6 +40,7 @@ export function ProductVariationsManager({
       setVariationToDelete={setVariationToDelete}
       handleDeleteVariation={handleDeleteVariation}
       addVariationDraft={addVariationDraft}
+      changeGradeType={changeGradeType}
     />
   );
 }

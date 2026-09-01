@@ -25,6 +25,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 - `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
+- `components/VariationGradeHeader.tsx`: Cabeçalho da coluna de grade, com a troca do tipo (Cor/Tamanho/Modelo) para todas as linhas.
 - `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e a mutation da edição rápida de preço.
 - `hooks/mapProductTableRow.ts`: Traduz a linha que o servidor devolve para a linha que a tela usa.
 - `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, geração da matriz cartesiana de variações, validações e persistência no banco.
@@ -87,10 +88,16 @@ Hoje:
 - **Os valores pertencem ao produto.** "Cor" pode ter duas opções aqui e cinco
   no produto vizinho, sem que os dois disputem um cadastro comum. É o que o
   desenho antigo não permitia sem criar uma grade por combinação.
-- **A modal `VariationGradesModal`** marca as grades e recebe os valores
-  separados por vírgula; `gerarCombinacoes` cruza tudo (`lib/variationMatrix.ts`).
-  A modal só deixa gerar com **duas ou mais combinações** — é o mínimo que o
-  salvamento exige, e descobrir isso só no salvar era um erro anunciado.
+- **A modal `VariationGradesModal`** marca as grades e recebe os valores **um
+  por linha**; `gerarCombinacoes` cruza tudo (`lib/variationMatrix.ts`). A modal
+  só deixa gerar com **duas ou mais combinações** — é o mínimo que o salvamento
+  exige, e descobrir isso só no salvar era um erro anunciado.
+- **Uma linha por valor, não vírgula (01/09/2026).** A vírgula é o separador
+  decimal do português: "10L, 6L, 3,6L" virava quatro valores — "10L", "6L", "3"
+  e "6L" —, o repetido caía fora e a variação "[3,6L]", com código de barras e
+  venda, deixava de existir na matriz. Quebra de linha não aparece dentro de
+  valor nenhum, então o vaivém entre a modal e a tabela é fiel
+  (`separarValoresDeGrade` / `juntarValoresDeGrade`).
 - **Reabrir a modal mostra o que o produto já tem.** As grades e os valores são
   reconstruídos das próprias variações (`gradesDasVariacoes`), e não de estado
   guardado à parte — o formulário é remontado por `key` a cada abertura.
@@ -102,12 +109,40 @@ Hoje:
   descartava tudo: drafts sem id viravam produtos NOVOS no salvar e os antigos
   ficavam no banco — o grupo acumulava duplicatas até a checagem de combinação
   repetida travar o cadastro.
+- **A mesclagem aproveita a combinação COMPATÍVEL, não só a idêntica
+  (01/09/2026).** São duas passadas: primeiro a combinação igual, depois a que
+  concorda com a variação em todas as grades que as duas têm. É o que faz
+  acrescentar uma coluna não destruir o cadastro — com "Cor: AZUL" entrando num
+  produto de "[10L]", "[6L]" e "[3,6L]", cada linha vira "[AZUL, 10L]",
+  "[AZUL, 6L]" e "[AZUL, 3,6L]" com o código de barras intacto. Antes nasciam
+  três linhas em branco e as três originais ficavam órfãs na tela. Vale para o
+  caminho inverso: tirar uma grade também preserva as variações. Quando a grade
+  nova traz **mais de um valor** o casamento é por ordem — as variações atuais
+  ficam com o primeiro valor, e a modal avisa antes de gerar, porque aí a
+  escolha é um palpite.
 - **Combinação repetida é bloqueada no salvamento** (`chaveDaCombinacao`, que
   ignora ordem e caixa). O NOME deixou de servir de critério: ele é o mesmo em
   todas as variações. A validação de preenchimento também exige valor em toda
   grade que o grupo usa, pintando a célula `grade-<tipo>-<key>` da linha — o
   nome da variação NÃO é validado, porque é derivado e a coluna é somente
   leitura.
+
+#### Trocar o TIPO da grade é feito na coluna (01/09/2026)
+
+O título de cada coluna de grade é um seletor: "Modelo" vira "Cor" ou "Tamanho"
+para todas as linhas de uma vez (`trocarTipoDeGrade`, `VariationGradeHeader`).
+A importação do sistema anterior trouxe centenas de produtos com a grade
+"Modelo" onde o valor é cor ou tamanho, e pela modal não havia como corrigir:
+desmarcar "Modelo" e marcar "Cor" gera combinações **sem grade nenhuma em
+comum** com as atuais, então a matriz nasceria em branco e as variações com
+código de barras iriam para a exclusão. Trocando na coluna, a variação continua
+a mesma — muda só o nome da grade, e a gravação acontece no Salvar como
+qualquer outra edição da tabela.
+
+O tipo já usado por outra coluna sai desabilitado: duas grades do mesmo tipo na
+mesma variação não têm representação em `ProductVariationValues`, que tem uma
+linha por grade. O backend acompanha sem migração — o `SyncVariationValuesAsync`
+remove a grade que não veio no pedido e insere a que entrou.
 
 #### O nome da variação não é editável
 

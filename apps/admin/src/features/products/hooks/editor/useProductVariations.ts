@@ -3,7 +3,8 @@ import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { deleteProduct } from "@/services/products.service";
 import { createVariationDraft } from "./utils";
-import { gerarCombinacoes, mesclarMatriz } from "../../lib/variationMatrix";
+import { gerarCombinacoes, mesclarMatriz, trocarTipoDeGrade } from "../../lib/variationMatrix";
+import type { GradeTypeCode } from "@workspace/api-client-react";
 import type { VariationDraft, ProductGrade, ProductGroupForm, ProductEditorForm } from "../../types";
 
 export interface UseProductVariationsProps {
@@ -47,11 +48,14 @@ export function useProductVariations({
   /**
    * Gera/regenera a matriz MESCLANDO com o que o produto já tem.
    *
-   * Combinação que continua na matriz preserva o draft atual — id, preço,
-   * código de barras, imagens. Combinação nova nasce com preço e estoque mínimo
-   * do produto principal como ponto de partida. Combinação que saiu é excluída
-   * do servidor na hora (como o lixo da linha faz), exceto as que têm venda
-   * (`canDelete === false`), que permanecem na lista com um aviso.
+   * Quem decide qual variação vai para qual combinação é o `mesclarMatriz`, e
+   * ele aproveita tanto a combinação idêntica quanto a compatível — acrescentar
+   * a coluna "Cor: AZUL" num produto de "[10L]", "[6L]" e "[3,6L]" reaproveita
+   * as três linhas com id, preço, código de barras e imagens. Combinação sem
+   * dona nasce com preço e estoque mínimo do produto principal como ponto de
+   * partida. Combinação que saiu é excluída do servidor na hora (como o lixo da
+   * linha faz), exceto as que têm venda (`canDelete === false`), que permanecem
+   * na lista com um aviso.
    *
    * Antes a regeração descartava TUDO: drafts novos sem id viravam produtos
    * NOVOS no salvar e os antigos ficavam no banco — o grupo acumulava
@@ -94,7 +98,11 @@ export function useProductVariations({
     }
 
     const finais = slots.map(({ values, existente }) => {
-      if (existente) return existente;
+      // Os valores vêm do SLOT, não do draft: quem casou por compatibilidade —
+      // a variação "[10L]" que a matriz nova quer como "[AZUL, 10L]" — ainda
+      // não tem a grade que entrou, e sem isto a linha ficaria com a coluna
+      // nova vazia e o salvar recusaria por combinação repetida.
+      if (existente) return { ...existente, values };
       const draft = createVariationDraft(defaultStatus, form.productGroupName.trim());
       draft.price = productEditor.price;
       draft.stock = 0;
@@ -121,6 +129,20 @@ export function useProductVariations({
         variant: "warning",
       });
     }
+  }
+
+  /**
+   * Troca o tipo de uma coluna de grade em todas as variações.
+   *
+   * A importação do sistema anterior trouxe muito produto com a grade "Modelo"
+   * onde o valor é cor ou tamanho. Corrigir pela modal de configuração não
+   * resolve: as combinações de "Cor" não têm grade em comum com as de "Modelo",
+   * então a matriz nasceria em branco e as variações com código de barras
+   * iriam para a exclusão. Aqui a variação continua a mesma — muda o nome da
+   * coluna, e o cadastro só é gravado no salvar, como qualquer edição da tabela.
+   */
+  function changeGradeType(de: GradeTypeCode, para: GradeTypeCode) {
+    setVariationDrafts((current) => trocarTipoDeGrade(current, de, para));
   }
 
   /**
@@ -181,6 +203,7 @@ export function useProductVariations({
     activeVariation,
     updateVariationDraft,
     generateVariationsMatrix,
+    changeGradeType,
     addVariationDraft,
     handleDeleteVariation,
   };

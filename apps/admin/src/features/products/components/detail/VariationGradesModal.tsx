@@ -10,13 +10,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui";
-import { Input } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
 import { GRADE_TYPE, GRADE_TYPE_LABELS, type GradeTypeCode } from "@workspace/api-client-react";
-import { gerarCombinacoes } from "../../lib/variationMatrix";
+import { gerarCombinacoes, juntarValoresDeGrade, separarValoresDeGrade } from "../../lib/variationMatrix";
 import type { ProductGrade } from "../../types";
 
 /** Ordem em que as grades aparecem na modal e no nome composto. */
 const GRADES_DISPONIVEIS: GradeTypeCode[] = [GRADE_TYPE.Color, GRADE_TYPE.Size, GRADE_TYPE.Model];
+
+/** Exemplo de preenchimento, já no formato de uma linha por valor. */
+const PLACEHOLDERS: Record<GradeTypeCode, string> = {
+  [GRADE_TYPE.Color]: "Azul\nPreto\nRosa",
+  [GRADE_TYPE.Size]: "10L\n6L\n3,6L",
+  [GRADE_TYPE.Model]: "Com alça\nSem alça",
+};
 
 type VariationGradesModalProps = {
   open: boolean;
@@ -27,23 +34,6 @@ type VariationGradesModalProps = {
   variationCount: number;
   onConfirm: (grades: ProductGrade[]) => void;
 };
-
-/** "Azul, Preto, Rosa" -> ["Azul", "Preto", "Rosa"], sem repetidos nem vazios. */
-function separarValores(texto: string): string[] {
-  const vistos = new Set<string>();
-  const valores: string[] = [];
-
-  for (const bruto of texto.split(",")) {
-    const valor = bruto.trim();
-    if (!valor) continue;
-    const chave = valor.toUpperCase();
-    if (vistos.has(chave)) continue;
-    vistos.add(chave);
-    valores.push(valor);
-  }
-
-  return valores;
-}
 
 /**
  * Escolha das grades da variação e dos valores de cada uma.
@@ -95,15 +85,14 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
   const [marcadas, setMarcadas] = useState<GradeTypeCode[]>(() => selectedGrades.map((grade) => grade.type));
   const [textos, setTextos] = useState<Record<number, string>>(
     () =>
-      Object.fromEntries(selectedGrades.map((grade) => [grade.type, grade.values.join(", ")])) as Record<
-        number,
-        string
-      >,
+      Object.fromEntries(
+        selectedGrades.map((grade) => [grade.type, juntarValoresDeGrade(grade.values)]),
+      ) as Record<number, string>,
   );
 
   const grades: ProductGrade[] = marcadas.map((type) => ({
     type,
-    values: separarValores(textos[type] ?? ""),
+    values: separarValoresDeGrade(textos[type] ?? ""),
   }));
 
   const totalDeVariacoes = gerarCombinacoes(grades).length;
@@ -116,6 +105,14 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
     setMarcadas((atuais) => (atuais.includes(type) ? atuais.filter((t) => t !== type) : [...atuais, type]));
   }
 
+  // Grade que ENTRA agora trazendo mais de um valor: as variações de hoje só
+  // cabem em uma das combinações novas, e quem escolhe é a ordem — a primeira
+  // fica com elas. Com um valor só não há escolha a fazer, e é por isso que o
+  // aviso não aparece nesse caso.
+  const gradesNovasComEscolha = grades.filter(
+    (grade) => grade.values.length > 1 && !selectedGrades.some((atual) => atual.type === grade.type),
+  );
+
   return (
     <DialogContent className="sm:max-w-[520px]">
       <DialogHeader>
@@ -124,14 +121,14 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
           Configurar Variações
         </DialogTitle>
         <DialogDescription>
-          Escolha as grades e digite os valores de cada uma, separados por vírgula.
+          Escolha as grades e digite os valores de cada uma, <strong>um por linha</strong>.
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-3 py-2 max-h-[50vh] overflow-y-auto pr-1">
         {GRADES_DISPONIVEIS.map((type) => {
           const marcada = marcadas.includes(type);
-          const valores = separarValores(textos[type] ?? "");
+          const valores = separarValoresDeGrade(textos[type] ?? "");
 
           return (
             <div
@@ -145,17 +142,16 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
 
               {marcada && (
                 <div className="mt-3 space-y-1.5 pl-7">
-                  <Input
+                  {/*
+                    Um valor por LINHA, não por vírgula: a vírgula é o separador
+                    decimal do português e partia "3,6L" em "3" e "6L".
+                  */}
+                  <Textarea
                     value={textos[type] ?? ""}
                     onChange={(e) => setTextos((atuais) => ({ ...atuais, [type]: e.target.value }))}
-                    placeholder={
-                      type === GRADE_TYPE.Color
-                        ? "Ex: Azul, Preto, Rosa"
-                        : type === GRADE_TYPE.Size
-                          ? "Ex: P, M, G"
-                          : "Ex: Com alça, Sem alça"
-                    }
-                    className="bg-background"
+                    rows={3}
+                    placeholder={PLACEHOLDERS[type]}
+                    className="bg-background font-mono text-xs leading-relaxed"
                     aria-label={`Valores de ${GRADE_TYPE_LABELS[type]}`}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -173,10 +169,23 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
       {variationCount > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <p className="text-sm leading-tight">
-            As combinações que continuarem na matriz mantêm preço, código de barras e estoque. As que saírem
-            serão <strong>excluídas do cadastro</strong> — exceto as que já têm venda, que permanecem.
-          </p>
+          <div className="space-y-1.5 text-sm leading-tight">
+            <p>
+              As variações de hoje são <strong>aproveitadas</strong> pelas combinações novas, com preço,
+              código de barras e estoque. O que sobrar sai do cadastro — exceto o que já tem venda, que
+              permanece na lista.
+            </p>
+            {gradesNovasComEscolha.length > 0 && (
+              <p>
+                {gradesNovasComEscolha
+                  .map((grade) => `${GRADE_TYPE_LABELS[grade.type]} tem ${grade.values.length} valores novos`)
+                  .join("; ")}
+                : as variações atuais ficam com{" "}
+                <strong>{gradesNovasComEscolha.map((grade) => grade.values[0]).join(" · ")}</strong> e as
+                demais combinações nascem em branco.
+              </p>
+            )}
+          </div>
         </div>
       )}
 

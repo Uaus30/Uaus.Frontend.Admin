@@ -77,8 +77,11 @@ export function ProductGeneralTab({
 
       {/*
         O botão continua disponível DEPOIS de gerar a matriz: reconfigurar as
-        grades (acrescentar uma cor, trocar Tamanho por Modelo) é operação
-        normal, e a modal reabre marcada com o que o produto já tem.
+        grades (acrescentar uma cor, incluir mais um tamanho) é operação normal,
+        e a modal reabre marcada com o que o produto já tem. Trocar o TIPO da
+        grade, porém, é no título da coluna da tabela — pela modal as
+        combinações novas não teriam grade em comum com as atuais, e as
+        variações com código de barras iriam para a exclusão.
       */}
       <Button
         type="button"

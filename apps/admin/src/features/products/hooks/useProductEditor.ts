@@ -403,5 +403,9 @@ export function useProductEditor() {
       markDirty();
       return productVariations.generateVariationsMatrix(grades);
     },
+    changeGradeType: (de: GradeTypeCode, para: GradeTypeCode) => {
+      markDirty();
+      productVariations.changeGradeType(de, para);
+    },
   };
 }
