@@ -94,7 +94,6 @@ function caminhosPedidos(): string[] {
 
 vi.mock("@/services/products.service", () => ({
   upsertProduct: vi.fn(() => Promise.resolve({ id: 10 })),
-  adjustProductStock: vi.fn(() => Promise.resolve({ id: 10 })),
   syncProductImages: vi.fn(() => Promise.resolve()),
 }));
 
@@ -231,10 +230,7 @@ describe("useProductTable Hook", () => {
     );
   });
 
-  it.each([
-    ["preço", (r: ReturnType<typeof useProductTable>) => r.updateProductPrice(r.enrichedProducts[0], 29.9)],
-    ["estoque", (r: ReturnType<typeof useProductTable>) => r.updateProductStock(r.enrichedProducts[0], 10)],
-  ])("invalida o prefixo do recurso na edição inline de %s", async (_label, mutate) => {
+  it("invalida o prefixo do recurso na edição inline de preço", async () => {
     // Regressão: a linha lê preço e estoque de UMA query (`["products","table"]`).
     // Invalidar as chaves antigas da cascata compilaria, rodaria sem erro e
     // deixaria a célula mostrando o valor velho depois de salvar.
@@ -244,25 +240,12 @@ describe("useProductTable Hook", () => {
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
     await act(async () => {
-      await mutate(result.current);
+      await result.current.updateProductPrice(result.current.enrichedProducts[0], 29.9);
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["products"] });
     // A invalidação do prefixo tem que ALCANÇAR a query registrada.
     expect(queryClient.getQueryCache().findAll({ queryKey: ["products"] })).not.toHaveLength(0);
-  });
-
-  it("recusa redução manual de estoque antes de chamar a API", async () => {
-    // Baixa de estoque nasce de venda ou perda, nunca de digitação na célula.
-    const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
-
-    await waitFor(() => expect(result.current.enrichedProducts).toHaveLength(1));
-
-    await act(async () => {
-      await result.current.updateProductStock(result.current.enrichedProducts[0], 1);
-    });
-
-    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 
   it("preserva as imagens atuais ao definir uma imagem da web como principal", async () => {

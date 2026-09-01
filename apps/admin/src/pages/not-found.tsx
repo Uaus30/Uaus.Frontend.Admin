@@ -1,19 +1,27 @@
-import { Card, CardContent } from "@workspace/ui";
-import { AlertCircle } from "lucide-react";
+import { Link } from "wouter";
+import { buttonVariants, NotFoundScreen } from "@workspace/ui";
 
+/**
+ * 404 do admin.
+ *
+ * A tela em si vem do `@workspace/ui` — o que muda por app é só a ação de
+ * retorno, porque o destino de "voltar" é diferente em cada um. Aqui é o
+ * dashboard, que é para onde a raiz `/` também redireciona.
+ *
+ * A rota coringa fica FORA do `AuthGate` (ver `App.tsx`): quem digitou um
+ * endereço errado sem sessão precisa ver que o endereço não existe, não um
+ * login que não vai levar a lugar nenhum.
+ */
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
-          </div>
-
-          <p className="mt-4 text-sm text-gray-600">Did you forget to add the page to the router?</p>
-        </CardContent>
-      </Card>
-    </div>
+    <NotFoundScreen
+      className="min-h-screen bg-background"
+      description="O endereço que você abriu não existe no painel administrativo."
+      action={
+        <Link href="/dashboard" className={buttonVariants({ size: "lg" })}>
+          Ir para o Dashboard
+        </Link>
+      }
+    />
   );
 }

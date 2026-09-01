@@ -6,11 +6,6 @@
  * module") e ficaria morta sem este reload. Mora no pacote — e não num app —
  * porque o site público (apps/loja) sofre disso mais que o admin: visitante não
  * recarrega aba por conta própria.
- *
- * Nota de unificação: `apps/admin/src/lib/chunk-reload.ts` mantém uma cópia
- * idêntica anterior a esta (o spy de namespace dos testes do ErrorBoundary não
- * sobrevive a re-export). Unificar o admin para importar daqui é tarefa
- * pendente; até lá, alteração de comportamento deve ser aplicada nos dois.
  */
 
 /**

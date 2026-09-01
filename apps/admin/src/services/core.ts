@@ -1,10 +1,17 @@
 import {
   apiGetOrThrow,
-  API_BASE_URL,
   mapPagedResult,
   type BackendPagedResult,
   type EnumOptionDto,
 } from "@workspace/api-client-react";
+
+/**
+ * A montagem da URL pública de imagem mudou para o `@workspace/api-client-react`
+ * quando o PDV passou a exibir miniatura na busca do balcão: os dois apps
+ * precisam recolocar a MESMA base, e ela já mora lá. Continua saindo daqui
+ * porque meia dúzia de telas do admin importam deste caminho.
+ */
+export { buildPublicImageUrl } from "@workspace/api-client-react";
 
 export async function getEnumOptions(path: string) {
   return apiGetOrThrow<EnumOptionDto[]>(path, undefined, { auth: false });
@@ -13,12 +20,6 @@ export async function getEnumOptions(path: string) {
 export async function getPaged<T>(path: string, params?: Record<string, unknown>) {
   const result = await apiGetOrThrow<BackendPagedResult<T>>(path, params);
   return mapPagedResult(result);
-}
-
-export function buildPublicImageUrl(url: string) {
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/")) return `${API_BASE_URL}${url}`;
-  return `${API_BASE_URL}/${url}`;
 }
 
 export async function fileToDataUrl(file: File) {

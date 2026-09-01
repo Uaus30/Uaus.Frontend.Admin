@@ -20,6 +20,7 @@ import type {
   BackendPagedResult,
   QueryKey,
   StorefrontCompanyDto,
+  StorefrontDepartmentDto,
   StorefrontProductDetailDto,
   StorefrontProductDto,
   UiPagedResult,
@@ -37,6 +38,10 @@ export const getGetStorefrontCompanyQueryKey = (): QueryKey => ["storefront-comp
 /** Filtros da página da vitrine. O `size` padrão (24) preenche a grade de 4 colunas. */
 export interface StorefrontProductsPageParams {
   search?: string;
+  /** Departamento (nível 1 da taxonomia). */
+  departmentId?: number;
+  /** Categoria (nível 2). Vindo junto com o departamento, valem os dois. */
+  categoryId?: number;
   page?: number;
   size?: number;
 }
@@ -49,6 +54,8 @@ export async function getStorefrontProductsPage(
     "/Storefront/products",
     {
       search: params?.search,
+      departmentId: params?.departmentId,
+      categoryId: params?.categoryId,
       page: params?.page ?? 1,
       size: params?.size ?? 24,
     },
@@ -95,6 +102,26 @@ export function useGetStorefrontProductsInfinite(
   });
 }
 
+/** Prefixo de uma PÁGINA avulsa da vitrine — quem consulta acrescenta os filtros. */
+export const getGetStorefrontProductsPageQueryKey = (): QueryKey => ["storefront-products-page"];
+
+/**
+ * Uma página só da vitrine, sem scroll infinito: a faixa de destaques da home,
+ * que pede os primeiros N produtos e nada mais.
+ *
+ * Prefixo PRÓPRIO, e não o de `useGetStorefrontProductsInfinite`: as duas
+ * guardam formatos diferentes no cache (`UiPagedResult` contra `InfiniteData`
+ * de páginas), e dividir prefixo faria um `invalidateQueries` futuro derrubar
+ * as duas esperando o mesmo shape.
+ */
+export function useGetStorefrontProducts(params?: StorefrontProductsPageParams) {
+  return useQuery<UiPagedResult<StorefrontProductDto>, ApiError>({
+    queryKey: [...getGetStorefrontProductsPageQueryKey(), params ?? {}],
+    queryFn: () => getStorefrontProductsPage(params),
+    staleTime: STALE_TIME.catalogo,
+  });
+}
+
 /** Detalhe de um grupo exibível. 404 vira `ApiError` (sem redirect — anônimo). */
 export function getStorefrontProduct(productGroupId: number): Promise<StorefrontProductDetailDto> {
   return apiGetOrThrow<StorefrontProductDetailDto>(`/Storefront/products/${productGroupId}`, undefined, {
@@ -108,6 +135,30 @@ export function useGetStorefrontProduct(productGroupId: number) {
     queryKey: [...getGetStorefrontProductQueryKey(), productGroupId],
     queryFn: () => getStorefrontProduct(productGroupId),
     enabled: Number.isFinite(productGroupId) && productGroupId > 0,
+    staleTime: STALE_TIME.catalogo,
+  });
+}
+
+/** Prefixo da árvore de filtros — quem consulta acrescenta a busca. */
+export const getGetStorefrontDepartmentsQueryKey = (): QueryKey => ["storefront-departments"];
+
+/** Departamentos e categorias com produto visível, para a lista de filtros. */
+export function getStorefrontDepartments(search?: string): Promise<StorefrontDepartmentDto[]> {
+  return apiGetOrThrow<StorefrontDepartmentDto[]>("/Storefront/departments", { search }, { auth: false });
+}
+
+/**
+ * Árvore de filtros da vitrine.
+ *
+ * `staleTime` de catálogo, e não de referência: a contagem acompanha a busca e o
+ * cadastro do admin, então ela envelhece junto com a grade. Cachear a árvore por
+ * mais tempo que a listagem deixaria "Cozinha (7)" ao lado de três cards — e
+ * ninguém invalida cache no navegador de um visitante.
+ */
+export function useGetStorefrontDepartments(search?: string) {
+  return useQuery<StorefrontDepartmentDto[], ApiError>({
+    queryKey: [...getGetStorefrontDepartmentsQueryKey(), search ?? ""],
+    queryFn: () => getStorefrontDepartments(search),
     staleTime: STALE_TIME.catalogo,
   });
 }

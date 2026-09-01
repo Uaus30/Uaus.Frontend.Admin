@@ -1,6 +1,6 @@
 {
   "name": "@workspace/loja",
-  "version": "1.0.172",
+  "version": "1.7.3",
   "private": true,
   "type": "module",
   "engines": {

@@ -1,69 +1,22 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { AnimatePresence, motion, useDragControls, useMotionValue } from "framer-motion";
-import { Calculator as CalculatorIcon, Delete, History, Trash2, X } from "lucide-react";
+import { Calculator as CalculatorIcon, History, Trash2, X } from "lucide-react";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { evaluate, formatResult } from "@/lib/calculator";
-
-/** Uma tecla do teclado da calculadora. */
-type Key = {
-  label: string;
-  /** Texto enviado para a expressão; ausente em teclas de ação. */
-  input?: string;
-  action?: "clear" | "backspace" | "percent" | "equals";
-  variant: "digit" | "operator" | "action" | "clear" | "equals";
-  /** Ícone no lugar do rótulo, para a tecla de apagar. */
-  icon?: typeof Delete;
-};
-
-const KEYS: Key[] = [
-  { label: "AC", action: "clear", variant: "clear" },
-  { label: "Apagar", action: "backspace", variant: "action", icon: Delete },
-  { label: "%", action: "percent", variant: "action" },
-  { label: "÷", input: "÷", variant: "operator" },
-
-  { label: "7", input: "7", variant: "digit" },
-  { label: "8", input: "8", variant: "digit" },
-  { label: "9", input: "9", variant: "digit" },
-  { label: "×", input: "×", variant: "operator" },
-
-  { label: "4", input: "4", variant: "digit" },
-  { label: "5", input: "5", variant: "digit" },
-  { label: "6", input: "6", variant: "digit" },
-  { label: "−", input: "−", variant: "operator" },
-
-  { label: "1", input: "1", variant: "digit" },
-  { label: "2", input: "2", variant: "digit" },
-  { label: "3", input: "3", variant: "digit" },
-  { label: "+", input: "+", variant: "operator" },
-
-  { label: "0", input: "0", variant: "digit" },
-  { label: ",", input: ",", variant: "digit" },
-  { label: "=", action: "equals", variant: "equals" },
-];
-
-const KEY_STYLES: Record<Key["variant"], string> = {
-  digit: "bg-foreground/10 text-foreground hover:bg-foreground/20",
-  operator: "bg-primary/80 text-primary-foreground hover:bg-primary",
-  action: "bg-foreground/5 text-muted-foreground hover:bg-foreground/15 hover:text-foreground",
-  // Cores fixas, e não do tema: o AC precisa se destacar das outras teclas de
-  // ação nos dois temas, e o painel é translúcido nos dois.
-  clear: "bg-zinc-200 text-zinc-900 hover:bg-white",
-  equals: "col-span-2 bg-emerald-500/90 text-white hover:bg-emerald-500",
-};
+import { KEYBOARD_INPUT, KEYS, KEY_STYLES, type Key } from "./calculator-keys";
 
 /** Folga mínima entre a calculadora e as bordas da tela. */
 const VIEWPORT_MARGIN = 8;
 
-/** Teclas do teclado físico que a calculadora entende, mapeadas para a expressão. */
-const KEYBOARD_INPUT: Record<string, string> = {
-  "*": "×",
-  x: "×",
-  "/": "÷",
-  "-": "−",
-  "+": "+",
-  ".": ",",
-  ",": ",",
-};
+/**
+ * Retângulo em que a calculadora nasce — o espaço de resultados da busca, o
+ * mesmo que mostra "Caixa Livre" com o carrinho vazio. Marcado por atributo em
+ * `features/pdv/components/pdv-search-panel.tsx`.
+ */
+const ANCHOR_SELECTOR = "[data-calculator-anchor]";
+
+/** Folga entre a calculadora e as bordas da área em que ela nasce. */
+const ANCHOR_MARGIN = 16;
 
 /**
  * Calculadora flutuante do PDV.
@@ -95,18 +48,19 @@ export function Calculator() {
 
   const dragControls = useDragControls();
   const panelRef = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(position.x);
-  const y = useMotionValue(position.y);
+  const x = useMotionValue(position?.x ?? 0);
+  const y = useMotionValue(position?.y ?? 0);
 
   const preview = evaluate(expression);
 
   /**
    * Traz a calculadora de volta para dentro da tela.
    *
-   * Abrir o histórico faz o painel crescer para cima; perto da borda superior
-   * isso escondia o cabeçalho, e com ele os botões de fechar e de ocultar o
-   * histórico — a janela virava uma armadilha. Quando o painel é mais alto que
-   * a viewport, o topo tem prioridade: é onde estão os controles.
+   * Abrir o histórico faz o painel crescer; perto da borda de baixo isso jogava
+   * o teclado para fora da tela, e perto da de cima escondia o cabeçalho — com
+   * ele os botões de fechar e de ocultar o histórico, e a janela virava uma
+   * armadilha. Quando o painel é mais alto que a viewport, o topo tem
+   * prioridade: é onde estão os controles.
    */
   const clampIntoViewport = useCallback(() => {
     const node = panelRef.current;
@@ -139,21 +93,73 @@ export function Calculator() {
     y.set(targetY);
   }, [x, y]);
 
+  /**
+   * Põe a calculadora no canto superior direito da área de busca.
+   *
+   * É a posição padrão, usada enquanto o operador não tiver arrastado a janela.
+   * Ela é MEDIDA a cada abertura em vez de ser um par de coordenadas fixo porque
+   * a área anda na tela: a faixa de offline e a de ambiente de desenvolvimento
+   * empurram tudo para baixo quando aparecem, e o controle de tamanho da fonte
+   * escala o layout inteiro, que é medido em `rem`.
+   *
+   * Sem âncora na tela (outra rota, teste), o alvo vira a própria viewport — o
+   * canto superior direito dela, que é o mais parecido com o combinado.
+   */
+  const anchorToSearchArea = useCallback(() => {
+    const node = panelRef.current;
+    if (!node) return;
+
+    const area =
+      document.querySelector(ANCHOR_SELECTOR)?.getBoundingClientRect() ??
+      new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+
+    // Mesma correção do clamp: `offsetLeft/offsetTop` descontam a origem que o
+    // CSS dá ao painel, para o alvo ser absoluto e não se acumular a cada quadro.
+    x.set(area.right - node.offsetWidth - ANCHOR_MARGIN - node.offsetLeft);
+    y.set(area.top + ANCHOR_MARGIN - node.offsetTop);
+  }, [x, y]);
+
+  /** Coloca a janela onde ela deve estar agora: canto padrão ou onde foi largada. */
+  const reposition = useCallback(() => {
+    if (position === null) anchorToSearchArea();
+    clampIntoViewport();
+  }, [position, anchorToSearchArea, clampIntoViewport]);
+
   // Ao abrir, o foco vai para o painel: sem isso o teclado físico continuaria
   // caindo no campo de busca de produtos atrás da calculadora.
   useEffect(() => {
     if (open) panelRef.current?.focus();
   }, [open]);
 
-  // A posição guardada pode não caber mais: a janela foi redimensionada, ou o
-  // histórico ganhou linhas desde a última vez que a calculadora esteve aberta.
+  /**
+   * Coloca a janela no lugar a cada abertura — e de novo no quadro seguinte.
+   *
+   * A repetição não é paranoia: na PRIMEIRA abertura depois de carregar a
+   * página, o `x`/`y` gravado aqui era descartado e a calculadora nascia colada
+   * no canto superior esquerdo da tela. O efeito roda (conferido: com o nó já
+   * montado), mas o framer-motion aplica o `initial` da animação de entrada
+   * DEPOIS dele e, ao montar o painel, zera o transform inteiro — inclusive a
+   * translação que acabou de ser definida. Da segunda abertura em diante não
+   * aparecia, porque os valores de movimento sobrevivem ao fechamento e já
+   * estavam certos: o defeito só existia no primeiro uso do turno.
+   *
+   * Reaplicar no quadro seguinte pega o painel já montado. Não há salto visível:
+   * nesse quadro a entrada ainda está em `opacity: 0`.
+   *
+   * Reposicionar a cada abertura também cobre o caso antigo: a posição guardada
+   * pode não caber mais porque a janela mudou de tamanho ou o histórico cresceu.
+   */
   useLayoutEffect(() => {
     if (!open) return;
 
-    clampIntoViewport();
-    window.addEventListener("resize", clampIntoViewport);
-    return () => window.removeEventListener("resize", clampIntoViewport);
-  }, [open, historyOpen, history.length, clampIntoViewport]);
+    reposition();
+    const quadro = requestAnimationFrame(reposition);
+    window.addEventListener("resize", reposition);
+    return () => {
+      cancelAnimationFrame(quadro);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [open, historyOpen, history.length, reposition]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = event;
@@ -243,9 +249,15 @@ export function Calculator() {
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.15 }}
           onKeyDown={handleKeyDown}
+          // A origem do CSS é o canto superior esquerdo da viewport para que `x`
+          // e `y` sejam coordenadas absolutas de tela — é o que permite mirar um
+          // retângulo medido em `getBoundingClientRect`. Enquanto a origem era
+          // `bottom-24 right-8`, todo alvo tinha que ser convertido para
+          // deslocamento, e o painel crescia para CIMA ao abrir o histórico.
+          //
           // Coluna com altura máxima: em tela baixa quem cede espaço é a lista do
           // histórico, no meio. Cabeçalho, visor e teclado nunca saem de vista.
-          className="fixed bottom-24 right-8 z-50 flex max-h-[calc(100vh-1rem)] w-[300px] flex-col overflow-hidden rounded-2xl border border-white/15 bg-card/70 shadow-2xl shadow-black/40 backdrop-blur-xl outline-none"
+          className="fixed left-0 top-0 z-50 flex max-h-[calc(100vh-1rem)] w-[300px] flex-col overflow-hidden rounded-2xl border border-white/15 bg-card/70 shadow-2xl shadow-black/40 backdrop-blur-xl outline-none"
         >
           <div
             onPointerDown={(event) => dragControls.start(event)}
@@ -290,9 +302,9 @@ export function Calculator() {
             </div>
 
             {/*
-              Sem animação de altura de propósito. O painel cresce para cima, e
+              Sem animação de altura de propósito. O painel muda de tamanho e
               precisa ser reposicionado dentro da tela antes da pintura — animar
-              a altura deixaria o cabeçalho fora da viewport durante a transição,
+              a altura deixaria parte dele fora da viewport durante a transição,
               que é justamente o problema que o reposicionamento resolve.
             */}
             {historyOpen && (

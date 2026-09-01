@@ -38,8 +38,11 @@ export default function GondolaLabels() {
               <LabelProductSearch
                 search={composer.search}
                 setSearch={composer.setSearch}
+                onSubmit={composer.submitSearch}
                 results={composer.searchResults}
                 isLoading={composer.isSearching}
+                hasSearched={composer.hasSearched}
+                hasFailed={composer.searchFailed}
                 onAdd={composer.addProduct}
               />
               <LabelItemsTable

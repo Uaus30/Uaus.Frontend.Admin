@@ -1,6 +1,7 @@
 import React from "react";
 import { Calendar, Eye, Receipt, Truck } from "lucide-react";
-import { Button } from "@workspace/ui";
+import { PURCHASE_ENTRY_TYPE, enumCode } from "@workspace/api-client-react";
+import { Badge, Button } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
@@ -89,6 +90,7 @@ export function StockEntriesTable({
                 <TableRow>
                   <TableHead className="px-4 py-3">Código/ID</TableHead>
                   <TableHead className="px-4 py-3">Data de Entrada</TableHead>
+                  <TableHead className="px-4 py-3 min-w-[220px]">Produto</TableHead>
                   <TableHead className="px-4 py-3">Fornecedor</TableHead>
                   <TableHead className="px-4 py-3">Nº da Nota</TableHead>
                   <TableHead className="px-4 py-3 text-right">Valor Total</TableHead>
@@ -107,11 +109,39 @@ export function StockEntriesTable({
                           {formatShortDate(entry.entryDate)}
                         </span>
                       </TableCell>
+                      <TableCell className="px-4 py-3 text-sm">
+                        {/*
+                          A entrada é de um produto por vez desde 31/08/2026 — o
+                          nome identifica o lançamento sem abrir os detalhes.
+                          Notas antigas multi-item mostram o primeiro e o "+N".
+                        */}
+                        <span className="flex items-center gap-2">
+                          <span className="block max-w-[280px] truncate font-medium">
+                            {entry.firstProductName || "—"}
+                          </span>
+                          {entry.itemsCount > 1 && (
+                            <Badge variant="secondary" className="shrink-0">
+                              +{entry.itemsCount - 1}
+                            </Badge>
+                          )}
+                        </span>
+                      </TableCell>
                       <TableCell className="px-4 py-3 text-sm font-medium">
                         {sup?.name || "Não informado"}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-sm font-mono">
-                        {entry.invoiceNumber || "-"}
+                        {/*
+                          Ajuste manual também vira PurchaseEntry no backend; sem
+                          o selo ele aparecia como nota de NF "AJUSTE_MANUAL".
+                        */}
+                        {enumCode(entry.type, PURCHASE_ENTRY_TYPE) ===
+                        PURCHASE_ENTRY_TYPE.ManualAdjustment ? (
+                          <Badge variant="outline" className="font-sans font-normal">
+                            Ajuste manual
+                          </Badge>
+                        ) : (
+                          entry.invoiceNumber || "-"
+                        )}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-sm font-semibold text-right text-emerald-500">
                         {formatCurrency(entry.total)}

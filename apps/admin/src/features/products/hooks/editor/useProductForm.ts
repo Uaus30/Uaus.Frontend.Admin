@@ -4,16 +4,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { getEnumOptions } from "@/services/core";
 
-import { getGradesByCategoryId } from "@/services/grades.service";
-
 import { deleteProductGroup } from "@/services/products.service";
-import { mapDtoToGrade, createEmptyProductEditor } from "./utils";
-import type { ProductGroupForm, ProductEditorForm, Grade, LocalImage } from "../../types";
+import { createEmptyProductEditor } from "./utils";
+import type { ProductGroupForm, ProductEditorForm, LocalImage } from "../../types";
 import type { TagDto } from "@workspace/api-client-react";
 import {
   useAllDepartments,
   useAllCategories,
-  useAllGrades,
   useAllTags,
   useAllProductTags,
   useAllProductGroups,
@@ -29,10 +26,8 @@ export interface UseProductFormProps {
   setEditingGroupId: React.Dispatch<React.SetStateAction<number | null>>;
   setLoadedGroupId: React.Dispatch<React.SetStateAction<number | null>>;
   setActiveVariationKey: React.Dispatch<React.SetStateAction<string | null>>;
-  matrixGeneratedForCategoryRef: React.MutableRefObject<string | null>;
   setVariationDrafts: React.Dispatch<React.SetStateAction<any[]>>;
   setImages: React.Dispatch<React.SetStateAction<LocalImage[]>>;
-  setActiveGrades: React.Dispatch<React.SetStateAction<Grade[]>>;
 }
 
 export function useProductForm({
@@ -43,61 +38,15 @@ export function useProductForm({
   setEditingGroupId,
   setLoadedGroupId,
   setActiveVariationKey,
-  matrixGeneratedForCategoryRef,
   setVariationDrafts,
   setImages,
-  setActiveGrades,
 }: UseProductFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: departments = [] } = useAllDepartments();
 
-  const { data: gradeTypeOptions = [] } = useQuery({
-    queryKey: ["grade-type-options"],
-    queryFn: () => getEnumOptions("/Grades/enums/grade-type"),
-  });
-
-  const typeMapFromApi = useMemo(() => {
-    const map: Record<number | string, any> = {
-      1: "Tamanho",
-      2: "Cor",
-      3: "Modelo",
-      4: "Estampa",
-      Size: "Tamanho",
-      Color: "Cor",
-      Model: "Modelo",
-      Print: "Estampa",
-      size: "Tamanho",
-      color: "Cor",
-      model: "Modelo",
-      print: "Estampa",
-    };
-    gradeTypeOptions.forEach((opt) => {
-      map[opt.id] = opt.name;
-      map[opt.value] = opt.name;
-      map[opt.value.toLowerCase()] = opt.name;
-    });
-    return map;
-  }, [gradeTypeOptions]);
-
-  const { data: apiGrades = [] } = useAllGrades();
-  const gradesList = useMemo(
-    () => apiGrades.map((g: any) => mapDtoToGrade(g, typeMapFromApi)),
-    [apiGrades, typeMapFromApi],
-  );
-
   const { data: categories = [] } = useAllCategories();
-
-  const { data: categoryGradesRaw = [] } = useQuery({
-    queryKey: ["grades-by-category", form.categoryId],
-    queryFn: () => getGradesByCategoryId(Number(form.categoryId)),
-    enabled: !!form.categoryId,
-  });
-
-  const categoryGrades = useMemo(() => {
-    return categoryGradesRaw.map((g: any) => mapDtoToGrade(g, typeMapFromApi));
-  }, [categoryGradesRaw, typeMapFromApi]);
 
   const { data: productGroups = [] } = useAllProductGroups();
 
@@ -169,7 +118,6 @@ export function useProductForm({
     setEditingGroupId(null);
     setLoadedGroupId(null);
     setActiveVariationKey(null);
-    matrixGeneratedForCategoryRef.current = null;
     setForm({
       departmentId: "",
       categoryId: "",
@@ -187,8 +135,6 @@ export function useProductForm({
     setForm((current) => ({ ...current, hasVariations: checked }));
     setVariationDrafts([]);
     setActiveVariationKey(null);
-    setActiveGrades([]);
-    matrixGeneratedForCategoryRef.current = null;
   }
 
   async function handleDeleteProductGroup(productGroupId: number) {
@@ -224,8 +170,6 @@ export function useProductForm({
     defaultStatus,
     getStatusIdAsString,
     getStatusNumber,
-    gradesList,
-    categoryGrades,
     productGroups,
     registerTag,
     resetForm,

@@ -98,49 +98,46 @@ describe("useStockEntries", () => {
     expect(result.current.page).toBe(1);
     expect(result.current.newEntryModalOpen).toBe(false);
     expect(result.current.supplierId).toBe("");
-    expect(result.current.items).toEqual([]);
+    expect(result.current.item).toBeNull();
   });
 
-  it("deve lançar o produto da busca já com custo e preço sugeridos", () => {
+  it("deve lançar o produto da busca já com custo, preço e estoque sugeridos", () => {
     const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
 
-    act(() => result.current.handleAddItem(product(201)));
+    act(() => result.current.handleSelectProduct(product(201)));
 
-    expect(result.current.items).toEqual([
-      {
-        productId: 201,
-        productName: "Produto 201",
-        barcode: "789201",
-        quantity: 1,
-        unitCost: 4.5,
-        price: 9.9,
-      },
-    ]);
+    expect(result.current.item).toEqual({
+      productId: 201,
+      productName: "Produto 201",
+      barcode: "789201",
+      stock: 50,
+      quantity: 1,
+      unitCost: 4.5,
+      price: 9.9,
+    });
   });
 
-  it("deve somar o produto repetido na linha existente em vez de duplicá-la", () => {
+  it("deve TROCAR o produto ao escolher outro — a entrada é de um produto só", () => {
     const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
 
-    act(() => result.current.handleAddItem(product(5), 2));
-    act(() => result.current.handleAddItem(product(9), 1));
-    act(() => result.current.handleAddItem(product(5), 3));
+    act(() => result.current.handleSelectProduct(product(5)));
+    act(() => result.current.handleSelectProduct(product(9)));
 
-    expect(result.current.items).toHaveLength(2);
-    expect(result.current.items[0]).toMatchObject({ productId: 5, quantity: 5 });
+    expect(result.current.item).toMatchObject({ productId: 9 });
   });
 
-  it("deve editar quantidade, custo e preço da linha e removê-la", () => {
+  it("deve editar quantidade, custo e preço e limpar o produto", () => {
     const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
 
-    act(() => result.current.handleAddItem(product(5)));
-    act(() => result.current.handleItemChange(0, "quantity", 12));
-    act(() => result.current.handleItemChange(0, "unitCost", 3.21));
-    act(() => result.current.handleItemChange(0, "price", 7.5));
+    act(() => result.current.handleSelectProduct(product(5)));
+    act(() => result.current.handleItemChange("quantity", 12));
+    act(() => result.current.handleItemChange("unitCost", 3.21));
+    act(() => result.current.handleItemChange("price", 7.5));
 
-    expect(result.current.items[0]).toMatchObject({ quantity: 12, unitCost: 3.21, price: 7.5 });
+    expect(result.current.item).toMatchObject({ quantity: 12, unitCost: 3.21, price: 7.5 });
 
-    act(() => result.current.handleRemoveItem(0));
-    expect(result.current.items).toEqual([]);
+    act(() => result.current.handleClearProduct());
+    expect(result.current.item).toBeNull();
   });
 
   it("deve enviar a data como instante LOCAL, sem o 'Z' do toISOString", () => {
@@ -150,7 +147,7 @@ describe("useStockEntries", () => {
     const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
 
     fillHeader(result);
-    act(() => result.current.handleAddItem(product(201)));
+    act(() => result.current.handleSelectProduct(product(201)));
     act(() => result.current.handleSaveEntry({ preventDefault: vi.fn() } as unknown as React.FormEvent));
 
     expect(lastPayload()).toMatchObject({
@@ -161,7 +158,7 @@ describe("useStockEntries", () => {
     expect(lastPayload().entryDate).not.toContain("Z");
   });
 
-  it("deve recusar o envio sem fornecedor ou sem itens", () => {
+  it("deve recusar o envio sem fornecedor ou sem produto", () => {
     const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
     const submit = () =>
       act(() => result.current.handleSaveEntry({ preventDefault: vi.fn() } as unknown as React.FormEvent));
@@ -173,6 +170,31 @@ describe("useStockEntries", () => {
     submit();
     expect(mocks.receiveEntry).not.toHaveBeenCalled();
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "warning" }));
+  });
+
+  it("deve recusar preço de venda zero — ele passa a valer no cadastro do produto", () => {
+    // Regressão: o backend gravava o `price` do item como preço de venda do
+    // produto; zero aqui zerava o preço da loja em silêncio.
+    const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
+
+    fillHeader(result);
+    act(() => result.current.handleSelectProduct(product(201)));
+    act(() => result.current.handleItemChange("price", 0));
+    act(() => result.current.handleSaveEntry({ preventDefault: vi.fn() } as unknown as React.FormEvent));
+
+    expect(mocks.receiveEntry).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "warning" }));
+  });
+
+  it("deve recusar quantidade fracionada — o backend só aceita inteiro", () => {
+    const { result } = renderHook(() => useStockEntries(), { wrapper: createWrapper() });
+
+    fillHeader(result);
+    act(() => result.current.handleSelectProduct(product(201)));
+    act(() => result.current.handleItemChange("quantity", 1.5));
+    act(() => result.current.handleSaveEntry({ preventDefault: vi.fn() } as unknown as React.FormEvent));
+
+    expect(mocks.receiveEntry).not.toHaveBeenCalled();
   });
 
   it("deve voltar para a primeira página e recarregar a listagem ao salvar", async () => {
@@ -190,7 +212,7 @@ describe("useStockEntries", () => {
 
     expect(result.current.page).toBe(1);
     expect(result.current.newEntryModalOpen).toBe(false);
-    expect(result.current.items).toEqual([]);
+    expect(result.current.item).toBeNull();
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: getGetPurchaseEntriesQueryKey() });
   });
 
@@ -224,13 +246,13 @@ describe("useStockEntries", () => {
     act(() => {
       result.current.setInvoiceNumber("NF-1234");
       result.current.setNotes("frete por conta do fornecedor");
-      result.current.handleAddItem(product(5));
+      result.current.handleSelectProduct(product(5));
     });
     act(() => result.current.resetNewEntryForm());
 
     expect(result.current.supplierId).toBe("");
     expect(result.current.invoiceNumber).toBe("");
     expect(result.current.notes).toBe("");
-    expect(result.current.items).toEqual([]);
+    expect(result.current.item).toBeNull();
   });
 });

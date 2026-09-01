@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Pencil, Search, X } from "lucide-react";
-import type { ProductPdvSearchDto } from "@workspace/api-client-react";
+import { ImageIcon, Loader2, Pencil, Search, X } from "lucide-react";
+import { buildPublicImageUrl, type ProductPdvSearchDto } from "@workspace/api-client-react";
 import { Button, Input, ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { adminBaseUrl, adminProductEditUrl, openInNewTab } from "@/lib/admin-links";
@@ -23,7 +23,13 @@ type PdvSearchPanelProps = {
  * Produto zerado aparece na lista — no fim dela, apagado e sem clique. Escondê-lo
  * faria o operador achar que o cadastro sumiu e procurar de novo; deixá-lo no
  * meio empurrava para fora da tela o item vendável. Mostrar por último e com
- * "sem estoque" responde a pergunta de uma vez.
+ * "sem estoque" responde a pergunta de uma vez. O que fica apagado é o CONTEÚDO
+ * da linha, não a linha inteira: o lápis precisa continuar clicável ali, porque
+ * "sem estoque" é justamente um dos cadastros que alguém vai querer corrigir.
+ *
+ * A miniatura vem do próprio resultado da busca (`imageUrl`), sem requisição
+ * extra. Offline ela não existe — o snapshot da base local não guarda foto — e a
+ * linha cai no ícone de imagem ausente, igual a um produto sem foto cadastrada.
  *
  * Busca sem resultado também fica **aqui**, no lugar do primeiro item, e não num
  * toast: o operador está olhando para a lista, não para o canto da tela.
@@ -91,7 +97,12 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
         </form>
       </div>
 
-      <div className="flex-1 overflow-hidden relative">
+      {/* `data-calculator-anchor`: é ESTE retângulo — o espaço do "Caixa Livre" —
+          que a calculadora flutuante mede para nascer no canto superior direito
+          dele. Um atributo, e não uma posição fixa no código da calculadora,
+          porque a área desce quando aparece a faixa de offline ou a de ambiente
+          de desenvolvimento, e encolhe junto com o controle de tamanho da fonte. */}
+      <div data-calculator-anchor className="flex-1 overflow-hidden relative">
         <AnimatePresence mode="wait">
           {search.results.length > 0 || search.notFound ? (
             <motion.div
@@ -128,9 +139,9 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                       <motion.div
                         key={product.id}
                         whileHover={outOfStock ? undefined : { scale: 1.01 }}
-                        className={`flex items-center justify-between p-4 rounded-xl border bg-card group transition-all ${
+                        className={`flex items-center justify-between gap-3 p-4 rounded-xl border bg-card group transition-all ${
                           outOfStock
-                            ? "border-border/30 opacity-50 cursor-not-allowed"
+                            ? "border-border/30 cursor-not-allowed"
                             : "border-border/50 cursor-pointer hover:border-primary/40"
                         }`}
                         onClick={() => {
@@ -139,14 +150,34 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                           search.clear();
                         }}
                       >
-                        <div>
-                          <h4 className="font-bold text-lg">{product.name}</h4>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {product.barcode} · Estoque: {product.stock}
-                          </p>
+                        {/* O esmaecido do produto zerado mora AQUI, e não na
+                            linha: `opacity` cria contexto de composição e um
+                            filho não consegue ser mais opaco que o pai — com ele
+                            na linha, o lápis herdava os 50% e parecia
+                            desabilitado justamente quando é mais necessário. */}
+                        <div className={`flex items-center gap-4 min-w-0 ${outOfStock ? "opacity-50" : ""}`}>
+                          {product.imageUrl ? (
+                            <img
+                              loading="lazy"
+                              decoding="async"
+                              src={buildPublicImageUrl(product.imageUrl)}
+                              alt={product.name}
+                              className="w-12 h-12 shrink-0 rounded-lg border border-border/50 object-cover"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 shrink-0 rounded-lg bg-muted/50 flex items-center justify-center">
+                              <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-lg truncate">{product.name}</h4>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {product.barcode} · Estoque: {product.stock}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className={`text-right ${outOfStock ? "opacity-50" : ""}`}>
                             <p className="text-xl font-mono font-bold text-primary">
                               {formatCurrency(product.price)}
                             </p>

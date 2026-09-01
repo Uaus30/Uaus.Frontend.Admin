@@ -27,6 +27,10 @@
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-primary-border: var(--primary-border);
+  --color-primary-strong: hsl(var(--primary-strong));
+
+  /* Superficie elevada, branca, sobre o fundo tingido da pagina. */
+  --color-surface: hsl(var(--surface));
 
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
@@ -88,7 +92,20 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 0 0% 100%;
+  /*
+   * Fundo da PÁGINA — creme quente (#FFF4EB), não branco.
+   *
+   * Era `0 0% 100%`, e com ele o site inteiro era uma folha branca com cartões
+   * brancos por cima: o cartão de produto, a caixa de busca e os painéis só
+   * existiam pela borda de 1px, que some em tela de brilho baixo e em celular
+   * na rua. O creme é o mesmo laranja da marca a 96% de luminosidade — dá o
+   * degrau de fundo sem virar cor de fundo.
+   *
+   * Quem é branco agora é a SUPERFÍCIE elevada (`--surface` e `bg-white`):
+   * cartão, busca, faixa de endereço, painel do formulário. A hierarquia é
+   * fundo tingido → superfície branca, e não o contrário.
+   */
+  --background: 28 100% 96%;
   /* Também é o fundo do rodapé e da faixa escura da home (#0F1729). */
   --foreground: 222 47% 11%;
 
@@ -114,6 +131,28 @@
   /* O laranja da marca (#FF751A). */
   --primary: 24 100% 55%;
   --primary-foreground: 0 0% 100%;
+  /*
+   * O MESMO laranja escurecido (#C24F09) — hoje SO o tom de HOVER.
+   *
+   * A troca e de 30/08/2026, a pedido do dono: o botao, o cartao "Venha
+   * conhecer a loja!" e o "MAXIMO 30 REAIS" nasciam escurecidos e puxavam para
+   * o marrom — a mesma objecao que ja tinha tirado o tom escuro dos TEXTOS em
+   * 29/08. O repouso passou a ser --primary e o escurecido foi para o hover,
+   * que e a direcao convencional de um botao.
+   *
+   * ATENCAO, e o ponto que mais foi reaberto neste arquivo: **contraste WCAG
+   * nao decide mais a cor deste site.** O tom escurecido existiu tres vezes por
+   * causa da regua — nos textos, nas superficies e no anel de foco — e as tres
+   * foram revertidas pelo dono, a ultima em 30/08/2026, quando ele dispensou
+   * explicitamente o criterio de 3:1 para componente nao textual. Ficar fora da
+   * norma aqui e escolha assumida, nao esquecimento: nao reintroduza o
+   * escurecido em texto, superficie ou foco "para passar no contraste".
+   *
+   * Os numeros, para quem precisar deles em outro contexto e nao para reabrir
+   * esta decisao: branco sobre #C24F09 da 4,79:1; sobre o laranja da marca,
+   * 2,69:1. Historico completo em PLANO-DESIGN-LOJA.md, secao 3.5.
+   */
+  --primary-strong: 22 91% 40%;
 
   --secondary: 210 40% 96%;
   --secondary-foreground: 222 47% 11%;
@@ -128,7 +167,17 @@
   --destructive-foreground: 210 40% 98%;
 
   --input: 214 32% 91%;
+  /* Anel de foco no laranja da marca — ver a nota de --primary-strong. */
   --ring: 24 100% 55%;
+
+  /*
+   * SUPERFÍCIE elevada: branco puro, o mesmo `bg-white` que os cartões já
+   * usavam literalmente. Era `60 9% 98%`, um quase-branco que fazia par com o
+   * fundo branco — 2% de diferença que ninguém enxergava. Com o fundo agora
+   * tingido, o papel dela inverteu: é o que sobe da página (faixa de endereço,
+   * painel do formulário, caixa de horários), não mais "a seção alternada".
+   */
+  --surface: 0 0% 100%;
 
   /* Sem gráficos na loja; valores coerentes com o tema para o CSS gerado
      pelos componentes do pacote não referenciar variável indefinida. */
@@ -141,6 +190,7 @@
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --primary-border: hsl(var(--primary));
+  --primary-strong-border: hsl(var(--primary-strong));
   --secondary-border: hsl(var(--secondary));
   --muted-border: hsl(var(--muted));
   --accent-border: hsl(var(--accent));
@@ -153,11 +203,21 @@ body {
 }
 
 /*
- * Títulos em Outfit. No site original as classes `font-display`/`font-body`
- * eram usadas mas nunca foram definidas (bug documentado no requirements.md de
- * lá) — só h1–h6 saíam na fonte de display. Aqui as utilities existem de
- * verdade via @theme, então o wordmark e os preços também usam Outfit; é
- * correção deliberada, não regressão.
+ * Títulos em Outfit, corpo em Plus Jakarta Sans.
+ *
+ * No site original as classes `font-display`/`font-body` eram usadas mas nunca
+ * foram definidas (bug documentado no requirements.md de lá) — só h1–h6 saíam
+ * na fonte de display. Aqui as utilities existem de verdade via @theme, então
+ * o wordmark e os preços também usam a de display.
+ *
+ * Em 29/08/2026 o par chegou a virar Archivo + Inter e **foi revertido no mesmo
+ * dia, a pedido do dono**: a redondeza da Outfit é a marca, não um acidente. Se
+ * a ideia de trocar a fonte voltar, esta é a decisão que ela precisa reabrir.
+ *
+ * O que NÃO voltou é `font-black` fora dos títulos: 900 só existe na Outfit.
+ * Nos dois CTAs de WhatsApp, que são `<a>` e por isso usam a fonte de corpo, o
+ * `font-black` renderizava 700 — a Plus Jakarta Sans é carregada até esse peso.
+ * Lá ficou `font-bold`, que é o que sempre desenhou na tela.
  */
 h1,
 h2,
@@ -169,28 +229,54 @@ h6 {
   letter-spacing: -0.025em;
 }
 
-/* Pulso do botão de WhatsApp, portado do site original. */
+/*
+ * Pulso do botão de WhatsApp, portado do site original — agora FINITO.
+ *
+ * Piscar para sempre é a assinatura visual de página de captura de lead: o
+ * olho aprende a ignorar em segundos e o que sobra é a impressão de anúncio.
+ * Três repetições chamam a atenção na chegada e devolvem a página ao repouso.
+ * O `scale` saiu junto: botão que muda de tamanho sozinho empurra o texto.
+ */
 @keyframes pulse-glow {
   0% {
-    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.15);
-    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.18);
   }
-  50% {
-    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
-    transform: scale(1.005);
+  70% {
+    box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
-    transform: scale(1);
   }
 }
 
 @layer utilities {
   .animate-pulse-glow {
-    animation: pulse-glow 2s infinite;
+    animation: pulse-glow 2.4s ease-out 3;
   }
 
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+/*
+ * Freio global de movimento.
+ *
+ * Quem liga "reduzir movimento" no sistema costuma fazê-lo por enxaqueca,
+ * vertigem ou epilepsia fotossensível — e o site tinha ZERO tratamento: nem
+ * aqui, nem no framer-motion. Este bloco cobre o CSS; os componentes com
+ * `motion.*` usam `useReducedMotion()` e entram sem deslocamento.
+ *
+ * `0.01ms` em vez de `none` de propósito: mantém o evento `transitionend`
+ * disparando, do qual dependem componentes que esperam o fim da animação.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

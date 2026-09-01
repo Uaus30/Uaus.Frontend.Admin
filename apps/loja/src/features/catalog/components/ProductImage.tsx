@@ -30,7 +30,9 @@ export function ProductImage({ src, alt, className, loading = "lazy" }: ProductI
 
   if (!src || failed) {
     return (
-      <div className={`flex items-center justify-center bg-orange-50 text-orange-200 ${className ?? ""}`}>
+      <div
+        className={`flex items-center justify-center bg-muted text-muted-foreground/40 ${className ?? ""}`}
+      >
         <ImageOff aria-hidden className="h-12 w-12" />
         <span className="sr-only">{alt}</span>
       </div>

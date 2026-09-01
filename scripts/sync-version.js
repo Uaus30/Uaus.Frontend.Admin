@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { versionFromCommitCount } from "./version-from-commits.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "..");
@@ -23,21 +24,12 @@ function getNextVersion() {
   const isHook = process.argv.includes("--hook");
   const targetCount = isHook ? commitCount + 1 : Math.max(commitCount, 1);
 
-  const rootPkgPath = path.resolve(workspaceRoot, "package.json");
-  let baseMajorMinor = "1.0";
-  if (fs.existsSync(rootPkgPath)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(rootPkgPath, "utf-8"));
-      if (pkg.version && pkg.version !== "0.0.0") {
-        const parts = pkg.version.split(".");
-        baseMajorMinor = `${parts[0]}.${parts[1] || "0"}`;
-      }
-    } catch {
-      // fallback
-    }
-  }
-
-  return `${baseMajorMinor}.${targetCount}`;
+  // A versão sai inteira da contagem — o `package.json` anterior não entra na
+  // conta. Enquanto o formato era `1.0.<contagem>`, o major e o minor eram lidos
+  // de volta do próprio arquivo a cada commit, o que dava uma realimentação
+  // silenciosa: bastava alguém editar o "1.0" à mão para o prefixo se perpetuar
+  // sozinho, sem nada no repositório explicando de onde ele tinha vindo.
+  return versionFromCommitCount(targetCount);
 }
 
 export function syncVersion() {

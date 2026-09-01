@@ -6,15 +6,26 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 
 ## 📂 Estrutura de Arquivos
 
-- `components/ProductTable.tsx`: Renderiza a listagem de produtos com paginação e suporte a edição rápida inline de preço e estoque.
+- `components/ProductTable.tsx`: Renderiza a listagem de produtos com paginação e edição rápida inline de PREÇO. A célula de estoque é somente leitura desde 31/08/2026 — estoque nasce de lote, e o lançamento (com custo e fornecedor) está a um clique no menu Estoque da linha.
 - `components/ProductTableFilters.tsx`: Filtros da tabela (busca por texto, select de Departamento, select de Categoria e select de Status com ordenação alfabética).
-- `components/ProductEditorModal.tsx`: Formulário principal (Modal) para criação e edição de produtos simples ou com variações.
+- `components/detail/ProductDetailScreen.tsx`: Tela de detalhe do produto, em três abas — orquestra o formulário, as confirmações e o salvar. Substituiu a modal de edição.
+- `components/detail/ProductGeneralTab.tsx`: Aba **Dados** (obrigatórios + código de barras + imagens + variações).
+- `components/detail/ProductStockTab.tsx`: Aba **Estoque** (histórico de entradas do produto e lançamento simplificado).
+- `components/detail/ProductEditorDialogs.tsx`: Confirmações de fora do formulário (configurar grades, excluir variação, regerar matriz).
+- `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
+- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
+- `lib/barcode.ts`: Validação de EAN, dígito verificador, código de prévia e impressão da etiqueta de 80mm.
+- `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
+- `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
+- `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
+- `lib/variationMatrix.ts`: Cruzamento das grades, nome exibido da variação e reconstrução das grades a partir das variações gravadas.
+- `components/detail/VariationGradesModal.tsx`: Escolha das grades (Cor/Tamanho/Modelo) e dos valores de cada uma.
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
 - `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 - `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
-- `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e chamadas de mutations para edição rápida de preço/estoque.
+- `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e a mutation da edição rápida de preço.
 - `hooks/mapProductTableRow.ts`: Traduz a linha que o servidor devolve para a linha que a tela usa.
 - `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, geração da matriz cartesiana de variações, validações e persistência no banco.
 - `types.ts`: Tipagens TypeScript estritas que modelam os dados de formulários, imagens locais e variações.
@@ -59,22 +70,201 @@ Como cada endpoint filtrava por **um id de cada vez**, não havia conserto poss�
 - **Produto Simples**: Possui preço, estoque e status definidos no próprio produto principal.
 - **Produto com Variações**: O produto principal funciona apenas como um "Grupo de Produtos" (`ProductGroup`). O preço, estoque, código de barras e imagens são definidos individualmente em cada variação (SKU). É necessário ter pelo menos 2 variações cadastradas para salvar.
 
-### 2. Geração da Matriz Cartesiana de Grades
+### 2. Grades: fixas, e definidas dentro do produto (30/08/2026)
 
-- Ao selecionar grades (ex: Cor, Tamanho), o hook `generateVariationsMatrix` realiza o cruzamento cartesiano de todos os variantes destas grades.
-- A matriz resultante pré-popula a tabela de variações com nomes e combinações correspondentes.
-- Se o usuário tentar salvar variações com combinações de grades repetidas, o sistema bloqueia e emite um erro de validação.
+Havia um **catálogo global** de grades, com CRUD próprio em `/grades`: para
+cadastrar um produto com duas cores era preciso antes criar a grade "Cor",
+associá-la à categoria e cadastrar as opções. Ninguém pagou esse preço — o banco
+de dev tinha **8 grades e 99 opções cadastradas e ZERO produtos ligados a
+elas**. As variações existiam mesmo assim, com a grade escrita à mão no nome
+(`CHICLETE BUBBALOO [uva]`): 159 dos 162 produtos com variação.
+
+Hoje:
+
+- **Os tipos são fixos**: Cor, Tamanho e Modelo (`GRADE_TYPE` no api-client,
+  espelhando o enum `GradeType` do backend). Não há tela de cadastro de grade —
+  o CRUD, os endpoints `/Grades` e as quatro tabelas do banco foram removidos.
+- **Os valores pertencem ao produto.** "Cor" pode ter duas opções aqui e cinco
+  no produto vizinho, sem que os dois disputem um cadastro comum. É o que o
+  desenho antigo não permitia sem criar uma grade por combinação.
+- **A modal `VariationGradesModal`** marca as grades e recebe os valores
+  separados por vírgula; `gerarCombinacoes` cruza tudo (`lib/variationMatrix.ts`).
+  A modal só deixa gerar com **duas ou mais combinações** — é o mínimo que o
+  salvamento exige, e descobrir isso só no salvar era um erro anunciado.
+- **Reabrir a modal mostra o que o produto já tem.** As grades e os valores são
+  reconstruídos das próprias variações (`gradesDasVariacoes`), e não de estado
+  guardado à parte — o formulário é remontado por `key` a cada abertura.
+- **Regerar a matriz MESCLA com o que existe** (`mesclarMatriz`, 31/08/2026):
+  combinação que continua preserva o draft — id, preço, código de barras e
+  imagens; combinação nova nasce com os valores do produto principal; combinação
+  que saiu é **excluída do servidor na hora**, exceto as com venda
+  (`canDelete === false`), que permanecem na lista com aviso. Antes a regeração
+  descartava tudo: drafts sem id viravam produtos NOVOS no salvar e os antigos
+  ficavam no banco — o grupo acumulava duplicatas até a checagem de combinação
+  repetida travar o cadastro.
+- **Combinação repetida é bloqueada no salvamento** (`chaveDaCombinacao`, que
+  ignora ordem e caixa). O NOME deixou de servir de critério: ele é o mesmo em
+  todas as variações. A validação de preenchimento também exige valor em toda
+  grade que o grupo usa, pintando a célula `grade-<tipo>-<key>` da linha — o
+  nome da variação NÃO é validado, porque é derivado e a coluna é somente
+  leitura.
+
+#### O nome da variação não é editável
+
+Toda variação grava em `products.name` o **nome do grupo**. O que a distingue
+são os valores de grade, e o colchete é montado **na leitura**, nunca gravado —
+`ProductDisplayName.Compose`, no backend. A tela mostra o mesmo formato
+(`nomeExibidoDaVariacao`) para que a tabela de variações exiba hoje o nome que a
+venda vai exibir amanhã.
+
+A consequência é grande e vale saber: **todo caminho de leitura que mostra nome
+de produto precisa compor** — são catorze serviços no backend, do cupom ao
+inventário. Um caminho esquecido não gera erro; ele mostra três linhas idênticas
+e ninguém entende por quê. Quem escrever uma leitura nova de produto usa o
+`IProductVariationNameResolver`.
+
+Os 159 cadastros antigos, que têm o colchete dentro do próprio nome, continuam
+como estão: sem valores de grade não há o que compor, e o nome volta intacto.
+
+### 2.1. O salvar é UMA transação (01/09/2026)
+
+O botão Salvar grava grupo + produtos/variações numa chamada só
+(`POST /ProductGroups/save-with-products`, `saveProductGroupWithProducts` no
+api-client): ou o cadastro inteiro entra, ou nada muda. Antes eram N upserts em
+série — um código de barras duplicado na terceira variação deixava grupo e duas
+variações salvos, com estado parcial invisível até a próxima abertura. Etiquetas
+e imagens continuam como sincronizações à parte (imagem passa por upload, fora
+de transação de banco): uma falha ali deixa o catálogo íntegro, só a associação
+fica para refazer.
 
 ### 3. Associação de Imagens e Etiquetas (Tags)
 
 - As imagens do produto podem ser ordenadas via drag-and-drop. A primeira imagem é considerada a "principal".
 - Ao salvar, o sistema sincroniza de forma incremental as tags e imagens de cada variação com o servidor através das funções `syncProductTags` e `syncProductImages`.
 
-### 4. Visibilidade Simplificada (Botão de Olho)
+### 4. A tela de detalhe e suas três abas (30/08/2026)
 
-- Por padrão, ao abrir a modal, os campos opcionais (**Descrição**, **Estoque mínimo/atual**, **Visibilidade** e **Etiquetas**) são ocultados para focar no fluxo principal do usuário.
-- O clique no botão de olho (no topo esquerdo ao lado do título da modal) alterna a visibilidade desses campos.
-- Os campos **Código de Barras** e **Imagens** permanecem sempre visíveis.
+O cadastro era uma **modal** sobre a lista. Virou tela, com abas, porque a modal
+cobrava dois pedágios no fluxo mais comum da loja — cadastrar o produto e lançar
+o que chegou dele:
+
+- os campos opcionais (**Descrição**, **Etiquetas**, **Estoque mínimo/atual** e
+  **Visibilidade**) ficavam atrás de um botão de olho que nada na tela
+  anunciava. Quem não conhecia o ícone nunca marcava "exibir no site", e o
+  produto não aparecia na loja sem ninguém entender por quê;
+- o estoque ficava a uma navegação de distância (`/estoque/entradas?productId=`),
+  que tirava a pessoa de dentro do cadastro.
+
+As abas separam por **frequência de uso**, não por assunto:
+
+| Aba           | O que tem                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| **Dados**     | Código de barras, nome, departamento, categoria, preço, status, imagens e variações.     |
+| **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                |
+| **Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura) e visibilidade no site. |
+
+Regras que valem a pena conhecer antes de mexer:
+
+- **A troca é de RENDERIZAÇÃO, não de rota.** `pages/products.tsx` mostra a
+  tela no lugar da listagem quando `editor.detailOpen` está ligado. A lista fica
+  montada por trás com filtro, página e busca intactos, e voltar devolve a
+  pessoa exatamente onde ela estava. Uma rota `/produtos/:id` remontaria a
+  listagem do zero a cada volta e obrigaria a reescrever o link direto do PDV
+  (seção 5) sem devolver nada em troca.
+- **O `<form>` envolve as três abas.** O salvar do cabeçalho vale de qualquer
+  aba, e trocar de aba com alteração pendente não perde nada. As modais são
+  portais do Radix e ficam **fora** do form — o lançamento de estoque tem
+  `<form>` próprio, e aninhar os dois seria HTML inválido.
+- **Validação reprovada traz a aba Dados para a frente.** Todo campo obrigatório
+  mora lá; focar um elemento de aba fechada não faz nada, e o salvar pareceria
+  simplesmente não responder.
+
+#### O que a tela empresta do navegador (30/08/2026)
+
+Sem rota própria, a tela pede emprestados três comportamentos de página, todos
+fiados entre `pages/products.tsx` e dois hooks:
+
+- **`?id=` na barra de endereços** (`hooks/useProductDetailHistory.ts`): abrir
+  o detalhe empurra uma entrada de histórico com `/produtos?id=<grupo>`, e o id
+  que nasce de um primeiro salvar entra por `replaceState`. Fechar pela
+  interface devolve a entrada da listagem (`history.back()`), então o próximo
+  voltar continua indo para onde o usuário estava antes.
+- **O voltar do navegador fecha o detalhe** (mesmo hook): o `popstate` chega e
+  só fecha, sem sair de `/produtos`. Com alterações não salvas, o voltar é
+  interceptado — a entrada é reempurrada e a confirmação de descarte pergunta
+  antes. Quem CHEGA por link (`?id=` colado na barra) não tem entrada empurrada:
+  voltar sai da página, como em qualquer link direto.
+- **`?id=` reabre o produto** (`hooks/useProductDetailFromUrl.ts`): recarregar
+  a página ou compartilhar o link cai direto no detalhe — o hook busca o grupo
+  no servidor (`/Products?productGroupId=`, primeiro resultado = representante)
+  e abre. Não confundir com o `?editar=` do PDV (seção 5): aquele abre pela
+  linha da tabela porque precisa do filtro para paginar; este busca direto,
+  porque o id já é conhecido.
+- **Guarda de alterações não salvas**: todo setter ENVIADO à tela passa por um
+  embrulho no `useProductEditor` que marca `isDirty` (o carregamento e o salvar
+  usam os setters crus, e `markClean` limpa a marca). Com a marca ligada,
+  recarregar/fechar a aba dispara `beforeunload` e Cancelar/voltar abrem o
+  `ProductDetailDiscardDialog`.
+- **Nomes**: o estado do editor se chama `detailOpen`/`openDetail` desde a
+  migração para tela — era `modalOpen`/`openModal`, herança da modal antiga.
+
+#### A aba Estoque, em detalhe
+
+- O menu **Estoque** da listagem de produtos (dropdown e menu de contexto) abre
+  a tela de detalhe **já nesta aba** (`initialTab` do `ProductDetailScreen`),
+  em vez de navegar para `/estoque/entradas`. A linha da listagem é um GRUPO, e
+  é a aba que resolve qual variação recebe o lançamento.
+
+- Lista as **notas** que trouxeram o produto (`GET /PurchaseEntries?productId=`),
+  da mais recente para a mais antiga. A ordenação é do backend (data de entrada
+  decrescente e, no empate, id decrescente) — a tela não reordena nada.
+- A coluna de valor é o total da **nota inteira**, não o deste produto: a
+  listagem de notas não quebra por item. Quantidade e custo deste produto saem
+  nos detalhes, pelo olho da linha.
+- **Produto novo não tem aba de estoque útil**: sem id gravado não há lote para
+  lançar, e a aba explica isso em vez de abrir um formulário que falharia.
+- **Grupo com variações ganha um seletor de variação**, porque estoque é do SKU,
+  não do grupo. A modal antiga mandava sempre a variação ativa para
+  `/estoque/entradas` — na prática, a primeira da lista.
+- O lançamento em si mora na feature de entradas
+  (`features/stock-entries/hooks/useProductStockEntries.ts`), junto das regras de
+  data e validação que ele compartilha com a nota completa.
+
+#### 4.2. Código de barras já cadastrado carrega o produto existente
+
+Bipar, digitar ou colar no campo de código de barras um código que **já
+pertence a outro produto**, durante um cadastro NOVO, carrega esse produto na
+tela e emite um toast âmbar de aviso.
+
+Antes disso o operador só descobria a duplicata ao salvar: preenchia nome,
+departamento, categoria, preço e foto, clicava em Salvar e recebia o
+`Já existe um produto cadastrado com este código de barras!` do backend
+(`EnsureBarcodeIsAvailableAsync`) — com o cadastro certo em algum lugar da lista
+e o trabalho todo para refazer. O caso é comum porque bipar é justamente o
+primeiro gesto de quem vai cadastrar: é assim que se descobre se o item já
+existe.
+
+O que vale a pena saber antes de mexer:
+
+- **Só em cadastro novo.** Na edição o operador já escolheu o produto; trocá-lo
+  no meio da digitação jogaria fora o que ele preencheu. Duplicata na edição
+  continua sendo recusada pelo backend ao salvar.
+- **Só termo todo numérico, com 8 dígitos ou mais.** É a regra do backend:
+  `GET /Products?search=` decide entre buscar por código e buscar por NOME
+  olhando se o termo é numérico (`IsBarcodeSearch`). Mandar "COPO" carregaria um
+  produto que ninguém pediu. O 8 é o EAN-8, o menor código de verdade.
+- **A comparação é de IGUALDADE, não de semelhança.** O backend filtra por
+  `Contains`, então buscar `78912345678` também traz o EAN-13 que o contém.
+  Quem decide é a comparação exata no cliente.
+- **Espera 400ms antes de consultar.** O leitor de código não "bipa": ele digita
+  caractere por caractere em milissegundos, e sem a espera um EAN-13 dispararia
+  treze consultas — doze delas por prefixos que não são código de ninguém.
+- **A consulta é reação a um evento, não efeito.** Num efeito, além do
+  `setState` síncrono que o lint recusa, seria preciso guardar "já carreguei
+  este" para não reabrir o mesmo produto a cada render.
+- **Erro de rede é silencioso de propósito.** A busca é conveniência; o backend
+  continua recusando código repetido ao salvar, e quem está apenas digitando não
+  deve receber aviso de servidor fora do ar.
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
@@ -85,12 +275,12 @@ O botão de lápis do balcão do PDV abre esta tela em outra aba já na edição
 
 Regras que valem a pena conhecer antes de mexer:
 
-- Quando o id não aparece na lista mas o filtro trouxe **uma única linha**, é essa linha que abre. A tabela mostra um produto _representante_ por grupo, e o produto pedido pode ser uma variação que não é o representante — a modal edita o grupo inteiro de qualquer forma.
-- Filtro sem resultado emite toast em vez de não fazer nada: a aba abriria numa lista e nada explicaria a ausência da modal.
-- O `editar` sai da barra de endereços assim que é consumido. O link é instrução de uma vez só; sem isso, fechar a modal e recarregar reabriria tudo.
+- Quando o id não aparece na lista mas o filtro trouxe **uma única linha**, é essa linha que abre. A tabela mostra um produto _representante_ por grupo, e o produto pedido pode ser uma variação que não é o representante — a tela de detalhe edita o grupo inteiro de qualquer forma.
+- Filtro sem resultado emite toast em vez de não fazer nada: a aba do navegador abriria numa lista e nada explicaria por que o detalhe não veio.
+- O `editar` sai da barra de endereços assim que é consumido. O link é instrução de uma vez só; sem isso, fechar o detalhe e recarregar reabriria tudo.
 - Sem sessão, o guard de rota carimba o caminho em `/login?redirect=...` e o login devolve a pessoa aqui (ver `src/lib/destino-login.ts`).
 
 ### 6. Busca de Imagens na Internet
 
 - **Pela Listagem**: Um ícone de lupa na imagem do produto abre o modal de pesquisa. Ao escolher uma imagem da internet, ela é baixada via proxy autenticado, otimizada localmente no frontend pelo motor de compressão e definida como a foto principal (índice 0) do produto, sem deletar as imagens existentes.
-- **Pela Modal de Edição**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.
+- **Pela Tela de Detalhe**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.

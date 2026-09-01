@@ -16,7 +16,7 @@ function CardSkeletons({ count }: { count: number }) {
   return (
     <>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="overflow-hidden rounded-2xl bg-white shadow-md">
+        <div key={index} className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
           <Skeleton className="aspect-square w-full rounded-none" />
           <div className="space-y-2 p-4">
             <Skeleton className="h-3 w-1/3" />
@@ -46,7 +46,10 @@ export function ProductGrid({ products, hasNextPage, isFetchingNextPage, fetchNe
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Uma coluna a menos que antes em cada faixa: a grade divide a largura
+          com a lista de filtros a partir de `lg`, e manter cinco cards deixava
+          a foto menor que a miniatura do card. */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
           <ProductCard key={product.productGroupId} product={product} />
         ))}
@@ -61,7 +64,7 @@ export function ProductGrid({ products, hasNextPage, isFetchingNextPage, fetchNe
             type="button"
             onClick={fetchNextPage}
             disabled={isFetchingNextPage}
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-border bg-white px-8 py-3 font-bold text-foreground transition-all duration-300 hover:border-primary/50 hover:bg-orange-50 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-8 py-3 font-semibold text-foreground transition-colors duration-200 hover:border-primary/50 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
           >
             {isFetchingNextPage && <Loader2 className="h-4 w-4 animate-spin" />}
             {isFetchingNextPage ? "Carregando..." : "Carregar mais produtos"}

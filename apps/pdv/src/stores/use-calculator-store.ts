@@ -30,8 +30,17 @@ interface CalculatorState {
   resultOnScreen: boolean;
   history: CalculationEntry[];
   historyOpen: boolean;
-  /** Deslocamento da janela em relação à posição inicial, em pixels. */
-  position: { x: number; y: number };
+  /**
+   * Onde o operador ARRASTOU a janela, em coordenadas da viewport.
+   *
+   * `null` quer dizer "ninguém mexeu": aí a calculadora nasce colada no canto
+   * superior direito da área de resultados da busca, medida na hora de abrir.
+   * Guardar um par fixo como padrão não serviria — a área muda de lugar quando a
+   * faixa de offline ou a de ambiente de desenvolvimento aparece, e muda de
+   * tamanho junto com o controle de tamanho da fonte, que escala o layout em
+   * `rem`.
+   */
+  position: { x: number; y: number } | null;
 
   toggleOpen: () => void;
   close: () => void;
@@ -61,7 +70,7 @@ export const useCalculatorStore = create<CalculatorState>((set, get) => ({
   resultOnScreen: false,
   history: [],
   historyOpen: false,
-  position: { x: 0, y: 0 },
+  position: null,
 
   toggleOpen: () => set((state) => ({ open: !state.open })),
 

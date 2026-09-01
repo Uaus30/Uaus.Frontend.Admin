@@ -29,3 +29,20 @@ Este módulo gerencia o relatório de inventário consolidado de produtos, exibi
 ### 3. Escala Visual (Zoom)
 
 - Permite redimensionar o grid tabular (escala entre `70%` e `130%`) por meio da propriedade CSS `transform: scale(...)` para melhor legibilidade em telas menores ou maiores.
+
+## Como o custo do estoque é calculado (01/09/2026)
+
+Custo, lucro e margem vêm **prontos do servidor**, calculados pelos **lotes
+disponíveis** (`GET /Inventory`) — a tela e o CSV não recalculam nada.
+
+- Antes o backend multiplicava o saldo inteiro pelo `costPrice` do produto, que
+  é o custo do **último** lote: 100 unidades a R$ 10 mais 10 a R$ 30 eram
+  reportadas a R$ 3.300 no lugar de R$ 1.300, e a margem dos cards saía do mesmo
+  número inflado.
+- `unitCost` é a **média do saldo** (custo total ÷ estoque), arredondada em
+  centavos. É por isso que `estoque × unitário` pode diferir do `totalCost` em
+  centavos — o total é a soma exata dos lotes, e é ele que vale.
+- Estoque **sem lote nenhum** (legado, anterior ao controle por lote) continua
+  valorizado pelo último custo: zerá-lo seria pior que o erro corrigido.
+- A exportação CSV usa `totalCost`, `estimatedProfit` e `marginPercentage` da
+  resposta. Recalcular na tela fazia o arquivo divergir do que estava na tela.

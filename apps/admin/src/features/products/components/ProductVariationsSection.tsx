@@ -4,49 +4,51 @@ import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { CurrencyInput } from "./CurrencyInput";
-import type { VariationDraft, Grade } from "../types";
+import { nomeExibidoDaVariacao, rotuloDaGrade } from "../lib/variationMatrix";
+import type { VariationDraft, ProductGrade } from "../types";
 
 type ProductVariationsSectionProps = {
   /** Array of currently configured variation drafts */
   variationDrafts: VariationDraft[];
-  /** Grades active for the product's category (e.g. Size, Color) */
-  activeGrades: Grade[];
+  /** Grades escolhidas para ESTE produto, com os valores de cada uma */
+  selectedGrades: ProductGrade[];
+  /** Nome do grupo — é ele que abre o nome exibido de toda variação */
+  productGroupName: string;
   /** Boolean indicating if loading existing products under the group */
   isFetchingGroupProducts: boolean;
   /** Selectable list of status configurations from API/enums */
-  selectableStatusOptions: any[];
+  selectableStatusOptions: Array<{ id: number; name: string }>;
   /** Validation errors map to highlight invalid fields in red */
   validationErrors: Record<string, boolean>;
   /** Callback to update a variation's properties */
   updateVariationDraft: (key: string, updater: (draft: VariationDraft) => VariationDraft) => void;
   /** Callback handler to execute barcode label printing */
-  handlePrintBarcode: (barcodeValue: string, name?: string, price?: number) => void;
+  handlePrintBarcode: (barcode: string, name?: string, price?: number) => void;
   /** Handler to set the variation to be confirmed for deletion in AlertDialog */
   setVariationToDelete: (variation: VariationDraft) => void;
   /** Handler to delete a variation locally or on the API */
   handleDeleteVariation: (variation: VariationDraft) => void;
-  /** Callback to append a new blank/pre-filled variation draft row */
+  /** Acrescenta uma linha fora da matriz, para o operador preencher a grade à mão */
   addVariationDraft: (initialValues?: Partial<VariationDraft>) => void;
 };
 
 /**
- * ProductVariationsSection
+ * Tabela das variações do produto.
  *
- * Renders the variations table when hasVariations is enabled.
- * Features:
- * - Table header with headers matching selected category grades.
- * - Dynamic rows displaying:
- *   - Barcode text input (or Auto placeholder) + Print Label shortcut.
- *   - SKU/Variation name input with validation feedback.
- *   - Dropdown selectors matching variant values for each active grade.
- *   - Inline Price input formatted as currency.
- *   - SKU Status selector.
- *   - Delete button (disabled if backend does not permit removal).
- * - "Ghost Row" at the bottom to quickly append new variation drafts by entering a name or barcode.
+ * O NOME não é editável, e essa é a mudança de 30/08/2026: toda variação leva o
+ * nome do grupo, e o que a distingue são os valores de grade. A coluna "Variação"
+ * mostra o nome composto — o mesmo que a venda, o cupom e a etiqueta vão exibir —
+ * e as colunas de grade mostram o valor de cada uma.
+ *
+ * Antes o operador digitava "CAMISETA AZUL G" à mão em cada linha, e o sistema
+ * não tinha como saber que aquilo era azul nem tamanho G: 159 dos 162 produtos
+ * com variação acabaram com a grade escrita dentro do nome, sem estrutura
+ * nenhuma por trás.
  */
 export function ProductVariationsSection({
   variationDrafts,
-  activeGrades,
+  selectedGrades,
+  productGroupName,
   isFetchingGroupProducts,
   selectableStatusOptions,
   validationErrors,
@@ -57,6 +59,19 @@ export function ProductVariationsSection({
   addVariationDraft,
 }: ProductVariationsSectionProps) {
   if (variationDrafts.length === 0) return null;
+
+  /** O valor que esta variação tem para uma grade, ou vazio. */
+  const valorDaGrade = (variation: VariationDraft, type: ProductGrade["type"]) =>
+    variation.values.find((value) => value.gradeType === type)?.value ?? "";
+
+  /** Grava o valor da grade na linha, criando ou trocando o que existir. */
+  const definirValor = (variation: VariationDraft, type: ProductGrade["type"], valor: string) => {
+    updateVariationDraft(variation.key, (draft) => {
+      const outros = draft.values.filter((value) => value.gradeType !== type);
+      const proximos = valor.trim() ? [...outros, { gradeType: type, value: valor }] : outros;
+      return { ...draft, values: proximos };
+    });
+  };
 
   return (
     <div
@@ -75,15 +90,15 @@ export function ProductVariationsSection({
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground border-b border-border/50">
             <tr>
               <th className="px-4 py-3 font-medium w-48 text-center">CÓDIGO</th>
-              <th className="px-4 pl-7 py-3 font-medium">Nome</th>
-              {activeGrades.map((g) => (
+              {selectedGrades.map((grade) => (
                 <th
-                  key={g.id}
+                  key={grade.type}
                   className="px-3 py-3 font-medium w-32 border-l border-border/30 bg-muted/20 text-foreground"
                 >
-                  {g.name}
+                  {rotuloDaGrade(grade.type)} <span className="text-red-500">*</span>
                 </th>
               ))}
+              <th className="px-4 py-3 font-medium">Variação</th>
               <th className="px-4 py-3 font-medium w-32 text-center">
                 PREÇO <span className="text-red-500">*</span>
               </th>
@@ -115,7 +130,11 @@ export function ProductVariationsSection({
                       size="icon"
                       className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary"
                       onClick={() =>
-                        handlePrintBarcode(variation.barcode || "", variation.name, variation.price)
+                        handlePrintBarcode(
+                          variation.barcode || "",
+                          nomeExibidoDaVariacao(productGroupName, variation.values),
+                          variation.price,
+                        )
                       }
                       disabled={!(variation.barcode && variation.barcode.trim().length > 0)}
                       title="Imprimir etiqueta"
@@ -124,69 +143,41 @@ export function ProductVariationsSection({
                     </Button>
                   </div>
                 </td>
+
+                {selectedGrades.map((grade) => (
+                  <td key={grade.type} className="px-2 py-2 border-l border-border/30 bg-muted/5">
+                    <Input
+                      id={`input-grade-${grade.type}-${variation.key}`}
+                      value={valorDaGrade(variation, grade.type)}
+                      onChange={(e) => definirValor(variation, grade.type, e.target.value)}
+                      placeholder="-"
+                      className={`h-8 text-xs bg-transparent border-transparent hover:border-border focus:bg-background uppercase ${
+                        validationErrors[`grade-${grade.type}-${variation.key}`]
+                          ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                          : ""
+                      }`}
+                    />
+                  </td>
+                ))}
+
+                {/*
+                  Somente leitura de propósito: o nome é derivado do grupo mais os
+                  valores de grade. Editável, ele voltaria a divergir da estrutura
+                  — que é exatamente o problema que esta tela veio resolver.
+                */}
                 <td className="px-4 py-2">
-                  <Input
-                    id={`input-name-${variation.key}`}
-                    value={variation.name}
-                    onChange={(e) => {
-                      updateVariationDraft(variation.key, (draft) => ({
-                        ...draft,
-                        name: e.target.value,
-                      }));
-                    }}
-                    className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background uppercase ${
-                      validationErrors[`name-${variation.key}`]
-                        ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
-                        : ""
-                    }`}
-                  />
-                  {validationErrors[`name-${variation.key}`] && (
-                    <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
-                      Preenchimento obrigatório
-                    </p>
-                  )}
+                  <span className="block truncate text-xs font-medium text-foreground">
+                    {nomeExibidoDaVariacao(productGroupName, variation.values)}
+                  </span>
                 </td>
-                {activeGrades.map((g) => {
-                  const variantId = variation.variantMap?.[g.id];
-                  return (
-                    <td key={g.id} className="px-2 py-2 border-l border-border/30 bg-muted/5">
-                      <Select
-                        value={variantId?.toString() || ""}
-                        onValueChange={(val) => {
-                          const newVariantMap = {
-                            ...(variation.variantMap || {}),
-                            [g.id]: Number(val),
-                          };
-                          updateVariationDraft(variation.key, (draft) => ({
-                            ...draft,
-                            variantMap: newVariantMap,
-                          }));
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs bg-transparent border-transparent hover:border-border">
-                          <SelectValue placeholder="-" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {g.variants.map((v) => (
-                            <SelectItem key={v.id} value={v.id.toString()}>
-                              {v.value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                  );
-                })}
+
                 <td className="px-4 py-2 text-center">
                   <CurrencyInput
                     id={`input-price-${variation.key}`}
                     value={variation.price}
-                    onChange={(val) => {
-                      updateVariationDraft(variation.key, (draft) => ({
-                        ...draft,
-                        price: val,
-                      }));
-                    }}
+                    onChange={(val) =>
+                      updateVariationDraft(variation.key, (draft) => ({ ...draft, price: val }))
+                    }
                     className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background cursor-pointer focus:cursor-text text-center ${
                       validationErrors[`price-${variation.key}`]
                         ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
@@ -199,15 +190,13 @@ export function ProductVariationsSection({
                     </p>
                   )}
                 </td>
+
                 <td className="px-4 py-2 text-center">
                   <Select
                     value={variation.status}
-                    onValueChange={(value) => {
-                      updateVariationDraft(variation.key, (draft) => ({
-                        ...draft,
-                        status: value,
-                      }));
-                    }}
+                    onValueChange={(value) =>
+                      updateVariationDraft(variation.key, (draft) => ({ ...draft, status: value }))
+                    }
                   >
                     <SelectTrigger
                       id={`select-status-${variation.key}`}
@@ -233,6 +222,7 @@ export function ProductVariationsSection({
                     </p>
                   )}
                 </td>
+
                 <td className="px-4 py-2 text-right">
                   <Button
                     type="button"
@@ -253,50 +243,28 @@ export function ProductVariationsSection({
                 </td>
               </tr>
             ))}
-
-            {/* Ghost Row */}
-            <tr className="hover:bg-muted/10 transition-colors border-t border-dashed border-primary/20 bg-primary/5 group">
-              <td className="px-4 py-2 text-center">
-                <Input
-                  placeholder="0000000000000"
-                  className="h-8 bg-transparent border-transparent group-hover:border-primary/30 focus:bg-background font-mono text-xs focus:border-primary text-center"
-                  onBlur={(e) => {
-                    if (e.target.value.trim()) {
-                      addVariationDraft({ barcode: e.target.value.trim() });
-                      e.target.value = "";
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      e.currentTarget.blur();
-                    }
-                  }}
-                />
-              </td>
-              <td className="px-4 py-2">
-                <Input
-                  placeholder="ADICIONAR VARIAÇÃO..."
-                  className="h-8 bg-transparent border-transparent group-hover:border-primary/30 focus:bg-background uppercase focus:border-primary text-xs"
-                  onBlur={(e) => {
-                    if (e.target.value.trim()) {
-                      addVariationDraft({ name: e.target.value.trim().toUpperCase() });
-                      e.target.value = "";
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      e.currentTarget.blur();
-                    }
-                  }}
-                />
-              </td>
-              <td colSpan={2 + activeGrades.length} className="px-4 py-2"></td>
-              <td className="px-4 py-2"></td>
-            </tr>
           </tbody>
         </table>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-muted-foreground">
+          O nome da variação é montado a partir do nome do produto e dos valores de grade. Para mudar as
+          grades ou acrescentar valores, use <strong>Configurar Variações</strong>.
+        </p>
+        {/*
+          Acrescentar uma linha avulsa evita regerar a matriz só para incluir uma
+          combinação — regerar apaga preço e código digitados linha a linha.
+        */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={() => addVariationDraft()}
+        >
+          Acrescentar variação
+        </Button>
       </div>
     </div>
   );

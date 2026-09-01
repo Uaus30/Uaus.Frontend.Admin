@@ -69,7 +69,7 @@ export function ProductSearchPicker({
 
   const options: ProductSearchOption[] = (productsPage?.data ?? []).map((product) => ({
     id: product.id,
-    name: product.name,
+    name: product.displayName || product.name,
     barcode: product.barcode || null,
     stock: product.stock,
     price: product.price,

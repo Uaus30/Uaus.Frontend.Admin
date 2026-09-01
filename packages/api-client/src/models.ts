@@ -116,6 +116,18 @@ export const PRODUCT_STATUS = {
   Inactive: 4,
 } as const;
 
+/**
+ * Origem de uma entrada de estoque: nota de compra ou ajuste manual.
+ *
+ * O ajuste manual (edição inline de estoque na tabela de produtos) também cria
+ * uma `PurchaseEntry` no backend — sem este enum as duas apareciam idênticas
+ * nas listagens, distinguíveis só pelo "AJUSTE_MANUAL" no campo da NF.
+ */
+export const PURCHASE_ENTRY_TYPE = {
+  Purchase: 1,
+  ManualAdjustment: 2,
+} as const;
+
 export const USER_STATUS = {
   None: 0,
   Pending: 1,
@@ -402,6 +414,17 @@ export interface ProductDto {
   /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
   status: EnumValue;
   canDelete: boolean;
+  /**
+   * Nome como o usuário vê: `name` mais os valores de grade entre colchetes, em
+   * caixa alta. Igual a `name` em produto simples.
+   *
+   * Vem separado porque `name` é o que volta no PUT. Mandar o composto de volta
+   * gravaria o colchete dentro do nome, e na leitura seguinte ele apareceria
+   * duas vezes.
+   */
+  displayName: string;
+  /** Valores de grade desta variação. Vazio em produto simples. */
+  variationValues: ProductVariationValueDto[];
 }
 
 export interface TagDto {
@@ -423,22 +446,43 @@ export interface ProductTagDto {
   tagId: number;
 }
 
-export interface GradeOptionDto {
-  id: number;
-  gradeId: number;
-  value: string;
-  colorHex: string | null;
-  displayOrder: number;
-}
+/**
+ * Os três tipos de grade que uma variação pode ter. Espelha o enum `GradeType`
+ * do backend.
+ *
+ * A lista é FIXA desde 30/08/2026: não há mais catálogo de grades nem CRUD. O
+ * catálogo global existia, tinha 8 grades e 99 opções cadastradas no banco de
+ * dev — e ZERO produtos ligados a ele. A grade passou a nascer dentro da
+ * variação, e é por isso que "Cor" pode ter duas opções num produto e cinco em
+ * outro sem que os dois disputem um cadastro comum.
+ */
+export const GRADE_TYPE = {
+  Size: 1,
+  Color: 2,
+  Model: 3,
+} as const;
 
-export interface GradeDto {
-  id: number;
-  createdAt?: string;
-  updatedAt?: string | null;
-  name: string;
-  type: number; // GradeType (1 = Size, 2 = Color, 3 = Model, 4 = Print)
-  categoryIds: number[];
-  options: GradeOptionDto[];
+export type GradeTypeCode = (typeof GRADE_TYPE)[keyof typeof GRADE_TYPE];
+
+/** Rótulo de cada grade, para a tela não repetir o mapa em três lugares. */
+export const GRADE_TYPE_LABELS: Record<GradeTypeCode, string> = {
+  [GRADE_TYPE.Size]: "Tamanho",
+  [GRADE_TYPE.Color]: "Cor",
+  [GRADE_TYPE.Model]: "Modelo",
+};
+
+/** Um valor de grade de uma variação: "Cor = AZUL". */
+export interface ProductVariationValueDto {
+  /**
+   * Enum GradeType — chega como NOME ("Color"), não como código.
+   *
+   * O backend registra `JsonStringEnumConverter`, e foi essa mesma armadilha que
+   * já fez meia retaguarda sumir do menu (ver `routes.ts` do admin). Normalize
+   * com `enumCode(valor, GRADE_TYPE)` na fronteira, nunca compare direto.
+   */
+  gradeType: EnumValue;
+  value: string;
+  displayOrder: number;
 }
 
 export interface ImageDto {
@@ -1459,9 +1503,6 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
-/** Grade de variação. O `values` é a lista de opções (P, M, G). */
-export type SaveGradePayload = Omit<GradeDto, CamposDoServidor>;
-
 // ---------------------------------------------------------------------------
 // Vitrine pública do site (/Storefront) — endpoints ANÔNIMOS.
 //
@@ -1511,7 +1552,13 @@ export interface StorefrontVariationDto {
   price: number;
 }
 
-/** Detalhe de um grupo exibível: galeria completa, etiquetas e variações. */
+/**
+ * Detalhe de um grupo exibível: galeria completa, etiquetas e variações.
+ *
+ * Só ele carrega os ids da taxonomia — o card não. Quem precisa deles é a trilha
+ * "Departamento > Categoria > Produto", que só existe nesta tela; repetir três
+ * campos em 24 cards por página engordaria o payload público à toa.
+ */
 export interface StorefrontProductDetailDto {
   productGroupId: number;
   name: string;
@@ -1519,11 +1566,39 @@ export interface StorefrontProductDetailDto {
   price: number;
   priceMax?: number | null;
   hasVariations: boolean;
+  /** Primeiro nível da trilha; vira link para a vitrine filtrada. */
+  departmentId: number;
+  departmentName: string;
+  /** Segundo nível da trilha. */
+  categoryId: number;
   categoryName: string;
   images: StorefrontImageDto[];
   tags: StorefrontTagDto[];
   /** Vazia quando o grupo não tem variações. */
   variations: StorefrontVariationDto[];
+}
+
+/** Categoria na lista de filtros da vitrine. */
+export interface StorefrontCategoryDto {
+  id: number;
+  name: string;
+  /** Produtos visíveis nesta categoria, já considerando a busca ativa. */
+  productCount: number;
+}
+
+/**
+ * Departamento na lista de filtros, com as categorias que têm produto visível.
+ *
+ * Departamento sem vitrine não vem, e a contagem obedece à mesma busca da
+ * listagem: faceta que promete número que a grade não entrega é pior que faceta
+ * sem número.
+ */
+export interface StorefrontDepartmentDto {
+  id: number;
+  name: string;
+  /** Soma das categorias — o grupo pertence a uma só, então não conta duas vezes. */
+  productCount: number;
+  categories: StorefrontCategoryDto[];
 }
 
 /**

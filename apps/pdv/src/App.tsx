@@ -9,6 +9,7 @@ import { useConnectivity } from "@/hooks/use-connectivity";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import Login from "@/pages/login";
 import Pdv from "@/pages/pdv";
+import NotFound from "@/pages/not-found";
 
 const queryClient = createQueryClient();
 
@@ -52,7 +53,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/" component={PdvAutenticado} />
-      <Route component={() => <Redirect to="/" />} />
+      <Route component={NotFound} />
     </Switch>
   );
 }

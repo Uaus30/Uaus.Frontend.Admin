@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { reportClientError } from "./lib/clientLogger";
-import { isChunkLoadError, reloadOnChunkLoadError, setupChunkLoadErrorHandler } from "./lib/chunk-reload";
+import { isChunkLoadError, reloadOnChunkLoadError, setupChunkLoadErrorHandler } from "@workspace/ui";
 
 if (typeof window !== "undefined") {
   setupChunkLoadErrorHandler();

@@ -179,7 +179,7 @@ describe("buildMenu", () => {
 
     expect(nomes).toEqual([
       "Dashboard",
-      "Produtos",
+      "Estoque",
       "Financeiro",
       "Relatórios",
       "Marketing",
@@ -190,13 +190,12 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("Produtos segue a ordem: Cadastros, Entradas, Grades, Categorias, Departamentos, Fornecedores, Tags, Etiquetas", () => {
-    const produtos = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Produtos");
+  it("Estoque segue a ordem: Produtos, Entradas, Categorias, Departamentos, Fornecedores, Tags, Etiquetas", () => {
+    const produtos = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Estoque");
 
     expect(produtos?.items?.map((s) => s.name)).toEqual([
-      "Cadastros",
+      "Produtos",
       "Entradas",
-      "Grades",
       "Categorias",
       "Departamentos",
       "Fornecedores",
@@ -207,7 +206,6 @@ describe("buildMenu", () => {
     expect(produtos?.items?.map((s) => s.href)).toEqual([
       "/produtos",
       "/estoque/entradas",
-      "/grades",
       "/categorias",
       "/departamentos",
       "/fornecedores",
@@ -234,14 +232,18 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("Inventário mora no grupo Relatórios e o grupo Estoque foi descontinuado", () => {
+  it("Inventário mora no grupo Relatórios, e não no grupo Estoque", () => {
+    // O grupo "Estoque" se chamava "Produtos" até 30/08/2026, e antes disso
+    // existiu um "Estoque" DIFERENTE, que guardava o Inventário e foi
+    // dissolvido. O nome voltou; o Inventário não volta com ele — consulta
+    // mora em "Relatórios", e é isso que esta asserção protege.
     const menu = buildMenu(USER_ROLE.Admin);
 
     const relatorios = menu.find((item) => item.name === "Relatórios");
     expect(relatorios?.items?.map((s) => s.href)).toEqual(["/estoque/inventario"]);
 
     const estoque = menu.find((item) => item.name === "Estoque");
-    expect(estoque).toBeUndefined();
+    expect(estoque?.items?.map((s) => s.href)).not.toContain("/estoque/inventario");
   });
 
   it("Usuários é item de primeiro nível, e não item do grupo Sistema", () => {

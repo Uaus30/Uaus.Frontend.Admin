@@ -1,10 +1,18 @@
+import { createElement, type ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { StorefrontProductDto, UiPagedResult } from "@workspace/api-client-react";
+import { Router } from "wouter";
+import { memoryLocation } from "wouter/memory-location";
+import type {
+  StorefrontDepartmentDto,
+  StorefrontProductDto,
+  UiPagedResult,
+} from "@workspace/api-client-react";
 import { useCatalog } from "../useCatalog";
 
 const mocks = vi.hoisted(() => ({
   useGetStorefrontProductsInfinite: vi.fn(),
+  useGetStorefrontDepartments: vi.fn(),
 }));
 
 // Cerimônia do repositório: importOriginal + dublagem SÓ do que fala com a
@@ -12,6 +20,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetStorefrontProductsInfinite: mocks.useGetStorefrontProductsInfinite,
+  useGetStorefrontDepartments: mocks.useGetStorefrontDepartments,
 }));
 
 function product(id: number, name: string): StorefrontProductDto {
@@ -55,9 +64,32 @@ function givenQueryReturns(overrides: QueryOverrides = {}) {
   });
 }
 
+function givenDepartmentsReturn(departments: StorefrontDepartmentDto[] = []) {
+  mocks.useGetStorefrontDepartments.mockReturnValue({
+    data: departments,
+    isLoading: false,
+    isError: false,
+  });
+}
+
+/**
+ * Cada teste com a própria URL em memória: o filtro mora na query string, e a
+ * localização do jsdom é global — sem isolar, o `?busca=` de um teste
+ * apareceria no seguinte.
+ */
+function renderCatalog(searchPath = "") {
+  const { hook } = memoryLocation({ path: "/produtos", searchPath, record: true });
+  const wrapper = ({ children }: { children: ReactNode }) => createElement(Router, { hook }, children);
+
+  return renderHook(() => useCatalog(), { wrapper });
+}
+
+const NO_FILTER = { search: undefined, departmentId: undefined, categoryId: undefined, size: 24 };
+
 describe("useCatalog", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    givenDepartmentsReturn();
   });
 
   afterEach(() => {
@@ -73,7 +105,7 @@ describe("useCatalog", () => {
       ],
     });
 
-    const { result } = renderHook(() => useCatalog());
+    const { result } = renderCatalog();
 
     expect(result.current.products.map((p) => p.productGroupId)).toEqual([2, 1, 3]);
     expect(result.current.totalCount).toBe(3);
@@ -81,44 +113,73 @@ describe("useCatalog", () => {
 
   it("só manda a busca ao servidor depois do debounce, e sem termo vazio", () => {
     givenQueryReturns({ pages: [pageOf([], 1, 0)] });
-    const { result, rerender } = renderHook(() => useCatalog());
+    const { result, rerender } = renderCatalog();
 
-    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith({
-      search: undefined,
-      size: 24,
-    });
+    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith(NO_FILTER);
 
     act(() => result.current.setSearch("caneca"));
     rerender();
     // Antes do debounce vencer, o parâmetro ainda é o antigo.
-    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith({
-      search: undefined,
-      size: 24,
-    });
+    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith(NO_FILTER);
 
     act(() => vi.advanceTimersByTime(300));
     rerender();
     expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith({
+      ...NO_FILTER,
       search: "caneca",
-      size: 24,
     });
 
     // Só espaços não viram busca — o backend receberia um termo inútil.
     act(() => result.current.setSearch("   "));
     act(() => vi.advanceTimersByTime(300));
     rerender();
-    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith({
-      search: undefined,
-      size: 24,
-    });
+    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith(NO_FILTER);
   });
 
-  it("distingue catálogo vazio de busca sem resultado — as mensagens da tela são outras", () => {
+  it("manda a mesma busca para a grade e para a árvore de filtros", () => {
     givenQueryReturns({ pages: [pageOf([], 1, 0)] });
-    const { result, rerender } = renderHook(() => useCatalog());
+    const { result, rerender } = renderCatalog();
+
+    act(() => result.current.setSearch("caneca"));
+    act(() => vi.advanceTimersByTime(300));
+    rerender();
+
+    // É o que sustenta a contagem da faceta: se a árvore recebesse outra busca
+    // (ou nenhuma), "Cozinha (7)" apareceria ao lado de três cards. A leitura
+    // sem busca também acontece — é o retrato do catálogo, de onde saem nomes e
+    // existência dos filtros.
+    expect(mocks.useGetStorefrontDepartments).toHaveBeenCalledWith("caneca");
+  });
+
+  it("lê o filtro da URL e o repassa para a consulta", () => {
+    givenQueryReturns({ pages: [pageOf([product(1, "Panela")], 1, 1)] });
+
+    const { result } = renderCatalog("departamento=2&categoria=10");
+
+    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith({
+      ...NO_FILTER,
+      departmentId: 2,
+      categoryId: 10,
+    });
+    expect(result.current.hasFilters).toBe(true);
+  });
+
+  it("ignora id de filtro inválido na URL em vez de quebrar a vitrine", () => {
+    givenQueryReturns({ pages: [pageOf([], 1, 0)] });
+
+    const { result } = renderCatalog("departamento=abc&categoria=-3");
+
+    expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith(NO_FILTER);
+    expect(result.current.hasFilters).toBe(false);
+  });
+
+  it("distingue catálogo vazio, busca sem resultado e filtro sem resultado", () => {
+    givenQueryReturns({ pages: [pageOf([], 1, 0)] });
+    const { result, rerender } = renderCatalog();
 
     expect(result.current.isEmpty).toBe(true);
     expect(result.current.isSearchEmpty).toBe(false);
+    expect(result.current.isFilterEmpty).toBe(false);
 
     act(() => result.current.setSearch("inexistente"));
     act(() => vi.advanceTimersByTime(300));
@@ -128,9 +189,19 @@ describe("useCatalog", () => {
     expect(result.current.isSearchEmpty).toBe(true);
   });
 
+  it("marca vazio de FILTRO, e não de busca — só ele oferece a saída de limpar", () => {
+    givenQueryReturns({ pages: [pageOf([], 1, 0)] });
+
+    const { result } = renderCatalog("categoria=10");
+
+    expect(result.current.isFilterEmpty).toBe(true);
+    expect(result.current.isSearchEmpty).toBe(false);
+    expect(result.current.isEmpty).toBe(false);
+  });
+
   it("expõe carregando e buscando como estados separados", () => {
     givenQueryReturns({ isLoading: true });
-    const { result, rerender } = renderHook(() => useCatalog());
+    const { result, rerender } = renderCatalog();
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.isSearching).toBe(false);

@@ -2,11 +2,11 @@ import React from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProductDto } from "@workspace/api-client-react";
+import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 
 const mocks = vi.hoisted(() => ({
   createProductLabelBatch: vi.fn(),
-  getProductsPage: vi.fn(),
+  searchPdvProducts: vi.fn(),
   printLabelSheet: vi.fn(),
   toast: vi.fn(),
 }));
@@ -16,10 +16,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   createProductLabelBatch: mocks.createProductLabelBatch,
-}));
-
-vi.mock("@/services/products.service", () => ({
-  getProductsPage: mocks.getProductsPage,
+  searchPdvProducts: mocks.searchPdvProducts,
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -33,15 +30,16 @@ vi.mock("../../print", () => ({
 
 const { useLabelComposer } = await import("../useLabelComposer");
 
-/** Produto devolvido pela busca; só os campos que o hook usa. */
-function product(id: number, patch?: Partial<ProductDto>): ProductDto {
+/** Produto devolvido pela busca do balcão; só os campos que o hook usa. */
+function product(id: number, patch?: Partial<ProductPdvSearchDto>): ProductPdvSearchDto {
   return {
     id,
     name: `Produto ${id}`,
     barcode: `789000000000${id}`,
     price: 12.5,
+    stock: 5,
     ...patch,
-  } as ProductDto;
+  } as ProductPdvSearchDto;
 }
 
 const createWrapper = () => {
@@ -56,7 +54,7 @@ const createWrapper = () => {
 describe("useLabelComposer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getProductsPage.mockResolvedValue({ data: [], page: 1, limit: 8, total: 0, totalPages: 1 });
+    mocks.searchPdvProducts.mockResolvedValue([]);
     mocks.printLabelSheet.mockResolvedValue(undefined);
     mocks.createProductLabelBatch.mockResolvedValue({
       id: 1,
@@ -80,6 +78,14 @@ describe("useLabelComposer", () => {
         },
       ],
     });
+  });
+
+  it("abre sem buscar nada — a lista de produtos nasce vazia", () => {
+    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+
+    expect(mocks.searchPdvProducts).not.toHaveBeenCalled();
+    expect(result.current.searchResults).toEqual([]);
+    expect(result.current.hasSearched).toBe(false);
   });
 
   it("adiciona o produto com tipo Normal e preço do cadastro", () => {

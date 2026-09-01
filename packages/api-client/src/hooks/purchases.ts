@@ -7,7 +7,7 @@
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
-import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
+import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
 
 // ==========================================
 // INVENTORY & PURCHASE ENTRIES TYPES & HOOKS
@@ -22,6 +22,11 @@ export interface PurchaseEntryDto {
   invoiceNumber: string | null;
   notes: string | null;
   total: number;
+  /**
+   * Enum PurchaseEntryType — chega como NOME (`"ManualAdjustment"`), não como
+   * código. Normalize com `enumCode(valor, PURCHASE_ENTRY_TYPE)` na fronteira.
+   */
+  type: EnumValue;
 }
 
 export interface ReceivedPurchaseEntryItemDto {
@@ -49,6 +54,9 @@ export interface ReceivedPurchaseEntryDto {
   invoiceNumber: string | null;
   notes: string | null;
   total: number;
+  /** Quem lançou. Nulos nas notas anteriores a 31/08/2026, quando o autor passou a ser gravado. */
+  userId: number | null;
+  userName: string | null;
   canEdit: boolean;
   canDelete: boolean;
   items: ReceivedPurchaseEntryItemDto[];
@@ -66,6 +74,12 @@ export interface ReceivePurchaseEntryRequest {
   entryDate: string;
   invoiceNumber: string | null;
   notes: string | null;
+  /**
+   * Chave de idempotência (UUID, um por lançamento). Um retry depois de timeout
+   * reenvia a mesma chave e recebe a nota já gravada em vez de duplicar lote e
+   * estoque — índice único parcial no backend, no molde de vendas e baixas.
+   */
+  clientReference?: string | null;
   items: ReceivePurchaseEntryItemRequest[];
 }
 

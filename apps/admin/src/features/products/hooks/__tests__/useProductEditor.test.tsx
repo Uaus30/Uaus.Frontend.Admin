@@ -1,11 +1,22 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useProductEditor } from "../useProductEditor";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { updateProductGroup, syncProductImages } from "@/services/products.service";
-import { getGradesByCategoryId, getAllGrades } from "@/services/grades.service";
+import { syncProductImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
+
+const mocks = vi.hoisted(() => ({
+  saveProductGroupWithProducts: vi.fn(() =>
+    Promise.resolve({ group: { id: 1 }, products: [{ id: 10, canDelete: true }] }),
+  ),
+}));
+
+// Dubla só o que fala com a rede; o resto do api-client continua o de verdade.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
+  saveProductGroupWithProducts: mocks.saveProductGroupWithProducts,
+}));
 
 // Mock services and utilities
 vi.mock("@/services/products.service", () => ({
@@ -13,9 +24,6 @@ vi.mock("@/services/products.service", () => ({
   getAllProductImages: vi.fn(() => Promise.resolve([])),
   getAllProductTags: vi.fn(() => Promise.resolve([])),
   getProductsPage: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
-  createProductGroup: vi.fn(() => Promise.resolve({ id: 1 })),
-  updateProductGroup: vi.fn(() => Promise.resolve({ id: 1 })),
-  upsertProduct: vi.fn(() => Promise.resolve({ id: 10, canDelete: true })),
   syncProductTags: vi.fn(() => Promise.resolve()),
   syncProductImages: vi.fn(() => Promise.resolve()),
   deleteProduct: vi.fn(() => Promise.resolve()),
@@ -26,11 +34,6 @@ vi.mock("@/services/categories.service", () => ({
   getAllCategories: vi.fn(() => Promise.resolve([])),
   getGradesByCategoryId: vi.fn(() => Promise.resolve([])),
   getAllDepartments: vi.fn(() => Promise.resolve([])),
-}));
-
-vi.mock("@/services/grades.service", () => ({
-  getAllGrades: vi.fn(() => Promise.resolve([])),
-  getGradesByCategoryId: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("@/services/tags.service", () => ({
@@ -72,27 +75,27 @@ describe("useProductEditor Hook", () => {
     vi.clearAllMocks();
   });
 
-  it("should initialize default form values and modal status", () => {
+  it("should initialize default form values and detail status", () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
 
-    expect(result.current.modalOpen).toBe(false);
+    expect(result.current.detailOpen).toBe(false);
     expect(result.current.saving).toBe(false);
     expect(result.current.form.productGroupName).toBe("");
     expect(result.current.form.hasVariations).toBe(false);
   });
 
-  it("should handle openModal in create mode", () => {
+  it("should handle openDetail in create mode", () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
 
     act(() => {
-      result.current.openModal();
+      result.current.openDetail();
     });
 
-    expect(result.current.modalOpen).toBe(true);
+    expect(result.current.detailOpen).toBe(true);
     expect(result.current.editingGroupId).toBeNull();
   });
 
-  it("should handle openModal in edit mode", () => {
+  it("should handle openDetail in edit mode", () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
 
     const mockProduct = {
@@ -112,10 +115,10 @@ describe("useProductEditor Hook", () => {
     };
 
     act(() => {
-      result.current.openModal(mockProduct);
+      result.current.openDetail(mockProduct);
     });
 
-    expect(result.current.modalOpen).toBe(true);
+    expect(result.current.detailOpen).toBe(true);
     expect(result.current.editingGroupId).toBe(1);
     expect(result.current.productEditor.name).toBe("COPO VERDE");
     expect(result.current.productEditor.price).toBe(15.5);
@@ -160,7 +163,7 @@ describe("useProductEditor Hook", () => {
     };
 
     act(() => {
-      result.current.openModal(mockProduct);
+      result.current.openDetail(mockProduct);
     });
 
     // O formulário carrega os valores persistidos do grupo
@@ -171,14 +174,18 @@ describe("useProductEditor Hook", () => {
       await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
     });
 
-    expect(updateProductGroup).toHaveBeenCalledWith({
-      id: 1,
-      categoryId: 5,
-      name: "COPO",
-      description: "Descrição original",
-      hasVariations: false,
-      showOnSite: false,
-    });
+    // O salvamento é UMA chamada atômica: grupo e produto viajam juntos.
+    expect(mocks.saveProductGroupWithProducts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupId: 1,
+        categoryId: 5,
+        name: "COPO",
+        description: "Descrição original",
+        hasVariations: false,
+        showOnSite: false,
+        products: [expect.objectContaining({ id: 10, name: "COPO VERDE" })],
+      }),
+    );
   });
 
   it("deve preservar a posição escolhida para imagens novas ao salvar", async () => {
@@ -203,7 +210,7 @@ describe("useProductEditor Hook", () => {
     };
 
     act(() => {
-      result.current.openModal(mockProduct);
+      result.current.openDetail(mockProduct);
     });
 
     // Usuário adiciona a imagem nova "C" e a arrasta para a primeira posição
@@ -229,98 +236,5 @@ describe("useProductEditor Hook", () => {
         ],
       }),
     );
-  });
-
-  it("não deve regenerar a matriz de variações sobre drafts reais em modo de edição", async () => {
-    // Regressão: o efeito de grades por categoria substituía o draft real (com
-    // id) por drafts temporários da matriz cartesiana (sem id, estoque 0);
-    // salvar nesse estado criava variações duplicadas.
-    const sizeGrade = {
-      id: 50,
-      name: "Tamanho",
-      type: 1,
-      categoryIds: [5],
-      variants: [
-        { id: 501, value: "P" },
-        { id: 502, value: "M" },
-      ],
-    };
-    vi.mocked(getGradesByCategoryId).mockResolvedValue([sizeGrade] as any);
-    vi.mocked(getAllGrades).mockResolvedValue([sizeGrade] as any);
-
-    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
-
-    const variationProduct = {
-      id: 10,
-      name: "CAMISETA P",
-      description: "",
-      price: 10,
-      stock: 3,
-      minStock: 0,
-      status: 2,
-      barcode: "",
-      department: { id: 2 },
-      category: { id: 5 },
-      productGroup: { id: 1, name: "CAMISETA", description: "", hasVariations: true, showOnSite: true },
-      tags: [],
-      images: [],
-    };
-
-    act(() => {
-      result.current.openModal(variationProduct);
-    });
-
-    expect(result.current.variationDrafts).toHaveLength(1);
-    expect(result.current.variationDrafts[0].id).toBe(10);
-
-    // Aguarda as grades da categoria resolverem (gatilho do efeito com bug)
-    await waitFor(() => expect(result.current.categoryGrades.length).toBeGreaterThan(0));
-
-    // O draft real permanece — nada de matriz temporária por cima dele
-    expect(result.current.variationDrafts).toHaveLength(1);
-    expect(result.current.variationDrafts[0].id).toBe(10);
-  });
-
-  it("não deve ressuscitar a matriz ao apagar variações até sobrar uma (criação)", async () => {
-    const sizeGrade = {
-      id: 50,
-      name: "Tamanho",
-      type: 1,
-      categoryIds: [5],
-      variants: [
-        { id: 501, value: "P" },
-        { id: 502, value: "M" },
-      ],
-    };
-    vi.mocked(getGradesByCategoryId).mockResolvedValue([sizeGrade] as any);
-    vi.mocked(getAllGrades).mockResolvedValue([sizeGrade] as any);
-
-    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.openModal();
-    });
-    act(() => {
-      result.current.setForm((current) => ({
-        ...current,
-        departmentId: "2",
-        categoryId: "5",
-        productGroupName: "CAMISETA",
-      }));
-    });
-    act(() => {
-      result.current.toggleHasVariations(true);
-    });
-
-    // A matriz P/M é gerada automaticamente para a categoria selecionada
-    await waitFor(() => expect(result.current.variationDrafts).toHaveLength(2));
-
-    // Usuário apaga uma variação (sem id, remoção local)
-    await act(async () => {
-      await result.current.handleDeleteVariation(result.current.variationDrafts[0]);
-    });
-
-    // A matriz completa não pode reaparecer sozinha
-    expect(result.current.variationDrafts).toHaveLength(1);
   });
 });

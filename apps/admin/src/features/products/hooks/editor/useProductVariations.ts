@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
+import { describeApiError } from "@workspace/core";
 import { deleteProduct } from "@/services/products.service";
 import { createVariationDraft } from "./utils";
-import type { VariationDraft, Grade, ProductGroupForm, ProductEditorForm } from "../../types";
-import { describeApiError } from "@workspace/core";
+import { gerarCombinacoes, mesclarMatriz } from "../../lib/variationMatrix";
+import type { VariationDraft, ProductGrade, ProductGroupForm, ProductEditorForm } from "../../types";
 
 export interface UseProductVariationsProps {
   form: ProductGroupForm;
@@ -14,12 +14,10 @@ export interface UseProductVariationsProps {
   setVariationDrafts: React.Dispatch<React.SetStateAction<VariationDraft[]>>;
   activeVariationKey: string | null;
   setActiveVariationKey: React.Dispatch<React.SetStateAction<string | null>>;
-  gradesList: Grade[];
-  setActiveGrades: React.Dispatch<React.SetStateAction<Grade[]>>;
   defaultStatus: string;
   editingGroupId: number | null;
   invalidateProductQueries: (groupId?: number | null) => Promise<void>;
-  refetchGroupProducts: () => Promise<any>;
+  refetchGroupProducts: () => Promise<unknown>;
 }
 
 export function useProductVariations({
@@ -30,14 +28,11 @@ export function useProductVariations({
   setVariationDrafts,
   activeVariationKey,
   setActiveVariationKey,
-  gradesList,
-  setActiveGrades,
   defaultStatus,
   editingGroupId,
   invalidateProductQueries,
   refetchGroupProducts,
 }: UseProductVariationsProps) {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const activeVariation = useMemo(
@@ -49,85 +44,103 @@ export function useProductVariations({
     setVariationDrafts((current) => current.map((draft) => (draft.key === key ? updater(draft) : draft)));
   }
 
-  function generateVariationsMatrix(selectedGradeIds: number[]) {
-    const selectedGrades = gradesList.filter((g: Grade) => selectedGradeIds.includes(g.id));
-    setActiveGrades(selectedGrades);
-
-    if (selectedGrades.length === 0) {
-      const draftName = productEditor.name || form.productGroupName;
-      const draft = createVariationDraft(defaultStatus, draftName);
-      draft.price = productEditor.price;
-      draft.stock = 0;
-      draft.minStock = productEditor.minStock;
-      draft.barcode = productEditor.barcode;
-      draft.variantMap = {};
-
-      setVariationDrafts([draft]);
-      setForm((current) => ({ ...current, hasVariations: true }));
-      setActiveVariationKey(draft.key);
+  /**
+   * Gera/regenera a matriz MESCLANDO com o que o produto já tem.
+   *
+   * Combinação que continua na matriz preserva o draft atual — id, preço,
+   * código de barras, imagens. Combinação nova nasce com preço e estoque mínimo
+   * do produto principal como ponto de partida. Combinação que saiu é excluída
+   * do servidor na hora (como o lixo da linha faz), exceto as que têm venda
+   * (`canDelete === false`), que permanecem na lista com um aviso.
+   *
+   * Antes a regeração descartava TUDO: drafts novos sem id viravam produtos
+   * NOVOS no salvar e os antigos ficavam no banco — o grupo acumulava
+   * duplicatas até a checagem de combinação repetida travar o cadastro.
+   */
+  async function generateVariationsMatrix(grades: ProductGrade[]) {
+    const combinacoes = gerarCombinacoes(grades);
+    if (combinacoes.length === 0) {
+      setVariationDrafts([]);
+      setForm((current) => ({ ...current, hasVariations: false }));
+      setActiveVariationKey(null);
       return;
     }
 
-    const generateCombinations = (
-      gradesList: Grade[],
-      currentMap: Record<number, number> = {},
-      index = 0,
-    ): Record<number, number>[] => {
-      if (index === gradesList.length) {
-        return [{ ...currentMap }];
+    const { slots, removidas } = mesclarMatriz(variationDrafts, combinacoes);
+
+    const bloqueadas: VariationDraft[] = [];
+    let excluidas = 0;
+    for (const draft of removidas) {
+      if (draft.id == null || draft.id === 0) continue;
+
+      if (draft.canDelete === false) {
+        bloqueadas.push(draft);
+        continue;
       }
-      const grade = gradesList[index];
-      const combinations: Record<number, number>[] = [];
-      for (const variant of grade.variants) {
-        currentMap[grade.id] = variant.id;
-        combinations.push(...generateCombinations(gradesList, currentMap, index + 1));
+
+      try {
+        await deleteProduct(draft.id);
+        excluidas += 1;
+      } catch (error) {
+        // Exclusão recusada (ex.: ganhou venda entre o carregar e o agora):
+        // a variação fica na lista, senão ela some da tela mas continua no banco.
+        bloqueadas.push(draft);
+        toast({
+          title: "Variação não pôde ser excluída",
+          description: describeApiError(error, "Ela continua na lista."),
+          variant: "destructive",
+        });
       }
-      return combinations;
-    };
+    }
 
-    const newCombinations = generateCombinations(selectedGrades);
-
-    const newDrafts: VariationDraft[] = newCombinations.map((combo) => {
-      const comboNames = selectedGrades
-        .map((g: Grade) => {
-          const variantId = combo[g.id];
-          return g.variants.find((v: any) => v.id === variantId)?.value;
-        })
-        .filter(Boolean);
-
-      const draftName = `${productEditor.name || form.productGroupName} ${comboNames.join(" ")}`.trim();
-
-      const draft = createVariationDraft(defaultStatus, draftName);
+    const finais = slots.map(({ values, existente }) => {
+      if (existente) return existente;
+      const draft = createVariationDraft(defaultStatus, form.productGroupName.trim());
       draft.price = productEditor.price;
       draft.stock = 0;
       draft.minStock = productEditor.minStock;
-      draft.barcode = productEditor.barcode;
-      draft.variantMap = combo;
+      draft.barcode = "";
+      draft.values = values;
       return draft;
     });
 
-    setVariationDrafts(newDrafts);
-    setForm((current) => ({ ...current, hasVariations: newDrafts.length > 0 }));
-    if (newDrafts.length > 0) setActiveVariationKey(newDrafts[0].key);
+    // As bloqueadas entram no fim: continuam existindo e o operador decide.
+    const proximos = [...finais, ...bloqueadas];
+    setVariationDrafts(proximos);
+    setForm((current) => ({ ...current, hasVariations: true }));
+    setActiveVariationKey(proximos[0].key);
+
+    if (excluidas > 0) {
+      await invalidateProductQueries(editingGroupId);
+      toast({ title: `${excluidas} variação(ões) fora da matriz foram excluídas.` });
+    }
+    if (bloqueadas.length > 0) {
+      toast({
+        title: "Variações com movimento foram mantidas",
+        description: `${bloqueadas.length} variação(ões) fora da matriz têm venda ou estoque e não podem ser excluídas.`,
+        variant: "warning",
+      });
+    }
   }
 
+  /**
+   * Acrescenta uma variação avulsa, fora da matriz.
+   *
+   * Existe para o caso de o operador precisar de uma combinação a mais sem
+   * regerar tudo (regerar apaga preço e código digitados linha a linha). Os
+   * valores de grade vêm vazios e ele preenche na própria tabela.
+   */
   function addVariationDraft(initialValues?: Partial<VariationDraft>) {
-    const draft = createVariationDraft(
-      defaultStatus,
-      initialValues?.name || productEditor.name || form.productGroupName.trim(),
-    );
+    const draft = createVariationDraft(defaultStatus, form.productGroupName.trim());
     draft.price = initialValues?.price ?? productEditor.price;
     draft.minStock = initialValues?.minStock ?? productEditor.minStock;
-    draft.barcode = initialValues?.barcode ?? productEditor.barcode;
+    draft.barcode = initialValues?.barcode ?? "";
     draft.stock = initialValues?.stock ?? 0;
-    if (initialValues?.variantMap) draft.variantMap = initialValues.variantMap;
+    draft.values = initialValues?.values ?? [];
     if (initialValues?.status) draft.status = initialValues.status;
 
-    setVariationDrafts((current) => {
-      const newDrafts = [...current, draft];
-      setForm((f) => ({ ...f, hasVariations: true }));
-      return newDrafts;
-    });
+    setVariationDrafts((current) => [...current, draft]);
+    setForm((f) => ({ ...f, hasVariations: true }));
     setActiveVariationKey(draft.key);
   }
 

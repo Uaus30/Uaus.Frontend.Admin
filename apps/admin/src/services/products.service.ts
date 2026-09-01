@@ -9,6 +9,7 @@ import {
   type ProductGroupDto,
   type ProductImageDto,
   type ProductTagDto,
+  type ProductVariationValueDto,
 } from "@workspace/api-client-react";
 import { getPaged } from "./core";
 
@@ -175,19 +176,21 @@ export async function upsertProduct(payload: {
   price: number;
   minStock?: number;
   status: number;
-  gradeOptionIds?: number[];
+  variationValues?: Array<{ gradeType: number; value: string; displayOrder: number }>;
 }) {
+  // Sem costPrice nem stock de propósito: os requests do backend não têm esses
+  // campos — custo e saldo nascem das entradas de estoque, nunca do cadastro.
+  // Mandar `0` aqui era uma bomba armada para o dia em que alguém os adicionasse
+  // ao request e o PUT passasse a zerar o estoque de quem edita preço.
   const request = {
     productGroupId: payload.productGroupId,
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     barcode: payload.barcode || null,
     price: payload.price,
-    costPrice: 0,
-    stock: 0,
     minStock: payload.minStock ?? 0,
     status: payload.status,
-    gradeOptionIds: payload.gradeOptionIds ?? [],
+    variationValues: payload.variationValues ?? [],
   };
 
   if (payload.id) {
@@ -227,23 +230,20 @@ export async function upsertProduct(payload: {
     minStock: payload.minStock ?? 0,
     status: payload.status,
     canDelete: true,
+    // Reconstrução local para o POST que não devolve corpo. O nome composto e
+    // os valores de grade vêm do que acabou de ser enviado — a próxima leitura
+    // do servidor traz a versão oficial.
+    displayName: payload.name.trim(),
+    variationValues: (payload.variationValues ?? []).map((value) => ({
+      gradeType: value.gradeType as ProductVariationValueDto["gradeType"],
+      value: value.value,
+      displayOrder: value.displayOrder,
+    })),
   } satisfies ProductDto;
 }
 
 export async function deleteProduct(id: number) {
   return apiDelete<null>(`/Products/${id}`);
-}
-
-export async function adjustProductStock(productId: number, newStock: number) {
-  const response = await apiPut<ProductDto>(`/Products/${productId}/adjust-stock`, {
-    newStock,
-  });
-
-  if (!response.data) {
-    throw new Error("Não foi possível ajustar o estoque do produto.");
-  }
-
-  return response.data;
 }
 
 export async function deleteProductGroup(id: number) {

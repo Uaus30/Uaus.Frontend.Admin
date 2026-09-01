@@ -130,11 +130,14 @@ export function useInventory() {
         const stock = item.stock || 0;
         const unitCost = item.unitCost || 0;
         const unitSale = item.unitSale || 0;
-        const totalCost = stock * unitCost;
-        const mercadoria = stock * unitSale;
-        const estProfit = mercadoria - totalCost;
-        // A margem divide por mercadoria; com mercadoria 0 o resultado seria NaN.
-        const margin = mercadoria > 0 ? (estProfit / mercadoria) * 100 : 0;
+        // Custo, lucro e margem vêm PRONTOS do servidor, que os calcula pelos
+        // lotes disponíveis. Recalcular `stock * unitCost` aqui rendia um CSV
+        // diferente da tela: o unitário é a média do saldo, arredondada em
+        // centavos, e o total é a soma exata dos lotes.
+        const totalCost = item.totalCost ?? 0;
+        const mercadoria = item.mercadoria ?? stock * unitSale;
+        const estProfit = item.estimatedProfit ?? mercadoria - totalCost;
+        const margin = item.marginPercentage ?? 0;
 
         csvContent +=
           `"${name.replace(/"/g, '""')}";` +

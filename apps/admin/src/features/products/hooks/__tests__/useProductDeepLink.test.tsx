@@ -25,27 +25,27 @@ describe("useProductDeepLink", () => {
     abertoEm("");
   });
 
-  it("abre a modal do produto pedido na URL", async () => {
+  it("abre o detalhe do produto pedido na URL", async () => {
     // É o fluxo inteiro do balcão: o operador vê preço errado na hora de vender,
     // clica no lápis e espera cair NA EDIÇÃO daquele produto.
     abertoEm("?busca=Caf%C3%A9+Torrado&editar=42");
-    const openModal = vi.fn();
+    const openDetail = vi.fn();
     const produtos = [linha(7, "Sacola"), linha(42, "Café Torrado")];
 
-    renderHook(() => useProductDeepLink({ isLoading: false, enrichedProducts: produtos, openModal }));
+    renderHook(() => useProductDeepLink({ isLoading: false, enrichedProducts: produtos, openDetail }));
 
-    await waitFor(() => expect(openModal).toHaveBeenCalledWith(produtos[1]));
+    await waitFor(() => expect(openDetail).toHaveBeenCalledWith(produtos[1]));
   });
 
   it("não faz nada sem o parâmetro", async () => {
     abertoEm("?busca=Caf%C3%A9");
-    const openModal = vi.fn();
+    const openDetail = vi.fn();
 
     renderHook(() =>
-      useProductDeepLink({ isLoading: false, enrichedProducts: [linha(42, "Café")], openModal }),
+      useProductDeepLink({ isLoading: false, enrichedProducts: [linha(42, "Café")], openDetail }),
     );
 
-    await waitFor(() => expect(openModal).not.toHaveBeenCalled());
+    await waitFor(() => expect(openDetail).not.toHaveBeenCalled());
     expect(mockToast).not.toHaveBeenCalled();
   });
 
@@ -53,81 +53,81 @@ describe("useProductDeepLink", () => {
     // Decidir com a lista ainda vazia daria "produto não encontrado" em todo
     // link que funciona — a página da tabela ainda está viajando.
     abertoEm("?editar=42");
-    const openModal = vi.fn();
+    const openDetail = vi.fn();
     const { rerender } = renderHook(
       ({ isLoading, produtos }: { isLoading: boolean; produtos: ProductTableRow[] }) =>
-        useProductDeepLink({ isLoading, enrichedProducts: produtos, openModal }),
+        useProductDeepLink({ isLoading, enrichedProducts: produtos, openDetail }),
       { initialProps: { isLoading: true, produtos: [] as ProductTableRow[] } },
     );
 
-    expect(openModal).not.toHaveBeenCalled();
+    expect(openDetail).not.toHaveBeenCalled();
     expect(mockToast).not.toHaveBeenCalled();
 
     const produtos = [linha(42, "Café Torrado")];
     rerender({ isLoading: false, produtos });
 
-    await waitFor(() => expect(openModal).toHaveBeenCalledWith(produtos[0]));
+    await waitFor(() => expect(openDetail).toHaveBeenCalledWith(produtos[0]));
   });
 
   it("abre a linha única quando o id não bate — o produto é uma variação", async () => {
     // A tabela mostra um produto REPRESENTANTE por grupo. Se o produto pedido é
     // uma variação, ele não é o representante e o id não aparece na lista; o
-    // grupo é o mesmo, e a modal edita o grupo inteiro.
+    // grupo é o mesmo, e a tela edita o grupo inteiro.
     abertoEm("?busca=Camiseta&editar=99");
-    const openModal = vi.fn();
+    const openDetail = vi.fn();
     const produtos = [linha(50, "Camiseta P")];
 
-    renderHook(() => useProductDeepLink({ isLoading: false, enrichedProducts: produtos, openModal }));
+    renderHook(() => useProductDeepLink({ isLoading: false, enrichedProducts: produtos, openDetail }));
 
-    await waitFor(() => expect(openModal).toHaveBeenCalledWith(produtos[0]));
+    await waitFor(() => expect(openDetail).toHaveBeenCalledWith(produtos[0]));
   });
 
   it("avisa quando o filtro não trouxe o produto", async () => {
     // Silenciar seria o pior desfecho: a aba abre numa lista e nada explica por
-    // que a modal não veio.
+    // que o detalhe não veio.
     abertoEm("?busca=Inexistente&editar=42");
-    const openModal = vi.fn();
+    const openDetail = vi.fn();
 
-    renderHook(() => useProductDeepLink({ isLoading: false, enrichedProducts: [], openModal }));
+    renderHook(() => useProductDeepLink({ isLoading: false, enrichedProducts: [], openDetail }));
 
     await waitFor(() => expect(mockToast).toHaveBeenCalled());
-    expect(openModal).not.toHaveBeenCalled();
+    expect(openDetail).not.toHaveBeenCalled();
     expect(mockToast.mock.calls[0][0]).toMatchObject({ variant: "destructive" });
   });
 
   it("tira o editar da URL, preservando a busca", async () => {
-    // O link é instrução de uma vez só: sem limpar, fechar a modal e recarregar
+    // O link é instrução de uma vez só: sem limpar, fechar o detalhe e recarregar
     // abriria tudo de novo.
     abertoEm("?busca=Caf%C3%A9&editar=42");
-    const openModal = vi.fn();
+    const openDetail = vi.fn();
 
     renderHook(() =>
       useProductDeepLink({
         isLoading: false,
         enrichedProducts: [linha(42, "Café")],
-        openModal,
+        openDetail,
       }),
     );
 
-    await waitFor(() => expect(openModal).toHaveBeenCalled());
+    await waitFor(() => expect(openDetail).toHaveBeenCalled());
     expect(window.location.search).toBe("?busca=Caf%C3%A9");
   });
 
   it("abre uma vez só, mesmo com a lista se atualizando", async () => {
     abertoEm("?editar=42");
-    const openModal = vi.fn();
+    const openDetail = vi.fn();
     const produtos = [linha(42, "Café Torrado")];
     const { rerender } = renderHook(
       ({ p }: { p: ProductTableRow[] }) =>
-        useProductDeepLink({ isLoading: false, enrichedProducts: p, openModal }),
+        useProductDeepLink({ isLoading: false, enrichedProducts: p, openDetail }),
       { initialProps: { p: produtos } },
     );
 
-    await waitFor(() => expect(openModal).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(openDetail).toHaveBeenCalledTimes(1));
 
     rerender({ p: [...produtos] });
     rerender({ p: [linha(42, "Café Torrado 500g")] });
 
-    expect(openModal).toHaveBeenCalledTimes(1);
+    expect(openDetail).toHaveBeenCalledTimes(1);
   });
 });

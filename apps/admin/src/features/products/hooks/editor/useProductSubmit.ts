@@ -1,14 +1,13 @@
 import { useToast } from "@workspace/ui";
-import { buildPublicImageUrl } from "@/services/core";
 import {
-  createProductGroup,
-  updateProductGroup,
-  upsertProduct,
-  syncProductTags,
-  syncProductImages,
-} from "@/services/products.service";
+  saveProductGroupWithProducts,
+  type SaveProductGroupProductPayload,
+} from "@workspace/api-client-react";
+import { buildPublicImageUrl } from "@/services/core";
+import { syncProductTags, syncProductImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
-import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft, Grade } from "../../types";
+import { chaveDaCombinacao } from "../../lib/variationMatrix";
+import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft } from "../../types";
 import { describeApiError } from "@workspace/core";
 
 export interface UseProductSubmitProps {
@@ -21,7 +20,6 @@ export interface UseProductSubmitProps {
   setVariationDrafts: React.Dispatch<React.SetStateAction<VariationDraft[]>>;
   images: LocalImage[];
   setImages: React.Dispatch<React.SetStateAction<LocalImage[]>>;
-  activeGrades: Grade[];
   setActiveVariationKey: React.Dispatch<React.SetStateAction<string | null>>;
   setSaving: React.Dispatch<React.SetStateAction<boolean>>;
   invalidateProductQueries: (groupId?: number | null) => Promise<void>;
@@ -29,7 +27,8 @@ export interface UseProductSubmitProps {
   productTags: any[];
   productImages: any[];
   getStatusNumber: (statusVal: any) => number;
-  setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setDetailOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  markClean: () => void;
   resetForm: () => void;
 }
 
@@ -43,7 +42,6 @@ export function useProductSubmit({
   setVariationDrafts,
   images,
   setImages,
-  activeGrades,
   setActiveVariationKey,
   setSaving,
   invalidateProductQueries,
@@ -51,38 +49,11 @@ export function useProductSubmit({
   productTags,
   productImages,
   getStatusNumber,
-  setModalOpen,
+  setDetailOpen,
+  markClean,
   resetForm,
 }: UseProductSubmitProps) {
   const { toast } = useToast();
-
-  async function persistGroup() {
-    if (!form.categoryId || !form.productGroupName.trim()) {
-      throw new Error("Preencha categoria e nome do produto pai.");
-    }
-
-    if (editingGroupId) {
-      const updatedGroup = await updateProductGroup({
-        id: editingGroupId,
-        categoryId: Number(form.categoryId),
-        name: form.productGroupName,
-        description: form.description,
-        hasVariations: form.hasVariations,
-        showOnSite: form.isPublic,
-      });
-      return updatedGroup;
-    }
-
-    const createdGroup = await createProductGroup({
-      categoryId: Number(form.categoryId),
-      name: form.productGroupName,
-      description: form.description,
-      hasVariations: form.hasVariations,
-      showOnSite: form.isPublic,
-    });
-    setEditingGroupId(createdGroup.id);
-    return createdGroup;
-  }
 
   async function persistProductAssociations(productId: number, tagIds: number[], sourceImages: LocalImage[]) {
     const currentTagAssociations = productTags.filter((item) => item.productId === productId);
@@ -130,75 +101,106 @@ export function useProductSubmit({
 
     setSaving(true);
     try {
-      const group = await persistGroup();
+      if (!form.categoryId || !form.productGroupName.trim()) {
+        throw new Error("Preencha categoria e nome do produto pai.");
+      }
+
+      let produtos: SaveProductGroupProductPayload[];
 
       if (!form.hasVariations) {
         if (!productEditor.name.trim() || !productEditor.status) {
           throw new Error("Preencha nome, status e os dados do produto simples.");
         }
 
-        const product = await upsertProduct({
-          id: productEditor.id,
-          productGroupId: group.id,
-          name: productEditor.name,
-          description: productEditor.description,
-          barcode: productEditor.barcode,
-          price: productEditor.price,
-          minStock: productEditor.minStock,
-          status: getStatusNumber(productEditor.status),
-        });
-
-        const normalizedImages = await persistProductAssociations(product.id, productEditor.tagIds, images);
-
-        setProductEditor((current) => ({ ...current, id: product.id }));
-        setImages(normalizedImages);
+        produtos = [
+          {
+            id: productEditor.id,
+            name: productEditor.name,
+            description: productEditor.description,
+            barcode: productEditor.barcode,
+            price: productEditor.price,
+            minStock: productEditor.minStock,
+            status: getStatusNumber(productEditor.status),
+          },
+        ];
       } else {
         if (variationDrafts.length < 2) {
           throw new Error("O cadastro com variações deve ter no mínimo duas variações.");
         }
 
-        if (activeGrades.length > 0) {
-          const combinations = new Set();
-          for (const draft of variationDrafts) {
-            const comboStr = JSON.stringify(draft.variantMap || {});
-            if (combinations.has(comboStr)) {
-              throw new Error(
-                "Existem variações com as mesmas combinações de grades selecionadas. Remova a duplicidade para continuar.",
-              );
-            }
-            combinations.add(comboStr);
+        // Duas variações do mesmo grupo não podem ter a mesma combinação de
+        // grades: elas teriam o mesmo nome exibido e ninguém saberia qual vender.
+        // O backend recusa também — aqui é o retorno rápido, sem ida à rede.
+        const combinacoes = new Set<string>();
+        for (const draft of variationDrafts) {
+          if (draft.values.length === 0) {
+            throw new Error("Toda variação precisa de pelo menos um valor de grade.");
           }
-        } else {
-          const names = new Set();
-          for (const draft of variationDrafts) {
-            const nameKey = draft.name.trim().toUpperCase();
-            if (names.has(nameKey)) {
-              throw new Error(
-                `Existem variações com o mesmo nome ("${draft.name.trim()}"). Como não há grades selecionadas, cada variação deve ter um nome único.`,
-              );
-            }
-            names.add(nameKey);
+          if (!draft.status) {
+            throw new Error("Preencha o status em todas as variações.");
           }
+
+          const chave = chaveDaCombinacao(draft.values);
+          if (combinacoes.has(chave)) {
+            throw new Error(
+              "Existem variações com a mesma combinação de grades. Remova a duplicidade para continuar.",
+            );
+          }
+          combinacoes.add(chave);
         }
 
+        // O nome gravado é o do GRUPO, igual em todas as variações. O que
+        // distingue uma da outra são os valores de grade, e o colchete é
+        // montado na leitura — ver `ProductDisplayName` no backend.
+        produtos = variationDrafts.map((draft) => ({
+          id: draft.id,
+          name: form.productGroupName,
+          description: draft.description,
+          barcode: draft.barcode,
+          price: draft.price,
+          minStock: draft.minStock,
+          status: getStatusNumber(draft.status),
+          variationValues: draft.values.map((value, index) => ({
+            gradeType: value.gradeType,
+            value: value.value.trim(),
+            displayOrder: index,
+          })),
+        }));
+      }
+
+      // UMA requisição, uma transação: ou o cadastro inteiro grava, ou nada
+      // muda. Antes eram N upserts em série — um código de barras duplicado na
+      // terceira variação deixava grupo e duas variações salvos, e o toast só
+      // dizia "erro ao salvar".
+      const saved = await saveProductGroupWithProducts({
+        groupId: editingGroupId,
+        categoryId: Number(form.categoryId),
+        name: form.productGroupName,
+        description: form.description,
+        hasVariations: form.hasVariations,
+        showOnSite: form.isPublic,
+        products: produtos,
+      });
+
+      if (!editingGroupId) {
+        setEditingGroupId(saved.group.id);
+      }
+
+      // Etiquetas e imagens continuam como sincronizações à parte: imagem passa
+      // por upload (fora de qualquer transação de banco) e uma falha aqui deixa
+      // o CATÁLOGO íntegro — só a associação fica para refazer.
+      if (!form.hasVariations) {
+        const product = saved.products[0];
+        const normalizedImages = await persistProductAssociations(product.id, productEditor.tagIds, images);
+
+        setProductEditor((current) => ({ ...current, id: product.id }));
+        setImages(normalizedImages);
+      } else {
         const nextDrafts: VariationDraft[] = [];
-        for (const draft of variationDrafts) {
-          if (!draft.name.trim() || !draft.status) {
-            throw new Error("Preencha nome e status em todas as variações.");
-          }
-
-          const product = await upsertProduct({
-            id: draft.id,
-            productGroupId: group.id,
-            name: draft.name,
-            description: draft.description,
-            barcode: draft.barcode,
-            price: draft.price,
-            minStock: draft.minStock,
-            status: getStatusNumber(draft.status),
-            gradeOptionIds: Object.values(draft.variantMap || {}),
-          });
-
+        for (let index = 0; index < variationDrafts.length; index++) {
+          const draft = variationDrafts[index];
+          // Resposta na MESMA ordem do envio — é o contrato do endpoint.
+          const product = saved.products[index];
           const normalizedImages = await persistProductAssociations(product.id, draft.tagIds, draft.images);
 
           nextDrafts.push({
@@ -211,16 +213,16 @@ export function useProductSubmit({
         }
 
         setVariationDrafts(nextDrafts);
+        // Por POSIÇÃO, não por nome: o nome é o do grupo em todas as variações,
+        // e casar por ele devolvia sempre a primeira — salvar "pulava" a seleção.
         setActiveVariationKey((current) => {
           if (!current) return nextDrafts[0]?.key ?? null;
-          const active = variationDrafts.find((draft) => draft.key === current);
-          if (!active) return nextDrafts[0]?.key ?? null;
-          const match = nextDrafts.find((draft) => draft.id === active.id || draft.name === active.name);
-          return match?.key ?? nextDrafts[0]?.key ?? null;
+          const index = variationDrafts.findIndex((draft) => draft.key === current);
+          return nextDrafts[index]?.key ?? nextDrafts[0]?.key ?? null;
         });
       }
 
-      await invalidateProductQueries(group.id);
+      await invalidateProductQueries(saved.group.id);
       if (form.hasVariations) {
         await refetchGroupProducts();
       }
@@ -233,8 +235,12 @@ export function useProductSubmit({
             : "Produto criado.",
       });
 
+      // O que está na tela agora é o que o servidor gravou — nem o grupo com
+      // variações, que continua aberto, pode seguir contando como alterado.
+      markClean();
+
       if (!form.hasVariations) {
-        setModalOpen(false);
+        setDetailOpen(false);
         resetForm();
       }
     } catch (error) {

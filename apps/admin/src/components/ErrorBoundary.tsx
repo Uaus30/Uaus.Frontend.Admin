@@ -1,8 +1,7 @@
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
-import { Button } from "@workspace/ui";
+import { Button, isChunkLoadError, reloadOnChunkLoadError } from "@workspace/ui";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { reportClientError } from "../lib/clientLogger";
-import { isChunkLoadError, reloadOnChunkLoadError } from "../lib/chunk-reload";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
