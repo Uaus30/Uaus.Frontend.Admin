@@ -200,6 +200,34 @@ describe("useProductStockEntries", () => {
     expect(lastPayload().entryDate).not.toContain("Z");
   });
 
+  it("reenvia a MESMA chave de idempotência num retry, e troca a cada abertura", async () => {
+    // A chave é o que faz o retry pós-timeout devolver a nota já gravada em vez
+    // de duplicar lote e estoque; renovar por tentativa quebraria a proteção.
+    const { result } = renderHook(() => useProductStockEntries(201), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.updateForm("supplierId", "10");
+      result.current.updateForm("quantity", 2);
+      result.current.updateForm("price", 39.9);
+    });
+    submit(result);
+    const primeira = lastPayload().clientReference;
+    submit(result);
+
+    expect(primeira).toEqual(expect.any(String));
+    expect(lastPayload().clientReference).toBe(primeira);
+
+    await waitFor(() => expect(result.current.product?.costPrice).toBe(18.4));
+    act(() => result.current.openNewEntry());
+    act(() => {
+      result.current.updateForm("supplierId", "10");
+      result.current.updateForm("price", 39.9);
+    });
+    submit(result);
+
+    expect(lastPayload().clientReference).not.toBe(primeira);
+  });
+
   it("recusa o envio sem fornecedor e com quantidade zerada", () => {
     const { result } = renderHook(() => useProductStockEntries(201), { wrapper: createWrapper() });
 

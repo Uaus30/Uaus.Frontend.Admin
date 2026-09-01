@@ -68,6 +68,10 @@ export function useProductStockEntries(productId: number | null) {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [newEntryModalOpen, setNewEntryModalOpen] = useState(false);
   const [form, setForm] = useState<SimpleEntryForm>(emptyForm);
+  // Chave de idempotência: UMA por lançamento, renovada a cada abertura da
+  // modal. Um retry depois de timeout reenvia a mesma chave e o backend devolve
+  // a nota já gravada em vez de duplicar lote e estoque.
+  const [clientReference, setClientReference] = useState<string>(() => crypto.randomUUID());
 
   // Trocar de produto (variação, ou fechar e abrir outro cadastro) tem que
   // voltar para a primeira página: manter a página 3 do produto anterior mostra
@@ -181,6 +185,7 @@ export function useProductStockEntries(productId: number | null) {
       unitCost: product?.costPrice ?? 0,
       price: product?.price ?? 0,
     });
+    setClientReference(crypto.randomUUID());
     setNewEntryModalOpen(true);
   }
 
@@ -239,6 +244,7 @@ export function useProductStockEntries(productId: number | null) {
         entryDate: `${form.entryDate}T00:00:00`,
         invoiceNumber: form.invoiceNumber || null,
         notes: form.notes || null,
+        clientReference,
         items: [
           {
             productId,

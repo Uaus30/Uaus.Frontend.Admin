@@ -74,6 +74,12 @@ export interface ReceivePurchaseEntryRequest {
   entryDate: string;
   invoiceNumber: string | null;
   notes: string | null;
+  /**
+   * Chave de idempotência (UUID, um por lançamento). Um retry depois de timeout
+   * reenvia a mesma chave e recebe a nota já gravada em vez de duplicar lote e
+   * estoque — índice único parcial no backend, no molde de vendas e baixas.
+   */
+  clientReference?: string | null;
   items: ReceivePurchaseEntryItemRequest[];
 }
 

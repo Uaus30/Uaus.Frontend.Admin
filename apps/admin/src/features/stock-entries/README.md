@@ -44,6 +44,7 @@ vira um lançamento por item; o backend continua aceitando lista em
 - Quantidade: inteira e maior que zero (o backend só aceita inteiro; fração virava 400 cru).
 - Custo unitário: não-negativo — **zero é legítimo** (bonificação, brinde).
 - **Preço de venda: maior que zero.** O valor lançado sobrescreve o preço de venda do produto no cadastro; zero aqui zerava o preço da loja em silêncio. O backend recusa desde a mesma correção (`ReceivePurchaseEntryItemRequest`).
+- **Idempotência**: cada lançamento envia um `clientReference` (UUID) gerado na abertura da modal; um retry depois de timeout reenvia a mesma chave e o backend devolve a nota já gravada em vez de duplicar lote e estoque. A chave é renovada a cada abertura/reset — nunca por tentativa.
 - **Data futura é recusada** — no calendário (`maxDate`) e no backend. Uma entrada futura viraria o lote "mais recente" e passaria a ditar o `costPrice` do produto. Retroativa continua permitida.
 - Os campos de custo e preço usam o `CurrencyInput` (vírgula), o mesmo do resto do admin; a quantidade não tem trava no `onChange` — limpar o campo não volta para 1, quem barra zero é o submit.
 

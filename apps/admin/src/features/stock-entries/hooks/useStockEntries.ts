@@ -92,6 +92,10 @@ export function useStockEntries() {
   const [entryDate, setEntryDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState<string>("");
   const [item, setItem] = useState<NewEntryItem | null>(null);
+  // Chave de idempotência: UMA por lançamento, renovada junto com o formulário.
+  // Um retry depois de timeout reenvia a mesma chave e o backend devolve a nota
+  // já gravada em vez de duplicar lote e estoque.
+  const [clientReference, setClientReference] = useState<string>(() => crypto.randomUUID());
 
   // Query: Busca lista de entradas paginadas
   const {
@@ -216,6 +220,7 @@ export function useStockEntries() {
     setEntryDate(format(new Date(), "yyyy-MM-dd"));
     setNotes("");
     setItem(null);
+    setClientReference(crypto.randomUUID());
   }
 
   /**
@@ -287,6 +292,7 @@ export function useStockEntries() {
         entryDate: `${entryDate}T00:00:00`,
         invoiceNumber: invoiceNumber || null,
         notes: notes || null,
+        clientReference,
         items: [
           {
             productId: item.productId,
