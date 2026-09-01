@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { usePageTitle } from "@/components/page-title";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { Button } from "@workspace/ui";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";

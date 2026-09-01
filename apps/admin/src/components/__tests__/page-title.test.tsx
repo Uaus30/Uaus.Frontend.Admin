@@ -2,7 +2,8 @@ import { render, cleanup, act } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
-import { PageTitleProvider, usePageTitle } from "../page-title";
+import { PageTitleProvider } from "../page-title";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { TITULO_DO_APP } from "@/lib/route-title";
 
 function TelaComTitulo({ titulo }: { titulo?: string }) {

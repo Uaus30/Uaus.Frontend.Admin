@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { comporTitulo, nomeDaTela } from "@/lib/route-title";
+import { PageTitleContext } from "@/hooks/use-page-title";
 
 /**
  * Título da aba do admin: um por rota, com exceção por tela quando ela tem algo
@@ -22,13 +23,11 @@ import { comporTitulo, nomeDaTela } from "@/lib/route-title";
  * navegação funcionar sozinha: a página que sai limpa antes de a que entra
  * anunciar, porque o React roda a limpeza da árvore que desmonta antes dos
  * efeitos da que monta.
+ *
+ * O contexto e o `usePageTitle` que a página chama moram em
+ * `@/hooks/use-page-title`: um arquivo que exporta componente só pode exportar
+ * componentes, senão o Fast Refresh recarrega a página inteira a cada edição.
  */
-
-/** Anuncia (ou retira) o título específico da tela em foco. */
-type Anunciar = (titulo: string | null) => void;
-
-const PageTitleContext = createContext<Anunciar>(() => {});
-
 export function PageTitleProvider({ children }: { children: React.ReactNode }) {
   const [especifico, setEspecifico] = useState<string | null>(null);
   const [location] = useLocation();
@@ -38,20 +37,4 @@ export function PageTitleProvider({ children }: { children: React.ReactNode }) {
   }, [especifico, location]);
 
   return <PageTitleContext.Provider value={setEspecifico}>{children}</PageTitleContext.Provider>;
-}
-
-/**
- * Dá à tela um título mais específico que o nome da rota.
- *
- * @param titulo O que a tela quer mostrar, ou `undefined`/`null` para voltar ao
- *   nome da rota. Passar o valor que ainda está carregando como `undefined`
- *   mantém o título anterior em vez de piscar um genérico.
- */
-export function usePageTitle(titulo?: string | null): void {
-  const anunciar = useContext(PageTitleContext);
-
-  useEffect(() => {
-    anunciar(titulo ?? null);
-    return () => anunciar(null);
-  }, [titulo, anunciar]);
 }
