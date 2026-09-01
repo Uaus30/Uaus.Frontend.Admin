@@ -81,7 +81,7 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
                 }`}
                 onClick={() => setCartLayout("extended")}
               >
-                <Maximize2 className="w-4 h-4" /> Extendido
+                <Maximize2 className="w-4 h-4" /> Estendido
               </Button>
               <Button
                 variant={cartLayout === "compact" ? "default" : "outline"}
