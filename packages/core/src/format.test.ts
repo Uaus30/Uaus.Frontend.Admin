@@ -5,6 +5,7 @@ import {
   formatShortDate,
   formatUpdatedAt,
   formatVersion,
+  versionNumber,
   toDateKey,
 } from "./format";
 
@@ -87,6 +88,23 @@ describe("formatVersion", () => {
   it("usa fallback para versão indefinida ou vazia", () => {
     expect(formatVersion(undefined)).toBe("Versão 0.0.0");
     expect(formatVersion("")).toBe("Versão 0.0.0");
+  });
+});
+
+describe("versionNumber", () => {
+  it("deve devolver o número sem o rótulo", () => {
+    // O menu do PDV escreve "Versão" por conta própria, à esquerda e em outra
+    // cor: com o rótulo junto a linha saía "VERSÃO  Versão 2.3.1".
+    expect(versionNumber("1.8.9")).toBe("1.8.9");
+  });
+
+  it("deve tirar o v inicial, como o rótulo faz", () => {
+    expect(versionNumber("v1.8.9")).toBe("1.8.9");
+  });
+
+  it("deve cair em 0.0.0 sem versão informada", () => {
+    expect(versionNumber(undefined)).toBe("0.0.0");
+    expect(versionNumber("")).toBe("0.0.0");
   });
 });
 

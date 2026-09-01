@@ -100,9 +100,22 @@ export function formatBrasiliaDateTime(dateInput: Date | string | number): strin
  * @param version String da versão (ex: "1.8.9" ou "v1.8.9").
  */
 export function formatVersion(version?: string): string {
-  if (!version) return "Versão 0.0.0";
-  const clean = version.startsWith("v") ? version.slice(1) : version;
-  return `Versão ${clean}`;
+  return `Versão ${versionNumber(version)}`;
+}
+
+/**
+ * Só o número da versão, sem o rótulo (ex: "1.8.9").
+ *
+ * Existe para a tela que já escreve "Versão" por conta própria — o menu do PDV
+ * põe o rótulo à esquerda e o número à direita, em outra cor. Sem isto, ela
+ * repetiria a palavra ("VERSÃO  Versão 2.3.1") ou recortaria o prefixo na mão,
+ * e a normalização do "v" inicial passaria a ter duas implementações.
+ *
+ * @param version String da versão (ex: "1.8.9" ou "v1.8.9").
+ */
+export function versionNumber(version?: string): string {
+  if (!version) return "0.0.0";
+  return version.startsWith("v") ? version.slice(1) : version;
 }
 
 /**

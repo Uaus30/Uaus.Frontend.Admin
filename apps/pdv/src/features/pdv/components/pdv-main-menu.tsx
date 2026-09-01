@@ -15,7 +15,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Button } from "@workspace/ui";
-import { formatBrasiliaDateTime, formatVersion } from "@workspace/core";
+import { formatUpdatedAt, versionNumber } from "@workspace/core";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { adminBaseUrl, adminHomeUrl, openInNewTab } from "@/lib/admin-links";
@@ -82,9 +82,11 @@ export function PdvMainMenu({
 
   // Injetadas no build pelo Vite; lidas a cada render porque são constantes do
   // bundle, não estado. A data vem em UTC e é exibida no fuso de Brasília.
-  const versionText = formatVersion(import.meta.env.VITE_APP_VERSION);
-  const buildTime = import.meta.env.VITE_BUILD_TIME;
-  const updatedAtText = buildTime ? formatBrasiliaDateTime(buildTime) : "";
+  //
+  // Só o NÚMERO da versão: o rótulo já está na linha, e `formatVersion` traria a
+  // palavra "Versão" junto — foi como a linha saiu "VERSÃO  Versão 2.3.1".
+  const version = versionNumber(import.meta.env.VITE_APP_VERSION);
+  const updatedAtText = formatUpdatedAt(import.meta.env.VITE_BUILD_TIME);
 
   // Lido a cada render de propósito: é leitura de `window.location`, barata, e
   // guardá-la em estado só criaria um valor que pode ficar velho.
@@ -240,18 +242,21 @@ export function PdvMainMenu({
                 modal para ler dois valores era um clique a mais para a pergunta
                 que o suporte faz por telefone ("qual versão está aí?"); aqui
                 eles já estão na tela em que o operador foi procurar. */}
-            <div className="mt-1 border-t border-border px-3 pt-2 pb-1 space-y-0.5">
+            <div className="mt-1 space-y-0.5 border-t border-border px-3 pb-1 pt-2">
               <p className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                 <span className="uppercase tracking-wider">Versão</span>
+                {/* O número é a única coisa clara aqui: é o que o suporte pede no
+                    telefone, e destacá-lo dispensa ler o resto do rodapé. */}
                 <span className="font-mono font-semibold text-foreground" data-testid="menu-version">
-                  {versionText}
+                  {version}
                 </span>
               </p>
-              <p className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                <span className="uppercase tracking-wider">Atualizado</span>
-                <span className="font-mono text-foreground/80" data-testid="menu-updated-at">
-                  {updatedAtText || "—"}
-                </span>
+              {/* Frase inteira numa linha só, dois pontos menor que a de cima:
+                  em rótulo + valor a data quebrava em duas linhas dentro dos
+                  224px do menu, e "01/09/2026 às" em cima de "15:09:57" custava
+                  mais altura do que a informação vale. */}
+              <p className="whitespace-nowrap text-[9px] text-muted-foreground" data-testid="menu-updated-at">
+                {updatedAtText || "Atualizado em —"}
               </p>
             </div>
           </motion.div>

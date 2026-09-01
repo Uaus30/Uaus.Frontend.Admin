@@ -43,8 +43,9 @@ describe("PdvMainMenu", () => {
     render(<PdvMainMenu {...defaultProps} />);
     fireEvent.click(screen.getByRole("button"));
 
-    expect(screen.getByTestId("menu-version").textContent).toBe("Versão 1.8.9");
-    expect(screen.getByTestId("menu-updated-at").textContent).toBe("22/08/2026 às 12:45:12");
+    // Só o número: o rótulo "Versão" já está na própria linha, à esquerda.
+    expect(screen.getByTestId("menu-version").textContent).toBe("1.8.9");
+    expect(screen.getByTestId("menu-updated-at").textContent).toBe("Atualizado em 22/08/2026 às 12:45:12");
     expect(screen.queryByRole("button", { name: /^Sobre$/i })).toBeNull();
   });
 
