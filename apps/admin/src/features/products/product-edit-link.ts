@@ -1,19 +1,24 @@
 /**
  * Link direto que abre o detalhe de um produto na tela de Produtos.
  *
- * O formato (`/produtos?busca=<grupo>&editar=<id>`) é lido por dois lugares
- * desta mesma pasta — `useProductTable` consome o `busca` e `useProductDeepLink`
- * consome o `editar` — e por isso a montagem mora aqui, ao lado de quem lê. Do
- * lado do PDV existe a versão absoluta em `apps/pdv/src/lib/admin-links.ts`, que
- * precisa descobrir o host do admin; dentro do admin o caminho relativo basta.
+ * O formato é `/produtos?busca=<grupo>&editar=<id do produto>`, e ele existe
+ * porque quem chama conhece o id do PRODUTO — a variação que apareceu na busca
+ * —, não o do GRUPO, que é o que a rota do detalhe
+ * (`/produtos/<grupo>/detalhes`) pede. O `useProductDetailFromUrl` resolve o
+ * grupo no servidor e troca a URL pela canônica.
  *
- * Os DOIS parâmetros são necessários, e já custaram um bug cada:
+ * O papel de cada parâmetro mudou em 01/09/2026:
  *
- * - `busca` traz o produto para a página. A listagem é paginada e filtra por
- *   **grupo**, então o termo tem que ser o nome do grupo — mandar o código de
- *   barras abria uma lista vazia.
- * - `editar` diz QUAL linha abrir. Sem ele a tela só filtrava, e a pessoa tinha
- *   que procurar e clicar de novo.
+ * - `editar` é o que ABRE o detalhe, e sozinho já basta. Antes ele só escolhia
+ *   uma linha da listagem, e por isso dependia do `busca`.
+ * - `busca` deixou de ser necessário para abrir; ficou porque filtra a listagem
+ *   que aparece quando a pessoa FECHA o detalhe. Enquanto ele participava da
+ *   abertura, mandar o código de barras em vez do nome do grupo abria uma lista
+ *   vazia e o link não fazia nada.
+ *
+ * Do lado do PDV existe a versão absoluta em `apps/pdv/src/lib/admin-links.ts`,
+ * que precisa descobrir o host do admin; dentro do admin o caminho relativo
+ * basta.
  */
 
 /** O que uma listagem sabe do produto na hora de mandar editar. */

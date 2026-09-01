@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { enumCode, USER_ROLE, type EnumValue } from "@workspace/api-client-react";
+import { PRODUCTS_MATCH_PATH } from "@/features/products/product-detail-route";
 
 /**
  * Fonte ÚNICA das rotas do admin.
@@ -31,6 +32,17 @@ export type RoleCode = (typeof USER_ROLE)[keyof typeof USER_ROLE];
 
 export interface AppRoute {
   path: string;
+  /**
+   * Padrão que o `<Switch>` usa no lugar do `path`, quando a página responde
+   * por mais de um caminho.
+   *
+   * Existe para a tela que tem detalhe DENTRO da própria página: um `<Route>`
+   * só respondendo por `/produtos` e `/produtos/:id/detalhes` mantém a página
+   * montada na ida e na volta. Com duas entradas, as chaves diferentes do
+   * `<Switch>` desmontariam a listagem e voltar do detalhe perderia filtro,
+   * busca e página. O menu continua usando o `path`.
+   */
+  matchPath?: string;
   /** Rótulo no menu. Ausente = rota sem entrada no menu (detalhe, redirect). */
   label?: string;
   /** Grupo do menu. Ausente = item de primeiro nível. */
@@ -140,7 +152,13 @@ export const ROUTES: AppRoute[] = [
 
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, component: Dashboard },
 
-  { path: "/produtos", label: "Produtos", group: "Estoque", component: Products },
+  {
+    path: "/produtos",
+    matchPath: PRODUCTS_MATCH_PATH,
+    label: "Produtos",
+    group: "Estoque",
+    component: Products,
+  },
   { path: "/estoque/entradas", label: "Entradas", group: "Estoque", component: StockEntries },
   { path: "/categorias", label: "Categorias", group: "Estoque", component: Categories },
   { path: "/departamentos", label: "Departamentos", group: "Estoque", component: Departments },

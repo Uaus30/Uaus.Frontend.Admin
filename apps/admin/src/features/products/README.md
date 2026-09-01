@@ -20,6 +20,8 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
 - `lib/variationMatrix.ts`: Cruzamento das grades em combinações, nome exibido da variação e mesclagem da matriz com o que já existe.
+- `product-detail-route.ts`: A rota do detalhe (`/produtos/<grupo>/detalhes`), o padrão que a listagem e ela compartilham no `<Switch>` e o parser do caminho.
+- `hooks/useProductDetailFromUrl.ts`: Abertura de quem chega por link — a rota, o `?id=` antigo e o `?editar=` do PDV.
 - `lib/variationGrades.ts`: As grades em si — ordem, reconstrução a partir das variações, colunas de um produto já cadastrado e troca do tipo da grade.
 - `components/detail/VariationGradesModal.tsx`: Escolha das grades (Cor/Tamanho/Modelo) e dos valores de cada uma, no cadastro começando do zero.
 - `components/detail/VariationColumnsForm.tsx`: A mesma modal em produto já cadastrado — só marca e desmarca coluna, sem pedir valor.
@@ -193,6 +195,56 @@ e ninguém entende por quê. Quem escrever uma leitura nova de produto usa o
 
 Os 159 cadastros antigos, que têm o colchete dentro do próprio nome, continuam
 como estão: sem valores de grade não há o que compor, e o nome volta intacto.
+
+### 2.05. A rota do detalhe (01/09/2026)
+
+O detalhe do produto responde em `/produtos/<id do grupo>/detalhes`. O id é o do
+**grupo**, que é o que a tela edita.
+
+**A listagem e o detalhe dividem UMA entrada de rota.** O `<Switch>` do
+`App.tsx` dá `key={route.path}` a cada `<Route>`; duas entradas seriam dois
+elementos com chaves diferentes, e ir para o detalhe **desmontaria a página** —
+voltar dele devolveria a pessoa a uma listagem recém-nascida, sem o filtro, a
+busca e a página em que ela estava. Por isso a rota declara `matchPath`
+(`/produtos/:id?/:secao?`, em `product-detail-route.ts`): um `<Route>` só
+responde pelos dois caminhos. O menu continua apontando para `/produtos`, porque
+quem o monta lê o `path`. O `products-route.test.tsx` conta as montagens
+justamente para isso não regredir em silêncio.
+
+**Quem manda no que aparece continua sendo o estado** (`editor.detailOpen`), não
+a rota. A rota é o espelho: o `useProductDetailHistory` empurra, substitui e
+devolve entradas conforme a tela abre e fecha, e o `useProductDetailFromUrl` é o
+caminho de volta, para quem CHEGA por link.
+
+#### As três formas de URL que abrem o detalhe
+
+| URL                          | Quem manda                            | Como resolve                     |
+| ---------------------------- | ------------------------------------- | -------------------------------- |
+| `/produtos/<grupo>/detalhes` | a própria tela, link copiado da barra | direto                           |
+| `?id=<grupo>`                | favorito e aba de antes da rota       | direto, e a URL vira a canônica  |
+| `?busca=&editar=<produto>`   | PDV e Etiquetas                       | `getProductById` resolve o grupo |
+
+O `?editar=` existe porque quem chama conhece o id do **produto**: o
+`ProductPdvSearchDto` que o PDV e as Etiquetas usam não traz `productGroupId`.
+Enquanto o backend não expuser esse campo, o link continua assim — e não é
+prejuízo, porque a resolução é uma requisição só.
+
+#### Dois defeitos que a rota resolveu
+
+1. **O piscar.** Quem colava o link via a listagem inteira aparecer e ser
+   substituída um instante depois. A página não sabia que a URL prometia um
+   detalhe; agora o `useProductDetailFromUrl` devolve `resolvendo` e ela desenha
+   o carregando no lugar da listagem.
+2. **A espera serializada.** A busca do produto ficava atrás das SETE queries de
+   catálogo, e as pesadas da lista (`getAllImages`, `getAllProductImages`) não
+   têm nada a ver com descobrir qual produto abrir. Agora ela sai na montagem,
+   junto com elas; só o `buildProductCollections` espera.
+
+Junto, o `?editar=` deixou de resolver pela LISTAGEM. Ele procurava a linha na
+página 1 filtrada pelo nome do grupo: termo que não trouxesse o produto para
+aquela página fazia o link falhar com um toast. Resolvido no servidor, o filtro
+não participa mais da abertura — o `busca` ficou só para a listagem já aparecer
+filtrada quando a pessoa fechar o detalhe.
 
 ### 2.1. O salvar é UMA transação (01/09/2026)
 

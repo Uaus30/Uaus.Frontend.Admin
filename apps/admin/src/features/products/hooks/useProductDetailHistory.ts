@@ -1,28 +1,34 @@
 import { useEffect, useRef } from "react";
+import {
+  productDetailPathname,
+  productGroupIdFromPathname,
+  productsListPathname,
+} from "../product-detail-route";
 
 /**
  * Histórico do navegador a serviço da tela de detalhe do produto.
  *
- * A tela não é uma rota (`pages/products.tsx` explica por quê), mas quem a usa
- * não precisa saber disso: o id do grupo aparece na barra de endereços
- * (`/produtos?id=907`) e o botão voltar do navegador a fecha, como faria em
- * qualquer página. Tudo sem `popstate` seria possível de metade — a URL
- * mudaria, mas voltar sairia de `/produtos` inteiro.
+ * O detalhe TEM rota — `/produtos/<grupo>/detalhes` —, mas divide a entrada do
+ * `<Switch>` com a listagem para a página não desmontar entre as duas (o
+ * porquê está em `product-detail-route.ts`). Quem manda no que aparece na tela
+ * continua sendo o `open`; este hook é quem mantém a barra de endereços e o
+ * botão voltar de acordo com ele.
  *
- * O desenho é o clássico de tela sem rota:
+ * O desenho é o clássico de tela que troca sem trocar de página:
  *
- * - abrir **empurra** uma entrada de histórico com o `?id=`; o id que nasce de
- *   um salvar apenas **substitui** a entrada corrente;
+ * - abrir **empurra** uma entrada de histórico com o caminho do detalhe; o id
+ *   que nasce de um salvar apenas **substitui** a entrada corrente;
  * - fechar pela interface devolve a entrada empurrada (`history.back()`), então
  *   o próximo voltar segue para onde o usuário estava antes de abrir;
  * - fechar pelo voltar do navegador é o `popstate` chegando: só fecha;
- * - a entrada de quem CHEGA por link (`/produtos?id=` colado na barra) já é a do
- *   detalhe, então nada é empurrado — e voltar dela sai da página, como em
- *   qualquer link direto.
+ * - a entrada de quem CHEGA por link já é a do detalhe, então nada é empurrado
+ *   — e voltar dela sai da página, como em qualquer link direto.
+ *
+ * As escritas são de `history` direto, e não do `setLocation` do wouter, porque
+ * o que está sendo manipulado é a PILHA (empurrar, substituir, voltar), não a
+ * rota corrente. O wouter observa `pushState`/`replaceState`, então ele
+ * acompanha de qualquer jeito.
  */
-
-/** Parâmetro de URL que carrega o id do grupo em edição. */
-export const PARAM_DETALHE = "id";
 
 /** Marca da entrada de histórico empurrada por esta tela. */
 const ESTADO_DETALHE = { uausDetalheProduto: true } as const;
@@ -71,14 +77,17 @@ export function useProductDetailHistory({
     interceptRef.current = interceptClose;
   });
 
-  /** URL de agora com o `?id=` refletindo o produto aberto. */
+  /**
+   * URL de agora com o CAMINHO refletindo o produto aberto.
+   *
+   * Cadastro novo ainda não salvo não tem id, e por isso fica no caminho da
+   * listagem: uma rota `/produtos/null/detalhes` seria mentira, e o id aparece
+   * sozinho no primeiro salvar, que só substitui esta entrada.
+   */
   function urlDoDetalhe(): URL {
     const url = new URL(window.location.href);
-    if (productIdRef.current != null) {
-      url.searchParams.set(PARAM_DETALHE, String(productIdRef.current));
-    } else {
-      url.searchParams.delete(PARAM_DETALHE);
-    }
+    url.pathname =
+      productIdRef.current != null ? productDetailPathname(productIdRef.current) : productsListPathname();
     return url;
   }
 
@@ -89,12 +98,9 @@ export function useProductDetailHistory({
 
       if (eraAbertaRef.current) {
         // Já estava aberto: é o id que acabou de nascer de um salvar — a entrada
-        // é a mesma, só ganha o parâmetro.
+        // é a mesma, só ganha o id no caminho.
         window.history.replaceState(ESTADO_DETALHE, "", hrefDa(url));
-      } else if (
-        productId != null &&
-        new URL(window.location.href).searchParams.get(PARAM_DETALHE) === String(productId)
-      ) {
+      } else if (productId != null && productGroupIdFromPathname(window.location.pathname) === productId) {
         // Chegou por link/recarga: a entrada corrente JÁ é a do detalhe. Empurrar
         // outra criaria um voltar que não sai de lugar nenhum.
         pushedRef.current = false;
@@ -110,7 +116,7 @@ export function useProductDetailHistory({
         window.history.back();
       } else {
         const url = new URL(window.location.href);
-        url.searchParams.delete(PARAM_DETALHE);
+        url.pathname = productsListPathname();
         window.history.replaceState(null, "", hrefDa(url));
       }
     }
@@ -122,11 +128,12 @@ export function useProductDetailHistory({
   useEffect(() => {
     function onPopState() {
       if (!openRef.current) {
-        // Entrada órfã com `?id=` sobrando (avançar depois de fechar, por
-        // exemplo): tira o parâmetro para a listagem não renascer "aberta".
+        // Entrada órfã no caminho do detalhe (avançar depois de fechar, por
+        // exemplo): devolve para a listagem, senão a barra de endereços promete
+        // um detalhe que a tela não está mostrando.
+        if (productGroupIdFromPathname(window.location.pathname) === null) return;
         const url = new URL(window.location.href);
-        if (!url.searchParams.has(PARAM_DETALHE)) return;
-        url.searchParams.delete(PARAM_DETALHE);
+        url.pathname = productsListPathname();
         window.history.replaceState(null, "", hrefDa(url));
         return;
       }

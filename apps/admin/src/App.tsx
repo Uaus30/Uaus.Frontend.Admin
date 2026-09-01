@@ -42,7 +42,10 @@ function Router() {
           const Page = route.component;
 
           return (
-            <Route key={route.path} path={route.path}>
+            // `matchPath` quando a página responde por mais de um caminho: um
+            // `<Route>` só, para a página não desmontar entre eles (ver
+            // `features/products/product-detail-route.ts`).
+            <Route key={route.path} path={route.matchPath ?? route.path}>
               {route.publica ? (
                 <Page />
               ) : (

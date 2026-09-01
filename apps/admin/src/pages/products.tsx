@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
-import { useProductDeepLink } from "@/features/products/hooks/useProductDeepLink";
 import { useProductDetailFromUrl } from "@/features/products/hooks/useProductDetailFromUrl";
 import { useProductDetailHistory } from "@/features/products/hooks/useProductDetailHistory";
 import { ProductTable } from "@/features/products/components/ProductTable";
@@ -18,17 +17,21 @@ import type { ProductTableRow } from "@/features/products/types";
  * Página de Produtos: a listagem e, no lugar dela, o detalhe do produto.
  *
  * O cadastro era uma modal sobre a lista; virou TELA em 30/08/2026 (ver
- * `features/products/components/detail/ProductDetailScreen.tsx`). A troca é
- * feita aqui, por `editor.detailOpen`, e não por rota nova: a lista continua
- * montada por trás, com filtro, página e busca intactos, e voltar do detalhe
- * devolve a pessoa exatamente onde ela estava. Uma rota `/produtos/:id`
- * remontaria a listagem do zero a cada volta — e o link direto do PDV
- * (`?busca=&editar=`) precisaria ser reescrito por nada.
+ * `features/products/components/detail/ProductDetailScreen.tsx`) e ganhou rota
+ * própria em 01/09/2026: `/produtos/<grupo>/detalhes`.
  *
- * O que a tela empresta do navegador mora nos hooks, não aqui: `?id=` na barra
- * de endereços e voltar fechando o detalhe (`useProductDetailHistory`), o mesmo
- * `?id=` reabrindo o produto em quem chega por link (`useProductDetailFromUrl`)
- * e o aviso de alterações não salvas antes de sair (`isDirty` do editor).
+ * Quem troca o que aparece continua sendo o `editor.detailOpen`, e a rota do
+ * detalhe divide a entrada do `<Switch>` com a da listagem — as duas casam no
+ * mesmo `<Route>` (ver `features/products/product-detail-route.ts`). É isso que
+ * mantém a lista montada por trás, com filtro, página e busca intactos: com uma
+ * entrada de rota para cada caminho, ir para o detalhe desmontaria a página e
+ * voltar devolveria a pessoa a uma listagem recém-nascida.
+ *
+ * O que a tela empresta do navegador mora nos hooks, não aqui: o caminho na
+ * barra de endereços e o voltar fechando o detalhe (`useProductDetailHistory`),
+ * a abertura de quem chega por link (`useProductDetailFromUrl`, que também
+ * responde pelo `?id=` de antes da rota e pelo `?editar=` do PDV) e o aviso de
+ * alterações não salvas antes de sair (`isDirty` do editor).
  */
 export default function Products() {
   const table = useProductTable();
@@ -49,17 +52,12 @@ export default function Products() {
     editor.openDetail(product);
   }
 
-  // Link direto do PDV: `/produtos?busca=<grupo>&editar=<id>` abre o detalhe do
-  // produto assim que a listagem filtrada chega.
-  useProductDeepLink({
-    isLoading: table.isLoading,
-    enrichedProducts: table.enrichedProducts,
+  // Quem chega por link cai direto no detalhe: a rota `/produtos/<grupo>/
+  // detalhes`, o `?id=` de antes dela, e o `?editar=<produto>` do PDV e das
+  // Etiquetas. O `resolvendo` segura a listagem enquanto isso.
+  const { resolvendo: resolvendoDetalheDaUrl } = useProductDetailFromUrl({
     openDetail: editor.openDetail,
   });
-
-  // Quem chega em `/produtos?id=<grupo>` (recarga ou link compartilhado) cai
-  // direto no detalhe do produto prometido pela URL.
-  useProductDetailFromUrl({ openDetail: editor.openDetail });
 
   function fecharDetalhe() {
     setPendingClose(null);
@@ -82,6 +80,18 @@ export default function Products() {
     close: fecharDetalhe,
     interceptClose: () => setPendingClose("history"),
   });
+
+  // A URL prometeu um detalhe: desenhar a listagem aqui seria mostrar por um
+  // instante a tela que já se sabe que vai ser substituída.
+  if (resolvendoDetalheDaUrl && !editor.detailOpen) {
+    return (
+      <AppLayout>
+        <div className="flex min-h-[60vh] w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (editor.detailOpen) {
     return (
