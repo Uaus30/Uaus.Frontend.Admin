@@ -40,7 +40,7 @@ export function CashRegisterSessionDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border/50 bg-card sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="flex max-h-[85vh] flex-col border-border/50 bg-card sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-display">
             <Wallet className="h-5 w-5 text-primary" /> Detalhes do Turno de Caixa
@@ -56,7 +56,7 @@ export function CashRegisterSessionDetailsDialog({
             <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
           </div>
         ) : session ? (
-          <div className="space-y-6 py-4">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto py-4 pr-2">
             {/* Identificação do turno */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div>

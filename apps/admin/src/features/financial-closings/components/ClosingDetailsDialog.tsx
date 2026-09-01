@@ -57,7 +57,7 @@ export function ClosingDetailsDialog({
         onClose();
       }}
     >
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
@@ -75,7 +75,7 @@ export function ClosingDetailsDialog({
           <div className="py-12 text-center text-muted-foreground">Carregando fechamento...</div>
         ) : (
           <>
-            <div className="space-y-4 pt-2">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-2 pr-2">
               <ClosingSummary closing={closing} />
 
               {closing.notes && (
