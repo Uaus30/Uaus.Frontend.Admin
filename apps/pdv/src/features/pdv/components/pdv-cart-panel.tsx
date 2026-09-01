@@ -54,8 +54,12 @@ export function PdvCartPanel({
   const showCouponDialog = useCouponDialog((state) => state.show);
 
   return (
-    <div className="w-[500px] flex flex-col bg-card shrink-0 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.3)] z-20 relative">
-      <div className="p-6 border-b border-border/50 bg-muted/10 flex items-center justify-between">
+    // Largura em `rem`, não em `px`: o controle de tamanho do PDV escala a raiz,
+    // e uma coluna fixa em pixel ficava estreita demais para o conteúdo maior —
+    // era o que espremia a linha do item e obrigava a rolar. O teto em `vw`
+    // impede que, na escala máxima, o resumo coma o espaço da busca.
+    <div className="w-[31.25rem] max-w-[45vw] flex flex-col bg-card shrink-0 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.3)] z-20 relative">
+      <div className="px-5 py-4 border-b border-border/50 bg-muted/10 flex items-center justify-between shrink-0">
         <h2 className="text-xl font-display font-bold flex items-center gap-2 uppercase">
           <ShoppingCart className="w-5 h-5 text-primary" /> Resumo da Venda
         </h2>
@@ -66,7 +70,7 @@ export function PdvCartPanel({
         )}
       </div>
 
-      <ScrollArea className="flex-1 px-4 py-2">
+      <ScrollArea className="flex-1 min-h-0 px-3 py-2">
         <div className="space-y-2">
           <AnimatePresence>
             {items.length === 0 ? (
@@ -78,7 +82,12 @@ export function PdvCartPanel({
         </div>
       </ScrollArea>
 
-      <div className="p-6 bg-muted/5 border-t border-border/50 space-y-4">
+      {/*
+        `shrink-0` para o rodapé não ser espremido, e o resto compacto de
+        propósito: cada rem que ele economiza é um item a mais visível na lista
+        quando o operador aumenta a fonte.
+      */}
+      <div className="shrink-0 p-4 bg-muted/5 border-t border-border/50 space-y-3">
         <div className="space-y-2">
           <div className="flex justify-between items-center text-muted-foreground text-sm">
             <span className="uppercase">Subtotal</span>
@@ -143,19 +152,21 @@ export function PdvCartPanel({
           )}
         </div>
 
-        <div className="pt-4 border-t border-border/50">
-          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">
+        <div className="pt-3 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-0.5">
             Total Final
           </p>
-          <p className="text-5xl font-mono font-bold text-foreground tracking-tight">
+          {/* Um degrau menor que antes: continua legível de pé, a um metro da
+              tela, e devolve altura para a lista de itens. */}
+          <p className="text-4xl font-mono font-bold text-foreground tracking-tight">
             {formatCurrency(total)}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-2 gap-2 pt-1">
           <Button
             variant="outline"
-            className="h-14 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
+            className="h-11 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
             onClick={onApplyGlobalDiscount}
             disabled={items.length === 0}
           >
@@ -163,7 +174,7 @@ export function PdvCartPanel({
           </Button>
           <Button
             variant="outline"
-            className="h-14 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
+            className="h-11 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
             // `preventDefault` no mousedown: sem ele o clique traz o foco para o
             // botão, e o Radix devolveria o cursor PARA CÁ ao fechar o diálogo —
             // o próximo bipe do leitor seria digitado num botão e sumiria. Assim
@@ -178,7 +189,7 @@ export function PdvCartPanel({
         </div>
 
         <Button
-          className="w-full h-14 font-bold text-sm tracking-widest bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-primary/20"
+          className="w-full h-12 font-bold text-sm tracking-widest bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-primary/20"
           disabled={items.length === 0 || blockedWithoutSession}
           onClick={setCheckout}
         >
