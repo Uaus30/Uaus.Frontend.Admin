@@ -126,6 +126,44 @@ describe("buildSalesReportHtml", () => {
     expect(html).toContain("Nenhuma venda registrada na sessão.");
   });
 
+  describe("relatório do dia (loja sem controle de caixa)", () => {
+    /** O mesmo relatório, sem sessão: é o que o PDV imprime sem turno. */
+    function makeDayReport(): SalesReportData {
+      const { sessionId: _sessionId, openedAt: _openedAt, openingBalance: _saldo, ...rest } = makeReport();
+      return rest;
+    }
+
+    it("troca o cabeçalho do turno pelo dia da impressão", () => {
+      const html = buildSalesReportHtml(makeDayReport());
+
+      expect(html).toContain("RELATÓRIO DE VENDAS DO DIA");
+      expect(html).toContain("25/07/2026");
+      expect(html).not.toContain("Caixa aberto");
+    });
+
+    it("não imprime a conferência da gaveta", () => {
+      // Sem turno não há fundo de troco: a seção sairia zerada, e alguém
+      // conferiria dinheiro contra um esperado que ninguém calculou.
+      const html = buildSalesReportHtml(makeDayReport());
+
+      expect(html).not.toContain("CONFERÊNCIA DA GAVETA");
+      expect(html).not.toContain("ESPERADO EM CAIXA");
+    });
+
+    it("mantém o consolidado e a relação das vendas", () => {
+      const html = buildSalesReportHtml(makeDayReport());
+
+      expect(html).toContain("FATURAMENTO");
+      expect(html).toContain("#31");
+    });
+
+    it("avisa quando o dia não teve venda", () => {
+      const html = buildSalesReportHtml({ ...makeDayReport(), sales: [] });
+
+      expect(html).toContain("Nenhuma venda registrada no dia.");
+    });
+  });
+
   it("escapa o nome da forma de pagamento vindo do cadastro", () => {
     const html = buildSalesReportHtml(
       makeReport({

@@ -187,18 +187,13 @@ export function PdvMainMenu({
               )}
             </button>
 
-            {/* O relatório é o consolidado de um turno; sem controle de caixa
-                  não existe turno para consolidar. */}
-            {usesCashRegister && (
-              <button
-                onClick={run(onPrintReport)}
-                disabled={!sessionId || printingReport}
-                className={ITEM_CLASS}
-              >
-                <FileBarChart className="w-4 h-4 text-primary" />
-                Relatório de Vendas
-              </button>
-            )}
+            {/* Com turno o relatório é o do caixa; sem turno, o do dia da loja.
+                  Existe nos dois modos: era só no primeiro, e no balcão sem
+                  controle de caixa o item sumia sem nada no lugar. */}
+            <button onClick={run(onPrintReport)} disabled={printingReport} className={ITEM_CLASS}>
+              <FileBarChart className="w-4 h-4 text-primary" />
+              {usesCashRegister ? "Relatório do Turno" : "Relatório do Dia"}
+            </button>
 
             <button onClick={run(onPreferences)} className={ITEM_CLASS}>
               <Settings className="w-4 h-4 text-primary" />

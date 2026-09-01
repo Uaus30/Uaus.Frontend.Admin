@@ -100,10 +100,27 @@ describe("useSaleHistoryActions", () => {
     printReceipt.mockResolvedValue(undefined);
   });
 
+  it("deve pedir confirmação antes de cancelar a venda", async () => {
+    // Cancelar devolve estoque e apaga faturamento, e não tem desfazer: um toque
+    // errado na lista do balcão apagava a venda sem perguntar nada.
+    const { result } = render();
+
+    act(() => result.current.cancelSale(SALE));
+
+    expect(result.current.pendingSaleToCancel?.id).toBe(42);
+    expect(cancelSaleRequest).not.toHaveBeenCalled();
+
+    act(() => result.current.dismissCancelSale());
+
+    expect(result.current.pendingSaleToCancel).toBeNull();
+    expect(cancelSaleRequest).not.toHaveBeenCalled();
+  });
+
   it("deve cancelar a venda e devolver o estoque na projeção local", async () => {
     const { result } = render();
 
-    await act(() => result.current.cancelSale(SALE));
+    act(() => result.current.cancelSale(SALE));
+    await act(() => result.current.confirmCancelSale());
 
     expect(cancelSaleRequest).toHaveBeenCalledWith(42, "Cancelada no PDV");
     expect(restoreCancelledSaleStock).toHaveBeenCalledWith(42);
@@ -115,7 +132,8 @@ describe("useSaleHistoryActions", () => {
     restoreCancelledSaleStock.mockRejectedValue(new Error("base bloqueada"));
 
     const { result } = render();
-    await act(() => result.current.cancelSale(SALE));
+    act(() => result.current.cancelSale(SALE));
+    await act(() => result.current.confirmCancelSale());
 
     // A venda foi cancelada no servidor; a projeção se corrige no próximo snapshot.
     expect(onSaleChanged).toHaveBeenCalled();
@@ -126,7 +144,8 @@ describe("useSaleHistoryActions", () => {
     cancelSaleRequest.mockRejectedValue(new Error("venda já cancelada"));
 
     const { result } = render();
-    await act(() => result.current.cancelSale(SALE));
+    act(() => result.current.cancelSale(SALE));
+    await act(() => result.current.confirmCancelSale());
 
     expect(onSaleChanged).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledWith(

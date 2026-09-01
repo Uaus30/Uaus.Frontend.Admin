@@ -67,6 +67,12 @@ const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 });
 
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
 /** Formata um valor em reais. */
 export function formatReceiptCurrency(value: number) {
   return currencyFormatter.format(value ?? 0);
@@ -80,6 +86,11 @@ export function formatReceiptQuantity(value: number) {
 /** Formata data e hora completas. */
 export function formatReceiptDateTime(value: string | Date) {
   return dateTimeFormatter.format(toDate(value));
+}
+
+/** Formata apenas a data. */
+export function formatReceiptDate(value: string | Date) {
+  return dateFormatter.format(toDate(value));
 }
 
 /** Formata apenas a hora. */

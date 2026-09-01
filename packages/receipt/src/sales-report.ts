@@ -2,6 +2,7 @@ import {
   divider,
   escapeHtml,
   formatReceiptCurrency,
+  formatReceiptDate,
   formatReceiptDateTime,
   formatReceiptTime,
   resolveStore,
@@ -30,10 +31,12 @@ export interface SalesReportSummary {
   discounts: number;
   /** Unidades vendidas, somando todos os itens. */
   itemsCount: number;
-  cashAmount: number;
-  nonCashAmount: number;
+  /** Recebido em espécie. Só a conferência da gaveta usa. */
+  cashAmount?: number;
+  /** Recebido nas demais formas. Só a conferência da gaveta usa. */
+  nonCashAmount?: number;
   /** Fundo de troco + recebido em espécie: o que deve haver na gaveta. */
-  expectedCashAmount: number;
+  expectedCashAmount?: number;
   byPaymentMethod: SalesReportPaymentTotal[];
 }
 
@@ -47,36 +50,50 @@ export interface SalesReportSale {
   paymentNames?: string[];
 }
 
-/** Tudo que o relatório de vendas da sessão precisa. */
+/** Tudo que o relatório de vendas precisa. */
 export interface SalesReportData {
-  sessionId: number;
+  /**
+   * Sessão de caixa consolidada.
+   *
+   * Ausente no relatório do DIA, que é o da loja sem controle de caixa: ali não
+   * existe turno, e sem turno não há abertura, fundo de troco nem gaveta a
+   * conferir — o relatório sai só com o consolidado e a relação das vendas.
+   */
+  sessionId?: number | null;
   operatorName?: string | null;
-  openedAt: string | Date;
+  /** Abertura do turno. Ausente no relatório do dia. */
+  openedAt?: string | Date | null;
   closedAt?: string | Date | null;
   /** Momento da impressão; o relatório é sempre um retrato de um instante. */
   printedAt: string | Date;
-  /** Fundo de troco informado na abertura. */
-  openingBalance: number;
+  /** Fundo de troco informado na abertura. Ausente no relatório do dia. */
+  openingBalance?: number | null;
   summary: SalesReportSummary;
-  /** Vendas da sessão, das mais recentes para as mais antigas. */
+  /** Vendas do período, das mais recentes para as mais antigas. */
   sales: SalesReportSale[];
   /** Identidade da loja: a do cadastro (`resolveStoreInfo`) ou sobrescrita avulsa. */
   store?: Partial<ReceiptStore> | StoreInfo;
 }
 
 /**
- * Monta o relatório de vendas da sessão de caixa em bobina de 80mm.
+ * Monta o relatório de vendas em bobina de 80mm.
  *
- * Traz o consolidado do caixa (o mesmo que o backend usa no fechamento) e a
+ * Traz o consolidado (o mesmo que o backend usa no fechamento do caixa) e a
  * relação das vendas. Vendas canceladas aparecem riscadas e ficam de fora dos
  * totais, para o relatório bater com a conferência da gaveta.
  *
- * @param data Sessão, resumo consolidado e vendas.
+ * Sem `sessionId` o documento vira o relatório do DIA: sai o cabeçalho do turno
+ * e sai a conferência da gaveta, que só existe onde houve fundo de troco.
+ *
+ * @param data Sessão (ou dia), resumo consolidado e vendas.
  * @returns Documento HTML completo do relatório.
  */
 export function buildSalesReportHtml(data: SalesReportData): string {
   const store = resolveStore(data.store);
   const { summary } = data;
+  /** Relatório de turno; sem sessão o documento é o do dia. */
+  const daSessao = data.sessionId != null;
+  const periodo = daSessao ? "sessão" : "dia";
 
   const paymentRows = summary.byPaymentMethod.length
     ? summary.byPaymentMethod
@@ -87,7 +104,7 @@ export function buildSalesReportHtml(data: SalesReportData): string {
           ),
         )
         .join("")
-    : `<div class="row small"><span class="row-label">Nenhum recebimento na sessão.</span></div>`;
+    : `<div class="row small"><span class="row-label">Nenhum recebimento ${periodo === "dia" ? "no dia" : "na sessão"}.</span></div>`;
 
   const saleRows = data.sales.length
     ? data.sales
@@ -102,7 +119,7 @@ export function buildSalesReportHtml(data: SalesReportData): string {
         </div>`;
         })
         .join("")
-    : `<div class="row small"><span class="row-label">Nenhuma venda registrada na sessão.</span></div>`;
+    : `<div class="row small"><span class="row-label">Nenhuma venda registrada ${periodo === "dia" ? "no dia" : "na sessão"}.</span></div>`;
 
   const closedLine = data.closedAt
     ? row("Fechado em", formatReceiptDateTime(data.closedAt), "small")
@@ -112,16 +129,44 @@ export function buildSalesReportHtml(data: SalesReportData): string {
     ? row("Operador", escapeHtml(data.operatorName.trim()), "small")
     : "";
 
+  /**
+   * Identificação do período.
+   *
+   * No turno é o número do caixa e a abertura; no dia é a data da impressão,
+   * que é o próprio recorte da lista — o servidor devolve as vendas de hoje.
+   */
+  const periodLines = daSessao
+    ? `${row("Caixa", `#${data.sessionId}`, "small")}
+  ${operatorLine}
+  ${row("Aberto em", formatReceiptDateTime(data.openedAt ?? data.printedAt), "small")}
+  ${closedLine}`
+    : `${row("Dia", formatReceiptDate(data.printedAt), "small")}
+  ${operatorLine}`;
+
+  /**
+   * Conferência da gaveta: só no relatório de turno.
+   *
+   * Sem sessão não há fundo de troco nem gaveta a fechar, e imprimir a seção
+   * zerada faria o operador conferir dinheiro contra um esperado que ninguém
+   * calculou.
+   */
+  const drawerSection = daSessao
+    ? `${divider}
+  ${sectionTitle("CONFERÊNCIA DA GAVETA")}
+  ${row("Fundo de troco", formatReceiptCurrency(data.openingBalance ?? 0))}
+  ${row("Recebido em dinheiro", formatReceiptCurrency(summary.cashAmount ?? 0))}
+  ${row("Outras formas", formatReceiptCurrency(summary.nonCashAmount ?? 0))}
+  ${row("ESPERADO EM CAIXA", formatReceiptCurrency(summary.expectedCashAmount ?? 0), "strong")}
+`
+    : "";
+
   return wrapPrintDocument(
-    `Relatório de vendas — caixa ${data.sessionId}`,
+    daSessao ? `Relatório de vendas — caixa ${data.sessionId}` : "Relatório de vendas do dia",
     `  ${storeHeader(store)}
 
   ${divider}
-  ${sectionTitle("RELATÓRIO DE VENDAS")}
-  ${row("Caixa", `#${data.sessionId}`, "small")}
-  ${operatorLine}
-  ${row("Aberto em", formatReceiptDateTime(data.openedAt), "small")}
-  ${closedLine}
+  ${sectionTitle(daSessao ? "RELATÓRIO DE VENDAS" : "RELATÓRIO DE VENDAS DO DIA")}
+  ${periodLines}
 
   ${divider}
   ${sectionTitle("RESUMO")}
@@ -135,13 +180,7 @@ export function buildSalesReportHtml(data: SalesReportData): string {
   ${sectionTitle("RECEBIMENTOS")}
   ${paymentRows}
 
-  ${divider}
-  ${sectionTitle("CONFERÊNCIA DA GAVETA")}
-  ${row("Fundo de troco", formatReceiptCurrency(data.openingBalance))}
-  ${row("Recebido em dinheiro", formatReceiptCurrency(summary.cashAmount))}
-  ${row("Outras formas", formatReceiptCurrency(summary.nonCashAmount))}
-  ${row("ESPERADO EM CAIXA", formatReceiptCurrency(summary.expectedCashAmount), "strong")}
-
+  ${drawerSection}
   ${divider}
   ${sectionTitle("VENDAS")}
   ${saleRows}

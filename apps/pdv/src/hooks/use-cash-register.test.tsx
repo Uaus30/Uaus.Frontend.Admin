@@ -7,6 +7,7 @@ const openCashRegisterSession = vi.fn();
 const closeCashRegisterSession = vi.fn();
 const useGetCurrentCashRegisterSession = vi.fn();
 const getSessionSales = vi.fn();
+const getTodaySales = vi.fn();
 
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
@@ -18,6 +19,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
 
 vi.mock("@/services/sales.service", () => ({
   getSessionSales: (...args: unknown[]) => getSessionSales(...args),
+  getTodaySales: (...args: unknown[]) => getTodaySales(...args),
 }));
 
 const { useCashRegister } = await import("./use-cash-register");
@@ -50,6 +52,10 @@ describe("useCashRegister", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSessionSales.mockResolvedValue([{ id: 1, total: 50 }]);
+    getTodaySales.mockResolvedValue([
+      { id: 1, total: 50 },
+      { id: 2, total: 30 },
+    ]);
   });
 
   it("deve expor a sessão aberta e o resumo consolidado", async () => {
@@ -59,11 +65,11 @@ describe("useCashRegister", () => {
 
     expect(result.current.sessionId).toBe(7);
     expect(result.current.summary?.expectedCashAmount).toBe(150);
-    await waitFor(() => expect(result.current.sales).toHaveLength(1));
+    await waitFor(() => expect(result.current.sessionSales).toHaveLength(1));
     expect(getSessionSales).toHaveBeenCalledWith(7);
   });
 
-  it("não deve buscar vendas com o caixa fechado", async () => {
+  it("não deve buscar vendas do turno com o caixa fechado", async () => {
     mockSession(null);
 
     const { result } = renderHook(() => useCashRegister(), { wrapper: createWrapper() });
@@ -71,8 +77,28 @@ describe("useCashRegister", () => {
     expect(result.current.session).toBeNull();
     expect(result.current.sessionId).toBeNull();
     expect(result.current.summary).toBeNull();
-    expect(result.current.sales).toEqual([]);
+    expect(result.current.sessionSales).toEqual([]);
     expect(getSessionSales).not.toHaveBeenCalled();
+  });
+
+  it("deve carregar as vendas do dia mesmo com o caixa aberto", async () => {
+    // O histórico do balcão é do DIA nos dois modos: com controle de caixa ele
+    // mostrava só o turno de quem estava logado, e a venda do colega não existia
+    // na tela de quem assumia o balcão.
+    mockSession(OPEN_SESSION);
+
+    const { result } = renderHook(() => useCashRegister(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.todaySales).toHaveLength(2));
+    expect(getTodaySales).toHaveBeenCalled();
+  });
+
+  it("deve carregar as vendas do dia com o caixa fechado", async () => {
+    mockSession(null);
+
+    const { result } = renderHook(() => useCashRegister(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.todaySales).toHaveLength(2));
   });
 
   it("ligar o controle de caixa põe a sessão em carregamento DEPOIS da primeira carga", async () => {

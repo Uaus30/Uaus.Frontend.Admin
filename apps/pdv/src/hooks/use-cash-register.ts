@@ -20,7 +20,7 @@ import { getSessionSales, getTodaySales } from "@/services/sales.service";
  * - Manter a sessão aberta em cache e expor o resumo consolidado do backend.
  * - Guardar a sessão na base local, para o PDV sobreviver a um recarregamento
  *   sem internet — o caso da queda de energia.
- * - Carregar as vendas da sessão para o histórico.
+ * - Carregar as vendas do turno (relatório) e as do dia (histórico do balcão).
  * - Abrir e fechar o caixa, invalidando o cache após cada operação.
  *
  * @param options `enabled: false` desliga a consulta inteira — é o modo sem
@@ -89,37 +89,29 @@ export function useCashRegister(options: { enabled?: boolean } = {}) {
   /** A sessão em uso veio da base local porque a API não respondeu. */
   const isSessionFromCache = session === undefined && cachedSession != null;
 
-  /**
-   * A loja não usa controle de caixa — não há turno, e nunca haverá sessão.
-   *
-   * É o mesmo `enabled` que desliga a consulta de sessão, lido pelo avesso.
-   */
-  const semControleDeCaixa = !enabled;
-
-  const { data: salesDaSessao = [], isLoading: loadingSalesDaSessao } = useQuery({
+  /** Vendas do turno: é o que o relatório de caixa consolida. */
+  const { data: sessionSales = [], isLoading: loadingSessionSales } = useQuery({
     queryKey: ["pdv-session-sales", sessionId],
     queryFn: () => getSessionSales(sessionId as number),
     enabled: !!sessionId,
   });
 
   /**
-   * Vendas do dia, para a loja sem controle de caixa.
+   * Vendas do dia inteiro da loja — o histórico do balcão, nos DOIS modos.
    *
-   * Sem turno, a venda é gravada com `cashRegisterSessionId` nulo e a consulta
-   * por sessão devolvia SEMPRE lista vazia: o histórico do balcão nascia vazio e
-   * o operador não conseguia reimprimir o cupom da venda que acabou de fazer.
+   * Antes esta consulta só ligava na loja sem controle de caixa, e com caixa o
+   * histórico mostrava apenas o turno de quem estava logado: o cliente que
+   * voltava para trocar não era encontrado por quem assumiu o balcão, e a venda
+   * do colega simplesmente não existia na tela. O recorte do dia é feito no
+   * servidor, no relógio da loja.
    *
-   * As duas consultas nunca ficam ligadas ao mesmo tempo — `enabled` é
-   * excludente —, então não há dois pedidos concorrentes para a mesma lista.
+   * A lista é do dia inteiro, mas quem pode ALTERAR cada venda continua sendo só
+   * o autor — a decisão é da tela, a partir do `userId` que cada venda traz.
    */
-  const { data: salesDoDia = [], isLoading: loadingSalesDoDia } = useQuery({
+  const { data: todaySales = [], isLoading: loadingTodaySales } = useQuery({
     queryKey: ["pdv-today-sales"],
     queryFn: () => getTodaySales(),
-    enabled: semControleDeCaixa,
   });
-
-  const sales = semControleDeCaixa ? salesDoDia : salesDaSessao;
-  const loadingSales = semControleDeCaixa ? loadingSalesDoDia : loadingSalesDaSessao;
 
   /**
    * Recarrega as vendas e o resumo do caixa. Chamado após registrar, editar ou
@@ -186,9 +178,13 @@ export function useCashRegister(options: { enabled?: boolean } = {}) {
     /** A sessão em uso veio da base local; o resumo do caixa pode estar defasado. */
     isSessionFromCache,
     summary: activeSession?.summary ?? null,
-    sales,
+    /** Vendas do turno aberto; vazia quando não há sessão. */
+    sessionSales,
+    loadingSessionSales,
+    /** Vendas do dia da loja, de todos os operadores. */
+    todaySales,
+    loadingTodaySales,
     loadingSession,
-    loadingSales,
     open,
     close,
     refreshSales,

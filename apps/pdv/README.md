@@ -68,8 +68,8 @@ estranha deste app.
   encerrada.
 - **Reeditar uma venda.** Criaria duas versões da mesma venda para reconciliar. O
   caminho é cancelar depois e refazer.
-- **Ver o histórico do turno**, que vem do servidor. O diálogo avisa quando há
-  pendência na fila que não aparece ali.
+- **Ver o histórico de vendas do dia**, que vem do servidor. O diálogo avisa
+  quando há pendência na fila que não aparece ali.
 - **Vender acima do saldo local.** A conferência de estoque roda antes de
   gravar, com a mesma regra do backend. Deixar passar significaria descobrir a
   recusa horas depois, com o cliente já fora da loja.

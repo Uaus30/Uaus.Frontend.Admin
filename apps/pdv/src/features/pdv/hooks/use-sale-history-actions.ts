@@ -50,11 +50,12 @@ export function useSaleHistoryActions({
   const [busySaleId, setBusySaleId] = useState<number | null>(null);
   const [pendingSaleToEdit, setPendingSaleToEdit] = useState<SaleDto | null>(null);
   const [isConfirmDiscardOpen, setIsConfirmDiscardOpen] = useState(false);
+  const [pendingSaleToCancel, setPendingSaleToCancel] = useState<SaleDto | null>(null);
 
   const loadSaleForEditing = usePdvStore((state) => state.loadSaleForEditing);
 
-  /** Cancela uma venda da sessão, devolvendo ao estoque os itens já baixados. */
-  const cancelSale = useCallback(
+  /** Cancela a venda no servidor, devolvendo ao estoque os itens já baixados. */
+  const executeCancelSale = useCallback(
     async (sale: SaleDto) => {
       setBusySaleId(sale.id);
       try {
@@ -88,6 +89,26 @@ export function useSaleHistoryActions({
     },
     [onSaleChanged, queryClient, toast],
   );
+
+  /**
+   * Pede a confirmação do cancelamento.
+   *
+   * Cancelar mexe em dinheiro e estoque e não tem desfazer: o operador aperta o
+   * item do menu com o cliente na frente, e um toque errado na lista do balcão
+   * apagava uma venda registrada sem perguntar nada.
+   */
+  const cancelSale = useCallback((sale: SaleDto) => {
+    setPendingSaleToCancel(sale);
+  }, []);
+
+  /** Confirma o cancelamento da venda escolhida no histórico. */
+  const confirmCancelSale = useCallback(async () => {
+    const sale = pendingSaleToCancel;
+    setPendingSaleToCancel(null);
+    if (!sale) return;
+
+    await executeCancelSale(sale);
+  }, [executeCancelSale, pendingSaleToCancel]);
 
   /** Reimprime o cupom de uma venda da sessão, marcado como segunda via. */
   const printSaleReceipt = useCallback(
@@ -212,6 +233,11 @@ export function useSaleHistoryActions({
     /** Venda com operação em andamento; a linha dela fica travada na lista. */
     busySaleId,
     cancelSale,
+    /** Venda aguardando a confirmação do cancelamento, ou `null`. */
+    pendingSaleToCancel,
+    /** Fecha a confirmação de cancelamento sem cancelar nada. */
+    dismissCancelSale: () => setPendingSaleToCancel(null),
+    confirmCancelSale,
     printSaleReceipt,
     editSale,
     /** Confirmação de descarte do carrinho antes de abrir uma venda para edição. */

@@ -1,7 +1,7 @@
 # @workspace/receipt
 
 Montagem e impressão dos documentos de bobina de 80mm: o **comprovante da
-venda** e o **relatório da sessão de caixa**.
+venda** e o **relatório de vendas** — o do turno de caixa e o do dia da loja.
 
 ## Por que este pacote existe
 
@@ -23,7 +23,7 @@ para a mesma venda.
 | `document.ts`     | Folha de estilo da bobina, `row`, `divider`, formatação de dinheiro/data        |
 | `render.ts`       | `buildReceiptHtml` — o layout do comprovante                                    |
 | `from-sale.ts`    | `buildReceiptFromSale` — venda da API → `ReceiptData` (reimpressão)             |
-| `sales-report.ts` | Relatório de fechamento do caixa                                                |
+| `sales-report.ts` | Relatório de vendas: fechamento do caixa, ou do dia quando não há turno         |
 | `store-info.ts`   | Identidade da loja, com padrão embutido para cadastro pela metade               |
 | `print.ts`        | Impressão via iframe isolado                                                    |
 

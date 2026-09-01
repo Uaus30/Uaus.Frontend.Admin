@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { formatCurrency } from "@workspace/core";
 import type {
   CashRegisterSessionDto,
   CashRegisterSessionSummaryDto,
@@ -17,6 +18,7 @@ import type { CashRegisterMode } from "@/lib/cash-register-mode";
 import { useCouponDialog } from "../hooks/use-coupon";
 import type { PdvDialogs as PdvDialogControls } from "../hooks/use-pdv-dialogs";
 import type { useSaleHistoryActions } from "../hooks/use-sale-history-actions";
+import { ConfirmActionDialog } from "./confirm-action-dialog";
 import { ConfirmDiscardDialog } from "./confirm-discard-dialog";
 import { CouponDialog } from "./coupon-dialog";
 import { PreferencesDialog } from "./preferences-dialog";
@@ -36,8 +38,11 @@ type PdvDialogsProps = {
     sessionId: number | null;
     summary: CashRegisterSessionSummaryDto | null;
     loadingSession: boolean;
-    sales: SaleDto[];
-    loadingSales: boolean;
+    /** Vendas do DIA da loja — o que o histórico do balcão lista. */
+    todaySales: SaleDto[];
+    loadingTodaySales: boolean;
+    /** Recarrega as vendas; o histórico chama toda vez que abre. */
+    refreshSales: () => void;
     /** Vendas guardadas localmente, avisadas no histórico. */
     queuedSalesCount: number;
     onOpenRegister: (openingBalance: number, notes: string) => Promise<boolean>;
@@ -128,13 +133,13 @@ export function PdvDialogs({
         open={dialogs.salesHistory.open}
         onOpenChange={dialogs.salesHistory.setOpen}
         queuedSalesCount={register.queuedSalesCount}
-        loadingSales={register.loadingSales}
-        sales={register.sales}
+        loadingSales={register.loadingTodaySales}
+        sales={register.todaySales}
         usesCashRegister={register.mode.usesCashRegister}
         currentUserId={register.currentUserId}
         busySaleId={history.busySaleId}
-        sessionId={register.sessionId}
         printingReport={report.printingReport}
+        onRefresh={register.refreshSales}
         onPrintSaleReceipt={history.printSaleReceipt}
         onEditSale={history.editSale}
         onCancelSale={history.cancelSale}
@@ -147,6 +152,18 @@ export function PdvDialogs({
         open={history.isConfirmDiscardOpen}
         onOpenChange={history.setIsConfirmDiscardOpen}
         onConfirm={history.confirmDiscardAndEdit}
+      />
+
+      {/* Cancelar uma venda já registrada devolve estoque e apaga faturamento —
+          e não tem desfazer. A pergunta é obrigatória. */}
+      <ConfirmActionDialog
+        open={history.pendingSaleToCancel != null}
+        onOpenChange={(open) => !open && history.dismissCancelSale()}
+        title={`Cancelar a venda #${history.pendingSaleToCancel?.id ?? ""}?`}
+        description={`A venda de ${formatCurrency(history.pendingSaleToCancel?.total ?? 0)} deixa de valer, os itens voltam ao estoque e o faturamento do dia é reduzido. Esta ação é irreversível.`}
+        confirmLabel="Sim, cancelar venda"
+        cancelLabel="Voltar"
+        onConfirm={() => void history.confirmCancelSale()}
       />
 
       {/* BAIXA DE ESTOQUE — aberta pelo menu, nunca pelo checkout */}
