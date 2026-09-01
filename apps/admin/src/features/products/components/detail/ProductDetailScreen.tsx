@@ -18,6 +18,8 @@ import { ProductWebImageSearch } from "./ProductWebImageSearch";
 
 type ProductDetailScreenProps = {
   editor: ReturnType<typeof useProductEditor>;
+  /** Aba aberta na montagem. O menu "Estoque" da listagem cai direto no lançamento. */
+  initialTab?: "dados" | "estoque" | "opcionais";
   /** Pediu para sair (voltar, cancelar) — a página decide se confirma antes. */
   onRequestClose: () => void;
 };
@@ -41,7 +43,7 @@ type ProductDetailScreenProps = {
  * portais do Radix, então ficam FORA do form — o formulário simplificado de
  * entrada tem `<form>` próprio e aninhar os dois seria HTML inválido.
  */
-export function ProductDetailScreen({ editor, onRequestClose }: ProductDetailScreenProps) {
+export function ProductDetailScreen({ editor, initialTab, onRequestClose }: ProductDetailScreenProps) {
   const { toast } = useToast();
   const {
     isDirty,
@@ -58,7 +60,8 @@ export function ProductDetailScreen({ editor, onRequestClose }: ProductDetailScr
     generateVariationsMatrix,
   } = editor;
 
-  const [activeTab, setActiveTab] = useState("dados");
+  // Só na montagem: a tela desmonta ao fechar, então cada abertura relê a aba.
+  const [activeTab, setActiveTab] = useState<string>(initialTab ?? "dados");
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [gradesModalOpen, setGradesModalOpen] = useState(false);
@@ -131,8 +134,10 @@ export function ProductDetailScreen({ editor, onRequestClose }: ProductDetailScr
   }
 
   /** Gera a matriz e leva o operador até a tabela recém-criada. */
-  function aplicarGrades(grades: ProductGrade[]) {
-    generateVariationsMatrix(grades);
+  async function aplicarGrades(grades: ProductGrade[]) {
+    // Espera de propósito: a mesclagem pode excluir variações no servidor, e
+    // rolar para a tabela antes de ela refletir o resultado rolaria para nada.
+    await generateVariationsMatrix(grades);
     setGradesModalOpen(false);
     setActiveTab("dados");
 

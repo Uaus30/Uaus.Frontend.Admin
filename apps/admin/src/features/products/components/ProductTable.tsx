@@ -34,7 +34,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@workspace/ui";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@workspace/ui";
-import { useLocation } from "wouter";
 
 type ProductTableProps = {
   isLoading: boolean;
@@ -58,6 +57,8 @@ type ProductTableProps = {
   productPageTotal: number;
   enrichedProducts: ProductTableRow[];
   onEdit: (product: ProductTableRow) => void;
+  /** Abre o detalhe do produto direto na aba Estoque, com o lançamento a um clique. */
+  onOpenStock: (product: ProductTableRow) => void;
   onDelete: (product: ProductTableRow) => void;
   onViewHistory?: (product: ProductTableRow) => void;
   onUpdatePrice?: (product: ProductTableRow, newPrice: number) => Promise<void>;
@@ -212,6 +213,7 @@ export function ProductTable({
   productPageTotal,
   enrichedProducts,
   onEdit,
+  onOpenStock,
   onDelete,
   onViewHistory,
   onUpdatePrice,
@@ -222,7 +224,6 @@ export function ProductTable({
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = useState<ProductTableRow | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
-  const [, setLocation] = useLocation();
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <ProductTableFilters
@@ -412,8 +413,13 @@ export function ProductTable({
                                   <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                                   Editar
                                 </DropdownMenuItem>
+                                {/*
+                                  Abre a aba Estoque do detalhe, não a página de
+                                  entradas: a linha é um GRUPO, e é a aba que
+                                  resolve qual variação recebe o lançamento.
+                                */}
                                 <DropdownMenuItem
-                                  onClick={() => setLocation(`/estoque/entradas?productId=${product.id}`)}
+                                  onClick={() => onOpenStock(product)}
                                   className="cursor-pointer gap-2"
                                 >
                                   <Package className="h-3.5 w-3.5 text-muted-foreground" />
@@ -444,10 +450,7 @@ export function ProductTable({
                         <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                         Editar
                       </ContextMenuItem>
-                      <ContextMenuItem
-                        onClick={() => setLocation(`/estoque/entradas?productId=${product.id}`)}
-                        className="cursor-pointer gap-2"
-                      >
+                      <ContextMenuItem onClick={() => onOpenStock(product)} className="cursor-pointer gap-2">
                         <Package className="h-3.5 w-3.5 text-muted-foreground" />
                         Estoque
                       </ContextMenuItem>

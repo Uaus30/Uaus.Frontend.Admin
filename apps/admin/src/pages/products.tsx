@@ -40,6 +40,14 @@ export default function Products() {
   // Saída suspensa esperando a confirmação de descartar alterações. `"history"`
   // é o voltar do navegador; `"ui"`, os botões da própria tela.
   const [pendingClose, setPendingClose] = useState<null | "ui" | "history">(null);
+  // Aba em que o detalhe abre. O menu "Estoque" da listagem cai direto na aba
+  // de lançamento; todos os outros caminhos continuam abrindo em Dados.
+  const [detailInitialTab, setDetailInitialTab] = useState<"dados" | "estoque">("dados");
+
+  function abrirDetalhe(product?: ProductTableRow, aba: "dados" | "estoque" = "dados") {
+    setDetailInitialTab(aba);
+    editor.openDetail(product);
+  }
 
   // Link direto do PDV: `/produtos?busca=<grupo>&editar=<id>` abre o detalhe do
   // produto assim que a listagem filtrada chega.
@@ -78,7 +86,7 @@ export default function Products() {
   if (editor.detailOpen) {
     return (
       <AppLayout>
-        <ProductDetailScreen editor={editor} onRequestClose={pedirParaFechar} />
+        <ProductDetailScreen editor={editor} initialTab={detailInitialTab} onRequestClose={pedirParaFechar} />
         <ProductDetailDiscardDialog
           open={pendingClose !== null}
           onCancel={() => setPendingClose(null)}
@@ -95,10 +103,7 @@ export default function Products() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Produtos</h1>
           </div>
-          <Button
-            onClick={() => editor.openDetail()}
-            className="bg-primary text-primary-foreground hover-elevate"
-          >
+          <Button onClick={() => abrirDetalhe()} className="bg-primary text-primary-foreground hover-elevate">
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
         </div>
@@ -124,7 +129,8 @@ export default function Products() {
           totalPages={table.totalPages}
           productPageTotal={table.productPage?.total || 0}
           enrichedProducts={table.enrichedProducts}
-          onEdit={editor.openDetail}
+          onEdit={(product) => abrirDetalhe(product)}
+          onOpenStock={(product) => abrirDetalhe(product, "estoque")}
           onDelete={(product) => {
             void editor.handleDeleteProductGroup(product.productGroupId);
           }}
