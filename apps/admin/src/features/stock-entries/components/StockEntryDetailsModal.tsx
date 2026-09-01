@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, Receipt, Trash2, Truck } from "lucide-react";
+import { CalendarDays, Receipt, Trash2, Truck, UserRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -70,7 +70,7 @@ export function StockEntryDetailsModal({
           </div>
         ) : (
           <div className="flex flex-col gap-6 mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl border border-border/50 bg-muted/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 rounded-xl border border-border/50 bg-muted/20">
               <div>
                 <span className="text-xs text-muted-foreground block mb-1">Fornecedor</span>
                 <span
@@ -98,6 +98,14 @@ export function StockEntryDetailsModal({
                 <span className="text-xs text-muted-foreground block mb-1">Valor Total</span>
                 <span className="text-sm font-bold text-emerald-500">
                   {formatCurrency(entryDetails.total)}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground block mb-1">Lançada por</span>
+                <span className="text-sm font-semibold flex items-center gap-1.5">
+                  <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+                  {/* Notas anteriores a 31/08/2026 não gravavam o autor. */}
+                  {entryDetails.userName || "Não registrado"}
                 </span>
               </div>
             </div>

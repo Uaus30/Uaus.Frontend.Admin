@@ -54,6 +54,9 @@ export interface ReceivedPurchaseEntryDto {
   invoiceNumber: string | null;
   notes: string | null;
   total: number;
+  /** Quem lançou. Nulos nas notas anteriores a 31/08/2026, quando o autor passou a ser gravado. */
+  userId: number | null;
+  userName: string | null;
   canEdit: boolean;
   canDelete: boolean;
   items: ReceivedPurchaseEntryItemDto[];
