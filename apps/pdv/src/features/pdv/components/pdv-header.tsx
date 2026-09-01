@@ -92,17 +92,23 @@ export function PdvHeader({
       <div className="flex items-center gap-4">
         <FontSizeControl />
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleCalculator}
-          title="Calculadora"
-          className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
-        >
-          <CalculatorIcon className="w-5 h-5" />
-        </Button>
+        {/* Calculadora e tela cheia colados num grupo só: são as duas
+            ferramentas da tela, e o `gap-4` do cabeçalho os afastava tanto
+            quanto afasta o operador e o menu — o olho lia quatro coisas soltas
+            no lugar de duas. */}
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleCalculator}
+            title="Calculadora"
+            className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
+          >
+            <CalculatorIcon className="w-5 h-5" />
+          </Button>
 
-        <FullscreenToggle />
+          <FullscreenToggle />
+        </div>
 
         <div className="flex items-center gap-2 text-primary">
           <span className="text-sm font-bold tracking-tight">{operatorName}</span>
