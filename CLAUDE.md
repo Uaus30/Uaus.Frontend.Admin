@@ -235,6 +235,17 @@ push** quando houve alteração de comportamento, tela ou integração:
 6. **Data de fim de vigência é o caso clássico:** gravar `2026-09-30T23:59:59`
    como UTC faz a validade acabar às 20:59 do dia 30 no Brasil, e a recusa cita
    uma hora que o cliente não tem como conferir.
+7. **`ScrollArea` dentro de diálogo com `max-h` não rola — corta.** O viewport
+   do Radix é dimensionado por `height: 100%`, e porcentagem exige pai com
+   altura DEFINIDA; `max-h-[85vh]` no `DialogContent` não dá isso. Sobrando
+   conteúdo, o viewport cresce até a altura do conteúdo dentro de uma caixa
+   `overflow: hidden` — sem barra, sem rolagem, e o excedente fica
+   inalcançável. O histórico do PDV mostrava 4 vendas com 5 no banco, e a
+   suspeita caiu no endpoint (medido em 01/09/2026: viewport de 2177px numa
+   caixa de 445px). Em diálogo, use rolagem nativa:
+   `<div className="min-h-0 flex-1 overflow-y-auto">`. O `ScrollArea` continua
+   certo onde a cadeia de altura é definida — o carrinho e a busca do PDV, que
+   descendem de `h-screen`.
 
 > Duas armadilhas antigas **deixaram de valer** e estão registradas aqui para
 > ninguém orçar de novo o que já existe:
