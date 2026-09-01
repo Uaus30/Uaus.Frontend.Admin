@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@workspace/ui";
 import type { CatalogFilters as Filters } from "@/routes";
@@ -26,6 +26,7 @@ interface CatalogFilterSheetProps {
  */
 export function CatalogFilterSheet({ departments, isLoading, totalCount, filters }: CatalogFilterSheetProps) {
   const [isOpen, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const activeCount =
     (filters.departmentId === undefined ? 0 : 1) + (filters.categoryId === undefined ? 0 : 1);
@@ -34,6 +35,7 @@ export function CatalogFilterSheet({ departments, isLoading, totalCount, filters
     <Sheet open={isOpen} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white px-4 py-3 font-semibold text-foreground transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none lg:hidden"
         >
@@ -47,7 +49,21 @@ export function CatalogFilterSheet({ departments, isLoading, totalCount, filters
         </button>
       </SheetTrigger>
 
-      <SheetContent side="left" className="w-[85vw] overflow-y-auto sm:max-w-sm">
+      <SheetContent
+        side="left"
+        className="w-[85vw] overflow-y-auto sm:max-w-sm"
+        onCloseAutoFocus={(event) => {
+          // Devolver o foco ao gatilho é o certo — sem isso o teclado recomeça
+          // do topo do documento. O que não pode é o navegador ROLAR até ele:
+          // o botão "Filtrar" mora no alto da vitrine, e fechar a gaveta
+          // jogava quem estava no meio da lista de volta para lá. Era ESTE o
+          // pulo para o topo no celular, não a troca de filtro — acontecia até
+          // fechando a gaveta no Esc, sem filtrar nada. `preventScroll` guarda
+          // as duas coisas: o foco volta e a página fica onde está.
+          event.preventDefault();
+          triggerRef.current?.focus({ preventScroll: true });
+        }}
+      >
         <SheetHeader>
           <SheetTitle>Filtrar produtos</SheetTitle>
           <SheetDescription>Escolha um departamento e, dentro dele, uma categoria.</SheetDescription>

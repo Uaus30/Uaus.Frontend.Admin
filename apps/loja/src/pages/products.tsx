@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useRef } from "react";
 import { Loader2, PackageOpen, RefreshCcw, SearchX } from "lucide-react";
 import { Link } from "wouter";
 import { usePageTitle } from "@/lib/page-title";
 import { catalogPath } from "@/routes";
 import { useCatalog } from "@/features/catalog/hooks/useCatalog";
+import { useKeepResultsInView } from "@/features/catalog/hooks/useKeepResultsInView";
 import { ActiveFilters } from "@/features/catalog/components/ActiveFilters";
 import { CatalogFilters } from "@/features/catalog/components/CatalogFilters";
 import { CatalogFilterSheet } from "@/features/catalog/components/CatalogFilterSheet";
@@ -57,15 +58,9 @@ export default function ProductsPage() {
   const filterLabel = selectedCategoryName ?? selectedDepartmentName;
   usePageTitle(filterLabel ? `Uaus | ${filterLabel}` : "Uaus | Produtos");
 
-  const { departmentId, categoryId } = catalog.filters;
-
-  useEffect(() => {
-    // Troca de filtro sobe a página. O `ScrollToTop` global NÃO cobre este
-    // caso: o `useLocation` do wouter lê só o pathname, e filtro mexe na query
-    // string. Sem esta linha, quem filtra no meio da lista continua no meio,
-    // agora olhando produtos de outra categoria.
-    window.scrollTo({ top: 0 });
-  }, [departmentId, categoryId]);
+  // Trocar de filtro mantém a página onde está — ver `useKeepResultsInView`.
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const resultsStyle = useKeepResultsInView(resultsRef, catalog.products, !catalog.isLoading);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -140,7 +135,7 @@ export default function ProductsPage() {
             </div>
           </aside>
 
-          <div>
+          <div ref={resultsRef} style={resultsStyle}>
             {catalog.isLoading ? (
               <div className="flex flex-col items-center gap-3 py-24 text-muted-foreground">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />

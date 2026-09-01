@@ -54,7 +54,10 @@ export function ProductGrid({ products, hasNextPage, isFetchingNextPage, fetchNe
           visitante via um produto por tela e desistia antes do terceiro rolar.
           O gap encolhe junto porque a 375px as 1,5rem de antes saíam da
           largura útil dos cards, não do respiro entre eles. */}
-      <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+      {/* `data-catalog-results` é como o `useKeepResultsInView` acha a grade
+          dentro da coluna: depois dela ainda vêm o sentinela e o "isso é tudo",
+          que não são produto e não contam como lista na tela. */}
+      <div data-catalog-results className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
           <ProductCard key={product.productGroupId} product={product} />
         ))}

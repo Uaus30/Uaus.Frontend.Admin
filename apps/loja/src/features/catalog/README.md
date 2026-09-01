@@ -77,10 +77,25 @@ consome a API **como visitante anônimo**.
   derivar do nome resolve a ida e não a volta — além de quebrar todo link salvo
   quando a lojista corrigir um acento no nome. Slug é trabalho próprio (coluna,
   unicidade, redirect do slug antigo) e vale junto com slug de produto.
-- **A troca de filtro sobe a página na mão.** O `ScrollToTop` global não cobre
-  esse caso: o `useLocation` do wouter lê só o pathname, e filtro mexe na query
-  string — sem o `scrollTo` da página de produtos, quem filtra no meio da lista
-  continua no meio, agora olhando outra categoria.
+- **A troca de filtro NÃO sobe a página.** Até 01/09/2026 subia, e era o
+  contrário do que o visitante quer: a lista de filtros é grudada e fica na
+  altura dos primeiros produtos, enquanto o topo é cabeçalho, banner e busca —
+  quem filtrava era mandado para longe dos produtos. Quem segura isso é o
+  `useKeepResultsInView`, e ele existe porque tirar o `scrollTo(0)` não bastava:
+  no carregando a coluna encolhe para o tamanho do spinner e é o NAVEGADOR que
+  sobe a página sozinha. O hook devolve a altura da última lista como
+  `min-height` da coluna **no render do carregando** — num efeito seria tarde,
+  o documento já teria encolhido — e, quando a lista nova chega, só corrige
+  quando não sobrou grade na tela: aí puxa até o último produto visível, senão
+  o visitante ficaria olhando o rodapé. O `ScrollToTop` global continua fora
+  dessa história: o `useLocation` do wouter lê só o pathname, e filtro mexe na
+  query string.
+- **A gaveta do celular devolve o foco sem rolar a página.** O `onCloseAutoFocus`
+  do `CatalogFilterSheet` chama `focus({ preventScroll: true })` no botão
+  "Filtrar". Sem isso, o Radix devolve o foco ao gatilho e o navegador rola até
+  ele — e o botão mora no alto da vitrine, então fechar a gaveta jogava para
+  perto do topo quem estava no meio da lista. Acontecia até fechando no Esc, sem
+  filtrar nada: era ESTE o pulo do celular, não a troca de filtro.
 - **A árvore é lida duas vezes, com papéis diferentes.** Com a busca, é a lista
   que a tela mostra (contagem coerente com a grade). Sem a busca, é o retrato do
   catálogo: quais filtros existem e como se chamam. O segundo existe porque uma
