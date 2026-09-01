@@ -425,6 +425,14 @@ export interface ProductDto {
   displayName: string;
   /** Valores de grade desta variação. Vazio em produto simples. */
   variationValues: ProductVariationValueDto[];
+  /**
+   * Caminho da primeira imagem do produto, ou nulo quando não há foto.
+   *
+   * Mesmo critério da busca do balcão (`ProductPdvSearchDto.imageUrl`): a foto é
+   * a mesma em qualquer tela. Passe por `buildPublicImageUrl` antes de usar como
+   * `src` — o servidor devolve o caminho relativo.
+   */
+  imageUrl: string | null;
 }
 
 export interface TagDto {

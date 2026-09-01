@@ -4,6 +4,7 @@ import type { CashRegisterSessionDto } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
 import { Clock } from "@/components/clock";
 import { FontSizeControl } from "@/components/font-size-control";
+import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { OfflineStatus } from "@/components/offline-status";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
@@ -100,6 +101,8 @@ export function PdvHeader({
         >
           <CalculatorIcon className="w-5 h-5" />
         </Button>
+
+        <FullscreenToggle />
 
         <div className="flex items-center gap-2 text-primary">
           <span className="text-sm font-bold tracking-tight">{operatorName}</span>

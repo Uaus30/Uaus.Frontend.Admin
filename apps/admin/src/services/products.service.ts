@@ -239,6 +239,9 @@ export async function upsertProduct(payload: {
       value: value.value,
       displayOrder: value.displayOrder,
     })),
+    // Produto recém-criado não tem foto: ela é enviada num segundo passo, pela
+    // tela de imagens. A próxima leitura do servidor traz a que for anexada.
+    imageUrl: null,
   } satisfies ProductDto;
 }
 

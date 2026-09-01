@@ -87,7 +87,14 @@ describe("useSaleHistoryActions", () => {
     vi.clearAllMocks();
     usePdvStore.setState({ items: [], globalDiscount: 0, editingSaleId: null, status: "IDLE" });
     getSaleItems.mockResolvedValue([SALE_ITEM]);
-    apiGet.mockResolvedValue({ id: 7, name: "Coca-Cola 350ml", barcode: "789", price: 12, stock: 4 });
+    apiGet.mockResolvedValue({
+      id: 7,
+      name: "Coca-Cola 350ml",
+      barcode: "789",
+      price: 12,
+      stock: 4,
+      imageUrl: "produtos/coca-350.png",
+    });
     cancelSaleRequest.mockResolvedValue(undefined);
     restoreCancelledSaleStock.mockResolvedValue(undefined);
     printReceipt.mockResolvedValue(undefined);
@@ -172,6 +179,36 @@ describe("useSaleHistoryActions", () => {
     expect(state.items[0].availableStock).toBe(6);
     expect(state.globalDiscount).toBe(1);
     expect(onSaleLoadedForEditing).toHaveBeenCalled();
+  });
+
+  it("deve trazer a foto do produto para o carrinho da reedição", async () => {
+    // A venda gravada não guarda foto; ela vem do cadastro, por `/Products/{id}`.
+    // Sem o campo no DTO, a reedição mostrava o ícone de "sem imagem" em produto
+    // que tem imagem — e o operador conferia o carrinho sem a pista visual que
+    // usa no bipe.
+    const { result } = render();
+
+    await act(async () => {
+      result.current.editSale(SALE);
+    });
+
+    expect(usePdvStore.getState().items[0].imageUrl).toBe("produtos/coca-350.png");
+  });
+
+  it("deve reabrir a venda sem foto quando a consulta do produto falha", async () => {
+    // A consulta do cadastro é tolerante a erro de propósito: perder a foto não
+    // pode impedir a reedição da venda.
+    apiGet.mockRejectedValue(new Error("500"));
+
+    const { result } = render();
+
+    await act(async () => {
+      result.current.editSale(SALE);
+    });
+
+    const state = usePdvStore.getState();
+    expect(state.editingSaleId).toBe(42);
+    expect(state.items[0].imageUrl).toBeNull();
   });
 
   it("deve pedir confirmação antes de descartar um carrinho em andamento", async () => {

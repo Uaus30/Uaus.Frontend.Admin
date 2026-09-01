@@ -37,6 +37,7 @@ function produto(overrides: Partial<ProductDto> = {}): ProductDto {
     updatedAt: null,
     displayName: "COPO TÉRMICO 500ML",
     variationValues: [],
+    imageUrl: null,
     ...overrides,
   };
 }

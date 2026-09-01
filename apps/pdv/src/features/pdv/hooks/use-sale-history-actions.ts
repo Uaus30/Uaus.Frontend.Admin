@@ -153,6 +153,11 @@ export function useSaleHistoryActions({
             discount: round2(item.discount ?? 0),
             // O estoque atual já não contém as unidades desta venda.
             availableStock: (product?.stock ?? 0) + item.quantity,
+            // A foto é do cadastro de hoje, e não da venda: ela não é dado da
+            // venda, é como o produto é reconhecido no balcão. Nulo quando o
+            // produto não tem foto ou quando a consulta dele falhou — o carrinho
+            // mostra o ícone e a reedição segue.
+            imageUrl: product?.imageUrl ?? null,
           };
         });
 

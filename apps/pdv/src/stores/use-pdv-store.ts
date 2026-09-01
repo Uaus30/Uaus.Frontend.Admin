@@ -9,6 +9,20 @@ import {
   type PdvConsumer,
   type PdvItem,
 } from "./pdv-cart";
+import {
+  DEFAULT_FONT_SCALE_INDEX,
+  FONT_SCALES,
+  applyFontScale,
+  persistCartLayout,
+  persistCurrentSale,
+  persistFontScaleIndex,
+  persistHeldSales,
+  readCartLayout,
+  readCurrentSale,
+  readFontScaleIndex,
+  readHeldSales,
+  type CartLayout,
+} from "./pdv-storage";
 
 /**
  * Os tipos do carrinho e a conta do total moram em `./pdv-cart`; aqui fica só a
@@ -20,35 +34,15 @@ export { EMPTY_CONSUMER, computeCartTotals, couponDiscountFor, toTotalsItems } f
 export type { AppliedCoupon, CouponAnswer, HeldSale, PdvConsumer, PdvItem } from "./pdv-cart";
 
 /**
- * Escalas de fonte disponíveis, do menor para o maior.
+ * A borda com o `localStorage` mora em `./pdv-storage`: nomes de chave, formato
+ * gravado e o descarte do valor corrompido. Aqui fica só a máquina de estado.
  *
- * O teto é 120%, definido em 01/09/2026 depois de a escala de 135% ser testada
- * no balcão: o layout é medido em `rem`, então a raiz maior estica tudo junto e,
- * a partir dali, o resumo da venda comia a lista de itens e o nome do produto
- * não cabia mais na linha. Aumentar o teto de novo exige refazer essa conta na
- * tela do caixa, não só acrescentar um número aqui.
+ * `FONT_SCALES` e `CartLayout` são REEXPORTADOS pelo mesmo motivo dos tipos do
+ * carrinho: o repo inteiro os importa de `@/stores/use-pdv-store`, e a divisão é
+ * interna.
  */
-export const FONT_SCALES = [0.85, 0.925, 1, 1.1, 1.2] as const;
-
-/** Índice da escala 1x, usada como padrão. */
-const DEFAULT_FONT_SCALE_INDEX = 2;
-
-const HELD_SALES_STORAGE_KEY = "pdv-held-sales";
-const FONT_SCALE_STORAGE_KEY = "pdv-font-scale-index";
-const CART_LAYOUT_STORAGE_KEY = "pdv-cart-layout";
-
-/**
- * Como o resumo da venda apresenta as ações secundárias.
- *
- * - `extended`: os quatro botões (desconto, cupom, pausar, cancelar) ficam
- *   sempre visíveis no rodapé, do jeito que o PDV nasceu.
- * - `compact`: eles saem do rodapé e passam a viver atrás da engrenagem ao lado
- *   do finalizar, devolvendo altura para a lista de itens.
- *
- * As duas convivem porque a escolha ainda está em teste no balcão. É preferência
- * DA MÁQUINA, como o tema — não do operador que sentou no caixa.
- */
-export type CartLayout = "extended" | "compact";
+export { FONT_SCALES } from "./pdv-storage";
+export type { CartLayout } from "./pdv-storage";
 
 /**
  * Estado local do PDV: carrinho, desconto da venda, vendas em espera e
@@ -189,80 +183,8 @@ const currentTotals = (state: Pick<PdvState, "items" | "globalDiscount" | "coupo
 /** Gera o identificador local de uma linha do carrinho ou de uma venda em espera. */
 const generateId = () => Math.random().toString(36).slice(2, 11);
 
-/**
- * Lê o layout do resumo da venda salvo no navegador.
- *
- * Qualquer valor que não seja exatamente `extended` cai no compacto, que virou o
- * padrão em 01/09/2026 depois do teste no balcão: as três faixas de botões do
- * rodapé estendido custavam a altura que falta na lista de itens. Só quem pediu
- * o estendido de propósito o recebe.
- */
-const initialCartLayout: CartLayout =
-  localStorage.getItem(CART_LAYOUT_STORAGE_KEY) === "extended" ? "extended" : "compact";
-
-/**
- * Recupera as vendas em espera gravadas no navegador.
- *
- * Elas precisam sobreviver ao recarregamento da página — é o caso de uso: o
- * operador pausa, atende outro cliente e retoma. Conteúdo corrompido é
- * descartado em silêncio, já que a alternativa seria travar o PDV na abertura.
- */
-function readHeldSales(): HeldSale[] {
-  try {
-    const stored = localStorage.getItem(HELD_SALES_STORAGE_KEY);
-    if (!stored) return [];
-
-    const parsed: unknown = JSON.parse(stored);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.filter(
-      (sale): sale is HeldSale =>
-        typeof sale === "object" && sale !== null && Array.isArray((sale as HeldSale).items),
-    );
-  } catch {
-    return [];
-  }
-}
-
-/** Grava a fila de vendas em espera no navegador. */
-function persistHeldSales(heldSales: HeldSale[]) {
-  try {
-    localStorage.setItem(HELD_SALES_STORAGE_KEY, JSON.stringify(heldSales));
-  } catch {
-    // Cota estourada não pode derrubar a venda em andamento.
-  }
-}
-
-/**
- * Lê o índice da escala de fonte, limitado ao intervalo válido.
- *
- * A ausência da chave precisa ser tratada antes da conversão: `Number(null)` é
- * zero, que é um índice válido, e o PDV abriria na menor fonte sem ninguém ter
- * pedido isso.
- */
-function readFontScaleIndex() {
-  const stored = localStorage.getItem(FONT_SCALE_STORAGE_KEY);
-  if (stored === null) return DEFAULT_FONT_SCALE_INDEX;
-
-  const index = Number(stored);
-  if (!Number.isInteger(index) || index < 0) {
-    return DEFAULT_FONT_SCALE_INDEX;
-  }
-
-  // Índice ACIMA do teto vira o maior disponível, e não o padrão: quem estava
-  // na escala de 135% removida em 01/09/2026 quer a maior que sobrou (120%), e
-  // voltar para 100% na primeira abertura pareceria a preferência ter sumido.
-  return Math.min(index, FONT_SCALES.length - 1);
-}
-
-/**
- * Aplica a escala na raiz do documento. Todo o layout é medido em `rem`, então
- * mexer no `font-size` do `<html>` escala a interface inteira junto com o texto.
- */
-function applyFontScale(index: number) {
-  if (typeof document === "undefined") return;
-  document.documentElement.style.fontSize = `${FONT_SCALES[index] * 100}%`;
-}
+const restoredSale = readCurrentSale();
+const initialCartLayout = readCartLayout();
 
 const initialFontScaleIndex = readFontScaleIndex();
 
@@ -275,13 +197,17 @@ if (typeof window !== "undefined") {
 }
 
 export const usePdvStore = create<PdvState>((set, get) => ({
-  status: "IDLE",
-  items: [],
-  globalDiscount: 0,
-  consumer: EMPTY_CONSUMER,
-  coupon: null,
-  editingSaleId: null,
-  saleClientReference: null,
+  // Nunca `CHECKOUT`: o que a tela de pagamento tinha na mão (formas escolhidas,
+  // parcelas, valor recebido) não é persistido, e reabri-la vazia por cima do
+  // carrinho seria pior do que voltar para a venda. O operador clica em
+  // FINALIZAR de novo — que é o que ele faria de qualquer jeito.
+  status: restoredSale && restoredSale.items.length > 0 ? "SELLING" : "IDLE",
+  items: restoredSale?.items ?? [],
+  globalDiscount: restoredSale?.globalDiscount ?? 0,
+  consumer: restoredSale?.consumer ?? EMPTY_CONSUMER,
+  coupon: restoredSale?.coupon ?? null,
+  editingSaleId: restoredSale?.editingSaleId ?? null,
+  saleClientReference: restoredSale?.saleClientReference ?? null,
   theme: initialTheme,
   cartLayout: initialCartLayout,
   lastAddedItemId: null,
@@ -469,19 +395,19 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   },
 
   setCartLayout: (layout) => {
-    localStorage.setItem(CART_LAYOUT_STORAGE_KEY, layout);
+    persistCartLayout(layout);
     set(() => ({ cartLayout: layout }));
   },
 
   stepFontScale: (direction) => {
     const next = Math.min(FONT_SCALES.length - 1, Math.max(0, get().fontScaleIndex + direction));
-    localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(next));
+    persistFontScaleIndex(next);
     applyFontScale(next);
     set(() => ({ fontScaleIndex: next }));
   },
 
   resetFontScale: () => {
-    localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(DEFAULT_FONT_SCALE_INDEX));
+    persistFontScaleIndex(DEFAULT_FONT_SCALE_INDEX);
     applyFontScale(DEFAULT_FONT_SCALE_INDEX);
     set(() => ({ fontScaleIndex: DEFAULT_FONT_SCALE_INDEX }));
   },
@@ -519,3 +445,40 @@ export const usePdvStore = create<PdvState>((set, get) => ({
 
   getTotal: () => currentTotals(get()).total,
 }));
+
+/**
+ * Espelha a venda em andamento no navegador a cada mudança dela.
+ *
+ * Uma assinatura só, e não uma gravação dentro de cada ação: são quinze
+ * reducers mexendo no carrinho (item, quantidade, desconto, cupom, consumidor,
+ * reedição, cancelamento), e a versão espalhada só precisaria de UM esquecido
+ * para a venda restaurada voltar diferente da que estava na tela.
+ *
+ * A comparação é por identidade, que é o que o zustand garante: o estado é
+ * imutável, então campo que não mudou continua sendo o mesmo objeto e o F5 não
+ * paga uma escrita a cada troca de tema ou de escala de fonte.
+ */
+usePdvStore.subscribe((state, prev) => {
+  const mudou =
+    state.items !== prev.items ||
+    state.globalDiscount !== prev.globalDiscount ||
+    state.consumer !== prev.consumer ||
+    state.coupon !== prev.coupon ||
+    state.editingSaleId !== prev.editingSaleId ||
+    state.saleClientReference !== prev.saleClientReference;
+
+  if (!mudou) return;
+
+  persistCurrentSale({
+    items: state.items,
+    globalDiscount: state.globalDiscount,
+    consumer: state.consumer,
+    coupon: state.coupon,
+    editingSaleId: state.editingSaleId,
+    // A chave de idempotência é o campo que MAIS precisa sobreviver ao F5: se o
+    // POST chegou ao servidor e a resposta se perdeu junto com a tela, é ela que
+    // faz a nova tentativa ser reconhecida como a mesma venda em vez de gravar
+    // uma segunda idêntica.
+    saleClientReference: state.saleClientReference,
+  });
+});

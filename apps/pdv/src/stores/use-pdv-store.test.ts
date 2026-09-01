@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_CONSUMER, FONT_SCALES, usePdvStore, type PdvItem } from "./use-pdv-store";
 
 /** Estado inicial de um carrinho vazio, usado entre os testes. */
@@ -403,6 +403,96 @@ describe("usePdvStore", () => {
       usePdvStore.getState().resetFontScale();
 
       expect(document.documentElement.style.fontSize).toBe("100%");
+    });
+  });
+
+  describe("venda em andamento sobrevivendo ao F5", () => {
+    afterEach(() => localStorage.removeItem("pdv-current-sale"));
+
+    it("deve guardar o carrinho no navegador a cada mudança", () => {
+      usePdvStore.getState().addItem(product());
+      usePdvStore.getState().applyGlobalDiscount(3);
+
+      const gravado = JSON.parse(localStorage.getItem("pdv-current-sale")!);
+      expect(gravado.items).toHaveLength(1);
+      expect(gravado.globalDiscount).toBe(3);
+    });
+
+    it("deve reabrir a venda que estava na tela quando ela recarrega", async () => {
+      // O F5 no meio da venda acontece — atualização do app, travamento do
+      // navegador, toque errado no touchscreen — e o carrinho sumia inteiro,
+      // com o cliente no balcão e os produtos já bipados.
+      localStorage.setItem(
+        "pdv-current-sale",
+        JSON.stringify({
+          v: 1,
+          items: [{ ...product(), id: "linha-1", quantity: 3 }],
+          globalDiscount: 2,
+          consumer: { customerId: null, name: "", document: "12345678909" },
+          coupon: null,
+          editingSaleId: 42,
+          saleClientReference: "chave-da-venda",
+        }),
+      );
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+      const state = fresh.usePdvStore.getState();
+
+      expect(state.items).toHaveLength(1);
+      expect(state.items[0].quantity).toBe(3);
+      expect(state.globalDiscount).toBe(2);
+      expect(state.consumer.document).toBe("12345678909");
+      expect(state.editingSaleId).toBe(42);
+      // A chave de idempotência é o campo que mais precisa sobreviver: com ela,
+      // o reenvio de uma venda que já chegou ao servidor é reconhecido como a
+      // mesma; sem ela, o servidor gravaria uma segunda venda idêntica.
+      expect(state.saleClientReference).toBe("chave-da-venda");
+      expect(state.status).toBe("SELLING");
+    });
+
+    it("não deve voltar direto para a tela de pagamento", async () => {
+      // O que o checkout tinha na mão (formas, parcelas, valor recebido) não é
+      // persistido. Reabri-lo vazio por cima do carrinho seria pior do que
+      // devolver a venda — o operador clica em FINALIZAR de novo.
+      localStorage.setItem(
+        "pdv-current-sale",
+        JSON.stringify({
+          v: 1,
+          items: [{ ...product(), id: "linha-1" }],
+          globalDiscount: 0,
+          consumer: EMPTY_CONSUMER,
+          coupon: null,
+          editingSaleId: null,
+          saleClientReference: null,
+        }),
+      );
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+
+      expect(fresh.usePdvStore.getState().status).toBe("SELLING");
+    });
+
+    it("deve abrir com o caixa livre quando o que estava guardado não serve", async () => {
+      // Formato antigo ou chave corrompida: um PDV que abre com carrinho vazio é
+      // recuperável (basta bipar de novo); um que não abre, não.
+      localStorage.setItem("pdv-current-sale", '{"v":99,"items":[{"id":"x"}]}');
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+
+      expect(fresh.usePdvStore.getState().items).toHaveLength(0);
+      expect(fresh.usePdvStore.getState().status).toBe("IDLE");
+    });
+
+    it("deve esvaziar o guardado quando a venda é cancelada", () => {
+      usePdvStore.getState().addItem(product());
+      usePdvStore.getState().cancelSale();
+
+      const gravado = JSON.parse(localStorage.getItem("pdv-current-sale")!);
+      expect(gravado.items).toHaveLength(0);
+      expect(gravado.saleClientReference).toBeNull();
     });
   });
 

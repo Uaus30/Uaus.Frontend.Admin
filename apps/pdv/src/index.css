@@ -546,9 +546,13 @@ html.light {
 
    Um pulso único de contorno na linha que acabou de receber o item,
    no lugar do toast de "item adicionado" que ficava no canto oposto
-   da tela. Em CSS, e não em framer-motion, porque a cor sai direto do
-   tema (`--primary` são componentes HSL) e acompanha claro/escuro sem
-   nenhum valor duplicado no componente.
+   da tela.
+
+   Verde (emerald-500, o mesmo dos abatimentos do resumo), e não a cor
+   primária: o pulso responde "deu certo", e no PDV o laranja da marca
+   está em tudo que é botão — inclusive no FINALIZAR logo abaixo. O
+   valor vem literal porque o verde não é token de tema; ele é o mesmo
+   no claro e no escuro, como já é nas linhas de desconto.
 
    Quem reinicia a animação é a `key` do nó em `PdvCartItem`: animação
    de CSS só recomeça com elemento novo, e bipar o mesmo produto duas
@@ -557,19 +561,19 @@ html.light {
 @keyframes pdv-item-pulse {
   0% {
     opacity: 0;
-    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0);
   }
   20% {
     opacity: 1;
-    box-shadow: 0 0 18px 3px hsl(var(--primary) / 0.55);
+    box-shadow: 0 0 18px 3px rgb(16 185 129 / 0.55);
   }
   60% {
     opacity: 1;
-    box-shadow: 0 0 18px 3px hsl(var(--primary) / 0.55);
+    box-shadow: 0 0 18px 3px rgb(16 185 129 / 0.55);
   }
   100% {
     opacity: 0;
-    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0);
   }
 }
 
@@ -577,5 +581,5 @@ html.light {
    voltaria a aparecer — desta vez para ficar — assim que o pulso terminasse. */
 .pdv-item-pulse {
   opacity: 0;
-  animation: pdv-item-pulse 900ms ease-out 1;
+  animation: pdv-item-pulse 1400ms ease-out 1;
 }

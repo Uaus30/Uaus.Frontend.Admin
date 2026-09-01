@@ -7,6 +7,10 @@ import { FONT_SCALES, usePdvStore } from "@/stores/use-pdv-store";
  * Escala a interface inteira, não só o texto: todo o layout é medido em `rem`,
  * então mexer na raiz aumenta botões e espaçamentos junto — que é o que ajuda
  * de verdade em monitor de balcão.
+ *
+ * Compacto de propósito: é um controle que o operador toca uma vez por turno, e
+ * no cabeçalho ele disputava espaço com o que se usa a venda inteira (calculadora,
+ * tela cheia, operador, menu).
  */
 export function FontSizeControl() {
   const fontScaleIndex = usePdvStore((state) => state.fontScaleIndex);
@@ -17,16 +21,16 @@ export function FontSizeControl() {
   const isDefault = scale === 1;
 
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border/50 bg-muted/20 p-0.5">
+    <div className="flex items-center rounded-lg border border-border/50 bg-muted/20 p-0.5">
       <button
         type="button"
         onClick={() => stepFontScale(-1)}
         disabled={fontScaleIndex === 0}
         title="Diminuir o tamanho do texto"
         aria-label="Diminuir o tamanho do texto"
-        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
       >
-        <AArrowDown className="h-4 w-4" />
+        <AArrowDown className="h-3.5 w-3.5" />
       </button>
 
       <button
@@ -35,9 +39,9 @@ export function FontSizeControl() {
         disabled={isDefault}
         title="Voltar ao tamanho padrão"
         aria-label="Voltar ao tamanho padrão"
-        className="flex min-w-[3.25rem] items-center justify-center gap-1 rounded-md px-1 py-1 font-mono text-[11px] font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-muted-foreground cursor-pointer"
+        className="flex min-w-[2.5rem] items-center justify-center gap-0.5 rounded-md px-0.5 py-1 font-mono text-[10px] font-bold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-muted-foreground cursor-pointer"
       >
-        {!isDefault && <RotateCcw className="h-3 w-3" />}
+        {!isDefault && <RotateCcw className="h-2.5 w-2.5" />}
         {Math.round(scale * 100)}%
       </button>
 
@@ -47,9 +51,9 @@ export function FontSizeControl() {
         disabled={fontScaleIndex === FONT_SCALES.length - 1}
         title="Aumentar o tamanho do texto"
         aria-label="Aumentar o tamanho do texto"
-        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
       >
-        <AArrowUp className="h-4 w-4" />
+        <AArrowUp className="h-3.5 w-3.5" />
       </button>
     </div>
   );

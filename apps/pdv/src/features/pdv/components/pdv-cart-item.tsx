@@ -107,7 +107,7 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
           key={pulseSeq}
           aria-hidden
           data-testid="cart-item-pulse"
-          className="pdv-item-pulse pointer-events-none absolute inset-0 z-10 rounded-lg border-2 border-primary"
+          className="pdv-item-pulse pointer-events-none absolute inset-0 z-10 rounded-lg border-2 border-emerald-500"
         />
       )}
 
@@ -115,7 +115,7 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
           não uma miniatura no meio do texto: assim a foto acompanha o card
           quando o nome quebra em duas linhas, e quantidade, preço e total ficam
           SEMPRE à direita dela, na mesma coluna, em todas as linhas do carrinho. */}
-      <PdvCartItemImage name={item.name} imageUrl={item.imageUrl} />
+      <PdvCartItemImage name={item.name} barcode={item.barcode} imageUrl={item.imageUrl} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex justify-between items-start gap-2 mb-2">
@@ -123,9 +123,13 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
             {/* Nome INTEIRO, quebrando em quantas linhas precisar: é a mesma regra
               da lista de busca. O fim do nome é o que separa duas variações do
               mesmo produto ("...CONICA" × "...RETA"), e truncar escondia
-              justamente isso — o operador via duas linhas idênticas no carrinho. */}
+              justamente isso — o operador via duas linhas idênticas no carrinho.
+
+              O código de barras saiu daqui em 01/09/2026 e foi para a legenda da
+              foto ampliada: ele ocupava uma faixa em TODA linha do carrinho para
+              um dado que só se consulta em caso de dúvida — e a dúvida é
+              justamente quando a foto é aberta. */}
             <h4 className="font-bold text-sm leading-tight break-words">{item.name}</h4>
-            <span className="text-[10px] text-muted-foreground font-mono">{item.barcode}</span>
           </div>
           <Button
             variant="ghost"
