@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { EMPTY_CONSUMER, usePdvStore, type PdvItem } from "./use-pdv-store";
+import { EMPTY_CONSUMER, FONT_SCALES, usePdvStore, type PdvItem } from "./use-pdv-store";
 
 /** Estado inicial de um carrinho vazio, usado entre os testes. */
 const EMPTY = {
@@ -358,6 +358,26 @@ describe("usePdvStore", () => {
 
       expect(fresh.usePdvStore.getState().fontScaleIndex).toBe(4);
       localStorage.removeItem("pdv-font-scale-index");
+    });
+
+    it("deve migrar quem estava na escala removida para o maior tamanho atual", async () => {
+      // A escala de 135% saiu em 01/09/2026 porque esticava o layout além do que
+      // a tela do caixa comporta. Quem a tinha salva no navegador precisa cair no
+      // maior tamanho que sobrou — voltar para 100% pareceria a preferência ter
+      // sumido sozinha.
+      localStorage.setItem("pdv-font-scale-index", "5");
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+
+      expect(fresh.FONT_SCALES[fresh.usePdvStore.getState().fontScaleIndex]).toBe(1.2);
+      localStorage.removeItem("pdv-font-scale-index");
+    });
+
+    it("não deve passar de 120%, o teto que a tela do caixa comporta", () => {
+      for (let step = 0; step < 10; step += 1) usePdvStore.getState().stepFontScale(1);
+
+      expect(FONT_SCALES[usePdvStore.getState().fontScaleIndex]).toBe(1.2);
     });
 
     it("deve aumentar e diminuir um degrau por vez", () => {

@@ -19,8 +19,16 @@ import {
 export { EMPTY_CONSUMER, computeCartTotals, couponDiscountFor, toTotalsItems } from "./pdv-cart";
 export type { AppliedCoupon, CouponAnswer, HeldSale, PdvConsumer, PdvItem } from "./pdv-cart";
 
-/** Escalas de fonte disponíveis, do menor para o maior. */
-export const FONT_SCALES = [0.85, 0.925, 1, 1.1, 1.2, 1.35] as const;
+/**
+ * Escalas de fonte disponíveis, do menor para o maior.
+ *
+ * O teto é 120%, definido em 01/09/2026 depois de a escala de 135% ser testada
+ * no balcão: o layout é medido em `rem`, então a raiz maior estica tudo junto e,
+ * a partir dali, o resumo da venda comia a lista de itens e o nome do produto
+ * não cabia mais na linha. Aumentar o teto de novo exige refazer essa conta na
+ * tela do caixa, não só acrescentar um número aqui.
+ */
+export const FONT_SCALES = [0.85, 0.925, 1, 1.1, 1.2] as const;
 
 /** Índice da escala 1x, usada como padrão. */
 const DEFAULT_FONT_SCALE_INDEX = 2;
@@ -205,10 +213,14 @@ function readFontScaleIndex() {
   if (stored === null) return DEFAULT_FONT_SCALE_INDEX;
 
   const index = Number(stored);
-  if (!Number.isInteger(index) || index < 0 || index >= FONT_SCALES.length) {
+  if (!Number.isInteger(index) || index < 0) {
     return DEFAULT_FONT_SCALE_INDEX;
   }
-  return index;
+
+  // Índice ACIMA do teto vira o maior disponível, e não o padrão: quem estava
+  // na escala de 135% removida em 01/09/2026 quer a maior que sobrou (120%), e
+  // voltar para 100% na primeira abertura pareceria a preferência ter sumido.
+  return Math.min(index, FONT_SCALES.length - 1);
 }
 
 /**
