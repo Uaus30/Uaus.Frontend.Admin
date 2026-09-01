@@ -41,11 +41,21 @@ export function adminBaseUrl(): string | null {
   const { protocol, hostname, port } = window.location;
   const sufixoPorta = port ? `:${port}` : "";
 
-  // Produção: pdv.uaus.com.br -> admin.uaus.com.br. Só o primeiro rótulo é
-  // trocado, então `pdv.uaus.com.br` e `pdv.homolog.uaus.com.br` funcionam
-  // iguais, cada um apontando para o admin do seu próprio ambiente.
-  if (/^pdv\./i.test(hostname)) {
-    return `${protocol}//${hostname.replace(/^pdv\./i, "admin.")}${sufixoPorta}`;
+  // Produção e ambientes irmãos: só o primeiro rótulo é trocado, preservando o
+  // sufixo de ambiente que vier colado nele.
+  //
+  //   pdv.uaus.com.br          -> admin.uaus.com.br
+  //   pdv-dev.uaus.com.br      -> admin-dev.uaus.com.br
+  //   pdv.homolog.uaus.com.br  -> admin.homolog.uaus.com.br
+  //
+  // O sufixo `-dev` entrou depois: a primeira versão casava só `^pdv\.`, e em
+  // `pdv-dev.uaus.com.br` a função devolvia null — o lápis de editar produto
+  // simplesmente não existia no ambiente onde ele é MAIS usado, e sem nada na
+  // tela dizendo por quê.
+  const rotuloPdv = /^pdv(-[^.]+)?\./i;
+  if (rotuloPdv.test(hostname)) {
+    const admin = hostname.replace(rotuloPdv, (_, sufixo: string | undefined) => `admin${sufixo ?? ""}.`);
+    return `${protocol}//${admin}${sufixoPorta}`;
   }
 
   // Desenvolvimento: os dois apps sobem no mesmo host, em portas diferentes.

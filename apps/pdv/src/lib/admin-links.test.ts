@@ -31,6 +31,24 @@ describe("adminBaseUrl", () => {
     expect(adminBaseUrl()).toBe("https://admin.uaus.com.br");
   });
 
+  it("preserva o sufixo de ambiente colado no rótulo", () => {
+    // REGRESSÃO: a regex casava só `^pdv\.`, e em `pdv-dev.uaus.com.br` a
+    // função devolvia null. O resultado é que o lápis de editar produto
+    // simplesmente NÃO APARECIA no ambiente de desenvolvimento — que é onde ele
+    // é mais usado — sem nada na tela dizendo por quê.
+    servidoEm("https://pdv-dev.uaus.com.br/");
+
+    expect(adminBaseUrl()).toBe("https://admin-dev.uaus.com.br");
+  });
+
+  it("não confunde outro app que comece com pdv", () => {
+    // `pdvzinho.uaus.com.br` não é o PDV: sem a âncora no separador, o replace
+    // produziria `adminzinho.uaus.com.br`, um host que não existe.
+    servidoEm("https://pdvzinho.uaus.com.br/");
+
+    expect(adminBaseUrl()).toBeNull();
+  });
+
   it("troca apenas o primeiro rótulo, preservando o ambiente", () => {
     // Homologação tem que apontar para o admin DE HOMOLOGAÇÃO. Trocar o domínio
     // inteiro mandaria o operador de teste editar produto em produção.
