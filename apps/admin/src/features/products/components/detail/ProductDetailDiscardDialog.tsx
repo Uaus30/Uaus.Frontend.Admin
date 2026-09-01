@@ -23,11 +23,7 @@ type ProductDetailDiscardDialogProps = {
  * navegador interceptado — porque perder um formulário inteiro por um clique
  * errado dói mais do que responder a uma pergunta.
  */
-export function ProductDetailDiscardDialog({
-  open,
-  onCancel,
-  onConfirm,
-}: ProductDetailDiscardDialogProps) {
+export function ProductDetailDiscardDialog({ open, onCancel, onConfirm }: ProductDetailDiscardDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={(aberto) => !aberto && onCancel()}>
       <AlertDialogContent>
@@ -37,8 +33,8 @@ export function ProductDetailDiscardDialog({
           </div>
           <AlertDialogTitle>Descartar alterações?</AlertDialogTitle>
           <AlertDialogDescription>
-            Há alterações não salvas neste produto. Sair agora descarta tudo o que foi preenchido
-            desde o último salvamento.
+            Há alterações não salvas neste produto. Sair agora descarta tudo o que foi preenchido desde o
+            último salvamento.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
