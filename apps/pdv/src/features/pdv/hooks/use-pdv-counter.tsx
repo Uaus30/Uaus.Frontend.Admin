@@ -5,6 +5,7 @@ import { useToast } from "@workspace/ui";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
 import type { CheckoutState } from "@/hooks/use-checkout";
 import { useProductSearch } from "./use-product-search";
+import { AddedItemToast } from "../components/added-item-toast";
 
 export interface UsePdvCounterParams {
   online: boolean;
@@ -70,7 +71,14 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
         availableStock: product.stock,
       });
 
-      toast({ title: "Item adicionado", description: `${product.name} no carrinho.`, duration: 1500 });
+      // A descrição leva a miniatura do produto: no bipe o operador está olhando
+      // para o item na mão, não para a tela, e a imagem confirma que o código
+      // lido é o produto certo mais rápido do que ler o nome.
+      toast({
+        title: "Item adicionado",
+        description: <AddedItemToast name={product.name} imageUrl={product.imageUrl} />,
+        duration: 1500,
+      });
     },
     [addItem, toast],
   );
