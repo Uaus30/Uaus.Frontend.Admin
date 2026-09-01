@@ -6,7 +6,7 @@ import { describeApiError } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 
 import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.service";
-import { upsertProduct, adjustProductStock, syncProductImages } from "@/services/products.service";
+import { upsertProduct, syncProductImages } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
 import {
@@ -23,11 +23,14 @@ import type { ProductTableRow } from "../types";
  * useProductTable
  *
  * Hook controlador da tabela de produtos: listagem paginada com busca, filtros
- * (departamento, categoria, status) e a edição de preço e estoque direto na célula.
+ * (departamento, categoria, status) e a edição de PREÇO direto na célula.
  *
- * A edição inline existe porque corrigir preço é a operação mais frequente da
- * tela, e abrir a modal do produto para trocar um número era o maior atrito do
- * dia a dia.
+ * A edição inline de preço existe porque corrigir preço é a operação mais
+ * frequente da tela, e abrir a modal do produto para trocar um número era o
+ * maior atrito do dia a dia. A de ESTOQUE foi removida em 31/08/2026: estoque
+ * nasce de lote, e o lançamento simplificado (menu Estoque da linha e aba do
+ * detalhe) pergunta custo e fornecedor — a célula editável gravava um ajuste
+ * herdando o custo do último lote sem avisar.
  *
  * ## Por que a listagem virou UMA requisição (item 4.1)
  *
@@ -155,7 +158,6 @@ export function useProductTable() {
 
   const totalPages = Math.max(1, Math.ceil((tablePage?.total || 0) / limit));
   const [updatingPriceId, setUpdatingPriceId] = useState<number | null>(null);
-  const [updatingStockId, setUpdatingStockId] = useState<number | null>(null);
 
   /**
    * Converte o status da linha no código numérico que o PUT espera.
@@ -220,39 +222,6 @@ export function useProductTable() {
       });
     } finally {
       setUpdatingPriceId(null);
-    }
-  };
-
-  /**
-   * Ajusta o estoque do produto direto na célula.
-   * O estoque só pode ser AUMENTADO manualmente — baixa nasce de venda ou perda.
-   */
-  const updateProductStock = async (product: ProductTableRow, newStock: number) => {
-    if (newStock < product.stock) {
-      toast({
-        title: "Ajuste de estoque inválido",
-        description: "O estoque só pode ser aumentado manualmente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUpdatingStockId(product.id);
-    try {
-      await adjustProductStock(product.id, newStock);
-      await invalidateAfterInlineEdit(product.productGroupId);
-      toast({
-        title: "Estoque atualizado com sucesso!",
-      });
-    } catch (error) {
-      console.error("Erro ao atualizar estoque:", error);
-      toast({
-        title: "Erro ao atualizar estoque",
-        description: describeApiError(error),
-        variant: "destructive",
-      });
-    } finally {
-      setUpdatingStockId(null);
     }
   };
 
@@ -331,8 +300,6 @@ export function useProductTable() {
     totalPages,
     updatingPriceId,
     updateProductPrice,
-    updatingStockId,
-    updateProductStock,
     saveWebImageAsPrincipal,
   };
 }

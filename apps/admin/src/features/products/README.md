@@ -6,7 +6,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 
 ## 📂 Estrutura de Arquivos
 
-- `components/ProductTable.tsx`: Renderiza a listagem de produtos com paginação e suporte a edição rápida inline de preço e estoque.
+- `components/ProductTable.tsx`: Renderiza a listagem de produtos com paginação e edição rápida inline de PREÇO. A célula de estoque é somente leitura desde 31/08/2026 — estoque nasce de lote, e o lançamento (com custo e fornecedor) está a um clique no menu Estoque da linha.
 - `components/ProductTableFilters.tsx`: Filtros da tabela (busca por texto, select de Departamento, select de Categoria e select de Status com ordenação alfabética).
 - `components/detail/ProductDetailScreen.tsx`: Tela de detalhe do produto, em três abas — orquestra o formulário, as confirmações e o salvar. Substituiu a modal de edição.
 - `components/detail/ProductGeneralTab.tsx`: Aba **Dados** (obrigatórios + código de barras + imagens + variações).
@@ -25,7 +25,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 - `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
-- `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e chamadas de mutations para edição rápida de preço/estoque.
+- `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e a mutation da edição rápida de preço.
 - `hooks/mapProductTableRow.ts`: Traduz a linha que o servidor devolve para a linha que a tela usa.
 - `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, geração da matriz cartesiana de variações, validações e persistência no banco.
 - `types.ts`: Tipagens TypeScript estritas que modelam os dados de formulários, imagens locais e variações.

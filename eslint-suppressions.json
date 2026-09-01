@@ -139,7 +139,7 @@
   },
   "apps/admin/src/features/products/components/ProductTable.tsx": {
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "apps/admin/src/features/products/components/editor/ProductVariationsManager.tsx": {

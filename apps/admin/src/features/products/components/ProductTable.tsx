@@ -63,8 +63,6 @@ type ProductTableProps = {
   onViewHistory?: (product: ProductTableRow) => void;
   onUpdatePrice?: (product: ProductTableRow, newPrice: number) => Promise<void>;
   updatingPriceId?: number | null;
-  onUpdateStock?: (product: ProductTableRow, newStock: number) => Promise<void>;
-  updatingStockId?: number | null;
   onSearchInternetImage?: (product: ProductTableRow) => void;
 };
 
@@ -127,70 +125,6 @@ function CurrencyInputInline({
   );
 }
 
-function StockInputInline({
-  value,
-  onSave,
-  disabled,
-}: {
-  value: number;
-  onSave: (val: number) => void;
-  disabled?: boolean;
-}) {
-  const [focused, setFocused] = useState(false);
-  const [localValue, setLocalValue] = useState(String(value));
-
-  React.useEffect(() => {
-    if (!focused) {
-      setLocalValue(String(value));
-    }
-  }, [value, focused]);
-
-  const handleBlurOrEnter = () => {
-    setFocused(false);
-    const numericValue = Number(localValue);
-    if (!isNaN(numericValue) && numericValue !== value) {
-      onSave(numericValue);
-    } else {
-      setLocalValue(String(value));
-    }
-  };
-
-  const isLowStock = value < 10;
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <Input
-        type="text"
-        inputMode="numeric"
-        value={focused ? localValue : String(value)}
-        disabled={disabled}
-        onChange={(e) => {
-          let val = e.target.value;
-          val = val.replace(/[^\d]/g, "");
-          setLocalValue(val);
-        }}
-        onFocus={() => {
-          setFocused(true);
-        }}
-        onBlur={handleBlurOrEnter}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.currentTarget.blur();
-          }
-        }}
-        className={`h-7 w-12 text-center px-1 font-semibold rounded-md border text-xs focus-visible:ring-1 focus-visible:ring-primary/30 transition-all duration-150 shadow-none ${
-          focused
-            ? "bg-background border-border text-foreground"
-            : isLowStock
-              ? "bg-destructive/20 border-transparent text-destructive hover:border-destructive/30"
-              : "bg-secondary border-transparent text-secondary-foreground hover:border-secondary-foreground/20"
-        }`}
-      />
-      <span className="text-xs text-muted-foreground font-semibold select-none">un</span>
-    </div>
-  );
-}
-
 export function ProductTable({
   isLoading,
   search,
@@ -218,8 +152,6 @@ export function ProductTable({
   onViewHistory,
   onUpdatePrice,
   updatingPriceId,
-  onUpdateStock,
-  updatingStockId,
   onSearchInternetImage,
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = useState<ProductTableRow | null>(null);
@@ -343,25 +275,25 @@ export function ProductTable({
                             </div>
                           )}
                         </td>
+                        {/*
+                          Somente leitura desde 31/08/2026: estoque nasce de
+                          lote, e o lançamento (com custo e fornecedor) está a um
+                          clique no menu Estoque. A célula editável gravava um
+                          ajuste herdando o custo do último lote sem avisar.
+                        */}
                         <td className="px-6 py-4">
-                          {product.productGroup?.hasVariations ? (
-                            <div className="flex flex-col">
-                              <span
-                                className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold w-max ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}
-                              >
-                                {product.stock} un
-                              </span>
+                          <div className="flex flex-col">
+                            <span
+                              className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold w-max ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}
+                            >
+                              {product.stock} un
+                            </span>
+                            {product.productGroup?.hasVariations && (
                               <span className="text-[10px] text-muted-foreground font-semibold uppercase mt-0.5">
                                 Variações
                               </span>
-                            </div>
-                          ) : (
-                            <StockInputInline
-                              value={product.stock}
-                              onSave={(newStock) => onUpdateStock?.(product, newStock)}
-                              disabled={updatingStockId === product.id}
-                            />
-                          )}
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1">

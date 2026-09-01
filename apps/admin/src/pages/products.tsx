@@ -141,8 +141,6 @@ export default function Products() {
           }}
           onUpdatePrice={table.updateProductPrice}
           updatingPriceId={table.updatingPriceId}
-          onUpdateStock={table.updateProductStock}
-          updatingStockId={table.updatingStockId}
           onSearchInternetImage={setSearchImageProduct}
         />
       </div>
