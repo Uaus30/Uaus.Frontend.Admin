@@ -115,8 +115,17 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
                 Resultados da Busca
               </h3>
-              <ScrollArea className="flex-1">
-                <div className="grid grid-cols-1 gap-2">
+              {/* O `-mx-3` + `px-3` alarga a área de rolagem para fora e devolve
+                  as linhas para a posição original. Sem essa folga de 12px, a
+                  linha que cresce 1% no hover encosta na borda do viewport e é
+                  CORTADA nos dois lados — some um pedaço do preço, justo no item
+                  que o operador está mirando. A alternativa seria tirar o
+                  `scale`, mas é ele que diz qual linha o clique vai pegar.
+
+                  12px, e não 8px: a folga precisa cobrir METADE do crescimento,
+                  e 1% de uma coluna de 2000px já são 10px. */}
+              <ScrollArea className="flex-1 -mx-3">
+                <div className="grid grid-cols-1 gap-2 px-3">
                   {search.notFound && (
                     <div className="p-6 rounded-xl border border-dashed border-border/60 bg-card/50 text-center">
                       <p className="font-bold uppercase tracking-wider text-muted-foreground">
