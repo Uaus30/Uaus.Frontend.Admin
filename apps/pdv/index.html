@@ -1,7 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR" translate="no">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      NÃO REMOVER: o tradutor do Chrome quebra a tela.
+
+      O app declarava lang="en" com conteúdo em português. Num Chrome
+      configurado em pt-BR (o da loja), isso dispara a tradução automática, que
+      troca os nós de texto por wrappers <font> — e o React, que ainda tem
+      referência aos nós originais, estoura "Failed to execute removeChild on
+      Node" na primeira lista que muda. Aconteceu em 01/09/2026 ao abrir o
+      detalhe do produto: o select de categoria é refiltrado pelo departamento
+      na abertura, o React remove os SelectItem e o nó já não era mais dele.
+
+      lang correto tira o motivo de o Chrome oferecer; translate/notranslate
+      cobrem quem já marcou "traduzir sempre este site" antes disto existir.
+    -->
+    <meta name="google" content="notranslate" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
