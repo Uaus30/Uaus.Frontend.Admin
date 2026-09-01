@@ -48,7 +48,7 @@ export function SaleDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border/50 bg-card sm:max-w-[640px]">
+      <DialogContent className="flex max-h-[90vh] flex-col border-border/50 bg-card sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-display">
             <Receipt className="h-5 w-5 text-primary" /> Detalhes da Venda #
@@ -56,7 +56,7 @@ export function SaleDetailsModal({
           </DialogTitle>
         </DialogHeader>
         {saleToView && (
-          <div className="space-y-6 py-4">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto py-4 pr-2">
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div>
                 <p className="text-xs font-semibold uppercase text-muted-foreground">Data</p>
