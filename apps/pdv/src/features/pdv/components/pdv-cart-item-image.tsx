@@ -14,7 +14,22 @@ type PdvCartItemImageProps = {
 
 /** Moldura da coluna da foto: a mesma medida com ou sem imagem cadastrada. */
 const FRAME_CLASS =
-  "flex w-[5.25rem] shrink-0 items-center justify-center self-stretch overflow-hidden rounded-md border border-border/50 bg-muted/30";
+  "relative flex w-[5.25rem] shrink-0 items-center justify-center self-stretch overflow-hidden rounded-md border border-border/50";
+
+/**
+ * Fundo branco atrás da foto, aqui e na ampliação.
+ *
+ * O `object-contain` deixa sobra quando a proporção da foto não é a do quadro, e
+ * essa sobra era o fundo escuro do tema: a foto deitada ganhava duas faixas
+ * pretas e o carrinho ficava com miniaturas de formatos diferentes uma embaixo
+ * da outra. O catálogo é fotografado em fundo branco, então o branco continua a
+ * própria foto — a sobra some, e todo item fica com o mesmo retângulo
+ * arredondado.
+ *
+ * Branco fixo, e não um token de tema: ele acompanha a foto, não a interface, e
+ * escurecer no tema escuro traria as faixas de volta.
+ */
+const PHOTO_BACKGROUND = "bg-white";
 
 /**
  * A coluna da foto do item no carrinho, com ampliação sob demanda.
@@ -42,7 +57,9 @@ export function PdvCartItemImage({ name, barcode, imageUrl }: PdvCartItemImagePr
 
   if (!imageUrl) {
     return (
-      <div className={FRAME_CLASS}>
+      // Sem foto o quadro segue o tema: não há sobra para disfarçar, e o ícone
+      // esmaecido sobre branco ficaria ilegível no balcão.
+      <div className={`${FRAME_CLASS} bg-muted/30`}>
         <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
       </div>
     );
@@ -56,11 +73,22 @@ export function PdvCartItemImage({ name, barcode, imageUrl }: PdvCartItemImagePr
         <button
           type="button"
           aria-label={`Ampliar a foto de ${name}`}
-          className={`${FRAME_CLASS} cursor-zoom-in transition-colors hover:border-primary/60`}
+          className={`${FRAME_CLASS} ${PHOTO_BACKGROUND} cursor-zoom-in transition-colors hover:border-primary/60`}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setOpen((aberto) => !aberto)}
         >
-          <img loading="lazy" decoding="async" src={src} alt="" className="h-full w-full object-contain" />
+          {/* `absolute` para a foto NÃO entrar na conta da altura do card. Em
+              fluxo normal, uma foto em pé (80x200) esticava a linha inteira do
+              carrinho para caber inteira, e o item ficava três vezes mais alto
+              que o vizinho — o oposto do quadro igual para todos. Assim a altura
+              vem só do texto ao lado, e a foto se encaixa no que sobrou. */}
+          <img
+            loading="lazy"
+            decoding="async"
+            src={src}
+            alt=""
+            className="absolute inset-0 h-full w-full object-contain"
+          />
         </button>
       </HoverCardTrigger>
 
@@ -75,7 +103,7 @@ export function PdvCartItemImage({ name, barcode, imageUrl }: PdvCartItemImagePr
         <img
           src={src}
           alt={name}
-          className="h-56 w-full rounded-md border border-border/40 bg-muted/20 object-contain"
+          className={`h-56 w-full rounded-md border border-border/40 object-contain ${PHOTO_BACKGROUND}`}
         />
         {/* O código de barras, e não o nome: o nome já está na linha do carrinho,
             ao lado desta mesma foto, e repeti-lo aqui gastava a legenda com o que

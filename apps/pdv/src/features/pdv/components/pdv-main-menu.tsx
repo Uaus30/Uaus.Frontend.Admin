@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
-  Calculator as CalculatorIcon,
   ExternalLink,
   FileBarChart,
   History,
@@ -16,7 +15,6 @@ import {
 } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { formatUpdatedAt, versionNumber } from "@workspace/core";
-import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { adminBaseUrl, adminHomeUrl, openInNewTab } from "@/lib/admin-links";
 
@@ -51,6 +49,10 @@ const ITEM_CLASS =
  * Todo item fecha o menu antes de agir: os diálogos que eles abrem cobrem a
  * tela, e um menu aberto por baixo reaparece quando o diálogo fecha.
  *
+ * A calculadora saiu daqui em 01/09/2026: ela tem botão próprio no cabeçalho,
+ * sempre à vista, e o item duplicado fazia o operador abrir o menu para alcançar
+ * o que já estava a um toque de distância.
+ *
  * ## Por que o clique-fora é um listener, e não uma camada por cima
  *
  * Havia um `<div className="fixed inset-0">` para capturar o clique de fora. Ele
@@ -78,7 +80,6 @@ export function PdvMainMenu({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const heldSalesCount = usePdvStore((state) => state.heldSales.length);
-  const toggleCalculator = useCalculatorStore((state) => state.toggleOpen);
 
   // Injetadas no build pelo Vite; lidas a cada render porque são constantes do
   // bundle, não estado. A data vem em UTC e é exibida no fuso de Brasília.
@@ -199,11 +200,6 @@ export function PdvMainMenu({
               </button>
             )}
 
-            <button onClick={run(toggleCalculator)} className={ITEM_CLASS}>
-              <CalculatorIcon className="w-4 h-4 text-primary" />
-              Calculadora
-            </button>
-
             <button onClick={run(onPreferences)} className={ITEM_CLASS}>
               <Settings className="w-4 h-4 text-primary" />
               Preferências
@@ -242,20 +238,20 @@ export function PdvMainMenu({
                 modal para ler dois valores era um clique a mais para a pergunta
                 que o suporte faz por telefone ("qual versão está aí?"); aqui
                 eles já estão na tela em que o operador foi procurar. */}
-            <div className="mt-1 space-y-0.5 border-t border-border px-3 pb-1 pt-2">
-              <p className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                <span className="uppercase tracking-wider">Versão</span>
+            {/* As duas linhas alinhadas à esquerda, como todo item do menu acima
+                delas: em rótulo à esquerda e valor à direita a data não cabia numa
+                linha só dentro dos 224px do menu, e "01/09/2026 às" em cima de
+                "15:09:57" custava mais altura do que a informação vale. */}
+            <div className="mt-1 space-y-0.5 border-t border-border px-3 pb-1 pt-2 text-[10px] text-muted-foreground">
+              <p>
+                Versão{" "}
                 {/* O número é a única coisa clara aqui: é o que o suporte pede no
                     telefone, e destacá-lo dispensa ler o resto do rodapé. */}
                 <span className="font-mono font-semibold text-foreground" data-testid="menu-version">
                   {version}
                 </span>
               </p>
-              {/* Frase inteira numa linha só, dois pontos menor que a de cima:
-                  em rótulo + valor a data quebrava em duas linhas dentro dos
-                  224px do menu, e "01/09/2026 às" em cima de "15:09:57" custava
-                  mais altura do que a informação vale. */}
-              <p className="whitespace-nowrap text-[9px] text-muted-foreground" data-testid="menu-updated-at">
+              <p className="whitespace-nowrap" data-testid="menu-updated-at">
                 {updatedAtText || "Atualizado em —"}
               </p>
             </div>
