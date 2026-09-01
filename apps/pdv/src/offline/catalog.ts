@@ -1,3 +1,4 @@
+import { normalizeSearchText, tokenizeSearchTerms } from "@workspace/core";
 import { STORE, openLocalDatabase } from "./database";
 import { getAll, getByKey } from "./idb";
 import type { LocalCustomer, LocalPaymentMethod, LocalProduct } from "./types";
@@ -15,18 +16,21 @@ import type { LocalCustomer, LocalPaymentMethod, LocalProduct } from "./types";
 /** Quantos resultados a busca devolve, alinhado com o `size` da busca online. */
 const SEARCH_LIMIT = 20;
 
-/** Marcas de acento que a normalização NFD separa das letras. */
-const DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
-
 /**
- * Normaliza o texto para a busca local: minúsculas e sem acento.
+ * Normaliza o texto para a busca local: minúsculas, sem acento e sem espaço
+ * sobrando.
  *
  * O operador digita "cafe" e espera achar "Café". Fazer isso na leitura custaria
  * uma normalização por produto a cada tecla; a instalação do snapshot grava o
  * texto já normalizado, uma vez, na carga.
+ *
+ * Delega para o `@workspace/core`, que é onde a regra mora: `tokenizeSearchTerms`
+ * usa a MESMA normalização, e uma segunda implementação aqui já divergiria na
+ * primeira mudança — foi assim que o `round2` chegou a ter três algoritmos. O
+ * nome local sobrevive porque `snapshot.ts` e os testes o usam.
  */
 export function normalizeForSearch(value: string): string {
-  return value.toLowerCase().normalize("NFD").replace(DIACRITICS, "");
+  return normalizeSearchText(value);
 }
 
 let _cachedProducts: LocalProduct[] | null = null;
@@ -57,11 +61,27 @@ export function getLocalProduct(productId: number): Promise<LocalProduct | null>
  * Separada da leitura do banco de propósito — é a regra de relevância, e assim
  * pode ser testada sem IndexedDB.
  *
- * Ordem de prioridade:
+ * **Mesma regra da busca online** (`ProductSearchFilter` no backend): o termo é
+ * quebrado em palavras e o produto casa quando TODAS aparecem nele, em qualquer
+ * posição e em qualquer ordem. É o que faz "bacia com tampa" — e "tampa bacia" —
+ * encontrarem "BACIA PLÁSTICA 2L C/ TAMPA".
+ *
+ * Antes daqui as duas buscas divergiam: online o operador achava, offline não,
+ * e nada na tela explicava por quê. A regra completa está em
+ * `Uaus.Backend.Api/docs/busca-de-produtos.md`.
+ *
+ * Cada palavra é procurada no nome normalizado OU no código de barras. O nome
+ * local já traz a variação entre colchetes ("CHICLETE BUBBALOO [uva]"), porque o
+ * snapshot compõe o nome antes de gravar — então procurar "uva" funciona aqui
+ * como funciona no servidor. A descrição do produto, que o servidor também
+ * indexa, não vem no snapshot; hoje nenhum produto do catálogo tem uma.
+ *
+ * Ordem de relevância, espelhando os degraus do backend:
  * 1. código de barras exato (é o leitor bipando)
- * 2. nome que começa com o termo
- * 3. nome que contém o termo
- * 4. código de barras que contém o termo
+ * 2. nome que começa com o termo inteiro
+ * 3. nome que contém o termo inteiro
+ * 4. nome que começa com a primeira palavra do termo
+ * 5. o resto que casou
  *
  * @param products Catálogo local.
  * @param term Termo digitado, ainda não normalizado.
@@ -71,21 +91,38 @@ export function filterProducts(products: LocalProduct[], term: string, limit = S
   const raw = term.trim();
   if (!raw) return [];
 
-  const needle = normalizeForSearch(raw);
-  const cleanTermDigits = raw.replace(/\D/g, "");
+  const tokens = tokenizeSearchTerms(raw);
+  if (tokens.length === 0) return [];
+
+  const frase = normalizeForSearch(raw);
+  const primeira = tokens[0];
+  const digitosDoTermo = raw.replace(/\D/g, "");
 
   const scored: Array<{ product: LocalProduct; rank: number }> = [];
 
   for (const product of products) {
-    const pBarcode = (product.barcode ?? "").trim();
-    const pBarcodeDigits = pBarcode.replace(/\D/g, "");
-    let rank: number;
+    const barcode = (product.barcode ?? "").trim();
+    const barcodeDigits = barcode.replace(/\D/g, "");
 
-    if (pBarcode === raw || (cleanTermDigits.length >= 4 && pBarcodeDigits === cleanTermDigits)) rank = 0;
-    else if (product.searchName.startsWith(needle)) rank = 1;
-    else if (product.searchName.includes(needle)) rank = 2;
-    else if (pBarcode && pBarcode.includes(raw)) rank = 3;
-    else continue;
+    // Os tokens vêm em minúsculas; o servidor guarda o código de barras dentro
+    // do `search_text` já normalizado, e comparar cru aqui erraria num cadastro
+    // com letra (código interno, referência de fornecedor).
+    const barcodeBusca = barcode.toLowerCase();
+
+    // Todas as palavras precisam aparecer — no nome ou no código de barras.
+    const casaTudo = tokens.every(
+      (token) => product.searchName.includes(token) || barcodeBusca.includes(token),
+    );
+    if (!casaTudo) continue;
+
+    const barcodeExato = barcode === raw || (digitosDoTermo.length >= 4 && barcodeDigits === digitosDoTermo);
+
+    let rank: number;
+    if (barcodeExato) rank = 0;
+    else if (product.searchName.startsWith(frase)) rank = 1;
+    else if (product.searchName.includes(frase)) rank = 2;
+    else if (product.searchName.startsWith(primeira)) rank = 3;
+    else rank = 4;
 
     scored.push({ product, rank });
   }

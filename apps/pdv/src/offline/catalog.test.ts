@@ -68,6 +68,62 @@ describe("filterProducts", () => {
   it("não deve trazer produto que não casa com o termo", () => {
     expect(filterProducts(CATALOG, "xyz")).toEqual([]);
   });
+
+  // A partir daqui, a paridade com a busca ONLINE. A busca do balcão troca de
+  // motor conforme a internet; divergir faz o operador achar o produto com rede
+  // e não achar sem, sem nada na tela explicando.
+  const COMBINADOS = [
+    product(10, "BACIA PLÁSTICA 2L C/ TAMPA", "7891000001"),
+    product(11, "TAMPA AVULSA PARA BACIA", "7891000002"),
+    product(12, "APOIO DE BACIA INOX", "7891000006"),
+    product(13, "CHICLETE BUBBALOO [uva]", "7891000004"),
+    product(14, "COPO TÉRMICO 473ML", "7891000005"),
+  ];
+
+  it("deve casar combinando os termos, em qualquer ordem", () => {
+    // O caso que motivou a fase 2: "bacia com tampa" não existe literalmente em
+    // "BACIA PLÁSTICA 2L C/ TAMPA" — o "com" está escrito "C/".
+    //
+    // O que se afirma aqui é o CONJUNTO: trocar a ordem das palavras não muda
+    // quem casa. A ordem entre eles muda, e deve mudar — quem digita "tampa"
+    // primeiro vê antes o que começa com "TAMPA". Isso é o teste de relevância
+    // abaixo, e é o mesmo degrau que o backend aplica.
+    expect(filterProducts(COMBINADOS, "bacia com tampa").map((p) => p.id)).toEqual([10, 11]);
+    expect(
+      filterProducts(COMBINADOS, "tampa bacia")
+        .map((p) => p.id)
+        .sort(),
+    ).toEqual([10, 11]);
+  });
+
+  it("deve pôr na frente o que começa com a primeira palavra digitada", () => {
+    // Mesmo degrau do backend: entre dois produtos que casam com as duas
+    // palavras, ganha o que começa pela que o operador digitou primeiro.
+    expect(filterProducts(COMBINADOS, "tampa bacia")[0].id).toBe(11);
+    expect(filterProducts(COMBINADOS, "bacia tampa")[0].id).toBe(10);
+  });
+
+  it("deve achar pelo valor da grade, que vem dentro do nome local", () => {
+    // O snapshot compõe o nome com o colchete antes de gravar, então a variação
+    // é alcançável offline como é no servidor.
+    expect(filterProducts(COMBINADOS, "bubbaloo uva").map((p) => p.id)).toEqual([13]);
+  });
+
+  it("deve achar por pedaço de palavra enquanto o operador digita", () => {
+    // O campo busca a cada tecla: exigir a palavra inteira deixaria a lista
+    // vazia até a última letra.
+    expect(filterProducts(COMBINADOS, "termic").map((p) => p.id)).toEqual([14]);
+  });
+
+  it("deve ordenar por relevância, não por nome", () => {
+    // Por nome a ordem seria APOIO, BACIA, TAMPA — e o que o operador procura
+    // cairia no meio. Mesmos degraus do backend.
+    expect(filterProducts(COMBINADOS, "bacia").map((p) => p.id)).toEqual([10, 12, 11]);
+  });
+
+  it("deve exigir TODAS as palavras", () => {
+    expect(filterProducts(COMBINADOS, "bacia inexistente")).toEqual([]);
+  });
 });
 
 describe("filterCustomers", () => {
