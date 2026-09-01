@@ -12,7 +12,9 @@ import {
 } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
 import { GRADE_TYPE, GRADE_TYPE_LABELS, type GradeTypeCode } from "@workspace/api-client-react";
-import { gerarCombinacoes, juntarValoresDeGrade, separarValoresDeGrade } from "../../lib/variationMatrix";
+import { gerarCombinacoes } from "../../lib/variationMatrix";
+import { juntarValoresDeGrade, separarValoresDeGrade } from "../../lib/variationGrades";
+import { VariationColumnsForm } from "./VariationColumnsForm";
 import type { ProductGrade } from "../../types";
 
 /** Ordem em que as grades aparecem na modal e no nome composto. */
@@ -32,6 +34,11 @@ type VariationGradesModalProps = {
   selectedGrades: ProductGrade[];
   /** Quantas variações já existem — o aviso de perda usa este número. */
   variationCount: number;
+  /**
+   * O produto já tem variação gravada: a modal só mexe em COLUNA e nunca cria
+   * nem apaga variação. Ver `applyGrades` em `useProductVariations`.
+   */
+  somenteColunas: boolean;
   onConfirm: (grades: ProductGrade[]) => void;
 };
 
@@ -45,12 +52,19 @@ type VariationGradesModalProps = {
  *
  * Aqui os três tipos são fixos e os valores são digitados no próprio produto.
  * É isso que deixa "Cor" ter duas opções neste produto e cinco no vizinho.
+ *
+ * São dois formulários, e não um com condicionais, porque as duas telas fazem
+ * coisas diferentes: no cadastro novo a modal CRUZA as grades e gera a matriz
+ * inteira; no produto já cadastrado ela só acrescenta e remove COLUNA, sem
+ * tocar nas variações que existem — o valor de cada linha é digitado na
+ * tabela. Ver `applyGrades` em `useProductVariations`.
  */
 export function VariationGradesModal({
   open,
   onOpenChange,
   selectedGrades,
   variationCount,
+  somenteColunas,
   onConfirm,
 }: VariationGradesModalProps) {
   return (
@@ -61,15 +75,24 @@ export function VariationGradesModal({
         prop num efeito — que além de proibido pelo lint mostraria a modal em
         branco por um render.
       */}
-      {open && (
-        <GradesForm
-          key={String(open)}
-          selectedGrades={selectedGrades}
-          variationCount={variationCount}
-          onCancel={() => onOpenChange(false)}
-          onConfirm={onConfirm}
-        />
-      )}
+      {open &&
+        (somenteColunas ? (
+          <VariationColumnsForm
+            key={String(open)}
+            selectedGrades={selectedGrades}
+            variationCount={variationCount}
+            onCancel={() => onOpenChange(false)}
+            onConfirm={onConfirm}
+          />
+        ) : (
+          <GradesForm
+            key={String(open)}
+            selectedGrades={selectedGrades}
+            variationCount={variationCount}
+            onCancel={() => onOpenChange(false)}
+            onConfirm={onConfirm}
+          />
+        ))}
     </Dialog>
   );
 }
@@ -166,21 +189,25 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
         })}
       </div>
 
+      {/*
+        Nada aqui está gravado: esta modal só cruza grades enquanto o cadastro
+        não tem variação salva (ver `applyGrades`). O aviso é sobre o que foi
+        DIGITADO na tela, não sobre o banco.
+      */}
       {variationCount > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="space-y-1.5 text-sm leading-tight">
             <p>
-              As variações de hoje são <strong>aproveitadas</strong> pelas combinações novas, com preço,
-              código de barras e estoque. O que sobrar sai do cadastro — exceto o que já tem venda, que
-              permanece na lista.
+              Regerar substitui a matriz da tela. As combinações que continuarem mantêm o preço e o código de
+              barras já digitados; as que saírem são descartadas.
             </p>
             {gradesNovasComEscolha.length > 0 && (
               <p>
                 {gradesNovasComEscolha
                   .map((grade) => `${GRADE_TYPE_LABELS[grade.type]} tem ${grade.values.length} valores novos`)
                   .join("; ")}
-                : as variações atuais ficam com{" "}
+                : as linhas de agora ficam com{" "}
                 <strong>{gradesNovasComEscolha.map((grade) => grade.values[0]).join(" · ")}</strong> e as
                 demais combinações nascem em branco.
               </p>

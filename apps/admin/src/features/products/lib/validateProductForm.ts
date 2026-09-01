@@ -1,5 +1,5 @@
 import type { ProductEditorForm, ProductGroupForm, VariationDraft } from "../types";
-import { gradesDasVariacoes } from "./variationMatrix";
+import { gradesDasVariacoes } from "./variationGrades";
 
 /** O que a validação devolve para a tela pintar de vermelho e focar. */
 export type ProductFormValidation = {

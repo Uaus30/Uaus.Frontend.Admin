@@ -68,11 +68,23 @@ export function ProductVariationsSection({
   const valorDaGrade = (variation: VariationDraft, type: ProductGrade["type"]) =>
     variation.values.find((value) => value.gradeType === type)?.value ?? "";
 
-  /** Grava o valor da grade na linha, criando ou trocando o que existir. */
+  /**
+   * Grava o valor da grade na linha, criando ou trocando o que existir.
+   *
+   * Campo apagado guarda valor VAZIO em vez de tirar a grade da variação: as
+   * colunas são derivadas dos valores das linhas (`gradesDasVariacoes`), então
+   * remover a entrada faria a coluna inteira sumir da tabela no instante em que
+   * a última célula fosse limpa — inclusive a coluna em branco que a modal
+   * acabou de acrescentar para ser preenchida. Valor vazio some sozinho no
+   * salvar: o backend ignora valor em branco no `SyncVariationValuesAsync`, e a
+   * validação cobra o preenchimento antes disso.
+   */
   const definirValor = (variation: VariationDraft, type: ProductGrade["type"], valor: string) => {
     updateVariationDraft(variation.key, (draft) => {
-      const outros = draft.values.filter((value) => value.gradeType !== type);
-      const proximos = valor.trim() ? [...outros, { gradeType: type, value: valor }] : outros;
+      const jaTem = draft.values.some((value) => value.gradeType === type);
+      const proximos = jaTem
+        ? draft.values.map((value) => (value.gradeType === type ? { ...value, value: valor } : value))
+        : [...draft.values, { gradeType: type, value: valor }];
       return { ...draft, values: proximos };
     });
   };

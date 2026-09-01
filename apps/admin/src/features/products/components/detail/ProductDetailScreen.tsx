@@ -57,7 +57,8 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
     handleSubmit,
     handleDeleteVariation,
     selectedGrades,
-    generateVariationsMatrix,
+    hasSavedVariations,
+    applyGrades,
   } = editor;
 
   // Só na montagem: a tela desmonta ao fechar, então cada abertura relê a aba.
@@ -133,11 +134,12 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
     onRequestClose();
   }
 
-  /** Gera a matriz e leva o operador até a tabela recém-criada. */
+  /** Aplica as grades e leva o operador até a tabela. */
   async function aplicarGrades(grades: ProductGrade[]) {
-    // Espera de propósito: a mesclagem pode excluir variações no servidor, e
-    // rolar para a tabela antes de ela refletir o resultado rolaria para nada.
-    await generateVariationsMatrix(grades);
+    // Espera de propósito: no cadastro novo a mesclagem pode excluir variações
+    // no servidor, e rolar para a tabela antes de ela refletir o resultado
+    // rolaria para nada.
+    await applyGrades(grades);
     setGradesModalOpen(false);
     setActiveTab("dados");
 
@@ -298,6 +300,7 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
         onOpenChange={setGradesModalOpen}
         selectedGrades={selectedGrades}
         variationCount={variationDrafts.length}
+        somenteColunas={hasSavedVariations}
         onConfirm={aplicarGrades}
       />
 

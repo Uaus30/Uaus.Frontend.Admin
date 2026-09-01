@@ -89,20 +89,21 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("generateVariationsMatrix", () => {
-  it("acrescentar uma grade preserva as variações e preenche a coluna nova", async () => {
-    // Regressão do relato de 01/09/2026: acrescentar "Cor: AZUL" a um produto
-    // de "[10L]", "[6L]" e "[3,6L]" gerava três linhas novas com código de
-    // barras vazio e preço zerado, e deixava as três originais órfãs na tela.
+describe("applyGrades — produto já cadastrado", () => {
+  it("grade nova entra como coluna em branco, sem recriar as variações", () => {
+    // Relato de 01/09/2026: acrescentar "Cor" a um produto de "[10L]", "[6L]" e
+    // "[3,6L]" gerava três linhas novas com código de barras vazio e deixava as
+    // três originais órfãs na tela. A modal deixou de cruzar grades em produto
+    // gravado — a coluna entra vazia e o operador preenche na tabela.
     const { view, estado } = renderVariations([
       gravada(1, "10L", "2992110811678"),
       gravada(2, "6L", "7896725331443"),
       gravada(3, "3,6L", "7896725329402"),
     ]);
 
-    await act(async () => {
-      await view.result.current.generateVariationsMatrix([
-        { type: GRADE_TYPE.Color, values: ["AZUL"] },
+    act(() => {
+      void view.result.current.applyGrades([
+        { type: GRADE_TYPE.Color, values: [] },
         { type: GRADE_TYPE.Size, values: ["10L", "6L", "3,6L"] },
       ]);
     });
@@ -114,39 +115,87 @@ describe("generateVariationsMatrix", () => {
       "7896725331443",
       "7896725329402",
     ]);
-    // A coluna que entrou vem preenchida: sem os valores do slot, a linha
-    // ficaria sem Cor e o salvar recusaria por combinação repetida.
     expect(estado.drafts.map((draft) => draft.values)).toEqual([
       [
-        { gradeType: GRADE_TYPE.Color, value: "AZUL" },
+        { gradeType: GRADE_TYPE.Color, value: "" },
         { gradeType: GRADE_TYPE.Size, value: "10L" },
       ],
       [
-        { gradeType: GRADE_TYPE.Color, value: "AZUL" },
+        { gradeType: GRADE_TYPE.Color, value: "" },
         { gradeType: GRADE_TYPE.Size, value: "6L" },
       ],
       [
-        { gradeType: GRADE_TYPE.Color, value: "AZUL" },
+        { gradeType: GRADE_TYPE.Color, value: "" },
         { gradeType: GRADE_TYPE.Size, value: "3,6L" },
       ],
     ]);
-    // Nenhuma variação saiu da matriz, então nada foi excluído no servidor.
+    // Nenhuma linha sai do cadastro por aqui: o lixo da linha é o único caminho
+    // de exclusão, e ele pede confirmação.
     expect(mocks.deleteProduct).not.toHaveBeenCalled();
   });
 
-  it("valor que saiu da matriz continua sendo excluído no servidor", async () => {
-    mocks.deleteProduct.mockResolvedValue(undefined);
+  it("desmarcar a grade tira a coluna sem excluir variação no servidor", () => {
     const { view, estado } = renderVariations([
       gravada(1, "10L", "2992110811678"),
       gravada(2, "6L", "7896725331443"),
     ]);
 
-    await act(async () => {
-      await view.result.current.generateVariationsMatrix([{ type: GRADE_TYPE.Size, values: ["10L", "8L"] }]);
+    act(() => {
+      void view.result.current.applyGrades([{ type: GRADE_TYPE.Model, values: [] }]);
     });
 
-    expect(mocks.deleteProduct).toHaveBeenCalledWith(2);
-    expect(estado.drafts.map((draft) => draft.id)).toEqual([1, null]);
+    expect(estado.drafts).toHaveLength(2);
+    expect(estado.drafts.map((draft) => draft.values)).toEqual([
+      [{ gradeType: GRADE_TYPE.Model, value: "" }],
+      [{ gradeType: GRADE_TYPE.Model, value: "" }],
+    ]);
+    expect(mocks.deleteProduct).not.toHaveBeenCalled();
+  });
+
+  it("a linha avulsa nasce com as colunas que a tabela já mostra", () => {
+    // Sem isso ela ficaria sem as grades do grupo, a validação não cobraria
+    // nada dela e o salvar aceitaria uma variação sem valor de grade.
+    const { view, estado } = renderVariations([gravada(1, "10L", "2992110811678")]);
+
+    act(() => {
+      view.result.current.addVariationDraft();
+    });
+
+    expect(estado.drafts).toHaveLength(2);
+    expect(estado.drafts[1].values).toEqual([{ gradeType: GRADE_TYPE.Size, value: "" }]);
+  });
+});
+
+describe("applyGrades — cadastro começando do zero", () => {
+  /** Draft ainda não salvo: é o que a tela cria ao marcar "tem variações". */
+  const emBranco = (): VariationDraft => ({
+    ...PRODUTO,
+    key: "temp-1",
+    name: FORM.productGroupName,
+    images: [],
+    canDelete: true,
+    values: [],
+  });
+
+  it("cruza as grades e cria a matriz inteira", async () => {
+    const { view, estado } = renderVariations([emBranco()]);
+
+    await act(async () => {
+      await view.result.current.applyGrades([
+        { type: GRADE_TYPE.Color, values: ["AZUL", "ROSA"] },
+        { type: GRADE_TYPE.Size, values: ["P", "G"] },
+      ]);
+    });
+
+    expect(estado.drafts).toHaveLength(4);
+    expect(estado.drafts.map((draft) => draft.values.map((value) => value.value).join("/"))).toEqual([
+      "AZUL/P",
+      "AZUL/G",
+      "ROSA/P",
+      "ROSA/G",
+    ]);
+    // Nada gravado ainda, nada a excluir no servidor.
+    expect(mocks.deleteProduct).not.toHaveBeenCalled();
   });
 });
 

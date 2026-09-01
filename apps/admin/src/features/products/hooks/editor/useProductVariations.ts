@@ -3,7 +3,13 @@ import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { deleteProduct } from "@/services/products.service";
 import { createVariationDraft } from "./utils";
-import { gerarCombinacoes, mesclarMatriz, trocarTipoDeGrade } from "../../lib/variationMatrix";
+import { gerarCombinacoes, mesclarMatriz } from "../../lib/variationMatrix";
+import {
+  aplicarGradesNasLinhas,
+  gradesDasVariacoes,
+  temVariacaoSalva,
+  trocarTipoDeGrade,
+} from "../../lib/variationGrades";
 import type { GradeTypeCode } from "@workspace/api-client-react";
 import type { VariationDraft, ProductGrade, ProductGroupForm, ProductEditorForm } from "../../types";
 
@@ -43,6 +49,52 @@ export function useProductVariations({
 
   function updateVariationDraft(key: string, updater: (draft: VariationDraft) => VariationDraft) {
     setVariationDrafts((current) => current.map((draft) => (draft.key === key ? updater(draft) : draft)));
+  }
+
+  /**
+   * Aplica no cadastro as grades escolhidas na modal.
+   *
+   * São dois caminhos, e quem decide é a existência de variação GRAVADA:
+   *
+   * - **Cadastro começando do zero** — a modal cruza as grades e cria a matriz
+   *   inteira (`generateVariationsMatrix`). É assim que nascem as primeiras
+   *   variações, e não há nada salvo para perder.
+   * - **Produto já cadastrado** — a modal só mexe em COLUNA
+   *   (`applyGradeColumns`): nenhuma linha é criada, nenhuma é excluída. A
+   *   coluna nova entra em branco e o operador digita o valor de cada variação
+   *   na própria tabela.
+   *
+   * O desvio existe porque cruzar grades num produto com venda é destrutivo por
+   * natureza: a combinação que sai do cruzamento é apagada no servidor NA HORA,
+   * antes de qualquer Salvar, e a que entra obriga a chutar qual variação fica
+   * com qual valor novo. O cartesiano também não poupa digitação num produto que
+   * já existe — as combinações novas nascem sem preço e sem código de barras de
+   * qualquer jeito.
+   */
+  async function applyGrades(grades: ProductGrade[]) {
+    if (temVariacaoSalva(variationDrafts)) {
+      applyGradeColumns(grades.map((grade) => grade.type));
+      return;
+    }
+
+    await generateVariationsMatrix(grades);
+  }
+
+  /**
+   * Acrescenta e remove COLUNAS de grade, sem tocar nas linhas.
+   *
+   * Marcar "Cor" põe a coluna em branco em todas as variações; desmarcar apaga
+   * a coluna e os valores dela. Nenhuma variação é criada nem excluída — o que
+   * some do cadastro continua saindo só pelo lixo da linha, que pede
+   * confirmação.
+   *
+   * A validação do salvamento cobra valor em toda grade do grupo, então a
+   * coluna nova sai vermelha até ser preenchida: é o "preenchimento manual
+   * obrigatório" desenhado de propósito, não um efeito colateral.
+   */
+  function applyGradeColumns(tipos: GradeTypeCode[]) {
+    setVariationDrafts((current) => aplicarGradesNasLinhas(current, tipos));
+    setForm((atual) => ({ ...atual, hasVariations: true }));
   }
 
   /**
@@ -158,7 +210,12 @@ export function useProductVariations({
     draft.minStock = initialValues?.minStock ?? productEditor.minStock;
     draft.barcode = initialValues?.barcode ?? "";
     draft.stock = initialValues?.stock ?? 0;
-    draft.values = initialValues?.values ?? [];
+    // Nasce com as COLUNAS que a tabela já mostra, em branco: sem isso a linha
+    // nova ficaria sem as grades do grupo, a validação não cobraria nada dela e
+    // ela seria gravada como variação sem valor de grade.
+    draft.values =
+      initialValues?.values ??
+      gradesDasVariacoes(variationDrafts).map((grade) => ({ gradeType: grade.type, value: "" }));
     if (initialValues?.status) draft.status = initialValues.status;
 
     setVariationDrafts((current) => [...current, draft]);
@@ -202,7 +259,7 @@ export function useProductVariations({
   return {
     activeVariation,
     updateVariationDraft,
-    generateVariationsMatrix,
+    applyGrades,
     changeGradeType,
     addVariationDraft,
     handleDeleteVariation,

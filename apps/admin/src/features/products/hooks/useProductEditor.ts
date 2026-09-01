@@ -11,7 +11,7 @@ import {
 } from "@workspace/api-client-react";
 import type { LocalImage, ProductGroupForm, ProductEditorForm, ProductGrade, VariationDraft } from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
-import { gradesDasVariacoes } from "../lib/variationMatrix";
+import { gradesDasVariacoes, temVariacaoSalva } from "../lib/variationGrades";
 
 import { useBarcodeLookup } from "./editor/useBarcodeLookup";
 import { useProductForm } from "./editor/useProductForm";
@@ -399,9 +399,17 @@ export function useProductEditor() {
     handleSubmit: productSubmit.handleSubmit,
     toLocalImages: productImagesHook.toLocalImages,
     selectedGrades,
-    generateVariationsMatrix: (grades: ProductGrade[]) => {
+    /**
+     * Produto já cadastrado: a modal de grades vira gerenciadora de COLUNA e
+     * para de gerar matriz. A tela precisa do mesmo critério do hook para
+     * mostrar a modal certa, por isso ele sai daqui em vez de ser recalculado
+     * lá — dois critérios diferentes deixariam a modal prometendo uma coisa e o
+     * botão fazendo outra.
+     */
+    hasSavedVariations: temVariacaoSalva(variationDrafts),
+    applyGrades: (grades: ProductGrade[]) => {
       markDirty();
-      return productVariations.generateVariationsMatrix(grades);
+      return productVariations.applyGrades(grades);
     },
     changeGradeType: (de: GradeTypeCode, para: GradeTypeCode) => {
       markDirty();

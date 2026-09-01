@@ -76,12 +76,11 @@ export function ProductGeneralTab({
       />
 
       {/*
-        O botão continua disponível DEPOIS de gerar a matriz: reconfigurar as
-        grades (acrescentar uma cor, incluir mais um tamanho) é operação normal,
-        e a modal reabre marcada com o que o produto já tem. Trocar o TIPO da
-        grade, porém, é no título da coluna da tabela — pela modal as
-        combinações novas não teriam grade em comum com as atuais, e as
-        variações com código de barras iriam para a exclusão.
+        O botão continua disponível DEPOIS de gerar a matriz: acrescentar ou
+        tirar uma grade é operação normal, e a modal reabre marcada com o que o
+        produto já tem. Em produto JÁ CADASTRADO ela só acrescenta e remove
+        COLUNA — nenhuma variação é criada nem excluída, e o valor de cada linha
+        é digitado na tabela. Trocar o TIPO da grade é no título da coluna.
       */}
       <Button
         type="button"
