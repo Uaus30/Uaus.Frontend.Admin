@@ -2,7 +2,6 @@ import { useState } from "react";
 import { PauseCircle, Play, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
-import { ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
 import { Hint } from "./hint";
@@ -103,7 +102,12 @@ export function HeldSalesDialog({ open, onOpenChange, onResumed, onHeldToMakeRoo
             </DialogDescription>
           </div>
 
-          <ScrollArea className="flex-1 p-6 min-h-[220px]">
+          {/* Rolagem NATIVA: o viewport do `ScrollArea` do Radix depende de
+            `height: 100%`, que não resolve dentro de um diálogo de altura
+            `max-h` (indefinida para porcentagem). Com mais conteúdo do que cabe
+            na tela ele crescia até a altura do conteúdo e o excedente era
+            CORTADO, sem barra e sem rolagem — ver o histórico de vendas. */}
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">
             {heldSales.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground italic">
                 Pause uma venda pelo botão <span className="font-semibold not-italic">PAUSAR</span> no resumo
@@ -203,7 +207,7 @@ export function HeldSalesDialog({ open, onOpenChange, onResumed, onHeldToMakeRoo
                 })}
               </div>
             )}
-          </ScrollArea>
+          </div>
 
           <div className="p-4 border-t border-border/50 bg-muted/10 flex justify-end shrink-0">
             <Button variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>

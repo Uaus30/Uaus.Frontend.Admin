@@ -2,7 +2,6 @@ import { useState } from "react";
 import { CheckCircle2, Cloud, CloudOff, Database, Loader2, PackageMinus, RefreshCw } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
-import { ScrollArea } from "@workspace/ui";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { Hint } from "./hint";
 import { useOfflineQueue } from "@/features/pdv/hooks/use-offline-queue";
@@ -123,7 +122,12 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
           {/* `min-h-0` é o que permite a área rolar: sem ele um filho `flex-1` não
               encolhe abaixo do próprio conteúdo, e uma mensagem de erro longa
               empurrava o diálogo para fora da tela. */}
-          <ScrollArea className="min-h-0 flex-1 p-6">
+          {/* Rolagem NATIVA: o viewport do `ScrollArea` do Radix depende de
+            `height: 100%`, que não resolve dentro de um diálogo de altura
+            `max-h` (indefinida para porcentagem). Com mais conteúdo do que cabe
+            na tela ele crescia até a altura do conteúdo e o excedente era
+            CORTADO, sem barra e sem rolagem — ver o histórico de vendas. */}
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">
             <div className="space-y-4">
               <ConnectionCard online={online} connectionChecked={connectionChecked} />
 
@@ -242,7 +246,7 @@ export function OfflineStatus({ sessionId, onSynced }: OfflineStatusProps) {
                 )}
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="shrink-0 border-t border-border/50 bg-muted/10 p-4 text-right">
             <Button onClick={() => setIsPanelOpen(false)} className="cursor-pointer">

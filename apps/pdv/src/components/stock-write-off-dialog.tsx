@@ -7,7 +7,6 @@ import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
-import { ScrollArea } from "@workspace/ui";
 import { WriteOffItemsList } from "@/features/pdv/components/write-off-items-list";
 import { useStockWriteOffDraft } from "@/features/pdv/hooks/use-stock-write-off-draft";
 
@@ -64,7 +63,12 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
 
         {/* `min-h-0` é o que permite a área rolar: sem ele um filho `flex-1` não
             encolhe abaixo do próprio conteúdo. */}
-        <ScrollArea className="min-h-0 flex-1 p-6">
+        {/* Rolagem NATIVA: o viewport do `ScrollArea` do Radix depende de
+            `height: 100%`, que não resolve dentro de um diálogo de altura
+            `max-h` (indefinida para porcentagem). Com mais conteúdo do que cabe
+            na tela ele crescia até a altura do conteúdo e o excedente era
+            CORTADO, sem barra e sem rolagem — ver o histórico de vendas. */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           <div className="space-y-5">
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -169,7 +173,7 @@ export function StockWriteOffDialog({ open, onOpenChange, onRegistered }: StockW
               </p>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex shrink-0 justify-end gap-3 border-t border-border/50 bg-muted/10 p-4">
           <Button variant="ghost" className="cursor-pointer" onClick={() => handleOpenChange(false)}>

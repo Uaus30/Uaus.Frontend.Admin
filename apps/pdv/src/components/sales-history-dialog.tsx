@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { History, Loader2, Printer, MoreVertical, FileBarChart } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@workspace/ui";
-import { ScrollArea } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Hint } from "./hint";
 import { formatCurrency } from "@workspace/core";
@@ -81,7 +80,17 @@ export function SalesHistoryDialog({
           )}
         </div>
 
-        <ScrollArea className="flex-1 p-6 min-h-[350px]">
+        {/* Rolagem NATIVA, e não o `ScrollArea` do Radix.
+
+            O viewport do Radix é dimensionado por `height: 100%`, que não
+            resolve contra este pai: a altura dele sai do `flex-1` dentro de um
+            diálogo de altura `max-h`, que é indefinida para porcentagem. Com
+            mais vendas do que cabem na tela o viewport crescia até a altura do
+            conteúdo (2177px medidos com 20 vendas, dentro de uma caixa de
+            445px com `overflow: hidden`): o que passava do fim era CORTADO,
+            sem barra e sem rolagem, e o operador via só as primeiras vendas
+            achando que o dia tinha sido aquilo. */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           {loadingSales ? (
             <div className="py-12 text-center">
               <Loader2 className="mx-auto w-6 h-6 animate-spin text-primary" />
@@ -91,7 +100,7 @@ export function SalesHistoryDialog({
               Nenhuma venda registrada hoje.
             </div>
           ) : (
-            <div className="space-y-3 pb-20">
+            <div className="space-y-3">
               {sales.map((sale) => {
                 const isCancelled = enumCode(sale.paymentStatus, PAYMENT_STATUS) === PAYMENT_STATUS.Cancelled;
 
@@ -226,7 +235,7 @@ export function SalesHistoryDialog({
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         <div className="p-4 border-t border-border/50 bg-muted/10 flex justify-between gap-2 shrink-0">
           <Button
