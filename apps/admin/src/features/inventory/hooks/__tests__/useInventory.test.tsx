@@ -141,6 +141,25 @@ describe("useInventory handleExportExcel", () => {
             stock: 2,
             unitCost: 5,
             unitSale: 10,
+            totalCost: 10,
+            mercadoria: 20,
+            estimatedProfit: 10,
+            marginPercentage: 50,
+          },
+          {
+            // Multi-lote: o unitário é a MÉDIA arredondada em centavos, então
+            // `stock * unitCost` (1.300,20) não é o custo real (1.300).
+            productName: "Multi Lote",
+            barcode: "790",
+            supplierName: "Fornecedor A",
+            categoryName: "Categoria B",
+            stock: 110,
+            unitCost: 11.82,
+            unitSale: 20,
+            totalCost: 1300,
+            mercadoria: 2200,
+            estimatedProfit: 900,
+            marginPercentage: 40.9,
           },
           {
             productName: "Sem Estoque",
@@ -150,6 +169,10 @@ describe("useInventory handleExportExcel", () => {
             stock: 0,
             unitCost: 5,
             unitSale: 10,
+            totalCost: 0,
+            mercadoria: 0,
+            estimatedProfit: 0,
+            marginPercentage: 0,
           },
         ],
         pagination: { page: 1, size: 100000, totalItems: 2, filteredItems: 2 },
@@ -170,6 +193,12 @@ describe("useInventory handleExportExcel", () => {
     // mercadoria=20, custo=10, lucro=10 -> margem 50,0%
     expect(csv).toContain('"Produto X"');
     expect(csv).toContain("50,0%");
+    // Regressão: o CSV usa o custo que o SERVIDOR calculou pelos lotes. Quando
+    // ele recalculava `estoque * unitário`, a exportação divergia da tela — a
+    // linha multi-lote sairia com 1300,2 e margem de 40,9% recontada na mão.
+    expect(csv).toContain('"Multi Lote"');
+    expect(csv).toContain("1300;");
+    expect(csv).not.toContain("1300,2");
     // Regressão da margem: com estoque zerado a divisão dava NaN%.
     expect(csv).toContain('"Sem Estoque"');
     expect(csv).not.toContain("NaN");
