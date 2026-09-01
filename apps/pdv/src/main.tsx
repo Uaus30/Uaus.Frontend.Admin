@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import "./index.css";
 import App from "./App.tsx";
+import { PdvErrorBoundary } from "./components/error-boundary";
 
 /**
  * Registra o service worker que guarda o app em cache.
@@ -30,6 +31,13 @@ registerSW({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    {/*
+      A barreira fica FORA do App: um erro na montagem dele — o caso mais grave,
+      porque deixa a tela preta antes de qualquer coisa aparecer — precisa cair
+      em algum lugar.
+    */}
+    <PdvErrorBoundary>
+      <App />
+    </PdvErrorBoundary>
   </StrictMode>,
 );
