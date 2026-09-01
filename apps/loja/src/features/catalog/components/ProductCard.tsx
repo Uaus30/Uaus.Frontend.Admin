@@ -30,7 +30,10 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
       </div>
 
       <div className="p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {/* Uma linha só: com dois cards por linha no celular a categoria
+            quebrava em duas em uns e não em outros, e o preço de cada card
+            parava numa altura diferente — a fileira ficava desalinhada. */}
+        <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {product.categoryName}
         </p>
         <h3 className="mt-1 line-clamp-2 min-h-[2.5rem] leading-snug font-medium text-foreground">

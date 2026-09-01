@@ -46,10 +46,15 @@ export function ProductGrid({ products, hasNextPage, isFetchingNextPage, fetchNe
 
   return (
     <div>
-      {/* Uma coluna a menos que antes em cada faixa: a grade divide a largura
-          com a lista de filtros a partir de `lg`, e manter cinco cards deixava
-          a foto menor que a miniatura do card. */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* Uma coluna a menos que antes em cada faixa a partir de `sm`: a grade
+          divide a largura com a lista de filtros desde `lg`, e manter cinco
+          cards deixava a foto menor que a miniatura do card.
+
+          No celular são DUAS colunas, não uma: com card de largura inteira o
+          visitante via um produto por tela e desistia antes do terceiro rolar.
+          O gap encolhe junto porque a 375px as 1,5rem de antes saíam da
+          largura útil dos cards, não do respiro entre eles. */}
+      <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
           <ProductCard key={product.productGroupId} product={product} />
         ))}
