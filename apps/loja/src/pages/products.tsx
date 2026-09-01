@@ -122,7 +122,15 @@ export default function ProductsPage() {
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[16rem_1fr]">
           <aside className="hidden lg:block">
-            <div className="sticky top-24">
+            {/*
+              A coluna rola sozinha. A loja tem mais departamentos do que cabe
+              na altura da tela: sem `max-h` + `overflow-y-auto` a lista vazava
+              para fora do bloco grudado (`sticky`) e os últimos departamentos
+              ficavam inalcançáveis — rolar a página não resolve, porque o
+              próprio bloco é que está fixo. O desconto de 8rem são as 6rem do
+              `top-24` mais uma folga embaixo.
+            */}
+            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto overscroll-contain pr-1">
               <CatalogFilters
                 departments={catalog.tree.departments}
                 isLoading={catalog.tree.isLoading}
