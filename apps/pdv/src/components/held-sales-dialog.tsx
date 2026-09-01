@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspac
 import { ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
+import { ConfirmActionDialog } from "@/features/pdv/components/confirm-action-dialog";
 
 type HeldSalesDialogProps = {
   open: boolean;
@@ -14,6 +15,11 @@ type HeldSalesDialogProps = {
   /** Chamado quando a venda em andamento é pausada para abrir espaço. */
   onHeldToMakeRoom: () => void;
 };
+
+/** Soma as quantidades da venda em espera — é o que a linha e a confirmação mostram. */
+function countItems(sale: HeldSale) {
+  return sale.items.reduce((sum, item) => sum + item.quantity, 0);
+}
 
 /** Descreve o consumidor da venda em espera para a listagem. */
 function describeConsumer(sale: HeldSale) {
@@ -37,6 +43,16 @@ export function HeldSalesDialog({ open, onOpenChange, onResumed, onHeldToMakeRoo
 
   /** Venda escolhida enquanto o operador confirma o que fazer com o carrinho atual. */
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  /**
+   * Venda em espera esperando a confirmação do descarte, ou `null`.
+   *
+   * A lixeira apagava a venda no primeiro clique. Numa lista de vendas parecidas
+   * — mesmo horário, mesmo total —, o toque no ícone da linha vizinha jogava fora
+   * o carrinho que o cliente montou, e não há de onde trazer de volta.
+   */
+  const [discardingId, setDiscardingId] = useState<string | null>(null);
+  const discarding = heldSales.find((sale) => sale.id === discardingId) ?? null;
 
   const hasCart = cartItems.length > 0;
 
@@ -66,134 +82,152 @@ export function HeldSalesDialog({ open, onOpenChange, onResumed, onHeldToMakeRoo
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) setPendingId(null);
-        onOpenChange(next);
-      }}
-    >
-      <DialogContent className="sm:max-w-[640px] max-h-[85vh] p-0 overflow-hidden bg-card border-border shadow-2xl flex flex-col">
-        <div className="bg-primary/10 p-6 border-b border-border/50 shrink-0">
-          <DialogTitle className="text-2xl font-display font-bold flex items-center gap-2">
-            <PauseCircle className="w-6 h-6 text-primary" /> Vendas em Espera
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            {heldSales.length === 0
-              ? "Nenhuma venda pausada no momento."
-              : "Retome uma venda pausada ou descarte a que não vai mais acontecer."}
-          </DialogDescription>
-        </div>
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) setPendingId(null);
+          onOpenChange(next);
+        }}
+      >
+        <DialogContent className="sm:max-w-[640px] max-h-[85vh] p-0 overflow-hidden bg-card border-border shadow-2xl flex flex-col">
+          <div className="bg-primary/10 p-6 border-b border-border/50 shrink-0">
+            <DialogTitle className="text-2xl font-display font-bold flex items-center gap-2">
+              <PauseCircle className="w-6 h-6 text-primary" /> Vendas em Espera
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {heldSales.length === 0
+                ? "Nenhuma venda pausada no momento."
+                : "Retome uma venda pausada ou descarte a que não vai mais acontecer."}
+            </DialogDescription>
+          </div>
 
-        <ScrollArea className="flex-1 p-6 min-h-[220px]">
-          {heldSales.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground italic">
-              Pause uma venda pelo botão <span className="font-semibold not-italic">PAUSAR</span> no resumo da
-              venda para vê-la aqui.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {heldSales.map((sale, index) => {
-                const isPending = pendingId === sale.id;
-                const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+          <ScrollArea className="flex-1 p-6 min-h-[220px]">
+            {heldSales.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground italic">
+                Pause uma venda pelo botão <span className="font-semibold not-italic">PAUSAR</span> no resumo
+                da venda para vê-la aqui.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {heldSales.map((sale, index) => {
+                  const isPending = pendingId === sale.id;
+                  const itemCount = countItems(sale);
 
-                return (
-                  <div
-                    key={sale.id}
-                    className={`rounded-xl border p-4 transition-all ${
-                      isPending ? "border-primary bg-primary/5" : "border-border/40 bg-background/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0 text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-bold">
-                            Espera #{heldSales.length - index}
-                          </span>
-                          <span className="font-mono text-[10px] text-muted-foreground">
-                            {new Date(sale.heldAt).toLocaleTimeString("pt-BR")}
-                          </span>
-                        </div>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
-                          {describeConsumer(sale)}
-                        </p>
-                        <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase text-muted-foreground">
-                          <ShoppingCart className="h-3 w-3" />
-                          {itemCount} {itemCount === 1 ? "item" : "itens"}
-                        </p>
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-[10px] font-bold uppercase text-muted-foreground">Total</p>
-                          <p className="font-mono text-lg font-bold text-primary">
-                            {formatCurrency(sale.total)}
+                  return (
+                    <div
+                      key={sale.id}
+                      className={`rounded-xl border p-4 transition-all ${
+                        isPending ? "border-primary bg-primary/5" : "border-border/40 bg-background/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0 text-left">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-bold">
+                              Espera #{heldSales.length - index}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {new Date(sale.heldAt).toLocaleTimeString("pt-BR")}
+                            </span>
+                          </div>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {describeConsumer(sale)}
+                          </p>
+                          <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase text-muted-foreground">
+                            <ShoppingCart className="h-3 w-3" />
+                            {itemCount} {itemCount === 1 ? "item" : "itens"}
                           </p>
                         </div>
 
-                        <Button
-                          size="sm"
-                          className="gap-1.5 font-bold cursor-pointer"
-                          onClick={() => handleResumeClick(sale.id)}
-                        >
-                          <Play className="h-3.5 w-3.5" /> Continuar
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-[10px] font-bold uppercase text-muted-foreground">Total</p>
+                            <p className="font-mono text-lg font-bold text-primary">
+                              {formatCurrency(sale.total)}
+                            </p>
+                          </div>
 
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title="Descartar venda em espera"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
-                          onClick={() => {
-                            discardHeldSale(sale.id);
-                            if (isPending) setPendingId(null);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {isPending && (
-                      <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                        <p className="text-xs text-muted-foreground">
-                          {editingSaleId
-                            ? "Você está editando uma venda já registrada. Conclua ou descarte a edição antes de retomar esta venda."
-                            : "Há uma venda em andamento no carrinho. Ela pode ser pausada para você retomar esta."}
-                        </p>
-                        <div className="mt-3 flex gap-2">
                           <Button
-                            variant="ghost"
                             size="sm"
-                            className="flex-1 cursor-pointer"
-                            onClick={() => setPendingId(null)}
+                            className="gap-1.5 font-bold cursor-pointer"
+                            onClick={() => handleResumeClick(sale.id)}
                           >
-                            Cancelar
+                            <Play className="h-3.5 w-3.5" /> Continuar
                           </Button>
+
                           <Button
-                            size="sm"
-                            className="flex-1 font-bold cursor-pointer"
-                            disabled={editingSaleId !== null}
-                            onClick={holdCurrentAndResume}
+                            size="icon"
+                            variant="ghost"
+                            title="Descartar venda em espera"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
+                            onClick={() => setDiscardingId(sale.id)}
                           >
-                            Pausar a atual e continuar
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </ScrollArea>
 
-        <div className="p-4 border-t border-border/50 bg-muted/10 flex justify-end shrink-0">
-          <Button variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+                      {isPending && (
+                        <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            {editingSaleId
+                              ? "Você está editando uma venda já registrada. Conclua ou descarte a edição antes de retomar esta venda."
+                              : "Há uma venda em andamento no carrinho. Ela pode ser pausada para você retomar esta."}
+                          </p>
+                          <div className="mt-3 flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="flex-1 cursor-pointer"
+                              onClick={() => setPendingId(null)}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="flex-1 font-bold cursor-pointer"
+                              disabled={editingSaleId !== null}
+                              onClick={holdCurrentAndResume}
+                            >
+                              Pausar a atual e continuar
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+
+          <div className="p-4 border-t border-border/50 bg-muted/10 flex justify-end shrink-0">
+            <Button variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* A mesma confirmação do cancelamento no resumo da venda: descartar aqui
+          apaga um carrinho inteiro, e o estrago é o mesmo. */}
+      <ConfirmActionDialog
+        open={discarding !== null}
+        onOpenChange={(next) => !next && setDiscardingId(null)}
+        title="Cancelar esta venda em espera?"
+        description={
+          discarding
+            ? `Os ${countItems(discarding)} ${countItems(discarding) === 1 ? "item guardado" : "itens guardados"} para ${describeConsumer(discarding)} serão perdidos. Esta ação é irreversível.`
+            : ""
+        }
+        onConfirm={() => {
+          if (!discarding) return;
+          discardHeldSale(discarding.id);
+          if (pendingId === discarding.id) setPendingId(null);
+          setDiscardingId(null);
+        }}
+      />
+    </>
   );
 }

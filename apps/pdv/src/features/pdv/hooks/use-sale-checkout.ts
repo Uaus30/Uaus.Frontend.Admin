@@ -90,7 +90,6 @@ export function useSaleCheckout({
   const coupon = usePdvStore((state) => state.coupon);
   const consumer = usePdvStore((state) => state.consumer);
   const editingSaleId = usePdvStore((state) => state.editingSaleId);
-  const autoPrintReceipt = usePdvStore((state) => state.autoPrintReceipt);
   const finishSale = usePdvStore((state) => state.finishSale);
   const ensureSaleClientReference = usePdvStore((state) => state.ensureSaleClientReference);
 
@@ -239,8 +238,12 @@ export function useSaleCheckout({
       // Sem await: a caixa de impressão é modal e não pode segurar o botão de
       // finalizar, que já pode liberar para a próxima venda. O cursor volta para
       // a busca quando a impressão sai do caminho.
-      if (autoPrintReceipt) void sendReceiptToPrinter(receipt).then(focusSearch);
-      else focusSearch();
+      //
+      // Sempre imprime — a preferência "imprimir ao finalizar" saiu das
+      // Preferências em 01/09/2026. Ela duplicava a decisão: quem não quer o
+      // papel já fecha a caixa de diálogo do navegador, e o desligado deixava o
+      // operador achando que a impressora tinha falhado.
+      void sendReceiptToPrinter(receipt).then(focusSearch);
     } catch (error) {
       // A venda offline foi recusada pela conferência da base local. A mesma regra
       // vale no servidor, então deixar passar só adiaria o "não" para a
@@ -267,7 +270,6 @@ export function useSaleCheckout({
       setSavingSale(false);
     }
   }, [
-    autoPrintReceipt,
     checkout,
     companySettings,
     consumer,

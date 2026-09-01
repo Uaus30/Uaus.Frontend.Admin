@@ -404,6 +404,51 @@ describe("usePdvStore", () => {
     });
   });
 
+  describe("layout do resumo da venda", () => {
+    it("deve abrir no estendido quando não há preferência salva", async () => {
+      // O layout é lido na carga do módulo, então o teste precisa de uma
+      // instância nova. O estendido é o padrão porque é o layout com que o PDV
+      // nasceu — abrir no compacto esconderia os quatro botões de quem nunca
+      // pediu isso.
+      localStorage.removeItem("pdv-cart-layout");
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+
+      expect(fresh.usePdvStore.getState().cartLayout).toBe("extended");
+    });
+
+    it("deve abrir no compacto quando o terminal foi configurado assim", async () => {
+      localStorage.setItem("pdv-cart-layout", "compact");
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+
+      expect(fresh.usePdvStore.getState().cartLayout).toBe("compact");
+      localStorage.removeItem("pdv-cart-layout");
+    });
+
+    it("deve cair no estendido quando a chave salva não é um layout conhecido", async () => {
+      localStorage.setItem("pdv-cart-layout", "gaveta");
+      vi.resetModules();
+
+      const fresh = await import("./use-pdv-store");
+
+      expect(fresh.usePdvStore.getState().cartLayout).toBe("extended");
+      localStorage.removeItem("pdv-cart-layout");
+    });
+
+    it("deve persistir a escolha para o próximo operador do terminal", () => {
+      usePdvStore.getState().setCartLayout("compact");
+
+      expect(usePdvStore.getState().cartLayout).toBe("compact");
+      expect(localStorage.getItem("pdv-cart-layout")).toBe("compact");
+
+      usePdvStore.getState().setCartLayout("extended");
+      expect(localStorage.getItem("pdv-cart-layout")).toBe("extended");
+    });
+  });
+
   describe("edição de venda", () => {
     it("deve carregar os itens da venda e marcar qual está em edição", () => {
       const items: PdvItem[] = [{ ...product(), id: "linha-1", quantity: 2, discount: 1 }];

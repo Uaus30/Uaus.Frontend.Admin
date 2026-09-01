@@ -126,7 +126,6 @@ describe("useSaleCheckout", () => {
       consumer: { customerId: null, name: "", document: "" },
       editingSaleId: null,
       saleClientReference: null,
-      autoPrintReceipt: true,
     });
     registerSale.mockResolvedValue({
       id: 42,
@@ -197,13 +196,14 @@ describe("useSaleCheckout", () => {
     );
   });
 
-  it("não deve imprimir quando a impressão automática está desligada", async () => {
-    usePdvStore.setState({ autoPrintReceipt: false });
-
+  it("deve imprimir o cupom em toda venda, sem preferência para desligar", async () => {
+    // A preferência "imprimir ao finalizar" saiu das Preferências em 01/09/2026:
+    // ela duplicava a decisão que a própria caixa de impressão do navegador já
+    // oferece, e desligada fazia o operador achar que a impressora falhou.
     const { result } = render();
     await act(() => result.current.confirmPayment());
 
-    expect(printReceipt).not.toHaveBeenCalled();
+    expect(printReceipt).toHaveBeenCalledTimes(1);
     expect(focusSearch).toHaveBeenCalled();
   });
 

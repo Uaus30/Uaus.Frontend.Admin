@@ -35,6 +35,20 @@ const DEFAULT_FONT_SCALE_INDEX = 2;
 
 const HELD_SALES_STORAGE_KEY = "pdv-held-sales";
 const FONT_SCALE_STORAGE_KEY = "pdv-font-scale-index";
+const CART_LAYOUT_STORAGE_KEY = "pdv-cart-layout";
+
+/**
+ * Como o resumo da venda apresenta as ações secundárias.
+ *
+ * - `extended`: os quatro botões (desconto, cupom, pausar, cancelar) ficam
+ *   sempre visíveis no rodapé, do jeito que o PDV nasceu.
+ * - `compact`: eles saem do rodapé e passam a viver atrás da engrenagem ao lado
+ *   do finalizar, devolvendo altura para a lista de itens.
+ *
+ * As duas convivem porque a escolha ainda está em teste no balcão. É preferência
+ * DA MÁQUINA, como o tema — não do operador que sentou no caixa.
+ */
+export type CartLayout = "extended" | "compact";
 
 /**
  * Estado local do PDV: carrinho, desconto da venda, vendas em espera e
@@ -54,8 +68,8 @@ interface PdvState {
    */
   coupon: AppliedCoupon | null;
   theme: "light" | "dark";
-  /** Abre a impressão do cupom assim que a venda é gravada. */
-  autoPrintReceipt: boolean;
+  /** Como o rodapé do resumo da venda apresenta as ações secundárias. */
+  cartLayout: CartLayout;
   /** Índice em {@link FONT_SCALES} da escala de fonte escolhida. */
   fontScaleIndex: number;
   /** Vendas pausadas, das mais recentes para as mais antigas. */
@@ -132,8 +146,8 @@ interface PdvState {
 
   /** Troca o tema e persiste a escolha no navegador. */
   setTheme: (theme: "light" | "dark") => void;
-  /** Liga ou desliga a impressão automática do cupom e persiste a escolha. */
-  setAutoPrintReceipt: (enabled: boolean) => void;
+  /** Troca o layout do resumo da venda e persiste a escolha no navegador. */
+  setCartLayout: (layout: CartLayout) => void;
   /** Move a escala de fonte um degrau para cima (+1) ou para baixo (-1). */
   stepFontScale: (direction: 1 | -1) => void;
   /** Volta a fonte ao tamanho padrão. */
@@ -165,8 +179,15 @@ const currentTotals = (state: Pick<PdvState, "items" | "globalDiscount" | "coupo
 /** Gera o identificador local de uma linha do carrinho ou de uma venda em espera. */
 const generateId = () => Math.random().toString(36).slice(2, 11);
 
-/** Impressão automática só fica desligada quando o operador desligou de propósito. */
-const initialAutoPrintReceipt = localStorage.getItem("pdv-auto-print-receipt") !== "false";
+/**
+ * Lê o layout do resumo da venda salvo no navegador.
+ *
+ * Qualquer valor que não seja exatamente `compact` cai no estendido: é o layout
+ * com que o PDV nasceu, e um terminal com a chave corrompida deve abrir na tela
+ * que o operador já conhece, não numa em que os botões estão escondidos.
+ */
+const initialCartLayout: CartLayout =
+  localStorage.getItem(CART_LAYOUT_STORAGE_KEY) === "compact" ? "compact" : "extended";
 
 /**
  * Recupera as vendas em espera gravadas no navegador.
@@ -251,7 +272,7 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   editingSaleId: null,
   saleClientReference: null,
   theme: initialTheme,
-  autoPrintReceipt: initialAutoPrintReceipt,
+  cartLayout: initialCartLayout,
   fontScaleIndex: initialFontScaleIndex,
   heldSales: readHeldSales(),
 
@@ -421,9 +442,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({ theme }));
   },
 
-  setAutoPrintReceipt: (enabled) => {
-    localStorage.setItem("pdv-auto-print-receipt", String(enabled));
-    set(() => ({ autoPrintReceipt: enabled }));
+  setCartLayout: (layout) => {
+    localStorage.setItem(CART_LAYOUT_STORAGE_KEY, layout);
+    set(() => ({ cartLayout: layout }));
   },
 
   stepFontScale: (direction) => {
