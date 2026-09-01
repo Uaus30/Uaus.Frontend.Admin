@@ -57,7 +57,10 @@ export function FeaturedProducts() {
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Duas colunas já no celular, como na vitrine: card de largura
+            inteira mostrava um produto por tela e os oito destaques viravam
+            oito rolagens. O gap menor no celular devolve largura ao card. */}
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
           {featured.isLoading ? (
             <FeaturedSkeletons />
           ) : (
