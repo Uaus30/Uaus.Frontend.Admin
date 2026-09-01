@@ -450,6 +450,19 @@ describe("updateSale", () => {
     });
   });
 
+  it("não deve mandar data vazia na reedição", async () => {
+    // Regressão: o corpo ia com `occurredAt: ""` e `clientReference: ""`. O
+    // servidor declara `DateTime?` e a string vazia não converte — ele recusava
+    // o corpo INTEIRO com "Erro de validação nos dados enviados!", e nenhuma
+    // edição do PDV era gravada. Nulo ainda preserva a hora original da venda,
+    // que a reedição não deve mudar.
+    await updateSale(500, payload());
+
+    const body = updatePdvSale.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.occurredAt).toBeNull();
+    expect(body.clientReference).toBeNull();
+  });
+
   it("deve manter a observação atual quando nenhuma é informada", async () => {
     // Regressão: `PUT /Pdv/sales/{id}` regrava a venda inteira e a tela de
     // reedição não reenvia a observação, então mandar `null` apagava a

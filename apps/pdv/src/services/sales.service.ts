@@ -227,8 +227,8 @@ export function newClientReference(): string {
 
 function buildRequestBody(
   payload: RegisterSalePayload,
-  clientReference: string,
-  occurredAt: string,
+  clientReference: string | null,
+  occurredAt: string | null,
   total: number,
 ): RegisterPdvSalePayload {
   return {
@@ -447,7 +447,14 @@ export async function updateSale(saleId: number, payload: RegisterSalePayload) {
   const informedNotes = payload.notes?.trim();
   const notes = informedNotes ?? (await getSale(saleId)).notes ?? null;
 
-  const requestBody = { ...buildRequestBody(payload, "", "", total), notes };
+  // `null` nos dois campos, e NÃO string vazia: `occurredAt` é `DateTime?` no
+  // servidor, e `""` não converte — o ASP.NET recusava o corpo inteiro antes de
+  // olhar a venda ("Erro de validação nos dados enviados!"), e nenhuma edição
+  // do PDV chegava a ser gravada. Nulo também é o valor certo por regra: a
+  // reedição não muda a hora em que a venda aconteceu, e o servidor só
+  // recarimba `occurred_at` quando o campo vem preenchido. A chave de
+  // idempotência é do registro, não da edição — o alvo aqui já é um ID.
+  const requestBody = { ...buildRequestBody(payload, null, null, total), notes };
   const updatedSale = await updatePdvSale(saleId, requestBody);
 
   if (!updatedSale) throw new Error("Falha ao atualizar a venda");
