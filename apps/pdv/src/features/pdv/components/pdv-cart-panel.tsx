@@ -87,7 +87,7 @@ export function PdvCartPanel({
         propósito: cada rem que ele economiza é um item a mais visível na lista
         quando o operador aumenta a fonte.
       */}
-      <div className="shrink-0 p-4 bg-muted/5 border-t border-border/50 space-y-3">
+      <div className="shrink-0 p-3 bg-muted/5 border-t border-border/50 space-y-2">
         <div className="space-y-2">
           <div className="flex justify-between items-center text-muted-foreground text-sm">
             <span className="uppercase">Subtotal</span>
@@ -152,21 +152,23 @@ export function PdvCartPanel({
           )}
         </div>
 
-        <div className="pt-3 border-t border-border/50">
+        <div className="pt-2 border-t border-border/50">
           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-0.5">
             Total Final
           </p>
-          {/* Um degrau menor que antes: continua legível de pé, a um metro da
-              tela, e devolve altura para a lista de itens. */}
-          <p className="text-4xl font-mono font-bold text-foreground tracking-tight">
+          {/* Dois degraus menor que o original: continua legível de pé, a um
+              metro da tela, e devolve altura para a lista de itens — que é o que
+              falta quando o operador põe a fonte em 120% e o nome do produto
+              ocupa duas linhas. */}
+          <p className="text-3xl font-mono font-bold text-foreground tracking-tight">
             {formatCurrency(total)}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
-            className="h-11 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
+            className="h-9 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
             onClick={onApplyGlobalDiscount}
             disabled={items.length === 0}
           >
@@ -174,7 +176,7 @@ export function PdvCartPanel({
           </Button>
           <Button
             variant="outline"
-            className="h-11 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
+            className="h-9 font-bold text-xs tracking-widest border-primary/20 hover:bg-primary/5"
             // `preventDefault` no mousedown: sem ele o clique traz o foco para o
             // botão, e o Radix devolveria o cursor PARA CÁ ao fechar o diálogo —
             // o próximo bipe do leitor seria digitado num botão e sumiria. Assim
@@ -197,11 +199,11 @@ export function PdvCartPanel({
         </Button>
 
         {items.length > 0 && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1 -mt-1">
             <Button
               variant="ghost"
               size="sm"
-              className="text-[10px] font-bold tracking-wider text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 gap-1.5 cursor-pointer disabled:opacity-40"
+              className="h-8 text-[10px] font-bold tracking-wider text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 gap-1.5 cursor-pointer disabled:opacity-40"
               onClick={onHoldSale}
               // Reedição mexe numa venda que já existe na API; pausá-la deixaria
               // a fila apontando para um registro que pode mudar por fora.
@@ -217,7 +219,7 @@ export function PdvCartPanel({
             <Button
               variant="ghost"
               size="sm"
-              className="text-[10px] font-bold tracking-wider text-muted-foreground hover:text-destructive cursor-pointer"
+              className="h-8 text-[10px] font-bold tracking-wider text-muted-foreground hover:text-destructive cursor-pointer"
               onClick={cancelSale}
             >
               {editingSaleId ? "DESCARTAR EDIÇÃO" : "CANCELAR VENDA"}
