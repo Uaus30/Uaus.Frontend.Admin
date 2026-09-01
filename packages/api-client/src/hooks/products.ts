@@ -7,8 +7,15 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
-import type { BackendPagedResult, ProductTableRowDto, QueryKey, UiPagedResult } from "../models";
+import { apiPost, apiGetOrThrow, ApiError, mapPagedResult } from "../client";
+import type {
+  BackendPagedResult,
+  ProductDto,
+  ProductGroupDto,
+  ProductTableRowDto,
+  QueryKey,
+  UiPagedResult,
+} from "../models";
 
 /**
  * Prefixo da tabela de produtos.
@@ -72,4 +79,56 @@ export function useGetProductTable(
     },
     ...options?.query,
   });
+}
+
+/** Um produto do salvamento em lote. `id` nulo cria; preenchido atualiza. */
+export interface SaveProductGroupProductPayload {
+  id?: number | null;
+  name: string;
+  description?: string | null;
+  barcode?: string | null;
+  price: number;
+  minStock?: number;
+  /** Código numérico do status (`getStatusNumber` da tela). */
+  status: number;
+  variationValues?: Array<{ gradeType: number; value: string; displayOrder: number }>;
+}
+
+/** O cadastro inteiro: grupo + produtos/variações, gravados numa transação só. */
+export interface SaveProductGroupWithProductsPayload {
+  /** Nulo cria o grupo; preenchido atualiza. */
+  groupId?: number | null;
+  categoryId: number;
+  name: string;
+  description?: string | null;
+  hasVariations: boolean;
+  showOnSite: boolean;
+  products: SaveProductGroupProductPayload[];
+}
+
+/** Resposta do salvamento: produtos na MESMA ordem do envio. */
+export interface SavedProductGroupWithProductsDto {
+  group: ProductGroupDto;
+  products: ProductDto[];
+}
+
+/**
+ * Salva grupo e produtos/variações em UMA transação
+ * (`POST /ProductGroups/save-with-products`).
+ *
+ * Substitui a sequência de N requisições do editor: um código de barras
+ * duplicado na terceira variação deixava grupo e duas variações gravados, com
+ * estado parcial invisível até a próxima abertura. Ou grava tudo, ou nada muda.
+ * Produto ausente da lista não é tocado — excluir variação continua no fluxo
+ * próprio de exclusão.
+ */
+export async function saveProductGroupWithProducts(
+  payload: SaveProductGroupWithProductsPayload,
+): Promise<SavedProductGroupWithProductsDto> {
+  const response = await apiPost<SavedProductGroupWithProductsDto>(
+    "/ProductGroups/save-with-products",
+    payload,
+  );
+  if (!response.data) throw new Error("Não foi possível salvar o cadastro do produto.");
+  return response.data;
 }

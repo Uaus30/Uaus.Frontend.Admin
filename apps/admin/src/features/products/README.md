@@ -126,6 +126,17 @@ e ninguém entende por quê. Quem escrever uma leitura nova de produto usa o
 Os 159 cadastros antigos, que têm o colchete dentro do próprio nome, continuam
 como estão: sem valores de grade não há o que compor, e o nome volta intacto.
 
+### 2.1. O salvar é UMA transação (01/09/2026)
+
+O botão Salvar grava grupo + produtos/variações numa chamada só
+(`POST /ProductGroups/save-with-products`, `saveProductGroupWithProducts` no
+api-client): ou o cadastro inteiro entra, ou nada muda. Antes eram N upserts em
+série — um código de barras duplicado na terceira variação deixava grupo e duas
+variações salvos, com estado parcial invisível até a próxima abertura. Etiquetas
+e imagens continuam como sincronizações à parte (imagem passa por upload, fora
+de transação de banco): uma falha ali deixa o catálogo íntegro, só a associação
+fica para refazer.
+
 ### 3. Associação de Imagens e Etiquetas (Tags)
 
 - As imagens do produto podem ser ordenadas via drag-and-drop. A primeira imagem é considerada a "principal".

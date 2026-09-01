@@ -3,8 +3,20 @@ import { useProductEditor } from "../useProductEditor";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { updateProductGroup, syncProductImages } from "@/services/products.service";
+import { syncProductImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
+
+const mocks = vi.hoisted(() => ({
+  saveProductGroupWithProducts: vi.fn(() =>
+    Promise.resolve({ group: { id: 1 }, products: [{ id: 10, canDelete: true }] }),
+  ),
+}));
+
+// Dubla só o que fala com a rede; o resto do api-client continua o de verdade.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
+  saveProductGroupWithProducts: mocks.saveProductGroupWithProducts,
+}));
 
 // Mock services and utilities
 vi.mock("@/services/products.service", () => ({
@@ -12,9 +24,6 @@ vi.mock("@/services/products.service", () => ({
   getAllProductImages: vi.fn(() => Promise.resolve([])),
   getAllProductTags: vi.fn(() => Promise.resolve([])),
   getProductsPage: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
-  createProductGroup: vi.fn(() => Promise.resolve({ id: 1 })),
-  updateProductGroup: vi.fn(() => Promise.resolve({ id: 1 })),
-  upsertProduct: vi.fn(() => Promise.resolve({ id: 10, canDelete: true })),
   syncProductTags: vi.fn(() => Promise.resolve()),
   syncProductImages: vi.fn(() => Promise.resolve()),
   deleteProduct: vi.fn(() => Promise.resolve()),
@@ -165,14 +174,18 @@ describe("useProductEditor Hook", () => {
       await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
     });
 
-    expect(updateProductGroup).toHaveBeenCalledWith({
-      id: 1,
-      categoryId: 5,
-      name: "COPO",
-      description: "Descrição original",
-      hasVariations: false,
-      showOnSite: false,
-    });
+    // O salvamento é UMA chamada atômica: grupo e produto viajam juntos.
+    expect(mocks.saveProductGroupWithProducts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupId: 1,
+        categoryId: 5,
+        name: "COPO",
+        description: "Descrição original",
+        hasVariations: false,
+        showOnSite: false,
+        products: [expect.objectContaining({ id: 10, name: "COPO VERDE" })],
+      }),
+    );
   });
 
   it("deve preservar a posição escolhida para imagens novas ao salvar", async () => {
