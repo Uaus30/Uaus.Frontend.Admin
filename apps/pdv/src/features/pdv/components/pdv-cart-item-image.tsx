@@ -83,7 +83,7 @@ export function PdvCartItemImage({ name, barcode, imageUrl }: PdvCartItemImagePr
             consultado quando há dúvida sobre QUAL produto é, que é exatamente
             quando a foto é ampliada. Produto sem código cai no nome, para a
             legenda não ficar vazia. */}
-        <p className="mt-2 text-center font-mono text-xs font-semibold leading-tight break-words">
+        <p className="mt-2 text-center font-mono text-base font-semibold tracking-wide leading-tight break-words">
           {barcode?.trim() || name}
         </p>
       </HoverCardContent>
