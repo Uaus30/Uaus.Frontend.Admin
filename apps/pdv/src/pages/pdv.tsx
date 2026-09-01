@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { usePageTitle } from "@workspace/ui";
 import { Calculator } from "@/components/calculator";
 import { useCashRegister } from "@/hooks/use-cash-register";
 import { useCheckout } from "@/hooks/use-checkout";
@@ -34,6 +35,8 @@ import { useSalesReport } from "@/features/pdv/hooks/use-sales-report";
  * aberto a tela fica bloqueada pelo diálogo de abertura.
  */
 export default function Pdv() {
+  usePageTitle("Caixa · Uaus PDV");
+
   /**
    * O que as configurações da empresa mudam aqui.
    *

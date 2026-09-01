@@ -1,10 +1,10 @@
-import { usePageTitle } from "@/lib/page-title";
+import { usePageTitle } from "@workspace/ui";
 import { ContactForm } from "@/features/contact/components/ContactForm";
 import { ContactInfo } from "@/features/contact/components/ContactInfo";
 
 /** Página de contato — masthead do site original + duas colunas. */
 export default function ContactPage() {
-  usePageTitle("Uaus | Contato");
+  usePageTitle("Contato | Uaus! Máximo 30");
 
   return (
     <div className="min-h-screen pb-24">

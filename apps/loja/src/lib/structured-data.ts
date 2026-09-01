@@ -33,7 +33,8 @@ export function buildBreadcrumbJsonLd(steps: BreadcrumbStep[], origin: string) {
  * Injeta um `<script type="application/ld+json">` no `head` enquanto a página
  * viver.
  *
- * Mesmo padrão imperativo do `usePageTitle`: o site tem quatro rotas e não
+ * Mesmo padrão imperativo do `usePageTitle` (hoje em `@workspace/ui`): o site
+ * tem quatro rotas e não
  * paga um head manager por isso. O conteúdo entra serializado na dependência
  * para o efeito não reescrever a tag a cada render — objeto novo a cada render
  * remontaria o script sem parar.

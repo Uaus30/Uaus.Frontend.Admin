@@ -1,8 +1,16 @@
 # @workspace/ui
 
-Kit visual compartilhado pelo Admin e pelo PDV. Base shadcn/ui: os componentes de
-`src/components`, 3 hooks de UI (`use-mobile`, `use-toast`, `use-debounce`) e o
-`cn()` — tudo exposto por um barrel único, `src/index.ts`.
+Kit visual compartilhado pelo Admin, pelo PDV e pela Loja. Base shadcn/ui: os
+componentes de `src/components`, 4 hooks de UI (`use-mobile`, `use-toast`,
+`use-debounce`, `use-page-title`) e o `cn()` — tudo exposto por um barrel único,
+`src/index.ts`.
+
+O `usePageTitle` escreve `document.title` num efeito. Ele mora aqui porque os
+três apps precisam do mesmo comportamento e porque o título é o que o
+**histórico do navegador** mostra: com o título fixo do `index.html`, as vinte e
+cinco telas do admin apareciam no histórico como "Painel Administrativo", todas
+iguais. Passar `undefined` mantém o título anterior em vez de piscar um genérico
+enquanto o dado carrega.
 
 Os apps importam **sempre** de `@workspace/ui`. Nenhum dos dois mantém uma pasta
 `components/ui` própria: alterou aqui, valeu para os dois.

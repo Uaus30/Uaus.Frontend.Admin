@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { PageTitleProvider } from "@/components/page-title";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@workspace/ui";
 import { TooltipProvider } from "@workspace/ui";
@@ -191,9 +192,12 @@ function App() {
           <DevEnvironmentBanner />
           <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <ErrorBoundary>
-                <Router />
-              </ErrorBoundary>
+              {/* Dentro do Router: o título sai da rota corrente. */}
+              <PageTitleProvider>
+                <ErrorBoundary>
+                  <Router />
+                </ErrorBoundary>
+              </PageTitleProvider>
             </WouterRouter>
           </div>
         </div>

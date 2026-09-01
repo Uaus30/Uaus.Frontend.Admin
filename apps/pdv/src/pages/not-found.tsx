@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { buttonVariants, NotFoundScreen } from "@workspace/ui";
+import { buttonVariants, NotFoundScreen, usePageTitle } from "@workspace/ui";
 
 /**
  * 404 do PDV.
@@ -13,6 +13,8 @@ import { buttonVariants, NotFoundScreen } from "@workspace/ui";
  * `App.tsx` desvia para o login a partir de lá.
  */
 export default function NotFound() {
+  usePageTitle("Endereço não encontrado · Uaus PDV");
+
   return (
     <NotFoundScreen
       className="min-h-full flex-1 bg-background"

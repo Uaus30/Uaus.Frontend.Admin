@@ -1,8 +1,7 @@
 import { ArrowLeft, PackageSearch } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { formatCurrency } from "@workspace/core";
-import { Skeleton } from "@workspace/ui";
-import { usePageTitle } from "@/lib/page-title";
+import { Skeleton, usePageTitle } from "@workspace/ui";
 import { buildBreadcrumbJsonLd, useJsonLd } from "@/lib/structured-data";
 import { catalogPath, productDetailPath } from "@/routes";
 import { useProductDetail } from "@/features/catalog/hooks/useProductDetail";
@@ -34,7 +33,7 @@ export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const productGroupId = Number(params.id);
   const detail = useProductDetail(productGroupId);
-  usePageTitle(detail.product ? `Uaus | ${detail.product.name}` : undefined);
+  usePageTitle(detail.product ? `${detail.product.name} | Uaus! Máximo 30` : undefined);
 
   // A mesma trilha da tela, em dados estruturados: é assim que o resultado do
   // Google troca a URL crua pelo caminho legível. Fica na página, e não dentro

@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Loader2, PackageOpen, RefreshCcw, SearchX } from "lucide-react";
 import { Link } from "wouter";
-import { usePageTitle } from "@/lib/page-title";
+import { usePageTitle } from "@workspace/ui";
 import { catalogPath } from "@/routes";
 import { useCatalog } from "@/features/catalog/hooks/useCatalog";
 import { useKeepResultsInView } from "@/features/catalog/hooks/useKeepResultsInView";
@@ -56,7 +56,7 @@ export default function ProductsPage() {
   // e na aba compartilhada — "Uaus | Produtos" em toda categoria não distingue
   // nada.
   const filterLabel = selectedCategoryName ?? selectedDepartmentName;
-  usePageTitle(filterLabel ? `Uaus | ${filterLabel}` : "Uaus | Produtos");
+  usePageTitle(filterLabel ? `${filterLabel} | Uaus! Máximo 30` : "Produtos | Uaus! Máximo 30");
 
   // Trocar de filtro mantém a página onde está — ver `useKeepResultsInView`.
   const resultsRef = useRef<HTMLDivElement>(null);

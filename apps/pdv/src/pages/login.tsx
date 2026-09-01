@@ -6,10 +6,12 @@ import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Loader2, ArrowRight } from "lucide-react";
-import { useToast } from "@workspace/ui";
+import { useToast, usePageTitle } from "@workspace/ui";
 import { motion } from "framer-motion";
 
 export default function Login() {
+  usePageTitle("Entrar · Uaus PDV");
+
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [, setLocation] = useLocation();

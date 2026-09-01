@@ -1,6 +1,5 @@
 import { Link } from "wouter";
-import { NotFoundScreen } from "@workspace/ui";
-import { usePageTitle } from "@/lib/page-title";
+import { NotFoundScreen, usePageTitle } from "@workspace/ui";
 
 /**
  * 404 da loja, dentro do layout do site (cabeçalho e rodapé continuam na tela).
@@ -11,7 +10,7 @@ import { usePageTitle } from "@/lib/page-title";
  * vez do aviso seco que basta para quem já está trabalhando nos apps internos.
  */
 export default function NotFoundPage() {
-  usePageTitle("Uaus | Página não encontrada");
+  usePageTitle("Página não encontrada | Uaus! Máximo 30");
 
   return (
     <NotFoundScreen

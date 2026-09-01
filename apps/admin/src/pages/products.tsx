@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { AppLayout } from "@/components/layout";
+import { usePageTitle } from "@/components/page-title";
 import { Button } from "@workspace/ui";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
@@ -58,6 +59,12 @@ export default function Products() {
   const { resolvendo: resolvendoDetalheDaUrl } = useProductDetailFromUrl({
     openDetail: editor.openDetail,
   });
+
+  // Com o detalhe aberto, o histórico ganha o NOME do produto no lugar de
+  // "Produtos" — é o que distingue as cinco abas de cadastro que ficam abertas
+  // ao mesmo tempo. Cadastro novo ainda não tem nome; até ganhar um, "Novo
+  // produto" diz mais do que o nome da listagem.
+  usePageTitle(editor.detailOpen ? editor.form.productGroupName.trim() || "Novo produto" : undefined);
 
   function fecharDetalhe() {
     setPendingClose(null);

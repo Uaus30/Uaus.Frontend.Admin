@@ -1,4 +1,4 @@
-import { usePageTitle } from "@/lib/page-title";
+import { usePageTitle } from "@workspace/ui";
 import { HeroSection } from "@/features/home/components/HeroSection";
 import { FeaturedProducts } from "@/features/home/components/FeaturedProducts";
 import { VisitBanner } from "@/features/home/components/VisitBanner";
