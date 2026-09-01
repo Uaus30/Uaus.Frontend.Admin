@@ -7,7 +7,7 @@
 
 import { useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiDelete, ApiError, useCrudMutation, mapPagedResult } from "../client";
-import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
+import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
 
 // ==========================================
 // INVENTORY & PURCHASE ENTRIES TYPES & HOOKS
@@ -22,6 +22,11 @@ export interface PurchaseEntryDto {
   invoiceNumber: string | null;
   notes: string | null;
   total: number;
+  /**
+   * Enum PurchaseEntryType — chega como NOME (`"ManualAdjustment"`), não como
+   * código. Normalize com `enumCode(valor, PURCHASE_ENTRY_TYPE)` na fronteira.
+   */
+  type: EnumValue;
 }
 
 export interface ReceivedPurchaseEntryItemDto {

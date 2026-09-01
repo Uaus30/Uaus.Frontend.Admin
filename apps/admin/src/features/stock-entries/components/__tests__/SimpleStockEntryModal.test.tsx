@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ComponentProps, FormEvent } from "react";
 import type { SupplierDto } from "@workspace/api-client-react";
 import { SimpleStockEntryModal } from "../SimpleStockEntryModal";
 import type { SimpleEntryForm } from "../../hooks/useProductStockEntries";
@@ -16,6 +17,24 @@ const form: SimpleEntryForm = {
 
 const suppliers = [{ id: 10, name: "Shopee" }] as SupplierDto[];
 
+function renderModal(overrides: Partial<ComponentProps<typeof SimpleStockEntryModal>> = {}) {
+  const props: ComponentProps<typeof SimpleStockEntryModal> = {
+    open: true,
+    onOpenChange: vi.fn(),
+    productName: "ESMALTE RISQUÉ",
+    barcode: "7071374159673",
+    currentStock: 7,
+    suppliers,
+    form,
+    onChange: vi.fn(),
+    isSaving: false,
+    onSubmit: vi.fn(),
+    ...overrides,
+  };
+  render(<SimpleStockEntryModal {...props} />);
+  return props;
+}
+
 afterEach(() => cleanup());
 
 describe("SimpleStockEntryModal", () => {
@@ -26,8 +45,8 @@ describe("SimpleStockEntryModal", () => {
     // disparava junto. Na tela, salvar a entrada gravava o produto (PUT em
     // ProductGroups e Products, com linha no histórico) e fechava tudo por cima
     // do lançamento, sem nada explicando o que aconteceu.
-    const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
-    const outerSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
+    const onSubmit = vi.fn((e: FormEvent) => e.preventDefault());
+    const outerSubmit = vi.fn((e: FormEvent) => e.preventDefault());
 
     render(
       <form onSubmit={outerSubmit}>
@@ -36,6 +55,7 @@ describe("SimpleStockEntryModal", () => {
           onOpenChange={vi.fn()}
           productName="ESMALTE RISQUÉ"
           barcode="7071374159673"
+          currentStock={7}
           suppliers={suppliers}
           form={form}
           onChange={vi.fn()}
@@ -51,48 +71,44 @@ describe("SimpleStockEntryModal", () => {
     expect(outerSubmit).not.toHaveBeenCalled();
   });
 
-  it("mostra o produto escolhido em vez de pedir a busca de novo", () => {
-    render(
-      <SimpleStockEntryModal
-        open
-        onOpenChange={vi.fn()}
-        productName="ESMALTE RISQUÉ"
-        barcode="7071374159673"
-        suppliers={suppliers}
-        form={form}
-        onChange={vi.fn()}
-        isSaving={false}
-        onSubmit={vi.fn()}
-      />,
-    );
+  it("mostra o produto escolhido e a prévia do estoque em vez de pedir a busca de novo", () => {
+    renderModal();
 
     expect(screen.getByText("ESMALTE RISQUÉ")).toBeTruthy();
     expect(screen.getByText("7071374159673")).toBeTruthy();
+    // Estoque 7 recebendo 1: a prévia diz onde o saldo vai parar.
+    expect(screen.getByText("7 → 8")).toBeTruthy();
     expect(screen.queryByPlaceholderText(/Buscar produto/i)).toBeNull();
   });
 
-  it("edita quantidade, custo e preço pelo campo correspondente", () => {
-    const onChange = vi.fn();
-    render(
-      <SimpleStockEntryModal
-        open
-        onOpenChange={vi.fn()}
-        productName="ESMALTE RISQUÉ"
-        barcode={null}
-        suppliers={suppliers}
-        form={form}
-        onChange={onChange}
-        isSaving={false}
-        onSubmit={vi.fn()}
-      />,
-    );
+  it("edita a quantidade sem trava — limpar o campo não volta para 1", () => {
+    // Regressão de UX: o `Math.max(1, ...)` no onChange devolvia 1 a cada
+    // backspace e o operador não conseguia digitar "25" começando do vazio.
+    const { onChange } = renderModal();
 
     fireEvent.change(screen.getByLabelText("Quantidade recebida"), { target: { value: "12" } });
-    fireEvent.change(screen.getByLabelText("Custo unitário"), { target: { value: "20.5" } });
-    fireEvent.change(screen.getByLabelText("Preço de venda"), { target: { value: "45" } });
+    fireEvent.change(screen.getByLabelText("Quantidade recebida"), { target: { value: "" } });
 
     expect(onChange).toHaveBeenNthCalledWith(1, "quantity", 12);
-    expect(onChange).toHaveBeenNthCalledWith(2, "unitCost", 20.5);
-    expect(onChange).toHaveBeenNthCalledWith(3, "price", 45);
+    expect(onChange).toHaveBeenNthCalledWith(2, "quantity", 0);
+  });
+
+  it("edita custo e preço pelos campos de moeda com vírgula", () => {
+    // Os campos são o CurrencyInput do admin: fora de foco mostram "R$ 18,40" e
+    // entregam o número no blur — o type=number antigo exigia ponto decimal.
+    const { onChange } = renderModal();
+
+    const custo = screen.getByDisplayValue("R$ 18,40");
+    fireEvent.focus(custo);
+    fireEvent.change(screen.getByDisplayValue("18,4"), { target: { value: "20,5" } });
+    fireEvent.blur(screen.getByDisplayValue("20,5"));
+
+    expect(onChange).toHaveBeenCalledWith("unitCost", 20.5);
+  });
+
+  it("avisa quando o preço de venda está abaixo do custo", () => {
+    renderModal({ form: { ...form, unitCost: 50, price: 39.9 } });
+
+    expect(screen.getByText(/abaixo do custo/i)).toBeTruthy();
   });
 });

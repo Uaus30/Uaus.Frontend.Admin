@@ -116,6 +116,18 @@ export const PRODUCT_STATUS = {
   Inactive: 4,
 } as const;
 
+/**
+ * Origem de uma entrada de estoque: nota de compra ou ajuste manual.
+ *
+ * O ajuste manual (edição inline de estoque na tabela de produtos) também cria
+ * uma `PurchaseEntry` no backend — sem este enum as duas apareciam idênticas
+ * nas listagens, distinguíveis só pelo "AJUSTE_MANUAL" no campo da NF.
+ */
+export const PURCHASE_ENTRY_TYPE = {
+  Purchase: 1,
+  ManualAdjustment: 2,
+} as const;
+
 export const USER_STATUS = {
   None: 0,
   Pending: 1,

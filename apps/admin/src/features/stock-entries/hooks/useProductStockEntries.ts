@@ -168,10 +168,16 @@ export function useProductStockEntries(productId: number | null) {
     ]);
   }
 
-  /** Abre o lançamento já com o custo e o preço vigentes sugeridos. */
+  /**
+   * Abre o lançamento já com o custo e o preço vigentes sugeridos — e o
+   * fornecedor da entrada mais recente pré-selecionado: o caso comum é repor
+   * com quem já vendeu, e a lista vem ordenada da mais nova para a mais velha.
+   */
   function openNewEntry() {
+    const lastSupplierId = entriesData?.data?.[0]?.supplierId;
     setForm({
       ...emptyForm(),
+      supplierId: lastSupplierId ? String(lastSupplierId) : "",
       unitCost: product?.costPrice ?? 0,
       price: product?.price ?? 0,
     });
@@ -208,10 +214,20 @@ export function useProductStockEntries(productId: number | null) {
       toast({ title: "Atenção", description: "Informe a data da entrada.", variant: "warning" });
       return;
     }
-    if (form.quantity <= 0 || form.unitCost < 0 || form.price < 0) {
+    if (form.quantity <= 0 || !Number.isInteger(form.quantity) || form.unitCost < 0) {
       toast({
         title: "Atenção",
         description: "Verifique a quantidade e os valores lançados.",
+        variant: "warning",
+      });
+      return;
+    }
+    // Preço zero NÃO passa: o valor lançado sobrescreve o preço de venda do
+    // produto no cadastro — o backend também recusa desde a mesma correção.
+    if (form.price <= 0) {
+      toast({
+        title: "Atenção",
+        description: "Informe o preço de venda — ele passa a valer no cadastro do produto.",
         variant: "warning",
       });
       return;

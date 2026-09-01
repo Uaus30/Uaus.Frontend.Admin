@@ -137,6 +137,47 @@ describe("useProductStockEntries", () => {
     expect(result.current.form).toMatchObject({ quantity: 1, unitCost: 18.4, price: 39.9 });
   });
 
+  it("pré-seleciona o fornecedor da entrada mais recente ao abrir o lançamento", async () => {
+    // O caso comum é repor com quem já vendeu — a listagem vem ordenada da mais
+    // nova para a mais velha, então o primeiro item é o último fornecedor.
+    mocks.useGetPurchaseEntries.mockReturnValue({
+      data: {
+        data: [
+          { id: 9, entryDate: "2026-08-20T00:00:00", supplierId: 44, invoiceNumber: null, total: 10 },
+          { id: 8, entryDate: "2026-08-01T00:00:00", supplierId: 10, invoiceNumber: null, total: 20 },
+        ],
+        total: 2,
+        totalPages: 1,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+    const { result } = renderHook(() => useProductStockEntries(201), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.product?.costPrice).toBe(18.4));
+    act(() => result.current.openNewEntry());
+
+    expect(result.current.form.supplierId).toBe("44");
+  });
+
+  it("recusa preço de venda zero — ele passa a valer no cadastro do produto", () => {
+    // Regressão: o backend grava o `price` do item como preço de venda do
+    // produto; zero aqui zerava o preço da loja em silêncio.
+    const { result } = renderHook(() => useProductStockEntries(201), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.updateForm("supplierId", "10");
+      result.current.updateForm("quantity", 2);
+      result.current.updateForm("unitCost", 18.4);
+      result.current.updateForm("price", 0);
+    });
+    submit(result);
+
+    expect(mocks.receiveEntry).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "warning" }));
+  });
+
   it("envia a data como instante LOCAL, com o produto da aba como único item", () => {
     // Regressão do 500 ao salvar: `entry_date` é `timestamp without time zone` e
     // o Npgsql recusa um DateTime com Kind=Utc, que é o que o toISOString gera.

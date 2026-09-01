@@ -1,9 +1,10 @@
 import { Calendar, Eye, Package, Plus, Receipt } from "lucide-react";
-import { Button } from "@workspace/ui";
+import { Badge, Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatQuantity } from "@workspace/core";
+import { PURCHASE_ENTRY_TYPE, enumCode } from "@workspace/api-client-react";
 import { useProductStockEntries } from "@/features/stock-entries/hooks/useProductStockEntries";
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
 import { SimpleStockEntryModal } from "@/features/stock-entries/components/SimpleStockEntryModal";
@@ -89,9 +90,14 @@ export function ProductStockTab({
             </Select>
           )}
 
+          {/*
+            Desabilitado até o produto chegar: abrir antes preencheria custo e
+            preço com 0 — e o preço lançado passa a valer no cadastro.
+          */}
           <Button
             type="button"
             onClick={stock.openNewEntry}
+            disabled={!stock.product}
             className="gap-2 bg-primary text-primary-foreground hover-elevate"
           >
             <Plus className="h-4 w-4" /> Registrar Entrada
@@ -132,7 +138,13 @@ export function ProductStockTab({
                       </span>
                     </TableCell>
                     <TableCell className="px-4 py-3 font-mono text-sm">
-                      {entry.invoiceNumber || "-"}
+                      {enumCode(entry.type, PURCHASE_ENTRY_TYPE) === PURCHASE_ENTRY_TYPE.ManualAdjustment ? (
+                        <Badge variant="outline" className="font-sans font-normal">
+                          Ajuste manual
+                        </Badge>
+                      ) : (
+                        entry.invoiceNumber || "-"
+                      )}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm font-medium">
                       {supplier?.name || "Não informado"}
@@ -202,6 +214,7 @@ export function ProductStockTab({
         onOpenChange={stock.setNewEntryModalOpen}
         productName={productName}
         barcode={barcode}
+        currentStock={stock.product?.stock ?? null}
         suppliers={stock.suppliers}
         form={stock.form}
         onChange={stock.updateForm}

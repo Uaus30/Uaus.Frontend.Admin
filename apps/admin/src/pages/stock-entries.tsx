@@ -32,7 +32,7 @@ export default function StockEntries() {
     setEntryDate,
     notes,
     setNotes,
-    items,
+    item,
     entriesData,
     isLoadingEntries,
     entryDetails,
@@ -40,8 +40,8 @@ export default function StockEntries() {
     suppliers,
     isSavingEntry,
     resetNewEntryForm,
-    handleAddItem,
-    handleRemoveItem,
+    handleSelectProduct,
+    handleClearProduct,
     handleItemChange,
     handleSaveEntry,
     handleViewDetails,
@@ -107,11 +107,11 @@ export default function StockEntries() {
         setEntryDate={setEntryDate}
         notes={notes}
         setNotes={setNotes}
-        items={items}
+        item={item}
         suppliers={suppliers}
         isSavingEntry={isSavingEntry}
-        onAddItem={handleAddItem}
-        onRemoveItem={handleRemoveItem}
+        onSelectProduct={handleSelectProduct}
+        onClearProduct={handleClearProduct}
         onItemChange={handleItemChange}
         onSubmit={handleSaveEntry}
       />
