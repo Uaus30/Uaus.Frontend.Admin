@@ -89,12 +89,25 @@ Hoje:
   desenho antigo não permitia sem criar uma grade por combinação.
 - **A modal `VariationGradesModal`** marca as grades e recebe os valores
   separados por vírgula; `gerarCombinacoes` cruza tudo (`lib/variationMatrix.ts`).
+  A modal só deixa gerar com **duas ou mais combinações** — é o mínimo que o
+  salvamento exige, e descobrir isso só no salvar era um erro anunciado.
 - **Reabrir a modal mostra o que o produto já tem.** As grades e os valores são
   reconstruídos das próprias variações (`gradesDasVariacoes`), e não de estado
   guardado à parte — o formulário é remontado por `key` a cada abertura.
+- **Regerar a matriz MESCLA com o que existe** (`mesclarMatriz`, 31/08/2026):
+  combinação que continua preserva o draft — id, preço, código de barras e
+  imagens; combinação nova nasce com os valores do produto principal; combinação
+  que saiu é **excluída do servidor na hora**, exceto as com venda
+  (`canDelete === false`), que permanecem na lista com aviso. Antes a regeração
+  descartava tudo: drafts sem id viravam produtos NOVOS no salvar e os antigos
+  ficavam no banco — o grupo acumulava duplicatas até a checagem de combinação
+  repetida travar o cadastro.
 - **Combinação repetida é bloqueada no salvamento** (`chaveDaCombinacao`, que
   ignora ordem e caixa). O NOME deixou de servir de critério: ele é o mesmo em
-  todas as variações.
+  todas as variações. A validação de preenchimento também exige valor em toda
+  grade que o grupo usa, pintando a célula `grade-<tipo>-<key>` da linha — o
+  nome da variação NÃO é validado, porque é derivado e a coluna é somente
+  leitura.
 
 #### O nome da variação não é editável
 
@@ -185,6 +198,11 @@ fiados entre `pages/products.tsx` e dois hooks:
   migração para tela — era `modalOpen`/`openModal`, herança da modal antiga.
 
 #### A aba Estoque, em detalhe
+
+- O menu **Estoque** da listagem de produtos (dropdown e menu de contexto) abre
+  a tela de detalhe **já nesta aba** (`initialTab` do `ProductDetailScreen`),
+  em vez de navegar para `/estoque/entradas`. A linha da listagem é um GRUPO, e
+  é a aba que resolve qual variação recebe o lançamento.
 
 - Lista as **notas** que trouxeram o produto (`GET /PurchaseEntries?productId=`),
   da mais recente para a mais antiga. A ordenação é do backend (data de entrada

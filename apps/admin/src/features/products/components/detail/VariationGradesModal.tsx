@@ -107,7 +107,10 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
   }));
 
   const totalDeVariacoes = gerarCombinacoes(grades).length;
-  const podeGerar = marcadas.length > 0 && grades.every((grade) => grade.values.length > 0);
+  // Mínimo DOIS: o cadastro com variações exige duas no salvar — deixar gerar
+  // uma só empurraria o operador para um erro que a modal já sabia prever.
+  const podeGerar =
+    marcadas.length > 0 && grades.every((grade) => grade.values.length > 0) && totalDeVariacoes >= 2;
 
   function alternarGrade(type: GradeTypeCode) {
     setMarcadas((atuais) => (atuais.includes(type) ? atuais.filter((t) => t !== type) : [...atuais, type]));
@@ -171,15 +174,19 @@ function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: Gra
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
           <p className="text-sm leading-tight">
-            As {variationCount} variações configuradas serão substituídas — preço, código de barras e estoque
-            digitados em cada uma se perdem junto.
+            As combinações que continuarem na matriz mantêm preço, código de barras e estoque. As que saírem
+            serão <strong>excluídas do cadastro</strong> — exceto as que já têm venda, que permanecem.
           </p>
         </div>
       )}
 
       <DialogFooter className="items-center sm:justify-between">
         <span className="text-xs text-muted-foreground">
-          {podeGerar ? `Serão geradas ${totalDeVariacoes} variações.` : "Escolha ao menos uma grade."}
+          {podeGerar
+            ? `A matriz terá ${totalDeVariacoes} variações.`
+            : totalDeVariacoes === 1
+              ? "O cadastro com variações exige ao menos duas combinações."
+              : "Escolha ao menos uma grade."}
         </span>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>

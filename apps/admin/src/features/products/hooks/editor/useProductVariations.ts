@@ -3,7 +3,7 @@ import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { deleteProduct } from "@/services/products.service";
 import { createVariationDraft } from "./utils";
-import { gerarCombinacoes } from "../../lib/variationMatrix";
+import { gerarCombinacoes, mesclarMatriz } from "../../lib/variationMatrix";
 import type { VariationDraft, ProductGrade, ProductGroupForm, ProductEditorForm } from "../../types";
 
 export interface UseProductVariationsProps {
@@ -45,14 +45,19 @@ export function useProductVariations({
   }
 
   /**
-   * Cria uma variação por combinação das grades escolhidas.
+   * Gera/regenera a matriz MESCLANDO com o que o produto já tem.
    *
-   * Preço, estoque mínimo e código de barras saem do produto principal como
-   * ponto de partida — é o que o operador acabou de digitar, e repetir o mesmo
-   * número em seis linhas à mão não ajuda ninguém. O NOME não vem daqui: ele é
-   * sempre o do grupo, e o que distingue as linhas é a combinação de grades.
+   * Combinação que continua na matriz preserva o draft atual — id, preço,
+   * código de barras, imagens. Combinação nova nasce com preço e estoque mínimo
+   * do produto principal como ponto de partida. Combinação que saiu é excluída
+   * do servidor na hora (como o lixo da linha faz), exceto as que têm venda
+   * (`canDelete === false`), que permanecem na lista com um aviso.
+   *
+   * Antes a regeração descartava TUDO: drafts novos sem id viravam produtos
+   * NOVOS no salvar e os antigos ficavam no banco — o grupo acumulava
+   * duplicatas até a checagem de combinação repetida travar o cadastro.
    */
-  function generateVariationsMatrix(grades: ProductGrade[]) {
+  async function generateVariationsMatrix(grades: ProductGrade[]) {
     const combinacoes = gerarCombinacoes(grades);
     if (combinacoes.length === 0) {
       setVariationDrafts([]);
@@ -61,7 +66,35 @@ export function useProductVariations({
       return;
     }
 
-    const novos = combinacoes.map((values) => {
+    const { slots, removidas } = mesclarMatriz(variationDrafts, combinacoes);
+
+    const bloqueadas: VariationDraft[] = [];
+    let excluidas = 0;
+    for (const draft of removidas) {
+      if (draft.id == null || draft.id === 0) continue;
+
+      if (draft.canDelete === false) {
+        bloqueadas.push(draft);
+        continue;
+      }
+
+      try {
+        await deleteProduct(draft.id);
+        excluidas += 1;
+      } catch (error) {
+        // Exclusão recusada (ex.: ganhou venda entre o carregar e o agora):
+        // a variação fica na lista, senão ela some da tela mas continua no banco.
+        bloqueadas.push(draft);
+        toast({
+          title: "Variação não pôde ser excluída",
+          description: describeApiError(error, "Ela continua na lista."),
+          variant: "destructive",
+        });
+      }
+    }
+
+    const finais = slots.map(({ values, existente }) => {
+      if (existente) return existente;
       const draft = createVariationDraft(defaultStatus, form.productGroupName.trim());
       draft.price = productEditor.price;
       draft.stock = 0;
@@ -71,9 +104,23 @@ export function useProductVariations({
       return draft;
     });
 
-    setVariationDrafts(novos);
+    // As bloqueadas entram no fim: continuam existindo e o operador decide.
+    const proximos = [...finais, ...bloqueadas];
+    setVariationDrafts(proximos);
     setForm((current) => ({ ...current, hasVariations: true }));
-    setActiveVariationKey(novos[0].key);
+    setActiveVariationKey(proximos[0].key);
+
+    if (excluidas > 0) {
+      await invalidateProductQueries(editingGroupId);
+      toast({ title: `${excluidas} variação(ões) fora da matriz foram excluídas.` });
+    }
+    if (bloqueadas.length > 0) {
+      toast({
+        title: "Variações com movimento foram mantidas",
+        description: `${bloqueadas.length} variação(ões) fora da matriz têm venda ou estoque e não podem ser excluídas.`,
+        variant: "warning",
+      });
+    }
   }
 
   /**

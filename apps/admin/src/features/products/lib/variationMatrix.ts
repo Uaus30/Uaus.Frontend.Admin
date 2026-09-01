@@ -69,6 +69,48 @@ export function chaveDaCombinacao(values: VariationValue[]): string {
     .join("|");
 }
 
+export type MatrizMesclada = {
+  /** Um slot por combinação da matriz nova, com o draft existente quando houver. */
+  slots: Array<{ values: VariationValue[]; existente: VariationDraft | null }>;
+  /** Drafts que saíram da matriz. Os já salvos precisam ser excluídos no servidor. */
+  removidas: VariationDraft[];
+};
+
+/**
+ * Casa a matriz nova com as variações que o produto já tem, pela combinação.
+ *
+ * Regerar a matriz descartando tudo era o bug mais caro da tela: os drafts novos
+ * nasciam sem `id`, o salvar criava produtos NOVOS e as variações antigas
+ * ficavam no banco — o grupo acumulava duplicatas e a checagem de combinação
+ * repetida passava a bloquear qualquer salvamento. Preservando o draft cuja
+ * combinação continua na matriz, preço, código de barras e id sobrevivem; só o
+ * que realmente saiu vai para `removidas`.
+ */
+export function mesclarMatriz(atuais: VariationDraft[], combinacoes: VariationValue[][]): MatrizMesclada {
+  const porChave = new Map<string, VariationDraft>();
+  for (const draft of atuais) {
+    const chave = chaveDaCombinacao(draft.values);
+    // Duplicata pré-existente (o bug que esta função corrige): fica a PRIMEIRA,
+    // que é a mais antiga — a segunda cai em `removidas` e sai do cadastro.
+    if (!porChave.has(chave)) porChave.set(chave, draft);
+  }
+
+  const usadas = new Set<string>();
+  const slots = combinacoes.map((values) => {
+    const chave = chaveDaCombinacao(values);
+    const existente = !usadas.has(chave) ? (porChave.get(chave) ?? null) : null;
+    if (existente) usadas.add(chave);
+    return { values, existente };
+  });
+
+  const removidas = atuais.filter((draft) => {
+    const chave = chaveDaCombinacao(draft.values);
+    return !usadas.has(chave) || porChave.get(chave) !== draft;
+  });
+
+  return { slots, removidas };
+}
+
 /**
  * As grades de um conjunto de variações já gravadas.
  *

@@ -401,7 +401,7 @@ export function useProductEditor() {
     selectedGrades,
     generateVariationsMatrix: (grades: ProductGrade[]) => {
       markDirty();
-      productVariations.generateVariationsMatrix(grades);
+      return productVariations.generateVariationsMatrix(grades);
     },
   };
 }

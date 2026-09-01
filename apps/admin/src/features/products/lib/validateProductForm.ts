@@ -1,4 +1,5 @@
 import type { ProductEditorForm, ProductGroupForm, VariationDraft } from "../types";
+import { gradesDasVariacoes } from "./variationMatrix";
 
 /** O que a validação devolve para a tela pintar de vermelho e focar. */
 export type ProductFormValidation = {
@@ -26,6 +27,10 @@ type ValidateProductFormParams = {
  * trazer essa aba para a frente antes de focar o elemento: focar um campo que
  * está dentro de aba fechada não faz nada, e o operador vê o salvar falhar sem
  * nada acontecer na tela.
+ *
+ * O nome da variação NÃO é validado: ele é derivado (grupo + grades) e a coluna
+ * é somente leitura — marcar um campo que não existe na tela fazia o salvar
+ * "não responder" quando o draft nascia com o nome vazio.
  */
 export function validateProductForm({
   form,
@@ -48,8 +53,16 @@ export function validateProductForm({
     if (!productEditor.price || productEditor.price <= 0) marcar("price", "input-price");
     if (!productEditor.status) marcar("status", "select-status");
   } else {
+    // As grades do GRUPO são as que aparecem em alguma variação: cada linha
+    // precisa ter valor em todas elas, senão duas variações saem com o mesmo
+    // nome composto. A chave `grade-<tipo>-<key>` é a que a tabela já pinta.
+    const gradesDoGrupo = gradesDasVariacoes(variationDrafts);
+
     variationDrafts.forEach((draft) => {
-      if (!draft.name.trim()) marcar(`name-${draft.key}`, `input-name-${draft.key}`);
+      for (const grade of gradesDoGrupo) {
+        const valor = (draft.values ?? []).find((value) => value.gradeType === grade.type)?.value?.trim();
+        if (!valor) marcar(`grade-${grade.type}-${draft.key}`, `input-grade-${grade.type}-${draft.key}`);
+      }
       if (!draft.price || draft.price <= 0) marcar(`price-${draft.key}`, `input-price-${draft.key}`);
       if (!draft.status) marcar(`status-${draft.key}`, `select-status-${draft.key}`);
     });

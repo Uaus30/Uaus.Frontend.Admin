@@ -4,6 +4,7 @@ import {
   chaveDaCombinacao,
   gerarCombinacoes,
   gradesDasVariacoes,
+  mesclarMatriz,
   nomeExibidoDaVariacao,
   ordenarGrades,
 } from "../variationMatrix";
@@ -123,5 +124,85 @@ describe("gradesDasVariacoes", () => {
     const comString = [{ values: [{ gradeType: "Color", value: "Azul" }] }] as unknown as VariationDraft[];
 
     expect(gradesDasVariacoes(comString).map((g) => g.type)).not.toContain(GRADE_TYPE.Color);
+  });
+});
+
+describe("mesclarMatriz", () => {
+  const draft = (key: string, cor: string, extra: Partial<VariationDraft> = {}): VariationDraft =>
+    ({
+      key,
+      id: extra.id,
+      barcode: extra.barcode ?? "",
+      price: extra.price ?? 10,
+      values: [{ gradeType: GRADE_TYPE.Color, value: cor }],
+      ...extra,
+    }) as VariationDraft;
+
+  it("preserva o draft cuja combinação continua na matriz — id, preço e código sobrevivem", () => {
+    // Regressão do bug mais caro da tela: regerar descartava tudo, os drafts
+    // novos nasciam sem id e o salvar CRIAVA produtos novos, deixando os
+    // antigos no banco — o grupo acumulava duplicatas até travar o cadastro.
+    const azul = draft("product-1", "Azul", { id: 1, price: 12.5, barcode: "789" });
+    const combinacoes = [
+      [{ gradeType: GRADE_TYPE.Color, value: "Azul" }],
+      [{ gradeType: GRADE_TYPE.Color, value: "Rosa" }],
+    ];
+
+    const { slots, removidas } = mesclarMatriz([azul], combinacoes);
+
+    expect(slots).toHaveLength(2);
+    expect(slots[0].existente).toBe(azul);
+    expect(slots[1].existente).toBeNull();
+    expect(removidas).toEqual([]);
+  });
+
+  it("casa a combinação ignorando ordem e caixa, como a chave manda", () => {
+    const azulG = draft("product-1", "azul", {
+      id: 1,
+      values: [
+        { gradeType: GRADE_TYPE.Size, value: "G" },
+        { gradeType: GRADE_TYPE.Color, value: "azul" },
+      ],
+    });
+    const combinacoes = [
+      [
+        { gradeType: GRADE_TYPE.Color, value: "AZUL" },
+        { gradeType: GRADE_TYPE.Size, value: "g" },
+      ],
+    ];
+
+    const { slots, removidas } = mesclarMatriz([azulG], combinacoes);
+
+    expect(slots[0].existente).toBe(azulG);
+    expect(removidas).toEqual([]);
+  });
+
+  it("manda para removidas o que saiu da matriz", () => {
+    const azul = draft("product-1", "Azul", { id: 1 });
+    const preto = draft("product-2", "Preto", { id: 2 });
+
+    const { slots, removidas } = mesclarMatriz(
+      [azul, preto],
+      [[{ gradeType: GRADE_TYPE.Color, value: "Azul" }]],
+    );
+
+    expect(slots).toHaveLength(1);
+    expect(slots[0].existente).toBe(azul);
+    expect(removidas).toEqual([preto]);
+  });
+
+  it("com duplicata pré-existente, mantém a PRIMEIRA e remove a outra", () => {
+    // É o estado que o próprio bug deixou no banco: duas variações com a mesma
+    // combinação. A mesclagem aproveita a mais antiga e descarta a cópia.
+    const original = draft("product-1", "Azul", { id: 1 });
+    const copia = draft("product-9", "Azul", { id: 9 });
+
+    const { slots, removidas } = mesclarMatriz(
+      [original, copia],
+      [[{ gradeType: GRADE_TYPE.Color, value: "Azul" }]],
+    );
+
+    expect(slots[0].existente).toBe(original);
+    expect(removidas).toEqual([copia]);
   });
 });

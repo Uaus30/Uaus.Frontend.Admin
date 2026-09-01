@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GRADE_TYPE } from "@workspace/api-client-react";
 import { validateProductForm } from "../validateProductForm";
 import type { ProductEditorForm, ProductGroupForm, VariationDraft } from "../../types";
 
@@ -34,6 +35,7 @@ function variacao(overrides: Partial<VariationDraft> = {}): VariationDraft {
     key: "temp-abc",
     images: [],
     canDelete: true,
+    values: [],
     ...overrides,
   };
 }
@@ -90,17 +92,43 @@ describe("validateProductForm", () => {
     const { errors, firstErrorElementId } = validateProductForm({
       form: grupo({ hasVariations: true }),
       productEditor: produto(),
-      variationDrafts: [
-        variacao({ key: "product-1" }),
-        variacao({ key: "product-2", name: "", price: 0, status: "" }),
-      ],
+      variationDrafts: [variacao({ key: "product-1" }), variacao({ key: "product-2", price: 0, status: "" })],
     });
 
     expect(errors).toEqual({
-      "name-product-2": true,
       "price-product-2": true,
       "status-product-2": true,
     });
-    expect(firstErrorElementId).toBe("input-name-product-2");
+    expect(firstErrorElementId).toBe("input-price-product-2");
+  });
+
+  it("NÃO valida o nome da variação — ele é derivado e a coluna é somente leitura", () => {
+    // Regressão do salvar "que não responde": o draft nascia com o nome vazio
+    // (grupo ainda sem nome no momento do toggle), a validação marcava um campo
+    // que não existe mais na tela e o clique em Salvar não produzia nada visível.
+    const { errors } = validateProductForm({
+      form: grupo({ hasVariations: true }),
+      productEditor: produto(),
+      variationDrafts: [variacao({ key: "product-1", name: "" }), variacao({ key: "product-2", name: "" })],
+    });
+
+    expect(errors).toEqual({});
+  });
+
+  it("exige valor em toda grade que o grupo usa, pintando a célula da linha", () => {
+    // Se uma variação tem Cor e a outra não, as duas sairiam com o mesmo nome
+    // composto. A chave `grade-<tipo>-<key>` é a que a tabela já pinta de
+    // vermelho — antes desta validação o erro só aparecia como toast genérico.
+    const { errors, firstErrorElementId } = validateProductForm({
+      form: grupo({ hasVariations: true }),
+      productEditor: produto(),
+      variationDrafts: [
+        variacao({ key: "product-1", values: [{ gradeType: GRADE_TYPE.Color, value: "AZUL" }] }),
+        variacao({ key: "product-2", values: [] }),
+      ],
+    });
+
+    expect(errors).toEqual({ [`grade-${GRADE_TYPE.Color}-product-2`]: true });
+    expect(firstErrorElementId).toBe(`input-grade-${GRADE_TYPE.Color}-product-2`);
   });
 });

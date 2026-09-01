@@ -213,12 +213,12 @@ export function useProductSubmit({
         }
 
         setVariationDrafts(nextDrafts);
+        // Por POSIÇÃO, não por nome: o nome é o do grupo em todas as variações,
+        // e casar por ele devolvia sempre a primeira — salvar "pulava" a seleção.
         setActiveVariationKey((current) => {
           if (!current) return nextDrafts[0]?.key ?? null;
-          const active = variationDrafts.find((draft) => draft.key === current);
-          if (!active) return nextDrafts[0]?.key ?? null;
-          const match = nextDrafts.find((draft) => draft.id === active.id || draft.name === active.name);
-          return match?.key ?? nextDrafts[0]?.key ?? null;
+          const index = variationDrafts.findIndex((draft) => draft.key === current);
+          return nextDrafts[index]?.key ?? nextDrafts[0]?.key ?? null;
         });
       }
 
