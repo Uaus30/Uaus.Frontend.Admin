@@ -34,3 +34,9 @@ Este módulo gerencia o histórico de faturamento e registro de novas vendas (Ch
 
 - `SALES_PAGE_SIZE` (15) é exportado pelo hook e é o mesmo número usado no `limit` da consulta e no rodapé. Enquanto era um literal no hook e outro de reserva na tabela, mudar um dos dois desalinhava a contagem sem quebrar nada visível.
 - O rodapé antigo decidia o "Próxima" por `data.length < limit`. Isso **erra** quando o total é múltiplo exato da página: com 30 vendas em páginas de 15, a página 2 vem cheia, o botão continua liberado e o operador cai numa página vazia. O `TablePagination` decide pelo total.
+
+### 5. Desconto de item no detalhe da venda
+
+- A API grava o item com `unitPrice` **líquido** e o desconto unitário à parte (`discount`); o `discount` do cabeçalho da venda não inclui esse abatimento. Por isso o rodapé do `SaleDetailsModal` soma os dois com `computeSaleDiscountTotal` do `@workspace/core` — a mesma conta do histórico e do cupom do PDV. Antes o modal dizia "sem desconto" para a venda remarcada só no item.
+- Para a conta fechar de cima para baixo, o "Subtotal Itens" sai a preço de **tabela** (`unitPrice + discount`, vezes a quantidade): `22,00 − 2,00 = 20,00`. Na tabela, o item com desconto mostra o preço de tabela riscado abaixo do praticado, como o carrinho do PDV faz.
+- O lucro continua sendo o subtotal líquido menos o custo: é a semântica do backend (`Profit = Subtotal − TotalCost`), bruta de desconto de cabeçalho.

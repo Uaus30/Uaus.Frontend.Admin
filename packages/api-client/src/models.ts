@@ -353,6 +353,12 @@ export interface CashRegisterSessionSummaryDto {
   salesCount: number;
   cancelledSalesCount: number;
   revenue: number;
+  /**
+   * Tudo o que foi abatido nas vendas efetivadas: o desconto do cabeçalho (cupom
+   * incluído) mais o desconto de item, unitário × quantidade. O backend passou a
+   * somar o item em 02/09/2026 — antes o turno que remarcou produto saía com
+   * "Descontos R$ 0,00".
+   */
   discounts: number;
   itemsCount: number;
   cashAmount: number;

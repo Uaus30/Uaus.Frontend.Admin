@@ -1,5 +1,5 @@
 import { enumCode, PAYMENT_STATUS, type SaleDto } from "@workspace/api-client-react";
-import { round2 } from "@workspace/core";
+import { computeSaleDiscountTotal, round2 } from "@workspace/core";
 import type { SalesReportSale, SalesReportSummary } from "@workspace/receipt";
 
 /** A venda foi cancelada — não entra em nenhum total do relatório. */
@@ -51,7 +51,11 @@ export function summarizeSalesForReport(
     salesCount: efetivadas.length,
     cancelledSalesCount: sales.length - efetivadas.length,
     revenue: round2(efetivadas.reduce((soma, sale) => soma + sale.total, 0)),
-    discounts: round2(efetivadas.reduce((soma, sale) => soma + (sale.discount ?? 0), 0)),
+    // Tudo o que foi abatido, e não só `sale.discount`: o desconto de item já
+    // saiu do preço gravado e não passa pelo cabeçalho — a venda remarcada só no
+    // item chegava aqui como "sem desconto". É a mesma conta do histórico do PDV
+    // e do resumo do turno que o backend consolida.
+    discounts: round2(efetivadas.reduce((soma, sale) => soma + computeSaleDiscountTotal(sale), 0)),
     itemsCount: efetivadas.reduce(
       (soma, sale) => soma + (sale.items ?? []).reduce((qtd, item) => qtd + item.quantity, 0),
       0,

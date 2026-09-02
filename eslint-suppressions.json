@@ -183,11 +183,6 @@
       "count": 3
     }
   },
-  "apps/admin/src/features/sales/components/SaleDetailsModal.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 5
-    }
-  },
   "apps/admin/src/features/sales/components/SalesTable.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 2

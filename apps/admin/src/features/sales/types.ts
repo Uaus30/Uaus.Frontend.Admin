@@ -74,8 +74,10 @@ export type SaleItem = {
   productId: number;
   /** Quantidade vendida */
   quantity: number;
-  /** Preço unitário praticado na transação */
+  /** Preço unitário praticado na transação, já líquido do desconto do item */
   unitPrice: number;
+  /** Desconto unitário concedido no item, em reais; o preço de tabela era `unitPrice + discount` */
+  discount?: number;
   /** Subtotal calculado para o item (quantity * unitPrice) */
   subtotal: number;
   /** Custo unitário praticado no momento da venda */

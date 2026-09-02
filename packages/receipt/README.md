@@ -151,11 +151,19 @@ campos de cupom sobrevivem.
 > erro de compilação**. O conserto definitivo é aquele tipo local deixar de
 > existir em favor de `SaleDto`.
 
-### 9. O relatório de caixa não precisou mudar
+### 9. O relatório de vendas soma o desconto de item ao do cabeçalho
 
-`summary.discounts` soma `sales.discount`, que **já inclui** o cupom. Somar
-`couponDiscount` ali contaria o abatimento duas vezes e o relatório deixaria de
-bater com o Dashboard.
+`summary.discounts` é **tudo o que foi abatido** nas vendas efetivadas. No
+relatório do DIA ele sai de `computeSaleDiscountTotal` do `@workspace/core`
+(cabeçalho + unitário × quantidade); no relatório do TURNO vem do resumo do
+backend (`CashRegisterSessionService`), que faz a mesma conta. Sem o desconto
+de item, o turno em que o operador remarcou produto imprimia "Descontos
+R$ 0,00".
+
+O cupom continua **dentro** de `sales.discount`: somar `couponDiscount` ali
+contaria o abatimento duas vezes. O que ainda soma só o cabeçalho é o
+Dashboard e o fechamento financeiro do admin, que leem `sales.discount` no
+backend.
 
 ### 10. O desconto de item sai NA LINHA DO ITEM, com o preço de tabela
 

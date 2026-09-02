@@ -29,6 +29,25 @@ describe("summarizeSalesForReport", () => {
     expect(resumo.itemsCount).toBe(4);
   });
 
+  it("soma o desconto de item ao desconto do cabeçalho", () => {
+    // O desconto de item já saiu do preço gravado e não passa por
+    // `sale.discount`: a venda remarcada só no item chegava ao relatório do dia
+    // como "sem desconto".
+    const resumo = summarizeSalesForReport([
+      makeSale({ id: 1, total: 20, discount: 0, items: [{ quantity: 1, discount: 2 }] as SaleDto["items"] }),
+      makeSale({ id: 2, total: 45, discount: 5, items: [{ quantity: 2, discount: 1 }] as SaleDto["items"] }),
+      makeSale({
+        id: 3,
+        total: 10,
+        paymentStatus: PAYMENT_STATUS.Cancelled,
+        items: [{ quantity: 1, discount: 9 }] as SaleDto["items"],
+      }),
+    ]);
+
+    // 2 da venda 1, mais 5 + 2 × 1 da venda 2; a cancelada fica fora.
+    expect(resumo.discounts).toBe(9);
+  });
+
   it("deixa a venda cancelada fora dos totais e a conta à parte", () => {
     // O relatório precisa bater com o dinheiro que entrou, e o cancelamento
     // devolveu o dele.
