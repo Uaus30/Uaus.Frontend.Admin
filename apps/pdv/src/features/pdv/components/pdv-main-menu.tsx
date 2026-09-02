@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   ExternalLink,
-  FileBarChart,
   History,
   LayoutDashboard,
   Lock,
@@ -23,14 +22,11 @@ type PdvMainMenuProps = {
   usesCashRegister: boolean;
   /** Sessão de caixa aberta, ou `null`. */
   sessionId: number | null;
-  /** Uma impressão de relatório está em andamento. */
-  printingReport: boolean;
   onCloseRegister: () => void;
   onStockWriteOff: () => void;
   onSalesHistory: () => void;
   onPerformance: () => void;
   onHeldSales: () => void;
-  onPrintReport: () => void;
   onPreferences: () => void;
   onExit: () => void;
 };
@@ -53,6 +49,14 @@ const ITEM_CLASS =
  * sempre à vista, e o item duplicado fazia o operador abrir o menu para alcançar
  * o que já estava a um toque de distância.
  *
+ * A ordem dos itens é a de uso no balcão, pedida pelo dono em 02/09/2026:
+ * Desempenho, Histórico de Vendas, Vendas em Espera, Baixa de Estoque,
+ * Preferências e Painel Administrativo. "Fechar Caixa" continua no topo, só na
+ * loja com controle de caixa, e "Sair" no fim, separado. O relatório do
+ * turno/dia saiu do menu na mesma data: ele já tem botão no rodapé do
+ * histórico de vendas, que é onde o operador está quando precisa dele, e o
+ * item aqui era um segundo caminho para a mesma impressão.
+ *
  * ## Por que o clique-fora é um listener, e não uma camada por cima
  *
  * Havia um `<div className="fixed inset-0">` para capturar o clique de fora. Ele
@@ -67,13 +71,11 @@ const ITEM_CLASS =
 export function PdvMainMenu({
   usesCashRegister,
   sessionId,
-  printingReport,
   onCloseRegister,
   onStockWriteOff,
   onSalesHistory,
   onPerformance,
   onHeldSales,
-  onPrintReport,
   onPreferences,
   onExit,
 }: PdvMainMenuProps) {
@@ -156,23 +158,14 @@ export function PdvMainMenu({
               </button>
             )}
 
-            {/* A baixa de estoque entra aqui, e não no checkout: a tela de
-                  finalização não pode ganhar mais nada, e baixa não tem relação
-                  com pagamento. Também não exige caixa aberto — quem resolve a
-                  sessão dela é o servidor. */}
-            <button onClick={run(onStockWriteOff)} className={ITEM_CLASS}>
-              <PackageMinus className="w-4 h-4 text-primary" />
-              Baixa de Estoque
+            <button onClick={run(onPerformance)} className={ITEM_CLASS}>
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Desempenho
             </button>
 
             <button onClick={run(onSalesHistory)} className={ITEM_CLASS}>
               <History className="w-4 h-4 text-primary" />
               Histórico de Vendas
-            </button>
-
-            <button onClick={run(onPerformance)} className={ITEM_CLASS}>
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Desempenho
             </button>
 
             <button onClick={run(onHeldSales)} className={`${ITEM_CLASS} justify-between`}>
@@ -187,12 +180,13 @@ export function PdvMainMenu({
               )}
             </button>
 
-            {/* Com turno o relatório é o do caixa; sem turno, o do dia da loja.
-                  Existe nos dois modos: era só no primeiro, e no balcão sem
-                  controle de caixa o item sumia sem nada no lugar. */}
-            <button onClick={run(onPrintReport)} disabled={printingReport} className={ITEM_CLASS}>
-              <FileBarChart className="w-4 h-4 text-primary" />
-              {usesCashRegister ? "Relatório do Turno" : "Relatório do Dia"}
+            {/* A baixa de estoque entra aqui, e não no checkout: a tela de
+                  finalização não pode ganhar mais nada, e baixa não tem relação
+                  com pagamento. Também não exige caixa aberto — quem resolve a
+                  sessão dela é o servidor. */}
+            <button onClick={run(onStockWriteOff)} className={ITEM_CLASS}>
+              <PackageMinus className="w-4 h-4 text-primary" />
+              Baixa de Estoque
             </button>
 
             <button onClick={run(onPreferences)} className={ITEM_CLASS}>

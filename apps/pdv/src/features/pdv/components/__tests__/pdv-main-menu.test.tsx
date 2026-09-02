@@ -1,18 +1,16 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PdvMainMenu } from "../pdv-main-menu";
 
 describe("PdvMainMenu", () => {
   const defaultProps = {
     usesCashRegister: true,
     sessionId: 1,
-    printingReport: false,
     onCloseRegister: vi.fn(),
     onStockWriteOff: vi.fn(),
     onSalesHistory: vi.fn(),
     onPerformance: vi.fn(),
     onHeldSales: vi.fn(),
-    onPrintReport: vi.fn(),
     onPreferences: vi.fn(),
     onExit: vi.fn(),
   };
@@ -20,6 +18,47 @@ describe("PdvMainMenu", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_APP_VERSION", "1.8.9");
     vi.stubEnv("VITE_BUILD_TIME", "2026-08-22T15:45:12Z");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  /** Rótulos dos itens do menu aberto, na ordem da tela; o botão sanduíche (sem texto) fica de fora. */
+  function itensDoMenu() {
+    return screen
+      .getAllByRole("button")
+      .map((botao) => botao.textContent?.trim())
+      .filter((rotulo): rotulo is string => Boolean(rotulo));
+  }
+
+  it("lista os itens na ordem de uso do balcão, sem o relatório", () => {
+    // Ordem pedida pelo dono em 02/09/2026. O relatório saiu do menu: ele
+    // continua no rodapé do histórico de vendas, que é onde o operador está
+    // quando precisa dele. Com VITE_ADMIN_URL o "Painel Administrativo" aparece.
+    vi.stubEnv("VITE_ADMIN_URL", "https://admin-dev.uaus.com.br");
+    render(<PdvMainMenu {...defaultProps} usesCashRegister={false} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(itensDoMenu()).toEqual([
+      "Desempenho",
+      "Histórico de Vendas",
+      "Vendas em Espera",
+      "Baixa de Estoque",
+      "Preferências",
+      "Painel Administrativo",
+      "Sair",
+    ]);
+    expect(screen.queryByRole("button", { name: /Relatório/i })).toBeNull();
+  });
+
+  it("mantém Fechar Caixa no topo na loja com controle de caixa", () => {
+    render(<PdvMainMenu {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(itensDoMenu()[0]).toBe("Fechar Caixa");
+    expect(itensDoMenu()[1]).toBe("Desempenho");
+    expect(screen.queryByRole("button", { name: /Relatório/i })).toBeNull();
   });
 
   it("abre o menu ao clicar no botão e dispara a ação escolhida", () => {

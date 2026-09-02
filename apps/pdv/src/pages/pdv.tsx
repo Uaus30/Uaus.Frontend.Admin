@@ -203,13 +203,11 @@ export default function Pdv() {
           <PdvMainMenu
             usesCashRegister={mode.requiresOpenSession}
             sessionId={sessionId}
-            printingReport={report.printingReport}
             onCloseRegister={() => void requestCloseRegister()}
             onStockWriteOff={dialogs.stockWriteOff.show}
             onSalesHistory={dialogs.salesHistory.show}
             onPerformance={dialogs.performance.show}
             onHeldSales={dialogs.heldSales.show}
-            onPrintReport={() => void report.printReport()}
             onPreferences={dialogs.preferences.show}
             onExit={exit}
           />
