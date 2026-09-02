@@ -149,16 +149,32 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                     return (
                       <motion.div
                         key={product.id}
+                        data-testid="search-result"
                         whileHover={outOfStock ? undefined : { scale: 1.01 }}
                         className={`flex items-center justify-between gap-3 p-4 rounded-xl border bg-card group transition-all ${
                           outOfStock
                             ? "border-border/30 cursor-not-allowed"
                             : "border-border/50 cursor-pointer hover:border-primary/40"
                         }`}
+                        // O card é uma div: o `mousedown` nela tira o cursor do
+                        // campo de busca antes de o clique chegar. Cancelar o
+                        // padrão mantém o cursor onde estava, sem o campo piscar
+                        // (e sem o teclado virtual do touchscreen fechar e abrir).
+                        onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
                           if (outOfStock) return;
                           onPickProduct(product);
                           search.clear();
+                          // Cinto e suspensório do `onMouseDown` acima: o
+                          // próximo bipe do leitor digita no campo focado, e o
+                          // operador tinha que clicar no campo a cada produto
+                          // escolhido pela lista. O retorno mora AQUI, e não a
+                          // cada mudança do carrinho, porque refocar em toda
+                          // mudança roubaria o cursor de quem está editando a
+                          // quantidade ou o preço de uma linha (ver
+                          // `usePdvCounter`). O caminho do leitor nunca perde o
+                          // cursor: ele entra pelo Enter do próprio campo.
+                          inputRef.current?.focus();
                         }}
                       >
                         {/* O esmaecido do produto zerado mora AQUI, e não na

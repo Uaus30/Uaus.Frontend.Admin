@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button, Input, useToast } from "@workspace/ui";
@@ -37,6 +38,19 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
   // reinicia a animação quando o MESMO produto é bipado de novo: ele muda, a
   // `key` do contorno muda junto e o pulso recomeça do zero.
   const pulseSeq = usePdvStore((state) => (state.lastAddedItemId === item.id ? state.lastAddedSeq : 0));
+
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // A linha que recebeu o bipe vem para dentro da área visível. O item novo
+  // entra no FIM da lista e, com o carrinho mais alto que a coluna, o pulso
+  // acontecia fora da tela: o operador bipava, não via nada mudar e bipava de
+  // novo. `nearest` rola o mínimo — linha já à vista não mexe a lista, e quem
+  // está conferindo o carrinho não perde a posição por causa de um bipe.
+  // Chamada opcional porque o jsdom não implementa `scrollIntoView`.
+  useEffect(() => {
+    if (pulseSeq === 0) return;
+    rootRef.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  }, [pulseSeq]);
 
   /**
    * Aplica o preço digitado como desconto do item.
@@ -86,6 +100,7 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
 
   return (
     <motion.div
+      ref={rootRef}
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
