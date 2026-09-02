@@ -95,8 +95,12 @@ export function buildSaleReceipt({
     items: items.map((item) => ({
       name: item.name,
       quantity: item.quantity,
-      // O cupom imprime o preço que o cliente pagou, não o de tabela.
+      // O cupom imprime o preço que o cliente pagou, não o de tabela...
       unitPrice: round2(item.price - item.discount),
+      // ...e o desconto vai separado, para a linha do item mostrar de onde o
+      // preço pago veio. É o MESMO par (líquido + desconto) que o payload grava
+      // e que a reimpressão relê da API: as duas vias saem iguais.
+      unitDiscount: round2(item.discount),
       barcode: item.barcode,
     })),
     // Venda zerada pelo cupom não teve recebimento nenhum, e o payload sobe com a

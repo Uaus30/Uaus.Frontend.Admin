@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { allocateCouponByItem, computeDiscount, computeSaleTotals } from "./discount";
+import {
+  allocateCouponByItem,
+  computeDiscount,
+  computeSaleDiscountTotal,
+  computeSaleTotals,
+} from "./discount";
 
 describe("computeDiscount", () => {
   describe("desconto em valor", () => {
@@ -313,5 +318,46 @@ describe("allocateCouponByItem", () => {
     for (const cupom of [0.01, 1.11, 7.77, 10, 33.33, 99.99]) {
       expect(centavos(allocateCouponByItem(carrinho, cupom))).toBe(Math.round(cupom * 100));
     }
+  });
+});
+
+describe("computeSaleDiscountTotal", () => {
+  it("é só o cabeçalho quando nenhum item teve desconto", () => {
+    expect(computeSaleDiscountTotal({ discount: 3, items: [{ quantity: 2, discount: 0 }] })).toBe(3);
+  });
+
+  it("soma o desconto de item multiplicado pela quantidade", () => {
+    // É a venda #1945 do ambiente de dev, que motivou a função: carregador de
+    // R$ 22,00 vendido a R$ 20,00. O cabeçalho diz zero e o item diz 2 — quem
+    // lia só o cabeçalho concluía que não houve desconto.
+    expect(computeSaleDiscountTotal({ discount: 0, items: [{ quantity: 1, discount: 2 }] })).toBe(2);
+    expect(computeSaleDiscountTotal({ discount: 0, items: [{ quantity: 3, discount: 2 }] })).toBe(6);
+  });
+
+  it("soma cabeçalho e itens", () => {
+    expect(
+      computeSaleDiscountTotal({
+        discount: 1,
+        items: [
+          { quantity: 1, discount: 5 },
+          { quantity: 2, discount: 0.5 },
+        ],
+      }),
+    ).toBe(7);
+  });
+
+  it("aceita venda sem itens e item sem o campo", () => {
+    expect(computeSaleDiscountTotal({ discount: 4 })).toBe(4);
+    expect(computeSaleDiscountTotal({ discount: 4, items: null })).toBe(4);
+    expect(computeSaleDiscountTotal({ discount: 4, items: [{ quantity: 1 }] })).toBe(4);
+    expect(computeSaleDiscountTotal({})).toBe(0);
+  });
+
+  it("ignora desconto negativo em vez de virar acréscimo", () => {
+    expect(computeSaleDiscountTotal({ discount: -1, items: [{ quantity: 1, discount: -2 }] })).toBe(0);
+  });
+
+  it("arredonda ao centavo", () => {
+    expect(computeSaleDiscountTotal({ discount: 0.1, items: [{ quantity: 3, discount: 0.1 }] })).toBe(0.4);
   });
 });

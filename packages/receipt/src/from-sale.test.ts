@@ -19,6 +19,26 @@ function totalsBlock(html: string): string[] {
     .map(([, label, value]) => `${label} ${value}`);
 }
 
+/**
+ * Texto do bloco de itens do cupom impresso — da seção ITENS até o TOTAL —
+ * sem a marcação. A comparação é sobre o HTML pelo mesmo motivo de
+ * `totalsBlock`: o que tem que bater entre as duas vias é o que sai no papel.
+ *
+ * O espaço em branco é normalizado sem `\s`, que engoliria o espaço
+ * inseparável do "R$ 22,00" e faria a comparação com `formatReceiptCurrency`
+ * falhar por um caractere invisível.
+ */
+function itemsBlock(html: string): string {
+  const start = html.indexOf("ITENS</div>");
+  const end = html.indexOf('<div class="row total">');
+
+  return html
+    .slice(start, end)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/[ \t\r\n]+/g, " ")
+    .trim();
+}
+
 /** Venda mínima como a API devolve, sobrescrita por teste conforme o caso. */
 function makeSale(overrides: Partial<SaleLike> = {}): SaleLike {
   return {
@@ -44,7 +64,9 @@ describe("buildReceiptFromSale", () => {
     expect(receipt.notes).toBe("entrega");
     // O item da venda da API não carrega código de barras, então ele fica nulo
     // e a linha do código não é impressa.
-    expect(receipt.items).toEqual([{ name: "CHICLETE", quantity: 2, unitPrice: 6, barcode: null }]);
+    expect(receipt.items).toEqual([
+      { name: "CHICLETE", quantity: 2, unitPrice: 6, unitDiscount: 0, barcode: null },
+    ]);
   });
 
   it("repassa o código de barras quando a origem o conhece", () => {
@@ -238,5 +260,63 @@ describe("buildReceiptFromSale", () => {
     expect(receipt.customerDocument).toBe("987.654.321-00");
     expect(receipt.reprint).toBe(true);
     expect(receipt.cancelled).toBe(true);
+  });
+
+  it("repassa o desconto unitário do item para a linha do cupom", () => {
+    // É o dado que a reimpressão perdia: a API grava unitPrice líquido e o
+    // desconto à parte, e o cupom só lia o primeiro.
+    const receipt = buildReceiptFromSale(makeSale({ total: 20 }), [
+      { productId: 163, productName: "CARREGADOR CELULAR IPHONE", quantity: 1, unitPrice: 20, discount: 2 },
+    ]);
+
+    expect(receipt.items[0]).toEqual({
+      name: "CARREGADOR CELULAR IPHONE",
+      quantity: 1,
+      unitPrice: 20,
+      unitDiscount: 2,
+      barcode: null,
+    });
+  });
+
+  it("trata desconto de item ausente ou negativo como zero", () => {
+    const receipt = buildReceiptFromSale(makeSale(), [
+      { productId: 1, quantity: 1, unitPrice: 5 },
+      { productId: 2, quantity: 1, unitPrice: 5, discount: null },
+      { productId: 3, quantity: 1, unitPrice: 5, discount: -1 },
+    ]);
+
+    expect(receipt.items.map((item) => item.unitDiscount)).toEqual([0, 0, 0]);
+  });
+
+  it("reimprime a mesma linha de item que saiu na primeira via quando houve desconto de item", () => {
+    // A primeira via nasce do carrinho (preço de tabela e desconto separados);
+    // a segunda nasce da venda da API (preço líquido e desconto separados). As
+    // duas têm que imprimir "1 UN x R$ 22,00" e "Desconto - R$ 2,00" — é a
+    // venda #1945 de dev, cuja segunda via saía sem o desconto.
+    const firstVia: ReceiptData = {
+      saleId: 1945,
+      createdAt: "2026-09-02T08:52:54",
+      items: [{ name: "CARREGADOR CELULAR IPHONE", quantity: 1, unitPrice: 20, unitDiscount: 2 }],
+      payments: [{ name: "Dinheiro", amount: 20 }],
+      discount: 0,
+      total: 20,
+    };
+
+    const secondVia = buildReceiptFromSale(
+      makeSale({
+        id: 1945,
+        createdAt: "2026-09-02T08:52:54",
+        total: 20,
+        payments: [{ paymentMethodId: 1, paymentMethodName: "Dinheiro", amount: 20 }],
+      }),
+      [{ productId: 163, productName: "CARREGADOR CELULAR IPHONE", quantity: 1, unitPrice: 20, discount: 2 }],
+      { reprint: true },
+    );
+
+    const printed = itemsBlock(buildReceiptHtml(secondVia));
+
+    expect(printed).toEqual(itemsBlock(buildReceiptHtml(firstVia)));
+    expect(printed).toContain(`1 UN x ${formatReceiptCurrency(22)}`);
+    expect(printed).toContain(`Desconto - ${formatReceiptCurrency(2)}`);
   });
 });

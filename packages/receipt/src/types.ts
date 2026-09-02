@@ -46,6 +46,20 @@ export interface ReceiptItem {
   quantity: number;
   /** Preço unitário efetivamente praticado (já líquido de desconto de item). */
   unitPrice: number;
+  /**
+   * Desconto concedido POR UNIDADE, em reais, já abatido de `unitPrice`: o
+   * preço de tabela no momento da venda era `unitPrice + unitDiscount`.
+   *
+   * Maior que zero, o item sai com o preço de TABELA na linha da quantidade e
+   * uma linha "Desconto" logo abaixo, com o abatimento da linha inteira
+   * (unitário × quantidade). Sem este campo o cupom imprimia só o preço
+   * líquido: o carregador de R$ 22,00 vendido a R$ 20,00 saía no papel como se
+   * custasse R$ 20,00, e o desconto que o operador deu sumia do comprovante —
+   * inclusive da segunda via, que é a que o cliente traz de volta ao balcão.
+   *
+   * Ausente ou zero, a linha sai como sempre saiu.
+   */
+  unitDiscount?: number;
   /** Unidade de medida exibida ao lado da quantidade. */
   unit?: string;
   /**

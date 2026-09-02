@@ -249,3 +249,46 @@ export function allocateCouponByItem(items: CouponAllocationItem[], couponDiscou
 
   return shares;
 }
+
+/**
+ * Uma venda como a API devolve, no que importa para somar o que foi abatido.
+ *
+ * Recorte estrutural de propósito: `SaleDto` mora em `@workspace/api-client`,
+ * de quem o `core` não depende. Qualquer objeto com estes campos serve — a
+ * venda do histórico, a da fila offline, um fixture de teste.
+ */
+export interface SaleDiscountsLike {
+  /**
+   * Desconto do cabeçalho, concedido sobre o total da venda. Na API o cupom JÁ
+   * está dentro dele — é parcela, nunca adição.
+   */
+  discount?: number | null;
+  /** Itens com o desconto UNITÁRIO de cada um, como a API grava. */
+  items?: ReadonlyArray<{ quantity: number; discount?: number | null }> | null;
+}
+
+/**
+ * Tudo o que foi abatido na venda: os descontos de item (unitário × quantidade)
+ * mais o desconto do cabeçalho.
+ *
+ * Existe porque `sales.discount` sozinho MENTE por omissão. O desconto de item
+ * não passa por ele: já saiu do `unitPrice` gravado, e o produto de R$ 22,00
+ * vendido a R$ 20,00 chega da API como `discount: 0` no cabeçalho e
+ * `discount: 2` no item. Quem lê só o cabeçalho conclui que não houve desconto
+ * — foi assim que o histórico do PDV escondeu o desconto que o operador tinha
+ * acabado de dar na reedição da venda.
+ *
+ * Negativos viram zero, como em `computeSaleTotals`: dado corrompido não pode
+ * virar acréscimo na tela.
+ *
+ * @param sale Venda da API, ou qualquer recorte com os mesmos campos.
+ * @returns Reais abatidos no total, arredondados ao centavo.
+ */
+export function computeSaleDiscountTotal(sale: SaleDiscountsLike): number {
+  const itemDiscounts = (sale.items ?? []).reduce(
+    (sum, item) => sum + Math.max(0, item.discount ?? 0) * Math.max(0, item.quantity),
+    0,
+  );
+
+  return round2(Math.max(0, sale.discount ?? 0) + itemDiscounts);
+}

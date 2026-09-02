@@ -256,6 +256,10 @@ const PRINT_STYLES = `
 
   .item-breakdown { font-size: ${fontSize(10)}; }
 
+  /* Abatimento na linha do item: o mesmo "rótulo à esquerda, valor à direita" dos
+     totais, mas no corpo da linha da quantidade — é detalhe do item, não total. */
+  .row.item-discount { font-size: ${fontSize(10)}; }
+
   /* Cabeçalho das colunas dos itens: é rótulo, não conteúdo, então acompanha o
      corpo dos títulos de seção em vez do corpo do nome do produto. */
   .row.items-header {

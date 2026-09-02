@@ -76,7 +76,18 @@ export interface SaleItemLike {
   productId: number;
   productName?: string | null;
   quantity: number;
+  /** Preço unitário praticado, já líquido do desconto do item — como a API grava. */
   unitPrice: number;
+  /**
+   * Desconto UNITÁRIO concedido no item, em reais. O preço de tabela no dia da
+   * venda era `unitPrice + discount`.
+   *
+   * Opcional porque vendas antigas e a fila offline podem chegar sem o campo;
+   * leia com `?? 0`. É ele que faz a segunda via mostrar o desconto que a
+   * primeira via mostrou — sem ele o item saía no papel a preço líquido, como
+   * se nunca tivesse tido desconto.
+   */
+  discount?: number | null;
   /**
    * Código de barras do produto. A API não o devolve no item da venda, então na
    * reimpressão ele fica de fora e a linha do código não é impressa; o campo
@@ -218,6 +229,9 @@ export function buildReceiptFromSale(
       name: item.productName || `Produto #${item.productId}`,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      // Piso em zero pelo mesmo motivo do desconto do cabeçalho logo acima:
+      // snapshot inconsistente não pode virar acréscimo no papel.
+      unitDiscount: round2(Math.max(0, item.discount ?? 0)),
       barcode: item.barcode ?? null,
     })),
     payments,

@@ -67,6 +67,8 @@ describe("buildSaleReceipt", () => {
     const receipt = build();
 
     expect(receipt.items[0].unitPrice).toBe(8);
+    // ...mas o desconto vai junto, para o papel mostrar de onde os R$ 8,00 vieram.
+    expect(receipt.items[0].unitDiscount).toBe(2);
     expect(receipt.items[0].quantity).toBe(2);
     expect(receipt.total).toBe(16);
     expect(receipt.saleId).toBe(42);
@@ -173,5 +175,27 @@ describe("buildSaleReceipt", () => {
 
     expect(doCarrinho.coupon).toEqual(reimpressao.coupon);
     expect(doCarrinho.discount).toBe(reimpressao.discount);
+  });
+
+  it("deve produzir a mesma linha de item que a reimpressão a partir da venda gravada", () => {
+    // A venda grava unitPrice LÍQUIDO e o desconto à parte; o carrinho tem o
+    // preço de tabela e o desconto. Os dois têm que chegar ao cupom iguais —
+    // senão a segunda via imprime o item diferente da primeira.
+    const doCarrinho = build();
+    const reimpressao = buildReceiptFromSale(
+      { id: 42, createdAt: "2026-08-15T12:00:00", total: 16, discount: 0, notes: null },
+      [
+        {
+          productId: 7,
+          productName: "Coca-Cola 350ml",
+          quantity: 2,
+          unitPrice: 8,
+          discount: 2,
+          barcode: "7891000100103",
+        },
+      ],
+    );
+
+    expect(doCarrinho.items).toEqual(reimpressao.items);
   });
 });

@@ -364,4 +364,55 @@ describe("buildReceiptHtml", () => {
 
     expect(html).toContain('<span class="row-value">—</span>');
   });
+
+  it("imprime o preço de tabela e a linha de desconto do item quando houve desconto", () => {
+    // Venda #1945 de dev: carregador de R$ 22,00 vendido a R$ 20,00. O cupom
+    // saía "1 UN x R$ 20,00" sem nenhuma menção ao desconto — como se o
+    // produto custasse R$ 20,00.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "CARREGADOR CELULAR IPHONE", quantity: 1, unitPrice: 20, unitDiscount: 2 }],
+        payments: [{ name: "Dinheiro", amount: 20 }],
+        total: 20,
+      }),
+    );
+
+    expect(html).toContain(`1 UN x ${formatReceiptCurrency(22)}`);
+    expect(html).toContain(
+      `<div class="row item-discount"><span class="row-label">Desconto</span><span class="row-value">- ${formatReceiptCurrency(2)}</span></div>`,
+    );
+    // O total da linha continua sendo o que o cliente pagou.
+    expect(html).toContain(`<span class="row-value">${formatReceiptCurrency(20)}</span>`);
+  });
+
+  it("multiplica o desconto unitário pela quantidade na linha do item", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "COCA-COLA 350ML", quantity: 3, unitPrice: 8, unitDiscount: 2 }],
+        payments: [{ name: "Dinheiro", amount: 24 }],
+        total: 24,
+      }),
+    );
+
+    expect(html).toContain(`3 UN x ${formatReceiptCurrency(10)}`);
+    expect(html).toContain(`- ${formatReceiptCurrency(6)}`);
+  });
+
+  it("não imprime linha de desconto no item sem desconto", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({ items: [{ name: "CHICLETE", quantity: 2, unitPrice: 0.25, unitDiscount: 0 }] }),
+    );
+
+    expect(html).not.toContain('class="row item-discount"');
+    expect(html).toContain(`2 UN x ${formatReceiptCurrency(0.25)}`);
+  });
+
+  it("não deixa desconto de item negativo virar acréscimo", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({ items: [{ name: "CHICLETE", quantity: 1, unitPrice: 0.25, unitDiscount: -1 }] }),
+    );
+
+    expect(html).not.toContain('class="row item-discount"');
+    expect(html).toContain(`1 UN x ${formatReceiptCurrency(0.25)}`);
+  });
 });

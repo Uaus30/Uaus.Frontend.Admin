@@ -3,7 +3,7 @@ import { History, Loader2, Printer, MoreVertical, FileBarChart } from "lucide-re
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Hint } from "./hint";
-import { formatCurrency } from "@workspace/core";
+import { computeSaleDiscountTotal, formatCurrency } from "@workspace/core";
 import { enumCode, PAYMENT_STATUS, type SaleDto } from "@workspace/api-client-react";
 
 export interface SalesHistoryDialogProps {
@@ -122,6 +122,15 @@ export function SalesHistoryDialog({
                   .filter(Boolean)
                   .join(" + ");
 
+                /**
+                 * Tudo o que foi abatido nesta venda: desconto de item, da venda
+                 * e cupom. Item e cabeçalho somados de propósito — `sale.discount`
+                 * sozinho não inclui o desconto de item (ele já saiu do preço
+                 * gravado), e a lista escondia o desconto que o operador tinha
+                 * acabado de dar na reedição.
+                 */
+                const discountTotal = computeSaleDiscountTotal(sale);
+
                 return (
                   <div
                     key={sale.id}
@@ -164,6 +173,11 @@ export function SalesHistoryDialog({
                         >
                           {formatCurrency(sale.total)}
                         </p>
+                        {discountTotal > 0 && (
+                          <p className="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                            Desconto - {formatCurrency(discountTotal)}
+                          </p>
+                        )}
                       </div>
 
                       <div className="relative flex items-center gap-1">

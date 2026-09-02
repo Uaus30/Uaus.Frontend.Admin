@@ -157,6 +157,30 @@ campos de cupom sobrevivem.
 `couponDiscount` ali contaria o abatimento duas vezes e o relatório deixaria de
 bater com o Dashboard.
 
+### 10. O desconto de item sai NA LINHA DO ITEM, com o preço de tabela
+
+A API grava o item com `unitPrice` **líquido** e o desconto unitário à parte
+(`discount`); o carrinho do PDV guarda preço de tabela e desconto. Os dois
+caminhos preenchem `ReceiptItem.unitDiscount`, e o layout imprime:
+
+```
+CARREGADOR CELULAR IPHONE           R$ 20,00
+1 UN x R$ 22,00
+Desconto                           - R$ 2,00
+```
+
+A linha da quantidade mostra o preço de **tabela** de propósito: "1 UN x
+R$ 20,00" seguido de "Desconto - R$ 2,00" sugeriria R$ 18,00. O total da linha
+(à direita) continua sendo o que o cliente pagou, e o Subtotal do bloco de
+totais continua sendo a soma dessas linhas — o mesmo Subtotal que o carrinho
+mostra na tela.
+
+Antes deste campo o cupom só lia o preço líquido, e o desconto de item sumia
+das duas vias: o produto de R$ 22,00 vendido a R$ 20,00 saía no papel como se
+custasse R$ 20,00. O histórico do PDV tinha o mesmo ponto cego — lia só
+`sales.discount`, que não inclui o desconto de item; ver
+`computeSaleDiscountTotal` no `@workspace/core`.
+
 ## Testes
 
 `npm run test --workspace=@workspace/receipt`
@@ -164,9 +188,10 @@ bater com o Dashboard.
 O que a suíte trava: venda só com cupom imprime Subtotal; a linha do cupom vem
 antes do TOTAL; venda sem abatimento nenhum não fala em desconto; código e
 descrição com `<` e `"` saem escapados; venda zerada sai sem troco; e a
-reimpressão via `buildReceiptFromSale` produz **o mesmo bloco de totais** que a
-primeira via montada do carrinho — a comparação é feita sobre o HTML, porque o
-que precisa bater é o que sai no papel.
+reimpressão via `buildReceiptFromSale` produz **o mesmo bloco de totais** e
+**a mesma linha de item com desconto** que a primeira via montada do carrinho —
+a comparação é feita sobre o HTML, porque o que precisa bater é o que sai no
+papel.
 
 `print.ts` aparece descoberto no relatório e não adianta fingir o contrário: ele
 fala com a impressora do sistema pelo iframe, e o jsdom não implementa

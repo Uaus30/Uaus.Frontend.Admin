@@ -1,3 +1,4 @@
+import { round2 } from "@workspace/core";
 import {
   banner,
   divider,
@@ -45,7 +46,24 @@ export function buildReceiptHtml(data: ReceiptData): string {
   const itemRows = data.items
     .map((item) => {
       const total = formatReceiptCurrency(item.quantity * item.unitPrice);
-      const breakdown = `${formatReceiptQuantity(item.quantity)} ${escapeHtml(item.unit || "UN")} x ${formatReceiptCurrency(item.unitPrice)}`;
+
+      // Com desconto de item, a linha da quantidade mostra o preço de TABELA e
+      // o abatimento da linha sai logo abaixo: "1 UN x R$ 22,00" seguido de
+      // "Desconto - R$ 2,00" fecha com os R$ 20,00 da direita. Mostrar o
+      // líquido ("1 UN x R$ 20,00") e ainda um desconto de R$ 2,00 sugeriria
+      // R$ 18,00 — e sem linha nenhuma, que era o caso, o desconto sumia do
+      // papel. Negativo vira zero: dado corrompido não pode virar acréscimo.
+      const unitDiscount = Math.max(0, item.unitDiscount ?? 0);
+      const listUnitPrice = round2(item.unitPrice + unitDiscount);
+      const breakdown = `${formatReceiptQuantity(item.quantity)} ${escapeHtml(item.unit || "UN")} x ${formatReceiptCurrency(listUnitPrice)}`;
+      const discountRow =
+        unitDiscount > 0
+          ? row(
+              "Desconto",
+              `- ${formatReceiptCurrency(round2(unitDiscount * item.quantity))}`,
+              "item-discount",
+            )
+          : "";
 
       // A linha do código só aparece quando a origem o conhece. A reimpressão a
       // partir da API não traz código de barras no item da venda, e uma linha
@@ -59,6 +77,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
           ${barcodeLine}
           ${row(escapeHtml(item.name), total, "item-head")}
           <div class="item-breakdown">${breakdown}</div>
+          ${discountRow}
         </div>`;
     })
     .join("");
