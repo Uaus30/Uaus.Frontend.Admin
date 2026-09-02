@@ -4,6 +4,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button, Input, useToast } from "@workspace/ui";
 import { computeDiscount, formatCurrency, parseAmount } from "@workspace/core";
 import { usePdvStore } from "@/stores/use-pdv-store";
+import { scrollIntoViewVertically } from "@/lib/scroll-into-view";
 import { PdvCartItemImage } from "./pdv-cart-item-image";
 import type { PdvItem } from "../types";
 
@@ -44,12 +45,12 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
   // A linha que recebeu o bipe vem para dentro da área visível. O item novo
   // entra no FIM da lista e, com o carrinho mais alto que a coluna, o pulso
   // acontecia fora da tela: o operador bipava, não via nada mudar e bipava de
-  // novo. `nearest` rola o mínimo — linha já à vista não mexe a lista, e quem
-  // está conferindo o carrinho não perde a posição por causa de um bipe.
-  // Chamada opcional porque o jsdom não implementa `scrollIntoView`.
+  // novo. Rola o mínimo, e SÓ na vertical — o `scrollIntoView` nativo alinha
+  // também na horizontal, e foi ele que puxou o carrinho inteiro 20px para a
+  // esquerda a cada bipe (ver `lib/scroll-into-view`).
   useEffect(() => {
     if (pulseSeq === 0) return;
-    rootRef.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    scrollIntoViewVertically(rootRef.current);
   }, [pulseSeq]);
 
   /**
@@ -101,9 +102,14 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
   return (
     <motion.div
       ref={rootRef}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+      // Só esmaece, sem deslizar. A entrada de 20px vinda da direita crescia a
+      // área rolável do viewport enquanto durava, e qualquer rolagem naquele
+      // instante puxava a lista inteira para o lado — todas as linhas cortadas
+      // até a animação terminar. O pulso do contorno já é a confirmação de que
+      // o item entrou; o deslize só disputava atenção com ele.
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="relative flex items-stretch gap-3 p-3 rounded-lg border border-border/40 bg-background/50 group"
     >
       {/* O contorno é uma camada por cima, não a borda da linha: animar a borda
