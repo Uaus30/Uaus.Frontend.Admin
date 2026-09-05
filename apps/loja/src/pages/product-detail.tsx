@@ -6,6 +6,7 @@ import { buildBreadcrumbJsonLd, useJsonLd } from "@/lib/structured-data";
 import { catalogPath, productDetailPath } from "@/routes";
 import { useProductDetail } from "@/features/catalog/hooks/useProductDetail";
 import { PriceTag } from "@/features/catalog/components/PriceTag";
+import { StockBadge } from "@/features/catalog/components/StockBadge";
 import { ProductBreadcrumb } from "@/features/catalog/components/ProductBreadcrumb";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
@@ -133,6 +134,9 @@ export default function ProductDetailPage() {
                   )}
 
                   <div className="mt-6 rounded-2xl border border-border bg-white p-5">
+                    <div className="mb-3">
+                      <StockBadge badge={detail.product.stockBadge} size="lg" />
+                    </div>
                     <PriceTag price={detail.product.price} priceMax={detail.product.priceMax} size="lg" />
                   </div>
 

@@ -12,11 +12,13 @@ regras abaixo.
   produto caro, reclame ;D" foi trocado em 29/08/2026 por decisão do dono (ver
   `PLANO-DESIGN-LOJA.md`, Fase 4): a piada tirava credibilidade justamente no
   bloco que promete o preço.
-- **Destaques do catálogo.** A faixa `FeaturedProducts` é a única seção da home
-  que consulta a API, e ela **não tem query própria**: consome
+- **Novidades do catálogo.** A seção `FeaturedProducts` ("Novidades") é a única
+  da home que consulta a API, e ela **não tem query própria**: consome
   `useFeaturedProducts` da feature `catalog`, que é a dona dos dados de
   produto. O card é o mesmo `ProductCard` da vitrine — preço, selo e link de
-  detalhe iguais, por construção.
+  detalhe iguais, por construção. Quantos produtos aparecem é configurável em
+  Admin > Configurações (padrão 20, do mais novo para o mais antigo); até
+  05/09/2026 eram 8 fixos.
   Falha ou catálogo vazio fazem a seção **sumir**, não mostrar erro: destaque é
   conteúdo acessório, e uma caixa de "não foi possível carregar" no meio da
   home dá a impressão de site quebrado por algo que o visitante nem sabia que

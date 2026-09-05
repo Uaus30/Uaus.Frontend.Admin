@@ -45,6 +45,8 @@ const serverSettings = {
   document: "64.958.682/0001-22",
   receiptFooterMessage: "Obrigado pela preferência!",
   maxSellerDiscountPercentage: 0,
+  siteLowStockThreshold: 0,
+  siteNewProductsCount: 20,
 };
 
 describe("useCompanySettings", () => {
@@ -149,6 +151,58 @@ describe("useCompanySettings", () => {
     await waitFor(() =>
       expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Configurações salvas" })),
     );
+  });
+
+  it("deve marcar alteração pendente e gravar as opções do site", async () => {
+    // As duas opções da vitrine viajam no MESMO PUT da linha única. Sem entrar
+    // na conta do "sujo", mexer nelas deixaria o botão de salvar desabilitado.
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.site.newProductsCount).toBe(20));
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => result.current.setSiteField("lowStockThreshold", 5));
+    act(() => result.current.setSiteField("newProductsCount", 12));
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() =>
+      expect(mocks.updateCompanySettings).toHaveBeenCalledWith(
+        expect.objectContaining({ siteLowStockThreshold: 5, siteNewProductsCount: 12 }),
+      ),
+    );
+  });
+
+  it("não grava quantidade de novidades fora da faixa e avisa", async () => {
+    // O backend também recusa, mas a recusa dele chegaria como toast genérico de
+    // erro; aqui a mensagem diz qual campo e qual faixa.
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.site.newProductsCount).toBe(20));
+    act(() => result.current.setSiteField("newProductsCount", 0));
+
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    expect(mocks.updateCompanySettings).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
+  });
+
+  it("assume os padrões do site quando o backend ainda não os devolve", async () => {
+    mocks.useGetCompanySettings.mockReturnValue({
+      data: { usesCashRegister: false },
+      isLoading: false,
+    });
+
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.site.newProductsCount).toBe(20));
+    expect(result.current.site.lowStockThreshold).toBe(0);
+    expect(result.current.isDirty).toBe(false);
   });
 
   it("deve gravar a identidade aparada, sem espaços acidentais", async () => {

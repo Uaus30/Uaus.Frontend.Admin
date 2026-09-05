@@ -14,6 +14,8 @@ export default function CompanySettings() {
     setMaxSellerDiscountPercentage,
     identity,
     setIdentityField,
+    site,
+    setSiteField,
     isDirty,
     isLoading,
     isSaving,
@@ -29,7 +31,8 @@ export default function CompanySettings() {
             <h1 className="text-3xl font-display font-bold text-foreground">Configurações</h1>
           </div>
           <p className="mt-1 text-muted-foreground">
-            Identidade impressa nos cupons e opções de operação da loja. Elas valem para todos os terminais.
+            Identidade impressa nos cupons, opções de operação da loja e da vitrine do site. Valem para todos
+            os terminais.
           </p>
         </div>
 
@@ -40,6 +43,8 @@ export default function CompanySettings() {
           onMaxSellerDiscountPercentageChange={setMaxSellerDiscountPercentage}
           identity={identity}
           onIdentityChange={setIdentityField}
+          site={site}
+          onSiteChange={setSiteField}
           isDirty={isDirty}
           isLoading={isLoading}
           isSaving={isSaving}

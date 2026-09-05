@@ -3,6 +3,7 @@ import { productDetailPath } from "@/routes";
 import type { CatalogProduct } from "../types";
 import { PriceTag } from "./PriceTag";
 import { ProductImage } from "./ProductImage";
+import { StockBadge } from "./StockBadge";
 import { TagRibbons } from "./TagRibbons";
 
 /**
@@ -27,6 +28,11 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           alt={product.name}
           className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
         />
+        {/* Canto oposto ao das etiquetas (que ficam no alto, à direita): os dois
+            selos podem coexistir sem um cobrir o outro. */}
+        <div className="absolute bottom-3 left-3 z-10">
+          <StockBadge badge={product.stockBadge} />
+        </div>
       </div>
 
       <div className="p-4">

@@ -18,6 +18,26 @@ import { describeApiError } from "@workspace/core";
  */
 const DEFAULT_USES_CASH_REGISTER = false;
 
+/** Opções da vitrine (site público), como o formulário as edita. */
+export interface SiteOptionsFields {
+  /**
+   * Abaixo de quantas unidades o site mostra "Últimas unidades"; uma unidade
+   * vira "Último disponível". Zero desliga as duas tags.
+   */
+  lowStockThreshold: number;
+  /** Quantos produtos a seção "Novidades" da home exibe. */
+  newProductsCount: number;
+}
+
+/**
+ * Padrões do site enquanto a leitura não chega — os MESMOS do backend e do
+ * script de schema: tags de escassez desligadas e 20 novidades.
+ */
+const DEFAULT_SITE_OPTIONS: SiteOptionsFields = {
+  lowStockThreshold: 0,
+  newProductsCount: 20,
+};
+
 /** Identidade da loja impressa nos cupons, como o formulário a edita. */
 export interface StoreIdentityFields {
   /** Nome fantasia impresso em destaque no cabeçalho do cupom. */
@@ -61,6 +81,7 @@ export function useCompanySettings() {
   const [usesCashRegister, setUsesCashRegister] = useState(DEFAULT_USES_CASH_REGISTER);
   const [maxSellerDiscountPercentage, setMaxSellerDiscountPercentage] = useState(0);
   const [identity, setIdentity] = useState<StoreIdentityFields>(EMPTY_IDENTITY);
+  const [site, setSite] = useState<SiteOptionsFields>(DEFAULT_SITE_OPTIONS);
 
   const serverValue = settings?.usesCashRegister;
   const serverMaxSellerDiscount = settings ? (settings.maxSellerDiscountPercentage ?? 0) : undefined;
@@ -73,6 +94,14 @@ export function useCompanySettings() {
   const serverPhone = settings ? (settings.phone ?? "") : undefined;
   const serverDocument = settings ? (settings.document ?? "") : undefined;
   const serverFooterMessage = settings ? (settings.receiptFooterMessage ?? "") : undefined;
+  // Um backend anterior às opções do site responde sem elas; o `??` deixa o
+  // formulário editável com os padrões, e a gravação manda os dois campos.
+  const serverLowStockThreshold = settings
+    ? (settings.siteLowStockThreshold ?? DEFAULT_SITE_OPTIONS.lowStockThreshold)
+    : undefined;
+  const serverNewProductsCount = settings
+    ? (settings.siteNewProductsCount ?? DEFAULT_SITE_OPTIONS.newProductsCount)
+    : undefined;
 
   // A sincronia depende dos valores, não do objeto devolvido pela query: um
   // refetch que traz exatamente o mesmo estado não pode apagar o que o usuário
@@ -99,9 +128,34 @@ export function useCompanySettings() {
     });
   }, [serverStoreName, serverAddressLine, serverCityState, serverPhone, serverDocument, serverFooterMessage]);
 
+  // Sincronia feita DURANTE o render, e não num efeito: é o caso que a
+  // documentação do React chama de "ajustar estado quando uma prop muda". Num
+  // efeito a tela renderizaria uma vez com o valor velho — e o lint recusa
+  // `setState` síncrono dentro de efeito. Depende dos VALORES, como os demais:
+  // um refetch que traz o mesmo estado não apaga o que o usuário ainda não salvou.
+  const [siteSyncedFrom, setSiteSyncedFrom] = useState<SiteOptionsFields | null>(null);
+  if (
+    serverLowStockThreshold != null &&
+    serverNewProductsCount != null &&
+    (siteSyncedFrom?.lowStockThreshold !== serverLowStockThreshold ||
+      siteSyncedFrom?.newProductsCount !== serverNewProductsCount)
+  ) {
+    const fromServer = {
+      lowStockThreshold: serverLowStockThreshold,
+      newProductsCount: serverNewProductsCount,
+    };
+    setSiteSyncedFrom(fromServer);
+    setSite(fromServer);
+  }
+
   /** Altera um campo da identidade sem tocar nos demais. */
   function setIdentityField(field: keyof StoreIdentityFields, value: string) {
     setIdentity((current) => ({ ...current, [field]: value }));
+  }
+
+  /** Altera uma opção do site. Campo vazio ou lixo vira zero, e a validação segura no salvar. */
+  function setSiteField(field: keyof SiteOptionsFields, value: number) {
+    setSite((current) => ({ ...current, [field]: Number.isFinite(value) ? value : 0 }));
   }
 
   // Sujo por campo: qualquer um dos seis divergindo do servidor habilita salvar.
@@ -114,10 +168,16 @@ export function useCompanySettings() {
       identity.document !== serverDocument ||
       identity.receiptFooterMessage !== serverFooterMessage);
 
+  const isSiteDirty =
+    serverLowStockThreshold != null &&
+    serverNewProductsCount != null &&
+    (site.lowStockThreshold !== serverLowStockThreshold || site.newProductsCount !== serverNewProductsCount);
+
   const isDirty =
     (serverValue != null && serverValue !== usesCashRegister) ||
     (serverMaxSellerDiscount != null && serverMaxSellerDiscount !== maxSellerDiscountPercentage) ||
-    isIdentityDirty;
+    isIdentityDirty ||
+    isSiteDirty;
 
   const saveMutation = useMutation({
     // O PUT leva o objeto completo — configurações são uma linha única, não um
@@ -133,6 +193,8 @@ export function useCompanySettings() {
         phone: identity.phone.trim(),
         document: identity.document.trim(),
         receiptFooterMessage: identity.receiptFooterMessage.trim(),
+        siteLowStockThreshold: site.lowStockThreshold,
+        siteNewProductsCount: site.newProductsCount,
       }),
     onSuccess: async () => {
       // O PDV e a reimpressão do painel leem a mesma chave; invalidar é o que
@@ -152,10 +214,33 @@ export function useCompanySettings() {
     },
   });
 
-  /** Submete o formulário. Sem alteração pendente, não chama a API. */
+  /**
+   * Submete o formulário. Sem alteração pendente, não chama a API.
+   *
+   * A faixa das opções do site é conferida aqui, antes da ida à rede: o backend
+   * também recusa, mas a mensagem dele chegaria como toast genérico de erro.
+   */
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!isDirty) return;
+
+    if (site.newProductsCount < 1 || site.newProductsCount > 100) {
+      toast({
+        title: "Quantidade de novidades inválida",
+        description: "Informe entre 1 e 100 produtos para a seção Novidades do site.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (site.lowStockThreshold < 0 || site.lowStockThreshold > 1000) {
+      toast({
+        title: "Limite de 'Últimas unidades' inválido",
+        description: "Informe entre 0 (desligado) e 1000 unidades.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     saveMutation.mutate();
   }
 
@@ -166,6 +251,8 @@ export function useCompanySettings() {
     setMaxSellerDiscountPercentage,
     identity,
     setIdentityField,
+    site,
+    setSiteField,
     isDirty,
     isLoading,
     isSaving: saveMutation.isPending,

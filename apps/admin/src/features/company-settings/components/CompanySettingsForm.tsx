@@ -6,7 +6,7 @@ import { Label } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { Switch } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
-import type { StoreIdentityFields } from "../hooks/useCompanySettings";
+import type { SiteOptionsFields, StoreIdentityFields } from "../hooks/useCompanySettings";
 
 type CompanySettingsFormProps = {
   usesCashRegister: boolean;
@@ -16,6 +16,9 @@ type CompanySettingsFormProps = {
   /** Identidade da loja impressa nos cupons. */
   identity: StoreIdentityFields;
   onIdentityChange: (field: keyof StoreIdentityFields, value: string) => void;
+  /** Opções da vitrine pública (uaus.com.br). */
+  site: SiteOptionsFields;
+  onSiteChange: (field: keyof SiteOptionsFields, value: number) => void;
   /** Há alteração pendente de gravação. */
   isDirty: boolean;
   isLoading: boolean;
@@ -69,6 +72,8 @@ export function CompanySettingsForm({
   onMaxSellerDiscountPercentageChange,
   identity,
   onIdentityChange,
+  site,
+  onSiteChange,
   isDirty,
   isLoading,
   isSaving,
@@ -169,6 +174,63 @@ export function CompanySettingsForm({
               max={100}
               value={maxSellerDiscountPercentage}
               onChange={(e) => onMaxSellerDiscountPercentageChange(Number(e.target.value))}
+              disabled={isSaving}
+              className="w-24 text-right"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Site (vitrine pública)</CardTitle>
+          <CardDescription>
+            O que o visitante de uaus.com.br vê. A quantidade em estoque nunca aparece no site — só a tag.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-start justify-between gap-6 rounded-xl border border-border/50 bg-background/50 p-4">
+            <div className="space-y-1">
+              <Label htmlFor="site-low-stock-threshold" className="text-sm font-medium">
+                Tag &quot;Últimas unidades&quot; abaixo de (unidades)
+              </Label>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Com o saldo do produto abaixo deste número o card ganha a tag &quot;Últimas unidades&quot;;
+                com exatamente uma unidade, &quot;Último disponível&quot;. Zero desliga as duas tags. A
+                reserva por WhatsApp não mexe no estoque — só a venda registrada no PDV.
+              </p>
+            </div>
+            <Input
+              id="site-low-stock-threshold"
+              type="number"
+              min={0}
+              max={1000}
+              step={1}
+              value={site.lowStockThreshold}
+              onChange={(e) => onSiteChange("lowStockThreshold", Number(e.target.value))}
+              disabled={isSaving}
+              className="w-24 text-right"
+            />
+          </div>
+
+          <div className="flex items-start justify-between gap-6 rounded-xl border border-border/50 bg-background/50 p-4">
+            <div className="space-y-1">
+              <Label htmlFor="site-new-products-count" className="text-sm font-medium">
+                Produtos na seção &quot;Novidades&quot; da página inicial
+              </Label>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Os últimos produtos cadastrados aparecem na home do site, do mais novo para o mais antigo. De
+                1 a 100.
+              </p>
+            </div>
+            <Input
+              id="site-new-products-count"
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              value={site.newProductsCount}
+              onChange={(e) => onSiteChange("newProductsCount", Number(e.target.value))}
               disabled={isSaving}
               className="w-24 text-right"
             />

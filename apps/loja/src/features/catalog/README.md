@@ -45,6 +45,17 @@ consome a API **como visitante anônimo**.
 - **Filtro que leva a lugar nenhum não é oferecido.** Departamento sem grupo
   visível não entra na árvore; categoria idem.
 
+- **A tag de escassez vem pronta do backend (05/09/2026).** `stockBadge` diz
+  "Últimas unidades" ou "Último disponível" e `StockBadge` só pinta. A regra —
+  saldo SOMADO dos produtos ativos do grupo comparado ao limiar configurado em
+  Admin > Configurações; zero desliga — mora no `StorefrontService`, e a
+  quantidade em estoque nunca chega ao site. É deliberado: o DTO público não
+  carrega estoque, e um número na tela viraria "por que diz 3 se eu vi 2?". A
+  reserva por WhatsApp não mexe em estoque; só a venda registrada no PDV
+  mexe, então a tag pode ficar defasada até a próxima venda — é apelo
+  comercial, não promessa. No card ela fica no canto inferior esquerdo, oposto
+  ao das etiquetas, para os dois selos não se cobrirem.
+
 ## Decisões de implementação
 
 - **Scroll infinito com `useInfiniteQuery`** (páginas de 24) em vez de baixar
@@ -54,7 +65,11 @@ consome a API **como visitante anônimo**.
 - **`useFeaturedProducts` é uma página só**, e mora aqui — não na feature
   `home`, que é quem a renderiza. Dado de produto é desta feature; a home
   compõe. O hook usa `useGetStorefrontProducts` (query simples) em vez do
-  infinito: a faixa da home pede oito produtos e nada mais.
+  infinito: a seção "Novidades" pede N produtos e nada mais. O N vem de
+  `newProductsCount` no `/Storefront/company` (configurável em Admin >
+  Configurações, padrão 20), que o rodapé já pede em toda página — sem ida a
+  mais. Enquanto ele não chega vale o padrão; configurado diferente, a lista é
+  refeita com o número certo.
 - **Cards sem framer-motion.** Hover por transição CSS: numa grade que cresce,
   motion por card paga JavaScript por frame; CSS anima na composição. O card
   usa `object-contain` sobre fundo branco, e não `object-cover`: foto de

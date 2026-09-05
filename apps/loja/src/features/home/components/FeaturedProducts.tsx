@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@workspace/ui";
 import { ProductCard } from "@/features/catalog/components/ProductCard";
-import { FEATURED_COUNT, useFeaturedProducts } from "@/features/catalog/hooks/useFeaturedProducts";
+import { useFeaturedProducts } from "@/features/catalog/hooks/useFeaturedProducts";
 
 /** Esqueletos no formato do card, enquanto a primeira página chega. */
 function FeaturedSkeletons() {
@@ -23,12 +23,14 @@ function FeaturedSkeletons() {
 }
 
 /**
- * Faixa de produtos reais na home, reusando o `ProductCard` da vitrine — mesmo
- * card, mesmo preço, mesmo link de detalhe. Regra do §4 do CLAUDE.md: a query
- * mora em `useFeaturedProducts`; aqui só entra o que renderiza.
+ * Seção "Novidades" da home: os últimos produtos cadastrados, reusando o
+ * `ProductCard` da vitrine — mesmo card, mesmo preço, mesmo link de detalhe.
+ * Regra do §4 do CLAUDE.md: a query mora em `useFeaturedProducts`; aqui só
+ * entra o que renderiza.
  *
- * A seção some inteira quando não há produtos (ver o hook). Com poucos, a
- * grade simplesmente mostra os que existem em vez de fingir oito.
+ * Quantos produtos aparecem é configurável em Admin > Configurações (padrão
+ * 20). A seção some inteira quando não há produtos (ver o hook). Com poucos, a
+ * grade simplesmente mostra os que existem em vez de fingir a quantidade.
  */
 export function FeaturedProducts() {
   const featured = useFeaturedProducts();
@@ -40,9 +42,9 @@ export function FeaturedProducts() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <h2 className="text-3xl font-black text-foreground md:text-4xl">Novidades na loja</h2>
+            <h2 className="text-3xl font-black text-foreground md:text-4xl">Novidades</h2>
             <p className="mt-3 text-muted-foreground">
-              Uma amostra do que está nas prateleiras agora — e nenhum passa de R$ 30,00.
+              Os últimos produtos que chegaram à loja — e nenhum passa de R$ 30,00.
             </p>
           </div>
 
@@ -50,7 +52,7 @@ export function FeaturedProducts() {
             href="/produtos"
             className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 font-semibold text-foreground transition-colors duration-200 hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            {featured.totalCount > FEATURED_COUNT
+            {featured.totalCount > featured.count
               ? `Ver todos os ${featured.totalCount} produtos`
               : "Ver todos os produtos"}
             <ArrowRight className="h-4 w-4" />

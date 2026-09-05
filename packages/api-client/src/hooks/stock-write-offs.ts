@@ -241,6 +241,14 @@ export interface CompanySettingsDto {
    * sem ele, e a ausência deve ser tratada como sem limite.
    */
   maxSellerDiscountPercentage?: number;
+  /**
+   * Abaixo de quantas unidades o SITE mostra "Últimas unidades" (uma unidade
+   * vira "Último disponível"). Zero desliga as tags. Opcional por segurança
+   * de versão.
+   */
+  siteLowStockThreshold?: number;
+  /** Quantos produtos a seção "Novidades" da home do site exibe. */
+  siteNewProductsCount?: number;
 }
 
 export const COMPANY_SETTINGS_QUERY_KEY = ["company-settings"] as const;

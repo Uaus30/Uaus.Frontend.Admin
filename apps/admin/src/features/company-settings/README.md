@@ -6,8 +6,8 @@ Opções de operação e identidade da loja (`company_settings` no backend, uma 
 
 ## 📂 Estrutura de Arquivos
 
-- `components/CompanySettingsForm.tsx`: Formulário com a seção "Identidade da loja" (nome, endereço, telefone, CNPJ e mensagem de rodapé dos cupons), os toggles de operação e o botão de salvar. Cada opção explica a consequência prática, porque o efeito acontece no PDV e não nesta tela.
-- `hooks/useCompanySettings.ts`: Leitura (`useGetCompanySettings`), estado do formulário (toggle + identidade) e a mutation de gravação.
+- `components/CompanySettingsForm.tsx`: Formulário com a seção "Identidade da loja" (nome, endereço, telefone, CNPJ e mensagem de rodapé dos cupons), os toggles de operação, a seção "Site (vitrine pública)" e o botão de salvar. Cada opção explica a consequência prática, porque o efeito acontece no PDV ou no site e não nesta tela.
+- `hooks/useCompanySettings.ts`: Leitura (`useGetCompanySettings`), estado do formulário (toggle + identidade + opções do site) e a mutation de gravação.
 
 ---
 
@@ -29,10 +29,16 @@ Opções de operação e identidade da loja (`company_settings` no backend, uma 
 
 ### 3. Padrão quando não há leitura
 
-- O formulário assume controle de caixa **ligado** enquanto a resposta não chega, espelhando o backend: sem a linha em `company_settings`, `CompanySettingsService` devolve o padrão em vez de falhar. Um banco com schema atrasado deve deixar o PDV vender do jeito de sempre.
-- Um backend anterior aos campos de identidade responde sem eles; o formulário os trata como vazios e o cupom continua saindo com os padrões embutidos.
+- O formulário assume controle de caixa **desligado** enquanto a resposta não chega, espelhando o backend e o script de schema: sem a linha em `company_settings`, `CompanySettingsService` devolve o padrão em vez de falhar. Um banco com schema atrasado deve deixar o PDV vender do jeito de sempre. (Até 05/09/2026 o formulário nascia LIGADO e o interruptor piscava ao carregar.)
+- Um backend anterior aos campos de identidade responde sem eles; o formulário os trata como vazios e o cupom continua saindo com os padrões embutidos. O mesmo vale para as opções do site: ausentes, valem 0 e 20.
 
-### 4. Sincronia com o servidor
+### 4. Opções do site (05/09/2026)
+
+- **`siteLowStockThreshold`** — abaixo de quantas unidades (saldo SOMADO dos produtos ativos do grupo) o card do site ganha a tag "Últimas unidades"; com exatamente uma, "Último disponível". **Zero desliga as duas tags**, e é o padrão: a loja que não quer anunciar escassez não muda nada. A quantidade nunca chega ao visitante — o backend devolve só a tag resolvida (`stockBadge` nos DTOs de `Storefront`). A reserva por WhatsApp não mexe em estoque; só a venda do PDV mexe.
+- **`siteNewProductsCount`** — quantos produtos a seção "Novidades" da home mostra (1 a 100; padrão 20). O front tinha 8 fixo.
+- A faixa é conferida no `handleSubmit` antes da ida à rede, porque a recusa do backend chegaria como toast genérico.
+
+### 5. Sincronia com o servidor
 
 - Os `useEffect` de sincronia dependem dos **valores** vindos da query, não do objeto: um refetch que traz o mesmo estado não pode apagar o que o usuário ainda não salvou.
 - Ao salvar, `COMPANY_SETTINGS_QUERY_KEY` é invalidada — é o que faz a mudança chegar ao PDV e à reimpressão de `features/sales` sem recarregar a aplicação.

@@ -128,6 +128,19 @@ export const PURCHASE_ENTRY_TYPE = {
   ManualAdjustment: 2,
 } as const;
 
+/**
+ * Tag de escassez que a vitrine mostra num card ou no detalhe.
+ *
+ * Quem resolve é o BACKEND, a partir do saldo somado do grupo e do limiar
+ * configurado no admin; o site só pinta o rótulo. A quantidade em estoque nunca
+ * chega ao visitante.
+ */
+export const STOREFRONT_STOCK_BADGE = {
+  None: 0,
+  LastUnits: 1,
+  LastUnit: 2,
+} as const;
+
 export const USER_STATUS = {
   None: 0,
   Pending: 1,
@@ -1558,6 +1571,12 @@ export interface StorefrontProductDto {
   /** Imagem principal do card; ausente quando o produto não tem foto. */
   imageUrl?: string | null;
   tags: StorefrontTagDto[];
+  /**
+   * Tag de escassez já resolvida ("Últimas unidades" / "Último disponível").
+   * Chega como NOME do enum; leia com `enumCode(valor, STOREFRONT_STOCK_BADGE)`.
+   * Opcional por segurança de versão: um backend anterior responde sem ela.
+   */
+  stockBadge?: EnumValue;
 }
 
 /** Variação ativa exibida no detalhe ("Caneca 300ml — R$ 25,00"). */
@@ -1590,6 +1609,8 @@ export interface StorefrontProductDetailDto {
   tags: StorefrontTagDto[];
   /** Vazia quando o grupo não tem variações. */
   variations: StorefrontVariationDto[];
+  /** A mesma tag do card — o detalhe não pode discordar da vitrine. */
+  stockBadge?: EnumValue;
 }
 
 /** Categoria na lista de filtros da vitrine. */
@@ -1625,4 +1646,10 @@ export interface StorefrontCompanyDto {
   cityState: string;
   phone: string;
   document: string;
+  /**
+   * Quantos produtos a seção "Novidades" da home mostra. Vem aqui, e não num
+   * endpoint próprio, porque o rodapé já pede a identidade em toda página.
+   * Opcional por segurança de versão; ausente vale o padrão do site (20).
+   */
+  newProductsCount?: number;
 }
