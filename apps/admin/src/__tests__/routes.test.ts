@@ -240,7 +240,10 @@ describe("buildMenu", () => {
     const menu = buildMenu(USER_ROLE.Admin);
 
     const relatorios = menu.find((item) => item.name === "Relatórios");
-    expect(relatorios?.items?.map((s) => s.href)).toEqual(["/estoque/inventario"]);
+    expect(relatorios?.items?.map((s) => s.href)).toEqual([
+      "/estoque/inventario",
+      "/relatorios/estoque-baixo",
+    ]);
 
     const estoque = menu.find((item) => item.name === "Estoque");
     expect(estoque?.items?.map((s) => s.href)).not.toContain("/estoque/inventario");

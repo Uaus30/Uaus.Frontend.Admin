@@ -17,6 +17,7 @@ import { RevenueBreakdownCard } from "@/features/dashboard/components/RevenueBre
 import { TopProductsTable } from "@/features/dashboard/components/TopProductsTable";
 import { PatternsPanel } from "@/features/dashboard/components/PatternsPanel";
 import { IntelligencePanel } from "@/features/dashboard/components/IntelligencePanel";
+import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
 
 /**
  * Dashboard
@@ -56,6 +57,9 @@ export default function Dashboard() {
           isFetching={dashboard.isFetching}
           onRefresh={dashboard.refreshAll}
         />
+
+        {/* Vermelho só com pendência: some sozinho quando não há o que repor. */}
+        <LowStockAlert />
 
         {dashboard.isError && (
           <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

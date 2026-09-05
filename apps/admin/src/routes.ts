@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { enumCode, USER_ROLE, type EnumValue } from "@workspace/api-client-react";
 import { PRODUCTS_MATCH_PATH } from "@/features/products/product-detail-route";
+import { LOW_STOCK_REPORT_PATH } from "@/features/low-stock/low-stock-route";
 
 /**
  * Fonte ÚNICA das rotas do admin.
@@ -82,6 +83,7 @@ const Suppliers = lazy(() => import("@/pages/suppliers"));
 const StockEntries = lazy(() => import("@/pages/stock-entries"));
 const StockWriteOffs = lazy(() => import("@/pages/stock-write-offs"));
 const Inventory = lazy(() => import("@/pages/inventory"));
+const LowStock = lazy(() => import("@/pages/low-stock"));
 const Images = lazy(() => import("@/pages/images"));
 const Customers = lazy(() => import("@/pages/customers"));
 const CompanySettings = lazy(() => import("@/pages/settings"));
@@ -231,6 +233,9 @@ export const ROUTES: AppRoute[] = [
   { path: "/marketing/campanhas/:id/relatorio", component: CampaignReport, roles: SO_ADMIN, hidden: true },
 
   { path: "/estoque/inventario", label: "Inventário", group: "Relatórios", component: Inventory },
+  // Relatório, e não tela de Estoque: ele só LÊ o saldo. O alerta vermelho do
+  // painel e da listagem de produtos aponta para cá.
+  { path: LOW_STOCK_REPORT_PATH, label: "Estoque baixo", group: "Relatórios", component: LowStock },
 
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },
   { path: "/clientes", label: "Clientes", icon: Users, component: Customers },

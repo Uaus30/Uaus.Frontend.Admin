@@ -13,6 +13,7 @@ import { ProductDetailDiscardDialog } from "@/features/products/components/detai
 import { ProductHistoryModal } from "@/features/products/components/ProductHistoryModal";
 import { ProductImageSearchModal } from "@/features/products/components/ProductImageSearchModal";
 import type { ProductTableRow } from "@/features/products/types";
+import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
 
 /**
  * Página de Produtos: a listagem e, no lugar dela, o detalhe do produto.
@@ -120,9 +121,16 @@ export default function Products() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Produtos</h1>
           </div>
-          <Button onClick={() => abrirDetalhe()} className="bg-primary text-primary-foreground hover-elevate">
-            <Plus className="mr-2 h-4 w-4" /> Adicionar
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Vermelho só com pendência; leva ao relatório de estoque baixo. */}
+            <LowStockAlert variant="compact" />
+            <Button
+              onClick={() => abrirDetalhe()}
+              className="bg-primary text-primary-foreground hover-elevate"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Adicionar
+            </Button>
+          </div>
         </div>
 
         <ProductTable
