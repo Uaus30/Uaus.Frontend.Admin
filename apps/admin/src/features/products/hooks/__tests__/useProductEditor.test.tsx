@@ -237,4 +237,54 @@ describe("useProductEditor Hook", () => {
       }),
     );
   });
+
+  it("deve manter a tela aberta depois de salvar um produto simples, ja com o id do grupo", async () => {
+    // Desde 05/09/2026 o cadastro novo NAO fecha ao salvar: o operador segue
+    // para a aba Estoque e lanca a entrada do que acabou de receber. Antes a
+    // tela fechava e ele tinha que procurar o produto na lista para voltar.
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail();
+    });
+    act(() => {
+      result.current.setForm((current) => ({ ...current, categoryId: "5", productGroupName: "COPO" }));
+      result.current.setProductEditor((current) => ({ ...current, name: "COPO", price: 10, status: "2" }));
+    });
+    expect(result.current.isDirty).toBe(true);
+
+    let gravou = false;
+    await act(async () => {
+      gravou = await result.current.handleSubmit();
+    });
+
+    expect(gravou).toBe(true);
+    expect(result.current.detailOpen).toBe(true);
+    expect(result.current.editingGroupId).toBe(1);
+    expect(result.current.productEditor.id).toBe(10);
+    // O que esta na tela e o que o servidor gravou — nao conta mais como alterado.
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it("deve devolver falso quando o servidor recusa, para o Avancar nao trocar de aba", async () => {
+    mocks.saveProductGroupWithProducts.mockRejectedValueOnce(new Error("codigo de barras duplicado"));
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail();
+    });
+    act(() => {
+      result.current.setForm((current) => ({ ...current, categoryId: "5", productGroupName: "COPO" }));
+      result.current.setProductEditor((current) => ({ ...current, name: "COPO", price: 10, status: "2" }));
+    });
+
+    let gravou = true;
+    await act(async () => {
+      gravou = await result.current.handleSubmit();
+    });
+
+    expect(gravou).toBe(false);
+    expect(result.current.detailOpen).toBe(true);
+    expect(result.current.editingGroupId).toBeNull();
+  });
 });

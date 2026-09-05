@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
@@ -10,6 +10,7 @@ import { nomeExibidoDaVariacao } from "../../lib/variationMatrix";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
 import { ProductOptionalFields } from "../editor/ProductOptionalFields";
+import { ProductDetailActions } from "./ProductDetailActions";
 import { ProductEditorDialogs } from "./ProductEditorDialogs";
 import { VariationGradesModal } from "./VariationGradesModal";
 import { ProductGeneralTab } from "./ProductGeneralTab";
@@ -22,6 +23,25 @@ type ProductDetailScreenProps = {
   initialTab?: "dados" | "estoque" | "opcionais";
   /** Pediu para sair (voltar, cancelar) — a página decide se confirma antes. */
   onRequestClose: () => void;
+};
+
+/**
+ * Para onde o "Avançar" leva a partir de cada aba.
+ *
+ * Dados → Estoque é o caminho do cadastro de mercadoria nova (cadastrar e
+ * lançar o que chegou). De Estoque e de Opcionais ele volta para Dados: a tela
+ * tem três abas, e o Avançar é um par de idas e vindas, não um carrossel.
+ */
+const PROXIMA_ABA: Record<string, "dados" | "estoque"> = {
+  dados: "estoque",
+  estoque: "dados",
+  opcionais: "dados",
+};
+
+const ROTULO_DA_ABA: Record<string, string> = {
+  dados: "Dados",
+  estoque: "Estoque",
+  opcionais: "Opcionais",
 };
 
 /**
@@ -42,6 +62,11 @@ type ProductDetailScreenProps = {
  * quem troca de aba com alterações pendentes não as perde. As modais são
  * portais do Radix, então ficam FORA do form — o formulário simplificado de
  * entrada tem `<form>` próprio e aninhar os dois seria HTML inválido.
+ *
+ * **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem
+ * id não há lote para lançar nem etiqueta para associar, e a aba Estoque
+ * abriria só para dizer "salve primeiro". O Avançar da aba Dados salva e já
+ * cai na aba Estoque, que é o fluxo de quem acabou de receber mercadoria nova.
  */
 export function ProductDetailScreen({ editor, initialTab, onRequestClose }: ProductDetailScreenProps) {
   const { toast } = useToast();
@@ -151,6 +176,27 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
     }, 150);
   }
 
+  /**
+   * Valida e grava. Devolve `true` só quando o servidor confirmou — é o que o
+   * Avançar espera para trocar de aba.
+   */
+  async function salvar(): Promise<boolean> {
+    const { errors, firstErrorElementId } = validateProductForm({ form, productEditor, variationDrafts });
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      // Todo campo obrigatório mora na aba Dados. Focar um elemento de aba
+      // fechada não faz nada, e o salvar pareceria simplesmente não responder.
+      setActiveTab("dados");
+      if (firstErrorElementId) {
+        setTimeout(() => document.getElementById(firstErrorElementId)?.focus(), 50);
+      }
+      return false;
+    }
+
+    setValidationErrors({});
+    return handleSubmit();
+  }
+
   async function handleLocalSubmit(e: React.FormEvent<HTMLFormElement>) {
     // Só o submit DESTE formulário grava o produto.
     //
@@ -164,22 +210,18 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
     if (e.target !== e.currentTarget) return;
 
     e.preventDefault();
-
-    const { errors, firstErrorElementId } = validateProductForm({ form, productEditor, variationDrafts });
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      // Todo campo obrigatório mora na aba Dados. Focar um elemento de aba
-      // fechada não faz nada, e o salvar pareceria simplesmente não responder.
-      setActiveTab("dados");
-      if (firstErrorElementId) {
-        setTimeout(() => document.getElementById(firstErrorElementId)?.focus(), 50);
-      }
-      return;
-    }
-
-    setValidationErrors({});
-    await handleSubmit(e);
+    await salvar();
   }
+
+  /** Salva e, dando certo, vai para a próxima aba (ver `PROXIMA_ABA`). */
+  async function avancar() {
+    const gravou = await salvar();
+    if (!gravou) return;
+    setActiveTab(PROXIMA_ABA[activeTab] ?? "dados");
+  }
+
+  const cadastroNovo = editingGroupId === null;
+  const proximaAba = ROTULO_DA_ABA[PROXIMA_ABA[activeTab] ?? "dados"];
 
   async function handlePaste(event: React.ClipboardEvent<HTMLFormElement>) {
     const files = collectPastedImageFiles(event.clipboardData?.items);
@@ -223,33 +265,31 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
             </div>
           </div>
 
-          <div className="flex shrink-0 gap-2">
-            <Button type="button" variant="outline" onClick={fecharTela}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="bg-primary text-primary-foreground hover-elevate"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Salvar
-                </>
-              )}
-            </Button>
-          </div>
+          <ProductDetailActions
+            saving={saving}
+            onCancel={fecharTela}
+            onAdvance={avancar}
+            nextTabLabel={proximaAba}
+          />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="dados">Dados</TabsTrigger>
-            <TabsTrigger value="estoque">Estoque</TabsTrigger>
-            <TabsTrigger value="opcionais">Opcionais</TabsTrigger>
-          </TabsList>
+          <div className="flex flex-wrap items-center gap-3">
+            <TabsList>
+              <TabsTrigger value="dados">Dados</TabsTrigger>
+              <TabsTrigger value="estoque" disabled={cadastroNovo}>
+                Estoque
+              </TabsTrigger>
+              <TabsTrigger value="opcionais" disabled={cadastroNovo}>
+                Opcionais
+              </TabsTrigger>
+            </TabsList>
+            {cadastroNovo && (
+              <p className="text-xs text-muted-foreground">
+                Salve o produto para liberar as abas Estoque e Opcionais — o Avançar já faz isso.
+              </p>
+            )}
+          </div>
 
           <TabsContent value="dados" className="mt-4">
             <ProductGeneralTab
@@ -287,6 +327,16 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
             <ProductOptionalFields editor={editor} />
           </TabsContent>
         </Tabs>
+
+        {/* Repetidos no rodapé para o cadastro longo não obrigar a voltar ao topo. */}
+        <div className="flex justify-end border-t border-border/40 pt-4">
+          <ProductDetailActions
+            saving={saving}
+            onCancel={fecharTela}
+            onAdvance={avancar}
+            nextTabLabel={proximaAba}
+          />
+        </div>
       </form>
 
       <ProductEditorDialogs

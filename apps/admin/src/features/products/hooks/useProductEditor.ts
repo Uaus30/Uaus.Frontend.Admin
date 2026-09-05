@@ -220,9 +220,7 @@ export function useProductEditor() {
     productTags: productForm.productTags,
     productImages: productImagesAll,
     getStatusNumber: productForm.getStatusNumber,
-    setDetailOpen,
     markClean,
-    resetForm: productForm.resetForm,
   });
 
   function toVariationDraft(product: any): VariationDraft {

@@ -27,9 +27,7 @@ export interface UseProductSubmitProps {
   productTags: any[];
   productImages: any[];
   getStatusNumber: (statusVal: any) => number;
-  setDetailOpen: React.Dispatch<React.SetStateAction<boolean>>;
   markClean: () => void;
-  resetForm: () => void;
 }
 
 export function useProductSubmit({
@@ -49,9 +47,7 @@ export function useProductSubmit({
   productTags,
   productImages,
   getStatusNumber,
-  setDetailOpen,
   markClean,
-  resetForm,
 }: UseProductSubmitProps) {
   const { toast } = useToast();
 
@@ -96,8 +92,22 @@ export function useProductSubmit({
     return normalizedImages;
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  /**
+   * Grava o cadastro inteiro.
+   *
+   * Devolve `true` quando gravou e `false` quando o toast de erro já foi
+   * exibido — é o que permite ao "Avançar" trocar de aba só depois de o
+   * servidor confirmar, em vez de levar o operador para a aba Estoque de um
+   * produto que não existe.
+   *
+   * A tela NÃO fecha depois de salvar, nem em produto simples: desde 05/09/2026
+   * o cadastro novo continua aberto para a entrada de estoque ser lançada na
+   * sequência, que é o fluxo de quem acabou de receber mercadoria nova. Antes,
+   * salvar um produto simples fechava a tela e o operador tinha que procurá-lo
+   * na lista para voltar à aba Estoque.
+   */
+  async function handleSubmit(event?: React.FormEvent): Promise<boolean> {
+    event?.preventDefault();
 
     setSaving(true);
     try {
@@ -235,20 +245,17 @@ export function useProductSubmit({
             : "Produto criado.",
       });
 
-      // O que está na tela agora é o que o servidor gravou — nem o grupo com
-      // variações, que continua aberto, pode seguir contando como alterado.
+      // O que está na tela agora é o que o servidor gravou: a tela continua
+      // aberta, mas não pode seguir contando como alterada.
       markClean();
-
-      if (!form.hasVariations) {
-        setDetailOpen(false);
-        resetForm();
-      }
+      return true;
     } catch (error) {
       toast({
         title: "Erro ao salvar produto",
         description: describeApiError(error, "Tente novamente."),
         variant: "destructive",
       });
+      return false;
     } finally {
       setSaving(false);
     }
