@@ -89,6 +89,10 @@ Por isso `useProductSearch` expõe `notFound` separado de `results`: antes da pr
 
 `lib/product-search.ts` ordena os dois caminhos da busca (API e base local) deixando estoque zero por último, com ordenação estável para não embaralhar a relevância que a API devolveu. Zerado não pode ser vendido nem baixado; no topo, com o teto de 20 resultados, ele empurrava para fora da tela o item que o operador consegue usar. Continua aparecendo — sumir com ele faria o operador concluir que o cadastro foi apagado.
 
+### 10.1. A foto amplia na busca e no carrinho, pelo mesmo componente
+
+`PdvCartItemImage` nasceu no carrinho e desde 05/09/2026 também é a miniatura da lista de resultados (`PdvSearchPanel`), abrindo a ampliação para a direita. Escolher entre "...CONICA" e "...RETA" por um quadrado de 48px era chute, e a ampliação já existia a um painel de distância. Na lista o clique da foto é segurado por um `stopPropagation`: sem ele, tocar para conferir a variação adicionaria o item ao carrinho.
+
 ### 11. A tela espera a configuração da loja, não só o operador
 
 `pages/pdv.tsx` só monta o balcão depois que **as três** respostas chegaram: operador, configuração da loja e sessão de caixa. Faltava a do meio, e a falta explicava um bug de foco intermitente que ninguém conseguia reproduzir.

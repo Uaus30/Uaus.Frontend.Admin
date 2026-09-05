@@ -1,12 +1,17 @@
 import type { RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ImageIcon, Loader2, Pencil, Search, X } from "lucide-react";
-import { buildPublicImageUrl, type ProductPdvSearchDto } from "@workspace/api-client-react";
+import { Loader2, Pencil, Search, X } from "lucide-react";
+import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 import { Button, Input, ScrollArea } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { Hint } from "@/components/hint";
 import { adminBaseUrl, adminProductEditUrl, openInNewTab } from "@/lib/admin-links";
 import type { ProductSearchState } from "../hooks/use-product-search";
+import { PdvCartItemImage } from "./pdv-cart-item-image";
+
+/** Moldura da miniatura na lista: um quadrado de 48px, como sempre foi. */
+const RESULT_FRAME_CLASS =
+  "relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/50";
 
 type PdvSearchPanelProps = {
   search: ProductSearchState;
@@ -31,6 +36,11 @@ type PdvSearchPanelProps = {
  * A miniatura vem do próprio resultado da busca (`imageUrl`), sem requisição
  * extra. Offline ela não existe — o snapshot da base local não guarda foto — e a
  * linha cai no ícone de imagem ausente, igual a um produto sem foto cadastrada.
+ * Passar o mouse (ou tocar) na miniatura AMPLIA a foto, com o mesmo componente
+ * do carrinho: 48px bastam para reconhecer o produto, não para escolher entre
+ * duas variações pela cor da tampa. O clique na foto NÃO adiciona ao carrinho —
+ * o `stopPropagation` do embrulho segura o clique da linha, senão tocar para
+ * ampliar venderia o item.
  *
  * Busca sem resultado também fica **aqui**, no lugar do primeiro item, e não num
  * toast: o operador está olhando para a lista, não para o canto da tela.
@@ -186,19 +196,17 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                             linhas: centralizado, a miniatura descia junto e o
                             card ficava desalinhado com o preço da direita. */}
                         <div className={`flex items-start gap-4 min-w-0 ${outOfStock ? "opacity-50" : ""}`}>
-                          {product.imageUrl ? (
-                            <img
-                              loading="lazy"
-                              decoding="async"
-                              src={buildPublicImageUrl(product.imageUrl)}
-                              alt={product.name}
-                              className="w-12 h-12 shrink-0 rounded-lg border border-border/50 object-cover"
+                          {/* O embrulho segura o clique da ampliação para ele não
+                              subir até o onClick da linha e adicionar o produto. */}
+                          <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                            <PdvCartItemImage
+                              name={product.name}
+                              barcode={product.barcode}
+                              imageUrl={product.imageUrl}
+                              side="right"
+                              frameClassName={RESULT_FRAME_CLASS}
                             />
-                          ) : (
-                            <div className="w-12 h-12 shrink-0 rounded-lg bg-muted/50 flex items-center justify-center">
-                              <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
-                            </div>
-                          )}
+                          </div>
                           <div className="min-w-0">
                             {/*
                               Nome INTEIRO, em quantas linhas precisar. Truncar

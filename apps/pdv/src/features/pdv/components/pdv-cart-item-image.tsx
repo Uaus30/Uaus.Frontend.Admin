@@ -10,6 +10,18 @@ type PdvCartItemImageProps = {
   barcode?: string;
   /** Caminho da imagem principal, como a busca devolve, ou nulo. */
   imageUrl?: string | null;
+  /**
+   * Para que lado a ampliação abre. `left` é o do carrinho, encostado na borda
+   * direita da tela; a lista de resultados fica na coluna da esquerda e abre
+   * para a `right`, senão a ampliação sairia da janela.
+   */
+  side?: "left" | "right";
+  /**
+   * Moldura da miniatura. O carrinho usa a coluna de 84px que se estica com a
+   * linha; a lista de resultados, um quadrado de 48px. Só a moldura muda — a
+   * ampliação e a legenda são as mesmas nos dois lugares.
+   */
+  frameClassName?: string;
 };
 
 /** Moldura da coluna da foto: a mesma medida com ou sem imagem cadastrada. */
@@ -51,15 +63,27 @@ const PHOTO_BACKGROUND = "bg-white";
  * digitado noutro lugar e some. Mas ele só reage a `hover`, e o PDV roda em
  * touchscreen, onde `hover` não existe: por isso o clique também abre, e o
  * `preventDefault` no `mousedown` impede que o toque leve o foco junto.
+ *
+ * Nasceu no carrinho e desde 05/09/2026 serve também a lista de resultados da
+ * busca (`PdvSearchPanel`): escolher entre "...CONICA" e "...RETA" pela
+ * miniatura de 48px era chute, e a ampliação já existia a um painel de
+ * distância. É o MESMO componente de propósito — a foto que o operador vê ao
+ * escolher é a que ele vê ao conferir a sacola.
  */
-export function PdvCartItemImage({ name, barcode, imageUrl }: PdvCartItemImageProps) {
+export function PdvCartItemImage({
+  name,
+  barcode,
+  imageUrl,
+  side = "left",
+  frameClassName = FRAME_CLASS,
+}: PdvCartItemImageProps) {
   const [open, setOpen] = useState(false);
 
   if (!imageUrl) {
     return (
       // Sem foto o quadro segue o tema: não há sobra para disfarçar, e o ícone
       // esmaecido sobre branco ficaria ilegível no balcão.
-      <div className={`${FRAME_CLASS} bg-muted/30`}>
+      <div className={`${frameClassName} bg-muted/30`}>
         <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
       </div>
     );
@@ -73,7 +97,7 @@ export function PdvCartItemImage({ name, barcode, imageUrl }: PdvCartItemImagePr
         <button
           type="button"
           aria-label={`Ampliar a foto de ${name}`}
-          className={`${FRAME_CLASS} ${PHOTO_BACKGROUND} cursor-zoom-in transition-colors hover:border-primary/60`}
+          className={`${frameClassName} ${PHOTO_BACKGROUND} cursor-zoom-in transition-colors hover:border-primary/60`}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setOpen((aberto) => !aberto)}
         >
@@ -92,10 +116,10 @@ export function PdvCartItemImage({ name, barcode, imageUrl }: PdvCartItemImagePr
         </button>
       </HoverCardTrigger>
 
-      {/* Abre para a ESQUERDA: o carrinho é a coluna encostada na borda direita
-          da tela, e para o outro lado a ampliação sairia da janela. */}
+      {/* O lado vem de quem monta: o carrinho abre para a ESQUERDA (é a coluna
+          encostada na borda direita da tela) e a busca para a DIREITA. */}
       <HoverCardContent
-        side="left"
+        side={side}
         align="center"
         className="w-64 p-3"
         onPointerDownOutside={() => setOpen(false)}

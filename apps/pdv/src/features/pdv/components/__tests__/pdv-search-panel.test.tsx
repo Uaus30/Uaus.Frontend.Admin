@@ -1,5 +1,5 @@
 import { createRef } from "react";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 import { PdvSearchPanel } from "../pdv-search-panel";
@@ -61,6 +61,20 @@ describe("PdvSearchPanel", () => {
     renderPanel();
 
     expect(fireEvent.mouseDown(screen.getByTestId("search-result"))).toBe(false);
+  });
+
+  it("amplia a foto do resultado sem adicionar o produto ao carrinho", async () => {
+    // A miniatura de 48px não separa "...CONICA" de "...RETA"; a ampliação é a
+    // mesma do carrinho. O clique nela tem que ficar na foto: se subisse até a
+    // linha, tocar para conferir venderia o item.
+    const { onPickProduct } = renderPanel(
+      makeSearch({ results: [{ ...PRODUTO, imageUrl: "produtos/coca.png" }] }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Ampliar a foto/ }));
+
+    await waitFor(() => expect(screen.getByAltText("COCA-COLA 350ML")).toBeTruthy());
+    expect(onPickProduct).not.toHaveBeenCalled();
   });
 
   it("não adiciona nem limpa a busca ao clicar em produto sem estoque", () => {
