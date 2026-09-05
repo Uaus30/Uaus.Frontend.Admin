@@ -57,7 +57,10 @@ export function useCashRegisterSessions() {
   } = useGetCashRegisterSessions({
     status: statusFilterToCode(statusFilter),
     startDate: startDate || undefined,
-    endDate: endDate || undefined,
+    // O backend compara `OpenedAt <= endDate` com hora; enviar só "yyyy-MM-dd"
+    // (meia-noite) deixava de fora todo turno aberto no último dia do período.
+    // Mesma convenção das vendas e das baixas.
+    endDate: endDate ? `${endDate}T23:59:59` : undefined,
     page,
     size: PAGE_SIZE,
   });

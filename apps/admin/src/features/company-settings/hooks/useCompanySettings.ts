@@ -11,10 +11,12 @@ import { describeApiError } from "@workspace/core";
 /**
  * Padrão local enquanto a leitura não chega.
  *
- * O backend também devolve controle de caixa ligado quando não há linha em
- * `company_settings` — o padrão é sempre o comportamento de sempre.
+ * O MESMO padrão do backend e do script de schema: sem linha em
+ * `company_settings`, controle de caixa DESLIGADO. Divergir aqui fazia o
+ * interruptor nascer ligado e virar desligado quando a leitura chegava — um
+ * piscar que parecia a configuração mudando sozinha.
  */
-const DEFAULT_USES_CASH_REGISTER = true;
+const DEFAULT_USES_CASH_REGISTER = false;
 
 /** Identidade da loja impressa nos cupons, como o formulário a edita. */
 export interface StoreIdentityFields {

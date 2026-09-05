@@ -86,13 +86,14 @@ describe("useCompanySettings", () => {
     expect(result.current.isDirty).toBe(false);
   });
 
-  it("deve manter o controle de caixa ligado enquanto a leitura não chega", () => {
+  it("deve manter o controle de caixa desligado enquanto a leitura não chega", () => {
     mocks.useGetCompanySettings.mockReturnValue({ data: undefined, isLoading: true });
 
     const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
 
-    // Mesmo padrão do backend: sem configuração, a loja opera com caixa.
-    expect(result.current.usesCashRegister).toBe(true);
+    // Mesmo padrão do backend e do script de schema: sem configuração, a loja
+    // opera SEM caixa. Nascer ligado fazia o interruptor piscar ao carregar.
+    expect(result.current.usesCashRegister).toBe(false);
     expect(result.current.isDirty).toBe(false);
   });
 

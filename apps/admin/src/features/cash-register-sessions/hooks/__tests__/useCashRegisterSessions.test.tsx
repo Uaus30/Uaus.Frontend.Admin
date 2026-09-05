@@ -141,9 +141,11 @@ describe("useCashRegisterSessions", () => {
     expect(result.current.startDate).toBe("2026-08-01");
     expect(result.current.endDate).toBe("2026-08-07");
     expect(result.current.page).toBe(1);
+    // A data final vai com 23:59:59: o backend compara `OpenedAt <= endDate`
+    // com hora, e meia-noite deixaria de fora o turno aberto no último dia.
     expect(lastListParams()).toMatchObject({
       startDate: "2026-08-01",
-      endDate: "2026-08-07",
+      endDate: "2026-08-07T23:59:59",
       page: 1,
     });
   });
