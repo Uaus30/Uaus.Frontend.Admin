@@ -17,6 +17,7 @@ export * from "./discount";
 export * from "./format";
 export * from "./mask";
 export * from "./money";
+export * from "./pricing";
 export * from "./search";
 export * from "./text";
 export * from "./week-comparison";

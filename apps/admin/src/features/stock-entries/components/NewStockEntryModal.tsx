@@ -12,6 +12,7 @@ import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { ProductSearchPicker, type ProductSearchOption } from "@/components/product-search-picker";
 import type { EditableEntryItemField } from "../hooks/useStockEntries";
 import type { NewEntryItem } from "../types";
+import { PricingPreview } from "./PricingPreview";
 
 type NewStockEntryModalProps = {
   /** Visibility status of the modal */
@@ -250,6 +251,14 @@ export function NewStockEntryModal({
                 )}
               </div>
             </div>
+          )}
+
+          {item !== null && (
+            <PricingPreview
+              unitCost={item.unitCost}
+              price={item.price}
+              onApplySuggested={(price) => onItemChange("price", price)}
+            />
           )}
 
           <div className="space-y-2">

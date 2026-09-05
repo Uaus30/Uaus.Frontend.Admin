@@ -9,6 +9,7 @@ import { Textarea } from "@workspace/ui";
 import type { SupplierDto } from "@workspace/api-client-react";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import type { SimpleEntryForm } from "../hooks/useProductStockEntries";
+import { PricingPreview } from "./PricingPreview";
 
 type SimpleStockEntryModalProps = {
   open: boolean;
@@ -198,6 +199,12 @@ export function SimpleStockEntryModal({
               )}
             </div>
           </div>
+
+          <PricingPreview
+            unitCost={form.unitCost}
+            price={form.price}
+            onApplySuggested={(price) => onChange("price", price)}
+          />
 
           <div className="space-y-2">
             <label className="text-xs font-semibold text-muted-foreground uppercase">

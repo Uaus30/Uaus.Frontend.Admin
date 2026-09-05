@@ -92,3 +92,17 @@ O que muda em relação ao formulário completo:
 - **Trocar de produto volta para a página 1.** Numa aba com seletor de variação,
   manter a página 3 do SKU anterior mostraria "nenhuma entrada" para um produto
   que tem entradas.
+
+## Margem, markup e preço sugerido (05/09/2026)
+
+As duas modais de entrada (a da tela `/estoque/entradas` e a da aba **Estoque**
+do produto) mostram, assim que há custo digitado, a **margem prevista**
+(`(preço − custo) / preço`), o **markup** (`(preço − custo) / custo`) e um
+**preço sugerido** — 40% de margem, arredondado ao múltiplo de 10 centavos mais
+PRÓXIMO (`suggestedPrice` em `packages/core/src/pricing.ts`). O botão "Usar
+sugerido" copia o valor para o campo de preço; sugerir não é impor.
+
+Existe porque o preço lançado na entrada passa a valer no cadastro do produto,
+e a modal não dizia nada sobre a conta: quem recebia a custo novo tinha que
+calcular de cabeça se o preço antigo ainda dava lucro. O bloco some com custo
+zero — brinde e bonificação entram sem custo, e "margem 100%" ali seria ruído.
