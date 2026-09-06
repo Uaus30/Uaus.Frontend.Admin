@@ -1,12 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button, Input, useToast } from "@workspace/ui";
-import { computeDiscount, formatCurrency, parseAmount } from "@workspace/core";
+import { computeDiscount, formatCurrency, parseAmount, round2 } from "@workspace/core";
 import { itemListPrice, usePdvStore } from "@/stores/use-pdv-store";
 import { scrollIntoViewVertically } from "@/lib/scroll-into-view";
 import { PdvCartItemImage } from "./pdv-cart-item-image";
-import { PdvCartItemSurcharge } from "./pdv-cart-item-surcharge";
+import { PdvCartItemSurchargeChip, PdvSurchargeReasonDialog } from "./pdv-cart-item-surcharge";
 import type { PdvItem } from "../types";
 
 type PdvCartItemProps = {
@@ -16,16 +16,25 @@ type PdvCartItemProps = {
 /**
  * Uma linha do carrinho: quantidade, preço unitário editável e o total do item.
  *
- * O preço unitário é editável direto na linha porque é assim que o balcão
- * negocia — o operador digita o valor combinado, e a diferença para a tabela
- * vira desconto do item. Nunca o contrário: um preço acima do de tabela é
- * recusado, senão a venda gravaria "desconto negativo" e o relatório de
- * descontos deixaria de fechar.
+ * ## O campo de preço é a porta ÚNICA da negociação
  *
- * Cobrar A MAIS tem caminho próprio — o acréscimo, em `PdvCartItemSurcharge`,
- * com valor e justificativa em coluna separada. Deixá-lo entrar por este campo
- * obrigaria a derrubar a recusa acima, e aí um R$ 300,00 digitado no lugar de
- * R$ 30,00 passaria calado.
+ * O operador digita o valor combinado com o cliente, e a diferença para o preço
+ * de tabela decide o que foi:
+ *
+ * - **abaixo da tabela** → desconto do item, aplicado direto;
+ * - **acima da tabela** → acréscimo, que abre o diálogo pedindo o motivo;
+ * - **igual à tabela** → zera os dois.
+ *
+ * No máximo UM dos dois vive na linha, e é isso que mantém o campo legível: ele
+ * sempre mostra o que aquela unidade vai custar, e a diferença para a tabela tem
+ * um nome só. Até 06/09/2026 cobrar a mais tinha botão próprio; ele era uma
+ * segunda forma de dizer a mesma coisa e obrigava o operador a somar de cabeça o
+ * que o cliente ia pagar.
+ *
+ * O que protege contra a digitação errada deixou de ser a recusa e passou a ser
+ * o diálogo: R$ 300,00 no lugar de R$ 30,00 chega como "Acréscimo de R$ 275,00"
+ * escrito por extenso, e sair de lá exige escrever um motivo. Antes o mesmo erro
+ * só produzia um toast vermelho que não dizia quanto tinha sido digitado.
  *
  * ## O realce do item recém-bipado
  *
@@ -40,6 +49,25 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
   const removeItem = usePdvStore((state) => state.removeItem);
   const updateQuantity = usePdvStore((state) => state.updateQuantity);
   const applyItemDiscount = usePdvStore((state) => state.applyItemDiscount);
+  const applyItemSurcharge = usePdvStore((state) => state.applyItemSurcharge);
+
+  /**
+   * Acréscimo calculado a partir do preço digitado, à espera do motivo. `null`
+   * quando não há diálogo aberto.
+   */
+  const [pendingSurcharge, setPendingSurcharge] = useState<number | null>(null);
+
+  /**
+   * Contador que remonta o campo de preço, que é NÃO controlado.
+   *
+   * Sem ele, cancelar o diálogo deixaria na tela o número digitado — e o
+   * operador acreditaria que ele valeu. Desconto e acréscimo já remontam o campo
+   * pela `key`; este cobre o caso em que nada muda no item.
+   */
+  const [priceResetSeq, setPriceResetSeq] = useState(0);
+
+  /** O que esta unidade custa hoje: tabela, menos o desconto, mais o acréscimo. */
+  const effectiveUnitPrice = round2(itemListPrice(item) - item.discount);
 
   // Zero quando o bipe foi em outra linha. O número (e não um booleano) é o que
   // reinicia a animação quando o MESMO produto é bipado de novo: ele muda, a
@@ -59,42 +87,68 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
     scrollIntoViewVertically(rootRef.current);
   }, [pulseSeq]);
 
+  /** Devolve ao campo o preço que a linha realmente pratica. */
+  const restorePriceField = (inputEl?: HTMLInputElement) => {
+    if (inputEl) inputEl.value = effectiveUnitPrice.toFixed(2).replace(".", ",");
+    setPriceResetSeq((seq) => seq + 1);
+  };
+
   /**
-   * Aplica o preço digitado como desconto do item.
+   * Lê o preço digitado e decide o que ele significa: desconto, acréscimo ou
+   * preço cheio. A comparação é sempre contra `item.price`, o preço de TABELA —
+   * nunca contra o preço em vigor na linha, senão editar duas vezes seguidas
+   * empilharia abatimento sobre abatimento.
    *
    * @param inputEl Campo digitado, para devolver o valor anterior quando o
    *   digitado é recusado — deixar o número inválido na tela faria o operador
    *   acreditar que ele valeu.
    */
   const handleUpdateUnitPrice = (valueStr: string, inputEl?: HTMLInputElement) => {
-    const restore = () => {
-      if (inputEl) inputEl.value = (item.price - item.discount).toFixed(2).replace(".", ",");
-    };
-
-    // A conta e os limites saem do @workspace/core, o mesmo módulo do diálogo de
-    // desconto e do total do carrinho — três caminhos, uma regra só.
     const val = parseAmount(valueStr);
-    const resultado = computeDiscount({
-      base: item.price,
-      value: Number.isNaN(val) ? NaN : item.price - val,
-      type: "value",
-    });
 
-    if ("error" in resultado) {
-      const acimaDaTabela = resultado.error === "negativo";
+    if (Number.isNaN(val) || !Number.isFinite(val) || val < 0) {
       toast({
-        title: acimaDaTabela ? "Valor Superior ao Original" : "Valor Inválido",
-        description: acimaDaTabela
-          ? `O valor do item não pode ser superior ao preço original de ${formatCurrency(item.price)}.`
-          : "Por favor, digite um preço unitário válido.",
+        title: "Valor Inválido",
+        description: "Por favor, digite um preço unitário válido.",
         variant: "destructive",
       });
-      restore();
+      restorePriceField(inputEl);
+      return;
+    }
+
+    const digitado = round2(val);
+
+    // Acima da tabela é acréscimo. Nada é aplicado aqui: o diálogo pede o motivo
+    // e é ele quem grava — sem motivo o servidor recusaria a venda, e recusar
+    // com o cliente no balcão é pior do que perguntar agora.
+    if (digitado > item.price) {
+      setPendingSurcharge(round2(digitado - item.price));
+      return;
+    }
+
+    // Daqui para baixo é desconto (ou preço cheio). A conta sai do
+    // @workspace/core, o mesmo módulo do diálogo de desconto e do total do
+    // carrinho — três caminhos, uma regra só.
+    const resultado = computeDiscount({ base: item.price, value: item.price - digitado, type: "value" });
+
+    if ("error" in resultado) {
+      toast({
+        title: "Valor Inválido",
+        description: "Por favor, digite um preço unitário válido.",
+        variant: "destructive",
+      });
+      restorePriceField(inputEl);
       return;
     }
 
     const discount = resultado.amount;
     applyItemDiscount(item.id, discount);
+
+    // O acréscimo cai junto: o preço digitado ficou na tabela ou abaixo dela, e
+    // manter um acréscimo aqui faria a linha cobrar mais do que o operador
+    // acabou de combinar com o cliente.
+    if ((item.surcharge ?? 0) > 0) applyItemSurcharge(item.id, 0, "");
+
     toast({
       title: discount > 0 ? "Preço Atualizado" : "Preço Restaurado",
       description:
@@ -103,6 +157,36 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
           : "O preço original do item foi restaurado.",
       duration: 2000,
     });
+  };
+
+  /** Grava o acréscimo pendente com o motivo escrito no diálogo. */
+  const confirmSurcharge = (reason: string) => {
+    const amount = pendingSurcharge;
+    setPendingSurcharge(null);
+    if (amount === null) return;
+
+    applyItemSurcharge(item.id, amount, reason);
+    // Desconto e acréscimo não convivem na linha: o preço digitado ficou acima
+    // da tabela, então não há abatimento nenhum a preservar.
+    if (item.discount > 0) applyItemDiscount(item.id, 0);
+
+    toast({
+      title: "Acréscimo aplicado",
+      description: `${formatCurrency(amount)} por unidade em ${item.name}.`,
+      duration: 2000,
+    });
+  };
+
+  /** Desiste do acréscimo: a linha e o campo voltam ao que estavam. */
+  const cancelSurcharge = () => {
+    setPendingSurcharge(null);
+    restorePriceField();
+  };
+
+  /** Tira o acréscimo da linha pelo X do chip. */
+  const removeSurcharge = () => {
+    applyItemSurcharge(item.id, 0, "");
+    toast({ title: "Acréscimo removido", duration: 2000 });
   };
 
   return (
@@ -211,10 +295,11 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
               <Input
                 type="text"
                 className="w-16 h-7 text-xs font-mono font-bold px-1.5 py-0 text-center bg-background border-border focus-visible:ring-primary shadow-sm"
-                // A `key` com o desconto força o campo a remontar quando o valor
-                // muda por fora (diálogo de desconto), já que ele é não controlado.
-                key={`${item.id}-${item.discount}`}
-                defaultValue={(item.price - item.discount).toFixed(2).replace(".", ",")}
+                // A `key` força o campo a remontar quando o valor muda por fora
+                // (diálogo de desconto, acréscimo confirmado, cancelamento), já
+                // que ele é não controlado.
+                key={`${item.id}-${item.discount}-${item.surcharge ?? 0}-${priceResetSeq}`}
+                defaultValue={effectiveUnitPrice.toFixed(2).replace(".", ",")}
                 onBlur={(e) => handleUpdateUnitPrice(e.target.value, e.target)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -265,8 +350,17 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
 
         {/* Linha inteira, abaixo de quantidade/preço/total: o acréscimo carrega
             uma justificativa em texto, que não cabe numa das três colunas. */}
-        <PdvCartItemSurcharge item={item} />
+        <PdvCartItemSurchargeChip item={item} onRemove={removeSurcharge} />
       </div>
+
+      <PdvSurchargeReasonDialog
+        amount={pendingSurcharge}
+        productName={item.name}
+        listPrice={item.price}
+        currentReason={item.surchargeReason}
+        onConfirm={confirmSurcharge}
+        onCancel={cancelSurcharge}
+      />
     </motion.div>
   );
 }
