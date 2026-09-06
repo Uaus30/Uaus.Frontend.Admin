@@ -111,6 +111,21 @@ describe("podeAcessar", () => {
     expect(podeAcessar(relatorio, USER_ROLE.Seller)).toBe(false);
     expect(podeAcessar(relatorio, USER_ROLE.Admin)).toBe(true);
   });
+
+  it("o BI de fornecedores é só de Admin, listagem e detalhe", () => {
+    // A resposta traz custo, margem e lucro por fornecedor. O detalhe é oculto
+    // no menu mas continua respondendo por link colado — sem `roles` nele, a
+    // porta dos fundos ficaria aberta exatamente como no detalhe do log.
+    const ranking = ROUTES.find((r) => r.path === "/bi/fornecedores")!;
+    const detalhe = ROUTES.find((r) => r.path === "/bi/fornecedores/:id")!;
+
+    expect(ranking.roles).toBeDefined();
+    expect(detalhe.roles).toBeDefined();
+    expect(podeAcessar(ranking, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(detalhe, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(ranking, USER_ROLE.Admin)).toBe(true);
+    expect(podeAcessar(detalhe, USER_ROLE.Admin)).toBe(true);
+  });
 });
 
 describe("buildMenu", () => {
@@ -182,6 +197,9 @@ describe("buildMenu", () => {
       "Estoque",
       "Financeiro",
       "Relatórios",
+      // BI vem logo depois de Relatórios: relatório responde "quanto foi", BI
+      // responde "o que fazer com isso" — vizinhos, e não o mesmo grupo.
+      "BI",
       "Marketing",
       "Mídia",
       "Clientes",

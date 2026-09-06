@@ -3,6 +3,7 @@ import {
   BarChart3,
   Building2,
   DollarSign,
+  Gauge,
   ImageIcon,
   LayoutDashboard,
   Megaphone,
@@ -96,6 +97,8 @@ const Coupons = lazy(() => import("@/pages/coupons"));
 const Campaigns = lazy(() => import("@/pages/campaigns"));
 const CampaignReport = lazy(() => import("@/pages/campaign-report"));
 const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
+const SupplierPerformance = lazy(() => import("@/pages/supplier-performance"));
+const SupplierPerformanceDetail = lazy(() => import("@/pages/supplier-performance-detail"));
 
 /**
  * Ícone de cada grupo do menu. A ORDEM de exibição não sai daqui — ver `MENU_ORDER`.
@@ -108,6 +111,10 @@ export const MENU_GROUPS = [
   // Consulta, não lançamento: o que só LÊ a operação mora aqui. Hoje é o
   // Inventário; relatório novo entra neste grupo, não espalhado nos outros.
   { name: "Relatórios", icon: BarChart3 },
+  // Separado de "Relatórios" de propósito: relatório responde "quanto foi"; BI
+  // responde "o que fazer com isso". Juntar os dois num grupo só faria a análise
+  // estratégica competir por atenção com a consulta do dia a dia.
+  { name: "BI", icon: Gauge },
   // Cupom e campanha não cabem em "Financeiro" (não são lançamento de dinheiro)
   // nem em "Estoque" (não são cadastro nem entrada de item): grupo próprio.
   { name: "Marketing", icon: Megaphone },
@@ -135,6 +142,7 @@ export const MENU_ORDER: readonly string[] = [
   "Estoque",
   "Financeiro",
   "Relatórios",
+  "BI",
   "Marketing",
   "/imagens",
   "/clientes",
@@ -241,6 +249,22 @@ export const ROUTES: AppRoute[] = [
   // Relatório, e não tela de Estoque: ele só LÊ o saldo. O alerta vermelho do
   // painel e da listagem de produtos aponta para cá.
   { path: LOW_STOCK_REPORT_PATH, label: "Estoque baixo", group: "Relatórios", component: LowStock },
+
+  {
+    path: "/bi/fornecedores",
+    label: "Desempenho de Fornecedores",
+    group: "BI",
+    component: SupplierPerformance,
+    roles: SO_ADMIN,
+  },
+  // Detalhe: chega pelo ranking, não pelo menu. Repete `roles` porque proteger a
+  // listagem e esquecer o detalhe é a porta dos fundos que o teste de rotas cobre.
+  {
+    path: "/bi/fornecedores/:id",
+    component: SupplierPerformanceDetail,
+    roles: SO_ADMIN,
+    hidden: true,
+  },
 
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },
   { path: "/clientes", label: "Clientes", icon: Users, component: Customers },

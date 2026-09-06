@@ -28,3 +28,4 @@ export * from "./campaigns";
 export * from "./storefront";
 export * from "./low-stock";
 export * from "./purchase-orders";
+export * from "./supplier-performance";
