@@ -20,7 +20,7 @@ export function SupplierRelationCard({ detail }: SupplierRelationCardProps) {
   const { summary, contact } = detail;
 
   const proximaCompra =
-    summary.averagePurchaseIntervalDays !== null && summary.daysWithoutBuying !== null
+    summary.averagePurchaseIntervalDays != null && summary.daysWithoutBuying != null
       ? Math.max(0, summary.averagePurchaseIntervalDays - summary.daysWithoutBuying)
       : null;
 
@@ -35,13 +35,13 @@ export function SupplierRelationCard({ detail }: SupplierRelationCardProps) {
     ],
     [
       "Intervalo médio entre compras",
-      summary.averagePurchaseIntervalDays !== null
+      summary.averagePurchaseIntervalDays != null
         ? `${formatInteger(summary.averagePurchaseIntervalDays)} dias`
         : "—",
     ],
     [
       "Próxima compra prevista",
-      proximaCompra === null ? "—" : proximaCompra === 0 ? "agora" : `em ~${proximaCompra} dias`,
+      proximaCompra == null ? "—" : proximaCompra === 0 ? "agora" : `em ~${proximaCompra} dias`,
     ],
     [
       "Compra mínima",
@@ -65,7 +65,7 @@ export function SupplierRelationCard({ detail }: SupplierRelationCardProps) {
         ))}
       </dl>
 
-      {summary.repricedProducts > 0 && summary.averageCostIncreasePercent !== null ? (
+      {summary.repricedProducts > 0 && summary.averageCostIncreasePercent != null ? (
         <div className="mt-4 flex gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-xs leading-relaxed text-amber-300">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>

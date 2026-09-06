@@ -42,7 +42,7 @@ export function SupplierPerformanceKpis({ totals, parameters }: SupplierPerforma
         label="Faturamento no período"
         value={formatCurrency(totals.revenue)}
         hint={
-          variacao === null ? (
+          variacao == null ? (
             "sem base de comparação"
           ) : (
             <span className="flex items-center gap-1">

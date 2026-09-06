@@ -124,7 +124,7 @@ export function SupplierRankingRow({
           <Metrica valor={formatInteger(supplier.sales)} rotulo="vendas" />
 
           <Metrica valor={formatCurrency(supplier.revenue)} rotulo="faturamento">
-            {supplier.revenueChangePercent !== null && (
+            {supplier.revenueChangePercent != null && (
               <span
                 className={cn(
                   "flex items-center justify-end gap-0.5 text-[10.5px] font-semibold",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SupplierPerformanceDto, SupplierPerformanceParametersDto } from "@workspace/api-client-react";
 import { motivosDaNota } from "../reasons";
 import { corDaNota, rotuloDaNota, COR_SEM_NOTA } from "../score";
+import { formatDaysAgo, formatInteger, formatPercent, plural } from "../format";
 
 const PARAMETROS: SupplierPerformanceParametersDto = {
   turnoverTarget: 25,
@@ -150,5 +151,62 @@ describe("corDaNota", () => {
     expect(rotuloDaNota(55)).toBe("Regular");
     expect(rotuloDaNota(40)).toBe("Atenção");
     expect(rotuloDaNota(20)).toBe("Crítico");
+  });
+});
+
+describe("campos que a API OMITE quando são nulos", () => {
+  /**
+   * O backend serializa com `WhenWritingNull`: campo nulo não chega como
+   * `null`, ele simplesmente não vem. Por isso o objeto abaixo é montado com
+   * `delete` em vez de `null` — é o formato que chega na rede de verdade.
+   *
+   * Derrubou a tela em produção-dev no dia em que ela subiu: `formatDaysAgo`
+   * comparava com `=== null`, deixava `undefined` passar e explodia no
+   * `toLocaleString` da linha do primeiro fornecedor sem venda registrada.
+   */
+  function comoAApiEnvia(): SupplierPerformanceDto {
+    const bruto = fornecedor({ sales: 0, revenue: 0, profit: 0, stockCost: 0, stockUnits: 0 }) as Record<
+      string,
+      unknown
+    >;
+
+    for (const campo of [
+      "avatarColor",
+      "revenueChangePercent",
+      "coverageDays",
+      "stockReturn",
+      "lastSaleDate",
+      "daysWithoutSelling",
+      "lastPurchaseDate",
+      "daysWithoutBuying",
+      "averagePurchaseIntervalDays",
+      "averageCostIncreasePercent",
+    ]) {
+      delete bruto[campo];
+    }
+
+    return bruto as unknown as SupplierPerformanceDto;
+  }
+
+  it("os motivos não quebram com o payload real", () => {
+    const motivos = motivosDaNota(comoAApiEnvia(), PARAMETROS, 0, 12);
+
+    expect(motivos).toHaveLength(1);
+    expect(motivos[0].texto).toContain("sem registro");
+  });
+
+  it("um fornecedor que vendeu, mas sem base de comparação, também passa", () => {
+    const bruto = fornecedor() as Record<string, unknown>;
+    delete bruto.revenueChangePercent;
+    delete bruto.coverageDays;
+
+    expect(() => motivosDaNota(bruto as unknown as SupplierPerformanceDto, PARAMETROS, 2, 12)).not.toThrow();
+  });
+
+  it("os formatadores devolvem travessão em vez de explodir", () => {
+    expect(formatDaysAgo(undefined)).toBe("sem registro");
+    expect(formatInteger(undefined)).toBe("—");
+    expect(formatPercent(undefined)).toBe("—");
+    expect(plural(undefined, "produto", "produtos")).toBe("—");
   });
 });

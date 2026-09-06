@@ -68,11 +68,18 @@ export interface SupplierScoreBreakdownDto {
   result: number;
 }
 
-/** Uma linha do ranking. */
+/**
+ * Uma linha do ranking.
+ *
+ * Todo campo anulável é declarado OPCIONAL, e não só `| null`: a API serializa
+ * com `WhenWritingNull`, então nulo não chega como `null` — o campo simplesmente
+ * não vem. Quem compara com `=== null` deixa passar `undefined` e quebra no
+ * primeiro `toLocaleString`. Foi o que derrubou esta tela em 06/09/2026.
+ */
 export interface SupplierPerformanceDto {
   supplierId: number;
   supplierName: string;
-  avatarColor: string | null;
+  avatarColor?: string | null;
   isRecurring: boolean;
   isMarketplace: boolean;
 
@@ -86,15 +93,15 @@ export interface SupplierPerformanceDto {
   revenueShare: number;
   profitShare: number;
   /** Variação contra o período anterior de igual duração. Nula sem base. */
-  revenueChangePercent: number | null;
+  revenueChangePercent?: number | null;
 
   stockUnits: number;
   stockCost: number;
   turnover: number;
   /** Dias para escoar o estoque no ritmo do período. Nula sem venda. */
-  coverageDays: number | null;
+  coverageDays?: number | null;
   /** Lucro do período por real parado em estoque. Nulo sem estoque. */
-  stockReturn: number | null;
+  stockReturn?: number | null;
 
   totalProducts: number;
   judgedProducts: number;
@@ -107,16 +114,16 @@ export interface SupplierPerformanceDto {
   hitRate: number;
   stalledStockCost: number;
 
-  lastSaleDate: string | null;
-  daysWithoutSelling: number | null;
-  lastPurchaseDate: string | null;
-  daysWithoutBuying: number | null;
+  lastSaleDate?: string | null;
+  daysWithoutSelling?: number | null;
+  lastPurchaseDate?: string | null;
+  daysWithoutBuying?: number | null;
   purchaseCountLastYear: number;
   purchaseTotalLastYear: number;
-  averagePurchaseIntervalDays: number | null;
+  averagePurchaseIntervalDays?: number | null;
 
   repricedProducts: number;
-  averageCostIncreasePercent: number | null;
+  averageCostIncreasePercent?: number | null;
 
   score: number;
   scoreBreakdown: SupplierScoreBreakdownDto;
@@ -156,16 +163,16 @@ export interface SupplierProductPerformanceDto {
   /** Saldo disponível nos lotes DESTE fornecedor. */
   stock: number;
   stockCost: number;
-  coverageDays: number | null;
+  coverageDays?: number | null;
 
-  lastSaleDate: string | null;
-  daysWithoutSelling: number | null;
-  daysInStore: number | null;
+  lastSaleDate?: string | null;
+  daysWithoutSelling?: number | null;
+  daysInStore?: number | null;
 
-  currentCost: number | null;
-  previousCost: number | null;
+  currentCost?: number | null;
+  previousCost?: number | null;
   /** Variação do custo entre as duas últimas compras. Nula com uma só. */
-  costChangePercent: number | null;
+  costChangePercent?: number | null;
 
   classification: SupplierProductClass;
   /** Quantidade sugerida para repor. Zero quando não há urgência. */
@@ -173,13 +180,13 @@ export interface SupplierProductPerformanceDto {
 }
 
 export interface SupplierContactDto {
-  salesRepresentative: string | null;
-  phone: string | null;
-  email: string | null;
-  city: string | null;
-  state: string | null;
+  salesRepresentative?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  city?: string | null;
+  state?: string | null;
   minimumPurchaseValue: number;
-  description: string | null;
+  description?: string | null;
 }
 
 export interface SupplierDetailDto {

@@ -67,7 +67,7 @@ export function motivosDaNota(
     texto: `${deltaMix >= 0 ? "" : "Só "}${formatPercent(fornecedor.hitRate, 0)} dos produtos vendem com boa margem (${fornecedor.goodProducts} de ${fornecedor.judgedProducts}) — a loja gira ${formatPercent(parametros.storeHitRate, 0)}`,
   });
 
-  if (fornecedor.coverageDays !== null) {
+  if (fornecedor.coverageDays != null) {
     const rapido = fornecedor.scoreBreakdown.turnover >= 60;
     const dias = Math.round(fornecedor.coverageDays);
     lista.push({
@@ -107,7 +107,7 @@ export function motivosDaNota(
     });
   }
 
-  if (fornecedor.daysWithoutSelling !== null && fornecedor.daysWithoutSelling > 14) {
+  if (fornecedor.daysWithoutSelling != null && fornecedor.daysWithoutSelling > 14) {
     lista.push({
       tipo: "ruim",
       peso: fornecedor.daysWithoutSelling,

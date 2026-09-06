@@ -88,7 +88,7 @@ export default function SupplierPerformanceDetailPage() {
               <Indicador
                 rotulo="Retorno do estoque"
                 valor={
-                  detalhe.summary.stockReturn === null ? "—" : formatCurrency(detalhe.summary.stockReturn)
+                  detalhe.summary.stockReturn == null ? "—" : formatCurrency(detalhe.summary.stockReturn)
                 }
                 nota="de lucro por R$ 1 parado, no período"
               />
@@ -129,7 +129,7 @@ export default function SupplierPerformanceDetailPage() {
                     {
                       titulo: "Cobertura",
                       numeric: true,
-                      render: (p) => (p.coverageDays === null ? "—" : `${Math.round(p.coverageDays)}d`),
+                      render: (p) => (p.coverageDays == null ? "—" : `${Math.round(p.coverageDays)}d`),
                     },
                   ]}
                 />
@@ -157,14 +157,14 @@ export default function SupplierPerformanceDetailPage() {
                       titulo: "Sem vender",
                       numeric: true,
                       render: (p) =>
-                        p.daysWithoutSelling === null
+                        p.daysWithoutSelling == null
                           ? "nunca vendeu"
                           : `${formatInteger(p.daysWithoutSelling)} dias`,
                     },
                     {
                       titulo: "Na loja há",
                       numeric: true,
-                      render: (p) => (p.daysInStore === null ? "—" : `${formatInteger(p.daysInStore)} dias`),
+                      render: (p) => (p.daysInStore == null ? "—" : `${formatInteger(p.daysInStore)} dias`),
                     },
                   ]}
                 />
@@ -192,13 +192,13 @@ export default function SupplierPerformanceDetailPage() {
                     {
                       titulo: "Custo atual",
                       numeric: true,
-                      render: (p) => (p.currentCost === null ? "—" : formatCurrency(p.currentCost)),
+                      render: (p) => (p.currentCost == null ? "—" : formatCurrency(p.currentCost)),
                     },
                     {
                       titulo: "Variação",
                       numeric: true,
                       render: (p) =>
-                        p.costChangePercent === null ? (
+                        p.costChangePercent == null ? (
                           "—"
                         ) : (
                           <span className={p.costChangePercent > 0 ? "text-destructive" : "text-emerald-400"}>
