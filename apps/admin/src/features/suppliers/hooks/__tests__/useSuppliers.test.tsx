@@ -54,6 +54,8 @@ const SUPPLIER_10: SupplierDto = {
   state: "PR",
   avatarColor: "#6366f1",
   description: null,
+  isRecurring: false,
+  isMarketplace: false,
 };
 
 /** Wrapper com o QueryClient REAL — o teste de invalidação depende do cache de verdade. */
@@ -177,6 +179,8 @@ describe("useSuppliers Hook", () => {
       state: "PR",
       avatarColor: "#6366f1",
       description: "Test description",
+      isRecurring: true,
+      isMarketplace: true,
     };
 
     await act(async () => {
@@ -197,6 +201,11 @@ describe("useSuppliers Hook", () => {
         state: "PR",
         avatarColor: "#6366f1",
         description: "Test description",
+        // As duas marcas do cadastro precisam chegar ao servidor: a de
+        // marketplace decide se a COMPRA vai exigir o link do anúncio, e perdê-la
+        // aqui liberaria a regra em silêncio.
+        isRecurring: true,
+        isMarketplace: true,
       },
     });
   });

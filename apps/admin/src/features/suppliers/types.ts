@@ -14,6 +14,13 @@ export interface SupplierForm {
   state: string;
   avatarColor: string;
   description: string;
+  /** Compra recorrente — filtro da tela de desempenho de fornecedores. */
+  isRecurring: boolean;
+  /**
+   * Plataforma com vários vendedores (Shopee, Mercado Livre). Passa a EXIGIR o
+   * link do anúncio na compra fora de Pendente.
+   */
+  isMarketplace: boolean;
 }
 
 // O DTO já existe no contrato — redeclará-lo aqui criava duas verdades sobre a

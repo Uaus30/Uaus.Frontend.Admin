@@ -61,6 +61,8 @@ export function useSuppliers() {
     state: "PR",
     avatarColor: randomColor(),
     description: "",
+    isRecurring: false,
+    isMarketplace: false,
   });
 
   // Reseta a página ao buscar
@@ -169,6 +171,8 @@ export function useSuppliers() {
         state: supplier.state || "",
         avatarColor: supplier.avatarColor || randomColor(),
         description: supplier.description || "",
+        isRecurring: supplier.isRecurring,
+        isMarketplace: supplier.isMarketplace,
       });
     } else {
       setEditingId(null);
@@ -185,6 +189,8 @@ export function useSuppliers() {
         state: "PR",
         avatarColor: randomColor(),
         description: "",
+        isRecurring: false,
+        isMarketplace: false,
       });
     }
 
@@ -236,6 +242,8 @@ export function useSuppliers() {
         state: formData.state,
         avatarColor: formData.avatarColor,
         description: formData.description.trim() || null,
+        isRecurring: formData.isRecurring,
+        isMarketplace: formData.isMarketplace,
       };
 
       if (editingId) {

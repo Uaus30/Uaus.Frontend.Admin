@@ -628,6 +628,17 @@ export interface SupplierDto {
   state: string;
   avatarColor: string;
   description: string | null;
+  /**
+   * Fornecedor de compra recorrente. Filtro da tela de desempenho — comparar
+   * quem se compra todo mês com quem se comprou uma vez distorce o ranking.
+   */
+  isRecurring: boolean;
+  /**
+   * O "fornecedor" é uma plataforma com vários vendedores (Shopee, Mercado
+   * Livre). Exige o link na compra fora de Pendente e dispensa a leitura de
+   * risco por concentração de faturamento.
+   */
+  isMarketplace: boolean;
 }
 
 export interface SaleDto {

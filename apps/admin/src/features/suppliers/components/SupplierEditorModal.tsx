@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
-import { Button } from "@workspace/ui";
-import { Input } from "@workspace/ui";
-import { Label } from "@workspace/ui";
+import { Button, Input, Label } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Loader2, Phone, RefreshCw } from "lucide-react";
 import { cleanPhone, formatPhone } from "@workspace/core";
 import { UF_LIST, randomColor } from "../constants";
 import type { EnumOption, SupplierForm } from "../types";
+import { SupplierFlagsFields } from "./SupplierFlagsFields";
 
 /**
  * Retorna as iniciais de um nome para exibição no avatar.
@@ -83,12 +82,17 @@ export function SupplierEditorModal({
   const [state, setState] = useState(initialForm.state || "");
   const [avatarColor, setAvatarColor] = useState(initialForm.avatarColor || "");
 
+  const [isRecurring, setIsRecurring] = useState(initialForm.isRecurring);
+  const [isMarketplace, setIsMarketplace] = useState(initialForm.isMarketplace);
+
   useEffect(() => {
     if (open) {
       setName(initialForm.name);
       setStatus(initialForm.status || "");
       setState(initialForm.state || "");
       setAvatarColor(initialForm.avatarColor || "");
+      setIsRecurring(initialForm.isRecurring);
+      setIsMarketplace(initialForm.isMarketplace);
     }
   }, [open, initialForm]);
 
@@ -116,6 +120,8 @@ export function SupplierEditorModal({
       state,
       avatarColor,
       description: descriptionRef.current?.value || "",
+      isRecurring,
+      isMarketplace,
     });
   };
 
@@ -301,6 +307,13 @@ export function SupplierEditorModal({
                   maxLength={200}
                 />
               </div>
+
+              <SupplierFlagsFields
+                isRecurring={isRecurring}
+                onIsRecurringChange={setIsRecurring}
+                isMarketplace={isMarketplace}
+                onIsMarketplaceChange={setIsMarketplace}
+              />
             </div>
           </fieldset>
 
