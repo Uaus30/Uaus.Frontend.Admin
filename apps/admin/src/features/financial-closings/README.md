@@ -10,10 +10,11 @@ Fechamento financeiro **mensal** (rota `/financeiro/fechamentos`): o documento o
 - `components/NewClosingDialog.tsx`: Diálogo em dois passos: competência (mês/ano) → prévia calculada no servidor + observações + confirmação.
 - `components/CompetencePicker.tsx`: Selects de ano e mês do passo 1, com o atalho "Último mês" e o travamento dos meses já fechados.
 - `components/ClosingDetailsDialog.tsx`: Detalhe com os números congelados, rateio, observações, autoria e o botão de exclusão.
-- `components/ClosingSummary.tsx`: Resumo financeiro compartilhado entre a prévia e o detalhe (cards, custos fixos por competência, rateio e warnings).
+- `components/ClosingSummary.tsx`: Resumo financeiro compartilhado entre a prévia e o detalhe (cards, custos variáveis, custos fixos por competência, rateio e warnings).
+- `components/VariableCostsTable.tsx`: Tabela dos gastos eventuais — editável na prévia, só de leitura no documento confirmado.
 - `month-selection.ts`: Domínio da competência — conversão mês/ano ↔ período, meses fechados do ano, estados do select e rótulo do período na tela. Puro e testado.
 - `hooks/useFinancialClosings.ts`: Hook controlador único — listagem paginada sem filtro, mutações de prévia/confirmação/exclusão e estado dos diálogos. A confirmação envia sempre o período **congelado junto com a prévia** exibida, nunca a competência atual do formulário.
-- `__tests__/month-selection.test.ts` e `hooks/__tests__/useFinancialClosings.test.tsx`: Testes (Vitest + React Testing Library).
+- `__tests__/month-selection.test.ts`, `components/__tests__/VariableCostsTable.test.tsx` e `hooks/__tests__/useFinancialClosings.test.tsx`: Testes (Vitest + React Testing Library).
 - `types.ts`: Tipos locais (`NewClosingStep`, `ClosingNumbers`), re-export dos tipos de competência + DTOs do api-client.
 
 ---
@@ -42,6 +43,16 @@ Psicologia das cores, com ícone e texto redundantes (cor sozinha não informa q
 - "Fechado" sai da **sobreposição** com fechamentos existentes, não da igualdade de período: um fechamento antigo de 15/07 a 10/08 trava julho **e** agosto, que é exatamente o que a confirmação recusaria.
 - O atalho "Último mês" não passa pelo select e pode cair num mês já fechado. Quando isso acontece, o aviso vermelho aparece embaixo dos selects e "Calcular prévia" fica travado — em vez de deixar o usuário descobrir na recusa do servidor.
 
+### 0.2. Custos variáveis: o que o operador digita (06/09/2026)
+
+- Acima dos custos fixos, a prévia tem a tabela **"Custos variáveis no período"**: gastos eventuais do mês que descem do lucro bruto igual aos custos fixos. É para o que não tem cadastro — a conta do contador, o conserto do freezer, a taxa que apareceu uma vez. Cadastrá-los como custo fixo sujaria um cadastro que é recorrente por natureza e relançaria o valor em todo mês seguinte.
+- **Cada linha lançada refaz a conta no servidor.** Nada é ajustado no cliente: o lucro líquido e o rateio exibidos vêm sempre da resposta da prévia, com o rateio refeito pela mesma função da confirmação. Somar no cliente daria um rateio que não fecha com o lucro ao lado dele.
+- **A tabela lista o eco do servidor, não o estado local.** Por isso uma falha de rede não deixa a linha na tela com o valor fora da conta: se a prévia não voltou, nada mudou. Enquanto o recálculo está em voo, a edição e o botão de confirmar ficam travados.
+- **A confirmação envia a lista congelada com a prévia**, junto com o período — os dois produziram os números conferidos.
+- Voltar ao passo da competência **mantém** os gastos lançados: quem volta costuma ir corrigir o mês, e perder cinco linhas digitadas seria punir a correção. A prévia em si é descartada, porque valia para o período anterior.
+- Documento confirmado **não edita** o gasto: a tabela vira leitura, como todo o resto. Refazer é excluir o fechamento e lançar de novo.
+- Regra de entrada: descrição obrigatória e valor **maior que zero** — negativo entraria como receita disfarçada de custo. O backend recusa igual, e é dele que sai a mensagem quando alguém tenta por fora da tela.
+
 ### 1. Fechamento congela tudo
 
 - Na confirmação o servidor **recalcula** os números do período (nunca confia nos valores da prévia exibida no cliente) e grava faturamento, CMV, lucro bruto, custos fixos, lucro líquido e o rateio por sócio (nome, percentual e valor **congelados**).
@@ -59,9 +70,10 @@ Psicologia das cores, com ícone e texto redundantes (cor sozinha não informa q
 
 - Cada mês-calendário tocado pelo período lança o valor mensal **cheio** de cada custo vigente (sem pró-rata) — é a razão de a tela ter passado a trabalhar por mês, e não por período livre (regra 0).
 
-### 5. Compras e perdas são informativas
+### 5. Compras e perdas são informativas (custo variável não)
 
 - Aparecem no resumo mas **não** entram no lucro líquido: o CMV já cobre o custo FIFO dos itens vendidos.
+- O custo variável é o oposto: entra no lucro líquido, porque é dinheiro que saiu e não está em nenhum outro lugar da conta.
 
 ### 6. Lucro negativo distribui prejuízo
 

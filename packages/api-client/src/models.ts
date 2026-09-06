@@ -912,6 +912,21 @@ export interface FinancialClosingShareDto {
 }
 
 /**
+ * Gasto eventual lançado à mão durante o fechamento: a conta do contador, o
+ * conserto do freezer, a taxa que apareceu uma vez. Desce do lucro bruto junto
+ * com os custos fixos e fica congelado no documento.
+ *
+ * É a ÚNICA parte do fechamento que sai do cliente — os demais números o
+ * servidor recalcula do banco, e estes não têm outra origem senão o que alguém
+ * digitou.
+ */
+export interface FinancialClosingVariableCostDto {
+  description: string;
+  /** Valor descontado do lucro bruto. Sempre positivo. */
+  amount: number;
+}
+
+/**
  * Fechamento financeiro de um período. Todos os números são CONGELADOS na
  * confirmação — recalculados no servidor, nunca vindos do cliente.
  */
@@ -931,12 +946,16 @@ export interface FinancialClosingDto {
   writeOffLossesTotal: number;
   /** Total por competência mensal (valor cheio de cada mês tocado, sem pró-rata). */
   fixedCostsTotal: number;
+  /** Soma dos gastos eventuais lançados na confirmação. Zero quando não houve. */
+  variableCostsTotal: number;
   netProfit: number;
   salesCount: number;
   notes?: string | null;
   closedByUserId: number;
   closedByUserName?: string | null;
   shares: FinancialClosingShareDto[];
+  /** Gastos eventuais congelados, na ordem em que foram lançados. */
+  variableCosts: FinancialClosingVariableCostDto[];
 }
 
 /**
@@ -954,28 +973,41 @@ export interface FinancialClosingPreviewDto {
   purchasesTotal: number;
   writeOffLossesTotal: number;
   fixedCostsTotal: number;
+  variableCostsTotal: number;
   netProfit: number;
   salesCount: number;
   shares: FinancialClosingShareDto[];
   /** Detalhamento dos custos fixos considerados no período. */
   fixedCosts: FinancialReportFixedCostsDto;
+  /**
+   * Eco dos gastos eventuais enviados, já normalizados pelo servidor. A tela
+   * lista ESTA cópia: assim a tabela e o lucro líquido ao lado saem da mesma
+   * resposta e não têm como divergir.
+   */
+  variableCosts: FinancialClosingVariableCostDto[];
   /** Avisos como período parcial de mês ou soma de percentuais ≠ 100. */
   warnings: string[];
 }
 
-/** Período enviado para calcular a prévia do fechamento. */
+/** Período e gastos eventuais enviados para calcular a prévia do fechamento. */
 export interface PreviewFinancialClosingPayload {
   periodStart: string;
   /** Inclusivo. */
   periodEnd: string;
+  /** Gastos eventuais do período. Omitido ou vazio quando não há nenhum. */
+  variableCosts?: FinancialClosingVariableCostDto[];
 }
 
-/** Dados enviados ao confirmar um fechamento (o servidor recalcula tudo). */
+/**
+ * Dados enviados ao confirmar um fechamento. O servidor recalcula tudo —
+ * exceto os gastos eventuais, que só existem no que foi digitado aqui.
+ */
 export interface CreateFinancialClosingPayload {
   periodStart: string;
   /** Inclusivo. */
   periodEnd: string;
   notes?: string | null;
+  variableCosts?: FinancialClosingVariableCostDto[];
 }
 
 export interface AuthSession {

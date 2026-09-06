@@ -33,6 +33,8 @@ export default function FinancialClosingsPage() {
     handleMonthChange,
     applyLastMonth,
     handleCalculatePreview,
+    handleAddVariableCost,
+    handleRemoveVariableCost,
     backToCompetence,
     handleConfirmClosing,
     detailsId,
@@ -111,6 +113,8 @@ export default function FinancialClosingsPage() {
           onMonthChange={handleMonthChange}
           onApplyLastMonth={applyLastMonth}
           onCalculatePreview={handleCalculatePreview}
+          onAddVariableCost={handleAddVariableCost}
+          onRemoveVariableCost={handleRemoveVariableCost}
           onBackToCompetence={backToCompetence}
           onNotesChange={setNotes}
           onConfirm={handleConfirmClosing}

@@ -12,7 +12,12 @@ import { Textarea } from "@workspace/ui";
 import { ArrowLeft, Loader2, Lock } from "lucide-react";
 import { ClosingSummary } from "./ClosingSummary";
 import { CompetencePicker } from "./CompetencePicker";
-import type { FinancialClosingPreviewDto, MonthOption, NewClosingStep } from "../types";
+import type {
+  FinancialClosingPreviewDto,
+  FinancialClosingVariableCostDto,
+  MonthOption,
+  NewClosingStep,
+} from "../types";
 
 interface NewClosingDialogProps {
   open: boolean;
@@ -33,6 +38,8 @@ interface NewClosingDialogProps {
   onMonthChange: (month: number) => void;
   onApplyLastMonth: () => void;
   onCalculatePreview: () => void;
+  onAddVariableCost: (cost: FinancialClosingVariableCostDto) => void;
+  onRemoveVariableCost: (index: number) => void;
   onBackToCompetence: () => void;
   onNotesChange: (notes: string) => void;
   onConfirm: () => void;
@@ -63,6 +70,8 @@ export function NewClosingDialog({
   onMonthChange,
   onApplyLastMonth,
   onCalculatePreview,
+  onAddVariableCost,
+  onRemoveVariableCost,
   onBackToCompetence,
   onNotesChange,
   onConfirm,
@@ -123,6 +132,9 @@ export function NewClosingDialog({
                   closing={preview}
                   fixedCostItems={preview.fixedCosts.items}
                   warnings={preview.warnings}
+                  onAddVariableCost={onAddVariableCost}
+                  onRemoveVariableCost={onRemoveVariableCost}
+                  isRecalculating={isCalculating}
                 />
 
                 <div className="space-y-2">
@@ -148,7 +160,11 @@ export function NewClosingDialog({
                   <ArrowLeft className="h-4 w-4" />
                   Voltar
                 </Button>
-                <Button onClick={onConfirm} disabled={isSaving} className="gap-2">
+                {/*
+                  Travado durante o recálculo: confirmar com um lançamento em voo
+                  gravaria a lista antiga enquanto a tela já mostra a nova.
+                */}
+                <Button onClick={onConfirm} disabled={isSaving || isCalculating} className="gap-2">
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                   Confirmar fechamento
                 </Button>

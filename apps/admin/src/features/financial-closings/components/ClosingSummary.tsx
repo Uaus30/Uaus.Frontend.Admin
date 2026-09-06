@@ -1,7 +1,12 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { AlertTriangle, Handshake, ReceiptText } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@workspace/core";
-import type { ClosingNumbers, FinancialReportFixedCostItemDto } from "../types";
+import { VariableCostsTable } from "./VariableCostsTable";
+import type {
+  ClosingNumbers,
+  FinancialClosingVariableCostDto,
+  FinancialReportFixedCostItemDto,
+} from "../types";
 
 interface ClosingSummaryProps {
   /** Números do fechamento (persistido) ou da prévia — o formato é o mesmo. */
@@ -10,6 +15,14 @@ interface ClosingSummaryProps {
   fixedCostItems?: FinancialReportFixedCostItemDto[];
   /** Avisos do servidor (período parcial de mês, soma de percentuais ≠ 100...). */
   warnings?: string[];
+  /**
+   * Edição dos gastos eventuais. Só a prévia passa: no detalhe de um fechamento
+   * confirmado a tabela é de leitura, como todo o resto do documento.
+   */
+  onAddVariableCost?: (cost: FinancialClosingVariableCostDto) => void;
+  onRemoveVariableCost?: (index: number) => void;
+  /** Trava a edição enquanto o servidor recalcula. */
+  isRecalculating?: boolean;
 }
 
 interface KpiCardProps {
@@ -42,7 +55,14 @@ function KpiCard({ label, value, hint, highlight, negative }: KpiCardProps) {
  * detalhe de um fechamento existente: cards de indicadores, custos fixos por
  * competência (só na prévia), rateio por sócio e avisos do servidor.
  */
-export function ClosingSummary({ closing, fixedCostItems, warnings }: ClosingSummaryProps) {
+export function ClosingSummary({
+  closing,
+  fixedCostItems,
+  warnings,
+  onAddVariableCost,
+  onRemoveVariableCost,
+  isRecalculating,
+}: ClosingSummaryProps) {
   return (
     <div className="space-y-4">
       {/* Avisos do servidor (período parcial, distribuição não configurada...) */}
@@ -64,6 +84,7 @@ export function ClosingSummary({ closing, fixedCostItems, warnings }: ClosingSum
         <KpiCard label="CMV" value={formatCurrency(closing.cogsCost)} />
         <KpiCard label="Lucro Bruto" value={formatCurrency(closing.grossProfit)} />
         <KpiCard label="Custos Fixos" value={formatCurrency(closing.fixedCostsTotal)} />
+        <KpiCard label="Custos Variáveis" value={formatCurrency(closing.variableCostsTotal)} />
         <KpiCard
           label="Lucro Líquido"
           value={formatCurrency(closing.netProfit)}
@@ -82,6 +103,15 @@ export function ClosingSummary({ closing, fixedCostItems, warnings }: ClosingSum
         />
         <KpiCard label="Vendas" value={String(closing.salesCount)} />
       </div>
+
+      {/* Gastos eventuais: editáveis na prévia, congelados no detalhe */}
+      <VariableCostsTable
+        items={closing.variableCosts}
+        total={closing.variableCostsTotal}
+        onAdd={onAddVariableCost}
+        onRemove={onRemoveVariableCost}
+        isRecalculating={isRecalculating}
+      />
 
       {/* Custos fixos por competência (apenas na prévia) */}
       {fixedCostItems && fixedCostItems.length > 0 && (

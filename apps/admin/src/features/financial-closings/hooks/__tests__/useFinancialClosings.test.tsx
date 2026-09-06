@@ -41,12 +41,17 @@ const previewFixture = {
   purchasesTotal: 18000,
   writeOffLossesTotal: 300,
   fixedCostsTotal: 4200,
+  variableCostsTotal: 0,
   netProfit: 4800,
   salesCount: 412,
   shares: [{ partnerId: 1, partnerName: "Sócio A", percentage: 100, amount: 4800 }],
   fixedCosts: { total: 4200, items: [] },
+  variableCosts: [],
   warnings: [],
 };
+
+/** Gasto eventual usado nos testes de recálculo. */
+const freezer = { description: "Conserto do freezer", amount: 300 };
 
 /**
  * Fechamento confirmado (julho/2026), usado no fluxo de exclusão — e também
@@ -65,12 +70,14 @@ const closingFixture = {
   purchasesTotal: 18000,
   writeOffLossesTotal: 300,
   fixedCostsTotal: 4200,
+  variableCostsTotal: 0,
   netProfit: 4800,
   salesCount: 412,
   notes: null,
   closedByUserId: 1,
   closedByUserName: "Wagner",
   shares: [{ partnerId: 1, partnerName: "Sócio A", percentage: 100, amount: 4800 }],
+  variableCosts: [],
 };
 
 const createWrapper = () => {
@@ -91,7 +98,20 @@ describe("useFinancialClosings", () => {
       refetch: vi.fn(),
     });
     mocks.useGetFinancialClosingById.mockReturnValue({ data: undefined, isLoading: false });
-    mocks.previewFinancialClosing.mockResolvedValue(previewFixture);
+    // O servidor devolve o eco dos gastos eventuais e o total recalculado — é
+    // desse eco que a tela vive, então o dublê precisa se comportar igual.
+    mocks.previewFinancialClosing.mockImplementation(
+      async (input: { variableCosts?: { description: string; amount: number }[] }) => {
+        const variableCosts = input.variableCosts ?? [];
+        const variableCostsTotal = variableCosts.reduce((sum, cost) => sum + cost.amount, 0);
+        return {
+          ...previewFixture,
+          variableCosts,
+          variableCostsTotal,
+          netProfit: previewFixture.netProfit - variableCostsTotal,
+        };
+      },
+    );
     mocks.createFinancialClosing.mockResolvedValue(7);
     mocks.deleteFinancialClosing.mockResolvedValue(undefined);
   });
@@ -204,8 +224,119 @@ describe("useFinancialClosings", () => {
     expect(mocks.previewFinancialClosing).toHaveBeenCalledWith({
       periodStart: "2026-08-01",
       periodEnd: "2026-08-31",
+      variableCosts: [],
     });
     expect(result.current.preview).toEqual(previewFixture);
+  });
+
+  /** Leva até o passo da prévia com agosto/2026 calculado. */
+  async function previewAugust2026(result: { current: ReturnType<typeof useFinancialClosings> }) {
+    selectAugust2026(result);
+    await act(async () => {
+      result.current.handleCalculatePreview();
+    });
+    await waitFor(() => expect(result.current.step).toBe("previa"));
+  }
+
+  it("deve recalcular a prévia no servidor ao lançar um custo variável", async () => {
+    const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
+
+    await previewAugust2026(result);
+    await act(async () => {
+      result.current.handleAddVariableCost(freezer);
+    });
+
+    // O recálculo vai para o servidor com o MESMO período da prévia exibida.
+    await waitFor(() =>
+      expect(mocks.previewFinancialClosing).toHaveBeenLastCalledWith({
+        periodStart: "2026-08-01",
+        periodEnd: "2026-08-31",
+        variableCosts: [freezer],
+      }),
+    );
+    // E os números da tela passam a ser os que vieram de volta — o lucro
+    // líquido nunca é ajustado no cliente.
+    await waitFor(() => expect(result.current.preview?.netProfit).toBe(4500));
+    expect(result.current.preview?.variableCosts).toEqual([freezer]);
+  });
+
+  it("deve recalcular ao remover um custo variável", async () => {
+    const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
+
+    await previewAugust2026(result);
+    await act(async () => {
+      result.current.handleAddVariableCost(freezer);
+    });
+    await waitFor(() => expect(result.current.preview?.variableCosts).toHaveLength(1));
+
+    await act(async () => {
+      result.current.handleRemoveVariableCost(0);
+    });
+
+    await waitFor(() => expect(result.current.preview?.variableCosts).toEqual([]));
+    expect(result.current.preview?.netProfit).toBe(4800);
+  });
+
+  it("deve confirmar com os custos variáveis que produziram os números exibidos", async () => {
+    const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
+
+    await previewAugust2026(result);
+    await act(async () => {
+      result.current.handleAddVariableCost(freezer);
+    });
+    await waitFor(() => expect(result.current.preview?.variableCostsTotal).toBe(300));
+
+    await act(async () => {
+      result.current.handleConfirmClosing();
+    });
+
+    await waitFor(() =>
+      expect(mocks.createFinancialClosing).toHaveBeenCalledWith({
+        periodStart: "2026-08-01",
+        periodEnd: "2026-08-31",
+        variableCosts: [freezer],
+        notes: null,
+      }),
+    );
+  });
+
+  it("deve manter os custos variáveis ao voltar para a competência e recalcular", async () => {
+    // Voltar para corrigir o mês não pode custar os lançamentos já digitados.
+    const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
+
+    await previewAugust2026(result);
+    await act(async () => {
+      result.current.handleAddVariableCost(freezer);
+    });
+    await waitFor(() => expect(result.current.preview?.variableCosts).toHaveLength(1));
+
+    act(() => result.current.backToCompetence());
+    expect(result.current.preview).toBeNull();
+
+    act(() => result.current.handleMonthChange(6));
+    await act(async () => {
+      result.current.handleCalculatePreview();
+    });
+
+    await waitFor(() =>
+      expect(mocks.previewFinancialClosing).toHaveBeenLastCalledWith({
+        periodStart: "2026-06-01",
+        periodEnd: "2026-06-30",
+        variableCosts: [freezer],
+      }),
+    );
+  });
+
+  it("não deve lançar custo variável sem prévia calculada", async () => {
+    const { result } = renderHook(() => useFinancialClosings(), { wrapper: createWrapper() });
+
+    selectAugust2026(result);
+    await act(async () => {
+      result.current.handleAddVariableCost(freezer);
+    });
+
+    // Sem período congelado não há sobre o que recalcular.
+    expect(mocks.previewFinancialClosing).not.toHaveBeenCalled();
   });
 
   it("deve mostrar a mensagem do backend quando a prévia falha", async () => {
@@ -247,6 +378,7 @@ describe("useFinancialClosings", () => {
       expect(mocks.createFinancialClosing).toHaveBeenCalledWith({
         periodStart: "2026-08-01",
         periodEnd: "2026-08-31",
+        variableCosts: [],
         notes: null,
       }),
     );
@@ -271,6 +403,7 @@ describe("useFinancialClosings", () => {
       expect(mocks.createFinancialClosing).toHaveBeenCalledWith({
         periodStart: "2026-08-01",
         periodEnd: "2026-08-31",
+        variableCosts: [],
         notes: "Fechamento de agosto",
       }),
     );
@@ -297,6 +430,7 @@ describe("useFinancialClosings", () => {
       expect(mocks.createFinancialClosing).toHaveBeenCalledWith({
         periodStart: "2026-08-01",
         periodEnd: "2026-08-31",
+        variableCosts: [],
         notes: null,
       }),
     );

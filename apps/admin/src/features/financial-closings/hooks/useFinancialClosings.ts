@@ -18,7 +18,12 @@ import {
   lastEndedMonth,
   monthRange,
 } from "../month-selection";
-import type { FinancialClosingDto, FinancialClosingPreviewDto, NewClosingStep } from "../types";
+import type {
+  FinancialClosingDto,
+  FinancialClosingPreviewDto,
+  FinancialClosingVariableCostDto,
+  NewClosingStep,
+} from "../types";
 
 /** Tamanho fixo da página da listagem. */
 export const PAGE_SIZE = 10;
@@ -26,10 +31,18 @@ export const PAGE_SIZE = 10;
 /** Teto da consulta que descobre os meses já fechados de um ano. */
 const CLOSED_MONTHS_LIMIT = 200;
 
-/** Período congelado junto com a prévia — o que a confirmação envia. */
-interface ClosingPeriod {
+/**
+ * Entrada congelada junto com a prévia: período **e** gastos eventuais. É o que
+ * a confirmação envia.
+ *
+ * Os dois andam juntos porque juntos produziram os números exibidos — mandar o
+ * período da prévia com uma lista de gastos que mudou depois gravaria um
+ * documento que ninguém conferiu.
+ */
+interface ClosingInput {
   periodStart: string;
   periodEnd: string;
+  variableCosts: FinancialClosingVariableCostDto[];
 }
 
 /**
@@ -66,10 +79,10 @@ export function useFinancialClosings() {
   const [month, setMonth] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [preview, setPreview] = useState<FinancialClosingPreviewDto | null>(null);
-  // Período usado na requisição da prévia exibida. A confirmação envia SEMPRE
-  // este período congelado — nunca a competência atual, que pode ter mudado
-  // depois do cálculo.
-  const [previewPeriod, setPreviewPeriod] = useState<ClosingPeriod | null>(null);
+  // Entrada usada na requisição da prévia exibida. A confirmação envia SEMPRE
+  // esta cópia congelada — nunca o estado atual do formulário, que pode ter
+  // mudado depois do cálculo.
+  const [previewInput, setPreviewInput] = useState<ClosingInput | null>(null);
 
   // Fechamentos que podem tocar o ano escolhido, para travar os meses já
   // fechados. A janela começa no ano anterior porque os fechamentos antigos são
@@ -98,7 +111,7 @@ export function useFinancialClosings() {
     setMonth(null);
     setNotes("");
     setPreview(null);
-    setPreviewPeriod(null);
+    setPreviewInput(null);
     setNewClosingOpen(true);
   }
 
@@ -126,13 +139,13 @@ export function useFinancialClosings() {
   }
 
   const previewMutation = useMutation({
-    mutationFn: (period: ClosingPeriod) => previewFinancialClosing(period),
-    onSuccess: (data, period) => {
+    mutationFn: (input: ClosingInput) => previewFinancialClosing(input),
+    onSuccess: (data, input) => {
       if (!data) return;
-      // Congela o período das variables da mutação (o efetivamente enviado),
+      // Congela a entrada das variables da mutação (a efetivamente enviada),
       // não o estado atual — que pode mudar antes da resposta chegar.
       setPreview(data);
-      setPreviewPeriod(period);
+      setPreviewInput(input);
       setStep("previa");
     },
     onError: (error: unknown) => {
@@ -165,18 +178,48 @@ export function useFinancialClosings() {
       return;
     }
 
-    previewMutation.mutate(monthRange({ year, month }));
+    // Voltar ao passo da competência e recalcular mantém os gastos já lançados:
+    // eles são do período, e o usuário costuma voltar para corrigir o mês.
+    previewMutation.mutate({
+      ...monthRange({ year, month }),
+      variableCosts: previewInput?.variableCosts ?? [],
+    });
   }
 
-  /** Volta ao passo da competência mantendo mês e ano — a prévia congelada é descartada. */
+  /**
+   * Recalcula a prévia com outra lista de gastos eventuais.
+   *
+   * O período vai congelado da prévia exibida, e não do formulário: recalcular
+   * é sempre sobre o MESMO período que produziu os números na tela.
+   */
+  function recalculateWith(variableCosts: FinancialClosingVariableCostDto[]) {
+    if (!previewInput || previewMutation.isPending) return;
+    previewMutation.mutate({ ...previewInput, variableCosts });
+  }
+
+  /** Lança um gasto eventual e refaz a conta no servidor. */
+  function handleAddVariableCost(cost: FinancialClosingVariableCostDto) {
+    recalculateWith([...(previewInput?.variableCosts ?? []), cost]);
+  }
+
+  /** Remove o gasto eventual da posição informada e refaz a conta no servidor. */
+  function handleRemoveVariableCost(index: number) {
+    const current = previewInput?.variableCosts ?? [];
+    recalculateWith(current.filter((_cost, position) => position !== index));
+  }
+
+  /**
+   * Volta ao passo da competência mantendo mês, ano e gastos eventuais — só a
+   * prévia calculada é descartada, porque ela vale para o período que ficou
+   * para trás.
+   */
   function backToCompetence() {
     setPreview(null);
-    setPreviewPeriod(null);
     setStep("competencia");
   }
 
   const confirmMutation = useMutation({
-    mutationFn: (period: ClosingPeriod) => createFinancialClosing({ ...period, notes: notes.trim() || null }),
+    mutationFn: (input: ClosingInput) => createFinancialClosing({ ...input, notes: notes.trim() || null }),
     onSuccess: async () => {
       // Prefixo da chave ["FinancialClosings", params]: invalida todas as
       // páginas da listagem e a consulta de meses fechados de uma vez.
@@ -201,12 +244,15 @@ export function useFinancialClosings() {
   /**
    * Confirma o fechamento — o servidor recalcula, valida e congela tudo.
    *
-   * Sem prévia congelada não há o que confirmar: o período enviado é sempre o
-   * da prévia exibida, nunca a competência atual do formulário.
+   * Sem prévia exibida não há o que confirmar: período e gastos eventuais
+   * enviados são sempre os que produziram os números na tela, nunca o estado
+   * atual do formulário. Recálculo em voo também bloqueia — confirmar ali
+   * gravaria a lista antiga com os números novos à vista.
    */
   function handleConfirmClosing() {
-    if (!previewPeriod || confirmMutation.isPending) return;
-    confirmMutation.mutate(previewPeriod);
+    if (!preview || !previewInput) return;
+    if (confirmMutation.isPending || previewMutation.isPending) return;
+    confirmMutation.mutate(previewInput);
   }
 
   // ─── Detalhe + exclusão ────────────────────────────────────────────────────
@@ -288,6 +334,8 @@ export function useFinancialClosings() {
     handleMonthChange,
     applyLastMonth,
     handleCalculatePreview,
+    handleAddVariableCost,
+    handleRemoveVariableCost,
     backToCompetence,
     handleConfirmClosing,
 

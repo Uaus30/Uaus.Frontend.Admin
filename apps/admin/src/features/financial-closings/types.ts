@@ -4,6 +4,7 @@ export type {
   FinancialClosingDto,
   FinancialClosingPreviewDto,
   FinancialClosingShareDto,
+  FinancialClosingVariableCostDto,
   FinancialReportFixedCostItemDto,
   FinancialReportFixedCostsDto,
 } from "@workspace/api-client-react";
@@ -33,7 +34,9 @@ export type ClosingNumbers = Pick<
   | "purchasesTotal"
   | "writeOffLossesTotal"
   | "fixedCostsTotal"
+  | "variableCostsTotal"
   | "netProfit"
   | "salesCount"
   | "shares"
+  | "variableCosts"
 >;
