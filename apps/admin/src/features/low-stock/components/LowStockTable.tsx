@@ -48,7 +48,10 @@ function productDetailHref(productGroupId: number): string {
  * "92 dias" é preciso e ilegível para quem só quer saber se dá para esperar a
  * próxima compra.
  */
-function duracaoLegivel(days: number | null | undefined): string {
+function duracaoLegivel(days: number | null | undefined, stock: number): string {
+  // Saldo zero e passado, nao previsao: "acaba hoje" para quem ja acabou manda
+  // a pessoa conferir uma data que nao existe mais.
+  if (stock <= 0) return "esgotado";
   if (days == null) return "—";
   if (days < 1) return "acaba hoje";
   if (days <= 60) return `${Math.round(days)} dias`;
@@ -56,7 +59,8 @@ function duracaoLegivel(days: number | null | undefined): string {
 }
 
 /** Cor da previsão: vermelho até uma semana, âmbar até três, neutro depois. */
-function duracaoTone(days: number | null | undefined): string {
+function duracaoTone(days: number | null | undefined, stock: number): string {
+  if (stock <= 0) return "font-semibold text-red-600 dark:text-red-400";
   if (days == null) return "text-muted-foreground";
   if (days <= 7) return "font-semibold text-red-600 dark:text-red-400";
   if (days <= 21) return "text-amber-600 dark:text-amber-400";
@@ -224,9 +228,11 @@ export function LowStockTable({
                         <span className="text-muted-foreground">Nunca vendeu</span>
                       )}
                     </TableCell>
-                    <TableCell className={`px-4 py-3 text-right text-sm ${duracaoTone(item.daysOfCover)}`}>
+                    <TableCell
+                      className={`px-4 py-3 text-right text-sm ${duracaoTone(item.daysOfCover, item.stock)}`}
+                    >
                       <span title={`Média de ${item.averageDailySales ?? 0} un./dia nos últimos 90 dias`}>
-                        {duracaoLegivel(item.daysOfCover)}
+                        {duracaoLegivel(item.daysOfCover, item.stock)}
                       </span>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm">

@@ -50,6 +50,9 @@ há um ano com saldo 1 não é urgência:
   inteligência (`DashboardMath.DaysOfCover`). Sem giro na janela a coluna fica
   vazia: zero diria "acaba hoje" para um produto que não sai. A cor é vermelha
   até uma semana e âmbar até três.
+- **Saldo zero diz "esgotado", não "acaba hoje"** (06/09/2026). Com saldo zero
+  não há previsão a fazer — o produto já acabou, e mandar conferir uma data que
+  passou confunde quem está decidindo o que comprar hoje.
 
 ## Exportação XLSX
 
