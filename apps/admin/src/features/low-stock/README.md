@@ -17,6 +17,11 @@ o alerta vermelho que aparece no painel e no topo da listagem de produtos.
   filtro deixaria de fora justamente os produtos sem controle de estoque, que
   são os que o operador quer varrer. Vazio, zero e lixo digitado voltam ao
   padrão.
+- **Filtro "vendeu ao menos N em 30d" (06/09/2026).** Mesma regra e mesmo
+  motivo: ignora o estoque mínimo. A pergunta que ele responde — "o que está
+  acabando e TEM saída?" — só faz sentido alcançando os produtos sem controle
+  de estoque. Combinado com o teto de saldo, é a varredura completa: pouco
+  estoque **e** giro.
 - **Resolver é registrar a compra (06/09/2026).** A reposição é um fluxo com
   dependência: um alerta só está tratado quando existe um **pedido de compra**.
   - Sem compra em aberto, o botão leva a `/estoque/compras?produto=&fornecedor=`
@@ -41,10 +46,24 @@ o alerta vermelho que aparece no painel e no topo da listagem de produtos.
 
 ## Giro do produto (06/09/2026)
 
-Duas colunas respondem à pergunta que decide se vale repor — um produto parado
+Três colunas respondem à pergunta que decide se vale repor — um produto parado
 há um ano com saldo 1 não é urgência:
 
 - **Última venda**: a venda mais recente não cancelada, de toda a história.
+- **Vendas 30d**: unidades vendidas nos últimos 30 dias
+  (`LowStockService.RecentSalesWindowDays`), sem as canceladas. É a coluna do
+  filtro e da ordenação. A janela é mais curta que a da previsão **de
+  propósito**: a previsão quer ritmo estável, e noventa dias diluem um mês
+  atípico; esta quer saber se o produto está saindo AGORA. Um item que vendeu
+  bem em julho e parou em setembro tem média boa e nenhuma urgência.
+  - O valor vem da **projeção** no backend, não do preenchimento por página.
+    Filtrar e ordenar depois de paginar filtraria a página, não o relatório: a
+    segunda página traria linhas que a primeira já deveria ter excluído.
+  - **Clicar no cabeçalho** cicla mais vendido → menos vendido → padrão. O
+    terceiro estado existe porque a ordem padrão (o mais crítico primeiro) é a
+    razão de ser do relatório; sem ele, quem ordenasse uma vez a perderia até
+    recarregar a tela. Menos vendido primeiro é a pergunta oposta e igualmente
+    útil: saldo baixo sem saída é candidato a **não** repor.
 - **Dura**: previsão de duração do saldo no ritmo dos **últimos 90 dias**
   (`LowStockService.SalesWindowDays`), pela mesma fórmula do painel de
   inteligência (`DashboardMath.DaysOfCover`). Sem giro na janela a coluna fica

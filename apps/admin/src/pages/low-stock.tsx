@@ -80,6 +80,10 @@ export default function LowStock() {
           setSearch={report.setSearch}
           maxStock={report.maxStock}
           setMaxStock={report.setMaxStock}
+          minRecentSales={report.minRecentSales}
+          setMinRecentSales={report.setMinRecentSales}
+          sort={report.sort}
+          onToggleSalesSort={report.toggleSalesSort}
           includeResolved={report.includeResolved}
           setIncludeResolved={report.setIncludeResolved}
           page={report.page}

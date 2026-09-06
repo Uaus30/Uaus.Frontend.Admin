@@ -28,6 +28,7 @@ const COLUNAS: Coluna[] = [
     // o repositório já pagou uma vez.
     value: (item) => (item.lastSaleAt ? formatShortDate(item.lastSaleAt) : "Nunca vendido"),
   },
+  { header: "Vendas 30d", width: 12, value: (item) => item.recentSales ?? 0, numFmt: "0" },
   {
     header: "Média/dia (90d)",
     width: 15,

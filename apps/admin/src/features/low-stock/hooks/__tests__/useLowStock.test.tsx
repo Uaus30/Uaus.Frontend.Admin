@@ -58,6 +58,7 @@ const bexiga: LowStockItemDto = {
   price: 10,
   costPrice: 4,
   lastSaleAt: "2026-09-05T10:00:00",
+  recentSales: 12,
   averageDailySales: 0.13,
   daysOfCover: 23.1,
   hasOpenPurchase: false,
@@ -110,15 +111,21 @@ describe("useLowStock", () => {
     mocks.exportLowStockToXlsx.mockResolvedValue(undefined);
   });
 
-  it("começa só com os pendentes, na primeira página e sem teto de saldo", () => {
+  it("começa só com os pendentes, na primeira página e sem filtro nem ordem", () => {
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
     expect(lastListParams()).toMatchObject({
       includeResolved: false,
       maxStock: undefined,
+      minRecentSales: undefined,
+      // `Default` não vai na requisição: é o que o backend já faz sem o
+      // parâmetro, e mandá-lo criaria uma chave de cache diferente para a mesma
+      // consulta.
+      sort: undefined,
       page: 1,
       limit: PAGE_SIZE,
     });
+    expect(result.current.sort).toBe("Default");
     expect(result.current.items).toEqual([bexiga]);
     expect(result.current.summary).toEqual({ pending: 1, resolved: 0 });
   });
@@ -138,6 +145,39 @@ describe("useLowStock", () => {
     await waitFor(() => expect(lastListParams()).toMatchObject({ maxStock: undefined }));
   });
 
+  it("manda o mínimo de vendas só quando é inteiro positivo", async () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.setMinRecentSales("3"));
+    await waitFor(() => expect(lastListParams()).toMatchObject({ minRecentSales: 3 }));
+
+    // Campo apagado, zero e lixo digitado voltam ao padrão: "vendeu ao menos
+    // zero" traria o catálogo inteiro para um relatório de estoque baixo.
+    act(() => result.current.setMinRecentSales("0"));
+    await waitFor(() => expect(lastListParams()).toMatchObject({ minRecentSales: undefined }));
+
+    act(() => result.current.setMinRecentSales(""));
+    await waitFor(() => expect(lastListParams()).toMatchObject({ minRecentSales: undefined }));
+  });
+
+  it("o cabeçalho de vendas cicla entre mais vendido, menos vendido e o padrão", () => {
+    // O terceiro clique volta ao padrão porque a ordem padrão — o mais crítico
+    // primeiro — é a razão de ser do relatório; sem ela, quem ordenasse por
+    // venda uma vez a perderia até recarregar a tela.
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.toggleSalesSort());
+    expect(result.current.sort).toBe("RecentSalesDesc");
+    expect(lastListParams()).toMatchObject({ sort: "RecentSalesDesc" });
+
+    act(() => result.current.toggleSalesSort());
+    expect(result.current.sort).toBe("RecentSalesAsc");
+
+    act(() => result.current.toggleSalesSort());
+    expect(result.current.sort).toBe("Default");
+    expect(lastListParams()).toMatchObject({ sort: undefined });
+  });
+
   it("mostrar resolvidos, buscar e filtrar voltam para a primeira página", () => {
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
@@ -151,6 +191,14 @@ describe("useLowStock", () => {
 
     act(() => result.current.setPage(2));
     act(() => result.current.setMaxStock("5"));
+    expect(result.current.page).toBe(1);
+
+    act(() => result.current.setPage(2));
+    act(() => result.current.setMinRecentSales("3"));
+    expect(result.current.page).toBe(1);
+
+    act(() => result.current.setPage(2));
+    act(() => result.current.toggleSalesSort());
     expect(result.current.page).toBe(1);
   });
 
@@ -230,7 +278,9 @@ describe("useLowStock", () => {
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
     act(() => result.current.setMaxStock("5"));
-    await waitFor(() => expect(lastListParams()).toMatchObject({ maxStock: 5 }));
+    act(() => result.current.setMinRecentSales("3"));
+    act(() => result.current.toggleSalesSort());
+    await waitFor(() => expect(lastListParams()).toMatchObject({ maxStock: 5, minRecentSales: 3 }));
 
     await act(async () => {
       result.current.exportToXlsx();
@@ -239,7 +289,13 @@ describe("useLowStock", () => {
     await waitFor(() =>
       expect(mocks.apiGetOrThrow).toHaveBeenCalledWith(
         "/LowStock",
-        expect.objectContaining({ maxStock: 5, page: 1, size: 1000 }),
+        expect.objectContaining({
+          maxStock: 5,
+          minRecentSales: 3,
+          sort: "RecentSalesDesc",
+          page: 1,
+          size: 1000,
+        }),
       ),
     );
     await waitFor(() => expect(mocks.exportLowStockToXlsx).toHaveBeenCalled());

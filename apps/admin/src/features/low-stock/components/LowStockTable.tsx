@@ -1,4 +1,7 @@
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CheckCircle2,
   ExternalLink,
   ImageIcon,
@@ -15,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { buildPublicImageUrl } from "@workspace/api-client-react";
 import { formatDate, formatShortDate } from "@workspace/core";
+import type { LowStockSort } from "@workspace/api-client-react";
 import type { LowStockItem } from "../types";
 
 type LowStockTableProps = {
@@ -24,6 +28,11 @@ type LowStockTableProps = {
   setSearch: (value: string) => void;
   maxStock: string;
   setMaxStock: (value: string) => void;
+  minRecentSales: string;
+  setMinRecentSales: (value: string) => void;
+  sort: LowStockSort;
+  /** Clique no cabeçalho de "Vendas 30d". */
+  onToggleSalesSort: () => void;
   includeResolved: boolean;
   setIncludeResolved: (value: boolean) => void;
   page: number;
@@ -35,6 +44,18 @@ type LowStockTableProps = {
   onDisableStockControl: (item: LowStockItem) => void;
   mutatingProductId: number | null;
 };
+
+/** O título do "nada encontrado" cita o filtro que esvaziou a tela, não um genérico. */
+function tituloDoVazio(maxStock: string, minRecentSales: string): string {
+  const teto = maxStock.trim();
+  const vendas = minRecentSales.trim();
+
+  if (teto && vendas)
+    return `Nenhum produto com estoque menor que ${teto} e ${vendas} ou mais vendas em 30 dias.`;
+  if (teto) return `Nenhum produto com estoque menor que ${teto}.`;
+  if (vendas) return `Nenhum produto com ${vendas} ou mais vendas nos últimos 30 dias.`;
+  return "Nenhum produto abaixo do mínimo.";
+}
 
 /** Caminho do detalhe do produto — o id é o do GRUPO, que é o que a tela edita. */
 function productDetailHref(productGroupId: number): string {
@@ -86,6 +107,10 @@ export function LowStockTable({
   setSearch,
   maxStock,
   setMaxStock,
+  minRecentSales,
+  setMinRecentSales,
+  sort,
+  onToggleSalesSort,
   includeResolved,
   setIncludeResolved,
   page,
@@ -128,6 +153,26 @@ export function LowStockTable({
               className="h-9 w-24"
             />
           </label>
+          {/*
+            O filtro de saída é o que separa "acabando e vende" de "acabando e
+            está parado desde sempre". Como o teto de saldo, ele ignora o
+            estoque mínimo: senão deixaria de fora justamente os produtos sem
+            controle, que são os que se quer varrer atrás de saída.
+          */}
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            Vendeu ao menos
+            <Input
+              type="number"
+              min={1}
+              step={1}
+              value={minRecentSales}
+              onChange={(event) => setMinRecentSales(event.target.value)}
+              placeholder="un."
+              aria-label="Vendeu ao menos, em 30 dias"
+              className="h-9 w-20"
+            />
+            em 30d
+          </label>
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <Switch
               checked={includeResolved}
@@ -146,14 +191,10 @@ export function LowStockTable({
       ) : items.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-emerald-500/60" />
-          <p className="font-medium text-foreground">
-            {maxStock.trim()
-              ? `Nenhum produto com estoque menor que ${maxStock.trim()}.`
-              : "Nenhum produto abaixo do mínimo."}
-          </p>
+          <p className="font-medium text-foreground">{tituloDoVazio(maxStock, minRecentSales)}</p>
           <p className="mt-1 text-xs">
-            {maxStock.trim()
-              ? "O teto de saldo ignora o estoque mínimo e alcança o catálogo inteiro."
+            {maxStock.trim() || minRecentSales.trim()
+              ? "Os filtros de saldo e de saída ignoram o estoque mínimo e alcançam o catálogo inteiro."
               : "Só entram aqui produtos com estoque mínimo configurado (maior que zero) na aba Opcionais."}
           </p>
         </div>
@@ -168,6 +209,29 @@ export function LowStockTable({
                 <TableHead className="px-4 py-3 text-right">Estoque / mín.</TableHead>
                 <TableHead className="px-4 py-3" title="Última venda registrada, de toda a história">
                   Última venda
+                </TableHead>
+                <TableHead className="px-1 py-1 text-right">
+                  {/*
+                    Cabeçalho clicável, e não um select de ordenação à parte: a
+                    coluna é o próprio controle, que é onde a pessoa já está
+                    olhando quando decide comparar quem vende mais.
+                  */}
+                  <button
+                    type="button"
+                    onClick={onToggleSalesSort}
+                    title="Unidades vendidas nos últimos 30 dias. Clique para ordenar."
+                    aria-label="Ordenar por vendas dos últimos 30 dias"
+                    className="flex w-full items-center justify-end gap-1 rounded-md px-3 py-2 font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                  >
+                    Vendas 30d
+                    {sort === "RecentSalesDesc" ? (
+                      <ArrowDown className="h-3.5 w-3.5 text-primary" />
+                    ) : sort === "RecentSalesAsc" ? (
+                      <ArrowUp className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+                    )}
+                  </button>
                 </TableHead>
                 <TableHead
                   className="px-4 py-3 text-right"
@@ -226,6 +290,15 @@ export function LowStockTable({
                         <span title={formatDate(item.lastSaleAt)}>{formatShortDate(item.lastSaleAt)}</span>
                       ) : (
                         <span className="text-muted-foreground">Nunca vendeu</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-sm">
+                      {item.recentSales > 0 ? (
+                        <span className="font-semibold text-foreground">{item.recentSales}</span>
+                      ) : (
+                        <span className="text-muted-foreground" title="Nenhuma venda nos últimos 30 dias">
+                          —
+                        </span>
                       )}
                     </TableCell>
                     <TableCell

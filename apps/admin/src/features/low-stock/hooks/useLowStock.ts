@@ -11,6 +11,7 @@ import {
   resolveLowStock,
   useGetLowStock,
   useGetLowStockSummary,
+  type LowStockSort,
 } from "@workspace/api-client-react";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { newPurchaseForProductPath } from "@/features/purchases/purchases-route";
@@ -36,6 +37,16 @@ export interface LowStockState {
    */
   maxStock: string;
   setMaxStock: (value: string) => void;
+  /**
+   * Mínimo de vendas em 30 dias, como texto — mesmo motivo do teto de saldo:
+   * campo vazio é "sem filtro".
+   */
+  minRecentSales: string;
+  setMinRecentSales: (value: string) => void;
+  /** Ordem da lista. `Default` é o mais crítico primeiro. */
+  sort: LowStockSort;
+  /** Clique no cabeçalho de "Vendas 30d": mais vendido → menos vendido → padrão. */
+  toggleSalesSort: () => void;
   includeResolved: boolean;
   setIncludeResolved: (value: boolean) => void;
   page: number;
@@ -95,22 +106,20 @@ export function useLowStock(): LowStockState {
   const debouncedSearch = useDebounce(search, 300);
   const [maxStock, setMaxStockState] = useState("");
   const debouncedMaxStock = useDebounce(maxStock, 400);
+  const [minRecentSales, setMinRecentSalesState] = useState("");
+  const debouncedMinRecentSales = useDebounce(minRecentSales, 400);
+  const [sort, setSortState] = useState<LowStockSort>("Default");
   const [includeResolved, setIncludeResolvedState] = useState(false);
   const [page, setPage] = useState(1);
   const [confirm, setConfirm] = useState<LowStockConfirm | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Só um inteiro positivo vira filtro: campo vazio, zero e lixo digitado
-  // voltam ao padrão do relatório em vez de pedir "menos de zero unidades".
-  const maxStockParam = (() => {
-    const parsed = Number(debouncedMaxStock);
-    return debouncedMaxStock.trim() && Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
-  })();
-
   const listParams = {
     includeResolved,
     search: debouncedSearch || undefined,
-    maxStock: maxStockParam,
+    maxStock: filtroInteiro(debouncedMaxStock),
+    minRecentSales: filtroInteiro(debouncedMinRecentSales),
+    sort: sort === "Default" ? undefined : sort,
   };
 
   const list = useGetLowStock({ ...listParams, page, limit: PAGE_SIZE });
@@ -125,6 +134,30 @@ export function useLowStock(): LowStockState {
 
   function setMaxStock(value: string) {
     setMaxStockState(value);
+    setPage(1);
+  }
+
+  function setMinRecentSales(value: string) {
+    setMinRecentSalesState(value);
+    setPage(1);
+  }
+
+  /**
+   * Três estados no mesmo cabeçalho: mais vendido, menos vendido e de volta ao
+   * padrão.
+   *
+   * O terceiro clique existe porque a ordem padrão (o mais crítico primeiro) é
+   * a razão de ser do relatório — sem ele, quem ordenasse por venda uma vez
+   * perderia o padrão até recarregar a tela.
+   */
+  function toggleSalesSort() {
+    setSortState((atual) =>
+      atual === "RecentSalesDesc"
+        ? "RecentSalesAsc"
+        : atual === "RecentSalesAsc"
+          ? "Default"
+          : "RecentSalesDesc",
+    );
     setPage(1);
   }
 
@@ -235,6 +268,8 @@ export function useLowStock(): LowStockState {
         includeResolved: listParams.includeResolved,
         search: listParams.search,
         maxStock: listParams.maxStock,
+        minRecentSales: listParams.minRecentSales,
+        sort: listParams.sort,
         page: 1,
         size: EXPORT_PAGE_SIZE,
       });
@@ -276,6 +311,10 @@ export function useLowStock(): LowStockState {
     setSearch,
     maxStock,
     setMaxStock,
+    minRecentSales,
+    setMinRecentSales,
+    sort,
+    toggleSalesSort,
     includeResolved,
     setIncludeResolved,
     page,
@@ -297,6 +336,18 @@ export function useLowStock(): LowStockState {
     exportToXlsx: () => void exportToXlsx(),
     isExporting,
   };
+}
+
+/**
+ * O texto digitado vira filtro só se for inteiro positivo.
+ *
+ * Campo vazio, zero e lixo digitado voltam ao padrão do relatório: "menos de
+ * zero unidades" e "vendeu ao menos zero" não são perguntas, e um dígito errado
+ * não pode esvaziar a tela.
+ */
+function filtroInteiro(texto: string): number | undefined {
+  const numero = Number(texto);
+  return texto.trim() && Number.isInteger(numero) && numero > 0 ? numero : undefined;
 }
 
 /** Fornecedor do último lote na URL da compra, quando o produto tem um. */

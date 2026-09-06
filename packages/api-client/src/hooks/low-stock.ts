@@ -38,6 +38,15 @@ export interface LowStockItemDto {
    * parado desde que entrou".
    */
   lastSaleAt?: string | null;
+  /**
+   * Unidades vendidas nos últimos 30 dias, sem as canceladas.
+   *
+   * É a coluna por onde o relatório filtra e ordena: separa "está acabando e
+   * sai" de "está acabando e está parado desde sempre". Janela mais curta que a
+   * da média de propósito — a média quer ritmo estável, esta quer saber se o
+   * produto está saindo AGORA.
+   */
+  recentSales: number;
   /** Média de unidades vendidas por dia nos últimos 90 dias. Zero sem venda no período. */
   averageDailySales: number;
   /**
@@ -72,6 +81,14 @@ export const getGetLowStockQueryKey = (): QueryKey => ["low-stock"];
 /** Chave da contagem. Quem consulta a lista acrescenta os parâmetros ao prefixo. */
 export const getGetLowStockSummaryQueryKey = (): QueryKey => [...getGetLowStockQueryKey(), "summary"];
 
+/**
+ * Ordem da lista. Os nomes são os do enum do backend, que serializa por NOME.
+ *
+ * `Default` põe pendentes antes de resolvidos e, dentro do bloco, o menor saldo
+ * primeiro; os outros dois ordenam pelas vendas dos últimos 30 dias.
+ */
+export type LowStockSort = "Default" | "RecentSalesDesc" | "RecentSalesAsc";
+
 export interface LowStockParams {
   /** Falso (padrão) devolve só o que ainda acende o alerta. */
   includeResolved?: boolean;
@@ -84,6 +101,15 @@ export interface LowStockParams {
    * saldo igual ou abaixo dele), que é o que acende o alerta do painel.
    */
   maxStock?: number;
+  /**
+   * Mínimo de unidades vendidas nos últimos 30 dias. Como o teto de saldo, ele
+   * também **ignora o estoque mínimo**: a pergunta que ele responde — "o que
+   * está acabando e TEM saída?" — só faz sentido se alcançar os produtos sem
+   * controle de estoque, que são os que o mínimo deixaria de fora.
+   */
+  minRecentSales?: number;
+  /** Ordem da lista. Ausente vale `Default`. */
+  sort?: LowStockSort;
   page?: number;
   limit?: number;
 }
@@ -105,6 +131,8 @@ export function useGetLowStock(
         includeResolved: params?.includeResolved ?? false,
         search: params?.search,
         maxStock: params?.maxStock,
+        minRecentSales: params?.minRecentSales,
+        sort: params?.sort,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,
       });
