@@ -461,8 +461,13 @@ export interface ProductDto {
    * Mesmo critério da busca do balcão (`ProductPdvSearchDto.imageUrl`): a foto é
    * a mesma em qualquer tela. Passe por `buildPublicImageUrl` antes de usar como
    * `src` — o servidor devolve o caminho relativo.
+   *
+   * **Opcional, e não `string | null`.** O C# declara `string?` e a API serializa
+   * com `WhenWritingNull`: produto sem foto chega SEM o campo, não com `null`.
+   * Exigir presença fazia o tipo prometer o que a API não entrega. Leia com
+   * `?? null` ou compare com `== null`, que cobre os dois.
    */
-  imageUrl: string | null;
+  imageUrl?: string | null;
 }
 
 export interface TagDto {
