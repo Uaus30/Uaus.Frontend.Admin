@@ -1,7 +1,11 @@
 # Estoque baixo (`features/low-stock`)
 
-Relatório dos produtos que precisam de reposição, o fluxo que trata cada um e
-o alerta vermelho que aparece no painel e no topo da listagem de produtos.
+Relatório dos produtos que precisam de reposição e o alerta vermelho que
+aparece no painel e no topo da listagem de produtos.
+
+É uma tela **sem estado próprio**: ela responde "o que comprar hoje?" a cada
+consulta e não guarda nada sobre o que já foi tratado — isso vive nas compras e
+nas entradas de estoque.
 
 ## Regras de negócio
 
@@ -22,24 +26,29 @@ o alerta vermelho que aparece no painel e no topo da listagem de produtos.
   acabando e TEM saída?" — só faz sentido alcançando os produtos sem controle
   de estoque. Combinado com o teto de saldo, é a varredura completa: pouco
   estoque **e** giro.
-- **Resolver é registrar a compra (06/09/2026).** A reposição é um fluxo com
-  dependência: um alerta só está tratado quando existe um **pedido de compra**.
-  - Sem compra em aberto, o botão leva a `/estoque/compras?produto=&fornecedor=`
-    com o formulário já preenchido (produto, último fornecedor, situação
-    Pendente, quantidade que recompõe o mínimo) e avisa em laranja. **Nada é
-    marcado** — marcar aqui esconderia o vermelho sem ninguém ter comprado nada.
-  - Com compra em aberto (`hasOpenPurchase`), pergunta e, confirmando, marca
-    como resolvido. Compra **lançada** não conta: ela já virou entrada, e o
+- **O relatório não guarda estado por item (06/09/2026).** Não existe
+  "resolvido", nem histórico do que já foi tratado, nem a flag "mostrar
+  resolvidos". Quem registra que a reposição foi **encaminhada** é a compra;
+  quem registra que ela **chegou** é a entrada de estoque. Uma terceira marca de
+  "já tratei" duplicava as duas, podia contradizê-las e, sendo manual,
+  envelhecia sozinha. As colunas `low_stock_resolved_at` e
+  `low_stock_resolved_by` continuam no banco, sem uso e sem mapeamento — tirá-las
+  é script destrutivo, que espera decisão.
+- **A ação da linha é "Comprar".** Leva a
+  `/estoque/compras?produto=&fornecedor=` com o formulário já preenchido
+  (produto, último fornecedor, situação Pendente, quantidade que recompõe o
+  mínimo). Sem toast: o botão diz o que faz e a tela de destino confirma.
+  - **Ele some quando já existe compra em aberto** (`hasOpenPurchase`): o pedido
+    está feito e não há o que fazer daqui. No lugar dele fica o aviso "compra em
+    aberto" — célula vazia pareceria linha quebrada.
+  - Compra **lançada** não conta como em aberto: ela já virou entrada, e o
     produto continuar baixo significa que aquele pedido não resolveu.
-- **Resolvido não mexe em estoque.** É a marca "já tratei". O produto sai da
-  contagem de pendentes (que acende o vermelho) mas continua no relatório,
-  esmaecido, com quem e quando. A marca **cai sozinha na próxima entrada** do
-  produto.
 - **O que tira um produto do relatório.** Uma **entrada de estoque** que leve o
   saldo acima do mínimo tira sozinha — o critério é avaliado a cada consulta, e
   nada precisa ser "baixado" na lista. **Remover o controle de estoque** (menu
   de opções) zera o mínimo e também tira, sem tirar o produto do catálogo; a
-  mudança fica no histórico do produto.
+  mudança fica no histórico do produto. É a única ação da tela que pede
+  confirmação, porque é a única que altera cadastro sem desfazer à vista.
 - **O alerta conta quem VENDE e está acabando (06/09/2026).** `LowStockAlert`
   usa `summary.restock`, não `summary.pending`: a contagem antiga acendia o
   vermelho também para item parado há um ano, que não é urgência de reposição —
@@ -115,9 +124,16 @@ inventário: o pedido era cabeçalho formatado, e CSV não carrega formato nenhu
   abaixo já mostra — e quem chega pelo alerta já leu o número lá.
 - **A tabela tem largura mínima e rola na horizontal.** Sem isso o navegador
   espreme as colunas para caber e a última — a das ações — perde espaço, com o
-  "Resolver" cortado. A categoria saiu da tela por espaço; ela continua no
-  XLSX, que não disputa largura com botão.
+  botão cortado. Pelo mesmo motivo saíram da tela a **categoria** e a
+  **situação**: a primeira não decide reposição e a segunda virou redundante
+  quando o "resolvido" acabou. A categoria continua no XLSX, que não disputa
+  largura com botão.
+- **O nome do produto tem teto de ~40 caracteres e quebra linha** (`max-w-[40ch]`
+  - `break-words`), em vez de truncar. Nome com variação passa de sessenta
+    caracteres com facilidade, e uma coluna que cresce sem limite empurra as
+    demais para fora da tela; cortar com reticências esconderia o fim do nome, que
+    é onde mora a variação que distingue duas linhas iguais.
 - **O link do produto abre pelo id do GRUPO** (`/produtos/<grupo>/detalhes`),
   que é o que a tela edita; o item traz `productGroupId` para isso.
-- Busca, teto de saldo e filtro de resolvidos voltam para a página 1 nos
+- Busca, teto de saldo, mínimo de vendas e ordenação voltam para a página 1 nos
   próprios setters, não em efeito.

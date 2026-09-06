@@ -46,11 +46,6 @@ const COLUNAS: Coluna[] = [
     width: 17,
     value: (item) => (item.hasOpenPurchase ? "Sim" : "Não"),
   },
-  {
-    header: "Situação",
-    width: 14,
-    value: (item) => (item.isResolved ? "Resolvido" : "Pendente"),
-  },
 ];
 
 /**

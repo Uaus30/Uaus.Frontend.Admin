@@ -5,15 +5,13 @@ import {
   CheckCircle2,
   ExternalLink,
   ImageIcon,
-  Loader2,
   MoreVertical,
-  RotateCcw,
   Search,
   ShoppingCart,
   SlidersHorizontal,
 } from "lucide-react";
 import { Link } from "wouter";
-import { Badge, Button, Input, Spinner, Switch } from "@workspace/ui";
+import { Button, Input, Spinner } from "@workspace/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { buildPublicImageUrl } from "@workspace/api-client-react";
@@ -33,14 +31,11 @@ type LowStockTableProps = {
   sort: LowStockSort;
   /** Clique no cabeçalho de "Vendas 30d". */
   onToggleSalesSort: () => void;
-  includeResolved: boolean;
-  setIncludeResolved: (value: boolean) => void;
   page: number;
   totalPages: number;
   setPage: (value: number) => void;
-  /** Recebe o ITEM (não o id): o botão decide o que fazer pelo `hasOpenPurchase`. */
-  onResolve: (item: LowStockItem) => void;
-  onReopen: (productId: number) => void;
+  /** Botão "Comprar": leva ao pedido de compra do produto, já preenchido. */
+  onComprar: (item: LowStockItem) => void;
   onDisableStockControl: (item: LowStockItem) => void;
   mutatingProductId: number | null;
 };
@@ -111,26 +106,16 @@ export function LowStockTable({
   setMinRecentSales,
   sort,
   onToggleSalesSort,
-  includeResolved,
-  setIncludeResolved,
   page,
   totalPages,
   setPage,
-  onResolve,
-  onReopen,
+  onComprar,
   onDisableStockControl,
   mutatingProductId,
 }: LowStockTableProps) {
   return (
     <div className="space-y-4 rounded-2xl border border-border/50 bg-card/50 p-5">
-      {/*
-        Uma linha só no monitor; em tela estreita, duas: busca e "mostrar
-        resolvidos" em cima, as quantidades embaixo. O "mostrar resolvidos" vem
-        antes das quantidades nos dois arranjos. O arranjo sai de `order` +
-        `flex-wrap`, e não de um bloco duplicado com `lg:hidden` — dois
-        elementos iguais no DOM significam dois interruptores para a mesma
-        opção, e quem lê a tela por acessibilidade ouve os dois.
-      */}
+      {/* Uma linha só no monitor; em tela estreita, a busca em cima e as quantidades embaixo. */}
       <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap lg:justify-between">
         <div className="relative order-1 min-w-0 flex-1 lg:max-w-sm lg:flex-none lg:basis-80">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -183,14 +168,6 @@ export function LowStockTable({
             em 30d
           </label>
         </div>
-        <label className="order-2 flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-          <Switch
-            checked={includeResolved}
-            onCheckedChange={setIncludeResolved}
-            aria-label="Mostrar resolvidos"
-          />
-          Mostrar resolvidos
-        </label>
       </div>
 
       {isLoading ? (
@@ -251,7 +228,6 @@ export function LowStockTable({
                 >
                   Dura
                 </TableHead>
-                <TableHead className="px-4 py-3">Situação</TableHead>
                 <TableHead className="w-px whitespace-nowrap px-4 py-3 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -259,11 +235,7 @@ export function LowStockTable({
               {items.map((item) => {
                 const mutating = mutatingProductId === item.productId;
                 return (
-                  <TableRow
-                    key={item.productId}
-                    data-testid="low-stock-row"
-                    className={item.isResolved ? "opacity-60" : undefined}
-                  >
+                  <TableRow key={item.productId} data-testid="low-stock-row">
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {item.imageUrl ? (
@@ -278,10 +250,18 @@ export function LowStockTable({
                             <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
                           </div>
                         )}
-                        <div className="min-w-0">
+                        {/*
+                          Teto de ~40 caracteres com quebra de linha, em vez de
+                          truncar: nome de produto aqui costuma passar de 60
+                          caracteres com a variação, e uma coluna que cresce sem
+                          limite empurra as demais para fora da tela. Cortar com
+                          reticências esconderia justamente o fim do nome, que é
+                          onde mora a variação que distingue duas linhas iguais.
+                        */}
+                        <div className="min-w-0 max-w-[40ch]">
                           <Link
                             href={productDetailHref(item.productGroupId)}
-                            className="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                            className="block break-words font-medium text-foreground hover:text-primary hover:underline"
                           >
                             {item.productName}
                           </Link>
@@ -317,66 +297,32 @@ export function LowStockTable({
                         {duracaoLegivel(item.daysOfCover, item.stock)}
                       </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">
-                      {item.isResolved ? (
-                        <div>
-                          <Badge variant="outline" className="border-emerald-500/40 text-emerald-600">
-                            Resolvido
-                          </Badge>
-                          {item.resolvedAt && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {formatDate(item.resolvedAt)}
-                              {item.resolvedBy ? ` · ${item.resolvedBy}` : ""}
-                            </p>
-                          )}
-                        </div>
-                      ) : item.hasOpenPurchase ? (
-                        <Badge variant="outline" className="border-blue-500/40 text-blue-500">
-                          Compra em aberto
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive">Pendente</Badge>
-                      )}
-                    </TableCell>
                     <TableCell className="w-px whitespace-nowrap px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {item.isResolved ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="gap-1"
-                            disabled={mutating}
-                            onClick={() => onReopen(item.productId)}
+                        {/*
+                          O botão some quando já existe compra em aberto: o
+                          pedido está feito, e não há o que fazer daqui. No
+                          lugar dele fica o aviso do que aconteceu — célula
+                          vazia pareceria linha quebrada.
+                        */}
+                        {item.hasOpenPurchase ? (
+                          <span
+                            className="text-xs text-blue-500"
+                            title="Já existe pedido de compra deste produto"
                           >
-                            {mutating ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <RotateCcw className="h-3.5 w-3.5" />
-                            )}
-                            Reabrir
-                          </Button>
+                            Compra em aberto
+                          </span>
                         ) : (
                           <Button
                             type="button"
                             size="sm"
                             className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
                             disabled={mutating}
-                            onClick={() => onResolve(item)}
-                            title={
-                              item.hasOpenPurchase
-                                ? "Já existe compra em aberto — confirma o alerta como resolvido"
-                                : "Abre o pedido de compra deste produto"
-                            }
+                            onClick={() => onComprar(item)}
+                            title="Abre o pedido de compra deste produto"
                           >
-                            {mutating ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : item.hasOpenPurchase ? (
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            ) : (
-                              <ShoppingCart className="h-3.5 w-3.5" />
-                            )}
-                            Resolver
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                            Comprar
                           </Button>
                         )}
                         <DropdownMenu>

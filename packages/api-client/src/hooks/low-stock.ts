@@ -1,5 +1,5 @@
 /**
- * Relatório de estoque baixo (`/LowStock`) e o "resolvido" por item.
+ * Relatório de estoque baixo (`/LowStock`).
  *
  * A contagem tem hook próprio porque o painel e o topo da listagem de produtos
  * só precisam saber SE há pendência para acender o alerta vermelho — baixar a
@@ -7,7 +7,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiDelete, apiGetOrThrow, apiPost, ApiError, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPost, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
 
 /** Uma linha do relatório: o produto, o saldo contra o mínimo e o estado do alerta. */
@@ -59,17 +59,10 @@ export interface LowStockItemDto {
    * o botão "Resolver" faz: sem compra, ele leva ao registro do pedido.
    */
   hasOpenPurchase: boolean;
-  /** Quando o alerta foi marcado como resolvido. Ausente = pendente. */
-  resolvedAt?: string | null;
-  resolvedBy?: string | null;
-  isResolved: boolean;
 }
 
-/** Contagens do relatório. Quem acende o vermelho é `restock`. */
+/** A contagem do alerta. */
 export interface LowStockSummaryDto {
-  /** Produtos abaixo do mínimo ainda não resolvidos, vendendo ou não. */
-  pending: number;
-  resolved: number;
   /**
    * Produtos que **vendem e estão acabando** — o número do alerta.
    *
@@ -102,8 +95,6 @@ export const getGetLowStockSummaryQueryKey = (): QueryKey => [...getGetLowStockQ
 export type LowStockSort = "Default" | "RecentSalesDesc" | "RecentSalesAsc";
 
 export interface LowStockParams {
-  /** Falso (padrão) devolve só o que ainda acende o alerta. */
-  includeResolved?: boolean;
   /** Mesma busca das demais telas de produto (nome, descrição, código, grade). */
   search?: string;
   /**
@@ -126,7 +117,7 @@ export interface LowStockParams {
   limit?: number;
 }
 
-/** Página do relatório: pendentes primeiro, depois resolvidos; do menor saldo para o maior. */
+/** Página do relatório, do menor saldo para o maior. */
 export function useGetLowStock(
   params?: LowStockParams,
   options?: {
@@ -140,7 +131,6 @@ export function useGetLowStock(
     queryKey: [...getGetLowStockQueryKey(), "page", params ?? {}],
     queryFn: async () => {
       const result = await apiGetOrThrow<BackendPagedResult<LowStockItemDto>>("/LowStock", {
-        includeResolved: params?.includeResolved ?? false,
         search: params?.search,
         maxStock: params?.maxStock,
         minRecentSales: params?.minRecentSales,
@@ -171,19 +161,6 @@ export function useGetLowStockSummary(options?: {
     staleTime: 60_000,
     ...options?.query,
   });
-}
-
-/** Marca o alerta do produto como resolvido. Cai sozinho na próxima entrada de estoque. */
-export async function resolveLowStock(productId: number): Promise<LowStockItemDto> {
-  const response = await apiPost<LowStockItemDto>(`/LowStock/${productId}/resolve`, {});
-  if (!response.data) throw new Error("Não foi possível marcar o alerta como resolvido.");
-  return response.data;
-}
-
-/** Desfaz a marca: o produto volta a acender o alerta. */
-export async function reopenLowStock(productId: number): Promise<LowStockItemDto | null> {
-  const response = await apiDelete<LowStockItemDto>(`/LowStock/${productId}/resolve`);
-  return response.data ?? null;
 }
 
 /**

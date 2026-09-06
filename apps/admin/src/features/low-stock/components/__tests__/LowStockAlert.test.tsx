@@ -14,27 +14,27 @@ const { LOW_STOCK_REPORT_PATH } = await import("../../low-stock-route");
 
 function givenSummary(summary: Partial<LowStockSummaryDto>) {
   mocks.useGetLowStockSummary.mockReturnValue({
-    data: { pending: 0, resolved: 0, restock: 0, restockMinSales: 3, ...summary },
+    data: { restock: 0, restockMinSales: 3, ...summary },
   });
 }
 
 describe("LowStockAlert", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("conta quem VENDE e esta acabando, nao quem so esta abaixo do minimo", () => {
+  it("conta quem VENDE e esta acabando", () => {
     // A distincao e a razao de ser da mudanca: o alerta antigo acendia para
     // produto parado ha um ano, que nao e urgencia de reposicao.
-    givenSummary({ pending: 12, restock: 4 });
+    givenSummary({ restock: 4 });
     render(<LowStockAlert />);
 
-    const alerta = screen.getByTestId("low-stock-alert");
-    expect(alerta.textContent).toContain("4 produtos com boa saída e pouco estoque");
-    expect(alerta.textContent).not.toContain("12");
+    expect(screen.getByTestId("low-stock-alert").textContent).toContain(
+      "4 produtos com boa saída e pouco estoque",
+    );
   });
 
-  it("nao aparece sem produto para repor, mesmo com pendencia no relatorio", () => {
+  it("nao aparece sem produto para repor", () => {
     // Alerta sempre aceso ensina a ser ignorado.
-    givenSummary({ pending: 30, restock: 0 });
+    givenSummary({ restock: 0 });
     const { container } = render(<LowStockAlert />);
 
     expect(container.innerHTML).toBe("");

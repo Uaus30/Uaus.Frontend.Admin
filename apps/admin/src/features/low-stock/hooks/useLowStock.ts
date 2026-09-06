@@ -7,8 +7,6 @@ import {
   apiGetOrThrow,
   disableStockControl,
   getGetLowStockQueryKey,
-  reopenLowStock,
-  resolveLowStock,
   useGetLowStock,
   useGetLowStockSummary,
   type LowStockSort,
@@ -25,9 +23,13 @@ export const PAGE_SIZE = 20;
 /** Teto de linhas que a exportação baixa de uma vez. */
 const EXPORT_PAGE_SIZE = 1000;
 
-/** Confirmação aberta na tela: resolver mesmo, ou desligar o controle. */
-export type LowStockConfirm =
-  { kind: "resolve"; item: LowStockItem } | { kind: "disable-control"; item: LowStockItem };
+/**
+ * A única confirmação da tela: desligar o controle de estoque do produto.
+ *
+ * Continua sendo um objeto, e não um booleano, porque o texto do diálogo cita o
+ * PRODUTO — "tem certeza?" sozinho obriga a lembrar em qual linha se clicou.
+ */
+export type LowStockConfirm = { item: LowStockItem };
 
 export interface LowStockState {
   search: string;
@@ -48,8 +50,6 @@ export interface LowStockState {
   sort: LowStockSort;
   /** Clique no cabeçalho de "Vendas 30d": mais vendido → menos vendido → padrão. */
   toggleSalesSort: () => void;
-  includeResolved: boolean;
-  setIncludeResolved: (value: boolean) => void;
   page: number;
   setPage: (value: number) => void;
   totalPages: number;
@@ -58,9 +58,8 @@ export interface LowStockState {
   isLoading: boolean;
   isFetching: boolean;
   summary: LowStockSummary | undefined;
-  /** Botão "Resolver" da linha: leva à compra, ou pede confirmação. Ver o JSDoc do hook. */
-  resolve: (item: LowStockItem) => void;
-  reopen: (productId: number) => void;
+  /** Botão "Comprar" da linha: leva ao pedido de compra já preenchido. */
+  comprar: (item: LowStockItem) => void;
   /** Pede confirmação antes de desligar o controle de estoque do produto. */
   askDisableStockControl: (item: LowStockItem) => void;
   /** Confirmação aberta, ou `null`. */
@@ -75,28 +74,26 @@ export interface LowStockState {
 }
 
 /**
- * Relatório de estoque baixo: lista, giro, contagem e as ações da linha.
+ * Relatório de estoque baixo: lista, giro e as ações da linha.
  *
- * ## Resolver é registrar a compra
+ * ## A tela não guarda estado (06/09/2026)
  *
- * Desde 06/09/2026 o botão "Resolver" não marca nada sozinho. A reposição é um
- * fluxo com dependência: um alerta só está tratado quando existe um **pedido de
- * compra** para o produto.
+ * Não há mais "resolvido" por item. Quem registra que a reposição foi
+ * encaminhada é a **compra**; quem registra que ela chegou é a **entrada de
+ * estoque**. Uma marca de "já tratei" duplicava os dois registros e podia
+ * contradizê-los — e, sendo manual, envelhecia sozinha.
  *
- * - **Sem compra em aberto** (`hasOpenPurchase === false`): a tela navega para
- *   Compras com o formulário já preenchido (produto, último fornecedor,
- *   situação Pendente) e avisa em laranja que o pedido precisa ser registrado.
- *   Nada é marcado como resolvido — marcar aqui esconderia o vermelho sem que
- *   ninguém tivesse comprado nada.
- * - **Com compra em aberto**: pergunta antes e, confirmando, marca como
- *   resolvido. A compra já encaminha a reposição; o alerta cumpriu o papel.
+ * O botão da linha é só **Comprar**: leva a Compras com o formulário
+ * preenchido (produto, último fornecedor, situação Pendente). Ele aparece
+ * enquanto **não** existe compra em aberto do produto; havendo uma, o pedido
+ * já está feito e não há nada a fazer daqui.
  *
  * ## O que tira um produto do relatório
  *
  * Uma **entrada de estoque** que leve o saldo acima do mínimo tira sozinha: o
- * critério é avaliado a cada consulta, e a mesma entrada ainda derruba a marca
- * de resolvido no backend. **Remover o controle de estoque** (mínimo zero)
- * também tira, e é a saída para o item que não se quer acompanhar.
+ * critério é avaliado a cada consulta, e nada precisa ser dado baixa na lista.
+ * **Remover o controle de estoque** (mínimo zero) também tira, e é a saída para
+ * o item que não se quer acompanhar.
  */
 export function useLowStock(): LowStockState {
   const queryClient = useQueryClient();
@@ -114,13 +111,11 @@ export function useLowStock(): LowStockState {
   const [minRecentSales, setMinRecentSalesState] = useState(salesFilterFromUrl);
   const debouncedMinRecentSales = useDebounce(minRecentSales, 400);
   const [sort, setSortState] = useState<LowStockSort>("Default");
-  const [includeResolved, setIncludeResolvedState] = useState(false);
   const [page, setPage] = useState(1);
   const [confirm, setConfirm] = useState<LowStockConfirm | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const listParams = {
-    includeResolved,
     search: debouncedSearch || undefined,
     maxStock: filtroInteiro(debouncedMaxStock),
     minRecentSales: filtroInteiro(debouncedMinRecentSales),
@@ -166,11 +161,6 @@ export function useLowStock(): LowStockState {
     setPage(1);
   }
 
-  function setIncludeResolved(value: boolean) {
-    setIncludeResolvedState(value);
-    setPage(1);
-  }
-
   /**
    * Invalida o PREFIXO do recurso: lista (todas as páginas e filtros) e
    * contagem de uma vez. Sem isso o relatório atualizaria e o alerta do painel
@@ -179,40 +169,6 @@ export function useLowStock(): LowStockState {
   function invalidate() {
     return queryClient.invalidateQueries({ queryKey: getGetLowStockQueryKey() });
   }
-
-  const resolveMutation = useMutation({
-    mutationFn: (productId: number) => resolveLowStock(productId),
-    onSuccess: async () => {
-      await invalidate();
-      setConfirm(null);
-      toast({
-        title: "Alerta resolvido",
-        description: "O produto sai do alerta até a próxima entrada de estoque.",
-      });
-    },
-    onError: (error: unknown) => {
-      toast({
-        title: "Erro ao resolver o alerta",
-        description: describeApiError(error, "Tente novamente."),
-        variant: "destructive",
-      });
-    },
-  });
-
-  const reopenMutation = useMutation({
-    mutationFn: (productId: number) => reopenLowStock(productId),
-    onSuccess: async () => {
-      await invalidate();
-      toast({ title: "Alerta reaberto", description: "O produto voltou a contar como pendente." });
-    },
-    onError: (error: unknown) => {
-      toast({
-        title: "Erro ao reabrir o alerta",
-        description: describeApiError(error, "Tente novamente."),
-        variant: "destructive",
-      });
-    },
-  });
 
   const disableControlMutation = useMutation({
     mutationFn: (productId: number) => disableStockControl(productId),
@@ -233,30 +189,25 @@ export function useLowStock(): LowStockState {
     },
   });
 
-  /** Ver o JSDoc do hook: sem compra em aberto, resolver é registrar o pedido. */
-  function resolve(item: LowStockItem) {
-    if (item.hasOpenPurchase) {
-      setConfirm({ kind: "resolve", item });
-      return;
-    }
-
-    toast({
-      title: "Registre o pedido de compra",
-      description: `${item.productName} ainda não tem compra em aberto. Resolver o alerta é encaminhar a reposição.`,
-      variant: "warning",
-    });
+  /**
+   * Leva ao pedido de compra do produto, preenchido.
+   *
+   * Sem aviso nenhum: o botão se chama "Comprar" e a tela de destino é o
+   * formulário de compra — um toast dizendo o que acabou de acontecer só pede
+   * para ser dispensado.
+   */
+  function comprar(item: LowStockItem) {
     navigate(newPurchaseForProductPath(item.productId) + supplierQuery(item));
   }
 
   function askDisableStockControl(item: LowStockItem) {
-    setConfirm({ kind: "disable-control", item });
+    setConfirm({ item });
   }
 
   function confirmAction() {
     if (!confirm) return;
 
-    if (confirm.kind === "resolve") resolveMutation.mutate(confirm.item.productId);
-    else disableControlMutation.mutate(confirm.item.productId);
+    disableControlMutation.mutate(confirm.item.productId);
   }
 
   /**
@@ -270,7 +221,6 @@ export function useLowStock(): LowStockState {
     setIsExporting(true);
     try {
       const result = await apiGetOrThrow<{ items?: LowStockItem[] }>("/LowStock", {
-        includeResolved: listParams.includeResolved,
         search: listParams.search,
         maxStock: listParams.maxStock,
         minRecentSales: listParams.minRecentSales,
@@ -303,13 +253,9 @@ export function useLowStock(): LowStockState {
     }
   }
 
-  const mutatingProductId = resolveMutation.isPending
-    ? (resolveMutation.variables ?? null)
-    : reopenMutation.isPending
-      ? (reopenMutation.variables ?? null)
-      : disableControlMutation.isPending
-        ? (disableControlMutation.variables ?? null)
-        : null;
+  const mutatingProductId = disableControlMutation.isPending
+    ? (disableControlMutation.variables ?? null)
+    : null;
 
   return {
     search,
@@ -320,8 +266,6 @@ export function useLowStock(): LowStockState {
     setMinRecentSales,
     sort,
     toggleSalesSort,
-    includeResolved,
-    setIncludeResolved,
     page,
     setPage,
     totalPages: list.data?.totalPages ?? 1,
@@ -330,13 +274,12 @@ export function useLowStock(): LowStockState {
     isLoading: list.isLoading,
     isFetching: list.isFetching,
     summary: summary.data,
-    resolve,
-    reopen: (productId) => reopenMutation.mutate(productId),
+    comprar,
     askDisableStockControl,
     confirm,
     cancelConfirm: () => setConfirm(null),
     confirmAction,
-    isConfirming: resolveMutation.isPending || disableControlMutation.isPending,
+    isConfirming: disableControlMutation.isPending,
     mutatingProductId,
     exportToXlsx: () => void exportToXlsx(),
     isExporting,
