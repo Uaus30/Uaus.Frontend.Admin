@@ -31,10 +31,12 @@ export interface BuildSalePayloadParams {
  *
  * Quatro decisões aqui não são óbvias e já custaram caro:
  *
- * 1. **O desconto vai separado do preço.** Sem ele o backend não distingue um
- *    produto que custa R$ 8 de um de R$ 10 com R$ 2 de desconto, e o contrato do
- *    DTO diz que `unitPrice + discount` reconstrói o preço de tabela do momento
- *    da venda. É disso que dependem o relatório de descontos e a auditoria.
+ * 1. **Desconto e acréscimo vão separados do preço.** Sem o desconto o backend não
+ *    distingue um produto que custa R$ 8 de um de R$ 10 com R$ 2 de desconto; sem
+ *    o acréscimo ele não distingue um pendrive de R$ 30 de um de R$ 25 vendido com
+ *    R$ 5 de gravação. O contrato do DTO é `unitPrice + discount - surcharge`
+ *    reconstruindo o preço de tabela do momento da venda, e é disso que dependem o
+ *    relatório de descontos, a margem por produto e a auditoria.
  * 2. **A taxa é calculada no PDV, sobre a parcela escolhida.** Ela sai do
  *    percentual da parcela **ativa** daquela forma; parcela inativa (ou forma
  *    que veio da base local sem a parcela) vale zero, nunca a taxa de outra

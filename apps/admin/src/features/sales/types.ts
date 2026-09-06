@@ -74,10 +74,20 @@ export type SaleItem = {
   productId: number;
   /** Quantidade vendida */
   quantity: number;
-  /** Preço unitário praticado na transação, já líquido do desconto do item */
+  /** Preço unitário praticado na transação, já líquido do desconto e já com o acréscimo do item */
   unitPrice: number;
-  /** Desconto unitário concedido no item, em reais; o preço de tabela era `unitPrice + discount` */
+  /**
+   * Desconto unitário concedido no item, em reais; o preço de tabela era
+   * `unitPrice + discount - surcharge`
+   */
   discount?: number;
+  /**
+   * Acréscimo unitário cobrado no item — o serviço vendido junto do produto. Já
+   * está dentro de `unitPrice` e não participa de soma nenhuma.
+   */
+  surcharge?: number;
+  /** Justificativa do acréscimo, escrita no ato da venda. */
+  surchargeReason?: string | null;
   /** Subtotal calculado para o item (quantity * unitPrice) */
   subtotal: number;
   /** Custo unitário praticado no momento da venda */

@@ -160,10 +160,10 @@ export interface PendingSaleItem {
   /**
    * Desconto unitário concedido, em reais.
    *
-   * Vai separado do preço porque `unitPrice + discount` é o que reconstrói o
-   * preço de tabela do momento da venda — sem ele não há como auditar desconto
-   * nem cupom. Opcional apenas por causa das vendas já enfileiradas antes deste
-   * campo existir; leia sempre com `?? 0`.
+   * Vai separado do preço porque `unitPrice + discount - surcharge` é o que
+   * reconstrói o preço de tabela do momento da venda — sem ele não há como
+   * auditar desconto nem cupom. Opcional apenas por causa das vendas já
+   * enfileiradas antes deste campo existir; leia sempre com `?? 0`.
    */
   discount?: number;
   /**

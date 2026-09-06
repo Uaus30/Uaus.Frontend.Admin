@@ -233,7 +233,7 @@ export interface CompanySettingsDto {
    *
    * `0` = sem limite. Vale tanto para o desconto GLOBAL (% sobre o subtotal)
    * quanto para o desconto por ITEM (% sobre o preço de tabela, que é
-   * `unitPrice + discount`). Acima do limite, a venda só entra com a
+   * `unitPrice + discount - surcharge`). Acima do limite, a venda só entra com a
    * autorização de um Admin (`managerLogin`/`managerPassword` no payload).
    * Admin operando o caixa não tem limite.
    *
