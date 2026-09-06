@@ -15,6 +15,7 @@ import {
 import { enumCode, USER_ROLE, type EnumValue } from "@workspace/api-client-react";
 import { PRODUCTS_MATCH_PATH } from "@/features/products/product-detail-route";
 import { LOW_STOCK_REPORT_PATH } from "@/features/low-stock/low-stock-route";
+import { PURCHASES_PATH } from "@/features/purchases/purchases-route";
 
 /**
  * Fonte ÚNICA das rotas do admin.
@@ -81,6 +82,7 @@ const Partners = lazy(() => import("@/pages/partners"));
 const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods"));
 const Suppliers = lazy(() => import("@/pages/suppliers"));
 const StockEntries = lazy(() => import("@/pages/stock-entries"));
+const Purchases = lazy(() => import("@/pages/purchases"));
 const StockWriteOffs = lazy(() => import("@/pages/stock-write-offs"));
 const Inventory = lazy(() => import("@/pages/inventory"));
 const LowStock = lazy(() => import("@/pages/low-stock"));
@@ -162,6 +164,9 @@ export const ROUTES: AppRoute[] = [
     component: Products,
   },
   { path: "/estoque/entradas", label: "Entradas", group: "Estoque", component: StockEntries },
+  // Logo depois de Entradas: a compra é o que vem ANTES da entrada, e os dois
+  // se leem em sequencia num dia de reposicao.
+  { path: PURCHASES_PATH, label: "Compras", group: "Estoque", component: Purchases },
   { path: "/categorias", label: "Categorias", group: "Estoque", component: Categories },
   { path: "/departamentos", label: "Departamentos", group: "Estoque", component: Departments },
   { path: "/fornecedores", label: "Fornecedores", group: "Estoque", component: Suppliers },

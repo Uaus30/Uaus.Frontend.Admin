@@ -129,6 +129,17 @@ export const PURCHASE_ENTRY_TYPE = {
 } as const;
 
 /**
+ * Situação de uma COMPRA (pedido a fornecedor, `/Purchases`). Pendente →
+ * A caminho → Lançado; o último só nasce do recebimento.
+ */
+export const PURCHASE_STATUS = {
+  None: 0,
+  Pending: 1,
+  InTransit: 2,
+  Received: 3,
+} as const;
+
+/**
  * Tag de escassez que a vitrine mostra num card ou no detalhe.
  *
  * Quem resolve é o BACKEND, a partir do saldo somado do grupo e do limiar
