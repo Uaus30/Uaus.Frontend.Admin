@@ -10,6 +10,7 @@ import {
   updatePurchase,
   type PurchaseDto,
   type SavePurchasePayload,
+  type SupplierDto,
 } from "@workspace/api-client-react";
 import type { ProductSearchOption } from "@/components/product-search-picker";
 import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.service";
@@ -58,19 +59,44 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
   };
 }
 
+/**
+ * O link é exigido nesta compra?
+ *
+ * Em marketplace, sair de "Pendente" sem o link deixa a loja com uma compra que
+ * ninguém consegue rastrear: a plataforma tem vários vendedores, e não há
+ * representante, catálogo nem número de pedido para consultar depois. Pendente
+ * fica livre de propósito — é onde se anota a intenção de comprar, antes mesmo
+ * de escolher o anúncio.
+ *
+ * A mesma regra existe no backend (`PurchaseService.EnsurePurchaseLinkAsync`).
+ * Aqui ela é conveniência: avisa antes do envio, em vez de deixar o operador
+ * preencher tudo para receber um 400.
+ */
+export function purchaseLinkIsRequired(form: PurchaseForm, supplier: SupplierDto | undefined): boolean {
+  return Boolean(supplier?.isMarketplace) && Number(form.status) !== PURCHASE_STATUS.Pending;
+}
+
 /** O que falta no formulário para gravar, ou `null` quando está pronto. */
-export function validatePurchaseForm(form: PurchaseForm): string | null {
+export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto): string | null {
   if (!form.supplierId) return "Selecione o fornecedor.";
   if (form.productId === null && !form.productName.trim()) return "Informe o produto ou o nome do produto.";
   if (!Number.isInteger(form.quantity) || form.quantity <= 0)
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
+  if (purchaseLinkIsRequired(form, supplier) && !form.purchaseLink.trim())
+    return `Informe o link da compra: ${supplier?.name ?? "este fornecedor"} é um marketplace, e sem o link não há como reencontrar o anúncio depois.`;
   return null;
 }
 
 type UsePurchaseFormParams = {
   /** Depois de gravar: quem chama invalida a listagem. */
   onSaved: () => Promise<unknown>;
+  /**
+   * Catálogo de fornecedores da tela. O formulário precisa dele para saber se o
+   * escolhido é marketplace — a regra do link depende do cadastro, não do que
+   * foi digitado.
+   */
+  suppliers: SupplierDto[];
 };
 
 /**
@@ -82,7 +108,7 @@ type UsePurchaseFormParams = {
  * viram a galeria do cadastro sem novo upload. A busca na web reaproveita o
  * proxy e a otimização que o cadastro de produto já usa.
  */
-export function usePurchaseForm({ onSaved }: UsePurchaseFormParams) {
+export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
@@ -90,16 +116,29 @@ export function usePurchaseForm({ onSaved }: UsePurchaseFormParams) {
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
   const [uploading, setUploading] = useState(false);
   const [imageSearchOpen, setImageSearchOpen] = useState(false);
+  /**
+   * Compra lançada abre em leitura, e não deixa de abrir.
+   *
+   * O backend recusa editar uma compra já lançada — a entrada de estoque existe,
+   * e mudar quantidade ou custo aqui deixaria os dois documentos discordando.
+   * Mas continuar podendo ABRIR é o que faz a linha inteira ser clicável sem
+   * exceção: quem clica quer ver o que comprou, não necessariamente mudar.
+   */
+  const [readOnly, setReadOnly] = useState(false);
+
+  const supplier = suppliers.find((item) => String(item.id) === form.supplierId);
 
   function openNew() {
     setEditingId(null);
     setForm(emptyPurchaseForm());
+    setReadOnly(false);
     setOpen(true);
   }
 
   function openEdit(purchase: PurchaseDto) {
     setEditingId(purchase.id);
     setForm(purchaseToForm(purchase));
+    setReadOnly(enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received);
     setOpen(true);
   }
 
@@ -118,6 +157,7 @@ export function usePurchaseForm({ onSaved }: UsePurchaseFormParams) {
     quantity: number;
   }) {
     setEditingId(null);
+    setReadOnly(false);
     setForm({
       ...emptyPurchaseForm(),
       productId: dados.productId,
@@ -214,7 +254,9 @@ export function usePurchaseForm({ onSaved }: UsePurchaseFormParams) {
   function submit(event?: React.FormEvent) {
     event?.preventDefault();
 
-    const problem = validatePurchaseForm(form);
+    if (readOnly) return;
+
+    const problem = validatePurchaseForm(form, supplier);
     if (problem) {
       toast({ title: "Atenção", description: problem, variant: "warning" });
       return;
@@ -238,7 +280,10 @@ export function usePurchaseForm({ onSaved }: UsePurchaseFormParams) {
     open,
     setOpen,
     editingId,
+    readOnly,
     form,
+    supplier,
+    linkRequired: purchaseLinkIsRequired(form, supplier),
     update,
     openNew,
     openEdit,

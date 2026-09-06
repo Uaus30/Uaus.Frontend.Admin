@@ -51,6 +51,22 @@ export interface ReceivedPurchaseEntryItemDto {
   quantity: number;
   unitCost: number;
   totalCost: number;
+  /**
+   * Total do item ANTES do desconto ou acréscimo negociado na compra. Igual a
+   * `totalCost` quando não houve — inclusive nas entradas anteriores a
+   * 06/09/2026, cujo bruto foi preenchido com o próprio custo.
+   */
+  grossTotal: number;
+  /**
+   * Preço de venda aplicado no recebimento. Nulo nas entradas anteriores a
+   * 06/09/2026 — ali a margem histórica não existe, e mostrar a do preço de
+   * hoje seria inventar um número.
+   */
+  salePrice: number | null;
+  /** Desconto (negativo) ou acréscimo (positivo) sobre o bruto. Derivado no servidor. */
+  adjustmentPercent: number;
+  /** Margem daquele lançamento. Nula sem `salePrice`. */
+  profitMargin: number | null;
   availableQuantity: number;
   hasConsumedStock: boolean;
 }
@@ -68,6 +84,12 @@ export interface ReceivedPurchaseEntryDto {
   /** Quem lançou. Nulos nas notas anteriores a 31/08/2026, quando o autor passou a ser gravado. */
   userId: number | null;
   userName: string | null;
+  /**
+   * Link do anúncio/pedido, herdado da compra no recebimento. É o que permite
+   * reencontrar o produto para recomprar quando o fornecedor é um marketplace.
+   * Nulo na entrada lançada direto pela tela de estoque.
+   */
+  purchaseLink: string | null;
   canEdit: boolean;
   canDelete: boolean;
   items: ReceivedPurchaseEntryItemDto[];
@@ -78,6 +100,8 @@ export interface ReceivePurchaseEntryItemRequest {
   quantity: number;
   unitCost: number;
   price: number;
+  /** Bruto antes do desconto da compra. Omitido assume o próprio custo. */
+  grossTotal?: number | null;
 }
 
 export interface ReceivePurchaseEntryRequest {
@@ -91,6 +115,8 @@ export interface ReceivePurchaseEntryRequest {
    * estoque — índice único parcial no backend, no molde de vendas e baixas.
    */
   clientReference?: string | null;
+  /** Link do anúncio/pedido, quando a entrada nasce de uma compra. */
+  purchaseLink?: string | null;
   items: ReceivePurchaseEntryItemRequest[];
 }
 

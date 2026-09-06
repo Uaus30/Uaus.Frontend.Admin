@@ -42,6 +42,13 @@ type PurchasesTableProps = {
  * A coluna de valor mostra o total FINAL com o percentual de desconto ou
  * acréscimo ao lado: é o número que o operador confere contra o extrato, e o
  * bruto sozinho esconderia o frete ou o desconto que fecham a conta.
+ *
+ * <b>A linha inteira abre a compra.</b> O botão verde de receber saiu daqui: ele
+ * já existia por extenso no menu de opções, e ocupar a coluna de ações com uma
+ * duplicata deixava a listagem sem o gesto mais óbvio de todos, que é clicar na
+ * linha para ver o que se comprou. Compra já lançada abre em leitura — o backend
+ * recusa alterá-la, e um formulário editável que não salva é pior que um
+ * bloqueado que explica.
  */
 export function PurchasesTable({
   items,
@@ -116,7 +123,21 @@ export function PurchasesTable({
                 const busy = mutatingId === purchase.id;
                 const cover = purchase.images[0];
                 return (
-                  <TableRow key={purchase.id} data-testid="purchase-row">
+                  <TableRow
+                    key={purchase.id}
+                    data-testid="purchase-row"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onEdit(purchase)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onEdit(purchase);
+                      }
+                    }}
+                    aria-label={`Abrir a compra de ${purchase.productName}`}
+                    className="cursor-pointer"
+                  >
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {cover ? (
@@ -136,6 +157,7 @@ export function PurchasesTable({
                             <Link
                               href={`/produtos/${purchase.productGroupId}/detalhes`}
                               className="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                              onClick={(event) => event.stopPropagation()}
                             >
                               {purchase.productName}
                             </Link>
@@ -181,21 +203,6 @@ export function PurchasesTable({
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {/* Compacto na linha (a tabela já tem oito colunas) e por
-                            extenso no menu de opções, onde o texto cabe. */}
-                        {!received && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            title="Lançar recebimento"
-                            aria-label={`Lançar recebimento da compra ${purchase.id}`}
-                            className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
-                            onClick={() => onReceive(purchase)}
-                            disabled={busy}
-                          >
-                            <PackageCheck className="h-3.5 w-3.5" /> Receber
-                          </Button>
-                        )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -205,6 +212,7 @@ export function PurchasesTable({
                               className="h-8 w-8"
                               aria-label={`Opções da compra ${purchase.id}`}
                               disabled={busy}
+                              onClick={(event) => event.stopPropagation()}
                             >
                               {busy ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -213,7 +221,7 @@ export function PurchasesTable({
                               )}
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
                             {!received && (
                               <DropdownMenuItem onClick={() => onReceive(purchase)}>
                                 <PackageCheck className="mr-2 h-4 w-4 text-emerald-600" /> Lançar recebimento
@@ -240,11 +248,9 @@ export function PurchasesTable({
                                 <Truck className="mr-2 h-4 w-4" /> Voltar para pendente
                               </DropdownMenuItem>
                             )}
-                            {!received && (
-                              <DropdownMenuItem onClick={() => onEdit(purchase)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Editar
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem onClick={() => onEdit(purchase)}>
+                              <Pencil className="mr-2 h-4 w-4" /> {received ? "Ver detalhes" : "Editar"}
+                            </DropdownMenuItem>
                             {!received && (
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
@@ -253,7 +259,9 @@ export function PurchasesTable({
                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
                               </DropdownMenuItem>
                             )}
-                            {received && <DropdownMenuItem disabled>Lançada — sem ações</DropdownMenuItem>}
+                            {received && (
+                              <DropdownMenuItem disabled>Lançada — não pode ser alterada</DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

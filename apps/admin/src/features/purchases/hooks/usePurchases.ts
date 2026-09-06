@@ -86,7 +86,7 @@ export function usePurchases() {
     ]);
   }
 
-  const form = usePurchaseForm({ onSaved: invalidate });
+  const form = usePurchaseForm({ onSaved: invalidate, suppliers });
 
   // Quem chega de `/estoque/compras?produto=10&fornecedor=13` — o "Resolver" do
   // relatório de estoque baixo — cai no formulário já preenchido.

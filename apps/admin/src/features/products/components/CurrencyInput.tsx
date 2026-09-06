@@ -11,6 +11,14 @@ type CurrencyInputProps = {
   onChange: (val: number) => void;
   /** Styling classnames to pass down to the UI input */
   className?: string;
+  /**
+   * Bloqueia a edição sem esconder o valor.
+   *
+   * Fora de foco o campo já é `readOnly` para exibir a moeda formatada — o que
+   * esta marca faz é impedir a ENTRADA no modo de edição, que é o que a compra
+   * lançada precisa: o valor continua legível, e o clique não abre o campo.
+   */
+  readOnly?: boolean;
 };
 
 /**
@@ -21,7 +29,7 @@ type CurrencyInputProps = {
  * - On blur, it parses the string back to a float number and calls onChange.
  * - Out of focus, it displays a read-only nicely formatted currency string (e.g. "R$ 12,34").
  */
-export function CurrencyInput({ id, value, onChange, className }: CurrencyInputProps) {
+export function CurrencyInput({ id, value, onChange, className, readOnly }: CurrencyInputProps) {
   const [focused, setFocused] = useState(false);
   const [localValue, setLocalValue] = useState(value.toString().replace(".", ","));
 
@@ -31,13 +39,14 @@ export function CurrencyInput({ id, value, onChange, className }: CurrencyInputP
     }
   }, [value, focused]);
 
-  if (!focused) {
+  if (!focused || readOnly) {
     return (
       <Input
         id={id}
         type="text"
         value={formatCurrency(value)}
         onFocus={() => {
+          if (readOnly) return;
           setFocused(true);
           if (value === 0) setLocalValue("");
         }}

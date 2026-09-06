@@ -1,4 +1,4 @@
-import { Globe, ImagePlus, Loader2, Package, ShoppingCart, X } from "lucide-react";
+import { Globe, ImagePlus, Loader2, Lock, Package, ShoppingCart, X } from "lucide-react";
 import { Button, Input, Textarea } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
@@ -7,6 +7,7 @@ import { formatCurrency, formatPercentage } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { ProductSearchPicker } from "@/components/product-search-picker";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import { PurchaseLinkField } from "./PurchaseLinkField";
 import type { usePurchaseForm } from "../hooks/usePurchaseForm";
 
 type PurchaseEditorModalProps = {
@@ -27,7 +28,7 @@ type PurchaseEditorModalProps = {
  * (`derivePurchaseTotals`) e são gravados pelo backend com a mesma fórmula.
  */
 export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProps) {
-  const { form: values, update } = form;
+  const { form: values, update, readOnly, linkRequired } = form;
   const derived = derivePurchaseTotals(values.quantity, values.grossTotal, values.finalTotal);
 
   return (
@@ -36,12 +37,23 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <ShoppingCart className="h-5 w-5 text-primary" />
-            {form.editingId ? "Editar compra" : "Registrar compra"}
+            {readOnly ? "Compra lançada" : form.editingId ? "Editar compra" : "Registrar compra"}
           </DialogTitle>
           <DialogDescription>
             Um produto por compra. O recebimento vira uma entrada de estoque com a quantidade e o custo daqui.
           </DialogDescription>
         </DialogHeader>
+
+        {readOnly && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/40 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+            <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              Esta compra já foi lançada no estoque e não pode mais ser alterada — a entrada existe, e mudar
+              quantidade ou valor aqui deixaria os dois documentos discordando. Para corrigir, edite a entrada
+              de estoque correspondente.
+            </span>
+          </div>
+        )}
 
         <form onSubmit={form.submit} className="mt-2 flex flex-col gap-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -49,7 +61,11 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Fornecedor <span className="text-red-500">*</span>
               </label>
-              <Select value={values.supplierId} onValueChange={(value) => update("supplierId", value)}>
+              <Select
+                value={values.supplierId}
+                onValueChange={(value) => update("supplierId", value)}
+                disabled={readOnly}
+              >
                 <SelectTrigger className="h-10 bg-background">
                   <SelectValue placeholder="Selecione um fornecedor..." />
                 </SelectTrigger>
@@ -64,7 +80,11 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Situação</label>
-              <Select value={values.status} onValueChange={(value) => update("status", value)}>
+              <Select
+                value={values.status}
+                onValueChange={(value) => update("status", value)}
+                disabled={readOnly}
+              >
                 <SelectTrigger className="h-10 bg-background">
                   <SelectValue />
                 </SelectTrigger>
@@ -84,7 +104,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               <ProductSearchPicker
                 onSelect={form.selectProduct}
                 selectedIds={[]}
-                disabled={form.isSaving}
+                disabled={form.isSaving || readOnly}
                 placeholder="Buscar produto por nome ou código de barras — ou deixe em branco para produto novo"
               />
             ) : (
@@ -98,16 +118,18 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                     </p>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={form.clearProduct}
-                  aria-label="Desvincular produto"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={form.clearProduct}
+                    aria-label="Desvincular produto"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -123,6 +145,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 placeholder="Como vai se chamar no cadastro"
                 className="h-10 bg-background"
                 maxLength={150}
+                readOnly={readOnly}
               />
             </div>
           )}
@@ -143,6 +166,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 }}
                 aria-label="Quantidade comprada"
                 className="h-10 bg-background"
+                readOnly={readOnly}
               />
             </div>
             <div className="space-y-2">
@@ -151,6 +175,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 value={values.grossTotal}
                 onChange={(value) => update("grossTotal", value)}
                 className="h-10 bg-background"
+                readOnly={readOnly}
               />
             </div>
             <div className="space-y-2">
@@ -159,6 +184,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 value={values.finalTotal}
                 onChange={(value) => update("finalTotal", value)}
                 className="h-10 bg-background"
+                readOnly={readOnly}
               />
               <p className="text-xs text-muted-foreground">Já com desconto ou acréscimo (frete).</p>
             </div>
@@ -200,24 +226,22 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 onChange={(event) => update("details", event.target.value)}
                 placeholder="Cor, tamanho, referência do fornecedor..."
                 className="min-h-16"
+                readOnly={readOnly}
               />
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Link da compra</label>
-              <Input
-                value={values.purchaseLink}
-                onChange={(event) => update("purchaseLink", event.target.value)}
-                placeholder="https://..."
-                className="h-10 bg-background"
-                maxLength={500}
-              />
-            </div>
+            <PurchaseLinkField
+              value={values.purchaseLink}
+              onChange={(value) => update("purchaseLink", value)}
+              required={linkRequired}
+              supplierName={form.supplier?.name}
+              readOnly={readOnly}
+            />
           </div>
 
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Fotos</label>
-              <div className="flex gap-2">
+              <div className={`flex gap-2 ${readOnly ? "hidden" : ""}`}>
                 <Button type="button" variant="outline" size="sm" className="gap-1" asChild>
                   <label className="cursor-pointer">
                     <ImagePlus className="h-3.5 w-3.5" /> Enviar
@@ -253,14 +277,16 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                   className="relative h-20 w-20 overflow-hidden rounded-lg border border-border/50 bg-white"
                 >
                   <img src={image.url} alt={image.name} className="h-full w-full object-contain" />
-                  <button
-                    type="button"
-                    onClick={() => form.removeImage(image.imageId)}
-                    aria-label="Remover foto"
-                    className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => form.removeImage(image.imageId)}
+                      aria-label="Remover foto"
+                      className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               ))}
               {form.uploading && (
@@ -278,15 +304,17 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
 
           <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
             <Button type="button" variant="outline" onClick={() => form.setOpen(false)}>
-              Cancelar
+              {readOnly ? "Fechar" : "Cancelar"}
             </Button>
-            <Button
-              type="submit"
-              className="bg-primary text-primary-foreground"
-              disabled={form.isSaving || form.uploading}
-            >
-              {form.isSaving ? "Salvando..." : form.editingId ? "Salvar alterações" : "Registrar compra"}
-            </Button>
+            {!readOnly && (
+              <Button
+                type="submit"
+                className="bg-primary text-primary-foreground"
+                disabled={form.isSaving || form.uploading}
+              >
+                {form.isSaving ? "Salvando..." : form.editingId ? "Salvar alterações" : "Registrar compra"}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>
