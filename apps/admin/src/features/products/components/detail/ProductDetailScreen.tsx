@@ -105,7 +105,11 @@ export function ProductDetailScreen({
     variationDrafts,
     activeVariation,
     editingGroupId,
-    setImages,
+    // A colagem de imagem entra pelo MESMO alvo da galeria (variação ativa em
+    // grupo com variações, produto simples quando não há). Com `setImages` ela
+    // caía no estado do produto simples e era descartada em silêncio no grupo
+    // com variações — ver `useProductEditor.galleryImages`.
+    setGalleryImages,
     saving,
     handleSubmit,
     handleDeleteVariation,
@@ -278,7 +282,7 @@ export function ProductDetailScreen({
       });
     }
 
-    setImages((current) => [...current, ...result.images]);
+    setGalleryImages((current) => [...current, ...result.images]);
   }
 
   return (

@@ -24,7 +24,11 @@ type ProductWebImageSearchProps = {
  */
 export function ProductWebImageSearch({ editor, open, onOpenChange }: ProductWebImageSearchProps) {
   const { toast } = useToast();
-  const { form, productEditor, setImages } = editor;
+  // `setGalleryImages`, e não `setImages`: a imagem escolhida vai para o mesmo
+  // alvo da galeria da tela — a variação ativa em grupo com variações. Com
+  // `setImages` ela caía no estado do produto simples, que o `handleSubmit` do
+  // grupo com variações nem olha, e sumia no recarregamento.
+  const { form, productEditor, setGalleryImages } = editor;
 
   async function handleSelectImage(imageUrl: string) {
     const file = await downloadWebImageAsFile(imageUrl, form.productGroupName || "produto");
@@ -37,7 +41,7 @@ export function ProductWebImageSearch({ editor, open, onOpenChange }: ProductWeb
       });
     }
 
-    setImages((current) => [
+    setGalleryImages((current) => [
       ...current,
       {
         name: optimized.file.name.replace(/\.[^/.]+$/, ""),

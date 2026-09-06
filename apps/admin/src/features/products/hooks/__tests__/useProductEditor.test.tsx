@@ -240,6 +240,94 @@ describe("useProductEditor Hook", () => {
     );
   });
 
+  it("deve gravar a imagem anexada em grupo COM variações, na variação ativa", async () => {
+    // REGRESSÃO (produção, 06/09/2026 — grupo 825): a galeria da aba Dados
+    // escrevia sempre em `images`, o estado do produto SIMPLES, mesmo em grupo
+    // com variações. O `handleSubmit`, no ramo com variações, só percorre
+    // `variationDrafts` — a foto anexada não ia para lugar nenhum, o toast
+    // dizia "Grupo e variações salvos" e ela sumia no recarregamento, porque
+    // `openDetail` faz `setImages([])` em grupo com variações.
+    //
+    // Nada disso gerava erro. O teste trava o caminho pelo efeito observável:
+    // a imagem tem que chegar ao `syncProductImages` DO PRODUTO da variação.
+    mocks.saveProductGroupWithProducts.mockResolvedValueOnce({
+      group: { id: 1 },
+      products: [
+        { id: 10, canDelete: true },
+        { id: 11, canDelete: true },
+      ],
+    });
+
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    const variacao = {
+      id: 10,
+      name: "COPO INFANTIL",
+      description: "",
+      price: 9.9,
+      stock: 0,
+      minStock: 0,
+      status: 2,
+      barcode: "789",
+      department: { id: 2 },
+      category: { id: 5 },
+      productGroup: { id: 1, name: "COPO INFANTIL", description: "", hasVariations: true, showOnSite: true },
+      tags: [],
+      images: [],
+      variationValues: [{ gradeType: 1, value: "AZUL" }],
+    };
+
+    act(() => {
+      result.current.openDetail(variacao);
+    });
+
+    expect(result.current.form.hasVariations).toBe(true);
+    expect(result.current.variationDrafts).toHaveLength(1);
+
+    // O cadastro com variações exige duas — a segunda entra para o submit não
+    // parar na validação antes de chegar às imagens.
+    act(() => {
+      result.current.addVariationDraft({
+        name: "COPO INFANTIL",
+        status: "2",
+        barcode: "790",
+        values: [{ gradeType: 1, value: "VERDE" }],
+      });
+    });
+
+    // Acrescentar variação a torna ativa. O operador volta para a primeira pelo
+    // seletor da galeria — é ele que responde "estas fotos são de qual".
+    expect(result.current.activeVariationKey).toBe(result.current.variationDrafts[1].key);
+    act(() => {
+      result.current.setActiveVariationKey(result.current.variationDrafts[0].key);
+    });
+
+    // O operador anexa a foto pela galeria da aba Dados — a MESMA galeria em
+    // produto simples e em grupo com variações.
+    act(() => {
+      result.current.setGalleryImages([
+        { name: "foto", url: "blob:foto", file: new File(["x"], "foto.png", { type: "image/png" }) },
+      ]);
+    });
+
+    // A foto tem que aparecer na variação, e não no estado do produto simples.
+    expect(result.current.galleryImages).toHaveLength(1);
+    expect(result.current.variationDrafts[0].images).toHaveLength(1);
+    expect(result.current.images).toHaveLength(0);
+
+    await act(async () => {
+      await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
+    });
+
+    expect(createImageFromFile).toHaveBeenCalledTimes(1);
+    expect(syncProductImages).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 10,
+        nextImages: [{ imageId: 99, displayOrder: 0 }],
+      }),
+    );
+  });
+
   it("deve manter a tela aberta depois de salvar um produto simples, ja com o id do grupo", async () => {
     // Desde 05/09/2026 o cadastro novo NAO fecha ao salvar: o operador segue
     // para a aba Estoque e lanca a entrada do que acabou de receber. Antes a

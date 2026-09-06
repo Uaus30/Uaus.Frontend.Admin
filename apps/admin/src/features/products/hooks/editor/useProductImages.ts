@@ -33,6 +33,30 @@ export function useProductImages({
     }));
   }
 
+  function reorderVariationImage(oldIndex: number, newIndex: number) {
+    if (!activeVariation) return;
+    updateVariationDraft(activeVariation.key, (draft) => ({
+      ...draft,
+      images: moveItemTo(draft.images, oldIndex, newIndex),
+    }));
+  }
+
+  /**
+   * O `setImages` da variação ativa, com a mesma assinatura do `setImages` do
+   * produto simples — é o que permite à galeria da tela ser UMA só, sem saber
+   * se está mexendo num produto com ou sem variações.
+   *
+   * Aceita função ou valor porque a galeria remove imagem com
+   * `setImages((current) => current.filter(...))`.
+   */
+  function setVariationImages(update: React.SetStateAction<LocalImage[]>) {
+    if (!activeVariation) return;
+    updateVariationDraft(activeVariation.key, (draft) => ({
+      ...draft,
+      images: typeof update === "function" ? update(draft.images) : update,
+    }));
+  }
+
   async function handleSimpleFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
     const fileList = Array.from(event.target.files ?? []);
     const nextImages: { name: string; url: string; file: File }[] = [];
@@ -113,6 +137,8 @@ export function useProductImages({
     moveProductImage,
     reorderProductImage,
     moveVariationImage,
+    reorderVariationImage,
+    setVariationImages,
     handleSimpleFileSelection,
     handleVariationFileSelection,
     toLocalImages,

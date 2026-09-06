@@ -439,6 +439,46 @@ export function useProductEditor() {
       markDirty();
       setImages(update);
     },
+
+    /**
+     * A galeria da aba **Dados**, já apontada para o alvo certo: a VARIAÇÃO
+     * ATIVA quando o grupo tem variações, o produto simples quando não tem.
+     *
+     * ## Por que a escolha mora aqui, e não na tela
+     *
+     * Porque errá-la não gera erro. Até 06/09/2026 a galeria estava fixa em
+     * `images` — o estado do produto SIMPLES — mesmo em grupo com variações. E
+     * o `handleSubmit`, no ramo com variações, só percorre `variationDrafts`:
+     * a imagem que o operador acabara de anexar não era gravada em lugar
+     * nenhum, o toast dizia "Grupo e variações salvos" e no F5 seguinte
+     * `openDetail` fazia `setImages([])` e a foto sumia. Nenhum erro em lugar
+     * nenhum — só a foto que não estava lá.
+     *
+     * Com a decisão dentro do hook, a tela não tem como escolher errado: existe
+     * UMA galeria e ela já vem ligada no alvo que o `handleSubmit` persiste.
+     *
+     * As imagens são POR VARIAÇÃO, e não do grupo: no banco de dev, 62 dos 76
+     * grupos com variações e com foto têm fotos DIFERENTES em cada variação
+     * (toalha por cor, forma por tamanho). Aplicar uma galeria única ao grupo
+     * inteiro apagaria justamente essas.
+     */
+    galleryImages: form.hasVariations ? (productVariations.activeVariation?.images ?? []) : images,
+    setGalleryImages: (update: React.SetStateAction<LocalImage[]>) => {
+      markDirty();
+      if (form.hasVariations) return productImagesHook.setVariationImages(update);
+      setImages(update);
+    },
+    handleGalleryFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => {
+      markDirty();
+      return form.hasVariations
+        ? productImagesHook.handleVariationFileSelection(event)
+        : productImagesHook.handleSimpleFileSelection(event);
+    },
+    reorderGalleryImage: (oldIndex: number, newIndex: number) => {
+      markDirty();
+      if (form.hasVariations) return productImagesHook.reorderVariationImage(oldIndex, newIndex);
+      productImagesHook.reorderProductImage(oldIndex, newIndex);
+    },
     saving,
     departments: productForm.departments,
     categories: productForm.categories,
