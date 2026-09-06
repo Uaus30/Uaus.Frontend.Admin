@@ -7,6 +7,7 @@ import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
 import { useProductDetailFromUrl } from "@/features/products/hooks/useProductDetailFromUrl";
 import { useProductDetailHistory } from "@/features/products/hooks/useProductDetailHistory";
+import { detailTabFromUrl, stockProductIdFromUrl } from "@/features/products/product-detail-route";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductDetailScreen } from "@/features/products/components/detail/ProductDetailScreen";
 import { ProductDetailDiscardDialog } from "@/features/products/components/detail/ProductDetailDiscardDialog";
@@ -47,10 +48,17 @@ export default function Products() {
   const [pendingClose, setPendingClose] = useState<null | "ui" | "history">(null);
   // Aba em que o detalhe abre. O menu "Estoque" da listagem cai direto na aba
   // de lançamento; todos os outros caminhos continuam abrindo em Dados.
-  const [detailInitialTab, setDetailInitialTab] = useState<"dados" | "estoque">("dados");
+  // Quem chega por `?aba=estoque` (o recebimento de uma compra) abre direto
+  // nas entradas; os demais caminhos continuam em Dados.
+  const [detailInitialTab, setDetailInitialTab] = useState<"dados" | "estoque">(detailTabFromUrl);
+  // Variação que a aba de Estoque abre, quando a URL diz qual.
+  const [detailStockProductId, setDetailStockProductId] = useState<number | null>(stockProductIdFromUrl);
 
   function abrirDetalhe(product?: ProductTableRow, aba: "dados" | "estoque" = "dados") {
     setDetailInitialTab(aba);
+    // Abrir OUTRO produto pela listagem apaga a variação que veio da URL: ela
+    // valia para o produto daquele link, não para este.
+    setDetailStockProductId(null);
     editor.openDetail(product);
   }
 
@@ -105,7 +113,12 @@ export default function Products() {
   if (editor.detailOpen) {
     return (
       <AppLayout>
-        <ProductDetailScreen editor={editor} initialTab={detailInitialTab} onRequestClose={pedirParaFechar} />
+        <ProductDetailScreen
+          editor={editor}
+          initialTab={detailInitialTab}
+          initialStockProductId={detailStockProductId}
+          onRequestClose={pedirParaFechar}
+        />
         <ProductDetailDiscardDialog
           open={pendingClose !== null}
           onCancel={() => setPendingClose(null)}

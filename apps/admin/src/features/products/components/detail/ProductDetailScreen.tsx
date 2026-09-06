@@ -22,6 +22,12 @@ type ProductDetailScreenProps = {
   editor: ReturnType<typeof useProductEditor>;
   /** Aba aberta na montagem. O menu "Estoque" da listagem cai direto no lançamento. */
   initialTab?: "dados" | "estoque" | "opcionais";
+  /**
+   * Variação já escolhida na aba de Estoque, quando quem abriu a tela sabe qual
+   * é — o recebimento de uma compra. Id que não pertença ao grupo é ignorado
+   * pela própria aba.
+   */
+  initialStockProductId?: number | null;
   /** Pediu para sair (voltar, cancelar) — a página decide se confirma antes. */
   onRequestClose: () => void;
 };
@@ -69,7 +75,12 @@ const ROTULO_DA_ABA: Record<string, string> = {
  * abriria só para dizer "salve primeiro". O Avançar da aba Dados salva e já
  * cai na aba Estoque, que é o fluxo de quem acabou de receber mercadoria nova.
  */
-export function ProductDetailScreen({ editor, initialTab, onRequestClose }: ProductDetailScreenProps) {
+export function ProductDetailScreen({
+  editor,
+  initialTab,
+  initialStockProductId,
+  onRequestClose,
+}: ProductDetailScreenProps) {
   const { toast } = useToast();
   const {
     isDirty,
@@ -100,7 +111,9 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
   // dentro do efeito — cascata de render que o lint recusa. Guardando o código,
   // a piscada é derivada, e o único `setState` acontece no fim do temporizador.
   const [flashedBarcode, setFlashedBarcode] = useState<string | null>(null);
-  const [pickedStockProductId, setPickedStockProductId] = useState<number | null>(null);
+  const [pickedStockProductId, setPickedStockProductId] = useState<number | null>(
+    initialStockProductId ?? null,
+  );
 
   const currentBarcode = productEditor.barcode || "";
   const displayBarcode = buildDisplayBarcode(currentBarcode, productEditor.id);

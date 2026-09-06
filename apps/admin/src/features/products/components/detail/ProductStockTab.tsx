@@ -109,7 +109,17 @@ export function ProductStockTab({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {variationOptions.length > 0 && (
-            <Select value={String(productId)} onValueChange={(value) => onSelectProduct(Number(value))}>
+            <Select
+              value={String(productId)}
+              // Só id de verdade sobe. O Radix avisa a mudança com string VAZIA
+              // quando o `value` aponta para um item que ainda não existe na
+              // lista — e `Number("")` é 0, que apagaria a escolha de quem abriu
+              // a aba já sabendo a variação (o recebimento de uma compra).
+              onValueChange={(value) => {
+                const id = Number(value);
+                if (Number.isInteger(id) && id > 0) onSelectProduct(id);
+              }}
+            >
               <SelectTrigger className="h-9 w-full sm:w-[260px]" aria-label="Variação">
                 <SelectValue placeholder="Selecione a variação" />
               </SelectTrigger>

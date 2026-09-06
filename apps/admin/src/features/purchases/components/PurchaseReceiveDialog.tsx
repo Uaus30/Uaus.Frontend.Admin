@@ -83,7 +83,9 @@ export function PurchaseReceiveDialog({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase text-muted-foreground">Nº da nota</label>
+                <label className="text-xs font-semibold uppercase text-muted-foreground">
+                  Nº da Nota Fiscal
+                </label>
                 <Input
                   value={form.invoiceNumber}
                   onChange={(event) => onChange("invoiceNumber", event.target.value)}

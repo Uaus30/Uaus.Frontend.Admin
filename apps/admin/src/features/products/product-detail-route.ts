@@ -66,3 +66,64 @@ export function productGroupIdFromPathname(pathname: string): number | null {
   const id = Number(casou[1]);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
+
+/** Aba em que o detalhe abre. Só estas duas são endereçáveis. */
+export type DetailTab = "dados" | "estoque";
+
+/** Parâmetro que escolhe a aba de abertura: `?aba=estoque`. */
+export const DETAIL_TAB_PARAM = "aba";
+
+/**
+ * Parâmetro que escolhe a VARIAÇÃO aberta na aba de Estoque: `?variacao=<produto>`.
+ *
+ * A aba consulta as entradas de UM produto, e o seletor dela começa na primeira
+ * variação em ordem alfabética. Sem este parâmetro, receber uma compra de
+ * "BALDE [12L, ORIGINAL]" mostraria as entradas de "BALDE [12L, MASTER]" — uma
+ * lista que não contém a entrada que acabou de ser gravada.
+ */
+export const DETAIL_STOCK_PRODUCT_PARAM = "variacao";
+
+/**
+ * Caminho do detalhe já pedindo a aba de Estoque, opcionalmente na variação
+ * indicada.
+ *
+ * Existe para quem chega DEPOIS de mexer no estoque — hoje o recebimento de uma
+ * compra de produto já cadastrado. Cair em Dados obrigaria a clicar numa aba
+ * para ver a entrada que a própria ação acabou de gravar; o pedido era "exibir
+ * o detalhe do produto com as entradas atualizadas".
+ */
+export function productStockTabPathname(productGroupId: number, productId?: number | null): string {
+  const caminho = `${productDetailPathname(productGroupId)}?${DETAIL_TAB_PARAM}=estoque`;
+  return productId != null && productId > 0
+    ? `${caminho}&${DETAIL_STOCK_PRODUCT_PARAM}=${productId}`
+    : caminho;
+}
+
+/**
+ * Variação pedida pela URL atual, ou `null`.
+ *
+ * Só valida o formato. Se o id não pertencer ao grupo aberto, quem descarta é a
+ * própria aba, que confere a escolha contra as variações existentes.
+ */
+export function stockProductIdFromUrl(): number | null {
+  if (typeof window === "undefined") return null;
+
+  const bruto = new URLSearchParams(window.location.search).get(DETAIL_STOCK_PRODUCT_PARAM);
+  const id = Number(bruto);
+  return bruto !== null && Number.isInteger(id) && id > 0 ? id : null;
+}
+
+/**
+ * Aba pedida pela URL atual, lida UMA vez, antes do primeiro render.
+ *
+ * Qualquer outro valor cai em `dados`: a aba de abertura vem da barra de
+ * endereços, que qualquer um edita, e um valor desconhecido não pode deixar a
+ * tela sem aba selecionada.
+ */
+export function detailTabFromUrl(): DetailTab {
+  if (typeof window === "undefined") return "dados";
+
+  return new URLSearchParams(window.location.search).get(DETAIL_TAB_PARAM) === "estoque"
+    ? "estoque"
+    : "dados";
+}

@@ -41,8 +41,10 @@ recebimento dela é o que gera a entrada.
    grava a entrada com a quantidade e o custo da compra e marca como lançada,
    **numa transação**, usando `compra-<id>` como chave de idempotência: um
    segundo clique devolve a mesma entrada em vez de lançar o estoque duas
-   vezes. Depois a tela navega para o detalhe do produto, onde a entrada já
-   aparece na aba Estoque.
+   vezes. Depois a tela navega para o detalhe do produto **já na aba Estoque**
+   (`productStockTabPathname`, que escreve `?aba=estoque`), onde a entrada
+   recém-gravada aparece: cair em Dados obrigaria a clicar numa aba para ver o
+   efeito da ação que a pessoa acabou de confirmar.
 2. **Produto novo.** Navega para `/produtos?compra=<id>`
    (`productFromPurchasePath`). `useProductDetailFromUrl` lê o parâmetro,
    busca a compra e abre o cadastro **preenchido** (nome, descrição, fotos e

@@ -13,7 +13,12 @@ import {
   useAllProductTags,
   useAllTags,
 } from "@/hooks/use-catalog";
-import { productDetailPathname, productGroupIdFromPathname } from "../product-detail-route";
+import {
+  DETAIL_STOCK_PRODUCT_PARAM,
+  DETAIL_TAB_PARAM,
+  productDetailPathname,
+  productGroupIdFromPathname,
+} from "../product-detail-route";
 
 /**
  * Abre a tela de detalhe de quem chega por link.
@@ -96,6 +101,10 @@ function urlSemParametrosDeAbertura(): URL {
   url.searchParams.delete(PARAM_ID_LEGADO);
   url.searchParams.delete(PARAM_EDITAR);
   url.searchParams.delete(PARAM_COMPRA);
+  // A aba de abertura tambem e instrucao de uma vez so: deixada na URL, um F5
+  // depois de a pessoa ter trocado de aba a devolveria para a de Estoque.
+  url.searchParams.delete(DETAIL_TAB_PARAM);
+  url.searchParams.delete(DETAIL_STOCK_PRODUCT_PARAM);
   return url;
 }
 

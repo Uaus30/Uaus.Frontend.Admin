@@ -15,6 +15,7 @@ import {
 } from "@workspace/api-client-react";
 import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
+import { productStockTabPathname } from "@/features/products/product-detail-route";
 import { productFromPurchasePath } from "../purchases-route";
 import type { ReceiveForm } from "../types";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
@@ -22,11 +23,6 @@ import { usePurchaseForm } from "./usePurchaseForm";
 
 /** Linhas por página. */
 export const PAGE_SIZE = 20;
-
-/** Caminho do detalhe do produto — o id é o do GRUPO. */
-function productDetailPath(productGroupId: number): string {
-  return `/produtos/${productGroupId}/detalhes`;
-}
 
 function todayKey(): string {
   const now = new Date();
@@ -150,7 +146,10 @@ export function usePurchases() {
         title: "Compra lançada no estoque",
         description: `${purchase.quantity} un. de ${purchase.productName} entraram no estoque.`,
       });
-      if (purchase.productGroupId) navigate(productDetailPath(purchase.productGroupId));
+      // Na aba de Estoque: a entrada que este recebimento acabou de gravar e o
+      // que a pessoa veio conferir.
+      if (purchase.productGroupId)
+        navigate(productStockTabPathname(purchase.productGroupId, purchase.productId));
     },
     onError: (error: unknown) =>
       toast({
