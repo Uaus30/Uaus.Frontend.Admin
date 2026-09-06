@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-client-react";
 import type { ProductTableRow } from "../types";
+import { productDetailPathname } from "../product-detail-route";
 import { ProductTableFilters } from "./ProductTableFilters";
 import React, { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
@@ -246,11 +247,36 @@ export function ProductTable({
                             </button>
                           </div>
                         </td>
-                        <td
-                          className="px-6 py-4 font-medium text-foreground cursor-pointer hover:text-primary hover:underline transition-colors"
-                          onClick={() => onEdit(product)}
-                        >
-                          {product.name}
+                        {/* O nome é um LINK de verdade, e não um `<td onClick>`.
+                            Só assim ctrl+clique, ⌘+clique, shift+clique, o botão
+                            do meio e o "abrir em nova aba" do menu de contexto do
+                            navegador funcionam — nenhum deles passa por onClick, e
+                            com o div clicável a listagem prendia a pessoa numa aba
+                            só. O clique simples continua sendo navegação da SPA:
+                            o href existe para o navegador, não para recarregar a
+                            página. */}
+                        <td className="px-6 py-4 font-medium text-foreground">
+                          <a
+                            href={productDetailPathname(product.productGroupId)}
+                            className="cursor-pointer transition-colors hover:text-primary hover:underline"
+                            onClick={(event) => {
+                              // Clique com modificador é do navegador: abrir na
+                              // SPA aqui ANULARIA a nova aba que a pessoa pediu.
+                              if (
+                                event.metaKey ||
+                                event.ctrlKey ||
+                                event.shiftKey ||
+                                event.altKey ||
+                                event.button !== 0
+                              ) {
+                                return;
+                              }
+                              event.preventDefault();
+                              onEdit(product);
+                            }}
+                          >
+                            {product.name}
+                          </a>
                         </td>
                         <td className="px-6 py-4 text-muted-foreground">{product.department?.name || "-"}</td>
                         <td className="px-6 py-4 text-muted-foreground">{product.category?.name || "-"}</td>
