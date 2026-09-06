@@ -17,6 +17,7 @@ import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { productFromPurchasePath } from "../purchases-route";
 import type { ReceiveForm } from "../types";
+import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
 import { usePurchaseForm } from "./usePurchaseForm";
 
 /** Linhas por página. */
@@ -90,6 +91,10 @@ export function usePurchases() {
   }
 
   const form = usePurchaseForm({ onSaved: invalidate });
+
+  // Quem chega de `/estoque/compras?produto=10&fornecedor=13` — o "Resolver" do
+  // relatório de estoque baixo — cai no formulário já preenchido.
+  useNewPurchaseFromUrl({ abrirCompra: form.openForRestock });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: number }) => updatePurchaseStatus(id, status),

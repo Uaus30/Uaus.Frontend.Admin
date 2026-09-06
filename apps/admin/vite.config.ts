@@ -40,9 +40,10 @@ export default defineConfig({
          * framework muda em major, o kit de UI muda quando alguém atualiza o
          * shadcn, e o código da loja muda toda semana.
          *
-         * `recharts` e `react-datepicker` ganham chunk próprio porque são
-         * pesados e usados por poucas telas — deixá-los no vendor comum faria
-         * quem só abre a tela de clientes baixar o motor de gráficos.
+         * `recharts`, `react-datepicker` e `exceljs` ganham chunk próprio
+         * porque são pesados e usados por poucas telas — deixá-los no vendor
+         * comum faria quem só abre a tela de clientes baixar o motor de
+         * gráficos e o gerador de planilha.
          */
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
@@ -58,6 +59,11 @@ export default defineConfig({
           if (id.includes("@radix-ui")) return "vendor-radix";
           if (id.includes("framer-motion")) return "vendor-motion";
           if (id.includes("jsbarcode") || id.includes("react-barcode")) return "vendor-barcode";
+          // O ExcelJS serve UM botão (exportar o relatório de estoque baixo) e
+          // pesa quase um megabyte. Ele já entra por `import()` dinâmico, mas
+          // sem esta regra o `manualChunks` o puxaria para o vendor comum — que
+          // é baixado no primeiro paint, por todo mundo, sempre.
+          if (id.includes("exceljs")) return "vendor-xlsx";
 
           return "vendor";
         },

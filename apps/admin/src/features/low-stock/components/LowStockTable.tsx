@@ -1,9 +1,20 @@
-import { CheckCircle2, ExternalLink, ImageIcon, Loader2, RotateCcw, Search } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  ImageIcon,
+  Loader2,
+  MoreVertical,
+  RotateCcw,
+  Search,
+  ShoppingCart,
+  SlidersHorizontal,
+} from "lucide-react";
 import { Link } from "wouter";
 import { Badge, Button, Input, Spinner, Switch } from "@workspace/ui";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { buildPublicImageUrl } from "@workspace/api-client-react";
-import { formatCurrency, formatDate } from "@workspace/core";
+import { formatDate, formatShortDate } from "@workspace/core";
 import type { LowStockItem } from "../types";
 
 type LowStockTableProps = {
@@ -18,8 +29,10 @@ type LowStockTableProps = {
   page: number;
   totalPages: number;
   setPage: (value: number) => void;
-  onResolve: (productId: number) => void;
+  /** Recebe o ITEM (não o id): o botão decide o que fazer pelo `hasOpenPurchase`. */
+  onResolve: (item: LowStockItem) => void;
   onReopen: (productId: number) => void;
+  onDisableStockControl: (item: LowStockItem) => void;
   mutatingProductId: number | null;
 };
 
@@ -29,12 +42,38 @@ function productDetailHref(productGroupId: number): string {
 }
 
 /**
+ * Quanto tempo o saldo dura, em texto curto.
+ *
+ * Vira "acaba hoje" abaixo de um dia e ganha o mês quando passa de sessenta:
+ * "92 dias" é preciso e ilegível para quem só quer saber se dá para esperar a
+ * próxima compra.
+ */
+function duracaoLegivel(days: number | null | undefined): string {
+  if (days == null) return "—";
+  if (days < 1) return "acaba hoje";
+  if (days <= 60) return `${Math.round(days)} dias`;
+  return `${Math.round(days / 30)} meses`;
+}
+
+/** Cor da previsão: vermelho até uma semana, âmbar até três, neutro depois. */
+function duracaoTone(days: number | null | undefined): string {
+  if (days == null) return "text-muted-foreground";
+  if (days <= 7) return "font-semibold text-red-600 dark:text-red-400";
+  if (days <= 21) return "text-amber-600 dark:text-amber-400";
+  return "text-foreground";
+}
+
+/**
  * Tabela do relatório de estoque baixo.
  *
  * O saldo sai ao lado do mínimo ("3 / 5") e em vermelho: a pergunta do
- * relatório é "quão abaixo?", e um número solto obrigaria a abrir o produto para
- * saber. A linha resolvida fica esmaecida, com quem e quando, em vez de sumir —
- * sumir esconderia justamente a decisão que alguém tomou.
+ * relatório é "quão abaixo?", e um número solto obrigaria a abrir o produto
+ * para saber. As colunas de giro (última venda e duração prevista) respondem à
+ * pergunta seguinte, a que decide se vale repor: um produto parado há um ano
+ * com saldo 1 não é urgência.
+ *
+ * A linha resolvida fica esmaecida, com quem e quando, em vez de sumir — sumir
+ * esconderia justamente a decisão que alguém tomou.
  */
 export function LowStockTable({
   items,
@@ -50,12 +89,13 @@ export function LowStockTable({
   setPage,
   onResolve,
   onReopen,
+  onDisableStockControl,
   mutatingProductId,
 }: LowStockTableProps) {
   return (
     <div className="space-y-4 rounded-2xl border border-border/50 bg-card/50 p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full lg:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -119,10 +159,18 @@ export function LowStockTable({
             <TableHeader className="bg-muted/30">
               <TableRow>
                 <TableHead className="px-4 py-3">Produto</TableHead>
-                <TableHead className="px-4 py-3">Categoria</TableHead>
+                <TableHead className="hidden px-4 py-3 xl:table-cell">Categoria</TableHead>
                 <TableHead className="px-4 py-3">Fornecedor</TableHead>
                 <TableHead className="px-4 py-3 text-right">Estoque / mín.</TableHead>
-                <TableHead className="px-4 py-3 text-right">Preço</TableHead>
+                <TableHead className="px-4 py-3" title="Última venda registrada, de toda a história">
+                  Última venda
+                </TableHead>
+                <TableHead
+                  className="px-4 py-3 text-right"
+                  title="Previsão de duração do saldo no ritmo de venda dos últimos 90 dias"
+                >
+                  Dura
+                </TableHead>
                 <TableHead className="px-4 py-3">Situação</TableHead>
                 <TableHead className="px-4 py-3 text-right">Ações</TableHead>
               </TableRow>
@@ -161,14 +209,25 @@ export function LowStockTable({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">{item.categoryName}</TableCell>
+                    <TableCell className="hidden px-4 py-3 text-sm xl:table-cell">
+                      {item.categoryName}
+                    </TableCell>
                     <TableCell className="px-4 py-3 text-sm">{item.supplierName ?? "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-right font-mono text-sm">
                       <span className="font-semibold text-destructive">{item.stock}</span>
                       <span className="text-muted-foreground"> / {item.minStock}</span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right text-sm">
-                      {formatCurrency(item.price)}
+                    <TableCell className="px-4 py-3 text-sm">
+                      {item.lastSaleAt ? (
+                        <span title={formatDate(item.lastSaleAt)}>{formatShortDate(item.lastSaleAt)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Nunca vendeu</span>
+                      )}
+                    </TableCell>
+                    <TableCell className={`px-4 py-3 text-right text-sm ${duracaoTone(item.daysOfCover)}`}>
+                      <span title={`Média de ${item.averageDailySales ?? 0} un./dia nos últimos 90 dias`}>
+                        {duracaoLegivel(item.daysOfCover)}
+                      </span>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm">
                       {item.isResolved ? (
@@ -183,17 +242,16 @@ export function LowStockTable({
                             </p>
                           )}
                         </div>
+                      ) : item.hasOpenPurchase ? (
+                        <Badge variant="outline" className="border-blue-500/40 text-blue-500">
+                          Compra em aberto
+                        </Badge>
                       ) : (
                         <Badge variant="destructive">Pendente</Badge>
                       )}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button asChild type="button" variant="ghost" size="sm" className="gap-1">
-                          <Link href={productDetailHref(item.productGroupId)} aria-label="Abrir produto">
-                            <ExternalLink className="h-3.5 w-3.5" /> Abrir
-                          </Link>
-                        </Button>
                         {item.isResolved ? (
                           <Button
                             type="button"
@@ -216,16 +274,47 @@ export function LowStockTable({
                             size="sm"
                             className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
                             disabled={mutating}
-                            onClick={() => onResolve(item.productId)}
+                            onClick={() => onResolve(item)}
+                            title={
+                              item.hasOpenPurchase
+                                ? "Já existe compra em aberto — confirma o alerta como resolvido"
+                                : "Abre o pedido de compra deste produto"
+                            }
                           >
                             {mutating ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
+                            ) : item.hasOpenPurchase ? (
                               <CheckCircle2 className="h-3.5 w-3.5" />
+                            ) : (
+                              <ShoppingCart className="h-3.5 w-3.5" />
                             )}
                             Resolver
                           </Button>
                         )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Opções de ${item.productName}`}
+                              disabled={mutating}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={productDetailHref(item.productGroupId)}>
+                                <ExternalLink className="mr-2 h-4 w-4" /> Abrir produto
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDisableStockControl(item)}>
+                              <SlidersHorizontal className="mr-2 h-4 w-4" /> Remover controle de estoque
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>

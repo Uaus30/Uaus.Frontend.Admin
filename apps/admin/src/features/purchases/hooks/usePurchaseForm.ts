@@ -103,6 +103,32 @@ export function usePurchaseForm({ onSaved }: UsePurchaseFormParams) {
     setOpen(true);
   }
 
+  /**
+   * Abre uma compra NOVA de reposição, já com produto, fornecedor e quantidade.
+   *
+   * É o destino do "Resolver" do relatório de estoque baixo: lá, resolver o
+   * alerta é registrar o pedido. A situação nasce Pendente e tudo continua
+   * editável — o formulário é o mesmo de sempre.
+   */
+  function openForRestock(dados: {
+    productId: number;
+    productName: string;
+    productBarcode: string | null;
+    supplierId: number | null;
+    quantity: number;
+  }) {
+    setEditingId(null);
+    setForm({
+      ...emptyPurchaseForm(),
+      productId: dados.productId,
+      productName: dados.productName,
+      productBarcode: dados.productBarcode,
+      supplierId: dados.supplierId ? String(dados.supplierId) : "",
+      quantity: dados.quantity,
+    });
+    setOpen(true);
+  }
+
   function update<K extends keyof PurchaseForm>(field: K, value: PurchaseForm[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -216,6 +242,7 @@ export function usePurchaseForm({ onSaved }: UsePurchaseFormParams) {
     update,
     openNew,
     openEdit,
+    openForRestock,
     selectProduct,
     clearProduct,
     handleFileSelection,

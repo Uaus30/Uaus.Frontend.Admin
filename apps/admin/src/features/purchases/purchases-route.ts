@@ -15,3 +15,15 @@ export const PURCHASE_QUERY_PARAM = "compra";
 export function productFromPurchasePath(purchaseId: number): string {
   return `/produtos?${PURCHASE_QUERY_PARAM}=${purchaseId}`;
 }
+
+/**
+ * Parâmetro que abre a tela de Compras com o formulário JÁ ABERTO para um
+ * produto: é o caminho do "Resolver" do relatório de estoque baixo, que só
+ * considera o alerta tratado depois que existe um pedido de reposição.
+ */
+export const NEW_PURCHASE_PRODUCT_PARAM = "produto";
+
+/** Caminho que abre Compras com o pedido de reposição deste produto já começado. */
+export function newPurchaseForProductPath(productId: number): string {
+  return `${PURCHASES_PATH}?${NEW_PURCHASE_PRODUCT_PARAM}=${productId}`;
+}

@@ -24,12 +24,32 @@ export interface LowStockItemDto {
    * serializa com `WhenWritingNull`, então nulo chega como campo omitido.
    */
   supplierName?: string | null;
+  /** Id do mesmo fornecedor — a compra de reposição abre já com ele escolhido. */
+  supplierId?: number | null;
   /** Caminho relativo da foto principal; passe por `buildPublicImageUrl`. Ausente sem foto. */
   imageUrl?: string | null;
   stock: number;
   minStock: number;
   price: number;
   costPrice: number;
+  /**
+   * Última venda do produto (venda não cancelada), de toda a história. Ausente
+   * em produto que nunca vendeu — o que separa "acabou porque gira" de "está
+   * parado desde que entrou".
+   */
+  lastSaleAt?: string | null;
+  /** Média de unidades vendidas por dia nos últimos 90 dias. Zero sem venda no período. */
+  averageDailySales: number;
+  /**
+   * Por quantos dias o saldo deve durar no ritmo da janela. Ausente sem giro:
+   * zero diria "acaba hoje" para um produto que não sai.
+   */
+  daysOfCover?: number | null;
+  /**
+   * Já existe compra Pendente ou A caminho deste produto. É o que decide o que
+   * o botão "Resolver" faz: sem compra, ele leva ao registro do pedido.
+   */
+  hasOpenPurchase: boolean;
   /** Quando o alerta foi marcado como resolvido. Ausente = pendente. */
   resolvedAt?: string | null;
   resolvedBy?: string | null;
@@ -124,4 +144,14 @@ export async function resolveLowStock(productId: number): Promise<LowStockItemDt
 export async function reopenLowStock(productId: number): Promise<LowStockItemDto | null> {
   const response = await apiDelete<LowStockItemDto>(`/LowStock/${productId}/resolve`);
   return response.data ?? null;
+}
+
+/**
+ * Zera o estoque mínimo do produto: ele deixa de ser acompanhado e sai do
+ * relatório e do alerta, sem sair do catálogo. Fica no histórico do produto.
+ */
+export async function disableStockControl(productId: number): Promise<LowStockItemDto> {
+  const response = await apiPost<LowStockItemDto>(`/LowStock/${productId}/disable-stock-control`, {});
+  if (!response.data) throw new Error("Não foi possível remover o controle de estoque.");
+  return response.data;
 }

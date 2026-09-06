@@ -1,14 +1,15 @@
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileSpreadsheet, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Card } from "@workspace/ui";
+import { Button, Card } from "@workspace/ui";
 import { useLowStock } from "@/features/low-stock/hooks/useLowStock";
 import { LowStockTable } from "@/features/low-stock/components/LowStockTable";
+import { LowStockConfirmDialog } from "@/features/low-stock/components/LowStockConfirmDialog";
 
 /**
  * Relatório de estoque baixo.
  *
  * Renderiza o que `useLowStock` devolve: a contagem em dois cards (pendentes
- * em vermelho, resolvidos em verde) e a tabela com o "resolvido" por item.
+ * em vermelho, resolvidos em verde), a tabela e as confirmações.
  * Regra do §4 do CLAUDE.md: nenhuma query mora aqui.
  */
 export default function LowStock() {
@@ -19,13 +20,28 @@ export default function LowStock() {
   return (
     <AppLayout>
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Estoque baixo</h1>
-          <p className="mt-1 max-w-4xl text-sm text-muted-foreground">
-            Produtos vivos com estoque mínimo configurado e saldo igual ou abaixo dele. Marque como{" "}
-            <strong>resolvido</strong> o que já foi tratado (pedido feito, item a descontinuar): ele sai do
-            alerta vermelho sem sair daqui, e volta a ser avaliado na próxima entrada de estoque.
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-foreground">Estoque baixo</h1>
+            <p className="mt-1 max-w-4xl text-sm text-muted-foreground">
+              Produtos vivos com estoque mínimo configurado e saldo igual ou abaixo dele.{" "}
+              <strong>Resolver</strong> é registrar o pedido de compra: sem compra em aberto o botão leva ao
+              formulário de reposição; com compra, ele confirma o alerta como tratado. Uma entrada de estoque
+              que passe do mínimo tira o produto daqui sozinha.
+            </p>
+          </div>
+          <Button
+            onClick={report.exportToXlsx}
+            disabled={report.isExporting}
+            className="shrink-0 gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+          >
+            {report.isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4" />
+            )}
+            Exportar XLSX
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -71,9 +87,17 @@ export default function LowStock() {
           setPage={report.setPage}
           onResolve={report.resolve}
           onReopen={report.reopen}
+          onDisableStockControl={report.askDisableStockControl}
           mutatingProductId={report.mutatingProductId}
         />
       </div>
+
+      <LowStockConfirmDialog
+        confirm={report.confirm}
+        onCancel={report.cancelConfirm}
+        onConfirm={report.confirmAction}
+        isSaving={report.isConfirming}
+      />
     </AppLayout>
   );
 }
