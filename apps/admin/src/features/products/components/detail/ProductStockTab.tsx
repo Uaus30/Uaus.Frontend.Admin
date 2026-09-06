@@ -3,13 +3,13 @@ import { Badge, Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
-import { formatQuantity } from "@workspace/core";
+import { formatCurrency, formatPercentage, formatQuantity, marginBand, marginPercent } from "@workspace/core";
+import { marginToneClass } from "@/features/stock-entries/lib/margin-tone";
 import { PURCHASE_ENTRY_TYPE, enumCode } from "@workspace/api-client-react";
 import { useProductStockEntries } from "@/features/stock-entries/hooks/useProductStockEntries";
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
 import { SimpleStockEntryModal } from "@/features/stock-entries/components/SimpleStockEntryModal";
 import type { StockEntryPrefill } from "@/features/stock-entries/types";
-import { formatCurrency } from "@workspace/core";
 
 /** Uma variação já gravada, para o seletor de qual SKU a aba está mostrando. */
 export type StockTabProductOption = {
@@ -54,6 +54,15 @@ export function ProductStockTab({
 }: ProductStockTabProps) {
   const stock = useProductStockEntries(productId, { prefill: entryPrefill, onEntrySaved });
   const entries = stock.entriesData?.data ?? [];
+  /**
+   * Preço de venda vigente — a base da margem de cada entrada.
+   *
+   * A margem da linha responde "se eu vender pelo preço de HOJE, quanto sobra
+   * do que paguei naquela compra?". É o que deixa comparar duas entradas do
+   * mesmo produto: mesmo preço, custos diferentes. Usar o preço da época
+   * exigiria um histórico de preço que não existe.
+   */
+  const precoAtual = stock.product?.price ?? null;
 
   if (productId === null) {
     return (
@@ -89,6 +98,12 @@ export function ProductStockTab({
             <span className="font-semibold text-foreground">
               {stock.product ? formatQuantity(stock.product.stock) : "—"}
             </span>
+            {precoAtual !== null && (
+              <>
+                {" · "}Preço de venda:{" "}
+                <span className="font-semibold text-foreground">{formatCurrency(precoAtual)}</span>
+              </>
+            )}
           </p>
         </div>
 
@@ -140,6 +155,13 @@ export function ProductStockTab({
                 <TableHead className="px-4 py-3">Data de Entrada</TableHead>
                 <TableHead className="px-4 py-3">Nº da Nota</TableHead>
                 <TableHead className="px-4 py-3">Fornecedor</TableHead>
+                <TableHead className="px-4 py-3 text-right">Qtd. × custo</TableHead>
+                <TableHead
+                  className="px-4 py-3 text-right"
+                  title="Margem que o custo desta entrada dá no preço de venda atual"
+                >
+                  Margem
+                </TableHead>
                 <TableHead className="px-4 py-3 text-right">Total da Nota</TableHead>
                 <TableHead className="w-24 px-4 py-3 text-right">Ações</TableHead>
               </TableRow>
@@ -147,6 +169,13 @@ export function ProductStockTab({
             <TableBody>
               {entries.map((entry) => {
                 const supplier = stock.suppliers.find((s) => s.id === entry.supplierId);
+                // `== null` porque a API omite nulos: nota antiga multi-item não
+                // tem custo unitário deste produto, e a coluna mostra "—".
+                const custoUnitario = entry.productUnitCost ?? null;
+                const margem =
+                  custoUnitario !== null && precoAtual !== null
+                    ? marginPercent(custoUnitario, precoAtual)
+                    : null;
                 return (
                   <TableRow key={entry.id} className="transition-colors hover:bg-muted/10">
                     <TableCell className="px-4 py-3 text-sm">
@@ -166,6 +195,21 @@ export function ProductStockTab({
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm font-medium">
                       {supplier?.name || "Não informado"}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-sm">
+                      {custoUnitario === null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <>
+                          {formatQuantity(entry.productQuantity ?? 0)} ×{" "}
+                          <span className="font-semibold">{stock.formatCurrency(custoUnitario)}</span>
+                        </>
+                      )}
+                    </TableCell>
+                    <TableCell
+                      className={`px-4 py-3 text-right text-sm font-semibold ${marginToneClass(marginBand(margem))}`}
+                    >
+                      {margem === null ? "—" : formatPercentage(margem)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right text-sm font-semibold text-emerald-500">
                       {stock.formatCurrency(entry.total)}

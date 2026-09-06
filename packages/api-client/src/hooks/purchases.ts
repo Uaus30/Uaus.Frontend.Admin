@@ -27,6 +27,17 @@ export interface PurchaseEntryDto {
    * código. Normalize com `enumCode(valor, PURCHASE_ENTRY_TYPE)` na fronteira.
    */
   type: EnumValue;
+  /**
+   * Custo unitário do produto FILTRADO nesta nota.
+   *
+   * Só vem quando a consulta passou `productId` — é o histórico de entradas de
+   * um produto. Ausente na listagem geral: ali a linha é uma nota, e uma nota
+   * antiga com dez itens não tem um custo unitário só. Campo opcional porque a
+   * API omite nulos (`WhenWritingNull`).
+   */
+  productUnitCost?: number | null;
+  /** Quantidade do produto filtrado nesta nota. Ausente pela mesma razão. */
+  productQuantity?: number | null;
 }
 
 export interface ReceivedPurchaseEntryItemDto {
