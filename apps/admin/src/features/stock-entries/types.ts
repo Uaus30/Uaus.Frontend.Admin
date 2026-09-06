@@ -82,3 +82,19 @@ export type NewEntryItem = {
   /** Preço de venda lançado */
   price: number;
 };
+
+/**
+ * Entrada pré-preenchida por uma COMPRA (`features/purchases`).
+ *
+ * Chega à aba Estoque do produto recém-cadastrado a partir de uma compra de
+ * produto novo: fornecedor, quantidade e custo vêm do pedido, e a modal de
+ * lançamento abre sozinha com eles. `reference` identifica a compra para a
+ * abertura acontecer UMA vez por compra, não a cada render.
+ */
+export type StockEntryPrefill = {
+  reference: string;
+  supplierId: number;
+  quantity: number;
+  unitCost: number;
+  notes?: string;
+};

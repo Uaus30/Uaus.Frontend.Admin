@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@workspace/ui";
-import type { ProductDto } from "@workspace/api-client-react";
+import { getPurchase, type ProductDto, type PurchaseDto } from "@workspace/api-client-react";
+import { PURCHASE_QUERY_PARAM } from "@/features/purchases/purchases-route";
 import { getProductById, getProductsPage } from "@/services/products.service";
 import { buildProductCollections } from "@/services/mappers";
 import {
@@ -53,6 +54,12 @@ const PARAM_ID_LEGADO = "id";
 /** Parâmetro do link do PDV e das Etiquetas: id do PRODUTO. */
 const PARAM_EDITAR = "editar";
 
+/**
+ * Parâmetro do "Lançar recebimento" de uma compra de produto NOVO: id da
+ * COMPRA. Abre o cadastro em branco preenchido por ela (`openDetailFromPurchase`).
+ */
+const PARAM_COMPRA = PURCHASE_QUERY_PARAM;
+
 /** Número inteiro positivo, ou `null` — ids nunca são outra coisa. */
 function idValido(bruto: string | null): number | null {
   if (bruto === null) return null;
@@ -61,7 +68,7 @@ function idValido(bruto: string | null): number | null {
 }
 
 /** O que a URL de entrada pede. Lido UMA vez: a instrução é de uma vez só. */
-type PedidoDaUrl = { tipo: "grupo" | "produto"; id: number } | null;
+type PedidoDaUrl = { tipo: "grupo" | "produto" | "compra"; id: number } | null;
 
 function pedidoInicialDaUrl(): PedidoDaUrl {
   if (typeof window === "undefined") return null;
@@ -77,6 +84,9 @@ function pedidoInicialDaUrl(): PedidoDaUrl {
   const produto = idValido(params.get(PARAM_EDITAR));
   if (produto !== null) return { tipo: "produto", id: produto };
 
+  const compra = idValido(params.get(PARAM_COMPRA));
+  if (compra !== null) return { tipo: "compra", id: compra };
+
   return null;
 }
 
@@ -85,6 +95,7 @@ function urlSemParametrosDeAbertura(): URL {
   const url = new URL(window.location.href);
   url.searchParams.delete(PARAM_ID_LEGADO);
   url.searchParams.delete(PARAM_EDITAR);
+  url.searchParams.delete(PARAM_COMPRA);
   return url;
 }
 
@@ -113,6 +124,11 @@ type UseProductDetailFromUrlParams = {
    * apertar o tipo aqui exigiria inventar `productCount`, `uuid` e `version`.
    */
   openDetail: (product?: unknown) => void;
+  /**
+   * `openDetailFromPurchase` do `useProductEditor`: abre o cadastro NOVO
+   * preenchido por uma compra. Opcional porque só a página de Produtos o tem.
+   */
+  openDetailFromPurchase?: (purchase: PurchaseDto) => void;
 };
 
 type UseProductDetailFromUrlResult = {
@@ -128,6 +144,7 @@ type UseProductDetailFromUrlResult = {
 
 export function useProductDetailFromUrl({
   openDetail,
+  openDetailFromPurchase,
 }: UseProductDetailFromUrlParams): UseProductDetailFromUrlResult {
   const [pedido] = useState(pedidoInicialDaUrl);
   const [resolvendo, setResolvendo] = useState(pedido !== null);
@@ -159,7 +176,8 @@ export function useProductDetailFromUrl({
   // em ref durante o render é recusado pelo lint do React, e em modo estrito o
   // render acontece duas vezes — seriam duas requisições.
   useEffect(() => {
-    if (pedido === null || buscaRef.current !== null) return;
+    // Compra não tem representante para buscar: o caminho dela é outro, abaixo.
+    if (pedido === null || pedido.tipo === "compra" || buscaRef.current !== null) return;
     buscaRef.current = buscarRepresentante(pedido);
   }, [pedido]);
 
@@ -170,6 +188,28 @@ export function useProductDetailFromUrl({
     jaResolvido.current = true;
 
     (async () => {
+      if (pedido.tipo === "compra") {
+        // Cadastro NOVO a partir da compra: não há grupo para virar rota
+        // canônica — a URL volta para a listagem e a tela abre preenchida.
+        const compra = await buscarCompra(pedido.id);
+        if (cancelado) return;
+
+        setResolvendo(false);
+        voltarParaListagem();
+
+        if (compra === null || !openDetailFromPurchase) {
+          toast({
+            title: "Compra não encontrada",
+            description: "O id da URL não corresponde a nenhuma compra.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        openDetailFromPurchase(compra);
+        return;
+      }
+
       // O efeito de cima roda primeiro (está declarado antes, no mesmo commit);
       // a busca própria aqui é só a rede de segurança dessa ordem.
       const encontrado = await (buscaRef.current ?? buscarRepresentante(pedido));
@@ -213,9 +253,18 @@ export function useProductDetailFromUrl({
     // `openDetail` é estável (declaração de função do hook) e os catálogos entram
     // pelos chaves de query, não pela identidade dos arrays.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedido, catalogsProntos, openDetail, toast]);
+  }, [pedido, catalogsProntos, openDetail, openDetailFromPurchase, toast]);
 
   return { resolvendo };
+}
+
+/** A compra que abre o cadastro novo. `null` cobre id inexistente e falha de rede, como o produto. */
+async function buscarCompra(purchaseId: number): Promise<PurchaseDto | null> {
+  try {
+    return await getPurchase(purchaseId);
+  } catch {
+    return null;
+  }
 }
 
 /** O produto que abre o detalhe, com o grupo a que ele pertence. */

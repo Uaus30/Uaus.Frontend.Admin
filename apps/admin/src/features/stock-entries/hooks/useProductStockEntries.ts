@@ -14,6 +14,18 @@ import {
 import { getProductById } from "@/services/products.service";
 import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
+import type { StockEntryPrefill } from "../types";
+
+export type UseProductStockEntriesOptions = {
+  /**
+   * Entrada pré-preenchida por uma compra. Com ela, a modal de lançamento abre
+   * SOZINHA assim que o produto carrega — é o "avançar para a entrada" do
+   * recebimento de produto novo.
+   */
+  prefill?: StockEntryPrefill | null;
+  /** Chamado com o id da entrada gravada. É quem fecha a compra (`mark-received`). */
+  onEntrySaved?: (entryId: number) => void;
+};
 
 /** Linhas por página do histórico dentro da aba. É um recorte, não a tela cheia. */
 const PAGE_SIZE = 10;
@@ -59,7 +71,11 @@ function emptyForm(): SimpleEntryForm {
  * valor dos dez. Quem quer o que este produto trouxe abre os detalhes, que
  * listam quantidade e custo item a item.
  */
-export function useProductStockEntries(productId: number | null) {
+export function useProductStockEntries(
+  productId: number | null,
+  options: UseProductStockEntriesOptions = {},
+) {
+  const { prefill = null, onEntrySaved } = options;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -122,11 +138,12 @@ export function useProductStockEntries(productId: number | null) {
 
   const { mutate: receiveEntry, isPending: isSavingEntry } = useReceivePurchaseEntry({
     mutation: {
-      onSuccess: async () => {
+      onSuccess: async (entry) => {
         toast({ title: "Sucesso", description: "Entrada de estoque registrada com sucesso!" });
         setNewEntryModalOpen(false);
         setPage(1);
         await invalidateAfterEntry();
+        onEntrySaved?.(entry.id);
       },
       onError: (err: unknown) => {
         toast({
@@ -184,9 +201,29 @@ export function useProductStockEntries(productId: number | null) {
       supplierId: lastSupplierId ? String(lastSupplierId) : "",
       unitCost: product?.costPrice ?? 0,
       price: product?.price ?? 0,
+      // A compra manda no que ela sabe: quem vendeu, quanto veio e a quanto.
+      // O preço de venda continua sendo o do cadastro, que acabou de ser salvo.
+      ...(prefill
+        ? {
+            supplierId: String(prefill.supplierId),
+            quantity: prefill.quantity,
+            unitCost: prefill.unitCost,
+            notes: prefill.notes ?? "",
+          }
+        : {}),
     });
     setClientReference(crypto.randomUUID());
     setNewEntryModalOpen(true);
+  }
+
+  // Abertura automática pela compra, UMA vez por compra e só depois de o
+  // produto chegar (antes, custo e preço nasceriam zerados). É o mesmo ajuste
+  // DURANTE o render usado para a página acima: num efeito seria o `setState`
+  // síncrono que o lint recusa, e a tela mostraria um frame sem a modal.
+  const [prefillOpenedFor, setPrefillOpenedFor] = useState<string | null>(null);
+  if (prefill && product && productId !== null && prefillOpenedFor !== prefill.reference) {
+    setPrefillOpenedFor(prefill.reference);
+    openNewEntry();
   }
 
   function updateForm<K extends keyof SimpleEntryForm>(field: K, value: SimpleEntryForm[K]) {

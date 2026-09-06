@@ -8,6 +8,8 @@ import { PURCHASE_ENTRY_TYPE, enumCode } from "@workspace/api-client-react";
 import { useProductStockEntries } from "@/features/stock-entries/hooks/useProductStockEntries";
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
 import { SimpleStockEntryModal } from "@/features/stock-entries/components/SimpleStockEntryModal";
+import type { StockEntryPrefill } from "@/features/stock-entries/types";
+import { formatCurrency } from "@workspace/core";
 
 /** Uma variação já gravada, para o seletor de qual SKU a aba está mostrando. */
 export type StockTabProductOption = {
@@ -23,6 +25,10 @@ type ProductStockTabProps = {
   /** Variações gravadas do grupo. Vazio em produto simples — o seletor não aparece. */
   variationOptions: StockTabProductOption[];
   onSelectProduct: (productId: number) => void;
+  /** Entrada pré-preenchida por uma compra de produto novo. A modal abre sozinha com ela. */
+  entryPrefill?: StockEntryPrefill | null;
+  /** Chamado com o id da entrada gravada — fecha a compra que originou o cadastro. */
+  onEntrySaved?: (entryId: number) => void;
 };
 
 /**
@@ -43,8 +49,10 @@ export function ProductStockTab({
   barcode,
   variationOptions,
   onSelectProduct,
+  entryPrefill = null,
+  onEntrySaved,
 }: ProductStockTabProps) {
-  const stock = useProductStockEntries(productId);
+  const stock = useProductStockEntries(productId, { prefill: entryPrefill, onEntrySaved });
   const entries = stock.entriesData?.data ?? [];
 
   if (productId === null) {
@@ -61,6 +69,16 @@ export function ProductStockTab({
 
   return (
     <div className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-5">
+      {entryPrefill && (
+        <p
+          data-testid="purchase-prefill-banner"
+          className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300"
+        >
+          Recebimento da compra: {formatQuantity(entryPrefill.quantity)} un. a{" "}
+          {formatCurrency(entryPrefill.unitCost)} cada. A entrada abre preenchida — confira e salve para
+          lançar a compra.
+        </p>
+      )}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

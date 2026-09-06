@@ -10,12 +10,14 @@ const mocks = vi.hoisted(() => ({
   saveProductGroupWithProducts: vi.fn(() =>
     Promise.resolve({ group: { id: 1 }, products: [{ id: 10, canDelete: true }] }),
   ),
+  markPurchaseReceived: vi.fn(() => Promise.resolve({})),
 }));
 
 // Dubla só o que fala com a rede; o resto do api-client continua o de verdade.
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   saveProductGroupWithProducts: mocks.saveProductGroupWithProducts,
+  markPurchaseReceived: mocks.markPurchaseReceived,
 }));
 
 // Mock services and utilities
@@ -286,5 +288,98 @@ describe("useProductEditor Hook", () => {
     expect(gravou).toBe(false);
     expect(result.current.detailOpen).toBe(true);
     expect(result.current.editingGroupId).toBeNull();
+  });
+});
+
+describe("cadastro a partir de uma compra", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const compra = {
+    id: 5,
+    createdAt: "2026-09-05T10:00:00",
+    updatedAt: null,
+    supplierId: 1,
+    supplierName: "Shopee",
+    productId: null,
+    productGroupId: null,
+    productName: "CANECA TERMICA",
+    productBarcode: null,
+    details: "500ml",
+    purchaseLink: null,
+    quantity: 3,
+    grossTotal: 120,
+    finalTotal: 100,
+    unitGross: 40,
+    unitFinal: 33.33,
+    adjustmentPercent: -16.67,
+    status: "Pending",
+    receivedAt: null,
+    purchaseEntryId: null,
+    userName: null,
+    images: [{ imageId: 9, url: "produtos/caneca.jpg", displayOrder: 0 }],
+  };
+
+  it("abre o cadastro novo preenchido pela compra e fecha a compra depois da entrada", async () => {
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetailFromPurchase(compra);
+    });
+
+    expect(result.current.detailOpen).toBe(true);
+    expect(result.current.editingGroupId).toBeNull();
+    expect(result.current.form.productGroupName).toBe("CANECA TERMICA");
+    expect(result.current.form.description).toBe("500ml");
+    expect(result.current.productEditor.name).toBe("CANECA TERMICA");
+    // 40% de margem sobre o custo unitário FINAL (33,33 / 0,6 = 55,55), no
+    // múltiplo de 10 centavos mais próximo — 55,50 dá 39,9% de margem.
+    expect(result.current.productEditor.price).toBe(55.5);
+    // As fotos entram JÁ enviadas (imageId): o salvar só cria a associação.
+    expect(result.current.images).toEqual([
+      { imageId: 9, name: "CANECA TERMICA", url: expect.stringContaining("caneca.jpg") },
+    ]);
+    expect(result.current.purchaseContext).toMatchObject({
+      purchaseId: 5,
+      supplierId: 1,
+      quantity: 3,
+      unitCost: 33.33,
+    });
+    // Preenchido pela compra não é "alterado pelo operador".
+    expect(result.current.isDirty).toBe(false);
+
+    await act(async () => {
+      await result.current.completePurchaseReceipt(10, 77);
+    });
+
+    expect(mocks.markPurchaseReceived).toHaveBeenCalledWith(5, { productId: 10, purchaseEntryId: 77 });
+    expect(result.current.purchaseContext).toBeNull();
+  });
+
+  it("fechar a tela descarta o contexto da compra", () => {
+    // Um cadastro aberto depois pela lista não pode herdar a entrada de um
+    // pedido que não é dele.
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetailFromPurchase(compra);
+    });
+    act(() => {
+      result.current.resetForm();
+    });
+
+    expect(result.current.purchaseContext).toBeNull();
+    expect(result.current.form.productGroupName).toBe("");
+  });
+
+  it("sem contexto de compra, fechar o recebimento não chama a API", async () => {
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.completePurchaseReceipt(10, 77);
+    });
+
+    expect(mocks.markPurchaseReceived).not.toHaveBeenCalled();
   });
 });

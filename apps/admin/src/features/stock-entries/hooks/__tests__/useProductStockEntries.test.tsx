@@ -276,3 +276,46 @@ describe("useProductStockEntries", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: RESOURCE_KEYS.products });
   });
 });
+
+describe("entrada pré-preenchida por uma compra", () => {
+  const prefill = {
+    reference: "compra-5",
+    supplierId: 10,
+    quantity: 3,
+    unitCost: 33.33,
+    notes: "Recebimento da compra #5",
+  };
+
+  it("abre a modal sozinha com fornecedor, quantidade e custo da compra — uma vez só", async () => {
+    // É o "avançar para a entrada" do recebimento de produto novo: o operador
+    // acabou de salvar o cadastro e a modal já vem com o que a compra sabe. O
+    // preço de venda NÃO vem da compra — é o do cadastro recém-salvo.
+    const { result } = renderHook(() => useProductStockEntries(201, { prefill }), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.newEntryModalOpen).toBe(true));
+    expect(result.current.form).toMatchObject({
+      supplierId: "10",
+      quantity: 3,
+      unitCost: 33.33,
+      notes: "Recebimento da compra #5",
+    });
+    expect(result.current.form.price).toBe(result.current.product?.price);
+
+    // Fechar não reabre: a abertura automática é por compra, não por render.
+    act(() => result.current.setNewEntryModalOpen(false));
+    expect(result.current.newEntryModalOpen).toBe(false);
+  });
+
+  it("avisa quem chamou com o id da entrada gravada, para a compra ser fechada", async () => {
+    const onEntrySaved = vi.fn();
+    renderHook(() => useProductStockEntries(201, { onEntrySaved }), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await receiveOptions().mutation.onSuccess({ id: 77 });
+    });
+
+    expect(onEntrySaved).toHaveBeenCalledWith(77);
+  });
+});

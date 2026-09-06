@@ -79,6 +79,22 @@ export type ProductTableRow = {
 };
 
 /**
+ * A compra que originou um cadastro de produto NOVO (`/produtos?compra=<id>`).
+ *
+ * Vive no editor enquanto a tela está aberta: é o que faz a aba Estoque abrir
+ * a entrada já preenchida depois do primeiro salvamento e, gravada a entrada,
+ * fechar a compra (`mark-received`) vinculando produto e entrada.
+ */
+export type PurchaseContext = {
+  purchaseId: number;
+  supplierId: number;
+  quantity: number;
+  /** Custo unitário FINAL da compra — o que a entrada grava. */
+  unitCost: number;
+  productName: string;
+};
+
+/**
  * Represents the main/parent product group form values.
  * In a variation setup, these fields apply to all variations under the group.
  */

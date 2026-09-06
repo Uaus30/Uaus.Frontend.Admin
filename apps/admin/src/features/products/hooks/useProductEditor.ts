@@ -5,11 +5,24 @@ import { getProductsPage } from "@/services/products.service";
 import { buildProductCollections } from "@/services/mappers";
 import {
   GRADE_TYPE,
+  buildPublicImageUrl,
   enumCode,
+  getGetPurchasesQueryKey,
+  markPurchaseReceived,
   type GradeTypeCode,
   type ProductVariationValueDto,
+  type PurchaseDto,
 } from "@workspace/api-client-react";
-import type { LocalImage, ProductGroupForm, ProductEditorForm, ProductGrade, VariationDraft } from "../types";
+import { useToast } from "@workspace/ui";
+import { describeApiError, suggestedPrice } from "@workspace/core";
+import type {
+  LocalImage,
+  ProductGroupForm,
+  ProductEditorForm,
+  ProductGrade,
+  PurchaseContext,
+  VariationDraft,
+} from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
 import { gradesDasVariacoes, temVariacaoSalva } from "../lib/variationGrades";
 
@@ -22,8 +35,11 @@ import { CATALOG_KEYS, RESOURCE_KEYS, useAllImages, useAllProductImages } from "
 
 export function useProductEditor() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [detailOpen, setDetailOpen] = useState(false);
+  /** A compra que originou este cadastro, quando ele veio de `?compra=`. Ver `openDetailFromPurchase`. */
+  const [purchaseContext, setPurchaseContext] = useState<PurchaseContext | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [loadedGroupId, setLoadedGroupId] = useState<number | null>(null);
   const [activeVariationKey, setActiveVariationKey] = useState<string | null>(null);
@@ -286,6 +302,79 @@ export function useProductEditor() {
     setDetailOpen(true);
   }
 
+  /**
+   * Abre o cadastro de produto NOVO preenchido por uma compra.
+   *
+   * É o segundo caminho do "Lançar recebimento" (`features/purchases`): a compra
+   * de algo que ainda não existe no cadastro traz nome, detalhes, fotos e o
+   * custo — e o operador completa código de barras, departamento, categoria e
+   * variações. O preço nasce sugerido a 40% sobre o custo unitário FINAL, pela
+   * mesma regra da entrada (`suggestedPrice`); é sugestão, não imposição.
+   *
+   * As fotos entram como imagens JÁ enviadas (`imageId`): são as mesmas do
+   * catálogo de imagens, e o salvar só cria a associação — sem novo upload.
+   * O contexto da compra fica guardado para a aba Estoque abrir a entrada
+   * preenchida e, gravada, fechar a compra.
+   */
+  function openDetailFromPurchase(purchase: PurchaseDto) {
+    setDirty(false);
+    productForm.resetForm();
+    setForm({
+      departmentId: "",
+      categoryId: "",
+      productGroupName: purchase.productName,
+      description: purchase.details ?? "",
+      hasVariations: false,
+      isPublic: true,
+    });
+    setProductEditor({
+      ...createEmptyProductEditor(productForm.defaultStatus),
+      name: purchase.productName,
+      price: suggestedPrice(purchase.unitFinal) ?? 0,
+    });
+    setImages(
+      purchase.images.map((image) => ({
+        imageId: image.imageId,
+        name: purchase.productName,
+        url: buildPublicImageUrl(image.url),
+      })),
+    );
+    setPurchaseContext({
+      purchaseId: purchase.id,
+      supplierId: purchase.supplierId,
+      quantity: purchase.quantity,
+      unitCost: purchase.unitFinal,
+      productName: purchase.productName,
+    });
+    setDetailOpen(true);
+  }
+
+  /**
+   * Fecha a compra que originou o cadastro, depois que a entrada foi gravada.
+   *
+   * Chamado pela aba Estoque com o id da entrada. Sem contexto de compra não
+   * faz nada — é o caminho normal de todo cadastro que não veio de compra.
+   */
+  async function completePurchaseReceipt(productId: number, purchaseEntryId: number) {
+    if (!purchaseContext) return;
+
+    try {
+      await markPurchaseReceived(purchaseContext.purchaseId, { productId, purchaseEntryId });
+      await queryClient.invalidateQueries({ queryKey: getGetPurchasesQueryKey() });
+      toast({
+        title: "Compra lançada",
+        description: `A compra de ${purchaseContext.productName} passou a Lançado, vinculada a este produto.`,
+      });
+      setPurchaseContext(null);
+    } catch (error) {
+      toast({
+        title: "Entrada gravada, mas a compra não foi fechada",
+        description: describeApiError(error, "Feche a compra pela tela de Compras."),
+        variant: "destructive",
+      });
+    }
+  }
+
   useEffect(() => {
     if (!detailOpen) return;
     setProductEditor((current) =>
@@ -360,8 +449,16 @@ export function useProductEditor() {
     isFetchingGroupProducts,
     editingGroupId,
     openDetail,
+    openDetailFromPurchase,
+    purchaseContext,
+    completePurchaseReceipt,
     lookupBarcode,
-    resetForm: productForm.resetForm,
+    resetForm: () => {
+      // Fechar a tela descarta o contexto da compra: um cadastro aberto depois
+      // pela lista não pode herdar a entrada de um pedido que não é dele.
+      setPurchaseContext(null);
+      productForm.resetForm();
+    },
     registerTag: productForm.registerTag,
     updateVariationDraft,
 

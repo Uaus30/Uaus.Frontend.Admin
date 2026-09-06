@@ -59,6 +59,7 @@ export default function Products() {
   // Etiquetas. O `resolvendo` segura a listagem enquanto isso.
   const { resolvendo: resolvendoDetalheDaUrl } = useProductDetailFromUrl({
     openDetail: editor.openDetail,
+    openDetailFromPurchase: editor.openDetailFromPurchase,
   });
 
   // Com o detalhe aberto, o histórico ganha o NOME do produto no lugar de

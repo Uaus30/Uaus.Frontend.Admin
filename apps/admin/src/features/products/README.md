@@ -400,6 +400,34 @@ O que vale a pena saber antes de mexer:
   continua recusando código repetido ao salvar, e quem está apenas digitando não
   deve receber aviso de servidor fora do ar.
 
+### 4.3. Cadastro a partir de uma compra (`/produtos?compra=<id>`, 05/09/2026)
+
+O "Lançar recebimento" de uma compra de produto NOVO (`features/purchases`)
+abre esta tela com `?compra=<id da compra>`. `useProductDetailFromUrl` lê o
+parâmetro, busca a compra e chama `openDetailFromPurchase`, que abre o cadastro
+**em branco e preenchido**: nome e descrição da compra, as fotos dela (as
+mesmas imagens do catálogo, sem novo upload — o salvar só cria a associação) e
+o preço sugerido a 40% sobre o custo unitário FINAL (`suggestedPrice`, a mesma
+regra da entrada). O operador completa código de barras, departamento,
+categoria e variações, e salva.
+
+O que a compra sabe fica no `purchaseContext` do editor enquanto a tela está
+aberta, e é ele que fecha o ciclo:
+
+1. salvo o produto (Salvar ou Avançar), a aba Estoque recebe `entryPrefill` —
+   fornecedor, quantidade e custo unitário da compra — e a modal de lançamento
+   **abre sozinha** assim que o produto carrega (`useProductStockEntries`,
+   ajuste durante o render, uma vez por compra);
+2. gravada a entrada, `onEntrySaved` chama `completePurchaseReceipt`, que faz o
+   `POST /Purchases/{id}/mark-received` com o produto e a entrada: a compra
+   passa a Lançado. Se essa chamada falhar, a ENTRADA já está gravada e o toast
+   diz para fechar a compra pela tela de Compras — não se desfaz estoque por
+   causa de um vínculo.
+
+Fechar a tela (`resetForm`) descarta o contexto: um cadastro aberto depois pela
+lista não pode herdar a entrada de um pedido que não é dele. Em grupo com
+variações, a entrada vai para a variação escolhida na aba Estoque.
+
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
 O botão de lápis do balcão do PDV abre esta tela em outra aba já na edição do produto. São dois parâmetros porque a tela faz duas coisas distintas:

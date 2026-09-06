@@ -84,6 +84,8 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
     selectedGrades,
     hasSavedVariations,
     applyGrades,
+    purchaseContext,
+    completePurchaseReceipt,
   } = editor;
 
   // Só na montagem: a tela desmonta ao fechar, então cada abertura relê a aba.
@@ -261,6 +263,11 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
               </h1>
               <p className="text-sm text-muted-foreground">
                 {editingGroupId ? `ID #${editingGroupId}` : "Cadastro novo"}
+                {purchaseContext && (
+                  <span className="ml-2 rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    A partir da compra #{purchaseContext.purchaseId} — salve e avance para lançar a entrada
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -320,6 +327,20 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
               barcode={stockProductBarcode}
               variationOptions={variationOptions}
               onSelectProduct={setPickedStockProductId}
+              entryPrefill={
+                purchaseContext
+                  ? {
+                      reference: `compra-${purchaseContext.purchaseId}`,
+                      supplierId: purchaseContext.supplierId,
+                      quantity: purchaseContext.quantity,
+                      unitCost: purchaseContext.unitCost,
+                      notes: `Recebimento da compra #${purchaseContext.purchaseId}`,
+                    }
+                  : null
+              }
+              onEntrySaved={(entryId) => {
+                if (stockProductId !== null) void completePurchaseReceipt(stockProductId, entryId);
+              }}
             />
           </TabsContent>
 

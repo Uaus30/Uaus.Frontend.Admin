@@ -4,9 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getProductById: vi.fn(),
   getProductsPage: vi.fn(),
+  getPurchase: vi.fn(),
   buildProductCollections: vi.fn(),
   toast: vi.fn(),
   catalogosCarregando: { valor: false },
+}));
+
+// Só a busca da compra é dublada; o resto do api-client continua o de verdade.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
+  getPurchase: mocks.getPurchase,
 }));
 
 vi.mock("@/services/products.service", () => ({
@@ -186,6 +193,41 @@ describe("quando o link não abre", () => {
 
     await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
     expect(openDetail).not.toHaveBeenCalled();
+    expect(caminhoAtual()).toBe("/produtos");
+  });
+});
+
+describe("?compra=<id> — cadastro novo a partir de uma compra", () => {
+  it("abre o cadastro preenchido pela compra e tira o parâmetro da URL", async () => {
+    // Não há grupo para virar rota canônica: a URL volta para a listagem e a
+    // tela abre em branco, preenchida pela compra.
+    irPara("/produtos?compra=5");
+    const compra = { id: 5, productName: "CANECA TERMICA" };
+    mocks.getPurchase.mockResolvedValue(compra);
+    const openDetail = vi.fn();
+    const openDetailFromPurchase = vi.fn();
+
+    const { result } = renderHook(() => useProductDetailFromUrl({ openDetail, openDetailFromPurchase }));
+
+    expect(result.current.resolvendo).toBe(true);
+    await waitFor(() => expect(openDetailFromPurchase).toHaveBeenCalledWith(compra));
+    expect(openDetail).not.toHaveBeenCalled();
+    expect(mocks.getProductsPage).not.toHaveBeenCalled();
+    expect(caminhoAtual()).toBe("/produtos");
+    expect(result.current.resolvendo).toBe(false);
+  });
+
+  it("avisa quando a compra não existe, sem abrir nada", async () => {
+    irPara("/produtos?compra=999");
+    mocks.getPurchase.mockRejectedValue(new Error("404"));
+    const openDetailFromPurchase = vi.fn();
+
+    renderHook(() => useProductDetailFromUrl({ openDetail: vi.fn(), openDetailFromPurchase }));
+
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Compra não encontrada" })),
+    );
+    expect(openDetailFromPurchase).not.toHaveBeenCalled();
     expect(caminhoAtual()).toBe("/produtos");
   });
 });
