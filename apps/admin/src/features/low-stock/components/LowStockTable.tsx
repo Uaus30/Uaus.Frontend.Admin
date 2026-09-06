@@ -11,6 +11,8 @@ type LowStockTableProps = {
   isLoading: boolean;
   search: string;
   setSearch: (value: string) => void;
+  maxStock: string;
+  setMaxStock: (value: string) => void;
   includeResolved: boolean;
   setIncludeResolved: (value: boolean) => void;
   page: number;
@@ -39,6 +41,8 @@ export function LowStockTable({
   isLoading,
   search,
   setSearch,
+  maxStock,
+  setMaxStock,
   includeResolved,
   setIncludeResolved,
   page,
@@ -61,14 +65,34 @@ export function LowStockTable({
             aria-label="Buscar produto"
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Switch
-            checked={includeResolved}
-            onCheckedChange={setIncludeResolved}
-            aria-label="Mostrar resolvidos"
-          />
-          Mostrar resolvidos
-        </label>
+        <div className="flex flex-wrap items-center gap-4">
+          {/*
+            Com o teto preenchido a pergunta do relatório muda: passa a ser
+            "quem tem menos de N unidades", sem olhar o estoque mínimo — é como
+            se varre o catálogo inteiro atrás do que está acabando.
+          */}
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            Estoque menor que
+            <Input
+              type="number"
+              min={1}
+              step={1}
+              value={maxStock}
+              onChange={(event) => setMaxStock(event.target.value)}
+              placeholder="mín."
+              aria-label="Estoque menor que"
+              className="h-9 w-24"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Switch
+              checked={includeResolved}
+              onCheckedChange={setIncludeResolved}
+              aria-label="Mostrar resolvidos"
+            />
+            Mostrar resolvidos
+          </label>
+        </div>
       </div>
 
       {isLoading ? (
@@ -78,9 +102,15 @@ export function LowStockTable({
       ) : items.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-emerald-500/60" />
-          <p className="font-medium text-foreground">Nenhum produto abaixo do mínimo.</p>
+          <p className="font-medium text-foreground">
+            {maxStock.trim()
+              ? `Nenhum produto com estoque menor que ${maxStock.trim()}.`
+              : "Nenhum produto abaixo do mínimo."}
+          </p>
           <p className="mt-1 text-xs">
-            Só entram aqui produtos com estoque mínimo configurado (maior que zero) na aba Opcionais.
+            {maxStock.trim()
+              ? "O teto de saldo ignora o estoque mínimo e alcança o catálogo inteiro."
+              : "Só entram aqui produtos com estoque mínimo configurado (maior que zero) na aba Opcionais."}
           </p>
         </div>
       ) : (

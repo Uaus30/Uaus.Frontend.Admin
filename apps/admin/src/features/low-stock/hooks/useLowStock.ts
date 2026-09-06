@@ -18,6 +18,12 @@ export const PAGE_SIZE = 20;
 export interface LowStockState {
   search: string;
   setSearch: (value: string) => void;
+  /**
+   * Teto de saldo digitado, como texto — campo vazio é "sem filtro", e guardar
+   * número obrigaria a decidir o que fazer com o vazio a cada tecla.
+   */
+  maxStock: string;
+  setMaxStock: (value: string) => void;
   includeResolved: boolean;
   setIncludeResolved: (value: boolean) => void;
   page: number;
@@ -55,12 +61,22 @@ export function useLowStock(): LowStockState {
 
   const [search, setSearchState] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+  const [maxStock, setMaxStockState] = useState("");
+  const debouncedMaxStock = useDebounce(maxStock, 400);
   const [includeResolved, setIncludeResolvedState] = useState(false);
   const [page, setPage] = useState(1);
+
+  // Só um inteiro positivo vira filtro: campo vazio, zero e lixo digitado
+  // voltam ao padrão do relatório em vez de pedir "menos de zero unidades".
+  const maxStockParam = (() => {
+    const parsed = Number(debouncedMaxStock);
+    return debouncedMaxStock.trim() && Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+  })();
 
   const list = useGetLowStock({
     includeResolved,
     search: debouncedSearch || undefined,
+    maxStock: maxStockParam,
     page,
     limit: PAGE_SIZE,
   });
@@ -70,6 +86,11 @@ export function useLowStock(): LowStockState {
 
   function setSearch(value: string) {
     setSearchState(value);
+    setPage(1);
+  }
+
+  function setMaxStock(value: string) {
+    setMaxStockState(value);
     setPage(1);
   }
 
@@ -129,6 +150,8 @@ export function useLowStock(): LowStockState {
   return {
     search,
     setSearch,
+    maxStock,
+    setMaxStock,
     includeResolved,
     setIncludeResolved,
     page,

@@ -57,6 +57,13 @@ export interface LowStockParams {
   includeResolved?: boolean;
   /** Mesma busca das demais telas de produto (nome, descrição, código, grade). */
   search?: string;
+  /**
+   * Teto de saldo: informado, o relatório lista todo produto vendável com
+   * estoque MENOR que ele, **ignorando o estoque mínimo** — é a pergunta "o que
+   * tem menos de 5 unidades?". Sem ele vale o padrão (mínimo configurado e
+   * saldo igual ou abaixo dele), que é o que acende o alerta do painel.
+   */
+  maxStock?: number;
   page?: number;
   limit?: number;
 }
@@ -77,6 +84,7 @@ export function useGetLowStock(
       const result = await apiGetOrThrow<BackendPagedResult<LowStockItemDto>>("/LowStock", {
         includeResolved: params?.includeResolved ?? false,
         search: params?.search,
+        maxStock: params?.maxStock,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,
       });

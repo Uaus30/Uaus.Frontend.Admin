@@ -62,6 +62,8 @@ export default function LowStock() {
           isLoading={report.isLoading}
           search={report.search}
           setSearch={report.setSearch}
+          maxStock={report.maxStock}
+          setMaxStock={report.setMaxStock}
           includeResolved={report.includeResolved}
           setIncludeResolved={report.setIncludeResolved}
           page={report.page}
