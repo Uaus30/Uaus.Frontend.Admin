@@ -333,9 +333,10 @@ describe("cadastro a partir de uma compra", () => {
     expect(result.current.form.productGroupName).toBe("CANECA TERMICA");
     expect(result.current.form.description).toBe("500ml");
     expect(result.current.productEditor.name).toBe("CANECA TERMICA");
-    // 40% de margem sobre o custo unitário FINAL (33,33 / 0,6 = 55,55), no
-    // múltiplo de 10 centavos mais próximo — 55,50 dá 39,9% de margem.
-    expect(result.current.productEditor.price).toBe(55.5);
+    // 40% de margem sobre o custo unitário FINAL (33,33 / 0,6 = 55,55),
+    // arredondado PARA CIMA ao múltiplo de 10 centavos: 55,50 daria 39,9%, e a
+    // sugestão nunca fica abaixo do alvo.
+    expect(result.current.productEditor.price).toBe(55.6);
     // As fotos entram JÁ enviadas (imageId): o salvar só cria a associação.
     expect(result.current.images).toEqual([
       { imageId: 9, name: "CANECA TERMICA", url: expect.stringContaining("caneca.jpg") },

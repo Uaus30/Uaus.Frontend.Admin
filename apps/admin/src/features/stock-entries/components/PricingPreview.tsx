@@ -4,10 +4,12 @@ import {
   DEFAULT_TARGET_MARGIN_PERCENT,
   formatCurrency,
   formatPercentage,
+  marginBand,
   marginPercent,
   markupPercent,
   suggestedPrice,
 } from "@workspace/core";
+import { marginToneClass } from "../lib/margin-tone";
 
 type PricingPreviewProps = {
   /** Custo unitário digitado na entrada. */
@@ -17,17 +19,6 @@ type PricingPreviewProps = {
   /** Aplica o preço sugerido no campo de preço. */
   onApplySuggested: (price: number) => void;
 };
-
-/**
- * Cor da margem: negativa é prejuízo, abaixo de 20% é apertada, o resto é
- * saudável. Os cortes são orientação visual, não regra de negócio — a loja
- * decide o preço; a tela só avisa em que faixa ele caiu.
- */
-function marginTone(margin: number): string {
-  if (margin < 0) return "text-red-600 dark:text-red-400";
-  if (margin < 20) return "text-amber-600 dark:text-amber-400";
-  return "text-emerald-600 dark:text-emerald-400";
-}
 
 /**
  * Margem, markup e preço sugerido da entrada, calculados enquanto o operador
@@ -59,7 +50,7 @@ export function PricingPreview({ unitCost, price, onApplySuggested }: PricingPre
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="text-muted-foreground">
           Margem prevista:{" "}
-          <span className={`font-semibold ${margin === null ? "text-muted-foreground" : marginTone(margin)}`}>
+          <span className={`font-semibold ${marginToneClass(marginBand(margin))}`}>
             {margin === null ? "—" : formatPercentage(margin)}
           </span>
         </span>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { marginPercent, markupPercent, suggestedPrice } from "./pricing";
+import { marginBand, marginPercent, markupPercent, suggestedPrice } from "./pricing";
 
 describe("marginPercent", () => {
   it.each([
@@ -41,25 +41,28 @@ describe("markupPercent", () => {
 
 describe("suggestedPrice", () => {
   it.each([
-    // custo / 0,6 arredondado ao múltiplo de 0,10 mais próximo
+    // custo / 0,6 arredondado ao múltiplo de 0,10 PARA CIMA
     [10, 16.7], // 16,666…
-    [3.5, 5.8], // 5,833…
-    [6, 10], // 10 exato
+    [3.5, 5.9], // 5,833…
+    [8.9, 14.9], // 14,833… — o caso que expôs o arredondamento para baixo
+    [6, 10], // 10 exato: o ceil não pode virar 10,10
     [1, 1.7], // 1,666…
-    [0.5, 0.8], // 0,833…
-    [12.99, 21.7], // 21,65 → meio exato sobe
+    [0.5, 0.9], // 0,833…
+    [33.33, 55.6], // 55,55
   ])("custo %s sugere %s a 40%% de margem", (custo, esperado) => {
     expect(suggestedPrice(custo)).toBe(esperado);
   });
 
-  it("fica próximo da margem alvo, para cima ou para baixo", () => {
-    // A regra é "algo próximo de 40%": o arredondamento ao múltiplo mais
-    // próximo ora fica um pouco acima, ora um pouco abaixo — nunca longe.
-    for (const custo of [0.7, 1.3, 2.9, 4.4, 7.77, 19.9, 33.33]) {
+  it("nunca sugere um preço ABAIXO da margem alvo", () => {
+    // É a razão de arredondar para cima: com o múltiplo mais próximo, custo
+    // 8,90 sugeria 14,80 — 39,9% — e a tela dizia "40% de margem".
+    for (const custo of [0.7, 1.3, 2.9, 3.5, 4.4, 7.77, 8.9, 19.9, 33.33]) {
       const preco = suggestedPrice(custo);
       expect(preco).not.toBeNull();
       const margem = marginPercent(custo, preco as number) as number;
-      expect(Math.abs(margem - 40)).toBeLessThan(4);
+      expect(margem).toBeGreaterThanOrEqual(40);
+      // E não longe dele: o passo é de 10 centavos, não uma licença para subir.
+      expect(margem).toBeLessThan(45);
     }
   });
 
@@ -77,5 +80,28 @@ describe("suggestedPrice", () => {
     expect(suggestedPrice(Number.NaN)).toBeNull();
     expect(suggestedPrice(10, 100)).toBeNull();
     expect(suggestedPrice(10, 40, 0)).toBeNull();
+  });
+});
+
+describe("marginBand", () => {
+  it.each([
+    [60, "healthy"],
+    [40, "healthy"],
+    [39.99, "tight"],
+    [30, "tight"],
+    [29.99, "low"],
+    [25.83, "low"],
+    [0, "low"],
+    [-20, "low"],
+  ])("margem de %s%% cai na faixa %s", (margem, esperado) => {
+    // Os cortes são a regra do dono: verde a partir de 40%, amarelo de 30% a
+    // 40%, vermelho abaixo de 30%. Antes o corte era 20% e uma margem de
+    // 25,83% saía verde na entrada de estoque.
+    expect(marginBand(margem)).toBe(esperado);
+  });
+
+  it("não classifica o que não tem margem", () => {
+    expect(marginBand(null)).toBeNull();
+    expect(marginBand(Number.NaN)).toBeNull();
   });
 });

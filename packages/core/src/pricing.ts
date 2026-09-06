@@ -20,6 +20,34 @@ import { round2 } from "./money";
 export const DEFAULT_TARGET_MARGIN_PERCENT = 40;
 
 /**
+ * Abaixo desta margem o preço é considerado APERTADO (amarelo na tela). Entre
+ * ela e a margem alvo, a venda dá lucro, mas menos do que a loja pratica.
+ */
+export const TIGHT_MARGIN_PERCENT = 30;
+
+/** Como a margem de um preço se classifica. A cor de cada faixa é escolha da tela. */
+export type MarginBand = "healthy" | "tight" | "low";
+
+/**
+ * Em que faixa a margem cai: saudável (>= 40%), apertada (30% a 40%) ou baixa
+ * (< 30%, incluindo prejuízo).
+ *
+ * Os cortes são a regra do dono (05/09/2026) e moram aqui, e não na tela, para
+ * a entrada de estoque, o recebimento de compra e o histórico de entradas
+ * pintarem a MESMA margem da mesma cor. Antes o corte era 20% e qualquer coisa
+ * acima saía verde: uma margem de 25% parecia saudável na entrada.
+ *
+ * @param margin Margem em pontos percentuais, ou `null` quando não há preço.
+ * @returns A faixa, ou `null` quando não há margem a classificar.
+ */
+export function marginBand(margin: number | null): MarginBand | null {
+  if (margin === null || !Number.isFinite(margin)) return null;
+  if (margin >= DEFAULT_TARGET_MARGIN_PERCENT) return "healthy";
+  if (margin >= TIGHT_MARGIN_PERCENT) return "tight";
+  return "low";
+}
+
+/**
  * Passo do preço sugerido, em reais: a sugestão sai em múltiplos de 10
  * centavos ("R$ 16,70", nunca "R$ 16,67"), que é como a etiqueta é escrita.
  */
@@ -60,13 +88,16 @@ export function markupPercent(cost: number, price: number): number | null {
 }
 
 /**
- * Preço que entrega a margem alvo, arredondado ao múltiplo de `step` mais
- * PRÓXIMO.
+ * Preço que entrega a margem alvo, arredondado ao múltiplo de `step` PARA CIMA.
  *
- * Mais próximo, e não para cima: a regra da loja é "algo próximo de 40%", e
- * arredondar sempre para cima deixaria a sugestão sistematicamente acima da
- * margem pedida. Custo 10 dá 16,666… → 16,70 (40,1%); custo 3,50 dá 5,833… →
- * 5,80 (39,7%).
+ * Para cima, e não para o mais próximo (como era até 05/09/2026): arredondando
+ * para baixo a sugestão entregava MENOS que a margem pedida — custo 8,90 dava
+ * 14,80, que é 39,9%, e a tela dizia "40% de margem". Subindo, o sugerido
+ * nunca fica abaixo do alvo: 8,90 → 14,90 (40,3%), 3,50 → 5,90 (40,7%).
+ *
+ * O `toFixed(6)` antes do `ceil` existe por causa do binário: 6 ÷ 0,6 dá
+ * 9,999999999999998, e o `ceil` cru transformaria um resultado exato de R$ 10
+ * em R$ 10,10.
  *
  * @param cost Custo unitário.
  * @param targetMarginPercent Margem desejada, em pontos percentuais (0 a 99,99).
@@ -85,8 +116,6 @@ export function suggestedPrice(
   if (!isUsable(step)) return null;
 
   const raw = cost / (1 - targetMarginPercent / 100);
-  // O EPSILON pelo mesmo motivo do `round2`: 16.65 / 0.1 dá 166.49999… em
-  // binário, e o `Math.round` cru cairia para o lado errado do meio.
-  const steps = Math.round(raw / step + Number.EPSILON);
+  const steps = Math.ceil(Number((raw / step).toFixed(6)));
   return round2(steps * step);
 }
