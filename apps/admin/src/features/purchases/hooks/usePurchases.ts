@@ -165,7 +165,10 @@ export function usePurchases() {
   function startReceive(purchase: PurchaseDto) {
     if (enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received) return;
 
-    if (purchase.productId === null) {
+    // `== null` de propósito: o backend omite campos nulos, e `productId` de
+    // produto novo chega AUSENTE. Com `=== null` a compra de produto novo caía
+    // no diálogo de produto vinculado.
+    if (purchase.productId == null) {
       navigate(productFromPurchasePath(purchase.id));
       return;
     }

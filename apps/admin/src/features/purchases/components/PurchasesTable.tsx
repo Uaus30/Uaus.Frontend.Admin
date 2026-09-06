@@ -105,7 +105,7 @@ export function PurchasesTable({
                 <TableHead className="px-4 py-3 text-right">Total final</TableHead>
                 <TableHead className="px-4 py-3 text-right">Unit. final</TableHead>
                 <TableHead className="px-4 py-3">Situação</TableHead>
-                <TableHead className="px-4 py-3">Data</TableHead>
+                <TableHead className="hidden px-4 py-3 2xl:table-cell">Data</TableHead>
                 <TableHead className="w-16 px-4 py-3 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -174,20 +174,26 @@ export function PurchasesTable({
                     <TableCell className="px-4 py-3">
                       <PurchaseStatusBadge status={purchase.status} />
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-muted-foreground">
+                    {/* Some abaixo de 2xl: com oito colunas a tabela rolava na horizontal e as
+                        acoes ficavam fora da tela. A data volta no monitor largo. */}
+                    <TableCell className="hidden px-4 py-3 text-sm text-muted-foreground 2xl:table-cell">
                       {formatShortDate(purchase.receivedAt ?? purchase.createdAt)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Compacto na linha (a tabela já tem oito colunas) e por
+                            extenso no menu de opções, onde o texto cabe. */}
                         {!received && (
                           <Button
                             type="button"
                             size="sm"
+                            title="Lançar recebimento"
+                            aria-label={`Lançar recebimento da compra ${purchase.id}`}
                             className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
                             onClick={() => onReceive(purchase)}
                             disabled={busy}
                           >
-                            <PackageCheck className="h-3.5 w-3.5" /> Lançar recebimento
+                            <PackageCheck className="h-3.5 w-3.5" /> Receber
                           </Button>
                         )}
                         <DropdownMenu>
@@ -208,6 +214,11 @@ export function PurchasesTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {!received && (
+                              <DropdownMenuItem onClick={() => onReceive(purchase)}>
+                                <PackageCheck className="mr-2 h-4 w-4 text-emerald-600" /> Lançar recebimento
+                              </DropdownMenuItem>
+                            )}
                             {purchase.purchaseLink && (
                               <DropdownMenuItem asChild>
                                 <a href={purchase.purchaseLink} target="_blank" rel="noreferrer">

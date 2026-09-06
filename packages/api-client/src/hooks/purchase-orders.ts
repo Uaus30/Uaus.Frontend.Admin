@@ -20,21 +20,26 @@ export interface PurchaseImageDto {
 /**
  * Uma compra. Os unitários e o percentual são DERIVADOS pelo backend dos totais
  * gravados — nunca são digitados, então não divergem do total.
+ *
+ * Os campos anuláveis são OPCIONAIS de propósito: o backend serializa com
+ * `WhenWritingNull`, então um nulo chega como campo AUSENTE (`undefined`), não
+ * como `null`. Compare com `== null`, nunca com `=== null` — foi assim que o
+ * "Lançar recebimento" de produto novo abriu o diálogo de produto vinculado.
  */
 export interface PurchaseDto {
   id: number;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt?: string | null;
   supplierId: number;
   supplierName: string;
-  /** Produto vinculado (reposição). Nulo quando o produto ainda não existe. */
-  productId: number | null;
+  /** Produto vinculado (reposição). Ausente/nulo quando o produto ainda não existe. */
+  productId?: number | null;
   /** Grupo do produto vinculado — é ele que abre a tela de detalhe do produto. */
-  productGroupId: number | null;
+  productGroupId?: number | null;
   productName: string;
-  productBarcode: string | null;
-  details: string | null;
-  purchaseLink: string | null;
+  productBarcode?: string | null;
+  details?: string | null;
+  purchaseLink?: string | null;
   quantity: number;
   grossTotal: number;
   finalTotal: number;
@@ -46,9 +51,9 @@ export interface PurchaseDto {
   adjustmentPercent: number;
   /** Enum PurchaseStatus — chega como NOME; leia com `enumCode(valor, PURCHASE_STATUS)`. */
   status: EnumValue;
-  receivedAt: string | null;
-  purchaseEntryId: number | null;
-  userName: string | null;
+  receivedAt?: string | null;
+  purchaseEntryId?: number | null;
+  userName?: string | null;
   images: PurchaseImageDto[];
 }
 

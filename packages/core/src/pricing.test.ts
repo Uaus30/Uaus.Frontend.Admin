@@ -30,11 +30,12 @@ describe("markupPercent", () => {
     expect(markupPercent(custo, preco)).toBe(esperado);
   });
 
-  it("não calcula sem custo", () => {
+  it("não calcula sem custo nem sem preço", () => {
     // Brinde e bonificação entram a custo zero: markup "infinito" não é
-    // informação, é ruído.
+    // informação, é ruído. Sem preço, -100% pareceria um markup negativo real.
     expect(markupPercent(0, 10)).toBeNull();
     expect(markupPercent(10, -1)).toBeNull();
+    expect(markupPercent(10, 0)).toBeNull();
   });
 });
 

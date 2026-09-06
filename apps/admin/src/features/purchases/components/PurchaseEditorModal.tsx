@@ -154,14 +154,13 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">
-                Total final (com desconto/acréscimo)
-              </label>
+              <label className="text-xs font-semibold uppercase text-muted-foreground">Total final</label>
               <CurrencyInput
                 value={values.finalTotal}
                 onChange={(value) => update("finalTotal", value)}
                 className="h-10 bg-background"
               />
+              <p className="text-xs text-muted-foreground">Já com desconto ou acréscimo (frete).</p>
             </div>
           </div>
 

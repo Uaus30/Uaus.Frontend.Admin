@@ -40,9 +40,10 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
   const status = enumCode(purchase.status, PURCHASE_STATUS);
   return {
     supplierId: String(purchase.supplierId),
-    productId: purchase.productId,
+    // `?? null`: o backend omite campos nulos e o formulário compara com `=== null`.
+    productId: purchase.productId ?? null,
     productName: purchase.productName,
-    productBarcode: purchase.productBarcode,
+    productBarcode: purchase.productBarcode ?? null,
     details: purchase.details ?? "",
     purchaseLink: purchase.purchaseLink ?? "",
     quantity: purchase.quantity,

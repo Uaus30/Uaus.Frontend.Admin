@@ -19,17 +19,20 @@ export interface LowStockItemDto {
   productName: string;
   barcode: string;
   categoryName: string;
-  /** Fornecedor do lote mais recente, ou nulo em produto sem lote. */
-  supplierName: string | null;
-  /** Caminho relativo da foto principal; passe por `buildPublicImageUrl`. */
-  imageUrl: string | null;
+  /**
+   * Fornecedor do lote mais recente. Ausente em produto sem lote: o backend
+   * serializa com `WhenWritingNull`, então nulo chega como campo omitido.
+   */
+  supplierName?: string | null;
+  /** Caminho relativo da foto principal; passe por `buildPublicImageUrl`. Ausente sem foto. */
+  imageUrl?: string | null;
   stock: number;
   minStock: number;
   price: number;
   costPrice: number;
-  /** Quando o alerta foi marcado como resolvido. Nulo = pendente. */
-  resolvedAt: string | null;
-  resolvedBy: string | null;
+  /** Quando o alerta foi marcado como resolvido. Ausente = pendente. */
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
   isResolved: boolean;
 }
 

@@ -53,7 +53,9 @@ export function marginPercent(cost: number, price: number): number | null {
  *   aplica".
  */
 export function markupPercent(cost: number, price: number): number | null {
-  if (!isUsable(cost) || !Number.isFinite(price) || price < 0) return null;
+  // Sem preço não há markup a mostrar: com zero a conta daria -100%, que na
+  // tela parecia um markup negativo real em vez de "preço ainda não informado".
+  if (!isUsable(cost) || !isUsable(price)) return null;
   return round2(((price - cost) / cost) * 100);
 }
 
