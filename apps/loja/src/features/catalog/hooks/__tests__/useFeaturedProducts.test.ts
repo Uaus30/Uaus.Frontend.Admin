@@ -72,10 +72,9 @@ describe("useFeaturedProducts", () => {
   it("pede uma página só, do tamanho padrão enquanto a configuração não chega", () => {
     givenQueryReturns({ page: { data: [], page: 1, limit: 20, total: 0, totalPages: 0 } });
 
-    const { result } = renderHook(() => useFeaturedProducts());
+    renderHook(() => useFeaturedProducts());
 
     expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: DEFAULT_FEATURED_COUNT });
-    expect(result.current.count).toBe(DEFAULT_FEATURED_COUNT);
   });
 
   it("pede a quantidade configurada no admin quando ela chega", () => {
@@ -84,13 +83,12 @@ describe("useFeaturedProducts", () => {
     mocks.useGetStorefrontCompany.mockReturnValue({ data: { newProductsCount: 12 }, isLoading: false });
     givenQueryReturns({ page: { data: [], page: 1, limit: 12, total: 0, totalPages: 0 } });
 
-    const { result } = renderHook(() => useFeaturedProducts());
+    renderHook(() => useFeaturedProducts());
 
     expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: 12 });
-    expect(result.current.count).toBe(12);
   });
 
-  it("entrega os produtos e o total do catálogo", () => {
+  it("entrega os produtos sem repassar o total do catálogo", () => {
     givenQueryReturns({
       page: { data: [product(1), product(2)], page: 1, limit: 8, total: 37, totalPages: 5 },
     });
@@ -98,8 +96,9 @@ describe("useFeaturedProducts", () => {
     const { result } = renderHook(() => useFeaturedProducts());
 
     expect(result.current.products).toHaveLength(2);
-    expect(result.current.totalCount).toBe(37);
     expect(result.current.isEmpty).toBe(false);
+    // O 37 tem que morrer aqui: nenhuma tela pública diz o tamanho do catálogo.
+    expect(result.current).not.toHaveProperty("totalCount");
   });
 
   it("some quando o catálogo está vazio", () => {

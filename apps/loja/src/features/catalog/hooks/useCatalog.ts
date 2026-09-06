@@ -11,8 +11,6 @@ export const CATALOG_PAGE_SIZE = 24;
 
 export interface CatalogState {
   products: CatalogProduct[];
-  /** Total de produtos que casam com a busca e o filtro atuais, dito pelo servidor. */
-  totalCount: number;
   search: string;
   setSearch: (value: string) => void;
   /** Primeira carga (sem nada na tela ainda). */
@@ -33,7 +31,6 @@ export interface CatalogState {
   refetch: () => void;
   /** Filtros em vigor, lidos da URL. */
   filters: CatalogFilters;
-  hasFilters: boolean;
   /** Departamentos e categorias para a lista de filtros. */
   tree: DepartmentTreeState;
 }
@@ -49,9 +46,13 @@ export interface CatalogState {
  *
  * É este hook que a página consome inteiro: filtro, árvore e grade saem daqui
  * já combinados, e a página só desenha (regra do CLAUDE.md §4).
+ *
+ * O `total` das páginas não é repassado: a vitrine não imprime quantos
+ * produtos casaram com a busca nem quantos a loja tem (ver o README). O que
+ * sobrou do total é o `hasNextPage`, que o scroll infinito já resolve.
  */
 export function useCatalog(): CatalogState {
-  const { filters, searchInput, setSearchInput, isSearchPending, hasFilters } = useCatalogFilters();
+  const { filters, searchInput, setSearchInput, isSearchPending } = useCatalogFilters();
 
   const tree = useDepartmentTree(filters);
 
@@ -64,14 +65,12 @@ export function useCatalog(): CatalogState {
 
   const products = useMemo(() => query.data?.pages.flatMap((page) => page.data) ?? [], [query.data]);
 
-  const totalCount = query.data?.pages[0]?.total ?? 0;
   const hasActiveSearch = Boolean(filters.search);
   const hasTaxonomyFilter = filters.departmentId !== undefined || filters.categoryId !== undefined;
   const isSettled = !query.isLoading && !query.isError && products.length === 0;
 
   return {
     products,
-    totalCount,
     search: searchInput,
     setSearch: setSearchInput,
     isLoading: query.isLoading,
@@ -90,7 +89,6 @@ export function useCatalog(): CatalogState {
     fetchNextPage: () => void query.fetchNextPage(),
     refetch: () => void query.refetch(),
     filters,
-    hasFilters,
     tree,
   };
 }

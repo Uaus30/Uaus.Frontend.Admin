@@ -108,12 +108,12 @@ export default function ProductsPage() {
           />
         </div>
 
-        {catalog.totalCount > 0 && (
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            {catalog.totalCount === 1 ? "1 produto" : `${catalog.totalCount} produtos`}
-            {catalog.hasFilters ? (catalog.totalCount === 1 ? " encontrado" : " encontrados") : " na loja"}
-          </p>
-        )}
+        {/*
+          Aqui ficava "347 produtos na loja" / "12 produtos encontrados". A
+          linha saiu inteira em 06/09/2026 por decisão do dono: publicar o
+          tamanho do catálogo não ajuda a comprar e deixa a loja pequena aos
+          olhos de quem chega. Ver o README do `catalog`.
+        */}
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[16rem_1fr]">
           <aside className="hidden lg:block">

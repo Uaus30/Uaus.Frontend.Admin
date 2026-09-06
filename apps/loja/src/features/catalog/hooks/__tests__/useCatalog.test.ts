@@ -108,7 +108,6 @@ describe("useCatalog", () => {
     const { result } = renderCatalog();
 
     expect(result.current.products.map((p) => p.productGroupId)).toEqual([2, 1, 3]);
-    expect(result.current.totalCount).toBe(3);
   });
 
   it("só manda a busca ao servidor depois do debounce, e sem termo vazio", () => {
@@ -161,7 +160,7 @@ describe("useCatalog", () => {
       departmentId: 2,
       categoryId: 10,
     });
-    expect(result.current.hasFilters).toBe(true);
+    expect(result.current.filters).toMatchObject({ departmentId: 2, categoryId: 10 });
   });
 
   it("ignora id de filtro inválido na URL em vez de quebrar a vitrine", () => {
@@ -170,7 +169,7 @@ describe("useCatalog", () => {
     const { result } = renderCatalog("departamento=abc&categoria=-3");
 
     expect(mocks.useGetStorefrontProductsInfinite).toHaveBeenLastCalledWith(NO_FILTER);
-    expect(result.current.hasFilters).toBe(false);
+    expect(result.current.filters).toMatchObject({ departmentId: undefined, categoryId: undefined });
   });
 
   it("distingue catálogo vazio, busca sem resultado e filtro sem resultado", () => {

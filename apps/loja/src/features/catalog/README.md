@@ -45,6 +45,17 @@ consome a API **como visitante anônimo**.
 - **Filtro que leva a lugar nenhum não é oferecido.** Departamento sem grupo
   visível não entra na árvore; categoria idem.
 
+- **O site não publica o tamanho do catálogo (06/09/2026).** Decisão do dono:
+  saber quantos produtos a loja tem não ajuda ninguém a comprar e faz a vitrine
+  parecer pequena. Saíram os dois lugares que imprimiam o número — o "Ver todos
+  os 347 produtos" da seção Novidades da home e a linha "347 produtos na loja"
+  do topo da vitrine, que com filtro virava "12 produtos encontrados". Por isso
+  `useCatalog` e `useFeaturedProducts` **descartam** o `total` da resposta em
+  vez de devolvê-lo sem consumidor: campo exposto é convite para reimprimir.
+  A contagem por departamento e categoria da lista de filtros **continua** — ela
+  é bússola de navegação ("Cozinha 3" diz o que esperar do clique), não o
+  tamanho da loja, e foi mantida de propósito.
+
 - **A tag de escassez vem pronta do backend (05/09/2026).** `stockBadge` diz
   "Últimas unidades" ou "Último disponível" e `StockBadge` só pinta. A regra —
   saldo SOMADO dos produtos ativos do grupo comparado ao limiar configurado em

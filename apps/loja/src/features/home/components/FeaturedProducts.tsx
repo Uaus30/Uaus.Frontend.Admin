@@ -31,6 +31,9 @@ function FeaturedSkeletons() {
  * Quantos produtos aparecem é configurável em Admin > Configurações (padrão
  * 20). A seção some inteira quando não há produtos (ver o hook). Com poucos, a
  * grade simplesmente mostra os que existem em vez de fingir a quantidade.
+ *
+ * O link do topo NÃO diz o tamanho do catálogo — era "Ver todos os 347
+ * produtos". Ver o README do `catalog`: o site não publica a quantidade total.
  */
 export function FeaturedProducts() {
   const featured = useFeaturedProducts();
@@ -52,9 +55,7 @@ export function FeaturedProducts() {
             href="/produtos"
             className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 font-semibold text-foreground transition-colors duration-200 hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            {featured.totalCount > featured.count
-              ? `Ver todos os ${featured.totalCount} produtos`
-              : "Ver todos os produtos"}
+            Ver todos os produtos
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

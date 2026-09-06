@@ -21,10 +21,6 @@ export function resolveFeaturedCount(configured: number | null | undefined): num
 
 export interface FeaturedProductsState {
   products: CatalogProduct[];
-  /** Total do catálogo, para o link "ver todos" dizer quantos são. */
-  totalCount: number;
-  /** Quantos produtos a seção pede — o configurado no admin, ou o padrão. */
-  count: number;
   isLoading: boolean;
   /**
    * Não há o que mostrar — catálogo vazio OU a chamada falhou. Nos dois casos
@@ -45,6 +41,10 @@ export interface FeaturedProductsState {
  * o hero, o endereço e o WhatsApp continuam de pé, e um "não foi possível
  * carregar" no meio da home dá a impressão de site quebrado por algo que o
  * visitante nem sabia que existia.
+ *
+ * O `total` da resposta é deliberadamente descartado: nenhuma tela pública diz
+ * quantos produtos a loja tem (ver o README da feature). Devolver o número
+ * aqui é o convite para alguém voltar a imprimi-lo.
  */
 export function useFeaturedProducts(): FeaturedProductsState {
   // A quantidade vem da identidade da loja, que o rodapé já pede em toda
@@ -58,8 +58,6 @@ export function useFeaturedProducts(): FeaturedProductsState {
 
   return {
     products,
-    totalCount: query.data?.total ?? 0,
-    count,
     isLoading: query.isLoading,
     isEmpty: !query.isLoading && (query.isError || products.length === 0),
   };

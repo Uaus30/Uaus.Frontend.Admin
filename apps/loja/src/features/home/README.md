@@ -18,7 +18,9 @@ regras abaixo.
   produto. O card é o mesmo `ProductCard` da vitrine — preço, selo e link de
   detalhe iguais, por construção. Quantos produtos aparecem é configurável em
   Admin > Configurações (padrão 20, do mais novo para o mais antigo); até
-  05/09/2026 eram 8 fixos.
+  05/09/2026 eram 8 fixos. O link do canto diz só "Ver todos os produtos": o
+  tamanho do catálogo não vai para a tela — a regra e o motivo estão no README
+  do `catalog`.
   Falha ou catálogo vazio fazem a seção **sumir**, não mostrar erro: destaque é
   conteúdo acessório, e uma caixa de "não foi possível carregar" no meio da
   home dá a impressão de site quebrado por algo que o visitante nem sabia que
