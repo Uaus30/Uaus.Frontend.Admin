@@ -123,8 +123,16 @@ export function LowStockTable({
 }: LowStockTableProps) {
   return (
     <div className="space-y-4 rounded-2xl border border-border/50 bg-card/50 p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full lg:max-w-sm">
+      {/*
+        Uma linha só no monitor; em tela estreita, duas: busca e "mostrar
+        resolvidos" em cima, as quantidades embaixo. O "mostrar resolvidos" vem
+        antes das quantidades nos dois arranjos. O arranjo sai de `order` +
+        `flex-wrap`, e não de um bloco duplicado com `lg:hidden` — dois
+        elementos iguais no DOM significam dois interruptores para a mesma
+        opção, e quem lê a tela por acessibilidade ouve os dois.
+      */}
+      <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap lg:justify-between">
+        <div className="relative order-1 min-w-0 flex-1 lg:max-w-sm lg:flex-none lg:basis-80">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -134,13 +142,14 @@ export function LowStockTable({
             aria-label="Buscar produto"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        {/* `w-full` é o que joga as quantidades para a linha de baixo no estreito. */}
+        <div className="order-3 flex w-full flex-wrap items-center gap-4 lg:w-auto">
           {/*
             Com o teto preenchido a pergunta do relatório muda: passa a ser
             "quem tem menos de N unidades", sem olhar o estoque mínimo — é como
             se varre o catálogo inteiro atrás do que está acabando.
           */}
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <label className="flex items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
             Estoque menor que
             <Input
               type="number"
@@ -159,7 +168,7 @@ export function LowStockTable({
             estoque mínimo: senão deixaria de fora justamente os produtos sem
             controle, que são os que se quer varrer atrás de saída.
           */}
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <label className="flex items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
             Vendeu ao menos
             <Input
               type="number"
@@ -173,15 +182,15 @@ export function LowStockTable({
             />
             em 30d
           </label>
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Switch
-              checked={includeResolved}
-              onCheckedChange={setIncludeResolved}
-              aria-label="Mostrar resolvidos"
-            />
-            Mostrar resolvidos
-          </label>
         </div>
+        <label className="order-2 flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+          <Switch
+            checked={includeResolved}
+            onCheckedChange={setIncludeResolved}
+            aria-label="Mostrar resolvidos"
+          />
+          Mostrar resolvidos
+        </label>
       </div>
 
       {isLoading ? (
@@ -199,12 +208,15 @@ export function LowStockTable({
           </p>
         </div>
       ) : (
+        // Largura minima + rolagem: sem ela o navegador espreme as colunas para
+        // caber, e a ultima — a das acoes — e a que perde espaco, deixando o
+        // "Resolver" cortado. Com a largura minima a tela estreita ganha barra
+        // horizontal, que e o comportamento previsivel.
         <div className="overflow-x-auto rounded-xl border border-border/40">
-          <Table>
+          <Table className="min-w-[64rem]">
             <TableHeader className="bg-muted/30">
               <TableRow>
                 <TableHead className="px-4 py-3">Produto</TableHead>
-                <TableHead className="hidden px-4 py-3 xl:table-cell">Categoria</TableHead>
                 <TableHead className="px-4 py-3">Fornecedor</TableHead>
                 <TableHead className="px-4 py-3 text-right">Estoque / mín.</TableHead>
                 <TableHead className="px-4 py-3" title="Última venda registrada, de toda a história">
@@ -240,7 +252,7 @@ export function LowStockTable({
                   Dura
                 </TableHead>
                 <TableHead className="px-4 py-3">Situação</TableHead>
-                <TableHead className="px-4 py-3 text-right">Ações</TableHead>
+                <TableHead className="w-px whitespace-nowrap px-4 py-3 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -276,9 +288,6 @@ export function LowStockTable({
                           <p className="font-mono text-xs text-muted-foreground">{item.barcode}</p>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="hidden px-4 py-3 text-sm xl:table-cell">
-                      {item.categoryName}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm">{item.supplierName ?? "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-right font-mono text-sm">
@@ -329,7 +338,7 @@ export function LowStockTable({
                         <Badge variant="destructive">Pendente</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right">
+                    <TableCell className="w-px whitespace-nowrap px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {item.isResolved ? (
                           <Button
