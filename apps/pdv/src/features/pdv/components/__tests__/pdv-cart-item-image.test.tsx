@@ -42,6 +42,23 @@ describe("PdvCartItemImage", () => {
     await waitFor(() => expect(screen.getByText("PRODUTO SEM CODIGO")).toBeTruthy());
   });
 
+  it("renderiza a ampliação fora da área rolável que contém a miniatura", async () => {
+    // Regressão: a lista de resultados do PDV é um ScrollArea com overflow
+    // escondido. Sem portal, a foto grande nascia DENTRO dele e saía decepada
+    // no topo na primeira linha. Aqui o gatilho está num container qualquer; a
+    // ampliação não pode ser descendente dele.
+    render(
+      <div data-testid="area-rolavel" style={{ overflow: "hidden", height: 40 }}>
+        <PdvCartItemImage name="CHINELO ESTAMPADO" barcode="3598196816859" imageUrl="produtos/chinelo.png" />
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Ampliar a foto/ }));
+
+    const ampliada = await waitFor(() => screen.getByAltText("CHINELO ESTAMPADO"));
+    expect(ampliada.closest("[data-testid='area-rolavel']")).toBeNull();
+  });
+
   it("fecha a ampliação no segundo toque", async () => {
     render(<PdvCartItemImage name="CANECA" imageUrl="produtos/caneca.png" />);
 

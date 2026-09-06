@@ -117,10 +117,16 @@ export function PdvCartItemImage({
       </HoverCardTrigger>
 
       {/* O lado vem de quem monta: o carrinho abre para a ESQUERDA (é a coluna
-          encostada na borda direita da tela) e a busca para a DIREITA. */}
+          encostada na borda direita da tela) e a busca para a DIREITA.
+
+          `collisionPadding`: o conteúdo mora num portal e o Radix o empurra
+          para dentro da janela quando não cabe — na primeira linha da busca a
+          foto grande subiria além do topo. A folga é para ela não encostar na
+          borda depois de empurrada. */}
       <HoverCardContent
         side={side}
         align="center"
+        collisionPadding={12}
         className="w-64 p-3"
         onPointerDownOutside={() => setOpen(false)}
       >
