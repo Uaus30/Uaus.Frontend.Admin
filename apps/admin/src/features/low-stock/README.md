@@ -40,9 +40,22 @@ o alerta vermelho que aparece no painel e no topo da listagem de produtos.
   nada precisa ser "baixado" na lista. **Remover o controle de estoque** (menu
   de opções) zera o mínimo e também tira, sem tirar o produto do catálogo; a
   mudança fica no histórico do produto.
-- **O alerta só acende com pendente > 0.** `LowStockAlert` some com zero: um
-  alerta permanentemente aceso ensina a ignorá-lo. Ele usa o MESMO hook de
-  contagem do relatório, então painel, listagem e relatório nunca discordam.
+- **O alerta conta quem VENDE e está acabando (06/09/2026).** `LowStockAlert`
+  usa `summary.restock`, não `summary.pending`: a contagem antiga acendia o
+  vermelho também para item parado há um ano, que não é urgência de reposição —
+  e alerta que aponta para o que não precisa de ação ensina a ser ignorado.
+  - "Está acabando" respeita o **estoque mínimo** de quem tem um (decisão de
+    quem cadastrou) e usa um **teto de 5 unidades** para quem não tem; sem o
+    teto, produto sem controle de estoque nunca acenderia, e é ali que mora boa
+    parte do que vende e some sem ninguém perceber.
+  - "Vende" é ter saído ao menos **3 unidades em 30 dias**. Os dois números são
+    do backend (`LowStockService.AlertMinRecentSales` e `AlertStockCeiling`); a
+    tela não os repete — o mínimo de vendas volta na resposta
+    (`restockMinSales`) e monta o texto e o link.
+  - O link já leva `?vendas=<mínimo>`, e o relatório abre com o campo
+    preenchido e **editável**. Sem isso a pessoa cairia numa lista de outro
+    critério e teria de reconstruir na mão o que o alerta já sabia.
+  - Com zero, o alerta some.
 
 ## Giro do produto (06/09/2026)
 
@@ -94,6 +107,16 @@ inventário: o pedido era cabeçalho formatado, e CSV não carrega formato nenhu
   visita e só precisa do número. Um minuto de `staleTime`.
 - **`LOW_STOCK_REPORT_PATH`** (`low-stock-route.ts`) é a única string do
   caminho: rota, alerta do painel e alerta da listagem apontam para ela.
+  `lowStockRestockPath` monta o link com o filtro do alerta e
+  `salesFilterFromUrl` o lê — uma vez, na montagem, para o campo continuar
+  editável e apagá-lo não fazer o filtro voltar.
+- **A tela não repete a contagem em cards** (06/09/2026). Os dois cards
+  (pendentes e resolvidos) diziam, em números grandes, o que a lista logo
+  abaixo já mostra — e quem chega pelo alerta já leu o número lá.
+- **A tabela tem largura mínima e rola na horizontal.** Sem isso o navegador
+  espreme as colunas para caber e a última — a das ações — perde espaço, com o
+  "Resolver" cortado. A categoria saiu da tela por espaço; ela continua no
+  XLSX, que não disputa largura com botão.
 - **O link do produto abre pelo id do GRUPO** (`/produtos/<grupo>/detalhes`),
   que é o que a tela edita; o item traz `productGroupId` para isso.
 - Busca, teto de saldo e filtro de resolvidos voltam para a página 1 nos

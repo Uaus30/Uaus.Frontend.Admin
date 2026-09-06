@@ -15,6 +15,7 @@ import {
 } from "@workspace/api-client-react";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { newPurchaseForProductPath } from "@/features/purchases/purchases-route";
+import { salesFilterFromUrl } from "../low-stock-route";
 import { exportLowStockToXlsx } from "../lib/export-low-stock";
 import type { LowStockItem, LowStockSummary } from "../types";
 
@@ -106,7 +107,11 @@ export function useLowStock(): LowStockState {
   const debouncedSearch = useDebounce(search, 300);
   const [maxStock, setMaxStockState] = useState("");
   const debouncedMaxStock = useDebounce(maxStock, 400);
-  const [minRecentSales, setMinRecentSalesState] = useState("");
+  // Quem chega pelo alerta ja abre filtrado por saida: o alerta fala de "boa
+  // saida e pouco estoque", e cair numa lista de outro criterio obrigaria a
+  // reconstruir na mao o que o alerta ja sabia. Lido UMA vez — o campo continua
+  // editavel, e apagar nao pode fazer o filtro voltar.
+  const [minRecentSales, setMinRecentSalesState] = useState(salesFilterFromUrl);
   const debouncedMinRecentSales = useDebounce(minRecentSales, 400);
   const [sort, setSortState] = useState<LowStockSort>("Default");
   const [includeResolved, setIncludeResolvedState] = useState(false);

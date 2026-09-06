@@ -99,7 +99,9 @@ describe("useLowStock", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     givenList([bexiga]);
-    mocks.useGetLowStockSummary.mockReturnValue({ data: { pending: 1, resolved: 0 } });
+    mocks.useGetLowStockSummary.mockReturnValue({
+      data: { pending: 1, resolved: 0, restock: 1, restockMinSales: 3 },
+    });
     mocks.resolveLowStock.mockResolvedValue({
       ...bexiga,
       isResolved: true,
@@ -127,7 +129,7 @@ describe("useLowStock", () => {
     });
     expect(result.current.sort).toBe("Default");
     expect(result.current.items).toEqual([bexiga]);
-    expect(result.current.summary).toEqual({ pending: 1, resolved: 0 });
+    expect(result.current.summary).toEqual({ pending: 1, resolved: 0, restock: 1, restockMinSales: 3 });
   });
 
   it("manda o teto de saldo só quando é inteiro positivo", async () => {

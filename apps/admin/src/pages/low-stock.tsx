@@ -1,6 +1,6 @@
-import { AlertTriangle, CheckCircle2, FileSpreadsheet, Loader2 } from "lucide-react";
+import { FileSpreadsheet, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout";
-import { Button, Card } from "@workspace/ui";
+import { Button } from "@workspace/ui";
 import { useLowStock } from "@/features/low-stock/hooks/useLowStock";
 import { LowStockTable } from "@/features/low-stock/components/LowStockTable";
 import { LowStockConfirmDialog } from "@/features/low-stock/components/LowStockConfirmDialog";
@@ -8,14 +8,15 @@ import { LowStockConfirmDialog } from "@/features/low-stock/components/LowStockC
 /**
  * Relatório de estoque baixo.
  *
- * Renderiza o que `useLowStock` devolve: a contagem em dois cards (pendentes
- * em vermelho, resolvidos em verde), a tabela e as confirmações.
- * Regra do §4 do CLAUDE.md: nenhuma query mora aqui.
+ * Renderiza o que `useLowStock` devolve: a tabela e as confirmações. Regra do
+ * §4 do CLAUDE.md: nenhuma query mora aqui.
+ *
+ * Os dois cards de contagem (pendentes e resolvidos) saíram em 06/09/2026: eles
+ * repetiam, em números grandes, o que a própria lista mostra logo abaixo — e o
+ * alerta que traz a pessoa até aqui já disse quantos são.
  */
 export default function LowStock() {
   const report = useLowStock();
-  const pending = report.summary?.pending ?? 0;
-  const resolved = report.summary?.resolved ?? 0;
 
   return (
     <AppLayout>
@@ -42,35 +43,6 @@ export default function LowStock() {
             )}
             Exportar XLSX
           </Button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Card
-            className={`flex items-center gap-4 p-5 ${
-              pending > 0 ? "border-destructive/40 bg-destructive/5" : "border-border/60"
-            }`}
-          >
-            <div
-              className={`rounded-lg p-2 ${pending > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}`}
-            >
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Pendentes</p>
-              <p className={`text-3xl font-semibold ${pending > 0 ? "text-destructive" : "text-foreground"}`}>
-                {report.summary ? pending : "—"}
-              </p>
-            </div>
-          </Card>
-          <Card className="flex items-center gap-4 border-border/60 p-5">
-            <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Resolvidos</p>
-              <p className="text-3xl font-semibold text-foreground">{report.summary ? resolved : "—"}</p>
-            </div>
-          </Card>
         </div>
 
         <LowStockTable

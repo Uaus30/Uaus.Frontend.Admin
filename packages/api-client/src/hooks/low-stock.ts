@@ -65,10 +65,22 @@ export interface LowStockItemDto {
   isResolved: boolean;
 }
 
-/** Contagem do alerta. `pending > 0` acende o vermelho. */
+/** Contagens do relatório. Quem acende o vermelho é `restock`. */
 export interface LowStockSummaryDto {
+  /** Produtos abaixo do mínimo ainda não resolvidos, vendendo ou não. */
   pending: number;
   resolved: number;
+  /**
+   * Produtos que **vendem e estão acabando** — o número do alerta.
+   *
+   * "Acabando" respeita o estoque mínimo de quem tem um e usa um teto para quem
+   * não tem; "vende" é ter saída na janela de 30 dias. A contagem antiga
+   * (`pending`) acendia o vermelho também para item parado há um ano, que não é
+   * urgência de reposição.
+   */
+  restock: number;
+  /** Mínimo de vendas usado em `restock` — a tela monta texto e filtro com ele. */
+  restockMinSales: number;
 }
 
 /**
