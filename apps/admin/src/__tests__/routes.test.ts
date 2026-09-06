@@ -112,6 +112,22 @@ describe("podeAcessar", () => {
     expect(podeAcessar(relatorio, USER_ROLE.Admin)).toBe(true);
   });
 
+  it("o grupo BI tem as duas telas, na ordem em que foram entregues", () => {
+    const bi = buildMenu(USER_ROLE.Admin).find((item) => item.name === "BI");
+
+    expect(bi?.items?.map((s) => s.name)).toEqual(["Desempenho de Fornecedores", "Curva ABC de Produtos"]);
+    expect(bi?.items?.map((s) => s.href)).toEqual(["/bi/fornecedores", "/bi/curva-abc"]);
+  });
+
+  it("a curva ABC também é só de Admin", () => {
+    // A resposta traz lucro e margem item a item.
+    const curva = ROUTES.find((r) => r.path === "/bi/curva-abc")!;
+
+    expect(curva.roles).toBeDefined();
+    expect(podeAcessar(curva, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(curva, USER_ROLE.Admin)).toBe(true);
+  });
+
   it("o BI de fornecedores é só de Admin, listagem e detalhe", () => {
     // A resposta traz custo, margem e lucro por fornecedor. O detalhe é oculto
     // no menu mas continua respondendo por link colado — sem `roles` nele, a

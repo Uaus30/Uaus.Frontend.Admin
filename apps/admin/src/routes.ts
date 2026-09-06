@@ -99,6 +99,7 @@ const CampaignReport = lazy(() => import("@/pages/campaign-report"));
 const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 const SupplierPerformance = lazy(() => import("@/pages/supplier-performance"));
 const SupplierPerformanceDetail = lazy(() => import("@/pages/supplier-performance-detail"));
+const ProductAbc = lazy(() => import("@/pages/product-abc"));
 
 /**
  * Ícone de cada grupo do menu. A ORDEM de exibição não sai daqui — ver `MENU_ORDER`.
@@ -264,6 +265,13 @@ export const ROUTES: AppRoute[] = [
     component: SupplierPerformanceDetail,
     roles: SO_ADMIN,
     hidden: true,
+  },
+  {
+    path: "/bi/curva-abc",
+    label: "Curva ABC de Produtos",
+    group: "BI",
+    component: ProductAbc,
+    roles: SO_ADMIN,
   },
 
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },
