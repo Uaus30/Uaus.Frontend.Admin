@@ -260,6 +260,22 @@ const PRINT_STYLES = `
      totais, mas no corpo da linha da quantidade — é detalhe do item, não total. */
   .row.item-discount { font-size: ${fontSize(10)}; }
 
+  /* Acréscimo do item: mesmo corpo da linha acima, porque são a mesma classe de
+     informação com o sinal trocado.
+
+     Sem a palavra "d-e-s-c-o-n-t-o" nestes comentários de propósito: o CSS viaja
+     dentro do HTML do cupom, e há teste que garante que um cupom SEM abatimento
+     nenhum não traz essa palavra em lugar nenhum do documento. */
+  .row.item-surcharge { font-size: ${fontSize(10)}; }
+
+  /* A justificativa do acréscimo, recuada sob a linha dele: é texto do operador,
+     não valor, e o recuo é o que amarra os dois em vez de virar mais uma linha
+     solta entre os itens. */
+  .item-surcharge-reason {
+    font-size: ${fontSize(9)};
+    padding-left: 8px;
+  }
+
   /* Cabeçalho das colunas dos itens: é rótulo, não conteúdo, então acompanha o
      corpo dos títulos de seção em vez do corpo do nome do produto. */
   .row.items-header {

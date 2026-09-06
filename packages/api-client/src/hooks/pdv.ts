@@ -173,11 +173,27 @@ export interface RegisterPdvSaleItemPayload {
   unitPrice: number;
   /**
    * Desconto unitário concedido no item, em reais, apenas para auditoria: o
-   * preço de tabela no momento da venda era `unitPrice + discount`. Não
-   * participa da validação de totais, mas conta para o limite de desconto do
+   * preço de tabela no momento da venda era `unitPrice + discount - surcharge`.
+   * Não participa da validação de totais, mas conta para o limite de desconto do
    * `Seller` (ver `RegisterPdvSalePayload.managerLogin`).
    */
   discount?: number;
+  /**
+   * Acréscimo unitário cobrado no item, em reais — o serviço embutido no
+   * produto, como gravar músicas no pendrive.
+   *
+   * **Já está dentro do `unitPrice`.** A conferência de total do servidor
+   * (itens menos desconto) não o soma por fora; mandá-lo em dobro faria a venda
+   * ser recusada com o cliente no balcão. Serve para o cupom, para o histórico e
+   * para o servidor descontá-lo do preço de tabela ao medir o limite do
+   * vendedor.
+   */
+  surcharge?: number;
+  /**
+   * Justificativa do acréscimo. Obrigatória no servidor quando `surcharge` é
+   * maior que zero; recusada em silêncio (vira nula) quando o acréscimo é zero.
+   */
+  surchargeReason?: string | null;
 }
 
 /** Uma forma de pagamento no formato que os endpoints de venda esperam. */

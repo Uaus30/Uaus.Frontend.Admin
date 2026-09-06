@@ -89,6 +89,18 @@ export interface SaleItemLike {
    */
   discount?: number | null;
   /**
+   * Acréscimo UNITÁRIO cobrado no item, em reais, já embutido em `unitPrice` — o
+   * serviço vendido junto do produto.
+   *
+   * Opcional pelo mesmo motivo do desconto: vendas gravadas antes da feature e a
+   * fila offline chegam sem o campo. Leia com `?? 0`. É ele que faz a segunda
+   * via mostrar o acréscimo que a primeira mostrou — sem ele o produto sairia no
+   * papel como se a tabela dele fosse o preço com o serviço embutido.
+   */
+  surcharge?: number | null;
+  /** Justificativa do acréscimo, do que foi gravado na venda. */
+  surchargeReason?: string | null;
+  /**
    * Código de barras do produto. A API não o devolve no item da venda, então na
    * reimpressão ele fica de fora e a linha do código não é impressa; o campo
    * existe para quem já tiver o dado em mãos poder repassá-lo.
@@ -232,6 +244,10 @@ export function buildReceiptFromSale(
       // Piso em zero pelo mesmo motivo do desconto do cabeçalho logo acima:
       // snapshot inconsistente não pode virar acréscimo no papel.
       unitDiscount: round2(Math.max(0, item.discount ?? 0)),
+      // E o acréscimo, pelo motivo simétrico: um valor negativo aqui viraria
+      // desconto no papel, que é justamente o que o cliente não contestaria.
+      unitSurcharge: round2(Math.max(0, item.surcharge ?? 0)),
+      surchargeReason: item.surchargeReason ?? null,
       barcode: item.barcode ?? null,
     })),
     payments,

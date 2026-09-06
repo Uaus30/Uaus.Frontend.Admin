@@ -729,10 +729,26 @@ export interface SaleItemDto {
   unitPrice: number;
   /**
    * Desconto unitário concedido no item, em reais, apenas para auditoria: o
-   * preço de tabela no momento da venda era `unitPrice + discount`. O subtotal
-   * continua sendo quantidade vezes o preço líquido.
+   * preço de tabela no momento da venda era `unitPrice + discount - surcharge`.
+   * O subtotal continua sendo quantidade vezes o preço líquido.
    */
   discount?: number;
+  /**
+   * Acréscimo unitário cobrado no item, em reais — o serviço embutido no
+   * produto, como gravar músicas no pendrive.
+   *
+   * Espelho do `discount`, com o sinal trocado: é auditoria e **já está dentro
+   * do `unitPrice`**, então não entra em nenhuma soma de total. Ausente nas
+   * vendas gravadas antes da feature — leia sempre com `?? 0`.
+   */
+  surcharge?: number;
+  /**
+   * Justificativa do acréscimo, escrita pelo operador no ato da venda. Sai
+   * impressa no cupom e no histórico.
+   *
+   * Ausente quando não houve acréscimo: o backend omite nulo do JSON.
+   */
+  surchargeReason?: string | null;
   subtotal: number;
   /** Custo unitário praticado no momento da venda. */
   unitCost: number;

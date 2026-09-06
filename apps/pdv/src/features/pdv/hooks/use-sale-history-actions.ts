@@ -159,11 +159,16 @@ export function useSaleHistoryActions({
 
         const cartItems: PdvItem[] = saleItems.map((item) => {
           const product = productById.get(item.productId);
-          // O preço de tabela vem da PRÓPRIA venda (`unitPrice + discount`), não
-          // do cadastro atual. Usar o preço de hoje reescrevia o histórico: mudar
-          // o preço no admin alterava retroativamente o desconto de uma venda
-          // antiga ao reabri-la para edição.
-          const originalPriceFromSale = round2(item.unitPrice + (item.discount ?? 0));
+          // O preço de tabela vem da PRÓPRIA venda (`unitPrice + discount −
+          // surcharge`), não do cadastro atual. Usar o preço de hoje reescrevia o
+          // histórico: mudar o preço no admin alterava retroativamente o desconto
+          // de uma venda antiga ao reabri-la para edição.
+          //
+          // O acréscimo sai da conta do preço e volta ao carrinho no campo dele:
+          // deixá-lo dentro do preço faria a reedição gravar como produto o que
+          // era serviço, e a segunda via sairia com a tabela errada.
+          const surcharge = round2(item.surcharge ?? 0);
+          const originalPriceFromSale = round2(item.unitPrice + (item.discount ?? 0) - surcharge);
           return {
             id: `${item.id}`,
             productId: item.productId,
@@ -172,6 +177,8 @@ export function useSaleHistoryActions({
             price: originalPriceFromSale,
             quantity: item.quantity,
             discount: round2(item.discount ?? 0),
+            surcharge,
+            surchargeReason: item.surchargeReason ?? "",
             // O estoque atual já não contém as unidades desta venda.
             availableStock: (product?.stock ?? 0) + item.quantity,
             // A foto é do cadastro de hoje, e não da venda: ela não é dado da

@@ -123,6 +123,73 @@ describe("usePdvStore", () => {
 
       expect(usePdvStore.getState().getTotal()).toBe(0);
     });
+
+    it("deve somar o acréscimo do item ao total, multiplicado pela quantidade", () => {
+      usePdvStore.getState().addItem(product({ quantity: 2 }));
+      const [item] = usePdvStore.getState().items;
+
+      usePdvStore.getState().applyItemSurcharge(item.id, 5, "Gravação de músicas");
+
+      // R$ 10,00 + R$ 5,00 de acréscimo, duas unidades.
+      expect(usePdvStore.getState().getSubtotal()).toBe(30);
+      expect(usePdvStore.getState().getTotal()).toBe(30);
+    });
+
+    it("deve aplicar o desconto do item sobre o preço já com acréscimo", () => {
+      usePdvStore.getState().addItem(product());
+      const [item] = usePdvStore.getState().items;
+
+      usePdvStore.getState().applyItemSurcharge(item.id, 5, "Gravação de músicas");
+      usePdvStore.getState().applyItemDiscount(item.id, 2);
+
+      // 10 + 5 − 2. O desconto é negociado sobre o que a linha custa de fato.
+      expect(usePdvStore.getState().getTotal()).toBe(13);
+    });
+  });
+
+  describe("acréscimo no item", () => {
+    it("deve guardar valor e justificativa juntos", () => {
+      usePdvStore.getState().addItem(product());
+      const [item] = usePdvStore.getState().items;
+
+      usePdvStore.getState().applyItemSurcharge(item.id, 5, "  Gravação de músicas  ");
+
+      const [atualizado] = usePdvStore.getState().items;
+      expect(atualizado.surcharge).toBe(5);
+      expect(atualizado.surchargeReason).toBe("Gravação de músicas");
+    });
+
+    it("deve descartar a justificativa ao zerar o acréscimo", () => {
+      // O par tem que morrer junto: uma justificativa órfã subiria no payload e
+      // derrubaria o CHECK do banco numa venda já paga.
+      usePdvStore.getState().addItem(product());
+      const [item] = usePdvStore.getState().items;
+
+      usePdvStore.getState().applyItemSurcharge(item.id, 5, "Gravação de músicas");
+      usePdvStore.getState().applyItemSurcharge(item.id, 0, "Gravação de músicas");
+
+      const [atualizado] = usePdvStore.getState().items;
+      expect(atualizado.surcharge).toBe(0);
+      expect(atualizado.surchargeReason).toBe("");
+    });
+
+    it("deve tratar valor negativo como remoção, nunca como desconto", () => {
+      usePdvStore.getState().addItem(product());
+      const [item] = usePdvStore.getState().items;
+
+      usePdvStore.getState().applyItemSurcharge(item.id, -5, "Sei lá");
+
+      const [atualizado] = usePdvStore.getState().items;
+      expect(atualizado.surcharge).toBe(0);
+      expect(usePdvStore.getState().getTotal()).toBe(10);
+    });
+
+    it("deve tratar item sem o campo como sem acréscimo", () => {
+      // Venda pausada no navegador antes desta feature volta sem o campo.
+      usePdvStore.setState({ ...EMPTY, items: [{ ...product(), id: "linha-antiga" }] });
+
+      expect(usePdvStore.getState().getTotal()).toBe(10);
+    });
   });
 
   describe("checkout", () => {

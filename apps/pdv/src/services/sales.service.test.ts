@@ -150,11 +150,13 @@ describe("registerSale online", () => {
     // Antes eram 1 + N requisições, com desfazer manual quando um item falhava.
     expect(apiPost).toHaveBeenCalledTimes(1);
     expect(apiPost.mock.calls[0][0]).toBe("/Pdv/sales");
-    // O desconto por item vai junto: não entra na validação de totais, mas o
-    // servidor usa para auditoria e para o limite de desconto do vendedor.
+    // Desconto e acréscimo por item vão junto: nenhum dos dois entra na
+    // validação de totais, mas o servidor os usa para auditoria — e o desconto,
+    // ainda, para o limite de desconto do vendedor. Sem acréscimo, o par sobe
+    // como zero e nulo, que é o que o CHECK do banco exige.
     expect(postBody(0).items).toEqual([
-      { productId: 1, quantity: 2, unitPrice: 10, discount: 0 },
-      { productId: 2, quantity: 1, unitPrice: 30, discount: 0 },
+      { productId: 1, quantity: 2, unitPrice: 10, discount: 0, surcharge: 0, surchargeReason: null },
+      { productId: 2, quantity: 1, unitPrice: 30, discount: 0, surcharge: 0, surchargeReason: null },
     ]);
   });
 

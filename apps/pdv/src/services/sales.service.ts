@@ -27,10 +27,20 @@ import {
 export type SaleItemInput = {
   productId: number;
   quantity: number;
-  /** Preço já líquido do desconto aplicado no item. */
+  /** Preço já líquido do desconto e já com o acréscimo do item. */
   unitPrice: number;
   /** Desconto concedido neste item. */
   discount?: number;
+  /**
+   * Acréscimo cobrado neste item — o serviço vendido junto do produto.
+   *
+   * **Já está dentro de `unitPrice`.** Vai separado porque
+   * `unitPrice + discount − surcharge` é o que reconstrói o preço de tabela, e
+   * porque é a única forma de o relatório separar depois produto de serviço.
+   */
+  surcharge?: number;
+  /** Justificativa do acréscimo, impressa no cupom. Nula quando não houve. */
+  surchargeReason?: string | null;
   /** Nome do produto, guardado na fila offline para o cupom e a lista de pendências. */
   productName?: string;
 };
@@ -251,6 +261,10 @@ function buildRequestBody(
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       discount: item.discount ?? 0,
+      surcharge: item.surcharge ?? 0,
+      // Nulo, e não string vazia: o servidor exige o par (acréscimo > 0 exige
+      // motivo; acréscimo zero exige motivo nulo), e "" derrubaria o CHECK.
+      surchargeReason: (item.surcharge ?? 0) > 0 ? (item.surchargeReason ?? null) : null,
     })),
     payments: payload.payments.map((payment) => ({
       paymentMethodId: payment.paymentMethodId,
@@ -391,6 +405,8 @@ async function enqueueSale(
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       discount: item.discount ?? 0,
+      surcharge: item.surcharge ?? 0,
+      surchargeReason: (item.surcharge ?? 0) > 0 ? (item.surchargeReason ?? null) : null,
       productName: item.productName ?? `Produto #${item.productId}`,
     })),
     payments: payload.payments.map((payment) => ({

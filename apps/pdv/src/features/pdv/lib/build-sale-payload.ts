@@ -95,13 +95,25 @@ export function buildSalePayload({
           })),
         }
       : null,
-    items: items.map((item) => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      unitPrice: round2(item.price - item.discount),
-      discount: item.discount,
-      productName: item.name,
-    })),
+    items: items.map((item) => {
+      const surcharge = round2(item.surcharge ?? 0);
+
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        // O acréscimo entra no preço praticado, e NÃO é somado por fora no
+        // servidor: a conferência de total de lá é itens menos desconto, então
+        // mandá-lo nos dois lugares faria a venda ser recusada por total
+        // divergente com o cliente no balcão. A coluna própria abaixo é
+        // auditoria — é o que separa produto de serviço no relatório e o que o
+        // limite de desconto do vendedor desconta da base.
+        unitPrice: round2(item.price - item.discount + surcharge),
+        discount: item.discount,
+        surcharge,
+        surchargeReason: surcharge > 0 ? (item.surchargeReason?.trim() ?? "") : null,
+        productName: item.name,
+      };
+    }),
     payments:
       totals.total === 0
         ? []

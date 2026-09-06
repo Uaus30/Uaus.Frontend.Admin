@@ -415,4 +415,102 @@ describe("buildReceiptHtml", () => {
     expect(html).not.toContain('class="row item-discount"');
     expect(html).toContain(`1 UN x ${formatReceiptCurrency(0.25)}`);
   });
+
+  it("imprime o preço do produto, o acréscimo e a justificativa quando houve acréscimo", () => {
+    // Pendrive de R$ 25,00 de tabela vendido a R$ 30,00 por causa da gravação.
+    // Sem tirar o acréscimo da linha da quantidade, o cupom diria que a tabela
+    // do pendrive é R$ 30,00 — e o cliente não teria de onde ver os R$ 5,00.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [
+          {
+            name: "MINI PENDRIVE USB 16GB",
+            quantity: 1,
+            unitPrice: 30,
+            unitSurcharge: 5,
+            surchargeReason: "Gravação de músicas",
+          },
+        ],
+        payments: [{ name: "Dinheiro", amount: 30 }],
+        total: 30,
+      }),
+    );
+
+    expect(html).toContain(`1 UN x ${formatReceiptCurrency(25)}`);
+    expect(html).toContain(
+      `<div class="row item-surcharge"><span class="row-label">Acréscimo</span><span class="row-value">+ ${formatReceiptCurrency(5)}</span></div>`,
+    );
+    expect(html).toContain('<div class="item-surcharge-reason">Gravação de músicas</div>');
+    // O total da linha continua sendo o que o cliente pagou.
+    expect(html).toContain(`<span class="row-value">${formatReceiptCurrency(30)}</span>`);
+  });
+
+  it("multiplica o acréscimo unitário pela quantidade na linha do item", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [
+          {
+            name: "MINI PENDRIVE USB 16GB",
+            quantity: 2,
+            unitPrice: 30,
+            unitSurcharge: 5,
+            surchargeReason: "Gravação de músicas",
+          },
+        ],
+        payments: [{ name: "Dinheiro", amount: 60 }],
+        total: 60,
+      }),
+    );
+
+    expect(html).toContain(`2 UN x ${formatReceiptCurrency(25)}`);
+    expect(html).toContain(`+ ${formatReceiptCurrency(10)}`);
+  });
+
+  it("imprime acréscimo e desconto na mesma linha de item, nessa ordem", () => {
+    // Tabela R$ 25,00 + R$ 5,00 de gravação − R$ 2,00 de desconto = R$ 28,00.
+    // A ordem importa: é lendo de cima para baixo que a coluna da direita fecha.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [
+          {
+            name: "MINI PENDRIVE USB 16GB",
+            quantity: 1,
+            unitPrice: 28,
+            unitDiscount: 2,
+            unitSurcharge: 5,
+            surchargeReason: "Gravação de músicas",
+          },
+        ],
+        payments: [{ name: "Dinheiro", amount: 28 }],
+        total: 28,
+      }),
+    );
+
+    expect(html).toContain(`1 UN x ${formatReceiptCurrency(25)}`);
+    // As linhas RENDERIZADAS, e não a classe: o CSS também cita as duas, e lá
+    // elas aparecem na ordem em que a folha de estilo as declara.
+    expect(html.indexOf('<div class="row item-surcharge">')).toBeLessThan(
+      html.indexOf('<div class="row item-discount">'),
+    );
+    expect(html).toContain(`+ ${formatReceiptCurrency(5)}`);
+    expect(html).toContain(`- ${formatReceiptCurrency(2)}`);
+  });
+
+  it("não imprime linha de acréscimo no item sem acréscimo", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({ items: [{ name: "CHICLETE", quantity: 2, unitPrice: 0.25 }] }),
+    );
+
+    expect(html).not.toContain('class="row item-surcharge"');
+    expect(html).toContain(`2 UN x ${formatReceiptCurrency(0.25)}`);
+  });
+
+  it("não deixa acréscimo negativo virar desconto", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({ items: [{ name: "CHICLETE", quantity: 1, unitPrice: 0.25, unitSurcharge: -1 }] }),
+    );
+
+    expect(html).not.toContain('class="row item-surcharge"');
+    expect(html).toContain(`1 UN x ${formatReceiptCurrency(0.25)}`);
+  });
 });

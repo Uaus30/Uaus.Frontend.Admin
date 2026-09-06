@@ -72,6 +72,10 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
         price: product.price,
         quantity: 1,
         discount: 0,
+        // Acréscimo é ato deliberado do operador na linha do carrinho; produto
+        // bipado entra sempre a preço de tabela.
+        surcharge: 0,
+        surchargeReason: "",
         availableStock: product.stock,
         imageUrl: product.imageUrl,
       });

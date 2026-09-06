@@ -237,4 +237,102 @@ describe("buildSalePayload", () => {
     expect(payload.payments[0].amount).toBe(33.33);
     expect(payload.payments[0].transactionFee).toBe(1.67);
   });
+
+  it("deve embutir o acréscimo no preço praticado E mandá-lo em campo próprio", () => {
+    // Pendrive de R$ 25,00 com R$ 5,00 de gravação. O servidor confere itens
+    // menos desconto contra o total, e NÃO soma o acréscimo por fora: mandar só
+    // o campo, sem embutir no preço, faria a venda ser recusada por total
+    // divergente; embutir sem o campo perderia o acréscimo para sempre.
+    const payload = buildSalePayload({
+      sessionId: null,
+      consumer: CONSUMER,
+      globalDiscount: 0,
+      items: [
+        {
+          ...ITEM_30,
+          price: 25,
+          surcharge: 5,
+          surchargeReason: "  Gravação de músicas  ",
+        },
+      ],
+      payments: [{ paymentMethodId: 1, amount: 30, installmentNumber: 1 }],
+      paymentMethods: [],
+      paymentMethodNameById: { 1: "Dinheiro" },
+    });
+
+    expect(payload.items[0].unitPrice).toBe(30);
+    expect(payload.items[0].surcharge).toBe(5);
+    expect(payload.items[0].surchargeReason).toBe("Gravação de músicas");
+  });
+
+  it("deve reconstruir o preço de tabela com desconto e acréscimo no mesmo item", () => {
+    // Tabela 25, acréscimo 5, desconto 2 → praticado 28.
+    // O contrato: unitPrice + discount − surcharge devolve os 25 de tabela.
+    const payload = buildSalePayload({
+      sessionId: null,
+      consumer: CONSUMER,
+      globalDiscount: 0,
+      items: [
+        {
+          ...ITEM_30,
+          price: 25,
+          discount: 2,
+          surcharge: 5,
+          surchargeReason: "Gravação de músicas",
+        },
+      ],
+      payments: [{ paymentMethodId: 1, amount: 28, installmentNumber: 1 }],
+      paymentMethods: [],
+      paymentMethodNameById: { 1: "Dinheiro" },
+    });
+
+    const item = payload.items[0];
+    expect(item.unitPrice).toBe(28);
+    expect(item.unitPrice + (item.discount ?? 0) - (item.surcharge ?? 0)).toBe(25);
+  });
+
+  it("deve mandar acréscimo zero e motivo nulo no item sem acréscimo", () => {
+    // O servidor exige o par: acréscimo zero com motivo preenchido derruba o
+    // CHECK do banco numa venda já paga.
+    const payload = buildSalePayload({
+      sessionId: null,
+      consumer: CONSUMER,
+      globalDiscount: 0,
+      items: [ITEM],
+      payments: [{ paymentMethodId: 1, amount: 16, installmentNumber: 1 }],
+      paymentMethods: [],
+      paymentMethodNameById: { 1: "Dinheiro" },
+    });
+
+    expect(payload.items[0].surcharge).toBe(0);
+    expect(payload.items[0].surchargeReason).toBeNull();
+  });
+
+  it("deve ratear o cupom sobre o preço COM acréscimo", () => {
+    // Cupom de 10% sobre um pendrive de R$ 25,00 gravado (R$ 30,00) abate
+    // R$ 3,00, não R$ 2,50: o cliente pagou 30, e é sobre 30 que o panfleto
+    // prometeu 10%. Calcular sobre o preço do produto faria o comprovante
+    // discordar da conta do servidor.
+    const payload = buildSalePayload({
+      sessionId: null,
+      consumer: CONSUMER,
+      globalDiscount: 0,
+      items: [
+        {
+          ...ITEM_30,
+          price: 25,
+          surcharge: 5,
+          surchargeReason: "Gravação de músicas",
+        },
+      ],
+      payments: [{ paymentMethodId: 1, amount: 27, installmentNumber: 1 }],
+      paymentMethods: [],
+      paymentMethodNameById: { 1: "Dinheiro" },
+      coupon: CUPOM_10,
+    });
+
+    expect(payload.coupon?.baseAmount).toBe(30);
+    expect(payload.coupon?.discountAmount).toBe(3);
+    expect(payload.discount).toBe(3);
+  });
 });

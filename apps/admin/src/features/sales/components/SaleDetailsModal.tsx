@@ -34,10 +34,20 @@ type SaleDetailsItem = {
   productName?: string | null;
   product?: { name?: string | null } | null;
   quantity: number;
-  /** Preço unitário praticado, já líquido do desconto do item. */
+  /** Preço unitário praticado, já líquido do desconto e já com o acréscimo do item. */
   unitPrice: number;
-  /** Desconto unitário do item, em reais; o preço de tabela era `unitPrice + discount`. */
+  /**
+   * Desconto unitário do item, em reais; o preço de tabela era
+   * `unitPrice + discount − surcharge`.
+   */
   discount?: number | null;
+  /**
+   * Acréscimo unitário do item — o serviço cobrado junto do produto. Já está
+   * dentro de `unitPrice`.
+   */
+  surcharge?: number | null;
+  /** Justificativa do acréscimo, como o operador a escreveu no balcão. */
+  surchargeReason?: string | null;
   subtotal: number;
   unitCost?: number | null;
   totalCost?: number | null;
@@ -81,6 +91,18 @@ export function SaleDetailsModal({
    */
   const grossSubtotal = round2(
     items.reduce((sum, item) => sum + (item.unitPrice + Math.max(0, item.discount ?? 0)) * item.quantity, 0),
+  );
+
+  /**
+   * Quanto da venda foi serviço cobrado na linha, e não produto.
+   *
+   * Sai em linha própria no rodapé porque ele já está dentro do subtotal bruto
+   * acima — a linha não soma nem subtrai nada, ela DISCRIMINA. Sem ela, o
+   * acréscimo se confunde com preço de produto exatamente como se confundiria se
+   * nunca tivesse ganhado coluna.
+   */
+  const surchargeTotal = round2(
+    items.reduce((sum, item) => sum + Math.max(0, item.surcharge ?? 0) * item.quantity, 0),
   );
   const totalCost = items.reduce((sum, item) => sum + (item.totalCost ?? 0), 0);
   const hasCost = items.some((item) => item.totalCost != null);
@@ -189,6 +211,16 @@ export function SaleDetailsModal({
                       <tr key={item.id} className="border-b border-border/50 last:border-0">
                         <td className="px-4 py-3 font-medium">
                           {item.productName || item.product?.name || `Produto #${item.productId}`}
+                          {/* Âmbar, o "atenção" da casa: a linha tem cobrança
+                              além do produto. Nunca cor sozinha — o rótulo e o
+                              motivo escrito pelo operador vêm junto, que é o que
+                              responde "por que essa venda deu R$ 5,00 a mais". */}
+                          {(item.surcharge ?? 0) > 0 && (
+                            <p className="text-[11px] text-amber-500">
+                              + {formatCurrency(round2((item.surcharge ?? 0) * item.quantity))} ·{" "}
+                              {item.surchargeReason || "Acréscimo sem justificativa"}
+                            </p>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">{item.quantity}</td>
                         <td className="px-4 py-3 text-right">
@@ -223,6 +255,15 @@ export function SaleDetailsModal({
                   {formatCurrency(items.length > 0 ? grossSubtotal : saleToView.total + saleToView.discount)}
                 </span>
               </div>
+              {/* DISCRIMINA, não soma: o acréscimo já está dentro do subtotal
+                  logo acima. Por isso "dos quais" e não um "+" — um sinal ali
+                  faria a coluna deixar de fechar de cima para baixo. */}
+              {surchargeTotal > 0 && (
+                <div className="flex justify-between text-amber-500">
+                  <span>dos quais acréscimo em itens</span>
+                  <span>{formatCurrency(surchargeTotal)}</span>
+                </div>
+              )}
               {discountTotal > 0 && (
                 <div className="flex justify-between text-destructive">
                   <span>Desconto</span>

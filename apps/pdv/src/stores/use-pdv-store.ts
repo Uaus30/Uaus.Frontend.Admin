@@ -30,7 +30,13 @@ import {
  * repo inteiro importa de `@/stores/use-pdv-store`, e trocar 25 imports para
  * apontar para o arquivo novo seria mexer em tela para não mexer em nada.
  */
-export { EMPTY_CONSUMER, computeCartTotals, couponDiscountFor, toTotalsItems } from "./pdv-cart";
+export {
+  EMPTY_CONSUMER,
+  computeCartTotals,
+  couponDiscountFor,
+  itemListPrice,
+  toTotalsItems,
+} from "./pdv-cart";
 export type { AppliedCoupon, CouponAnswer, HeldSale, PdvConsumer, PdvItem } from "./pdv-cart";
 
 /**
@@ -101,6 +107,11 @@ interface PdvState {
   updateQuantity: (id: string, quantity: number) => void;
   /** Aplica desconto por unidade na linha; zero restaura o preço de tabela. */
   applyItemDiscount: (id: string, discount: number) => void;
+  /**
+   * Aplica acréscimo por unidade na linha, com a justificativa que sai no cupom.
+   * Zero remove o acréscimo e descarta a justificativa junto.
+   */
+  applyItemSurcharge: (id: string, surcharge: number, reason: string) => void;
   /** Aplica desconto sobre o total da venda. */
   applyGlobalDiscount: (discount: number) => void;
   /**
@@ -255,6 +266,23 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   applyItemDiscount: (id, discount) =>
     set((state) => ({
       items: state.items.map((i) => (i.id === id ? { ...i, discount } : i)),
+    })),
+
+  // Valor e justificativa andam juntos, e por isso são zerados juntos: o
+  // servidor recusa acréscimo sem motivo, e uma justificativa que sobrevive ao
+  // acréscimo removido iria para o banco sozinha e derrubaria o CHECK
+  // ck_sale_items_surcharge_com_motivo numa venda já paga.
+  applyItemSurcharge: (id, surcharge, reason) =>
+    set((state) => ({
+      items: state.items.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              surcharge: surcharge > 0 ? surcharge : 0,
+              surchargeReason: surcharge > 0 ? reason.trim() : "",
+            }
+          : i,
+      ),
     })),
 
   applyGlobalDiscount: (discount) => set(() => ({ globalDiscount: discount })),

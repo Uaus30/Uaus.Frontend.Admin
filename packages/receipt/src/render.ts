@@ -54,8 +54,30 @@ export function buildReceiptHtml(data: ReceiptData): string {
       // R$ 18,00 — e sem linha nenhuma, que era o caso, o desconto sumia do
       // papel. Negativo vira zero: dado corrompido não pode virar acréscimo.
       const unitDiscount = Math.max(0, item.unitDiscount ?? 0);
-      const listUnitPrice = round2(item.unitPrice + unitDiscount);
+
+      // O acréscimo é o serviço cobrado junto do produto e também já está dentro
+      // do `unitPrice`. Tirá-lo aqui é o que faz a linha da quantidade mostrar o
+      // preço do PRODUTO — sem isso, o pendrive de R$ 25,00 vendido a R$ 30,00
+      // sairia como se a tabela dele fosse R$ 30,00, e o cliente não teria como
+      // conferir de onde vieram os R$ 5,00.
+      const unitSurcharge = Math.max(0, item.unitSurcharge ?? 0);
+      const listUnitPrice = round2(item.unitPrice + unitDiscount - unitSurcharge);
       const breakdown = `${formatReceiptQuantity(item.quantity)} ${escapeHtml(item.unit || "UN")} x ${formatReceiptCurrency(listUnitPrice)}`;
+
+      // Acréscimo antes do desconto: é a ordem em que os dois compõem o preço a
+      // partir da tabela (25 + 5 − 2 = 28), e é assim que a coluna da direita
+      // fecha lendo de cima para baixo.
+      const surchargeReason = item.surchargeReason?.trim();
+      const surchargeRow =
+        unitSurcharge > 0
+          ? row(
+              "Acréscimo",
+              `+ ${formatReceiptCurrency(round2(unitSurcharge * item.quantity))}`,
+              "item-surcharge",
+            ) +
+            (surchargeReason ? `<div class="item-surcharge-reason">${escapeHtml(surchargeReason)}</div>` : "")
+          : "";
+
       const discountRow =
         unitDiscount > 0
           ? row(
@@ -77,6 +99,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
           ${barcodeLine}
           ${row(escapeHtml(item.name), total, "item-head")}
           <div class="item-breakdown">${breakdown}</div>
+          ${surchargeRow}
           ${discountRow}
         </div>`;
     })

@@ -166,6 +166,16 @@ export interface PendingSaleItem {
    * campo existir; leia sempre com `?? 0`.
    */
   discount?: number;
+  /**
+   * Acréscimo unitário cobrado, em reais — o serviço vendido junto do produto.
+   *
+   * Já está dentro de `unitPrice`; vai separado pelo mesmo motivo do desconto, e
+   * é opcional pelo mesmo motivo também: as vendas enfileiradas antes deste
+   * campo existir sobrevivem na base local e sobem sem ele. Leia com `?? 0`.
+   */
+  surcharge?: number;
+  /** Justificativa do acréscimo, impressa no cupom. Ausente quando não houve. */
+  surchargeReason?: string | null;
   /** Nome do produto no momento da venda, para o cupom e a lista de pendências. */
   productName: string;
 }

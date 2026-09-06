@@ -241,7 +241,9 @@ describe("syncPendingSales", () => {
     const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
     // Os nomes de produto e forma de pagamento são só da fila local; enviá-los
     // faria o backend recusar o corpo.
-    expect(body.sales[0].items).toEqual([{ productId: 1, quantity: 2, unitPrice: 25, discount: 0 }]);
+    expect(body.sales[0].items).toEqual([
+      { productId: 1, quantity: 2, unitPrice: 25, discount: 0, surcharge: 0, surchargeReason: null },
+    ]);
     expect(body.sales[0]).toMatchObject({ clientReference: "ref-1", cashRegisterSessionId: 7 });
   });
 

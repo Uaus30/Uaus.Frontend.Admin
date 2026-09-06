@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button, Input, useToast } from "@workspace/ui";
 import { computeDiscount, formatCurrency, parseAmount } from "@workspace/core";
-import { usePdvStore } from "@/stores/use-pdv-store";
+import { itemListPrice, usePdvStore } from "@/stores/use-pdv-store";
 import { scrollIntoViewVertically } from "@/lib/scroll-into-view";
 import { PdvCartItemImage } from "./pdv-cart-item-image";
+import { PdvCartItemSurcharge } from "./pdv-cart-item-surcharge";
 import type { PdvItem } from "../types";
 
 type PdvCartItemProps = {
@@ -20,6 +21,11 @@ type PdvCartItemProps = {
  * vira desconto do item. Nunca o contrário: um preço acima do de tabela é
  * recusado, senão a venda gravaria "desconto negativo" e o relatório de
  * descontos deixaria de fechar.
+ *
+ * Cobrar A MAIS tem caminho próprio — o acréscimo, em `PdvCartItemSurcharge`,
+ * com valor e justificativa em coluna separada. Deixá-lo entrar por este campo
+ * obrigaria a derrubar a recusa acima, e aí um R$ 300,00 digitado no lugar de
+ * R$ 30,00 passaria calado.
  *
  * ## O realce do item recém-bipado
  *
@@ -222,13 +228,17 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
 
           <div className="text-right flex flex-col justify-end items-end h-[52px]">
             <div className="flex flex-col">
+              {/* O riscado é o preço ANTES do desconto, e ele inclui o acréscimo:
+                  o desconto foi negociado sobre o que a linha custava de fato.
+                  Riscar só o preço do produto mostraria um abatimento diferente
+                  do que a conta da direita fez. */}
               {item.discount > 0 && (
                 <span className="text-[10px] text-emerald-500 line-through leading-none mb-0.5">
-                  {formatCurrency(item.price * item.quantity)}
+                  {formatCurrency(itemListPrice(item) * item.quantity)}
                 </span>
               )}
               <span className="font-mono font-bold text-primary leading-none">
-                {formatCurrency((item.price - item.discount) * item.quantity)}
+                {formatCurrency((itemListPrice(item) - item.discount) * item.quantity)}
               </span>
             </div>
             {item.discount > 0 ? (
@@ -252,6 +262,10 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
             )}
           </div>
         </div>
+
+        {/* Linha inteira, abaixo de quantidade/preço/total: o acréscimo carrega
+            uma justificativa em texto, que não cabe numa das três colunas. */}
+        <PdvCartItemSurcharge item={item} />
       </div>
     </motion.div>
   );

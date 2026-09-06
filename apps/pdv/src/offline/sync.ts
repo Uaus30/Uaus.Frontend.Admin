@@ -84,6 +84,10 @@ function toRequestBody(sale: PendingSale) {
       // Não houve troca de versão da base — nada mudou no esquema, e subir a
       // versão apagaria as stores de catálogo de todo caixa na próxima abertura.
       discount: item.discount ?? 0,
+      // O acréscimo entrou pelo mesmo caminho e pela mesma razão: campo novo num
+      // objeto já gravado não é mudança de esquema do IndexedDB.
+      surcharge: item.surcharge ?? 0,
+      surchargeReason: (item.surcharge ?? 0) > 0 ? (item.surchargeReason ?? null) : null,
     })),
     payments: sale.payments.map((payment) => ({
       paymentMethodId: payment.paymentMethodId,

@@ -32,6 +32,24 @@ export interface PdvItem {
   quantity: number;
   /** Desconto em R$ por unidade. */
   discount: number;
+  /**
+   * Acréscimo em R$ por unidade — o serviço cobrado junto do produto, como
+   * gravar músicas no pendrive.
+   *
+   * Unitário como o desconto, e pelo mesmo motivo: dois pendrives gravados
+   * custam R$ 5,00 a mais CADA. É somado ao preço de tabela na hora de calcular
+   * o total (ver {@link toTotalsItems}), e vai ao servidor em coluna própria
+   * para o acréscimo não desaparecer dentro do preço praticado.
+   *
+   * Opcional na leitura: as vendas pausadas no `localStorage` antes desta
+   * feature voltam sem o campo.
+   */
+  surcharge?: number;
+  /**
+   * Justificativa do acréscimo, escrita pelo operador ("Gravação de músicas").
+   * Sai impressa no cupom. Vazia quando não há acréscimo.
+   */
+  surchargeReason?: string;
   /** Estoque disponível no momento em que o item entrou no carrinho. */
   availableStock: number;
   /**
@@ -123,6 +141,21 @@ export interface HeldSale {
 }
 
 /**
+ * Preço de tabela da LINHA: o do produto mais o acréscimo cobrado nela.
+ *
+ * O acréscimo entra aqui, e não como um quarto termo em `computeSaleTotals`,
+ * porque para esta venda ele É preço — o pendrive gravado custa R$ 30,00, e é
+ * sobre R$ 30,00 que incidem o desconto da linha, o desconto global e o cupom.
+ * Somá-lo por fora, depois dos abatimentos, daria um cupom de 10% calculado
+ * sobre uma base menor que a cobrada, e o comprovante do cliente discordaria da
+ * conta do servidor.
+ *
+ * O que a coluna `surcharge` guarda no banco continua sendo só auditoria: ela
+ * não muda nenhum total, apenas registra quanto daquele preço foi serviço.
+ */
+export const itemListPrice = (item: PdvItem): number => round2(item.price + (item.surcharge ?? 0));
+
+/**
  * Traduz o carrinho para o formato que `computeSaleTotals` espera.
  *
  * A conta em si mora no `@workspace/core` para o total exibido aqui ser
@@ -130,7 +163,7 @@ export interface HeldSale {
  */
 export const toTotalsItems = (items: PdvItem[]): SaleItemForTotals[] =>
   items.map((item) => ({
-    unitPrice: item.price,
+    unitPrice: itemListPrice(item),
     quantity: item.quantity,
     unitDiscount: item.discount,
   }));

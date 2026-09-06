@@ -60,6 +60,24 @@ export interface ReceiptItem {
    * Ausente ou zero, a linha sai como sempre saiu.
    */
   unitDiscount?: number;
+  /**
+   * Acréscimo cobrado POR UNIDADE, em reais, já embutido em `unitPrice` — o
+   * serviço vendido junto do produto, como gravar músicas no pendrive.
+   *
+   * Espelho de `unitDiscount` com o sinal trocado: com os dois, o preço de
+   * tabela impresso na linha da quantidade é
+   * `unitPrice + unitDiscount - unitSurcharge`. O pendrive de R$ 25,00 vendido a
+   * R$ 30,00 sai como "1 UN x R$ 25,00" seguido de "Acréscimo + R$ 5,00" — que é
+   * o que o cliente confere quando pergunta por que deu R$ 30,00.
+   *
+   * Ausente ou zero, a linha sai como sempre saiu.
+   */
+  unitSurcharge?: number;
+  /**
+   * Justificativa do acréscimo, impressa recuada logo abaixo dele. Sem ela o
+   * cupom mostraria um valor a mais sem dizer do que se trata.
+   */
+  surchargeReason?: string | null;
   /** Unidade de medida exibida ao lado da quantidade. */
   unit?: string;
   /**

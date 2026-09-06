@@ -65,7 +65,15 @@ describe("buildReceiptFromSale", () => {
     // O item da venda da API não carrega código de barras, então ele fica nulo
     // e a linha do código não é impressa.
     expect(receipt.items).toEqual([
-      { name: "CHICLETE", quantity: 2, unitPrice: 6, unitDiscount: 0, barcode: null },
+      {
+        name: "CHICLETE",
+        quantity: 2,
+        unitPrice: 6,
+        unitDiscount: 0,
+        unitSurcharge: 0,
+        surchargeReason: null,
+        barcode: null,
+      },
     ]);
   });
 
@@ -274,8 +282,46 @@ describe("buildReceiptFromSale", () => {
       quantity: 1,
       unitPrice: 20,
       unitDiscount: 2,
+      unitSurcharge: 0,
+      surchargeReason: null,
       barcode: null,
     });
+  });
+
+  it("repassa o acréscimo do item e a justificativa para a linha do cupom", () => {
+    // Sem isso a segunda via mostraria o pendrive como se a tabela dele fosse o
+    // preço com a gravação embutida — e é a segunda via que o cliente traz de
+    // volta ao balcão para reclamar.
+    const receipt = buildReceiptFromSale(makeSale({ total: 30 }), [
+      {
+        productId: 1023,
+        productName: "MINI PENDRIVE USB 16GB",
+        quantity: 1,
+        unitPrice: 30,
+        surcharge: 5,
+        surchargeReason: "Gravação de músicas",
+      },
+    ]);
+
+    expect(receipt.items[0]).toEqual({
+      name: "MINI PENDRIVE USB 16GB",
+      quantity: 1,
+      unitPrice: 30,
+      unitDiscount: 0,
+      unitSurcharge: 5,
+      surchargeReason: "Gravação de músicas",
+      barcode: null,
+    });
+  });
+
+  it("trata acréscimo de item ausente ou negativo como zero", () => {
+    const receipt = buildReceiptFromSale(makeSale(), [
+      { productId: 7, productName: "CHICLETE", quantity: 1, unitPrice: 6 },
+      { productId: 8, productName: "BALA", quantity: 1, unitPrice: 4, surcharge: -3 },
+    ]);
+
+    expect(receipt.items[0].unitSurcharge).toBe(0);
+    expect(receipt.items[1].unitSurcharge).toBe(0);
   });
 
   it("trata desconto de item ausente ou negativo como zero", () => {
