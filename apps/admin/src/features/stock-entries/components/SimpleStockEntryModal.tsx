@@ -118,7 +118,7 @@ export function SimpleStockEntryModal({
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase">
-                Nº da Nota Fiscal / Identificador
+                Nº da Nota Fiscal
               </label>
               <Input
                 placeholder="Ex: NF-1234"
