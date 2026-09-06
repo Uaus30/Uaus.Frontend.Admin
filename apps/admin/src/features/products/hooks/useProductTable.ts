@@ -98,20 +98,18 @@ export function useProductTable() {
     refetchOnWindowFocus: false,
   });
 
-  const departments = useMemo(
-    () => [...rawDepartments].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    [rawDepartments],
+  // Sem `sort` aqui: departamentos, categorias e status já chegam em ordem
+  // alfabética da FONTE (`use-catalog` e `getEnumOptions`), que é onde a regra
+  // vale para todos os selects do admin. O que sobrou é o filtro por
+  // departamento, que é desta tela.
+  const departments = rawDepartments;
+
+  const categories = useMemo(
+    () => (departmentId ? rawCategories.filter((c) => c.departmentId === departmentId) : rawCategories),
+    [rawCategories, departmentId],
   );
 
-  const categories = useMemo(() => {
-    const list = departmentId ? rawCategories.filter((c) => c.departmentId === departmentId) : rawCategories;
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  }, [rawCategories, departmentId]);
-
-  const statusOptions = useMemo(
-    () => [...rawStatusOptions].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    [rawStatusOptions],
-  );
+  const statusOptions = rawStatusOptions;
 
   const handleSetDepartmentId = (newDeptId?: number) => {
     setDepartmentId(newDeptId);

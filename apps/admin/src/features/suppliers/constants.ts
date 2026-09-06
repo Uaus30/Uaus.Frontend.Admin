@@ -38,8 +38,8 @@ export const AVATAR_COLORS = [
 export const UF_LIST = [
   "AC",
   "AL",
-  "AP",
   "AM",
+  "AP",
   "BA",
   "CE",
   "DF",

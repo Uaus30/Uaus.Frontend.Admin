@@ -6,7 +6,7 @@ import { getAllImages, getAllProductImages } from "@/services/images.service";
 import { getAllProductGroups, getAllProductTags, getAllProducts } from "@/services/products.service";
 import { getAllSuppliers } from "@/services/suppliers.service";
 import { getAllTags } from "@/services/tags.service";
-import { orderSupplierOptions } from "@/lib/supplier-options";
+import { orderCatalogByName, orderSupplierOptions } from "@/lib/select-options";
 
 /**
  * Catálogos completos, com UMA chave de cache por recurso.
@@ -86,10 +86,20 @@ interface CatalogOptions {
   enabled?: boolean;
 }
 
+/**
+ * Catálogos em ordem alfabética, na FONTE.
+ *
+ * Todo select do admin mostra os itens em ordem alfabética (ver
+ * `lib/select-options.ts`). Ordenar aqui, e não em cada tela, é o que faz a
+ * regra valer para as trinta e seis telas com select — inclusive a próxima.
+ * O `select` do React Query recebe uma função de MÓDULO de propósito: uma
+ * função inline muda de identidade a cada render e refaria a lista sempre.
+ */
 export function useAllDepartments(options?: CatalogOptions) {
   return useQuery({
     queryKey: CATALOG_KEYS.departments,
     queryFn: () => getAllDepartments(),
+    select: orderCatalogByName,
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });
@@ -99,6 +109,7 @@ export function useAllCategories(options?: CatalogOptions) {
   return useQuery({
     queryKey: CATALOG_KEYS.categories,
     queryFn: () => getAllCategories(),
+    select: orderCatalogByName,
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });
@@ -108,6 +119,7 @@ export function useAllTags(options?: CatalogOptions) {
   return useQuery({
     queryKey: CATALOG_KEYS.tags,
     queryFn: () => getAllTags(),
+    select: orderCatalogByName,
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });
@@ -145,6 +157,7 @@ export function useAllCustomers(options?: CatalogOptions) {
   return useQuery({
     queryKey: CATALOG_KEYS.customers,
     queryFn: () => getAllCustomers(),
+    select: orderCatalogByName,
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });
@@ -192,6 +205,7 @@ export function useAllProducts(options?: CatalogOptions) {
   return useQuery({
     queryKey: CATALOG_KEYS.products,
     queryFn: () => getAllProducts(),
+    select: orderCatalogByName,
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });

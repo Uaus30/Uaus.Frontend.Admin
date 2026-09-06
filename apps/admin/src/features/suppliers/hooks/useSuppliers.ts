@@ -3,6 +3,7 @@ import { useDebounce } from "@workspace/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
+import { orderCatalogByName } from "@/lib/select-options";
 import {
   getGetSuppliersQueryKey,
   useCreateSupplier,
@@ -77,8 +78,10 @@ export function useSuppliers() {
 
   const selectableSupplierStatusOptions = useMemo(
     () =>
-      statusOptions.filter(
-        (item) => item.allowSelect && ["ativo", "inativo"].includes(normalizeStatusName(item.name)),
+      orderCatalogByName(
+        statusOptions.filter(
+          (item) => item.allowSelect && ["ativo", "inativo"].includes(normalizeStatusName(item.name)),
+        ),
       ),
     [statusOptions],
   );

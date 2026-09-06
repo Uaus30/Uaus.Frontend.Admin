@@ -14,6 +14,7 @@ import { buildReceiptFromSale, printReceipt, resolveStoreInfo } from "@workspace
 import { useToast } from "@workspace/ui";
 import { describeApiError, computeSaleTotals, formatCurrency, round2 } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
+import { orderCatalogByName } from "@/lib/select-options";
 import { buildProductCollections } from "@/services/mappers";
 import {
   getAllProducts,
@@ -78,7 +79,13 @@ export function useSales() {
 
   // Query: Carrega formas de pagamento cadastradas
   const { data: dbPaymentMethodsData } = useGetPaymentMethods({ page: 1, size: 100 });
-  const dbPaymentMethods = dbPaymentMethodsData?.data ?? [];
+  // Alfabética, como todo select do admin. O PDV é outra história: lá os
+  // botões seguem a ORDEM DE CADASTRO (regra 12 do README do PDV), porque a
+  // posição de cada forma é decorada pelo operador.
+  const dbPaymentMethods = useMemo(
+    () => orderCatalogByName(dbPaymentMethodsData?.data ?? []),
+    [dbPaymentMethodsData?.data],
+  );
 
   // Query: Identidade da loja para o cabeçalho do cupom reimpresso. Compartilha
   // a COMPANY_SETTINGS_QUERY_KEY com a tela de configurações — salvar lá já
@@ -157,9 +164,11 @@ export function useSales() {
   // Produtos disponíveis com estoque positivo
   const availableProducts = useMemo(
     () =>
-      enrichedProducts.filter(
-        (product) =>
-          product.stock > 0 && enumCode(product.status, PRODUCT_STATUS) !== PRODUCT_STATUS.Inactive,
+      orderCatalogByName(
+        enrichedProducts.filter(
+          (product) =>
+            product.stock > 0 && enumCode(product.status, PRODUCT_STATUS) !== PRODUCT_STATUS.Inactive,
+        ),
       ),
     [enrichedProducts],
   );

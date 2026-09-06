@@ -3,7 +3,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GRADE_TYPE, GRADE_TYPE_LABELS, type GradeTypeCode } from "@workspace/api-client-react";
 
 /** Ordem fixa das opções, a mesma da modal de configuração. */
-const TIPOS_DE_GRADE: GradeTypeCode[] = [GRADE_TYPE.Color, GRADE_TYPE.Size, GRADE_TYPE.Model];
+/** Cor, Modelo, Tamanho — alfabético, como todo select do admin. */
+const TIPOS_DE_GRADE: GradeTypeCode[] = [GRADE_TYPE.Color, GRADE_TYPE.Model, GRADE_TYPE.Size];
 
 type VariationGradeHeaderProps = {
   /** Tipo desta coluna hoje. */

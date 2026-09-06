@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { parseDateInput, useDebounce, useToast } from "@workspace/ui";
 import {
@@ -16,6 +16,7 @@ import {
   type SaveCouponPayload,
 } from "@workspace/api-client-react";
 import { describeApiError, parseAmountOrNull, toDateKey } from "@workspace/core";
+import { orderCatalogByName } from "@/lib/select-options";
 import type { CouponConfirm, CouponForm } from "../types";
 
 /** Itens por página na tabela de cupons. */
@@ -197,7 +198,8 @@ export function useCoupons() {
   // Campanhas do seletor. O rótulo da COLUNA vem de `campaignName`, que já viaja
   // dentro do cupom; esta lista existe só para escolher o vínculo e filtrar.
   const { data: campaignsPage } = useGetCampaigns({ page: 1, limit: CAMPAIGN_OPTIONS_LIMIT });
-  const campaigns = campaignsPage?.data ?? [];
+  // Alfabética, como todo select do admin: a listagem vem por id.
+  const campaigns = useMemo(() => orderCatalogByName(campaignsPage?.data ?? []), [campaignsPage?.data]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<CouponDto | null>(null);

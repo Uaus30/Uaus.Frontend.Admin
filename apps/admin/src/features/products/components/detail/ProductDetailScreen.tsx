@@ -9,6 +9,7 @@ import { buildDisplayBarcode, isFactoryEan, printBarcodeLabel } from "../../lib/
 import { nomeExibidoDaVariacao } from "../../lib/variationMatrix";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
+import { orderCatalogByName } from "@/lib/select-options";
 import { ProductOptionalFields } from "../editor/ProductOptionalFields";
 import { ProductDetailActions } from "./ProductDetailActions";
 import { ProductEditorDialogs } from "./ProductEditorDialogs";
@@ -107,11 +108,18 @@ export function ProductDetailScreen({ editor, initialTab, onRequestClose }: Prod
   /** Variações JÁ GRAVADAS: só elas têm id, e só id tem entrada de estoque. */
   const variationOptions = useMemo(
     () =>
-      variationDrafts
-        .filter((draft): draft is VariationDraft & { id: number } => draft.id != null && draft.id > 0)
-        // Nome COMPOSTO: o seletor precisa distinguir as variações, e `name` é
-        // o do grupo em todas elas.
-        .map((draft) => ({ id: draft.id, name: nomeExibidoDaVariacao(form.productGroupName, draft.values) })),
+      // Alfabético pelo nome composto, como todo select do admin: a ordem de
+      // criação não diz nada a quem procura a variação que chegou.
+      orderCatalogByName(
+        variationDrafts
+          .filter((draft): draft is VariationDraft & { id: number } => draft.id != null && draft.id > 0)
+          // Nome COMPOSTO: o seletor precisa distinguir as variações, e `name`
+          // é o do grupo em todas elas.
+          .map((draft) => ({
+            id: draft.id,
+            name: nomeExibidoDaVariacao(form.productGroupName, draft.values),
+          })),
+      ),
     [variationDrafts, form.productGroupName],
   );
 

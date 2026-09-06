@@ -107,11 +107,14 @@ describe("opções dos selects", () => {
     expect(STOCK_WRITE_OFF_REASON_FILTER_OPTIONS).toContainEqual({ value: "4", label: "Inventário" });
   });
 
-  it("não deve oferecer Inventário ao registrar uma baixa", () => {
+  it("não deve oferecer Inventário ao registrar uma baixa, e lista em ordem alfabética", () => {
+    // A ordem é a regra dos selects do admin (ver `lib/select-options.ts`); o
+    // que este teste protege é a AUSÊNCIA de Inventário, que só a importação
+    // da contagem pode usar.
     expect(SELECTABLE_STOCK_WRITE_OFF_REASON_OPTIONS.map((option) => option.label)).toEqual([
       "Consumo",
-      "Perda",
       "Doação",
+      "Perda",
     ]);
   });
 

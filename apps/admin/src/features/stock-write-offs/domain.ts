@@ -1,3 +1,4 @@
+import { orderByName } from "@/lib/select-options";
 import {
   getStockWriteOff,
   registerStockWriteOff,
@@ -41,9 +42,10 @@ export const STOCK_WRITE_OFF_STATUS_LABEL: Record<number, string> = {
  * Inventário entra aqui — ele não é escolhível ao registrar, mas existe no
  * histórico (a importação da contagem o gera) e precisa ser filtrável.
  */
-export const STOCK_WRITE_OFF_REASON_FILTER_OPTIONS: StockWriteOffSelectOption[] = Object.entries(
-  STOCK_WRITE_OFF_REASON_LABEL,
-).map(([code, label]) => ({ value: code, label }));
+export const STOCK_WRITE_OFF_REASON_FILTER_OPTIONS: StockWriteOffSelectOption[] = orderByName(
+  Object.entries(STOCK_WRITE_OFF_REASON_LABEL).map(([code, label]) => ({ value: code, label })),
+  (option) => option.label,
+);
 
 /**
  * Motivos oferecidos ao registrar uma baixa.
@@ -51,11 +53,13 @@ export const STOCK_WRITE_OFF_REASON_FILTER_OPTIONS: StockWriteOffSelectOption[] 
  * Inventário fica de fora: ele é gerado pela importação da contagem, o único
  * caminho autorizado a baixar acima do saldo em lote.
  */
-export const SELECTABLE_STOCK_WRITE_OFF_REASON_OPTIONS: StockWriteOffSelectOption[] =
+export const SELECTABLE_STOCK_WRITE_OFF_REASON_OPTIONS: StockWriteOffSelectOption[] = orderByName(
   SELECTABLE_STOCK_WRITE_OFF_REASONS.map((code) => ({
     value: String(code),
     label: STOCK_WRITE_OFF_REASON_LABEL[code] ?? String(code),
-  }));
+  })),
+  (option) => option.label,
+);
 
 /** Situações oferecidas no filtro da listagem. */
 export const STOCK_WRITE_OFF_STATUS_OPTIONS: StockWriteOffSelectOption[] = [
