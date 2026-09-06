@@ -22,9 +22,11 @@ type LowStockAlertProps = {
  * não precisa de ação ensina a ser ignorado. Quem define o critério é o
  * backend; a tela não repete a regra nem o número de vendas.
  *
- * O link já leva o filtro de saída (`?vendas=`), para o relatório abrir com a
- * mesma pergunta que o alerta fez. Sem isso a pessoa cairia numa lista de outro
- * critério e teria de reconstruir na mão o que o alerta já sabia.
+ * O link já leva o filtro de saída (`?vendas=`), e o backend trata esse filtro
+ * sozinho como "vende E está acabando" — o mesmo par de condições da contagem.
+ * É o que faz o número do alerta e o tamanho da lista baterem; antes o filtro
+ * abria a consulta sobre o catálogo inteiro, e o alerta dizia doze enquanto a
+ * tela mostrava páginas.
  *
  * É um componente com query, e não uma prop da página, de propósito: ele mora
  * em duas telas (painel e produtos) e as duas mostrariam exatamente o mesmo
@@ -37,10 +39,10 @@ export function LowStockAlert({ variant = "banner" }: LowStockAlertProps) {
 
   if (restock <= 0) return null;
 
-  const texto =
-    restock === 1
-      ? "1 produto com boa saída e pouco estoque"
-      : `${restock} produtos com boa saída e pouco estoque`;
+  // A frase separa as duas condições em vez de colá-las: "boa saída nos últimos
+  // 30 dias" é uma coisa, "pouco estoque" é outra, e a janela pertence só à
+  // primeira. Grudadas, a leitura sugeria que o estoque também era dos 30 dias.
+  const quantos = restock === 1 ? "1 produto" : `${restock} produtos`;
   const destino = lowStockRestockPath(minSales);
 
   if (variant === "compact") {
@@ -51,7 +53,7 @@ export function LowStockAlert({ variant = "banner" }: LowStockAlertProps) {
         className="inline-flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/20"
       >
         <AlertTriangle className="h-4 w-4 shrink-0" />
-        {texto}
+        {quantos} com boa saída e pouco estoque
         <ArrowRight className="h-3.5 w-3.5 shrink-0" />
       </Link>
     );
@@ -66,7 +68,8 @@ export function LowStockAlert({ variant = "banner" }: LowStockAlertProps) {
       <span className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <span>
-          Existem <strong>{texto}</strong> nos últimos 30 dias. Abra o relatório para encaminhar a reposição.
+          Existem <strong>{quantos} com boa saída nos últimos 30 dias</strong> e pouco estoque. Acesse o
+          relatório para visualizar os detalhes.
         </span>
       </span>
       <ArrowRight className="h-4 w-4 shrink-0" />

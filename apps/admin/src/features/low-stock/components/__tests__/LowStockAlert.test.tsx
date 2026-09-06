@@ -28,7 +28,7 @@ describe("LowStockAlert", () => {
     render(<LowStockAlert />);
 
     expect(screen.getByTestId("low-stock-alert").textContent).toContain(
-      "4 produtos com boa saída e pouco estoque",
+      "Existem 4 produtos com boa saída nos últimos 30 dias e pouco estoque",
     );
   });
 
@@ -58,5 +58,16 @@ describe("LowStockAlert", () => {
     expect(screen.getByTestId("low-stock-alert").textContent).toContain(
       "1 produto com boa saída e pouco estoque",
     );
+  });
+
+  it("a janela de 30 dias qualifica a SAIDA, nao o estoque", () => {
+    // Grudadas, as duas condicoes liam como se o estoque tambem fosse dos 30
+    // dias. Separadas, cada uma diz o que e.
+    givenSummary({ restock: 7 });
+    render(<LowStockAlert />);
+
+    const texto = screen.getByTestId("low-stock-alert").textContent ?? "";
+    expect(texto).toContain("boa saída nos últimos 30 dias e pouco estoque");
+    expect(texto).toContain("Acesse o relatório para visualizar os detalhes");
   });
 });

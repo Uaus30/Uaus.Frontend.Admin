@@ -21,11 +21,12 @@ nas entradas de estoque.
   filtro deixaria de fora justamente os produtos sem controle de estoque, que
   são os que o operador quer varrer. Vazio, zero e lixo digitado voltam ao
   padrão.
-- **Filtro "vendeu ao menos N em 30d" (06/09/2026).** Mesma regra e mesmo
-  motivo: ignora o estoque mínimo. A pergunta que ele responde — "o que está
-  acabando e TEM saída?" — só faz sentido alcançando os produtos sem controle
-  de estoque. Combinado com o teto de saldo, é a varredura completa: pouco
-  estoque **e** giro.
+- **Filtro "vendeu ao menos N em 30d" (06/09/2026).** Sozinho, ele mantém a
+  pergunta "quem está com pouco estoque?" na definição do alerta — abaixo do
+  próprio mínimo, ou abaixo do teto para quem não tem mínimo. Um relatório de
+  estoque baixo que lista produto com duzentas unidades só porque ele vende não
+  é relatório de estoque baixo. **Com o teto de saldo digitado, quem manda é o
+  número do operador**, e aí o mínimo configurado sai da conta.
 - **O relatório não guarda estado por item (06/09/2026).** Não existe
   "resolvido", nem histórico do que já foi tratado, nem a flag "mostrar
   resolvidos". Quem registra que a reposição foi **encaminhada** é a compra;
@@ -62,8 +63,11 @@ nas entradas de estoque.
     tela não os repete — o mínimo de vendas volta na resposta
     (`restockMinSales`) e monta o texto e o link.
   - O link já leva `?vendas=<mínimo>`, e o relatório abre com o campo
-    preenchido e **editável**. Sem isso a pessoa cairia numa lista de outro
-    critério e teria de reconstruir na mão o que o alerta já sabia.
+    preenchido e **editável**. O backend trata esse filtro sozinho como "vende
+    E está acabando" (`LowStockService.IsRunningOut`), o mesmo par de condições
+    da contagem — é o que faz o número do alerta e o tamanho da lista baterem.
+    Antes o filtro abria a consulta sobre o catálogo inteiro: o alerta dizia
+    doze e a tela mostrava páginas, muitas com estoque de sobra.
   - Com zero, o alerta some.
 
 ## Giro do produto (06/09/2026)
