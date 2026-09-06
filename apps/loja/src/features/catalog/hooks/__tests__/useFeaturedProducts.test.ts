@@ -1,7 +1,12 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StorefrontProductDto, UiPagedResult } from "@workspace/api-client-react";
-import { DEFAULT_FEATURED_COUNT, resolveFeaturedCount, useFeaturedProducts } from "../useFeaturedProducts";
+import {
+  DEFAULT_FEATURED_COUNT,
+  MOBILE_FEATURED_COUNT,
+  resolveFeaturedCount,
+  useFeaturedProducts,
+} from "../useFeaturedProducts";
 
 const mocks = vi.hoisted(() => ({
   useGetStorefrontProducts: vi.fn(),
@@ -40,6 +45,33 @@ function givenQueryReturns(overrides: {
 }
 
 /**
+ * Largura da janela para o `useIsMobile` do `@workspace/ui`, que corta em
+ * 768px. O jsdom não implementa `matchMedia`, e o hook assina por ele — sem o
+ * dublê o `subscribe` do `useSyncExternalStore` explode. Mesmo dublê que
+ * `apps/admin/src/components/__tests__/layout.test.tsx` usa.
+ */
+function givenViewportWidth(width: number) {
+  Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: width });
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: width < 768,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+const DESKTOP_WIDTH = 1280;
+const MOBILE_WIDTH = 390;
+
+/**
  * O que estes testes protegem: a faixa de destaques é conteúdo acessório da
  * home. As duas propriedades que não podem regredir são (1) falha e catálogo
  * vazio produzirem o MESMO `isEmpty`, para a seção sumir em vez de mostrar
@@ -67,10 +99,11 @@ describe("useFeaturedProducts", () => {
     mocks.useGetStorefrontProducts.mockReset();
     mocks.useGetStorefrontCompany.mockReset();
     mocks.useGetStorefrontCompany.mockReturnValue({ data: undefined, isLoading: true });
+    givenViewportWidth(DESKTOP_WIDTH);
   });
 
   it("pede uma página só, do tamanho padrão enquanto a configuração não chega", () => {
-    givenQueryReturns({ page: { data: [], page: 1, limit: 20, total: 0, totalPages: 0 } });
+    givenQueryReturns({ page: { data: [], page: 1, limit: 12, total: 0, totalPages: 0 } });
 
     renderHook(() => useFeaturedProducts());
 
@@ -80,12 +113,35 @@ describe("useFeaturedProducts", () => {
   it("pede a quantidade configurada no admin quando ela chega", () => {
     // É a opção "Produtos na seção Novidades" de Admin > Configurações. Viaja
     // no /Storefront/company porque o rodapé já o pede em toda página.
-    mocks.useGetStorefrontCompany.mockReturnValue({ data: { newProductsCount: 12 }, isLoading: false });
-    givenQueryReturns({ page: { data: [], page: 1, limit: 12, total: 0, totalPages: 0 } });
+    mocks.useGetStorefrontCompany.mockReturnValue({ data: { newProductsCount: 20 }, isLoading: false });
+    givenQueryReturns({ page: { data: [], page: 1, limit: 20, total: 0, totalPages: 0 } });
 
     renderHook(() => useFeaturedProducts());
 
-    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: 12 });
+    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: 20 });
+  });
+
+  it("corta em 8 no celular em pé, mesmo com 20 configurados", () => {
+    // O teto existe para a seção não virar seis linhas de rolagem numa grade
+    // de duas colunas. O corte é na REQUISIÇÃO: as fotos que não entram na
+    // tela também não são baixadas no plano de dados do visitante.
+    givenViewportWidth(MOBILE_WIDTH);
+    mocks.useGetStorefrontCompany.mockReturnValue({ data: { newProductsCount: 20 }, isLoading: false });
+    givenQueryReturns({ page: { data: [], page: 1, limit: 8, total: 0, totalPages: 0 } });
+
+    renderHook(() => useFeaturedProducts());
+
+    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: MOBILE_FEATURED_COUNT });
+  });
+
+  it("no celular respeita configuração MENOR que o teto, em vez de inventar cards", () => {
+    givenViewportWidth(MOBILE_WIDTH);
+    mocks.useGetStorefrontCompany.mockReturnValue({ data: { newProductsCount: 4 }, isLoading: false });
+    givenQueryReturns({ page: { data: [], page: 1, limit: 4, total: 0, totalPages: 0 } });
+
+    renderHook(() => useFeaturedProducts());
+
+    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: 4 });
   });
 
   it("entrega os produtos sem repassar o total do catálogo", () => {

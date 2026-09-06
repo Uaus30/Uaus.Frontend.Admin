@@ -45,6 +45,21 @@ consome a API **como visitante anônimo**.
 - **Filtro que leva a lugar nenhum não é oferecido.** Departamento sem grupo
   visível não entra na árvore; categoria idem.
 
+- **A seção "Novidades" tem dois números, e o do celular é teto (06/09/2026).**
+  `useFeaturedProducts` parte do que a loja configurou em Admin > Configurações
+  (`DEFAULT_FEATURED_COUNT`, 12, vale só quando a API não manda o campo) e, no
+  celular em pé (abaixo de 768px, o `useIsMobile` do `@workspace/ui`), aplica
+  `Math.min` com `MOBILE_FEATURED_COUNT` (8). É `min` e não substituição: quem
+  configurou 5 continua com 5 — o teto encurta a rolagem, não inventa card. O
+  corte acontece no `size` da REQUISIÇÃO, então no celular as fotos que não
+  cabem também não são baixadas. Motivo: a grade tem duas colunas abaixo de
+  `lg`, e 12 cards viram seis linhas de rolagem numa seção que é só a vitrina
+  de entrada da home.
+  O `DEFAULT_FEATURED_COUNT` **diverge de propósito** do padrão do backend
+  (`CompanySettings.DefaultSiteNewProductsCount`, ainda 20): o dono pediu 12 e
+  escolheu ajustar pelo admin. O padrão do front só entra quando a API não
+  manda o campo — hoje, a API de produção, que é anterior à configuração.
+
 - **O site não publica o tamanho do catálogo (06/09/2026).** Decisão do dono:
   saber quantos produtos a loja tem não ajuda ninguém a comprar e faz a vitrine
   parecer pequena. Saíram os dois lugares que imprimiam o número — o "Ver todos

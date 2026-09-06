@@ -17,10 +17,17 @@ regras abaixo.
   `useFeaturedProducts` da feature `catalog`, que é a dona dos dados de
   produto. O card é o mesmo `ProductCard` da vitrine — preço, selo e link de
   detalhe iguais, por construção. Quantos produtos aparecem é configurável em
-  Admin > Configurações (padrão 20, do mais novo para o mais antigo); até
-  05/09/2026 eram 8 fixos. O link do canto diz só "Ver todos os produtos": o
-  tamanho do catálogo não vai para a tela — a regra e o motivo estão no README
-  do `catalog`.
+  Admin > Configurações (do mais novo para o mais antigo); até 05/09/2026 eram
+  8 fixos. **No celular em pé o hook corta em 8** de qualquer jeito — ver
+  `MOBILE_FEATURED_COUNT` no README do `catalog`. Os links dizem só "Ver todos
+  os produtos": o tamanho do catálogo não vai para a tela — a regra e o motivo
+  estão no README do `catalog`.
+- **O link para a vitrine aparece duas vezes, de propósito.** Um no alto da
+  seção, para quem já decidiu antes de olhar os cards, e um centralizado
+  DEPOIS da grade (06/09/2026, pedido do dono), para quem rolou até o fim: lá
+  o de cima já saiu da tela e abaixo dos cards só vinha o rodapé. O
+  `AllProductsLink` é o mesmo componente nos dois, com a variação visual vindo
+  por `className` — o de baixo é sólido porque ali ele é a única saída.
   Falha ou catálogo vazio fazem a seção **sumir**, não mostrar erro: destaque é
   conteúdo acessório, e uma caixa de "não foi possível carregar" no meio da
   home dá a impressão de site quebrado por algo que o visitante nem sabia que
