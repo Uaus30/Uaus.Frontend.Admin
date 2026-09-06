@@ -9,28 +9,31 @@ import {
 import { Button } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
-import { DateRangePicker, type DateRange } from "@workspace/ui";
-import { formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
-import { ArrowLeft, CalendarRange, Loader2, Lock } from "lucide-react";
+import { ArrowLeft, Loader2, Lock } from "lucide-react";
 import { ClosingSummary } from "./ClosingSummary";
-import type { FinancialClosingPreviewDto, NewClosingStep } from "../types";
+import { CompetencePicker } from "./CompetencePicker";
+import type { FinancialClosingPreviewDto, MonthOption, NewClosingStep } from "../types";
 
 interface NewClosingDialogProps {
   open: boolean;
   step: NewClosingStep;
-  /** Início do período (`yyyy-MM-dd`). */
-  periodStart: string;
-  /** Fim do período, inclusivo (`yyyy-MM-dd`). */
-  periodEnd: string;
+  /** Ano da competência. */
+  year: number;
+  /** Mês da competência (1–12) ou `null` enquanto ninguém escolheu. */
+  month: number | null;
+  yearOptions: number[];
+  monthOptions: MonthOption[];
+  isLoadingMonths: boolean;
   notes: string;
   preview: FinancialClosingPreviewDto | null;
   isCalculating: boolean;
   isSaving: boolean;
   onClose: () => void;
-  onPeriodChange: (periodStart: string, periodEnd: string) => void;
-  onApplyPreviousMonth: () => void;
+  onYearChange: (year: number) => void;
+  onMonthChange: (month: number) => void;
+  onApplyLastMonth: () => void;
   onCalculatePreview: () => void;
-  onBackToPeriod: () => void;
+  onBackToCompetence: () => void;
   onNotesChange: (notes: string) => void;
   onConfirm: () => void;
 }
@@ -38,98 +41,65 @@ interface NewClosingDialogProps {
 /**
  * NewClosingDialog
  *
- * Diálogo de novo fechamento em dois passos: escolha do período (com atalho
- * "Mês anterior") → prévia calculada no servidor + observações + confirmação.
- * A prévia não persiste nada; ao confirmar, o servidor recalcula e congela.
+ * Diálogo de novo fechamento em dois passos: escolha da competência — mês e ano,
+ * com atalho "Último mês" — → prévia calculada no servidor + observações +
+ * confirmação. A prévia não persiste nada; ao confirmar, o servidor recalcula e
+ * congela.
  */
 export function NewClosingDialog({
   open,
   step,
-  periodStart,
-  periodEnd,
+  year,
+  month,
+  yearOptions,
+  monthOptions,
+  isLoadingMonths,
   notes,
   preview,
   isCalculating,
   isSaving,
   onClose,
-  onPeriodChange,
-  onApplyPreviousMonth,
+  onYearChange,
+  onMonthChange,
+  onApplyLastMonth,
   onCalculatePreview,
-  onBackToPeriod,
+  onBackToCompetence,
   onNotesChange,
   onConfirm,
 }: NewClosingDialogProps) {
-  // O hook trafega as datas como string (yyyy-MM-dd); o calendário trabalha
-  // com Date. A conversão fica na borda, sem mexer no hook.
-  const range: DateRange = {
-    from: parseDateInput(periodStart),
-    to: parseDateInput(periodEnd),
-  };
-
-  /** Aplica o período escolhido no calendário. */
-  function handleRangeChange(newRange: DateRange) {
-    onPeriodChange(formatDateInput(newRange.from), formatDateInput(newRange.to));
-  }
+  const selected = monthOptions.find((option) => option.month === month) ?? null;
+  // Mês fechado só chega aqui pelo atalho "Último mês" (o select o trava): a
+  // prévia fica bloqueada porque a confirmação seria recusada por sobreposição.
+  const canCalculate = selected != null && selected.availability !== "fechado";
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      {/*
-        O calendário abre num portal fora do modal; sem as guardas abaixo, o
-        Radix trataria o clique num dia como interação externa e fecharia o
-        diálogo inteiro.
-      */}
-      <DialogContent
-        className="max-w-3xl max-h-[90vh] overflow-y-auto"
-        onInteractOutside={guardCalendarDismiss}
-        onFocusOutside={guardCalendarDismiss}
-      >
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
             Novo Fechamento Financeiro
           </DialogTitle>
           <DialogDescription>
-            {step === "periodo"
-              ? "Escolha o período a fechar e calcule a prévia — nada é gravado nesse passo."
+            {step === "competencia"
+              ? "Escolha o mês e o ano a fechar e calcule a prévia — nada é gravado nesse passo."
               : "Confira os números calculados no servidor. Ao confirmar, valores e rateio são congelados."}
           </DialogDescription>
         </DialogHeader>
 
-        {step === "periodo" ? (
+        {step === "competencia" ? (
           <>
-            <div className="space-y-4 pt-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="closing-period">Período do fechamento</Label>
-                {/*
-                  Período travado durante o cálculo: mudar as datas com a
-                  prévia em voo confirmaria um período diferente do exibido.
-                */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <DateRangePicker
-                    id="closing-period"
-                    className="w-64"
-                    value={range}
-                    onChange={handleRangeChange}
-                    disabled={isCalculating}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={onApplyPreviousMonth}
-                    disabled={isCalculating}
-                    className="gap-1.5"
-                  >
-                    <CalendarRange className="h-4 w-4" />
-                    Mês anterior
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Recomendado fechar o mês-calendário cheio: os custos fixos entram por competência mensal,
-                  sem pró-rata.
-                </p>
-              </div>
-            </div>
+            <CompetencePicker
+              year={year}
+              month={month}
+              yearOptions={yearOptions}
+              monthOptions={monthOptions}
+              isLoadingMonths={isLoadingMonths}
+              disabled={isCalculating}
+              onYearChange={onYearChange}
+              onMonthChange={onMonthChange}
+              onApplyLastMonth={onApplyLastMonth}
+            />
 
             <DialogFooter>
               <Button variant="outline" onClick={onClose} disabled={isCalculating}>
@@ -137,7 +107,7 @@ export function NewClosingDialog({
               </Button>
               <Button
                 onClick={onCalculatePreview}
-                disabled={isCalculating || !periodStart || !periodEnd}
+                disabled={isCalculating || !canCalculate}
                 className="gap-2"
               >
                 {isCalculating && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -169,7 +139,12 @@ export function NewClosingDialog({
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={onBackToPeriod} disabled={isSaving} className="gap-1.5">
+                <Button
+                  variant="outline"
+                  onClick={onBackToCompetence}
+                  disabled={isSaving}
+                  className="gap-1.5"
+                >
                   <ArrowLeft className="h-4 w-4" />
                   Voltar
                 </Button>

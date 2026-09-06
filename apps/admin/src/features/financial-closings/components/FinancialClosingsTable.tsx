@@ -1,6 +1,7 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@workspace/ui";
 import { Lock } from "lucide-react";
-import { formatCurrency, formatDate, formatShortDate } from "@workspace/core";
+import { formatCurrency, formatDate } from "@workspace/core";
+import { describePeriod } from "../month-selection";
 import type { FinancialClosingDto } from "../types";
 
 interface FinancialClosingsTableProps {
@@ -36,7 +37,7 @@ export function FinancialClosingsTable({ items, isLoading, onRowClick }: Financi
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40">
-            <TableHead>Período</TableHead>
+            <TableHead>Competência</TableHead>
             <TableHead className="text-right">Faturamento</TableHead>
             <TableHead className="text-right">Lucro Bruto</TableHead>
             <TableHead className="text-right">Custos Fixos</TableHead>
@@ -55,9 +56,7 @@ export function FinancialClosingsTable({ items, isLoading, onRowClick }: Financi
               <TableCell className="font-semibold text-foreground">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-primary shrink-0" />
-                  <span>
-                    {formatShortDate(item.periodStart)} — {formatShortDate(item.periodEnd)}
-                  </span>
+                  <span>{describePeriod(item)}</span>
                 </div>
               </TableCell>
               <TableCell className="text-right">{formatCurrency(item.revenue)}</TableCell>

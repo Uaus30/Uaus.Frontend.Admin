@@ -8,12 +8,14 @@ export type {
   FinancialReportFixedCostsDto,
 } from "@workspace/api-client-react";
 
+export type { Competence, MonthAvailability, MonthOption } from "./month-selection";
+
 /**
  * Etapas do diálogo de novo fechamento:
- * - `periodo`: escolha do período + cálculo da prévia (nada é persistido);
+ * - `competencia`: escolha do mês/ano + cálculo da prévia (nada é persistido);
  * - `previa`: conferência dos números calculados no servidor + confirmação.
  */
-export type NewClosingStep = "periodo" | "previa";
+export type NewClosingStep = "competencia" | "previa";
 
 /**
  * Campos financeiros comuns ao fechamento persistido (`FinancialClosingDto`) e

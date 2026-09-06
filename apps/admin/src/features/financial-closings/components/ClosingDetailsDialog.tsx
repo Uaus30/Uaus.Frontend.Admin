@@ -10,7 +10,8 @@ import {
 import { Button } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Loader2, Lock, Trash2 } from "lucide-react";
-import { formatCurrency, formatDate, formatShortDate } from "@workspace/core";
+import { formatCurrency, formatDate } from "@workspace/core";
+import { describePeriod } from "../month-selection";
 import { ClosingSummary } from "./ClosingSummary";
 import type { FinancialClosingDto } from "../types";
 
@@ -61,9 +62,7 @@ export function ClosingDetailsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
-            {closing
-              ? `Fechamento de ${formatShortDate(closing.periodStart)} — ${formatShortDate(closing.periodEnd)}`
-              : "Fechamento Financeiro"}
+            {closing ? `Fechamento de ${describePeriod(closing)}` : "Fechamento Financeiro"}
           </DialogTitle>
           <DialogDescription>
             Números e rateio congelados na confirmação — alterações posteriores em sócios ou custos fixos não
@@ -113,7 +112,7 @@ export function ClosingDetailsDialog({
               open={confirmingDelete}
               onOpenChange={setConfirmingDelete}
               title="Excluir este fechamento financeiro?"
-              itemName={`${formatShortDate(closing.periodStart)} — ${formatShortDate(closing.periodEnd)} · lucro líquido ${formatCurrency(closing.netProfit)}`}
+              itemName={`${describePeriod(closing)} · lucro líquido ${formatCurrency(closing.netProfit)}`}
               description="O documento oficial do período some, junto com o rateio congelado entre os sócios. O período volta a ficar livre para um novo fechamento, e um novo cálculo pode dar outro número: ele usa os sócios, percentuais e custos fixos de HOJE. A exclusão fica registrada em log com o seu usuário. A ação não pode ser desfeita."
               confirmLabel="Sim, excluir fechamento"
               destructive

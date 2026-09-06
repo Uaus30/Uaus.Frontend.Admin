@@ -1,9 +1,6 @@
 import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
-import { Label } from "@workspace/ui";
-import { DateRangePicker, type DateRange } from "@workspace/ui";
 import { TablePagination } from "@workspace/ui";
-import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { Lock, Plus, RefreshCw } from "lucide-react";
 import { PAGE_SIZE, useFinancialClosings } from "@/features/financial-closings/hooks/useFinancialClosings";
 import { FinancialClosingsTable } from "@/features/financial-closings/components/FinancialClosingsTable";
@@ -18,13 +15,13 @@ export default function FinancialClosingsPage() {
     refetch,
     page,
     setPage,
-    filterStartDate,
-    filterEndDate,
-    handleFilterRangeChange,
     newClosingOpen,
     step,
-    periodStart,
-    periodEnd,
+    year,
+    month,
+    yearOptions,
+    monthOptions,
+    isLoadingMonths,
     notes,
     setNotes,
     preview,
@@ -32,10 +29,11 @@ export default function FinancialClosingsPage() {
     isSavingClosing,
     openNewClosing,
     closeNewClosing,
-    handlePeriodChange,
-    applyPreviousMonth,
+    handleYearChange,
+    handleMonthChange,
+    applyLastMonth,
     handleCalculatePreview,
-    backToPeriod,
+    backToCompetence,
     handleConfirmClosing,
     detailsId,
     closingDetails,
@@ -45,13 +43,6 @@ export default function FinancialClosingsPage() {
     openDetails,
     handleDeleteClosing,
   } = useFinancialClosings();
-
-  // O hook trafega o filtro como string (yyyy-MM-dd); o calendário trabalha
-  // com Date. A conversão fica na borda, sem mexer no hook.
-  const filterRange: DateRange = {
-    from: parseDateInput(filterStartDate),
-    to: parseDateInput(filterEndDate),
-  };
 
   return (
     <AppLayout>
@@ -88,22 +79,7 @@ export default function FinancialClosingsPage() {
           </div>
         </div>
 
-        {/* Filtros */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3 bg-card p-4 rounded-xl border shadow-sm">
-          <div className="flex flex-col gap-1.5 w-full sm:w-64">
-            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Período (início do fechamento)
-            </Label>
-            <DateRangePicker
-              value={filterRange}
-              onChange={(range) =>
-                handleFilterRangeChange(formatDateInput(range.from), formatDateInput(range.to))
-              }
-            />
-          </div>
-        </div>
-
-        {/* Tabela */}
+        {/* Tabela — todos os fechamentos, do mais recente para o mais antigo */}
         <FinancialClosingsTable items={closings} isLoading={isLoading} onRowClick={openDetails} />
 
         {/* Paginação */}
@@ -121,17 +97,21 @@ export default function FinancialClosingsPage() {
         <NewClosingDialog
           open={newClosingOpen}
           step={step}
-          periodStart={periodStart}
-          periodEnd={periodEnd}
+          year={year}
+          month={month}
+          yearOptions={yearOptions}
+          monthOptions={monthOptions}
+          isLoadingMonths={isLoadingMonths}
           notes={notes}
           preview={preview}
           isCalculating={isCalculatingPreview}
           isSaving={isSavingClosing}
           onClose={closeNewClosing}
-          onPeriodChange={handlePeriodChange}
-          onApplyPreviousMonth={applyPreviousMonth}
+          onYearChange={handleYearChange}
+          onMonthChange={handleMonthChange}
+          onApplyLastMonth={applyLastMonth}
           onCalculatePreview={handleCalculatePreview}
-          onBackToPeriod={backToPeriod}
+          onBackToCompetence={backToCompetence}
           onNotesChange={setNotes}
           onConfirm={handleConfirmClosing}
         />

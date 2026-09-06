@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import {
   createFinancialClosing,
   deleteFinancialClosing,
@@ -11,10 +10,21 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
+import {
+  buildMonthOptions,
+  buildYearOptions,
+  closedMonthsOf,
+  formatCompetence,
+  lastEndedMonth,
+  monthRange,
+} from "../month-selection";
 import type { FinancialClosingDto, FinancialClosingPreviewDto, NewClosingStep } from "../types";
 
 /** Tamanho fixo da página da listagem. */
 export const PAGE_SIZE = 10;
+
+/** Teto da consulta que descobre os meses já fechados de um ano. */
+const CLOSED_MONTHS_LIMIT = 200;
 
 /** Período congelado junto com a prévia — o que a confirmação envia. */
 interface ClosingPeriod {
@@ -23,28 +33,12 @@ interface ClosingPeriod {
 }
 
 /**
- * Primeiro e último dia do mês anterior ao de referência, como `yyyy-MM-dd`.
- *
- * Atalho do diálogo de novo fechamento: o fechamento recomendado é sempre o
- * mês-calendário cheio, porque os custos fixos entram por competência mensal
- * (valor cheio de cada mês tocado, sem pró-rata).
- */
-export function previousMonthRange(reference: Date = new Date()): {
-  periodStart: string;
-  periodEnd: string;
-} {
-  const start = new Date(reference.getFullYear(), reference.getMonth() - 1, 1);
-  // Dia 0 do mês de referência = último dia do mês anterior.
-  const end = new Date(reference.getFullYear(), reference.getMonth(), 0);
-  return { periodStart: format(start, "yyyy-MM-dd"), periodEnd: format(end, "yyyy-MM-dd") };
-}
-
-/**
  * useFinancialClosings
  *
- * Hook controlador da tela de fechamentos financeiros: listagem paginada com
- * filtro de período, diálogo de novo fechamento em dois passos
- * (prévia → confirmação) e diálogo de detalhe com exclusão.
+ * Hook controlador da tela de fechamentos financeiros: listagem paginada de
+ * todos os fechamentos (mais recentes primeiro, sem filtro), diálogo de novo
+ * fechamento em dois passos (competência → prévia → confirmação) e diálogo de
+ * detalhe com exclusão.
  *
  * A prévia não persiste nada e a confirmação RECALCULA tudo no servidor — os
  * números exibidos aqui são só conferência, nunca viajam de volta na gravação.
@@ -53,28 +47,10 @@ export function useFinancialClosings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // ─── Listagem (filtro incide sobre o início do período) ────────────────────
+  // ─── Listagem (todos os fechamentos, do mais recente para o mais antigo) ───
   const [page, setPage] = useState(1);
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
 
-  const {
-    data: closingsPage,
-    isLoading,
-    refetch,
-  } = useGetFinancialClosings({
-    startDate: filterStartDate || undefined,
-    endDate: filterEndDate || undefined,
-    page,
-    limit: PAGE_SIZE,
-  });
-
-  /** Aplica o período do filtro e volta para a primeira página. */
-  function handleFilterRangeChange(startDate: string, endDate: string) {
-    setFilterStartDate(startDate);
-    setFilterEndDate(endDate);
-    setPage(1);
-  }
+  const { data: closingsPage, isLoading, refetch } = useGetFinancialClosings({ page, limit: PAGE_SIZE });
 
   // Excluir o último item da última página deixaria a tela presa numa página
   // vazia — quando a página atual deixa de existir, recua para a última.
@@ -85,21 +61,41 @@ export function useFinancialClosings() {
 
   // ─── Novo fechamento (diálogo em 2 passos) ─────────────────────────────────
   const [newClosingOpen, setNewClosingOpen] = useState(false);
-  const [step, setStep] = useState<NewClosingStep>("periodo");
-  const [periodStart, setPeriodStart] = useState("");
-  const [periodEnd, setPeriodEnd] = useState("");
+  const [step, setStep] = useState<NewClosingStep>("competencia");
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const [month, setMonth] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [preview, setPreview] = useState<FinancialClosingPreviewDto | null>(null);
   // Período usado na requisição da prévia exibida. A confirmação envia SEMPRE
-  // este período congelado — nunca o estado do calendário, que pode ter mudado
+  // este período congelado — nunca a competência atual, que pode ter mudado
   // depois do cálculo.
   const [previewPeriod, setPreviewPeriod] = useState<ClosingPeriod | null>(null);
 
-  /** Abre o diálogo de novo fechamento com o formulário zerado. */
+  // Fechamentos que podem tocar o ano escolhido, para travar os meses já
+  // fechados. A janela começa no ano anterior porque os fechamentos antigos são
+  // de período livre: um que comece em dezembro pode invadir janeiro daqui.
+  const { data: yearClosings, isLoading: isLoadingMonths } = useGetFinancialClosings(
+    {
+      startDate: `${year - 1}-01-01`,
+      endDate: `${year}-12-31`,
+      page: 1,
+      limit: CLOSED_MONTHS_LIMIT,
+    },
+    { query: { enabled: newClosingOpen } },
+  );
+
+  const closedMonths = useMemo(
+    () => closedMonthsOf(year, yearClosings?.data ?? []),
+    [year, yearClosings?.data],
+  );
+  const monthOptions = useMemo(() => buildMonthOptions(year, closedMonths), [year, closedMonths]);
+  const yearOptions = useMemo(() => buildYearOptions(), []);
+
+  /** Abre o diálogo de novo fechamento com o formulário zerado no ano corrente. */
   function openNewClosing() {
-    setStep("periodo");
-    setPeriodStart("");
-    setPeriodEnd("");
+    setStep("competencia");
+    setYear(new Date().getFullYear());
+    setMonth(null);
     setNotes("");
     setPreview(null);
     setPreviewPeriod(null);
@@ -111,17 +107,22 @@ export function useFinancialClosings() {
     setNewClosingOpen(false);
   }
 
-  /** Atualiza o período escolhido no calendário (strings `yyyy-MM-dd`). */
-  function handlePeriodChange(newPeriodStart: string, newPeriodEnd: string) {
-    setPeriodStart(newPeriodStart);
-    setPeriodEnd(newPeriodEnd);
+  /** Troca o ano; o mês volta a ficar em branco porque a disponibilidade é outra. */
+  function handleYearChange(newYear: number) {
+    setYear(newYear);
+    setMonth(null);
   }
 
-  /** Atalho "Mês anterior": preenche o mês-calendário cheio mais recente já encerrado. */
-  function applyPreviousMonth() {
-    const range = previousMonthRange();
-    setPeriodStart(range.periodStart);
-    setPeriodEnd(range.periodEnd);
+  /** Escolhe o mês da competência (1–12). */
+  function handleMonthChange(newMonth: number) {
+    setMonth(newMonth);
+  }
+
+  /** Atalho "Último mês": seleciona o último mês-calendário encerrado. */
+  function applyLastMonth() {
+    const last = lastEndedMonth();
+    setYear(last.year);
+    setMonth(last.month);
   }
 
   const previewMutation = useMutation({
@@ -143,31 +144,42 @@ export function useFinancialClosings() {
     },
   });
 
-  /** Dispara o cálculo da prévia; sem período completo, orienta e não chama a API. */
+  /** Dispara o cálculo da prévia; sem competência válida, orienta e não chama a API. */
   function handleCalculatePreview() {
-    if (!periodStart || !periodEnd) {
+    if (month == null) {
       toast({
-        title: "Informe o período",
-        description: "Selecione o início e o fim do período antes de calcular a prévia.",
+        title: "Escolha a competência",
+        description: "Selecione o mês e o ano do fechamento antes de calcular a prévia.",
         variant: "destructive",
       });
       return;
     }
-    previewMutation.mutate({ periodStart, periodEnd });
+
+    // O select já trava o mês fechado; o atalho "Último mês" não passa por ele.
+    if (closedMonths.includes(month)) {
+      toast({
+        title: "Mês já fechado",
+        description: `${formatCompetence({ year, month })} já tem fechamento. Exclua o existente para refazer.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    previewMutation.mutate(monthRange({ year, month }));
   }
 
-  /** Volta ao passo do período mantendo as datas — a prévia congelada é descartada. */
-  function backToPeriod() {
+  /** Volta ao passo da competência mantendo mês e ano — a prévia congelada é descartada. */
+  function backToCompetence() {
     setPreview(null);
     setPreviewPeriod(null);
-    setStep("periodo");
+    setStep("competencia");
   }
 
   const confirmMutation = useMutation({
     mutationFn: (period: ClosingPeriod) => createFinancialClosing({ ...period, notes: notes.trim() || null }),
     onSuccess: async () => {
       // Prefixo da chave ["FinancialClosings", params]: invalida todas as
-      // páginas e filtros da listagem de uma vez.
+      // páginas da listagem e a consulta de meses fechados de uma vez.
       await queryClient.invalidateQueries({ queryKey: getGetFinancialClosingsQueryKey() });
       toast({
         title: "Fechamento confirmado",
@@ -190,7 +202,7 @@ export function useFinancialClosings() {
    * Confirma o fechamento — o servidor recalcula, valida e congela tudo.
    *
    * Sem prévia congelada não há o que confirmar: o período enviado é sempre o
-   * da prévia exibida, nunca o estado atual do calendário.
+   * da prévia exibida, nunca a competência atual do formulário.
    */
   function handleConfirmClosing() {
     if (!previewPeriod || confirmMutation.isPending) return;
@@ -256,15 +268,15 @@ export function useFinancialClosings() {
     refetch,
     page,
     setPage,
-    filterStartDate,
-    filterEndDate,
-    handleFilterRangeChange,
 
     // Novo fechamento
     newClosingOpen,
     step,
-    periodStart,
-    periodEnd,
+    year,
+    month,
+    yearOptions,
+    monthOptions,
+    isLoadingMonths,
     notes,
     setNotes,
     preview,
@@ -272,10 +284,11 @@ export function useFinancialClosings() {
     isSavingClosing: confirmMutation.isPending,
     openNewClosing,
     closeNewClosing,
-    handlePeriodChange,
-    applyPreviousMonth,
+    handleYearChange,
+    handleMonthChange,
+    applyLastMonth,
     handleCalculatePreview,
-    backToPeriod,
+    backToCompetence,
     handleConfirmClosing,
 
     // Detalhe + exclusão
