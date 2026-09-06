@@ -295,20 +295,27 @@ Regras que valem a pena conhecer antes de mexer:
   aba, e trocar de aba com alteração pendente não perde nada. As modais são
   portais do Radix e ficam **fora** do form — o lançamento de estoque tem
   `<form>` próprio, e aninhar os dois seria HTML inválido.
-- **Salvar e Avançar, no topo e no rodapé (05/09/2026).** `Salvar` grava e fica
-  na aba; `Avançar` grava e troca de aba — de Dados para Estoque, e de Estoque
-  ou Opcionais de volta para Dados (`PROXIMA_ABA` em `ProductDetailScreen`). Os
-  botões se repetem no rodapé (`ProductDetailActions`) porque a aba Dados de um
-  produto com variações é longa. **A tela não fecha mais depois de salvar**,
-  nem em produto simples: o cadastro novo continua aberto para a entrada de
-  estoque ser lançada na sequência — antes, salvar fechava a tela e o operador
-  tinha que procurar o produto na lista para voltar à aba Estoque.
+- **Salvar e Avançar, no topo e no rodapé.** São duas intenções diferentes:
+  terminar o cadastro e continuar nele.
+  - `Salvar` grava e **volta para a listagem** (06/09/2026). Ficar na tela
+    obrigava um Cancelar depois do Salvar para quem só veio corrigir um preço.
+  - `Avançar` grava e troca de aba — de Dados para Estoque, e de Estoque ou
+    Opcionais de volta para Dados (`PROXIMA_ABA` em `ProductDetailScreen`). É
+    ele, e só ele, que mantém a pessoa na tela: o par "cadastrar o item e
+    lançar o que chegou dele" continua sem passar pela listagem.
+  - Os botões se repetem no rodapé (`ProductDetailActions`) porque a aba Dados
+    de um produto com variações é longa. Os dois "Salvar" são `type="submit"`
+    do mesmo form, então o Enter num campo também grava e volta.
+  - O fechamento do Salvar vai por `onSaved`, e **não** pelo `onRequestClose`
+    do Cancelar: logo depois de gravar o formulário ainda está marcado como
+    alterado, e o caminho do Cancelar perguntaria se quer descartar justamente
+    o que acabou de ser salvo.
 - **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem id
   não há lote para lançar nem etiqueta para associar; a aba Estoque abriria só
   para dizer "salve primeiro". O `Avançar` da aba Dados salva e já cai em
   Estoque, que é o fluxo de quem acabou de receber mercadoria nova. O
-  `handleSubmit` devolve `boolean` justamente para o Avançar só trocar de aba
-  depois de o servidor confirmar.
+  `handleSubmit` devolve `boolean` para o Avançar só trocar de aba — e o Salvar
+  só fechar — depois de o servidor confirmar.
 - **Validação reprovada traz a aba Dados para a frente.** Todo campo obrigatório
   mora lá; focar um elemento de aba fechada não faz nada, e o salvar pareceria
   simplesmente não responder.

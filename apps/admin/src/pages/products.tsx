@@ -118,6 +118,7 @@ export default function Products() {
           initialTab={detailInitialTab}
           initialStockProductId={detailStockProductId}
           onRequestClose={pedirParaFechar}
+          onSaved={fecharDetalhe}
         />
         <ProductDetailDiscardDialog
           open={pendingClose !== null}

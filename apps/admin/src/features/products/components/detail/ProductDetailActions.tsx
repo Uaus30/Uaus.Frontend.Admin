@@ -19,9 +19,10 @@ type ProductDetailActionsProps = {
  * uma rolagem a cada cadastro. Os dois "Salvar" são `type="submit"` do mesmo
  * `<form>`: o Enter no campo dispara o primeiro, e os dois fazem a mesma coisa.
  *
- * **Salvar** grava e fica onde está. **Avançar** grava e vai para a próxima
- * aba — de Dados para Estoque, que é o par que o cadastro de mercadoria nova
- * percorre: cadastrar o item e lançar o que chegou dele, sem sair da tela.
+ * **Salvar** grava e volta para a listagem: é o fim do trabalho. **Avançar**
+ * grava e vai para a próxima aba — de Dados para Estoque, que é o par que o
+ * cadastro de mercadoria nova percorre: cadastrar o item e lançar o que chegou
+ * dele, sem sair da tela.
  */
 export function ProductDetailActions({
   saving,
@@ -34,7 +35,13 @@ export function ProductDetailActions({
       <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
         Cancelar
       </Button>
-      <Button type="submit" variant="secondary" disabled={saving} className="hover-elevate">
+      <Button
+        type="submit"
+        variant="secondary"
+        disabled={saving}
+        title="Salvar e voltar para a listagem"
+        className="hover-elevate"
+      >
         {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
         Salvar
       </Button>

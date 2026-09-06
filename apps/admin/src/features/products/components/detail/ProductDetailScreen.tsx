@@ -30,6 +30,16 @@ type ProductDetailScreenProps = {
   initialStockProductId?: number | null;
   /** Pediu para sair (voltar, cancelar) — a página decide se confirma antes. */
   onRequestClose: () => void;
+  /**
+   * Gravou com sucesso pelo **Salvar** — a tela deve fechar e voltar à
+   * listagem.
+   *
+   * É um caminho separado do `onRequestClose` de propósito: logo depois de
+   * gravar o formulário ainda está marcado como alterado, e passar pelo pedido
+   * de saída faria a tela perguntar se quer descartar o que acabou de ser
+   * salvo.
+   */
+  onSaved: () => void;
 };
 
 /**
@@ -66,7 +76,12 @@ const ROTULO_DA_ABA: Record<string, string> = {
  * - **Opcionais** — o que era o olho fechado.
  *
  * O `<form>` envolve as três: o salvar do cabeçalho vale de qualquer aba, e
- * quem troca de aba com alterações pendentes não as perde. As modais são
+ * quem troca de aba com alterações pendentes não as perde.
+ *
+ * **Salvar grava e volta para a listagem; Avançar grava e troca de aba.** Os
+ * dois botões existem porque são duas intenções diferentes: terminar o cadastro
+ * e continuar nele. Antes, Salvar ficava na tela — e quem só queria corrigir um
+ * preço precisava de um Cancelar depois de salvar para sair. As modais são
  * portais do Radix, então ficam FORA do form — o formulário simplificado de
  * entrada tem `<form>` próprio e aninhar os dois seria HTML inválido.
  *
@@ -80,6 +95,7 @@ export function ProductDetailScreen({
   initialTab,
   initialStockProductId,
   onRequestClose,
+  onSaved,
 }: ProductDetailScreenProps) {
   const { toast } = useToast();
   const {
@@ -233,7 +249,9 @@ export function ProductDetailScreen({
     if (e.target !== e.currentTarget) return;
 
     e.preventDefault();
-    await salvar();
+    // Salvar termina o trabalho: gravou, volta para a listagem. Continuar na
+    // tela é o que o Avançar faz.
+    if (await salvar()) onSaved();
   }
 
   /** Salva e, dando certo, vai para a próxima aba (ver `PROXIMA_ABA`). */
