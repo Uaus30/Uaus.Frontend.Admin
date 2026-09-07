@@ -1,4 +1,7 @@
+import { Gem, Minus, Sparkles, TrendingDown, TriangleAlert } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { AbcClass, SalesFrequency } from "@workspace/api-client-react";
+import type { BiTone } from "@/lib/bi-tone";
 
 /**
  * A cor de cada classe.
@@ -20,6 +23,21 @@ export const CLASS_MEANING: Record<string, string> = {
   B: "de 80% a 95%",
   C: "os últimos 5% — a cauda",
   None: "sem classificação",
+};
+
+/**
+ * O que FAZER com cada classe.
+ *
+ * A definição da classe ("os primeiros 80% do acumulado") diz de onde o rótulo
+ * veio, e não o que ele pede. Sem esta segunda linha, a tela obriga quem lê a
+ * traduzir sozinho — e a tradução que costuma sair para C é "cortar", que é
+ * exatamente a decisão errada quando o item puxa cesta grande.
+ */
+export const CLASS_ACTION: Record<string, string> = {
+  A: "não pode faltar — é o que sustenta o período",
+  B: "acompanhe: é aqui que nasce o próximo A e mora o próximo C",
+  C: "avalie antes de cortar — veja a coluna cesta e a margem",
+  None: "sem ação definida",
 };
 
 export const FREQUENCY_LABELS: Record<SalesFrequency, string> = {
@@ -56,6 +74,69 @@ export function matrixCellMeaning(revenueClass: AbcClass, profitClass: AbcClass)
 /** Peso da classe para comparar as duas leituras. A = 1, C = 3. */
 function ordem(classe: AbcClass): number {
   return classe === "A" ? 1 : classe === "B" ? 2 : 3;
+}
+
+/**
+ * A leitura do cruzamento com tom e ícone — a resposta a "isto é bom ou ruim?".
+ *
+ * Era a pergunta que a tela não respondia. As cores das classes são uma matiz só
+ * em três passos, porque A/B/C é escala ORDINAL: elas dizem "mais" e "menos", e
+ * nunca "melhor" e "pior". O juízo mora no cruzamento das duas classificações, e
+ * é ele que ganha o vocabulário de cor do sistema.
+ *
+ * <b>Cauda não é vermelho.</b> Ela é cinza, de "sem julgamento por aqui": o item
+ * de classe C que aparece em cestas 60% maiores que a média não é um erro de
+ * compra, e pintá-lo de vermelho é o empurrão para a decisão que a própria tela
+ * existe para evitar. Quem decide sobre ele é a coluna cesta.
+ */
+export function matrixCellReading(
+  revenueClass: AbcClass,
+  profitClass: AbcClass,
+): { texto: string; tom: BiTone; icone: LucideIcon; dica: string } {
+  const texto = matrixCellMeaning(revenueClass, profitClass);
+
+  if (texto === "Motor da loja") {
+    return {
+      texto,
+      tom: "bom",
+      icone: Sparkles,
+      dica: "Classe A nas duas leituras: fatura muito e lucra muito. É o que não pode faltar.",
+    };
+  }
+
+  if (texto === "Fatura mais do que lucra") {
+    return {
+      texto,
+      tom: "atencao",
+      icone: TriangleAlert,
+      dica: "Vende bem e devolve pouco. Ocupa prateleira sem pagar por ela — é preço ou custo a rever.",
+    };
+  }
+
+  if (texto === "Lucra mais do que aparece") {
+    return {
+      texto,
+      tom: "bom",
+      icone: Gem,
+      dica: "Não está entre os campeões de venda, mas entrega margem. Vale espaço melhor e mais estoque.",
+    };
+  }
+
+  if (texto === "Cauda") {
+    return {
+      texto,
+      tom: "mudo",
+      icone: TrendingDown,
+      dica: "Classe C nas duas leituras. Antes de cortar, veja a coluna cesta: item que só aparece em compra grande leva a cesta inteira junto.",
+    };
+  }
+
+  return {
+    texto,
+    tom: "neutro",
+    icone: Minus,
+    dica: "As duas leituras concordam: o produto pesa o mesmo em faturamento e em lucro.",
+  };
 }
 
 /**

@@ -2,6 +2,7 @@ import { Boxes, Gem, ShoppingBasket, TriangleAlert } from "lucide-react";
 import { Card, cn } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { AbcFindingsDto, ProductAbcSummaryDto } from "@workspace/api-client-react";
+import { BI_TONE_PILL } from "@/lib/bi-tone";
 import { formatPercent, plural } from "@/features/supplier-performance/lib/format";
 import type { AbcFindingKey } from "../hooks/useProductAbc";
 
@@ -103,13 +104,15 @@ export function AbcFindings({ findings, summary, selected, onSelect }: AbcFindin
               ativo && "border-primary ring-1 ring-primary",
             )}
           >
+            {/* A cor sai do vocabulário comum do BI (`@/lib/bi-tone`): âmbar é
+                atenção e verde é positivo nas três telas. Antes eram tons
+                soltos, e o mesmo "isto é bom" saía de uma cor aqui e de outra
+                na tabela ao lado. */}
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "rounded-lg p-1.5",
-                  card.tom === "alerta"
-                    ? "bg-orange-500/12 text-orange-300"
-                    : "bg-emerald-500/12 text-emerald-300",
+                  "rounded-lg border p-1.5",
+                  BI_TONE_PILL[card.tom === "alerta" ? "atencao" : "bom"],
                 )}
               >
                 <card.icone className="h-4 w-4" />

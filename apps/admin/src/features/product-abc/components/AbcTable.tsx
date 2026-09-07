@@ -1,23 +1,10 @@
 import * as React from "react";
-import { Link } from "wouter";
 import { Search, X } from "lucide-react";
-import {
-  Badge,
-  Button,
-  Card,
-  Input,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  cn,
-} from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
+import { Badge, Button, Card, Input, Table, TableBody, TableHeader, TableRow } from "@workspace/ui";
 import type { ProductAbcItemDto } from "@workspace/api-client-react";
-import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
-import { CLASS_COLORS, FREQUENCY_HINTS, FREQUENCY_LABELS } from "../lib/abc";
+import { BiColumnHeader } from "@/components/bi-column-header";
+import { formatInteger } from "@/features/supplier-performance/lib/format";
+import { AbcRow } from "./AbcRow";
 
 type AbcTableProps = {
   products: ProductAbcItemDto[];
@@ -38,6 +25,10 @@ const PAGINA = 50;
  *
  * A barra de acumulado na linha é o que transforma a tabela na própria curva: dá
  * para ver onde a classe A termina descendo a lista, sem voltar ao gráfico.
+ *
+ * Toda coluna cujo nome não se explica sozinho carrega a definição no cabeçalho
+ * (`BiColumnHeader`). "Acumulado" e "cesta" eram as duas que só tinham resposta
+ * no rodapé da página — e rodapé só alcança quem já rolou até o fim.
  */
 export function AbcTable({
   products,
@@ -99,137 +90,59 @@ export function AbcTable({
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-auto w-10 px-2 pb-2 text-[10.5px] uppercase tracking-wider">
-                  #
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-[10.5px] uppercase tracking-wider">
-                  Produto
-                </TableHead>
-                <TableHead className="h-auto w-16 px-2 pb-2 text-center text-[10.5px] uppercase tracking-wider">
+                <BiColumnHeader className="w-10">#</BiColumnHeader>
+                <BiColumnHeader>Produto</BiColumnHeader>
+                <BiColumnHeader
+                  className="w-16 text-center"
+                  dica="Classe pelo critério escolhido no filtro: A até 80% do acumulado, B até 95%, C o resto"
+                >
                   Classe
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-[10.5px] uppercase tracking-wider">
+                </BiColumnHeader>
+                <BiColumnHeader
+                  className="w-44"
+                  dica="O cruzamento das DUAS classificações — por faturamento e por lucro. É aqui que se lê se o produto é bom ou ruim; a classe sozinha só diz se ele é grande."
+                >
+                  Leitura
+                </BiColumnHeader>
+                <BiColumnHeader dica="Quanto do total do critério já foi somado até esta linha, descendo a lista do maior para o menor">
                   Acumulado
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-right text-[10.5px] uppercase tracking-wider">
+                </BiColumnHeader>
+                <BiColumnHeader className="text-right" dica="Unidades vendidas no período">
                   Vendidos
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-right text-[10.5px] uppercase tracking-wider">
-                  Faturamento
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-right text-[10.5px] uppercase tracking-wider">
+                </BiColumnHeader>
+                <BiColumnHeader className="text-right">Faturamento</BiColumnHeader>
+                <BiColumnHeader
+                  className="text-right"
+                  dica="Faturamento menos o custo do que saiu do estoque"
+                >
                   Lucro
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-right text-[10.5px] uppercase tracking-wider">
+                </BiColumnHeader>
+                <BiColumnHeader
+                  className="text-right"
+                  dica="Lucro sobre o faturamento. Verde a partir de 40%, âmbar de 30% a 40%, vermelho abaixo de 30%."
+                >
                   Margem
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-center text-[10.5px] uppercase tracking-wider">
+                </BiColumnHeader>
+                <BiColumnHeader
+                  className="text-center"
+                  dica="Em quantas semanas do período o produto vendeu: constante (60% ou mais), ocasional (20% a 60%) ou raro"
+                >
                   Frequência
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-right text-[10.5px] uppercase tracking-wider">
+                </BiColumnHeader>
+                <BiColumnHeader
+                  className="text-right"
+                  dica="Ticket médio das vendas que contêm este produto, dividido pelo ticket médio da loja. Acima de 1, ele aparece em compras maiores que a média — e cortá-lo leva a cesta inteira junto."
+                >
                   Cesta
-                </TableHead>
-                <TableHead className="h-auto px-2 pb-2 text-right text-[10.5px] uppercase tracking-wider">
+                </BiColumnHeader>
+                <BiColumnHeader className="text-right" dica="Saldo disponível hoje, em unidades">
                   Estoque
-                </TableHead>
+                </BiColumnHeader>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visiveis.map((produto) => (
-                <TableRow key={produto.productId} className="border-border/40">
-                  <TableCell className="px-2 py-2 text-right font-mono text-[11.5px] text-muted-foreground">
-                    {produto.rank}
-                  </TableCell>
-
-                  <TableCell className="max-w-[280px] px-2 py-2">
-                    {produto.productGroupId ? (
-                      <Link
-                        href={`/produtos/${produto.productGroupId}/detalhes`}
-                        className="block truncate text-[12.5px] font-medium hover:text-primary hover:underline"
-                      >
-                        {produto.productName}
-                      </Link>
-                    ) : (
-                      <span className="block truncate text-[12.5px] font-medium">{produto.productName}</span>
-                    )}
-                    <span className="block truncate text-[10.5px] text-muted-foreground">
-                      {[produto.categoryName, produto.supplierName].filter(Boolean).join(" · ") ||
-                        produto.barcode}
-                    </span>
-                  </TableCell>
-
-                  <TableCell className="px-2 py-2 text-center">
-                    <span
-                      className="inline-flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold text-background"
-                      style={{ backgroundColor: CLASS_COLORS[produto.class] }}
-                      title={`Classe ${produto.class} pelo critério escolhido`}
-                    >
-                      {produto.class}
-                    </span>
-                  </TableCell>
-
-                  {/* A barra é a curva vista de dentro da tabela: descendo a
-                      lista dá para ver onde a classe A termina. */}
-                  <TableCell className="px-2 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:w-24">
-                        <span
-                          className="block h-full rounded-full"
-                          style={{
-                            width: `${produto.cumulativeShare}%`,
-                            backgroundColor: CLASS_COLORS[produto.class],
-                          }}
-                        />
-                      </span>
-                      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                        {formatPercent(produto.cumulativeShare, 0)}
-                      </span>
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="px-2 py-2 text-right font-mono text-[12px] tabular-nums">
-                    {formatInteger(produto.units)}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-right font-mono text-[12px] tabular-nums">
-                    {formatCurrency(produto.revenue)}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-right font-mono text-[12px] tabular-nums">
-                    {formatCurrency(produto.profit)}
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      "px-2 py-2 text-right font-mono text-[12px] tabular-nums",
-                      produto.profitClass === "A" ? "text-emerald-400" : "text-foreground/70",
-                    )}
-                  >
-                    {formatPercent(produto.margin)}
-                  </TableCell>
-
-                  <TableCell className="px-2 py-2 text-center">
-                    <span
-                      className="text-[11px] text-muted-foreground"
-                      title={`${FREQUENCY_HINTS[produto.frequency]} — ${produto.weeksWithSales} semana(s)`}
-                    >
-                      {FREQUENCY_LABELS[produto.frequency]}
-                    </span>
-                  </TableCell>
-
-                  {/* Acima de 1, o item aparece em cestas maiores que a média —
-                      o argumento contra cortar a cauda por ela ser cauda. */}
-                  <TableCell
-                    className={cn(
-                      "px-2 py-2 text-right font-mono text-[12px] tabular-nums",
-                      produto.basketLift >= 1.2 ? "text-emerald-400" : "text-muted-foreground",
-                    )}
-                    title="Ticket médio das vendas com este produto, dividido pelo ticket médio da loja"
-                  >
-                    {produto.basketLift > 0 ? `${produto.basketLift.toFixed(2)}×` : "—"}
-                  </TableCell>
-
-                  <TableCell className="px-2 py-2 text-right font-mono text-[12px] tabular-nums text-muted-foreground">
-                    {formatInteger(produto.stock)}
-                  </TableCell>
-                </TableRow>
+                <AbcRow key={produto.productId} produto={produto} />
               ))}
             </TableBody>
           </Table>

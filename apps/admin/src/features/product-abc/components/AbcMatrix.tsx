@@ -1,7 +1,8 @@
+import { Gem, TriangleAlert } from "lucide-react";
 import { Card, cn } from "@workspace/ui";
 import type { AbcClass, AbcMatrixCellDto } from "@workspace/api-client-react";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
-import { matrixCellMeaning } from "../lib/abc";
+import { matrixCellReading } from "../lib/abc";
 
 type AbcMatrixProps = {
   cells: AbcMatrixCellDto[];
@@ -55,8 +56,9 @@ export function AbcMatrix({ cells, selected, onSelect }: AbcMatrixProps) {
               const produtos = celula?.products ?? 0;
               const share = celula?.revenueShare ?? 0;
               const ativa = selected?.receita === porReceita && selected?.lucro === porLucro;
-              const leitura = matrixCellMeaning(porReceita, porLucro);
+              const leitura = matrixCellReading(porReceita, porLucro);
               const naDiagonal = porReceita === porLucro;
+              const faturaMais = porReceita < porLucro;
 
               return (
                 <button
@@ -64,7 +66,7 @@ export function AbcMatrix({ cells, selected, onSelect }: AbcMatrixProps) {
                   type="button"
                   disabled={produtos === 0}
                   onClick={() => onSelect(porReceita, porLucro)}
-                  title={`${leitura} · ${formatPercent(share)} do faturamento`}
+                  title={`${leitura.texto} — ${leitura.dica} (${formatPercent(share)} do faturamento)`}
                   className={cn(
                     "flex min-h-[74px] flex-col items-center justify-center gap-0.5 rounded-lg border px-2 py-2 transition-colors",
                     produtos === 0
@@ -84,14 +86,24 @@ export function AbcMatrix({ cells, selected, onSelect }: AbcMatrixProps) {
                     {produtos === 1 ? "produto" : "produtos"}
                   </span>
                   <span className="text-[10.5px] font-medium text-foreground/70">{formatPercent(share)}</span>
+                  {/* Ícone junto do texto: fora da diagonal a cor é a única
+                      diferença entre "ocupa prateleira sem pagar" e "entrega
+                      margem escondida", e cor sozinha some em preto e branco. */}
                   {!naDiagonal && produtos > 0 && (
                     <span
                       className={cn(
-                        "mt-0.5 text-[9.5px] font-semibold uppercase tracking-wide",
-                        porReceita < porLucro ? "text-orange-300" : "text-emerald-300",
+                        "mt-0.5 flex items-center gap-0.5 text-[9.5px] font-semibold uppercase tracking-wide",
+                        faturaMais
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400",
                       )}
                     >
-                      {porReceita < porLucro ? "fatura > lucra" : "lucra > fatura"}
+                      {faturaMais ? (
+                        <TriangleAlert className="h-2.5 w-2.5" />
+                      ) : (
+                        <Gem className="h-2.5 w-2.5" />
+                      )}
+                      {faturaMais ? "fatura > lucra" : "lucra > fatura"}
                     </span>
                   )}
                 </button>
@@ -102,10 +114,12 @@ export function AbcMatrix({ cells, selected, onSelect }: AbcMatrixProps) {
       </div>
 
       <p className="border-t border-border/50 pt-3 text-xs leading-relaxed text-muted-foreground">
-        Acima da diagonal estão os produtos que{" "}
-        <strong className="text-orange-300">faturam mais do que lucram</strong> — ocupam prateleira sem pagar
-        por ela. Abaixo, os que <strong className="text-emerald-300">lucram mais do que aparecem</strong>.
-        Clique numa célula para filtrar a lista.
+        A <strong className="text-foreground/80">diagonal</strong> é onde as duas leituras concordam. Acima
+        dela estão os produtos que{" "}
+        <strong className="text-amber-600 dark:text-amber-400">faturam mais do que lucram</strong> — ocupam
+        prateleira sem pagar por ela. Abaixo, os que{" "}
+        <strong className="text-emerald-600 dark:text-emerald-400">lucram mais do que aparecem</strong>, que é
+        onde vale dar mais espaço. Clique numa célula para filtrar a lista.
       </p>
     </Card>
   );

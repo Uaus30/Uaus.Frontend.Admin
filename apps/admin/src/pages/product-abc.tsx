@@ -9,7 +9,8 @@ import { AbcConcentrationChart } from "@/features/product-abc/components/AbcConc
 import { AbcMatrix } from "@/features/product-abc/components/AbcMatrix";
 import { AbcFindings } from "@/features/product-abc/components/AbcFindings";
 import { AbcTable } from "@/features/product-abc/components/AbcTable";
-import { CLASS_COLORS, CLASS_MEANING, matrixCellMeaning } from "@/features/product-abc/lib/abc";
+import { AbcHelp } from "@/features/product-abc/components/AbcHelp";
+import { CLASS_ACTION, CLASS_COLORS, CLASS_MEANING, matrixCellMeaning } from "@/features/product-abc/lib/abc";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
 
 /**
@@ -29,7 +30,12 @@ export default function ProductAbcPage() {
     <AppLayout>
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-[27px] font-semibold tracking-tight">Curva ABC de Produtos</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[27px] font-semibold tracking-tight">Curva ABC de Produtos</h1>
+            {relatorio && relatorio.summary.products > 0 && (
+              <AbcHelp summary={relatorio.summary} criterionLabel={criterio} />
+            )}
+          </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
             <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
               {tela.period.label}
@@ -134,7 +140,12 @@ export default function ProductAbcPage() {
                     >
                       {classe}
                     </span>
-                    <div>
+                    {/* Duas linhas embaixo do número, e não uma: a primeira diz
+                        DE ONDE vem o rótulo, a segunda diz o que fazer com ele.
+                        Só a primeira obrigava quem lê a traduzir sozinho — e a
+                        tradução que costumava sair para C era "cortar", que é a
+                        decisão errada quando o item puxa cesta grande. */}
+                    <div className="min-w-0">
                       <p className="text-lg font-semibold leading-none">
                         {formatInteger(produtos)}{" "}
                         <span className="text-[13px] font-normal text-muted-foreground">
@@ -144,6 +155,9 @@ export default function ProductAbcPage() {
                       <p className="mt-1 text-[11.5px] text-muted-foreground">
                         {formatPercent((produtos / relatorio.summary.products) * 100, 0)} do catálogo ·{" "}
                         {CLASS_MEANING[classe]}
+                      </p>
+                      <p className="mt-0.5 text-[11.5px] font-medium text-foreground/75">
+                        {CLASS_ACTION[classe]}
                       </p>
                     </div>
                   </Card>

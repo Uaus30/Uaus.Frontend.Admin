@@ -74,6 +74,42 @@ sinônimo de "cortar", e a decisão sai errada.
 
 ---
 
+## Onde se lê "bom ou ruim" (07/09/2026)
+
+A tela media bem e **explicava mal**: dava para ver quanto cada produto pesa, não
+se ele é bom. As cores das classes não ajudavam, e não é defeito delas — A/B/C é
+escala **ordinal**, diz "mais" e "menos", nunca "melhor" e "pior". Um classe A
+pode ser exatamente o item que ocupa prateleira sem pagar por ela.
+
+O juízo mora no **cruzamento das duas classificações**, que existia só na matriz,
+longe da lista. Ele virou a coluna **Leitura** da tabela, com o vocabulário de cor
+do sistema (`@/lib/bi-tone`) e ícone junto:
+
+| Leitura                   | Tom       | O que fazer                                |
+| ------------------------- | --------- | ------------------------------------------ |
+| Motor da loja             | verde     | não pode faltar                            |
+| Lucra mais do que aparece | verde     | mais espaço na loja, mais estoque          |
+| Fatura mais do que lucra  | âmbar     | rever preço ou custo antes de comprar mais |
+| Coerente                  | neutro    | nada de especial                           |
+| **Cauda**                 | **cinza** | ver a coluna cesta ANTES de cortar         |
+
+A cauda não é vermelha de propósito. Pintá-la de vermelho é o empurrão para a
+decisão que esta tela existe para evitar: o item de classe C que aparece em
+cestas 60% maiores que a média não é erro de compra, e cortá-lo leva a cesta
+inteira junto.
+
+Junto disso: cada coluna cujo nome não se explica sozinho carrega a definição no
+cabeçalho (`BiColumnHeader`), os cards A/B/C dizem **o que fazer** além de de onde
+o rótulo veio, e o botão **"Como ler esta tela"** (`AbcHelp`) traz o manual com os
+números que a tela mediu — não com o exemplo genérico do 80/20.
+
+A margem passou a usar a faixa de cor da loja (`marginBand` do `packages/core`:
+verde ≥ 40%, âmbar 30–40%, vermelho abaixo). Antes ela ficava verde quando o
+produto era classe A de lucro, o que misturava duas informações diferentes na
+mesma cor.
+
+---
+
 ## Regras de tela
 
 - **Período e critério vão ao servidor.** Os dois reclassificam todo mundo;
