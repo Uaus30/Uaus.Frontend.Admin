@@ -85,22 +85,29 @@ function givenList(items: LowStockItemDto[]) {
   });
 }
 
+/** A contagem do alerta, que é de onde saem os filtros padrão da tela. */
+const resumoDoAlerta = { restock: 1, restockMinSales: 3, restockMaxStock: 5 };
+
 describe("useLowStock", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Sem `?vendas=` na URL: é o caminho de quem chega pelo menu.
+    window.history.replaceState({}, "", "/relatorios/estoque-baixo");
     givenList([bexiga]);
-    mocks.useGetLowStockSummary.mockReturnValue({ data: { restock: 1, restockMinSales: 3 } });
+    mocks.useGetLowStockSummary.mockReturnValue({ data: resumoDoAlerta, isError: false });
     mocks.disableStockControl.mockResolvedValue({ ...bexiga, minStock: 0 });
     mocks.apiGetOrThrow.mockResolvedValue({ items: [bexiga] });
     mocks.exportLowStockToXlsx.mockResolvedValue(undefined);
   });
 
-  it("começa só com os pendentes, na primeira página e sem filtro nem ordem", () => {
+  it("abre com os filtros do alerta, na primeira página e sem ordem", () => {
+    // Sem padrão, a tela caía no relatório clássico — só quem tem estoque
+    // mínimo configurado —, que na loja são três produtos de mil.
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
     expect(lastListParams()).toMatchObject({
-      maxStock: undefined,
-      minRecentSales: undefined,
+      maxStock: 5,
+      minRecentSales: 3,
       // `Default` não vai na requisição: é o que o backend já faz sem o
       // parâmetro, e mandá-lo criaria uma chave de cache diferente para a mesma
       // consulta.
@@ -108,9 +115,66 @@ describe("useLowStock", () => {
       page: 1,
       limit: PAGE_SIZE,
     });
+    expect(result.current.maxStock).toBe("5");
+    expect(result.current.minRecentSales).toBe("3");
     expect(result.current.sort).toBe("Default");
     expect(result.current.items).toEqual([bexiga]);
-    expect(result.current.summary).toEqual({ restock: 1, restockMinSales: 3 });
+    expect(result.current.summary).toEqual(resumoDoAlerta);
+  });
+
+  it("os números do padrão vêm do backend, não de constantes da tela", () => {
+    mocks.useGetLowStockSummary.mockReturnValue({
+      data: { restock: 4, restockMinSales: 10, restockMaxStock: 2 },
+      isError: false,
+    });
+
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    expect(result.current.maxStock).toBe("2");
+    expect(result.current.minRecentSales).toBe("10");
+  });
+
+  it("a lista só é consultada depois que os padrões chegam", () => {
+    // Sem a espera, a primeira carga iria sem filtro e a tela trocaria a lista
+    // inteira um instante depois.
+    mocks.useGetLowStockSummary.mockReturnValue({ data: undefined, isError: false });
+
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    expect(lastListParams()).toMatchObject({ maxStock: undefined, minRecentSales: undefined });
+    expect(mocks.useGetLowStock.mock.calls.at(-1)?.[1]).toMatchObject({ query: { enabled: false } });
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it("se a contagem falhar, a tela abre sem padrão em vez de ficar em branco", () => {
+    mocks.useGetLowStockSummary.mockReturnValue({ data: undefined, isError: true });
+
+    renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    expect(mocks.useGetLowStock.mock.calls.at(-1)?.[1]).toMatchObject({ query: { enabled: true } });
+  });
+
+  it("vindo do alerta, o teto de saldo fica vazio para a lista bater com a contagem", () => {
+    // O backend, recebendo só o filtro de saída, aplica a definição do alerta de
+    // "está acabando" — abaixo do PRÓPRIO mínimo de quem tem um. Preencher o
+    // teto trocaria isso por um número fixo e esconderia o produto de mínimo 20
+    // com saldo 8, que o alerta acabou de contar.
+    window.history.replaceState({}, "", "/relatorios/estoque-baixo?vendas=7");
+
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    expect(result.current.minRecentSales).toBe("7");
+    expect(result.current.maxStock).toBe("");
+    expect(lastListParams()).toMatchObject({ maxStock: undefined, minRecentSales: 7 });
+  });
+
+  it("campo esvaziado pelo usuário não volta ao padrão", async () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.setMaxStock(""));
+
+    expect(result.current.maxStock).toBe("");
+    await waitFor(() => expect(lastListParams()).toMatchObject({ maxStock: undefined }));
   });
 
   it("manda o teto de saldo só quando é inteiro positivo", async () => {

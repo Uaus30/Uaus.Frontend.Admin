@@ -74,6 +74,15 @@ export interface LowStockSummaryDto {
   restock: number;
   /** Mínimo de vendas usado em `restock` — a tela monta texto e filtro com ele. */
   restockMinSales: number;
+  /**
+   * Teto de saldo do alerta para quem NÃO tem estoque mínimo configurado.
+   *
+   * Vem junto pelo mesmo motivo de `restockMinSales`: é com ele que o relatório
+   * se abre já filtrado quando alguém chega pelo menu. Cravado no front, mudar o
+   * critério no backend deixaria a tela abrindo com o filtro antigo — sem erro,
+   * sem aviso, e com a lista discordando do alerta.
+   */
+  restockMaxStock: number;
 }
 
 /**

@@ -69,6 +69,28 @@ nas entradas de estoque.
     Antes o filtro abria a consulta sobre o catálogo inteiro: o alerta dizia
     doze e a tela mostrava páginas, muitas com estoque de sobra.
   - Com zero, o alerta some.
+- **A tela abre já filtrada, com os números do alerta (07/09/2026).** Aberta sem
+  filtro, ela caía no relatório clássico — e, como quase ninguém preenche o
+  estoque mínimo, isso eram **3 produtos de 1.042** na loja. A tela abria
+  praticamente vazia e o operador tinha de adivinhar dois números para ela servir
+  para alguma coisa. Agora "Estoque menor que" e "Vendeu ao menos" chegam
+  preenchidos com `restockMaxStock` e `restockMinSales`, os mesmos do alerta: 12
+  produtos, o mesmo número que o vermelho mostra.
+  - Os dois valores vêm do **backend**, e não de constantes da tela. Cravados
+    aqui, mudar o critério do alerta deixaria o relatório abrindo com o filtro
+    antigo — sem erro, sem aviso, e com a lista discordando do alerta.
+  - **A lista só é consultada depois que a contagem chega** (`enabled`). Sem a
+    espera, a primeira carga iria sem filtro e a tela trocaria a lista inteira um
+    instante depois. Falhando a contagem, a tela abre sem padrão em vez de ficar
+    em branco.
+  - **Vindo do alerta (`?vendas=`), o teto de saldo continua vazio**, e isso é
+    deliberado: sem ele, o backend aplica a definição do alerta de "está
+    acabando" — abaixo do PRÓPRIO mínimo de quem tem um. Preencher o teto trocaria
+    essa definição por um número fixo e esconderia o produto de mínimo 20 com
+    saldo 8, que o alerta acabou de contar.
+  - Campo esvaziado **pelo usuário** não volta ao padrão: `null` é "ainda não
+    mexeu", `""` é uma decisão de não filtrar, e o hook guarda os dois estados
+    separados por isso.
 
 ## Giro do produto (06/09/2026)
 

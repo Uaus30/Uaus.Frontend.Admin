@@ -94,6 +94,12 @@ export interface LowStockState {
  * critério é avaliado a cada consulta, e nada precisa ser dado baixa na lista.
  * **Remover o controle de estoque** (mínimo zero) também tira, e é a saída para
  * o item que não se quer acompanhar.
+ *
+ * ## A tela abre filtrada (07/09/2026)
+ *
+ * Os dois campos de quantidade chegam preenchidos com os números do alerta. O
+ * porquê e a exceção do caminho pelo alerta estão em `padroesDaTela`, no fim
+ * deste arquivo.
  */
 export function useLowStock(): LowStockState {
   const queryClient = useQueryClient();
@@ -102,30 +108,54 @@ export function useLowStock(): LowStockState {
 
   const [search, setSearchState] = useState("");
   const debouncedSearch = useDebounce(search, 300);
-  const [maxStock, setMaxStockState] = useState("");
-  const debouncedMaxStock = useDebounce(maxStock, 400);
+
   // Quem chega pelo alerta ja abre filtrado por saida: o alerta fala de "boa
   // saida e pouco estoque", e cair numa lista de outro criterio obrigaria a
   // reconstruir na mao o que o alerta ja sabia. Lido UMA vez — o campo continua
   // editavel, e apagar nao pode fazer o filtro voltar.
-  const [minRecentSales, setMinRecentSalesState] = useState(salesFilterFromUrl);
-  const debouncedMinRecentSales = useDebounce(minRecentSales, 400);
+  const [vindoDoAlerta] = useState(salesFilterFromUrl);
+
+  // `null` e "o usuario ainda nao mexeu": vale o padrao. Vazio ("") e uma
+  // decisao dele de nao filtrar, e precisa sobreviver — por isso os dois
+  // estados sao diferentes, e nao um texto so.
+  const [maxStockDigitado, setMaxStockDigitado] = useState<string | null>(null);
+  const [minRecentSalesDigitado, setMinRecentSalesDigitado] = useState<string | null>(null);
+  const debouncedMaxStock = useDebounce(maxStockDigitado, 400);
+  const debouncedMinRecentSales = useDebounce(minRecentSalesDigitado, 400);
+
   const [sort, setSortState] = useState<LowStockSort>("Default");
   const [page, setPage] = useState(1);
   const [confirm, setConfirm] = useState<LowStockConfirm | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  const summary = useGetLowStockSummary();
+  const padroes = padroesDaTela(vindoDoAlerta, summary.data);
+
+  const maxStock = maxStockDigitado ?? padroes?.maxStock ?? "";
+  const minRecentSales = minRecentSalesDigitado ?? padroes?.minRecentSales ?? "";
+
   const listParams = {
     search: debouncedSearch || undefined,
-    maxStock: filtroInteiro(debouncedMaxStock),
-    minRecentSales: filtroInteiro(debouncedMinRecentSales),
+    // O DEBOUNCE e' do que foi digitado, e o padrao entra depois dele. Fosse o
+    // contrario, o valor semeado passaria 400ms como texto novo e a tela faria
+    // duas consultas: uma sem filtro nenhum e outra com o padrao.
+    maxStock: filtroInteiro(debouncedMaxStock ?? padroes?.maxStock ?? ""),
+    minRecentSales: filtroInteiro(debouncedMinRecentSales ?? padroes?.minRecentSales ?? ""),
     sort: sort === "Default" ? undefined : sort,
   };
 
-  const list = useGetLowStock({ ...listParams, page, limit: PAGE_SIZE });
-  useApiErrorToast(list.isError, list.error);
+  /**
+   * A lista so' e' consultada depois que os padroes existem.
+   *
+   * Sem a espera, a primeira carga iria ao servidor sem filtro (o relatorio
+   * classico: so' quem tem estoque minimo configurado), a contagem apareceria,
+   * e um instante depois a tela trocaria a lista inteira. Se a contagem falhar,
+   * a tela segue sem padrao em vez de ficar em branco.
+   */
+  const pronto = padroes !== null || summary.isError;
 
-  const summary = useGetLowStockSummary();
+  const list = useGetLowStock({ ...listParams, page, limit: PAGE_SIZE }, { query: { enabled: pronto } });
+  useApiErrorToast(list.isError, list.error);
 
   function setSearch(value: string) {
     setSearchState(value);
@@ -133,12 +163,12 @@ export function useLowStock(): LowStockState {
   }
 
   function setMaxStock(value: string) {
-    setMaxStockState(value);
+    setMaxStockDigitado(value);
     setPage(1);
   }
 
   function setMinRecentSales(value: string) {
-    setMinRecentSalesState(value);
+    setMinRecentSalesDigitado(value);
     setPage(1);
   }
 
@@ -271,7 +301,10 @@ export function useLowStock(): LowStockState {
     totalPages: list.data?.totalPages ?? 1,
     total: list.data?.total ?? 0,
     items: list.data?.data ?? [],
-    isLoading: list.isLoading,
+    // Enquanto os padroes nao chegam a lista esta desligada, e uma query
+    // desligada nao e' `isLoading` no React Query — sem somar a espera da
+    // contagem, a tela mostraria "nenhum produto" antes da primeira consulta.
+    isLoading: !pronto || list.isLoading,
     isFetching: list.isFetching,
     summary: summary.data,
     comprar,
@@ -283,6 +316,45 @@ export function useLowStock(): LowStockState {
     mutatingProductId,
     exportToXlsx: () => void exportToXlsx(),
     isExporting,
+  };
+}
+
+/**
+ * Com o que os dois campos abrem quando ninguém digitou nada.
+ *
+ * ## Vindo do menu: os números do alerta
+ *
+ * Aberta sem filtro, a tela caía no relatório clássico — só quem tem estoque
+ * mínimo configurado e está abaixo dele. Na loja isso são **três produtos** de
+ * 1.042 (medido em 07/09/2026), porque quase ninguém preenche o campo de mínimo;
+ * a tela abria praticamente vazia e o operador precisava adivinhar dois números
+ * para ela servir para alguma coisa.
+ *
+ * Os números certos já existem e são os do alerta vermelho: teto de saldo
+ * (`restockMaxStock`) e mínimo de saída em 30 dias (`restockMinSales`). Com eles
+ * a tela abre com os mesmos doze produtos que o alerta conta. Vêm do BACKEND,
+ * onde os critérios moram — cravados aqui, mudar o alerta deixaria a tela
+ * abrindo com o filtro antigo, sem erro nenhum aparecendo.
+ *
+ * ## Vindo do alerta: o teto fica vazio, de propósito
+ *
+ * O link do alerta manda só `?vendas=`, e nesse caminho o teto de saldo continua
+ * em branco. Não é esquecimento: sem ele, o backend aplica a definição do alerta
+ * de "está acabando" — abaixo do PRÓPRIO mínimo para quem tem um, abaixo do teto
+ * para quem não tem. Preencher o teto trocaria essa definição por um número fixo
+ * e esconderia o produto de mínimo 20 com saldo 8, que o alerta acabou de contar.
+ * O alerta e a lista que ele abre precisam mostrar o mesmo número.
+ */
+function padroesDaTela(
+  vindoDoAlerta: string,
+  summary: LowStockSummary | undefined,
+): { maxStock: string; minRecentSales: string } | null {
+  if (vindoDoAlerta) return { maxStock: "", minRecentSales: vindoDoAlerta };
+  if (!summary) return null;
+
+  return {
+    maxStock: String(summary.restockMaxStock),
+    minRecentSales: String(summary.restockMinSales),
   };
 }
 

@@ -25,10 +25,12 @@ export default function LowStock() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Estoque baixo</h1>
             <p className="mt-1 max-w-4xl text-sm text-muted-foreground">
-              Produtos vivos com estoque mínimo configurado e saldo igual ou abaixo dele. Os filtros de saldo
-              e de saída alcançam também os produtos sem estoque mínimo. <strong>Comprar</strong> abre o
-              pedido de reposição já preenchido; feito o pedido, o botão sai da linha. Uma entrada de estoque
-              que passe do mínimo tira o produto daqui sozinha.
+              A tela abre com os mesmos filtros do alerta vermelho:{" "}
+              <strong>pouco saldo e com saída nos últimos 30 dias</strong> — que é o que precisa de compra
+              hoje. Os dois campos são editáveis e alcançam o catálogo inteiro; esvaziando os dois, sobra o
+              relatório clássico, só de quem tem estoque mínimo configurado e está abaixo dele.{" "}
+              <strong>Comprar</strong> abre o pedido de reposição já preenchido; feito o pedido, o botão sai
+              da linha. Uma entrada de estoque que passe do mínimo tira o produto daqui sozinha.
             </p>
           </div>
           <Button
