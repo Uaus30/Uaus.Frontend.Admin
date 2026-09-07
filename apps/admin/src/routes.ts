@@ -100,6 +100,7 @@ const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 const SupplierPerformance = lazy(() => import("@/pages/supplier-performance"));
 const SupplierPerformanceDetail = lazy(() => import("@/pages/supplier-performance-detail"));
 const ProductAbc = lazy(() => import("@/pages/product-abc"));
+const ProductPerformance = lazy(() => import("@/pages/product-performance"));
 
 /**
  * Ícone de cada grupo do menu. A ORDEM de exibição não sai daqui — ver `MENU_ORDER`.
@@ -251,6 +252,18 @@ export const ROUTES: AppRoute[] = [
   // painel e da listagem de produtos aponta para cá.
   { path: LOW_STOCK_REPORT_PATH, label: "Estoque baixo", group: "Relatórios", component: LowStock },
 
+  // O menu do grupo segue a ordem DESTA lista, e no BI ela é ALFABÉTICA. As
+  // telas de BI não têm sequência de trabalho entre si — nenhuma é "a próxima"
+  // depois da outra, como Entradas é depois de Compras —, então a única ordem
+  // que alguém consegue prever é a do alfabeto. Tela nova entra na posição
+  // alfabética, não no fim.
+  {
+    path: "/bi/curva-abc",
+    label: "Curva ABC de Produtos",
+    group: "BI",
+    component: ProductAbc,
+    roles: SO_ADMIN,
+  },
   {
     path: "/bi/fornecedores",
     label: "Desempenho de Fornecedores",
@@ -267,10 +280,10 @@ export const ROUTES: AppRoute[] = [
     hidden: true,
   },
   {
-    path: "/bi/curva-abc",
-    label: "Curva ABC de Produtos",
+    path: "/bi/produtos",
+    label: "Desempenho de Produtos",
     group: "BI",
-    component: ProductAbc,
+    component: ProductPerformance,
     roles: SO_ADMIN,
   },
 

@@ -112,11 +112,30 @@ describe("podeAcessar", () => {
     expect(podeAcessar(relatorio, USER_ROLE.Admin)).toBe(true);
   });
 
-  it("o grupo BI tem as duas telas, na ordem em que foram entregues", () => {
+  it("o grupo BI fica em ordem ALFABÉTICA, e não na ordem de entrega", () => {
+    // As telas de BI não têm sequência de trabalho entre si — nenhuma é "a
+    // próxima" depois da outra, como Entradas é depois de Compras. A ordem de
+    // entrega só é previsível para quem acompanhou as entregas; a do alfabeto é
+    // previsível para quem está procurando um nome numa lista.
     const bi = buildMenu(USER_ROLE.Admin).find((item) => item.name === "BI");
+    const nomes = bi?.items?.map((s) => s.name) ?? [];
 
-    expect(bi?.items?.map((s) => s.name)).toEqual(["Desempenho de Fornecedores", "Curva ABC de Produtos"]);
-    expect(bi?.items?.map((s) => s.href)).toEqual(["/bi/fornecedores", "/bi/curva-abc"]);
+    expect(nomes).toEqual(["Curva ABC de Produtos", "Desempenho de Fornecedores", "Desempenho de Produtos"]);
+    expect(bi?.items?.map((s) => s.href)).toEqual(["/bi/curva-abc", "/bi/fornecedores", "/bi/produtos"]);
+
+    const alfabetica = [...nomes].sort((a, b) =>
+      a.localeCompare(b, "pt-BR", { sensitivity: "base", numeric: true }),
+    );
+    expect(nomes).toEqual(alfabetica);
+  });
+
+  it("o desempenho de produtos é só de Admin", () => {
+    // A resposta traz custo, lucro e margem item a item.
+    const tela = ROUTES.find((r) => r.path === "/bi/produtos")!;
+
+    expect(tela.roles).toBeDefined();
+    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
   });
 
   it("a curva ABC também é só de Admin", () => {

@@ -30,3 +30,4 @@ export * from "./low-stock";
 export * from "./purchase-orders";
 export * from "./supplier-performance";
 export * from "./product-abc";
+export * from "./product-performance";
