@@ -200,9 +200,14 @@ export function PurchasesTable({
                         acoes ficavam fora da tela. A data volta no monitor largo.
 
                         E a data da COMPRA, que e por onde a listagem tambem ordena — nao a de
-                        criacao da linha, que so responde "quando isso foi digitado". */}
+                        criacao da linha, que so responde "quando isso foi digitado".
+
+                        O `||` cobre a JANELA DE DEPLOY: o front e a API sobem em servicos
+                        diferentes, e enquanto a API antiga responde sem `purchaseDate` o
+                        `formatShortDate` receberia undefined — `Intl` lanca em data invalida, e
+                        a listagem inteira deixaria de renderizar por causa de uma coluna. */}
                     <TableCell className="hidden px-4 py-3 text-sm text-muted-foreground 2xl:table-cell">
-                      {formatShortDate(purchase.purchaseDate)}
+                      {formatShortDate(purchase.purchaseDate || purchase.createdAt)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
