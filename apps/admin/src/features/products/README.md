@@ -15,7 +15,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
 - `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
-- `lib/barcode.ts`: Validação de EAN, dígito verificador, código de prévia e impressão da etiqueta de 80mm.
+- `lib/barcode.ts`: Validação de EAN, dígito verificador, simbologia da prévia (item 4.4), código de prévia e impressão da etiqueta de 80mm.
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
@@ -434,6 +434,39 @@ aberta, e é ele que fecha o ciclo:
 Fechar a tela (`resetForm`) descarta o contexto: um cadastro aberto depois pela
 lista não pode herdar a entrada de um pedido que não é dele. Em grupo com
 variações, a entrada vai para a variação escolhida na aba Estoque.
+
+### 4.4. A prévia e a etiqueta escolhem o formato pelo dígito verificador (07/09/2026)
+
+A simbologia sai de `resolveBarcodeFormat` (`lib/barcode.ts`): **EAN-13 ou
+EAN-8 quando o dígito verificador fecha, CODE128 em todo o resto** — inclusive
+para código de 13 dígitos com verificador errado.
+
+Antes o formato vinha do comprimento (`length === 8 ? "EAN8" : "EAN13"`). Para
+um EAN-13 com verificador que não fecha, a jsbarcode lança
+`InvalidInputException`, a `react-barcode` engole o erro no `console.error` e
+sobra um `<svg>` vazio — que, sem conteúdo, ocupa os 300x150 padrão do SVG. É
+o **retângulo branco** que aparecia no lugar da prévia (produto #883,
+`7896665551252`, cujo verificador deveria ser 3). A etiqueta de 80mm tinha o
+mesmo defeito: imprimia nome e preço, sem barras.
+
+Não é caso de laboratório: a importação do sistema antigo trouxe 28 códigos
+assim só no banco de dev, quase todos da faixa interna `2…`, e o operador
+sempre pode digitar um dígito errado.
+
+Duas decisões que andam juntas:
+
+- **A simbologia se adapta ao código; o código NÃO se adapta à simbologia.**
+  `buildDisplayBarcode` continua devolvendo os 13 dígitos cadastrados. Gerar um
+  código interno no lugar imprimiria uma etiqueta com um número que o PDV não
+  encontra ao bipar.
+- **`isEanValid` confere só o FORMATO** (8 ou 13 dígitos); quem confere o
+  verificador é `hasValidEanCheckDigit`. Endurecer o `isEanValid` faria o
+  cadastro reescrever silenciosamente o código de fábrica de quem digitou
+  errado — que é exatamente o efeito do item acima.
+
+As etiquetas de gôndola (`features/gondola-labels/barcode.ts`) já faziam isso e
+consomem o mesmo `resolveBarcodeFormat` — era a única tela do admin que
+imprimia esses produtos com barras.
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 

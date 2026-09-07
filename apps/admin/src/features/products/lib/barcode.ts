@@ -9,24 +9,72 @@ import { formatCurrency } from "@workspace/core";
  * componente não tem como ser testado sem montar a tela inteira.
  */
 
-/** EAN-8 ou EAN-13: só dígitos, 8 ou 13 posições. */
+/** Formatos que a prévia desenha e a etiqueta imprime; CODE128 é o coringa. */
+export type BarcodeFormat = "EAN13" | "EAN8" | "CODE128";
+
+/**
+ * EAN-8 ou EAN-13 pelo FORMATO: só dígitos, 8 ou 13 posições.
+ *
+ * Confere o desenho do código, não o dígito verificador — quem faz isso é
+ * {@link hasValidEanCheckDigit}. A separação é proposital: um código com
+ * verificador errado continua sendo o código gravado no cadastro, e reescrevê-lo
+ * faria a prévia e a etiqueta mostrarem um número que o produto não tem.
+ */
 export function isEanValid(code: string): boolean {
   return /^\d{8}$|^\d{13}$/.test(code);
 }
 
 /**
- * Dígito verificador do EAN-13, calculado sobre os 12 primeiros dígitos.
+ * Dígito verificador de um corpo de EAN — 12 dígitos no EAN-13, 7 no EAN-8.
  *
- * Pesos alternados 1 e 3 a partir da primeira posição, como manda o padrão
- * GS1. Errar o peso não gera erro em lugar nenhum: a etiqueta imprime, o
- * leitor do caixa recusa, e a venda para com o produto na mão do cliente.
+ * Pesos alternados 3 e 1 a partir da DIREITA, como manda o padrão GS1 (é o que
+ * põe o peso 3 na segunda posição do EAN-13 e na primeira do EAN-8). Errar o
+ * peso não gera erro em lugar nenhum: a etiqueta imprime, o leitor do caixa
+ * recusa, e a venda para com o produto na mão do cliente.
  */
-export function calculateEan13CheckDigit(code: string): number {
-  let sum = 0;
-  for (let i = 0; i < 12; i++) {
-    sum += parseInt(code[i], 10) * (i % 2 === 0 ? 1 : 3);
-  }
+function calculateEanCheckDigit(body: string): number {
+  const sum = body
+    .split("")
+    .reverse()
+    .reduce((acc, digit, index) => acc + parseInt(digit, 10) * (index % 2 === 0 ? 3 : 1), 0);
   return (10 - (sum % 10)) % 10;
+}
+
+/** Dígito verificador do EAN-13, calculado sobre os 12 primeiros dígitos. */
+export function calculateEan13CheckDigit(code: string): number {
+  return calculateEanCheckDigit(code.slice(0, 12));
+}
+
+/**
+ * O dígito verificador do código fecha com os dígitos anteriores?
+ *
+ * Vale para EAN-8 e EAN-13; qualquer outro comprimento é `false`, porque aí não
+ * há verificador para conferir.
+ */
+export function hasValidEanCheckDigit(code: string): boolean {
+  if (!isEanValid(code)) return false;
+  return calculateEanCheckDigit(code.slice(0, -1)) === parseInt(code.slice(-1), 10);
+}
+
+/**
+ * Simbologia com que o código vai ser desenhado.
+ *
+ * EAN fiel quando o verificador fecha; **CODE128 em todo o resto**, que aceita
+ * qualquer texto. Sem esse desvio a jsbarcode lança para EAN com verificador
+ * errado, e o que sobra na tela é a moldura branca vazia do `<svg>` (300x150,
+ * o tamanho padrão de SVG sem conteúdo) — foi assim que a prévia do produto
+ * apareceu em branco. O catálogo tem códigos assim de verdade: a importação do
+ * sistema antigo trouxe 28 códigos internos de 13 dígitos cujo verificador não
+ * fecha, e o operador ainda pode digitar um errado.
+ *
+ * Trocar de simbologia preserva o NÚMERO — a etiqueta impressa continua sendo a
+ * do código cadastrado, que é o que o PDV procura ao bipar. Gerar outro código
+ * no lugar imprimiria uma etiqueta que o caixa não encontra.
+ */
+export function resolveBarcodeFormat(code: string): BarcodeFormat {
+  if (code.length === 13 && hasValidEanCheckDigit(code)) return "EAN13";
+  if (code.length === 8 && hasValidEanCheckDigit(code)) return "EAN8";
+  return "CODE128";
 }
 
 /**
@@ -133,7 +181,7 @@ export function printBarcodeLabel({ barcode, name, price }: PrintBarcodeLabelPar
         <script>
           window.onload = () => {
             JsBarcode("#barcode", "${barcode}", {
-              format: "${barcode.length === 8 ? "EAN8" : barcode.length === 13 ? "EAN13" : "CODE128"}",
+              format: "${resolveBarcodeFormat(barcode)}",
               width: 2,
               height: 40,
               displayValue: true,

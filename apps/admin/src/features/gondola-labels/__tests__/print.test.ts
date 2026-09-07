@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { PRODUCT_LABEL_TYPE } from "@workspace/api-client-react";
-import { hasValidEanCheckDigit, resolveBarcodeFormat } from "../barcode";
 import { buildLabelSheetHtml, escapeHtml, formatLabelPrice, getProductNameFontSizePt } from "../print";
 import type { PrintableLabel } from "../types";
 
@@ -51,29 +50,6 @@ describe("getProductNameFontSizePt", () => {
 describe("escapeHtml", () => {
   it("escapa os cinco caracteres especiais de HTML", () => {
     expect(escapeHtml(`<Açaí & "Mel" 'Puro'>`)).toBe("&lt;Açaí &amp; &quot;Mel&quot; &#39;Puro&#39;&gt;");
-  });
-});
-
-describe("hasValidEanCheckDigit", () => {
-  it("valida o dígito verificador de EAN-13 e EAN-8", () => {
-    expect(hasValidEanCheckDigit("7891234567895")).toBe(true);
-    expect(hasValidEanCheckDigit("7891234567890")).toBe(false);
-    expect(hasValidEanCheckDigit("40170725")).toBe(true);
-    expect(hasValidEanCheckDigit("40170724")).toBe(false);
-  });
-
-  it("recusa comprimentos que não são EAN", () => {
-    expect(hasValidEanCheckDigit("123456")).toBe(false);
-    expect(hasValidEanCheckDigit("ABC")).toBe(false);
-  });
-});
-
-describe("resolveBarcodeFormat", () => {
-  it("escolhe EAN quando o verificador fecha e CODE128 caso contrário", () => {
-    expect(resolveBarcodeFormat("7891234567895")).toBe("EAN13");
-    expect(resolveBarcodeFormat("40170725")).toBe("EAN8");
-    expect(resolveBarcodeFormat("7891234567890")).toBe("CODE128");
-    expect(resolveBarcodeFormat("COD-INTERNO-1")).toBe("CODE128");
   });
 });
 

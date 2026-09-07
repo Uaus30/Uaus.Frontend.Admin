@@ -1,32 +1,5 @@
 import JsBarcode from "jsbarcode";
-
-/** Formatos que a etiqueta imprime; CODE128 é o coringa para códigos internos. */
-export type BarcodeFormat = "EAN13" | "EAN8" | "CODE128";
-
-/**
- * Confere o dígito verificador de um EAN-8/EAN-13 (pesos 3 e 1, da direita
- * para a esquerda). Comprimentos fora de 8/13 dígitos retornam falso.
- */
-export function hasValidEanCheckDigit(digits: string): boolean {
-  if (!/^\d{8}$|^\d{13}$/.test(digits)) return false;
-
-  const numbers = digits.split("").map(Number);
-  const check = numbers.pop() ?? 0;
-  const sum = numbers.reverse().reduce((acc, digit, index) => acc + digit * (index % 2 === 0 ? 3 : 1), 0);
-
-  return (10 - (sum % 10)) % 10 === check;
-}
-
-/**
- * Formato de barras para o valor: EAN fiel quando o dígito verificador fecha,
- * senão CODE128 — que aceita qualquer texto e evita o erro que a jsbarcode
- * lança para EAN com verificador errado.
- */
-export function resolveBarcodeFormat(value: string): BarcodeFormat {
-  if (value.length === 13 && hasValidEanCheckDigit(value)) return "EAN13";
-  if (value.length === 8 && hasValidEanCheckDigit(value)) return "EAN8";
-  return "CODE128";
-}
+import { resolveBarcodeFormat } from "@/features/products/lib/barcode";
 
 /**
  * Gera o SVG do código de barras como string, com a jsbarcode local — nada de

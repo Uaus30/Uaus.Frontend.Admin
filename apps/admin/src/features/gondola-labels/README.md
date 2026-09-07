@@ -54,7 +54,11 @@ reimpressão.
   `printReceiptHtml` do `@workspace/receipt` (iframe fora da tela, cleanup por
   `afterprint`).
 - `barcode.ts` gera o SVG com a **jsbarcode local** (sem CDN, funciona
-  offline): EAN-13/EAN-8 quando o dígito verificador fecha, senão CODE128.
+  offline). A escolha do formato — EAN-13/EAN-8 quando o dígito verificador
+  fecha, senão CODE128 — mora em `resolveBarcodeFormat`, no
+  `features/products/lib/barcode.ts`: a prévia e a etiqueta de 80mm do cadastro
+  precisavam da mesma regra (item 4.4 do README de produtos), e duas cópias já
+  tinham divergido.
 
 ## Arquitetura
 

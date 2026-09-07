@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { HelpCircle, Plus, Printer } from "lucide-react";
 import Barcode from "react-barcode";
+import { resolveBarcodeFormat } from "../../lib/barcode";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 
 type ProductBasicInfoProps = {
@@ -68,11 +69,15 @@ export function ProductBasicInfo({
             placeholder="Ex: 7891234567890"
           />
           <div
+            data-testid="barcode-preview"
             className={`flex items-center bg-white px-2 py-1 rounded border transition-all duration-300 ${currentBarcode.length === 0 ? "opacity-40 grayscale" : "opacity-100"}`}
           >
             <Barcode
               value={displayBarcode}
-              format={displayBarcode.length === 8 ? "EAN8" : "EAN13"}
+              // O formato sai do dígito verificador, não do comprimento: com
+              // EAN13 fixo, um código de 13 dígitos com verificador errado faz
+              // a jsbarcode lançar, e a prévia vira um retângulo branco vazio.
+              format={resolveBarcodeFormat(displayBarcode)}
               height={30}
               width={1.5}
               fontSize={12}
