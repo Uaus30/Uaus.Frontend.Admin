@@ -40,9 +40,20 @@ export interface PurchaseDto {
   productBarcode?: string | null;
   details?: string | null;
   purchaseLink?: string | null;
+  /**
+   * Dia em que a compra foi feita, `yyyy-MM-ddT00:00:00` sem fuso. NÃO é
+   * `createdAt`: o pedido costuma ser lançado no sistema depois de fechado, e é
+   * esta data que a listagem ordena e exibe.
+   */
+  purchaseDate: string;
   quantity: number;
   grossTotal: number;
   finalTotal: number;
+  /**
+   * Preço de venda pretendido, decidido junto com a compra. Ausente quando não
+   * foi informado — aí o recebimento mantém o preço atual do produto.
+   */
+  suggestedPrice?: number | null;
   /** Bruto ÷ quantidade. */
   unitGross: number;
   /** Final ÷ quantidade — o custo unitário que a entrada grava. */
@@ -65,9 +76,13 @@ export interface SavePurchasePayload {
   productName: string;
   details: string | null;
   purchaseLink: string | null;
+  /** `yyyy-MM-ddT00:00:00`, sem fuso. Nulo é hoje. */
+  purchaseDate: string | null;
   quantity: number;
   grossTotal: number;
   finalTotal: number;
+  /** Preço de venda pretendido. Nulo mantém o preço atual do produto no recebimento. */
+  suggestedPrice: number | null;
   /** Código de PurchaseStatus: Pendente (1) ou A caminho (2). */
   status: number;
   /** Ids de `images` já enviadas, na ordem de exibição. */

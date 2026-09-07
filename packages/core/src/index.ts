@@ -15,6 +15,7 @@
 export * from "./api-error";
 export * from "./discount";
 export * from "./format";
+export * from "./formula";
 export * from "./mask";
 export * from "./money";
 export * from "./pricing";

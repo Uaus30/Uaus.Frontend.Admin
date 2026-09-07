@@ -26,7 +26,7 @@ vi.mock("@/services/images.service", () => ({
   downloadWebImageAsFile: vi.fn(),
 }));
 
-const { usePurchaseForm, purchaseToForm, validatePurchaseForm, emptyPurchaseForm } =
+const { usePurchaseForm, purchaseToForm, validatePurchaseForm, emptyPurchaseForm, todayDateKey } =
   await import("../usePurchaseForm");
 
 const compra: PurchaseDto = {
@@ -41,9 +41,11 @@ const compra: PurchaseDto = {
   productBarcode: null,
   details: "500ml",
   purchaseLink: "https://shopee.com.br/x",
+  purchaseDate: "2026-08-28T00:00:00",
   quantity: 3,
   grossTotal: 120,
   finalTotal: 100,
+  suggestedPrice: 55.6,
   unitGross: 40,
   unitFinal: 33.33,
   adjustmentPercent: -16.67,
@@ -75,6 +77,25 @@ describe("validatePurchaseForm", () => {
     expect(validatePurchaseForm({ ...base, quantity: 1.5 })).toMatch(/quantidade/i);
     expect(validatePurchaseForm({ ...base, finalTotal: -1 })).toMatch(/negativos/);
   });
+
+  it("exige data da compra e recusa data futura", () => {
+    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X" };
+
+    expect(validatePurchaseForm({ ...base, purchaseDate: "" })).toMatch(/data da compra/i);
+    // Retroagir é o caso comum (o pedido é digitado depois); adiantar não existe.
+    expect(validatePurchaseForm({ ...base, purchaseDate: "2099-01-01" })).toMatch(/futuro/i);
+    expect(validatePurchaseForm({ ...base, purchaseDate: "2026-01-15" })).toBeNull();
+  });
+});
+
+describe("emptyPurchaseForm", () => {
+  it("nasce com a data de hoje e sem preço sugerido", () => {
+    const form = emptyPurchaseForm();
+
+    expect(form.purchaseDate).toBe(todayDateKey());
+    // Zero é "não informei": o recebimento mantém o preço atual do produto.
+    expect(form.suggestedPrice).toBe(0);
+  });
 });
 
 describe("purchaseToForm", () => {
@@ -86,6 +107,16 @@ describe("purchaseToForm", () => {
     expect(form.supplierId).toBe("1");
     expect(form.images).toHaveLength(1);
     expect(form.images[0].imageId).toBe(9);
+    // O campo de data trabalha em `yyyy-MM-dd`; o backend manda o instante.
+    expect(form.purchaseDate).toBe("2026-08-28");
+    expect(form.suggestedPrice).toBe(55.6);
+  });
+
+  it("compra sem preço sugerido vira zero, que é o vazio do campo de moeda", () => {
+    // A API omite nulos: o campo chega AUSENTE, não como null.
+    const { suggestedPrice: _omitido, ...semPreco } = compra;
+
+    expect(purchaseToForm(semPreco as PurchaseDto).suggestedPrice).toBe(0);
   });
 });
 
@@ -154,6 +185,7 @@ describe("usePurchaseForm", () => {
       result.current.update("quantity", 3);
       result.current.update("grossTotal", 120);
       result.current.update("finalTotal", 100);
+      result.current.update("purchaseDate", "2026-09-01");
     });
 
     await act(async () => {
@@ -169,6 +201,11 @@ describe("usePurchaseForm", () => {
           quantity: 3,
           grossTotal: 120,
           finalTotal: 100,
+          // Instante LOCAL: `toISOString()` jogaria o dia para trás no Brasil.
+          purchaseDate: "2026-09-01T00:00:00",
+          // Não informado vai como nulo, não como zero — zero faria o
+          // recebimento tentar aplicar preço zero ao produto.
+          suggestedPrice: null,
           status: 1,
           imageIds: [],
         }),
@@ -176,6 +213,28 @@ describe("usePurchaseForm", () => {
     );
     await waitFor(() => expect(result.current.open).toBe(false));
     expect(onSaved).toHaveBeenCalled();
+  });
+
+  it("envia o preço sugerido quando ele foi informado", async () => {
+    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => result.current.openNew());
+    act(() => {
+      result.current.update("supplierId", "1");
+      result.current.update("productName", "CANECA");
+      result.current.update("finalTotal", 100);
+      result.current.update("suggestedPrice", 55.6);
+    });
+
+    await act(async () => {
+      result.current.submit();
+    });
+
+    await waitFor(() =>
+      expect(mocks.createPurchase).toHaveBeenCalledWith(expect.objectContaining({ suggestedPrice: 55.6 })),
+    );
   });
 
   it("não vai à rede com o formulário incompleto e avisa", async () => {

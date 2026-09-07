@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { describeApiError } from "@workspace/core";
+import { describeApiError, toDateKey } from "@workspace/core";
 import {
   PURCHASE_STATUS,
   buildPublicImageUrl,
@@ -13,12 +13,18 @@ import {
   type SupplierDto,
 } from "@workspace/api-client-react";
 import type { ProductSearchOption } from "@/components/product-search-picker";
-import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.service";
-import { optimizeImage } from "@/lib/imageOptimizer";
-import type { PurchaseForm, PurchaseFormImage } from "../types";
+import type { PurchaseForm } from "../types";
+import { usePurchaseImages } from "./usePurchaseImages";
 
-/** Tipo de imagem "Produtos" no enum ImageType do backend. */
-const IMAGE_TYPE_PRODUCTS = 3;
+/** Hoje, em `yyyy-MM-dd` — componentes LOCAIS, nunca `toISOString()`. */
+export function todayDateKey(): string {
+  return toDateKey(new Date());
+}
+
+/** O dia de uma data do backend (`2026-09-06T00:00:00`), para o campo de data. */
+function dateKeyFromApi(value: string | undefined | null): string {
+  return value ? value.slice(0, 10) : todayDateKey();
+}
 
 export function emptyPurchaseForm(): PurchaseForm {
   return {
@@ -28,9 +34,11 @@ export function emptyPurchaseForm(): PurchaseForm {
     productBarcode: null,
     details: "",
     purchaseLink: "",
+    purchaseDate: todayDateKey(),
     quantity: 1,
     grossTotal: 0,
     finalTotal: 0,
+    suggestedPrice: 0,
     status: String(PURCHASE_STATUS.Pending),
     images: [],
   };
@@ -47,9 +55,13 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
     productBarcode: purchase.productBarcode ?? null,
     details: purchase.details ?? "",
     purchaseLink: purchase.purchaseLink ?? "",
+    purchaseDate: dateKeyFromApi(purchase.purchaseDate),
     quantity: purchase.quantity,
     grossTotal: purchase.grossTotal,
     finalTotal: purchase.finalTotal,
+    // Zero é "não informado": o campo de moeda não distingue vazio de zero, e o
+    // backend recebe nulo nesse caso.
+    suggestedPrice: purchase.suggestedPrice ?? 0,
     status: String(status === PURCHASE_STATUS.None ? PURCHASE_STATUS.Pending : status),
     images: purchase.images.map((image) => ({
       imageId: image.imageId,
@@ -80,9 +92,12 @@ export function purchaseLinkIsRequired(form: PurchaseForm, supplier: SupplierDto
 export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto): string | null {
   if (!form.supplierId) return "Selecione o fornecedor.";
   if (form.productId === null && !form.productName.trim()) return "Informe o produto ou o nome do produto.";
+  if (!form.purchaseDate) return "Informe a data da compra.";
+  if (form.purchaseDate > todayDateKey()) return "A data da compra não pode estar no futuro.";
   if (!Number.isInteger(form.quantity) || form.quantity <= 0)
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
+  if (form.suggestedPrice < 0) return "O preço sugerido de venda não pode ser negativo.";
   if (purchaseLinkIsRequired(form, supplier) && !form.purchaseLink.trim())
     return `Informe o link da compra: ${supplier?.name ?? "este fornecedor"} é um marketplace, e sem o link não há como reencontrar o anúncio depois.`;
   return null;
@@ -102,11 +117,18 @@ type UsePurchaseFormParams = {
 /**
  * Formulário da compra: estado, produto vinculado, fotos e a gravação.
  *
- * As fotos são ENVIADAS na hora em que entram no formulário (upload para o
- * catálogo de imagens), e o corpo da compra leva só os ids — é o mesmo
- * catálogo do produto, e no recebimento de produto novo as mesmas imagens
- * viram a galeria do cadastro sem novo upload. A busca na web reaproveita o
- * proxy e a otimização que o cadastro de produto já usa.
+ * As fotos vivem no `usePurchaseImages`, que este hook reexporta inteiro — são
+ * quatro caminhos de entrada (arquivo, Ctrl+V, URL e busca na web) com
+ * compressão e upload imediatos, e o corpo da compra leva só os ids.
+ *
+ * Dois campos merecem nota por não serem óbvios no payload:
+ *
+ * - **A data da compra** viaja como instante local (`T00:00:00`), não como
+ *   `toISOString()`: a coluna é `timestamp without time zone` e o UTC jogaria o
+ *   dia para trás no Brasil.
+ * - **O preço sugerido zero vira nulo.** O `CurrencyInput` não distingue vazio
+ *   de zero, e um zero gravado faria o recebimento tentar aplicar preço zero ao
+ *   produto — nulo é o que mantém o preço atual do cadastro.
  */
 export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
   const { toast } = useToast();
@@ -114,8 +136,7 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
-  const [uploading, setUploading] = useState(false);
-  const [imageSearchOpen, setImageSearchOpen] = useState(false);
+  const images = usePurchaseImages({ productName: form.productName, setForm });
   /**
    * Compra lançada abre em leitura, e não deixa de abrir.
    *
@@ -188,53 +209,6 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     setForm((current) => ({ ...current, productId: null, productBarcode: null }));
   }
 
-  async function addImageFile(file: File) {
-    setUploading(true);
-    try {
-      const optimized = await optimizeImage(file);
-      const created = await createImageFromFile({
-        file: optimized.file,
-        name: form.productName.trim() || file.name,
-        type: IMAGE_TYPE_PRODUCTS,
-      });
-      const image: PurchaseFormImage = {
-        imageId: created.id,
-        url: buildPublicImageUrl(created.url),
-        name: created.name,
-      };
-      setForm((current) => ({ ...current, images: [...current.images, image] }));
-    } catch (error) {
-      toast({
-        title: "Erro ao enviar a imagem",
-        description: describeApiError(error, "Tente novamente."),
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function handleFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    for (const file of files) {
-      await addImageFile(file);
-    }
-  }
-
-  /** Foto escolhida na busca da web: baixa pelo proxy e envia como as demais. */
-  async function addWebImage(webImageUrl: string) {
-    const file = await downloadWebImageAsFile(webImageUrl, form.productName || "compra");
-    await addImageFile(file);
-  }
-
-  function removeImage(imageId: number) {
-    setForm((current) => ({
-      ...current,
-      images: current.images.filter((image) => image.imageId !== imageId),
-    }));
-  }
-
   const saveMutation = useMutation({
     mutationFn: (payload: SavePurchasePayload) =>
       editingId ? updatePurchase(editingId, payload) : createPurchase(payload),
@@ -268,9 +242,13 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
       productName: form.productName.trim(),
       details: form.details.trim() || null,
       purchaseLink: form.purchaseLink.trim() || null,
+      // Instante LOCAL sem fuso, como a entrada de estoque: a coluna é
+      // `timestamp without time zone`, e `toISOString()` jogaria o dia para trás.
+      purchaseDate: `${form.purchaseDate}T00:00:00`,
       quantity: form.quantity,
       grossTotal: form.grossTotal,
       finalTotal: form.finalTotal,
+      suggestedPrice: form.suggestedPrice > 0 ? form.suggestedPrice : null,
       status: Number(form.status),
       imageIds: form.images.map((image) => image.imageId),
     });
@@ -290,12 +268,9 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     openForRestock,
     selectProduct,
     clearProduct,
-    handleFileSelection,
-    addWebImage,
-    removeImage,
-    uploading,
-    imageSearchOpen,
-    setImageSearchOpen,
+    // Fotos: quatro entradas (arquivo, colagem, URL e busca na web), todas pelo
+    // mesmo funil de compressão e upload. Ver `usePurchaseImages`.
+    ...images,
     submit,
     isSaving: saveMutation.isPending,
   };

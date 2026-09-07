@@ -19,14 +19,26 @@ import { productStockTabPathname } from "@/features/products/product-detail-rout
 import { productFromPurchasePath } from "../purchases-route";
 import type { ReceiveForm } from "../types";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
-import { usePurchaseForm } from "./usePurchaseForm";
+import { todayDateKey, usePurchaseForm } from "./usePurchaseForm";
 
 /** Linhas por página. */
 export const PAGE_SIZE = 20;
 
-function todayKey(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+/**
+ * O formulário de recebimento em branco desta compra.
+ *
+ * O preço já vem com o que a COMPRA pretendia cobrar: quem decidiu a margem foi
+ * quem comprou, olhando para o custo, e obrigar a redigitar no recebimento é
+ * pedir a mesma decisão duas vezes — com o risco de a segunda sair diferente.
+ * Sem preço sugerido, zero mantém o preço atual do cadastro, como antes.
+ */
+function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
+  return {
+    entryDate: todayDateKey(),
+    invoiceNumber: "",
+    notes: "",
+    price: purchase?.suggestedPrice ?? 0,
+  };
 }
 
 /**
@@ -122,12 +134,7 @@ export function usePurchases() {
 
   // ---- Recebimento de produto já cadastrado ----
   const [receiving, setReceiving] = useState<PurchaseDto | null>(null);
-  const [receiveForm, setReceiveForm] = useState<ReceiveForm>({
-    entryDate: todayKey(),
-    invoiceNumber: "",
-    notes: "",
-    price: 0,
-  });
+  const [receiveForm, setReceiveForm] = useState<ReceiveForm>(emptyReceiveForm);
 
   const receiveMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: ReceiveForm }) =>
@@ -177,7 +184,7 @@ export function usePurchases() {
       return;
     }
 
-    setReceiveForm({ entryDate: todayKey(), invoiceNumber: "", notes: "", price: 0 });
+    setReceiveForm(emptyReceiveForm(purchase));
     setReceiving(purchase);
   }
 

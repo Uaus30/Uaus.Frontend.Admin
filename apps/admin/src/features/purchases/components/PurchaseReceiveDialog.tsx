@@ -103,7 +103,9 @@ export function PurchaseReceiveDialog({
                   className="h-10 bg-background"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Em branco (zero) mantém o preço atual do cadastro.
+                  {purchase.suggestedPrice
+                    ? "Veio do preço sugerido na compra. Em branco (zero) mantém o preço atual."
+                    : "Em branco (zero) mantém o preço atual do cadastro."}
                 </p>
               </div>
             </div>

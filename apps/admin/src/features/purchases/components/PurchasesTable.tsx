@@ -112,7 +112,7 @@ export function PurchasesTable({
                 <TableHead className="px-4 py-3 text-right">Total final</TableHead>
                 <TableHead className="px-4 py-3 text-right">Unit. final</TableHead>
                 <TableHead className="px-4 py-3">Situação</TableHead>
-                <TableHead className="hidden px-4 py-3 2xl:table-cell">Data</TableHead>
+                <TableHead className="hidden px-4 py-3 2xl:table-cell">Data da compra</TableHead>
                 <TableHead className="w-16 px-4 py-3 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -197,9 +197,12 @@ export function PurchasesTable({
                       <PurchaseStatusBadge status={purchase.status} />
                     </TableCell>
                     {/* Some abaixo de 2xl: com oito colunas a tabela rolava na horizontal e as
-                        acoes ficavam fora da tela. A data volta no monitor largo. */}
+                        acoes ficavam fora da tela. A data volta no monitor largo.
+
+                        E a data da COMPRA, que e por onde a listagem tambem ordena — nao a de
+                        criacao da linha, que so responde "quando isso foi digitado". */}
                     <TableCell className="hidden px-4 py-3 text-sm text-muted-foreground 2xl:table-cell">
-                      {formatShortDate(purchase.receivedAt ?? purchase.createdAt)}
+                      {formatShortDate(purchase.purchaseDate)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
+import { evaluateAmountFormula, formatCurrency, isAmountFormula } from "@workspace/core";
 
 type CurrencyInputProps = {
   /** Optional element ID for reference / focus management */
@@ -19,7 +19,33 @@ type CurrencyInputProps = {
    * lançada precisa: o valor continua legível, e o clique não abre o campo.
    */
   readOnly?: boolean;
+  /**
+   * Libera a conta no próprio campo: digitando "=17,99*2" o valor vira 35,98 ao
+   * sair. Ver `evaluateAmountFormula` no `@workspace/core`.
+   *
+   * É opção, e não o padrão, porque relaxa o filtro de digitação: o campo passa
+   * a aceitar operadores e parênteses. Onde a fórmula não faz sentido, o
+   * comportamento antigo (só dígito e vírgula) continua valendo e não há como
+   * digitar algo que o campo não entenda.
+   */
+  allowFormula?: boolean;
 };
+
+/**
+ * O que o campo aceita enquanto se digita.
+ *
+ * Sem fórmula, só dígito e vírgula — o ponto é convertido em vírgula na hora,
+ * que é o que faz o teclado numérico funcionar. Com fórmula, entram os
+ * operadores e os parênteses; o `=` inicial é o que distingue conta de valor.
+ */
+function sanitizeInput(raw: string, allowFormula: boolean): string {
+  if (allowFormula && isAmountFormula(raw)) return raw.replace(/[^\d.,+\-*/()=\s]/g, "");
+
+  let value = raw.replace(/\./g, ",").replace(/[^\d,]/g, "");
+  const parts = value.split(",");
+  if (parts.length > 2) value = parts[0] + "," + parts.slice(1).join("");
+  return value;
+}
 
 /**
  * CurrencyInput
@@ -29,7 +55,14 @@ type CurrencyInputProps = {
  * - On blur, it parses the string back to a float number and calls onChange.
  * - Out of focus, it displays a read-only nicely formatted currency string (e.g. "R$ 12,34").
  */
-export function CurrencyInput({ id, value, onChange, className, readOnly }: CurrencyInputProps) {
+export function CurrencyInput({
+  id,
+  value,
+  onChange,
+  className,
+  readOnly,
+  allowFormula = false,
+}: CurrencyInputProps) {
   const [focused, setFocused] = useState(false);
   const [localValue, setLocalValue] = useState(value.toString().replace(".", ","));
 
@@ -63,18 +96,28 @@ export function CurrencyInput({ id, value, onChange, className, readOnly }: Curr
       type="text"
       inputMode="decimal"
       value={localValue}
-      onChange={(e) => {
-        let val = e.target.value;
-        val = val.replace(/\./g, ",");
-        val = val.replace(/[^\d,]/g, "");
-        const parts = val.split(",");
-        if (parts.length > 2) {
-          val = parts[0] + "," + parts.slice(1).join("");
-        }
-        setLocalValue(val);
+      onChange={(e) => setLocalValue(sanitizeInput(e.target.value, allowFormula))}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" || !allowFormula || !isAmountFormula(localValue)) return;
+
+        // A conta só é resolvida no blur. Dentro de um <form>, o Enter enviaria
+        // o formulário antes disso — com o valor ANTIGO no campo. Sair do campo
+        // resolve a conta e deixa o segundo Enter enviar o que se vê.
+        event.preventDefault();
+        event.currentTarget.blur();
       }}
       onBlur={() => {
         setFocused(false);
+
+        if (allowFormula && isAmountFormula(localValue)) {
+          const result = evaluateAmountFormula(localValue);
+          // Conta que não fecha não zera o campo: o valor anterior volta (o
+          // efeito acima reescreve `localValue` a partir de `value`). Zerar
+          // apagaria em silêncio um total que já estava certo.
+          if (result !== null) onChange(result);
+          return;
+        }
+
         const numericValue = Number(localValue.replace(",", "."));
         onChange(isNaN(numericValue) ? 0 : numericValue);
       }}

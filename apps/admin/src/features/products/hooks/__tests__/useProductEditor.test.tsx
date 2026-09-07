@@ -396,6 +396,7 @@ describe("cadastro a partir de uma compra", () => {
     productBarcode: null,
     details: "500ml",
     purchaseLink: null,
+    purchaseDate: "2026-09-05T00:00:00",
     quantity: 3,
     grossTotal: 120,
     finalTotal: 100,
@@ -421,9 +422,10 @@ describe("cadastro a partir de uma compra", () => {
     expect(result.current.form.productGroupName).toBe("CANECA TERMICA");
     expect(result.current.form.description).toBe("500ml");
     expect(result.current.productEditor.name).toBe("CANECA TERMICA");
-    // 40% de margem sobre o custo unitário FINAL (33,33 / 0,6 = 55,55),
-    // arredondado PARA CIMA ao múltiplo de 10 centavos: 55,50 daria 39,9%, e a
-    // sugestão nunca fica abaixo do alvo.
+    // Sem preço sugerido na compra, cai na regra da loja: 40% de margem sobre o
+    // custo unitário FINAL (33,33 / 0,6 = 55,55), arredondado PARA CIMA ao
+    // múltiplo de 10 centavos — 55,50 daria 39,9%, e a sugestão nunca fica
+    // abaixo do alvo.
     expect(result.current.productEditor.price).toBe(55.6);
     // As fotos entram JÁ enviadas (imageId): o salvar só cria a associação.
     expect(result.current.images).toEqual([
@@ -444,6 +446,18 @@ describe("cadastro a partir de uma compra", () => {
 
     expect(mocks.markPurchaseReceived).toHaveBeenCalledWith(5, { productId: 10, purchaseEntryId: 77 });
     expect(result.current.purchaseContext).toBeNull();
+  });
+
+  it("o preço sugerido da compra manda sobre a regra dos 40%", () => {
+    // Quem comprou já olhou para o custo e decidiu por quanto vende; recalcular
+    // por cima disso descartaria a decisão.
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetailFromPurchase({ ...compra, suggestedPrice: 49.9 });
+    });
+
+    expect(result.current.productEditor.price).toBe(49.9);
   });
 
   it("fechar a tela descarta o contexto da compra", () => {

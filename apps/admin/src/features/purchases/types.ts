@@ -27,9 +27,17 @@ export type PurchaseForm = {
   productBarcode: string | null;
   details: string;
   purchaseLink: string;
+  /** Dia da compra, `yyyy-MM-dd`. Nasce hoje. */
+  purchaseDate: string;
   quantity: number;
   grossTotal: number;
   finalTotal: number;
+  /**
+   * Preço de venda pretendido. Zero é "não informei" — é como o `CurrencyInput`
+   * representa campo em branco, e é o que faz o recebimento manter o preço
+   * atual do produto.
+   */
+  suggestedPrice: number;
   /** Código de PurchaseStatus como string do `<Select>`: "1" Pendente, "2" A caminho. */
   status: string;
   images: PurchaseFormImage[];

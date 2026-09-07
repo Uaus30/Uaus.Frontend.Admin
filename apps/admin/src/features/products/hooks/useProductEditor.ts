@@ -308,8 +308,13 @@ export function useProductEditor() {
    * É o segundo caminho do "Lançar recebimento" (`features/purchases`): a compra
    * de algo que ainda não existe no cadastro traz nome, detalhes, fotos e o
    * custo — e o operador completa código de barras, departamento, categoria e
-   * variações. O preço nasce sugerido a 40% sobre o custo unitário FINAL, pela
-   * mesma regra da entrada (`suggestedPrice`); é sugestão, não imposição.
+   * variações.
+   *
+   * O preço vem do que a COMPRA decidiu cobrar, quando ela decidiu: quem
+   * comprou já olhou para o custo e para a margem, e recalcular por cima disso
+   * descartaria a decisão. Sem preço na compra, cai na sugestão de 40% sobre o
+   * custo unitário FINAL, pela mesma regra da entrada (`suggestedPrice`). Nos
+   * dois casos é sugestão, não imposição.
    *
    * As fotos entram como imagens JÁ enviadas (`imageId`): são as mesmas do
    * catálogo de imagens, e o salvar só cria a associação — sem novo upload.
@@ -330,7 +335,7 @@ export function useProductEditor() {
     setProductEditor({
       ...createEmptyProductEditor(productForm.defaultStatus),
       name: purchase.productName,
-      price: suggestedPrice(purchase.unitFinal) ?? 0,
+      price: purchase.suggestedPrice || suggestedPrice(purchase.unitFinal) || 0,
     });
     setImages(
       purchase.images.map((image) => ({

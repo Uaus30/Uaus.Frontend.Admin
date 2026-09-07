@@ -18,6 +18,13 @@ type PricingPreviewProps = {
   price: number;
   /** Aplica o preço sugerido no campo de preço. */
   onApplySuggested: (price: number) => void;
+  /**
+   * Só leitura: a margem continua visível, o botão de aplicar não.
+   *
+   * É o caso da compra já lançada, que abre bloqueada — um botão que responde
+   * ao clique mudando um campo que não vai ser salvo é pior que botão nenhum.
+   */
+  readOnly?: boolean;
 };
 
 /**
@@ -34,7 +41,7 @@ type PricingPreviewProps = {
  * Sem custo o bloco some: brinde e bonificação entram a custo zero, e mostrar
  * "margem 100%" para eles seria informação enganosa.
  */
-export function PricingPreview({ unitCost, price, onApplySuggested }: PricingPreviewProps) {
+export function PricingPreview({ unitCost, price, onApplySuggested, readOnly }: PricingPreviewProps) {
   const suggested = suggestedPrice(unitCost);
   if (suggested === null) return null;
 
@@ -69,17 +76,19 @@ export function PricingPreview({ unitCost, price, onApplySuggested }: PricingPre
         </span>
         {/* `type="button"`: a modal é um <form>, e um botão sem tipo enviaria a
             entrada ao aplicar o preço. */}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="h-7 gap-1 px-2 text-xs"
-          disabled={alreadySuggested}
-          onClick={() => onApplySuggested(suggested)}
-        >
-          <Sparkles className="h-3 w-3" />
-          {alreadySuggested ? "Aplicado" : "Usar sugerido"}
-        </Button>
+        {!readOnly && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1 px-2 text-xs"
+            disabled={alreadySuggested}
+            onClick={() => onApplySuggested(suggested)}
+          >
+            <Sparkles className="h-3 w-3" />
+            {alreadySuggested ? "Aplicado" : "Usar sugerido"}
+          </Button>
+        )}
       </div>
     </div>
   );

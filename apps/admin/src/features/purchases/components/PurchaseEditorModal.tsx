@@ -1,12 +1,15 @@
-import { Globe, ImagePlus, Loader2, Lock, Package, ShoppingCart, X } from "lucide-react";
+import { Lock, Package, ShoppingCart, X } from "lucide-react";
 import { Button, Input, Textarea } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
 import { PURCHASE_STATUS, type SupplierDto } from "@workspace/api-client-react";
-import { formatCurrency, formatPercentage } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
+import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { ProductSearchPicker } from "@/components/product-search-picker";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import { PurchaseDerivedTotals } from "./PurchaseDerivedTotals";
+import { PurchaseImagesField } from "./PurchaseImagesField";
 import { PurchaseLinkField } from "./PurchaseLinkField";
 import type { usePurchaseForm } from "../hooks/usePurchaseForm";
 
@@ -26,6 +29,11 @@ type PurchaseEditorModalProps = {
  *
  * Só os TOTAIS são digitados. Unitários e percentual saem da conta na hora
  * (`derivePurchaseTotals`) e são gravados pelo backend com a mesma fórmula.
+ *
+ * A colagem de foto (Ctrl+V) é escutada pelo DIÁLOGO inteiro, e não por uma
+ * área de arrastar: o atalho existe para poupar o clique, e obrigar a acertar
+ * um alvo antes de colar devolveria o clique que ele economiza. Quem cola
+ * dentro de um campo de texto continua colando texto — o handler se afasta.
  */
 export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProps) {
   const { form: values, update, readOnly, linkRequired } = form;
@@ -33,7 +41,12 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
 
   return (
     <Dialog open={form.open} onOpenChange={form.setOpen}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent
+        className="max-h-[90vh] max-w-3xl overflow-y-auto"
+        onPaste={readOnly ? undefined : form.handlePaste}
+        onInteractOutside={guardCalendarDismiss}
+        onFocusOutside={guardCalendarDismiss}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <ShoppingCart className="h-5 w-5 text-primary" />
@@ -56,7 +69,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
         )}
 
         <form onSubmit={form.submit} className="mt-2 flex flex-col gap-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Fornecedor <span className="text-red-500">*</span>
@@ -77,6 +90,23 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
+                Data da compra <span className="text-red-500">*</span>
+              </label>
+              {/* Nasce hoje e é editável: o pedido costuma ser lançado no sistema
+                  depois de fechado, e a data do extrato é a que interessa. Não é
+                  a data da ENTRADA, que o recebimento pergunta à parte. */}
+              <DatePicker
+                value={parseDateInput(values.purchaseDate)}
+                onChange={(date) => update("purchaseDate", formatDateInput(date))}
+                placeholder="Selecionar data"
+                clearable={false}
+                maxDate={new Date()}
+                disabled={readOnly}
+                className="h-10"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Situação</label>
@@ -171,12 +201,18 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Total bruto</label>
+              {/* `allowFormula`: a nota do fornecedor vem em "12 a 17,99", e a conta
+                  digitada no campo deixa o total conferível. Ver `evaluateAmountFormula`. */}
               <CurrencyInput
                 value={values.grossTotal}
                 onChange={(value) => update("grossTotal", value)}
                 className="h-10 bg-background"
                 readOnly={readOnly}
+                allowFormula
               />
+              <p className="text-xs text-muted-foreground">
+                Aceita conta: <span className="font-mono">=17,99*2</span>
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Total final</label>
@@ -185,37 +221,42 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 onChange={(value) => update("finalTotal", value)}
                 className="h-10 bg-background"
                 readOnly={readOnly}
+                allowFormula
               />
               <p className="text-xs text-muted-foreground">Já com desconto ou acréscimo (frete).</p>
             </div>
           </div>
 
-          <div
-            data-testid="purchase-derived"
-            className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-xs text-muted-foreground"
-          >
-            <span>
-              Unitário bruto:{" "}
-              <span className="font-semibold text-foreground">{formatCurrency(derived.unitGross)}</span>
-            </span>
-            <span>
-              Unitário final:{" "}
-              <span className="font-semibold text-foreground">{formatCurrency(derived.unitFinal)}</span>
-            </span>
-            <span>
-              {derived.adjustmentPercent < 0 ? "Desconto" : "Acréscimo"}:{" "}
-              <span
-                className={`font-semibold ${
-                  derived.adjustmentPercent < 0
-                    ? "text-emerald-600"
-                    : derived.adjustmentPercent > 0
-                      ? "text-amber-600"
-                      : "text-foreground"
-                }`}
-              >
-                {formatPercentage(Math.abs(derived.adjustmentPercent))}
-              </span>
-            </span>
+          <PurchaseDerivedTotals derived={derived} />
+
+          {/* O preço de venda decidido na hora de COMPRAR: é aqui que se olha para
+              o custo, e é aqui que a conta de margem ainda pode mudar a decisão de
+              comprar. No recebimento ele já vem preenchido e passa a valer no
+              cadastro do produto. */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
+                Preço sugerido de venda
+              </label>
+              <CurrencyInput
+                value={values.suggestedPrice}
+                onChange={(value) => update("suggestedPrice", value)}
+                className="h-10 bg-background"
+                readOnly={readOnly}
+                allowFormula
+              />
+              <p className="text-xs text-muted-foreground">
+                Em branco (zero) mantém o preço atual do produto no recebimento.
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <PricingPreview
+                unitCost={derived.unitFinal}
+                price={values.suggestedPrice}
+                onApplySuggested={(price) => update("suggestedPrice", price)}
+                readOnly={readOnly}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -238,69 +279,16 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Fotos</label>
-              <div className={`flex gap-2 ${readOnly ? "hidden" : ""}`}>
-                <Button type="button" variant="outline" size="sm" className="gap-1" asChild>
-                  <label className="cursor-pointer">
-                    <ImagePlus className="h-3.5 w-3.5" /> Enviar
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={form.handleFileSelection}
-                      disabled={form.uploading}
-                    />
-                  </label>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  disabled={form.uploading || !values.productName.trim()}
-                  onClick={() => form.setImageSearchOpen(true)}
-                  title={
-                    values.productName.trim() ? "Buscar foto na web" : "Informe o nome do produto para buscar"
-                  }
-                >
-                  <Globe className="h-3.5 w-3.5" /> Buscar na web
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {values.images.map((image) => (
-                <div
-                  key={image.imageId}
-                  className="relative h-20 w-20 overflow-hidden rounded-lg border border-border/50 bg-white"
-                >
-                  <img src={image.url} alt={image.name} className="h-full w-full object-contain" />
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      onClick={() => form.removeImage(image.imageId)}
-                      aria-label="Remover foto"
-                      className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {form.uploading && (
-                <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-border/50">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
-              {values.images.length === 0 && !form.uploading && (
-                <p className="text-xs text-muted-foreground">
-                  Opcional. Em produto novo, as fotos viram a galeria do cadastro no recebimento.
-                </p>
-              )}
-            </div>
-          </div>
+          <PurchaseImagesField
+            images={values.images}
+            readOnly={readOnly}
+            uploading={form.uploading}
+            productName={values.productName}
+            onFileSelection={form.handleFileSelection}
+            onAddUrl={form.addImageFromUrl}
+            onRemove={form.removeImage}
+            onSearchWeb={() => form.setImageSearchOpen(true)}
+          />
 
           <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
             <Button type="button" variant="outline" onClick={() => form.setOpen(false)}>
