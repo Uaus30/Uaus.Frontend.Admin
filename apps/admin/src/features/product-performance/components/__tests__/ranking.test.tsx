@@ -1,10 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { Flame, Sparkles } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
-import type {
-  ProductPerformanceItemDto,
-  ProductPerformanceParametersDto,
-} from "@workspace/api-client-react";
+import type { ProductPerformanceItemDto, ProductPerformanceParametersDto } from "@workspace/api-client-react";
 import { PerformanceComparison } from "../PerformanceComparison";
 import { PerformanceSuggestions } from "../PerformanceSuggestions";
 import { ProductRankingTable } from "../ProductRankingTable";
@@ -171,9 +168,7 @@ describe("ProductRankingTable", () => {
       />,
     );
 
-    expect(
-      screen.getByText("Nenhum produto deste recorte entrou no ranking dos melhores."),
-    ).toBeTruthy();
+    expect(screen.getByText("Nenhum produto deste recorte entrou no ranking dos melhores.")).toBeTruthy();
     expect(screen.getByText("Queimar estoque")).toBeTruthy();
   });
 });
@@ -214,12 +209,8 @@ describe("PerformanceComparison", () => {
       />,
     );
 
-    expect(
-      screen.getByText(/Ocupam 24% do capital em estoque e devolvem 64% do lucro/),
-    ).toBeTruthy();
-    expect(
-      screen.getByText(/Ocupam 31% do capital em estoque e devolvem 4% do lucro/),
-    ).toBeTruthy();
+    expect(screen.getByText(/Ocupam 24% do capital em estoque e devolvem 64% do lucro/)).toBeTruthy();
+    expect(screen.getByText(/Ocupam 31% do capital em estoque e devolvem 4% do lucro/)).toBeTruthy();
   });
 });
 
