@@ -29,6 +29,12 @@ Por isso o denominador da participação é a soma do que foi **atribuído**, e 
 `Sale.Total`: com desconto de cabeçalho ou cupom os dois divergem, e os
 percentuais não fechariam 100%.
 
+**Venda cancelada não entra** (corrigido em 07/09/2026, junto com a curva ABC). O
+cupom desfeito não tirou nada da prateleira: contá-lo daria ao fornecedor
+faturamento, lucro e giro que a loja não teve. Vale também para "já vendeu alguma
+vez" — uma venda cancelada não pode tirar de um produto a condição de
+recém-chegado.
+
 ---
 
 ## A nota, e por que ela é comparativa
@@ -121,6 +127,19 @@ comum não distingue. Por isso o anel sempre traz o **número** e o **rótulo**
 
 Os dois últimos ficam fora porque o percentual mentiria: produto novo ainda não
 teve chance de vender, e produto sem estoque não tinha como vender.
+
+### "Entrou há quantos dias" é a data mais antiga entre duas
+
+A data de **cadastro do produto** e a **primeira entrada de lote** deste
+fornecedor — vale a mais antiga. As duas sozinhas erram para o mesmo lado: a
+entrada de lote é reescrita por reimportação em massa, e o cadastro erra quando o
+item foi criado antes de existir mercadoria. Só é novo quem é novo pelas duas
+medidas. É o mesmo critério do desempenho de produtos.
+
+Isso **não** desfaz a reimportação de 31/08/2026: ela criou os produtos e os
+lotes no mesmo dia, então as duas medidas concordam e aqueles itens continuam
+aparecendo como novos até 21/09/2026. O critério existe para a próxima
+reimportação, que provavelmente tocará só nos lotes.
 
 ---
 
