@@ -1,12 +1,14 @@
-import { formatCurrency } from "@workspace/core";
+import JsBarcode from "jsbarcode";
 
 /**
- * Código de barras do produto: validação, prévia e impressão da etiqueta.
+ * Código de barras do produto: validação, prévia e desenho das barras.
  *
  * Morava dentro da modal de edição. Saiu de lá quando a modal virou a tela de
- * detalhe com abas: é cálculo puro (dígito verificador, faixa interna) e
- * impressão, nada disso depende de estado de formulário — e cálculo dentro de
- * componente não tem como ser testado sem montar a tela inteira.
+ * detalhe com abas: é cálculo puro (dígito verificador, faixa interna), nada
+ * disso depende de estado de formulário — e cálculo dentro de componente não
+ * tem como ser testado sem montar a tela inteira.
+ *
+ * A etiqueta de 80mm, que consome o daqui, está em `barcodeLabel.ts`.
  */
 
 /** Formatos que a prévia desenha e a etiqueta imprime; CODE128 é o coringa. */
@@ -111,94 +113,52 @@ export function isFactoryEan(barcode: string): boolean {
   return isEanValid(barcode) && barcode.length === 13 && !barcode.startsWith("2");
 }
 
-type PrintBarcodeLabelParams = {
-  /** Código já resolvido — use {@link buildDisplayBarcode} antes de chamar. */
-  barcode: string;
-  /** Nome impresso acima do código. */
-  name: string;
-  /** Preço impresso abaixo do código. */
-  price: number;
+/** Ajustes de desenho que mudam de uma etiqueta para outra. */
+type BarcodeSvgOptions = {
+  /** Largura do módulo (a barra mais fina), em px. */
+  width?: number;
+  /** Altura das barras, em px. */
+  height?: number;
+  /** Fonte do número impresso sob as barras. */
+  font?: string;
+  /** Distância entre as barras e o número, em px. */
+  textMargin?: number;
 };
 
 /**
- * Imprime a etiqueta de 80mm x 40mm num iframe fora da tela.
+ * Gera o SVG do código de barras como string, com a jsbarcode **local** — nada
+ * de CDN: a impressão precisa funcionar com a internet da loja fora do ar.
  *
- * O iframe existe para não levar a página inteira para a impressora: `print()`
- * na janela principal imprimiria o admin. O `postMessage` avisa o fim da
- * impressão para o iframe ser removido — sem isso cada impressão deixaria um
- * documento órfão no DOM.
+ * Desenhar aqui, na janela do admin, e injetar o markup pronto no documento de
+ * impressão evita o outro caminho, que era carregar a biblioteca dentro do
+ * iframe e torcer para ela chegar antes do `print()`.
+ *
+ * @returns Markup do SVG, ou null quando o valor é vazio ou a lib recusa o código.
  */
-export function printBarcodeLabel({ barcode, name, price }: PrintBarcodeLabelParams): void {
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "absolute";
-  iframe.style.width = "0px";
-  iframe.style.height = "0px";
-  iframe.style.border = "none";
-  document.body.appendChild(iframe);
+export function buildBarcodeSvg(value: string, options: BarcodeSvgOptions = {}): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
 
-  const iframeDoc = iframe.contentWindow?.document;
-  if (!iframeDoc) return;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
-  const handleMessage = (e: MessageEvent) => {
-    if (e.data === "printCompleted") {
-      window.removeEventListener("message", handleMessage);
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 100);
-    }
-  };
-  window.addEventListener("message", handleMessage);
+  try {
+    JsBarcode(svg, trimmed, {
+      format: resolveBarcodeFormat(trimmed),
+      width: options.width ?? 1.8,
+      height: options.height ?? 52,
+      margin: 0,
+      background: "transparent",
+      lineColor: "#000000",
+      displayValue: true,
+      font: options.font ?? "Arial",
+      fontSize: 14,
+      textMargin: options.textMargin ?? 1,
+    });
+  } catch {
+    // Código fora do alfabeto do formato: melhor etiqueta sem barras do que
+    // derrubar a impressão do lote inteiro.
+    return null;
+  }
 
-  const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Imprimir Etiqueta</title>
-        <style>
-          @page { margin: 0; size: 80mm 40mm; }
-          body { 
-            margin: 0; 
-            padding: 8px; 
-            width: 80mm; 
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-          }
-          .name { font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 4px; max-height: 32px; overflow: hidden; text-overflow: ellipsis; }
-          .price { font-size: 18px; font-weight: bold; margin-top: 4px; }
-          svg { max-width: 100%; height: auto; }
-        </style>
-        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-      </head>
-      <body>
-        <div class="name">${(name || "Produto").toUpperCase().substring(0, 30)}</div>
-        <svg id="barcode"></svg>
-        <div class="price">${formatCurrency(price || 0)}</div>
-        <script>
-          window.onload = () => {
-            JsBarcode("#barcode", "${barcode}", {
-              format: "${resolveBarcodeFormat(barcode)}",
-              width: 2,
-              height: 40,
-              displayValue: true,
-              fontSize: 14,
-              margin: 0
-            });
-            setTimeout(() => {
-              window.focus();
-              window.print();
-              window.parent.postMessage('printCompleted', '*');
-            }, 100);
-          };
-        </script>
-      </body>
-      </html>
-    `;
-  iframeDoc.open();
-  iframeDoc.write(html);
-  iframeDoc.close();
+  return svg.outerHTML;
 }

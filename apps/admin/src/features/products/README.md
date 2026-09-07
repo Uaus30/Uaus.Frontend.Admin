@@ -15,7 +15,8 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
 - `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
-- `lib/barcode.ts`: Validação de EAN, dígito verificador, simbologia da prévia (item 4.4), código de prévia e impressão da etiqueta de 80mm.
+- `lib/barcode.ts`: Validação de EAN, dígito verificador, simbologia (item 4.4), código de prévia e desenho das barras (SVG).
+- `lib/barcodeLabel.ts`: Documento e impressão da etiqueta de 80mm × 40mm.
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
@@ -464,9 +465,25 @@ Duas decisões que andam juntas:
   cadastro reescrever silenciosamente o código de fábrica de quem digitou
   errado — que é exatamente o efeito do item acima.
 
-As etiquetas de gôndola (`features/gondola-labels/barcode.ts`) já faziam isso e
-consomem o mesmo `resolveBarcodeFormat` — era a única tela do admin que
-imprimia esses produtos com barras.
+As etiquetas de gôndola já faziam isso — eram a única tela do admin que imprimia
+esses produtos com barras — e hoje consomem o mesmo `lib/barcode.ts`.
+
+#### A etiqueta de 80mm desenha as barras aqui, não no documento de impressão (07/09/2026)
+
+`buildBarcodeLabelHtml` (`lib/barcodeLabel.ts`) recebe o SVG **já pronto**, de
+`buildBarcodeSvg`, e escreve o markup no documento do iframe.
+
+Antes o documento carregava a jsbarcode de `cdn.jsdelivr.net` e só chamava
+`print()` no `onload`. Duas consequências, e a segunda é a que dói: com a
+internet da loja fora do ar, o script não chega e a etiqueta sai **com nome e
+preço e sem barras** — papel colado no produto que o caixa não consegue bipar, e
+o defeito só aparece depois de impresso. As etiquetas de gôndola já usavam a
+biblioteca local por esse motivo; esta ficou para trás.
+
+A montagem do HTML está separada da impressão (`buildBarcodeLabelHtml` recebe o
+gerador de barras por parâmetro) porque `window.print()` não tem teste — o que
+dá para asseverar é o papel: que o SVG entrou, que não há `<script src=`, e que
+sem barras ainda sai nome e preço.
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 

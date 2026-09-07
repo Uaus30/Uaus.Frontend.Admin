@@ -53,12 +53,12 @@ reimpressão.
   `print-color-adjust: exact` para os fundos coloridos) e imprime via
   `printReceiptHtml` do `@workspace/receipt` (iframe fora da tela, cleanup por
   `afterprint`).
-- `barcode.ts` gera o SVG com a **jsbarcode local** (sem CDN, funciona
-  offline). A escolha do formato — EAN-13/EAN-8 quando o dígito verificador
-  fecha, senão CODE128 — mora em `resolveBarcodeFormat`, no
-  `features/products/lib/barcode.ts`: a prévia e a etiqueta de 80mm do cadastro
-  precisavam da mesma regra (item 4.4 do README de produtos), e duas cópias já
-  tinham divergido.
+- As barras saem do `buildBarcodeSvg` de `features/products/lib/barcode.ts`:
+  **jsbarcode local** (sem CDN, funciona offline), EAN-13/EAN-8 quando o dígito
+  verificador fecha e CODE128 no resto. O módulo era daqui e mudou de casa em
+  07/09/2026, quando a prévia e a etiqueta de 80mm do cadastro passaram a
+  precisar da mesma regra (item 4.4 do README de produtos) — duas cópias já
+  tinham divergido, e a de lá era a errada.
 
 ## Arquitetura
 
