@@ -192,6 +192,17 @@ export function usePurchases() {
     setReceiveForm((current) => ({ ...current, [field]: value }));
   }
 
+  /**
+   * "Editar compra" de dentro do diálogo de recebimento: o caminho da compra
+   * anotada sem custo. Fecha o diálogo e abre o formulário da mesma compra.
+   */
+  function editReceiving() {
+    if (!receiving) return;
+    const purchase = receiving;
+    setReceiving(null);
+    form.openEdit(purchase);
+  }
+
   function confirmReceive() {
     if (!receiving) return;
     if (!receiveForm.entryDate) {
@@ -230,6 +241,7 @@ export function usePurchases() {
     updateReceiveForm,
     startReceive,
     cancelReceive: () => setReceiving(null),
+    editReceiving,
     confirmReceive,
     isReceiving: receiveMutation.isPending,
   };

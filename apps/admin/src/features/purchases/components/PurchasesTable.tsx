@@ -131,6 +131,9 @@ export function PurchasesTable({
                 const received = status === PURCHASE_STATUS.Received;
                 const busy = mutatingId === purchase.id;
                 const cover = purchase.images[0];
+                // Custo zero é "ainda não informado" — só compra pendente fica assim — e
+                // R$ 0,00 leria como "de graça". O traço diz que o número não existe.
+                const hasCost = purchase.finalTotal > 0;
                 return (
                   <TableRow
                     key={purchase.id}
@@ -199,18 +202,32 @@ export function PurchasesTable({
                       {purchase.quantity}
                     </TableCell>
                     <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
-                      <span className="font-semibold">{formatCurrency(purchase.finalTotal)}</span>
-                      {purchase.adjustmentPercent !== 0 && (
-                        <span
-                          className={`ml-1 text-xs ${purchase.adjustmentPercent < 0 ? "text-emerald-600" : "text-amber-600"}`}
-                        >
-                          ({purchase.adjustmentPercent > 0 ? "+" : ""}
-                          {formatPercentage(purchase.adjustmentPercent)})
+                      {hasCost ? (
+                        <>
+                          <span className="font-semibold">{formatCurrency(purchase.finalTotal)}</span>
+                          {purchase.adjustmentPercent !== 0 && (
+                            <span
+                              className={`ml-1 text-xs ${purchase.adjustmentPercent < 0 ? "text-emerald-600" : "text-amber-600"}`}
+                            >
+                              ({purchase.adjustmentPercent > 0 ? "+" : ""}
+                              {formatPercentage(purchase.adjustmentPercent)})
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground" title="Custo ainda não informado">
+                          —
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
-                      {formatCurrency(purchase.unitFinal)}
+                      {hasCost ? (
+                        formatCurrency(purchase.unitFinal)
+                      ) : (
+                        <span className="text-muted-foreground" title="Custo ainda não informado">
+                          —
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       <PurchaseStatusBadge status={purchase.status} />

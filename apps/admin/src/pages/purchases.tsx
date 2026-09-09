@@ -59,6 +59,7 @@ export default function Purchases() {
         onChange={purchases.updateReceiveForm}
         onCancel={purchases.cancelReceive}
         onConfirm={purchases.confirmReceive}
+        onEditPurchase={purchases.editReceiving}
         isSaving={purchases.isReceiving}
       />
 

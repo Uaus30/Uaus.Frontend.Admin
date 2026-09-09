@@ -1,4 +1,4 @@
-import { PackageCheck } from "lucide-react";
+import { AlertTriangle, PackageCheck, Pencil } from "lucide-react";
 import { Button, Input, Textarea } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
@@ -13,6 +13,8 @@ type PurchaseReceiveDialogProps = {
   onChange: <K extends keyof ReceiveForm>(field: K, value: ReceiveForm[K]) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  /** Leva ao formulário da compra — o caminho quando ela foi anotada sem custo. */
+  onEditPurchase: (purchase: PurchaseDto) => void;
   isSaving: boolean;
 };
 
@@ -24,6 +26,12 @@ type PurchaseReceiveDialogProps = {
  * sabe: a data da entrada, o número da nota e o preço de venda (em branco
  * mantém o do cadastro). A prévia de margem usa o custo unitário FINAL, que é
  * o que a entrada vai gravar.
+ *
+ * Compra anotada SEM custo (pendente) não se recebe daqui: a entrada gravaria o
+ * lote a custo zero em silêncio. O diálogo diz isso e troca o botão de confirmar
+ * por "Editar compra" — o backend recusa de qualquer jeito
+ * (`PurchaseRules.EnsureCostInformed`), mas um botão que só devolve erro é pior
+ * que um que leva ao lugar certo.
  */
 export function PurchaseReceiveDialog({
   purchase,
@@ -31,8 +39,11 @@ export function PurchaseReceiveDialog({
   onChange,
   onCancel,
   onConfirm,
+  onEditPurchase,
   isSaving,
 }: PurchaseReceiveDialogProps) {
+  const missingCost = purchase !== null && purchase.finalTotal <= 0;
+
   return (
     <Dialog open={purchase !== null} onOpenChange={(open) => !open && onCancel()}>
       <DialogContent
@@ -55,6 +66,7 @@ export function PurchaseReceiveDialog({
           <form
             onSubmit={(event) => {
               event.preventDefault();
+              if (missingCost) return;
               onConfirm();
             }}
             className="mt-2 flex flex-col gap-5"
@@ -62,11 +74,33 @@ export function PurchaseReceiveDialog({
             <div className="rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm">
               <p className="font-semibold text-foreground">{purchase.productName}</p>
               <p className="text-xs text-muted-foreground">
-                {purchase.supplierName} · {purchase.quantity} un. · custo unitário{" "}
-                <span className="font-semibold text-foreground">{formatCurrency(purchase.unitFinal)}</span> ·
-                total {formatCurrency(purchase.finalTotal)}
+                {purchase.supplierName} · {purchase.quantity} un. ·{" "}
+                {missingCost ? (
+                  <span className="font-semibold text-amber-500">sem custo informado</span>
+                ) : (
+                  <>
+                    custo unitário{" "}
+                    <span className="font-semibold text-foreground">
+                      {formatCurrency(purchase.unitFinal)}
+                    </span>{" "}
+                    · total {formatCurrency(purchase.finalTotal)}
+                  </>
+                )}
               </p>
             </div>
+
+            {missingCost && (
+              <div
+                data-testid="receive-missing-cost"
+                className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3.5 py-3 text-xs leading-relaxed text-amber-500"
+              >
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Esta compra foi anotada sem custo. A entrada de estoque grava o custo unitário daqui — edite
+                  a compra e informe o total final antes de lançar o recebimento.
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2">
@@ -129,13 +163,19 @@ export function PurchaseReceiveDialog({
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-                disabled={isSaving}
-              >
-                {isSaving ? "Lançando..." : "Confirmar recebimento"}
-              </Button>
+              {missingCost ? (
+                <Button type="button" onClick={() => onEditPurchase(purchase)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Editar compra
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Lançando..." : "Confirmar recebimento"}
+                </Button>
+              )}
             </div>
           </form>
         )}

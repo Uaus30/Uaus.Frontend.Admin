@@ -88,6 +88,25 @@ export function purchaseLinkIsRequired(form: PurchaseForm, supplier: SupplierDto
   return Boolean(supplier?.isMarketplace) && Number(form.status) !== PURCHASE_STATUS.Pending;
 }
 
+/**
+ * O custo (total final) é exigido nesta compra?
+ *
+ * Pendente é a anotação de "preciso comprar isto" — nasce do relatório de
+ * estoque baixo ou de uma ideia no balcão, antes de escolher o anúncio, negociar
+ * o preço ou saber o frete. Exigir o custo ali obrigaria a inventar um número, e
+ * número inventado vira custo de lote no recebimento. A partir de "A caminho" a
+ * compra já foi feita e o valor pago existe: é dele que sai o custo unitário da
+ * entrada. O bruto continua opcional em qualquer situação — zero é "não houve
+ * desconto a registrar".
+ *
+ * A mesma regra existe no backend (`PurchaseRules.EnsureCostInformed`), inclusive
+ * para o menu "Marcar como a caminho" e para o recebimento. Aqui é conveniência:
+ * avisa antes do envio.
+ */
+export function purchaseCostIsRequired(form: PurchaseForm): boolean {
+  return Number(form.status) !== PURCHASE_STATUS.Pending;
+}
+
 /** O que falta no formulário para gravar, ou `null` quando está pronto. */
 export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto): string | null {
   if (!form.supplierId) return "Selecione o fornecedor.";
@@ -98,6 +117,8 @@ export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto)
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
   if (form.suggestedPrice < 0) return "O preço sugerido de venda não pode ser negativo.";
+  if (purchaseCostIsRequired(form) && form.finalTotal <= 0)
+    return "Informe o total final da compra (o custo): só compra pendente pode ficar sem ele.";
   if (purchaseLinkIsRequired(form, supplier) && !form.purchaseLink.trim())
     return `Informe o link da compra: ${supplier?.name ?? "este fornecedor"} é um marketplace, e sem o link não há como reencontrar o anúncio depois.`;
   return null;
@@ -262,6 +283,7 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     form,
     supplier,
     linkRequired: purchaseLinkIsRequired(form, supplier),
+    costRequired: purchaseCostIsRequired(form),
     update,
     openNew,
     openEdit,

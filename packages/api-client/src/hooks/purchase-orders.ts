@@ -48,6 +48,10 @@ export interface PurchaseDto {
   purchaseDate: string;
   quantity: number;
   grossTotal: number;
+  /**
+   * Total pago. Zero é "custo ainda não informado" — só compra pendente pode
+   * estar assim; a tela mostra vazio, não R$ 0,00.
+   */
   finalTotal: number;
   /**
    * Preço de venda pretendido, decidido junto com a compra. Ausente quando não
@@ -79,7 +83,12 @@ export interface SavePurchasePayload {
   /** `yyyy-MM-ddT00:00:00`, sem fuso. Nulo é hoje. */
   purchaseDate: string | null;
   quantity: number;
+  /** Total sem desconto nem acréscimo. Opcional em qualquer situação: zero é "não informei". */
   grossTotal: number;
+  /**
+   * Total pago — o custo. Obrigatório (> 0) fora de Pendente; o backend recusa
+   * "A caminho" e o recebimento sem ele, porque é daqui que sai o custo da entrada.
+   */
   finalTotal: number;
   /** Preço de venda pretendido. Nulo mantém o preço atual do produto no recebimento. */
   suggestedPrice: number | null;

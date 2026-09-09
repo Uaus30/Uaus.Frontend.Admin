@@ -22,6 +22,25 @@ recebimento dela é o que gera a entrada.
   as duas primeiras são escolhidas à mão. **Lançado nasce do recebimento** e
   torna a compra imutável — não se edita nem se exclui uma compra cuja entrada
   já existe. A cor mora em `PurchaseStatusBadge`, e em nenhum outro lugar.
+- **Pendente aceita só o essencial: fornecedor, produto (ou nome), quantidade e
+  data.** É a anotação de "preciso comprar isto" — do relatório de estoque baixo
+  ou de uma ideia no balcão —, antes de escolher o anúncio, negociar o preço ou
+  saber o frete. Custo, link, preço sugerido e fotos entram quando existirem.
+  Uma compra sem custo aparece na listagem com **traço** no total e no unitário,
+  não com R$ 0,00 — zero leria como "de graça".
+- **O total final (o custo) é exigido ao sair de Pendente.** "A caminho" já é
+  compra feita, e é do total final que sai o custo unitário da entrada; exigir
+  o custo em Pendente obrigaria a inventar um número, e número inventado vira
+  custo de lote. A regra vale no formulário (`purchaseCostIsRequired`, com o
+  asterisco acompanhando a situação), no menu "Marcar como a caminho" e no
+  recebimento — o backend é a fonte de verdade (`PurchaseRules`). O **bruto
+  continua opcional** em qualquer situação: zero é "não houve desconto a
+  registrar", e o recebimento grava o bruto igual ao custo.
+- **Recebimento de compra sem custo não acontece.** O diálogo de recebimento
+  diz que a compra está sem custo e troca "Confirmar recebimento" por "Editar
+  compra", que abre o formulário da mesma compra. No caminho de produto novo o
+  custo é digitado na entrada, e o `mark-received` copia o total da entrada
+  para a compra, que fecha com o valor real em vez de "Lançada, R$ 0".
 - **O produto é opcional.** A compra costuma ser de algo que ainda não está no
   cadastro: sem produto vinculado, ela guarda nome, detalhes, link e fotos —
   o pré-cadastro que o recebimento abre preenchido. Com produto vinculado, o

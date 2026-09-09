@@ -30,13 +30,18 @@ type PurchaseEditorModalProps = {
  * Só os TOTAIS são digitados. Unitários e percentual saem da conta na hora
  * (`derivePurchaseTotals`) e são gravados pelo backend com a mesma fórmula.
  *
+ * Pendente aceita só o essencial: fornecedor, produto (ou nome), quantidade e
+ * data. O total final vira obrigatório ao sair de Pendente — é dele que sai o
+ * custo da entrada —, e o asterisco acompanha a situação escolhida, como o do
+ * link em marketplace.
+ *
  * A colagem de foto (Ctrl+V) é escutada pelo DIÁLOGO inteiro, e não por uma
  * área de arrastar: o atalho existe para poupar o clique, e obrigar a acertar
  * um alvo antes de colar devolveria o clique que ele economiza. Quem cola
  * dentro de um campo de texto continua colando texto — o handler se afasta.
  */
 export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProps) {
-  const { form: values, update, readOnly, linkRequired } = form;
+  const { form: values, update, readOnly, linkRequired, costRequired } = form;
   const derived = derivePurchaseTotals(values.quantity, values.grossTotal, values.finalTotal);
 
   return (
@@ -123,6 +128,9 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                   <SelectItem value={String(PURCHASE_STATUS.InTransit)}>A caminho</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Pendente pode ficar sem custo; ele é exigido ao marcar como a caminho.
+              </p>
             </div>
           </div>
 
@@ -215,7 +223,9 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               </p>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Total final</label>
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
+                Total final {costRequired && <span className="text-red-500">*</span>}
+              </label>
               <CurrencyInput
                 value={values.finalTotal}
                 onChange={(value) => update("finalTotal", value)}
@@ -223,7 +233,9 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 readOnly={readOnly}
                 allowFormula
               />
-              <p className="text-xs text-muted-foreground">Já com desconto ou acréscimo (frete).</p>
+              <p className="text-xs text-muted-foreground">
+                Já com desconto ou acréscimo (frete).{costRequired && " Obrigatório fora de Pendente."}
+              </p>
             </div>
           </div>
 

@@ -78,6 +78,19 @@ describe("validatePurchaseForm", () => {
     expect(validatePurchaseForm({ ...base, finalTotal: -1 })).toMatch(/negativos/);
   });
 
+  it("custo: pendente pode ficar sem, a caminho não", () => {
+    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X" };
+
+    // Pendente é a anotação de "preciso comprar isto" — antes de saber o preço.
+    expect(validatePurchaseForm({ ...base, finalTotal: 0 })).toBeNull();
+    expect(validatePurchaseForm({ ...base, status: "2", finalTotal: 0 })).toMatch(/total final/i);
+    expect(validatePurchaseForm({ ...base, status: "2", finalTotal: 35.9 })).toBeNull();
+    // Só o bruto não basta: é do FINAL que sai o custo da entrada.
+    expect(validatePurchaseForm({ ...base, status: "2", grossTotal: 40, finalTotal: 0 })).toMatch(
+      /total final/i,
+    );
+  });
+
   it("exige data da compra e recusa data futura", () => {
     const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X" };
 
@@ -296,6 +309,39 @@ describe("usePurchaseForm", () => {
     expect(result.current.form.productName).toBe("BEXIGA [AZUL]");
   });
 
+  it("a caminho sem custo não vai à rede; com custo, vai", async () => {
+    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => result.current.openNew());
+    act(() => {
+      result.current.update("supplierId", "1"); // Nossa Casa, não é marketplace
+      result.current.update("productName", "CANECA");
+      result.current.update("quantity", 2);
+    });
+
+    // Pendente: o custo é opcional, e a tela não pede.
+    expect(result.current.costRequired).toBe(false);
+
+    act(() => result.current.update("status", "2")); // A caminho
+    expect(result.current.costRequired).toBe(true);
+
+    await act(async () => result.current.submit());
+    expect(mocks.createPurchase).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "warning", description: expect.stringContaining("total final") }),
+    );
+
+    act(() => result.current.update("finalTotal", 50));
+    await act(async () => result.current.submit());
+    await waitFor(() =>
+      expect(mocks.createPurchase).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 2, finalTotal: 50 }),
+      ),
+    );
+  });
+
   it("marketplace: pendente sai sem link, a caminho não", async () => {
     const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
       wrapper: createWrapper(),
@@ -306,6 +352,8 @@ describe("usePurchaseForm", () => {
       result.current.update("supplierId", "2"); // Shopee, marketplace
       result.current.update("productName", "CANECA");
       result.current.update("quantity", 1);
+      // Com custo: o que está em teste aqui é o link, não a regra do custo.
+      result.current.update("finalTotal", 30);
     });
 
     // Pendente é onde se anota a intenção de comprar, antes de escolher o anúncio.
@@ -339,6 +387,7 @@ describe("usePurchaseForm", () => {
       result.current.update("supplierId", "1"); // Nossa Casa, não é marketplace
       result.current.update("productName", "CANECA");
       result.current.update("quantity", 1);
+      result.current.update("finalTotal", 30);
       result.current.update("status", "2");
     });
 
