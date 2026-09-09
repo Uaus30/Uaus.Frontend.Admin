@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "admin-api-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "API_PROXY_TARGET=https://api-dev.uaus.com.br npm run dev:admin"],
+      "port": 5173
+    },
+    {
       "name": "pdv",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:pdv"],
