@@ -20,6 +20,12 @@
       "port": 5174
     },
     {
+      "name": "pdv-api-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "VITE_API_PROXY_TARGET=https://api-dev.uaus.com.br npm run dev:pdv"],
+      "port": 5174
+    },
+    {
       "name": "pdv-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview", "--workspace=@workspace/pdv"],
