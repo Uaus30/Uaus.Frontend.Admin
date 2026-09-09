@@ -38,6 +38,20 @@ function renderModal() {
   );
 }
 
+describe("PurchaseEditorModal — nome do produto", () => {
+  afterEach(() => cleanup());
+
+  it("o nome do produto novo é digitado em caixa alta", () => {
+    renderModal();
+    const input = screen.getByPlaceholderText("COMO VAI SE CHAMAR NO CADASTRO") as HTMLInputElement;
+
+    // Nome de produto é sempre em maiúsculas (regra de 09/09/2026); o backend
+    // grava assim de qualquer jeito, e a tela mostra o que vai ser gravado.
+    fireEvent.change(input, { target: { value: "Carrinho Caminhonete" } });
+    expect(input.value).toBe("CARRINHO CAMINHONETE");
+  });
+});
+
 describe("PurchaseEditorModal — campo de quantidade", () => {
   afterEach(() => cleanup());
 

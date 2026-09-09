@@ -177,11 +177,15 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Nome do produto <span className="text-red-500">*</span>
               </label>
+              {/* Caixa alta ao digitar, como o nome no editor de produto: nome de
+                  produto é sempre em maiúsculas, e o backend grava assim de qualquer
+                  jeito (`ProductDisplayName.Normalize`). Ver o que vai ser gravado
+                  evita a surpresa de salvar "Carrinho" e ver "CARRINHO" na lista. */}
               <Input
                 value={values.productName}
-                onChange={(event) => update("productName", event.target.value)}
-                placeholder="Como vai se chamar no cadastro"
-                className="h-10 bg-background"
+                onChange={(event) => update("productName", event.target.value.toUpperCase())}
+                placeholder="COMO VAI SE CHAMAR NO CADASTRO"
+                className="h-10 bg-background uppercase"
                 maxLength={150}
                 readOnly={readOnly}
               />

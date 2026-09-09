@@ -41,6 +41,11 @@ recebimento dela é o que gera a entrada.
   compra", que abre o formulário da mesma compra. No caminho de produto novo o
   custo é digitado na entrada, e o `mark-received` copia o total da entrada
   para a compra, que fecha com o valor real em vez de "Lançada, R$ 0".
+- **Nome de produto é sempre em caixa alta** (09/09/2026), inclusive o nome
+  livre da compra de produto novo: o campo converte ao digitar, como o editor
+  de produto, e o backend grava em maiúsculas de qualquer jeito
+  (`ProductDisplayName.Normalize`) — é o que a listagem mostra e o que vira o
+  nome do cadastro no recebimento.
 - **O produto é opcional.** A compra costuma ser de algo que ainda não está no
   cadastro: sem produto vinculado, ela guarda nome, detalhes, link e fotos —
   o pré-cadastro que o recebimento abre preenchido. Com produto vinculado, o
