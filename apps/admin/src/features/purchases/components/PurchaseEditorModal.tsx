@@ -193,11 +193,15 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Quantidade <span className="text-red-500">*</span>
               </label>
+              {/* Zero é o campo EM BRANCO, como no `CurrencyInput`. Com `value={0}` o
+                  React escreve "0" no campo assim que o operador apaga tudo, e o que
+                  ele digita em seguida entra à direita do zero — "020". Quem recusa
+                  quantidade zero é a validação do submit, não o campo. */}
               <Input
                 type="number"
                 min="1"
                 step="1"
-                value={values.quantity}
+                value={values.quantity > 0 ? values.quantity : ""}
                 onChange={(event) => {
                   const parsed = Number(event.target.value);
                   update("quantity", Number.isFinite(parsed) ? parsed : 0);

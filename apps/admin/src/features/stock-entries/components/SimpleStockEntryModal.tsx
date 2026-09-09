@@ -153,14 +153,16 @@ export function SimpleStockEntryModal({
               </label>
               {/*
                 Sem `Math.max` no onChange de propósito: a trava impedia limpar o
-                campo para digitar (voltava para 1 a cada backspace). Quem barra
-                zero e fração agora é a validação do submit.
+                campo para digitar (voltava para 1 a cada backspace). E zero é o
+                campo EM BRANCO: com `value={0}` o React escrevia "0" no campo
+                apagado, e o que vinha depois entrava à direita dele ("020").
+                Quem barra zero e fração é a validação do submit.
               */}
               <Input
                 type="number"
                 min="1"
                 step="1"
-                value={form.quantity}
+                value={form.quantity > 0 ? form.quantity : ""}
                 onChange={(e) => {
                   const parsed = Number(e.target.value);
                   onChange("quantity", Number.isFinite(parsed) ? parsed : 0);
