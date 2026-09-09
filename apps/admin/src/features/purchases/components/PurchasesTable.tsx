@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { PURCHASE_STATUS, buildPublicImageUrl, enumCode } from "@workspace/api-client-react";
 import { formatCurrency, formatPercentage, formatShortDate } from "@workspace/core";
 import type { PurchaseDto } from "../types";
+import { STATUS_FILTER_ALL, STATUS_FILTER_OPEN } from "../hooks/usePurchases";
 import { PurchaseStatusBadge } from "./PurchaseStatusBadge";
 
 type PurchasesTableProps = {
@@ -93,7 +94,10 @@ export function PurchasesTable({
             <SelectValue placeholder="Situação" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as situações</SelectItem>
+            {/* "Não lançadas" é o padrão: a tela responde "o que ainda está por
+                chegar", e a lançada já vive na aba de estoque do produto. */}
+            <SelectItem value={STATUS_FILTER_OPEN}>Não lançadas</SelectItem>
+            <SelectItem value={STATUS_FILTER_ALL}>Todas as situações</SelectItem>
             <SelectItem value={String(PURCHASE_STATUS.Pending)}>Pendente</SelectItem>
             <SelectItem value={String(PURCHASE_STATUS.InTransit)}>A caminho</SelectItem>
             <SelectItem value={String(PURCHASE_STATUS.Received)}>Lançado</SelectItem>

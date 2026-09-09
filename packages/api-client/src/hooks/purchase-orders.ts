@@ -123,6 +123,11 @@ export const getGetPurchasesQueryKey = (): QueryKey => ["purchases"];
 export interface PurchasesParams {
   /** Código de PurchaseStatus. */
   status?: number;
+  /**
+   * Só as NÃO lançadas (Pendente e A caminho) — o padrão da tela de Compras.
+   * Soma-se ao `status`, não o substitui.
+   */
+  onlyOpen?: boolean;
   supplierId?: number;
   search?: string;
   page?: number;
@@ -144,6 +149,8 @@ export function useGetPurchases(
     queryFn: async () => {
       const result = await apiGetOrThrow<BackendPagedResult<PurchaseDto>>("/Purchases", {
         status: params?.status,
+        // Só viaja quando é verdadeiro: `false` é o padrão da API.
+        onlyOpen: params?.onlyOpen ? true : undefined,
         supplierId: params?.supplierId,
         search: params?.search,
         page: params?.page ?? 1,

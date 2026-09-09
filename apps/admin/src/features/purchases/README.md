@@ -106,6 +106,13 @@ recebimento dela é o que gera a entrada.
 
 ## Decisões de implementação
 
+- **A tela abre em "Não lançadas"** (Pendente e A caminho), e o filtro de
+  situação tem essa opção além de "Todas as situações" e das três situações.
+  A tela responde "o que ainda está por chegar"; a compra lançada já virou
+  entrada e vive na aba de estoque do produto, e aqui só empurraria para baixo
+  o que ainda precisa de ação. A API recebe `onlyOpen=true`
+  (`purchasesStatusParams` traduz o valor do select); o filtro se soma ao de
+  situação em vez de substituí-lo.
 - **A listagem encolhe por prioridade, não por sorte.** Abaixo de `2xl` saem
   **Total final**, **Unit. final** e **Data da compra**, e ficam produto,
   fornecedor, quantidade, situação e ações. Com as oito colunas a tabela pede

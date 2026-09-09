@@ -12,6 +12,7 @@ import {
   updatePurchaseStatus,
   useGetPurchases,
   type PurchaseDto,
+  type PurchasesParams,
 } from "@workspace/api-client-react";
 import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
@@ -23,6 +24,29 @@ import { todayDateKey, usePurchaseForm } from "./usePurchaseForm";
 
 /** Linhas por página. */
 export const PAGE_SIZE = 20;
+
+/** Valor do filtro de situação que não filtra nada. */
+export const STATUS_FILTER_ALL = "all";
+
+/**
+ * Valor do filtro de situação para "Não lançadas": Pendente e A caminho, o que
+ * ainda está por chegar. É o padrão da tela — a compra lançada já virou
+ * entrada e vive na aba de estoque do produto; aqui ela só empurraria para
+ * baixo o que ainda precisa de ação. Continua a um clique, no mesmo filtro.
+ */
+export const STATUS_FILTER_OPEN = "open";
+
+/**
+ * Traduz o valor do `<Select>` de situação nos parâmetros da consulta.
+ *
+ * Os dois valores especiais viram `onlyOpen` ou nada; qualquer outro é o
+ * código de `PurchaseStatus` como string. Separado do hook para ter teste puro.
+ */
+export function purchasesStatusParams(filter: string): Pick<PurchasesParams, "status" | "onlyOpen"> {
+  if (filter === STATUS_FILTER_OPEN) return { onlyOpen: true };
+  if (filter === STATUS_FILTER_ALL) return {};
+  return { status: Number(filter) };
+}
 
 /**
  * O formulário de recebimento em branco desta compra.
@@ -63,7 +87,7 @@ export function usePurchases() {
 
   const [searchValue, setSearchValue] = useState("");
   const search = useDebounce(searchValue, 300);
-  const [statusFilter, setStatusFilterState] = useState<string>("all");
+  const [statusFilter, setStatusFilterState] = useState<string>(STATUS_FILTER_OPEN);
   const [page, setPage] = useState(1);
 
   function setSearch(value: string) {
@@ -77,7 +101,7 @@ export function usePurchases() {
   }
 
   const list = useGetPurchases({
-    status: statusFilter !== "all" ? Number(statusFilter) : undefined,
+    ...purchasesStatusParams(statusFilter),
     search: search || undefined,
     page,
     limit: PAGE_SIZE,
