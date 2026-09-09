@@ -43,6 +43,15 @@ type PurchasesTableProps = {
  * acréscimo ao lado: é o número que o operador confere contra o extrato, e o
  * bruto sozinho esconderia o frete ou o desconto que fecham a conta.
  *
+ * <b>Abaixo de `2xl` a tabela se reduz ao essencial</b> — produto, fornecedor,
+ * quantidade, situação e ações. Com as oito colunas a largura mínima passa de
+ * 1.200px, e a área útil de quem usa o notebook a 125% de zoom (ou o monitor
+ * auxiliar da loja) é de ~1.140px: sobrava uma barra de rolagem horizontal, e o
+ * que ficava fora da tela era justamente a ponta direita — a situação e o menu
+ * de opções, que é onde se clica. Total final, unitário final e data da compra
+ * seguem a um clique de distância, porque a linha abre a compra; a barra de
+ * rolagem, não. Quem tem monitor largo continua vendo tudo.
+ *
  * <b>A linha inteira abre a compra.</b> O botão verde de receber saiu daqui: ele
  * já existia por extenso no menu de opções, e ocupar a coluna de ações com uma
  * duplicata deixava a listagem sem o gesto mais óbvio de todos, que é clicar na
@@ -109,8 +118,8 @@ export function PurchasesTable({
                 <TableHead className="px-4 py-3">Produto</TableHead>
                 <TableHead className="px-4 py-3">Fornecedor</TableHead>
                 <TableHead className="px-4 py-3 text-right">Qtd.</TableHead>
-                <TableHead className="px-4 py-3 text-right">Total final</TableHead>
-                <TableHead className="px-4 py-3 text-right">Unit. final</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Total final</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Unit. final</TableHead>
                 <TableHead className="px-4 py-3">Situação</TableHead>
                 <TableHead className="hidden px-4 py-3 2xl:table-cell">Data da compra</TableHead>
                 <TableHead className="w-16 px-4 py-3 text-right">Ações</TableHead>
@@ -152,17 +161,27 @@ export function PurchasesTable({
                             <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
                           </div>
                         )}
-                        <div className="min-w-0">
+                        {/* O teto de largura é o que faz o `truncate` abaixo VALER. Numa
+                            tabela de layout automático a largura mínima da coluna é a do
+                            conteúdo, e texto com `white-space: nowrap` mede o nome
+                            INTEIRO — `overflow: hidden` não encolhe essa conta, e o
+                            `min-w-0` só solta o piso do flex. Sem teto, um nome de 63
+                            caracteres (o maior do catálogo) pedia sozinho ~600px e
+                            empurrava a tabela para fora da tela. Com ele o nome longo vira
+                            reticências, e o completo continua no `title` e na compra, que
+                            a linha abre. */}
+                        <div className="min-w-0 max-w-[20rem]">
                           {purchase.productGroupId ? (
                             <Link
                               href={`/produtos/${purchase.productGroupId}/detalhes`}
                               className="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                              title={purchase.productName}
                               onClick={(event) => event.stopPropagation()}
                             >
                               {purchase.productName}
                             </Link>
                           ) : (
-                            <p className="truncate font-medium text-foreground">
+                            <p className="truncate font-medium text-foreground" title={purchase.productName}>
                               {purchase.productName}{" "}
                               <span className="text-xs font-normal text-muted-foreground">
                                 (produto novo)
@@ -179,7 +198,7 @@ export function PurchasesTable({
                     <TableCell className="px-4 py-3 text-right font-mono text-sm">
                       {purchase.quantity}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right text-sm">
+                    <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
                       <span className="font-semibold">{formatCurrency(purchase.finalTotal)}</span>
                       {purchase.adjustmentPercent !== 0 && (
                         <span
@@ -190,16 +209,13 @@ export function PurchasesTable({
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right text-sm">
+                    <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
                       {formatCurrency(purchase.unitFinal)}
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       <PurchaseStatusBadge status={purchase.status} />
                     </TableCell>
-                    {/* Some abaixo de 2xl: com oito colunas a tabela rolava na horizontal e as
-                        acoes ficavam fora da tela. A data volta no monitor largo.
-
-                        E a data da COMPRA, que e por onde a listagem tambem ordena — nao a de
+                    {/* E a data da COMPRA, que e por onde a listagem tambem ordena — nao a de
                         criacao da linha, que so responde "quando isso foi digitado".
 
                         O `||` cobre a JANELA DE DEPLOY: o front e a API sobem em servicos

@@ -87,6 +87,20 @@ recebimento dela é o que gera a entrada.
 
 ## Decisões de implementação
 
+- **A listagem encolhe por prioridade, não por sorte.** Abaixo de `2xl` saem
+  **Total final**, **Unit. final** e **Data da compra**, e ficam produto,
+  fornecedor, quantidade, situação e ações. Com as oito colunas a tabela pede
+  mais de 1.200px, e a área útil de um notebook Full HD a 125% de zoom — ou do
+  monitor auxiliar da loja — é de ~1.140px: aparecia uma barra de rolagem
+  horizontal e o que caía fora da tela era a ponta direita, ou seja, a situação
+  e o menu de opções. Os três valores continuam a um clique, porque a linha
+  abre a compra; a barra de rolagem não tinha atalho.
+- **O nome do produto tem teto de largura (`max-w-[20rem]`).** Sem ele o
+  `truncate` não vale nada: em tabela de layout automático a largura mínima da
+  coluna é a do conteúdo, e texto `nowrap` mede o nome inteiro. Um nome de 63
+  caracteres pedia sozinho ~600px e estourava a tabela mesmo com colunas
+  escondidas. O nome completo fica no `title` e na compra.
+
 - `usePurchases` (listagem, situação, exclusão, recebimento), `usePurchaseForm`
   (formulário e gravação) e `usePurchaseImages` (as quatro entradas de foto,
   proxy, compressão e upload) são três hooks para nenhum arquivo passar de 300
