@@ -106,6 +106,15 @@ recebimento dela é o que gera a entrada.
 
 ## Decisões de implementação
 
+- **A URL diz qual compra está aberta.** Clicar na linha abre a modal e
+  escreve `?compra=<id>` na barra de endereços (`/estoque/compras?compra=12`);
+  fechar a modal tira o parâmetro. Quem chega por esse link cai na mesma
+  modal — a compra é buscada pelo id (`usePurchaseFromUrl`), porque ela pode
+  estar em outra página ou fora do filtro padrão. É o que permite copiar o
+  link e mandar a compra a alguém. Query string, e não segmento de rota, de
+  propósito: a listagem está mesmo aberta com um detalhe pendurado, e fechar
+  devolve a lista como estava. Sem entrada no histórico: "voltar" continua
+  saindo da tela.
 - **A tela abre em "Não lançadas"** (Pendente e A caminho), e o filtro de
   situação tem essa opção além de "Todas as situações" e das três situações.
   A tela responde "o que ainda está por chegar"; a compra lançada já virou

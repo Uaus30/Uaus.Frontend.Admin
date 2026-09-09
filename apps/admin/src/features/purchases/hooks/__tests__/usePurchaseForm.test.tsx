@@ -396,6 +396,21 @@ describe("usePurchaseForm", () => {
     await waitFor(() => expect(mocks.createPurchase).toHaveBeenCalled());
   });
 
+  it("abrir uma compra escreve ?compra=<id> na URL sem mexer no resto, e fechar a modal tira", () => {
+    window.history.replaceState(null, "", "/estoque/compras?produto=9");
+    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
+      wrapper: createWrapper(),
+    });
+
+    // É o link que se copia da barra de endereços para mandar a compra a alguém.
+    act(() => result.current.openEdit(compra));
+    expect(window.location.search).toBe("?produto=9&compra=5");
+
+    // Fechar limpa: deixar o parâmetro faria um F5 reabrir a compra recém-fechada.
+    act(() => result.current.setOpen(false));
+    expect(window.location.search).toBe("?produto=9");
+  });
+
   it("compra lançada abre em leitura e não vai à rede", async () => {
     const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
       wrapper: createWrapper(),

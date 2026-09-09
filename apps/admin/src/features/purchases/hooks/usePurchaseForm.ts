@@ -13,6 +13,7 @@ import {
   type SupplierDto,
 } from "@workspace/api-client-react";
 import type { ProductSearchOption } from "@/components/product-search-picker";
+import { syncPurchaseDetailParam } from "../purchases-route";
 import type { PurchaseForm } from "../types";
 import { usePurchaseImages } from "./usePurchaseImages";
 
@@ -154,8 +155,18 @@ type UsePurchaseFormParams = {
 export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
   const { toast } = useToast();
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  /**
+   * Fechar a modal tira a compra da URL. O link só vale enquanto ela está
+   * aberta — deixá-lo lá faria um F5 reabrir a compra que a pessoa acabou de
+   * fechar. Todo caminho de fechar (Cancelar, clique fora, gravar) passa aqui.
+   */
+  function setOpen(value: boolean) {
+    setOpenState(value);
+    if (!value) syncPurchaseDetailParam(null);
+  }
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
   const images = usePurchaseImages({ productName: form.productName, setForm });
   /**
@@ -182,6 +193,10 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     setForm(purchaseToForm(purchase));
     setReadOnly(enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received);
     setOpen(true);
+    // A URL passa a dizer qual compra está aberta (`/estoque/compras?compra=12`):
+    // é o link que se copia para mandar a compra a alguém, e `usePurchaseFromUrl`
+    // o traz de volta a esta mesma modal.
+    syncPurchaseDetailParam(purchase.id);
   }
 
   /**

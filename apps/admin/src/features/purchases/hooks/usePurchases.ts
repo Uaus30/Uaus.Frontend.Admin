@@ -20,6 +20,7 @@ import { productStockTabPathname } from "@/features/products/product-detail-rout
 import { productFromPurchasePath } from "../purchases-route";
 import type { ReceiveForm } from "../types";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
+import { usePurchaseFromUrl } from "./usePurchaseFromUrl";
 import { todayDateKey, usePurchaseForm } from "./usePurchaseForm";
 
 /** Linhas por página. */
@@ -127,6 +128,10 @@ export function usePurchases() {
   // Quem chega de `/estoque/compras?produto=10&fornecedor=13` — o "Resolver" do
   // relatório de estoque baixo — cai no formulário já preenchido.
   useNewPurchaseFromUrl({ abrirCompra: form.openForRestock });
+
+  // E quem chega por `/estoque/compras?compra=12` — o link copiado da barra de
+  // endereços com a modal aberta — cai na modal daquela compra.
+  usePurchaseFromUrl({ abrirCompra: form.openEdit });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: number }) => updatePurchaseStatus(id, status),
