@@ -166,6 +166,7 @@ export function useLabelComposer() {
       toast({
         title: "Erro ao gerar etiquetas",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     } finally {

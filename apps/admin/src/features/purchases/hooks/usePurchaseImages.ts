@@ -83,6 +83,7 @@ export function usePurchaseImages({ productName, setForm }: UsePurchaseImagesPar
       toast({
         title: "Erro ao enviar a imagem",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {
@@ -128,6 +129,7 @@ export function usePurchaseImages({ productName, setForm }: UsePurchaseImagesPar
       toast({
         title: "Não foi possível baixar a imagem",
         description: describeApiError(error, "Confira a URL e tente novamente."),
+        error,
         variant: "destructive",
       });
       return false;

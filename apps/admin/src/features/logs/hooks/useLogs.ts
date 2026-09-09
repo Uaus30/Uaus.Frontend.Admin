@@ -82,6 +82,7 @@ export function useLogs() {
       toast({
         title: "Erro ao carregar logs",
         description: describeApiError(error, "Não foi possível conectar com o servidor."),
+        error,
         variant: "destructive",
       });
     }

@@ -177,6 +177,7 @@ export function useImages() {
       toast({
         title: "Erro no upload",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {
@@ -217,6 +218,7 @@ export function useImages() {
       toast({
         title: "Erro ao renomear",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {
@@ -239,6 +241,7 @@ export function useImages() {
       toast({
         title: "Erro ao remover imagem",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }

@@ -32,6 +32,9 @@ export function useApiErrorToast(isError: boolean, error: unknown) {
     toast({
       title: "Servidor indisponível",
       description: "O servidor está indisponível no momento. Tente novamente em instantes.",
+      // A frase é genérica de propósito, e sozinha não diz qual chamada caiu.
+      // O erro cru vai junto para o clique no toast copiar rota e resposta.
+      error,
       variant: "destructive",
     });
   }, [isError, error, toast]);

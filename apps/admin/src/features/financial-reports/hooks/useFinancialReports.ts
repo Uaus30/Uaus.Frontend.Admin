@@ -56,6 +56,7 @@ export function useFinancialReports() {
     toast({
       title: "Erro ao carregar o relatório financeiro",
       description: describeApiError(error),
+      error,
       variant: "destructive",
     });
   }, [isError, error, toast]);

@@ -216,6 +216,7 @@ export function useProductTable() {
       toast({
         title: "Erro ao atualizar preço",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     } finally {

@@ -214,6 +214,7 @@ export function useLowStock(): LowStockState {
       toast({
         title: "Erro ao remover o controle de estoque",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     },
@@ -276,6 +277,7 @@ export function useLowStock(): LowStockState {
       toast({
         title: "Erro ao exportar",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {

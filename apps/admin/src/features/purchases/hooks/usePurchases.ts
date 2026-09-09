@@ -138,6 +138,7 @@ export function usePurchases() {
       toast({
         title: "Erro ao alterar a situação",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       }),
   });
@@ -152,6 +153,7 @@ export function usePurchases() {
       toast({
         title: "Erro ao excluir a compra",
         description: describeApiError(error, "Compra já lançada não pode ser excluída."),
+        error,
         variant: "destructive",
       }),
   });
@@ -186,6 +188,7 @@ export function usePurchases() {
       toast({
         title: "Erro ao receber a compra",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       }),
   });

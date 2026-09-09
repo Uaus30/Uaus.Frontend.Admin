@@ -125,6 +125,7 @@ export function useDepartments() {
       toast({
         title: "Erro ao salvar departamento",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {
@@ -147,6 +148,7 @@ export function useDepartments() {
       toast({
         title: "Erro ao remover departamento",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }

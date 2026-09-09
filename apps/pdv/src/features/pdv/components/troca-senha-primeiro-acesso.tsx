@@ -33,6 +33,7 @@ export function TrocaSenhaPrimeiroAcesso({ operatorName }: { operatorName: strin
         toast({
           title: "Não foi possível trocar a senha",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },

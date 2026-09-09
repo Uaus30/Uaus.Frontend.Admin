@@ -81,6 +81,7 @@ export function useSaleHistoryActions({
         toast({
           title: "Não foi possível cancelar",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         });
       } finally {
@@ -133,6 +134,7 @@ export function useSaleHistoryActions({
         toast({
           title: "Não foi possível montar o cupom",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         });
       } finally {
@@ -200,6 +202,7 @@ export function useSaleHistoryActions({
         toast({
           title: "Não foi possível carregar a venda",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         });
       } finally {

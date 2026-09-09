@@ -260,6 +260,7 @@ export function useSuppliers() {
       toast({
         title: "Erro ao salvar fornecedor",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }
@@ -284,6 +285,7 @@ export function useSuppliers() {
       toast({
         title: "Erro ao remover fornecedor",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }

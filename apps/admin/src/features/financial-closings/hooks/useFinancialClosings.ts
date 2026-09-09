@@ -152,6 +152,7 @@ export function useFinancialClosings() {
       toast({
         title: "Erro ao calcular a prévia",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -236,6 +237,7 @@ export function useFinancialClosings() {
       toast({
         title: "Erro ao confirmar o fechamento",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -288,6 +290,7 @@ export function useFinancialClosings() {
       toast({
         title: "Erro ao excluir o fechamento",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },

@@ -125,6 +125,7 @@ export function usePartners() {
       toast({
         title: "Erro ao salvar sócio",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -163,6 +164,7 @@ export function usePartners() {
       toast({
         title: "Erro ao remover sócio",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -284,6 +286,7 @@ export function usePartners() {
       toast({
         title: "Erro ao salvar a distribuição",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },

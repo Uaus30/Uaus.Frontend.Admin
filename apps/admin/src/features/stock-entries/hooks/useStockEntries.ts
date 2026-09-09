@@ -189,6 +189,7 @@ export function useStockEntries() {
         toast({
           title: "Erro ao registrar entrada",
           description: describeApiError(err, "Ocorreu um erro no processamento."),
+          error: err,
           variant: "destructive",
         });
       },
@@ -208,6 +209,7 @@ export function useStockEntries() {
         toast({
           title: "Erro ao excluir entrada",
           description: describeApiError(err, "O estoque desta entrada já pode ter sido consumido."),
+          error: err,
           variant: "destructive",
         });
       },

@@ -119,6 +119,62 @@ build dos dois apps e procure `react-datepicker__` em `dist`.
 
 ---
 
+## Clicar no toast copia o relatório dele
+
+Um clique em qualquer toast copia para a área de transferência o que está na
+tela **mais** o detalhe técnico que a frase descarta, e mostra uma marca d'água
+"Copiado" por no mínimo três segundos. Existe para encurtar o relato de
+problema: sem isso o que chega ao suporte é uma foto da tela, sem rota, sem
+horário, sem status HTTP e sem a resposta do servidor.
+
+```
+[ERRO] Erro ao entrar
+Mensagem: Usuário não encontrado!
+Quando: 09/09/2026, 15:24:30
+Tela: admin-dev.uaus.com.br/login
+Versão: 3.0.2
+
+Requisição: POST /Users/authenticate
+Status HTTP: 404
+Exceção: ApiError: Usuário não encontrado!
+Resposta: {"Id":"2cfc53fb-…","Code":404,"Title":"NotFoundException",…}
+```
+
+O bloco técnico só aparece quando o chamador passa o **erro cru** no campo
+`error` do `toast({ … })` — opcional porque a maior parte das recusas é
+validação de formulário, onde não existe exceção nenhuma:
+
+```ts
+toast({
+  title: "Erro ao salvar o cupom",
+  description: describeApiError(error), // a frase para o usuário
+  error, // o status, a rota e a resposta, para quem for depurar
+  variant: "destructive",
+});
+```
+
+Três decisões deste componente valem registro, porque desfazê-las não quebra
+teste nenhum:
+
+- **Quem fecha o toast é um `setTimeout`, não o `requestAnimationFrame`.** O
+  quadro só roda quando a página é pintada — numa aba em segundo plano ele
+  simplesmente não é chamado. Enquanto o Radix mantinha o cronômetro dele isso
+  não aparecia; agora que a contagem daqui é a única (`duration={Infinity}` no
+  Root), prender o fechamento ao quadro deixaria o toast para sempre na tela.
+  O quadro ficou só com a barra de progresso, que pode parar sem consequência.
+- **A marca d'água não usa `animate-in fade-in-0`.** Ela começaria em
+  `opacity: 0` e só chegaria a 1 se a animação rodasse; onde não roda, o clique
+  parece não ter feito nada. Confirmação de ação não depende de animação.
+- **A pausa é por `pointerType === "mouse"`.** Em tela de toque o `mouseenter`
+  sintético fica grudado depois do toque: no PDV, tocar no toast para copiar o
+  deixaria preso na tela até alguém achar o X.
+
+O texto copiado é montado por `src/lib/toast-report.ts` — função pura, com
+teste, e com plano B por campo oculto para o contexto não seguro (um terminal
+alcançado pelo IP da rede da loja não tem `navigator.clipboard`).
+
+---
+
 ## Padrão de calendário
 
 Documento próprio, em [`src/components/README.md`](src/components/README.md):
@@ -135,11 +191,12 @@ npm run test:ui
 ```
 
 O que existe cobre o **padrão de calendário** (`__tests__/date-field.test.ts` e
-`date-range-picker.test.tsx`) — uma fração mínima dos quase 40 componentes do
-pacote. E esses dois passaram meses **sem rodar**: não havia script `test` aqui e
-a cadeia da raiz não incluía o pacote, enquanto o README do pacote afirmava que
-eles cobriam a conversão de datas. O script e o `vitest.config.ts` existem desde
-ago/2026.
+`date-range-picker.test.tsx`) e o **toast copiável** (`__tests__/toaster.test.tsx`
+e `lib/__tests__/toast-report.test.ts`) — uma fração dos quase 40 componentes do
+pacote. E os do calendário passaram meses **sem rodar**: não havia script `test`
+aqui e a cadeia da raiz não incluía o pacote, enquanto o README do pacote
+afirmava que eles cobriam a conversão de datas. O script e o `vitest.config.ts`
+existem desde ago/2026.
 
 A leitura correta: o pacote **não** é testado. Componente novo com lógica
 (variante, cálculo de posição, estado derivado, foco) traz o próprio teste, senão
@@ -197,5 +254,6 @@ de comportamento.
 | Componente novo                        | `src/components/` **e** o export no `src/index.ts` — fora do barrel ele não existe para os apps |
 | Mudar o padrão de calendário           | `src/components/date-field.tsx` (primitivos) — leia `src/components/README.md` antes            |
 | Mudar aparência/duração de um toast    | `src/components/toaster.tsx`, no mapa único de variantes                                        |
+| Mudar o que o clique no toast copia    | `src/lib/toast-report.ts` — função pura; o componente só lê o texto do DOM e chama              |
 | Novo import de CSS puro num componente | acrescente o arquivo ao `sideEffects` do `package.json`                                         |
 | Imagem nova de um componente           | `src/assets/`, importada pelo componente — nunca `public/` de um app                            |

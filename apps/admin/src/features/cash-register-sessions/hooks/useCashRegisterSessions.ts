@@ -72,6 +72,7 @@ export function useCashRegisterSessions() {
     toast({
       title: "Erro ao carregar as sessões de caixa",
       description: describeApiError(error),
+      error,
       variant: "destructive",
     });
   }, [isError, error, toast]);

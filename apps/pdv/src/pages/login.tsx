@@ -28,6 +28,7 @@ export default function Login() {
         toast({
           title: "Erro ao entrar",
           description: err?.message || "Credenciais inválidas. Tente novamente.",
+          error: err,
           variant: "destructive",
         });
       },

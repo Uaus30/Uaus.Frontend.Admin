@@ -144,6 +144,7 @@ export function useProductVariations({
         toast({
           title: "Variação não pôde ser excluída",
           description: describeApiError(error, "Ela continua na lista."),
+          error,
           variant: "destructive",
         });
       }
@@ -251,6 +252,7 @@ export function useProductVariations({
       toast({
         title: "Erro ao remover variação",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }

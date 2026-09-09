@@ -27,6 +27,7 @@ export function useLogDetails(idParam: string | undefined) {
     toast({
       title: "Erro ao carregar detalhes do log",
       description: describeApiError(query.error, "Log não encontrado."),
+      error: query.error,
       variant: "destructive",
     });
     setLocation("/sistema/logs");
@@ -46,6 +47,7 @@ export function useLogDetails(idParam: string | undefined) {
       toast({
         title: "Erro ao verificar o log",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     },

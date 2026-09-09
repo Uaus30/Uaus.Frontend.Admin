@@ -209,6 +209,7 @@ export function useCompanySettings() {
       toast({
         title: "Erro ao salvar as configurações",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },

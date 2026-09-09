@@ -168,6 +168,7 @@ export function useInventory() {
       toast({
         title: "Erro na exportação",
         description: describeApiError(err, "Erro desconhecido."),
+        error: err,
         variant: "destructive",
       });
     }

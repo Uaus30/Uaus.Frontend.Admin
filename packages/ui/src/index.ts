@@ -42,6 +42,7 @@ export * from "./components/toggle";
 export * from "./components/tooltip";
 export * from "./lib/chunk-reload";
 export * from "./lib/environment";
+export * from "./lib/toast-report";
 export * from "./lib/utils";
 
 // Hooks que os componentes deste pacote consomem.

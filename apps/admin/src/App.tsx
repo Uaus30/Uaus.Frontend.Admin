@@ -201,7 +201,9 @@ function App() {
             </WouterRouter>
           </div>
         </div>
-        <Toaster />
+        {/* A versão entra no relatório que o clique no toast copia: separa "já
+            corrigi" de "a loja está num build antigo". */}
+        <Toaster appVersion={import.meta.env.VITE_APP_VERSION} />
       </TooltipProvider>
     </QueryClientProvider>
   );

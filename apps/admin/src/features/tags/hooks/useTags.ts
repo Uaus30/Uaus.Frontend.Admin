@@ -180,6 +180,7 @@ export function useTags() {
       toast({
         title: "Erro ao salvar tag",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }
@@ -198,6 +199,7 @@ export function useTags() {
       toast({
         title: "Erro ao remover tag",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }

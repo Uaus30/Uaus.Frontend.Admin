@@ -64,6 +64,7 @@ export function useLabelBatchHistory() {
       toast({
         title: "Erro ao reimprimir lote",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     } finally {
@@ -86,6 +87,7 @@ export function useLabelBatchHistory() {
       toast({
         title: "Erro ao excluir lote",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     } finally {

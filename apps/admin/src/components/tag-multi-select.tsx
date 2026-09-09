@@ -102,6 +102,7 @@ export function TagMultiSelect({
       toast({
         title: "Erro ao criar etiqueta",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {

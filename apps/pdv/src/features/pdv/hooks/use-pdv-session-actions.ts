@@ -63,6 +63,7 @@ export function usePdvSessionActions({
         toast({
           title: "Não foi possível abrir o caixa",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         });
         return false;

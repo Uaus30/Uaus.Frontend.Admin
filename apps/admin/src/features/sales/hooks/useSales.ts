@@ -355,6 +355,7 @@ export function useSales() {
       toast({
         title: "Erro ao registrar venda",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {
@@ -392,6 +393,7 @@ export function useSales() {
       toast({
         title: "Erro ao gerar o cupom",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {
@@ -412,6 +414,7 @@ export function useSales() {
       toast({
         title: "Erro ao remover venda",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     } finally {

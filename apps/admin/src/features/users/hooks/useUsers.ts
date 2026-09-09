@@ -119,6 +119,7 @@ export function useUsers() {
         toast({
           title: "Erro ao criar usuário",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },
@@ -135,6 +136,7 @@ export function useUsers() {
         toast({
           title: "Erro ao atualizar usuário",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },
@@ -161,6 +163,7 @@ export function useUsers() {
         toast({
           title: "Erro ao resetar a senha",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },
@@ -177,6 +180,7 @@ export function useUsers() {
         toast({
           title: "Erro ao remover usuário",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },

@@ -169,6 +169,7 @@ export function useStockWriteOffs() {
       toast({
         title: "Erro ao registrar a baixa",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -199,6 +200,7 @@ export function useStockWriteOffs() {
       toast({
         title: "Erro ao estornar a baixa",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },

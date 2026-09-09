@@ -253,6 +253,7 @@ export function useProductSubmit({
       toast({
         title: "Erro ao salvar produto",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
       return false;

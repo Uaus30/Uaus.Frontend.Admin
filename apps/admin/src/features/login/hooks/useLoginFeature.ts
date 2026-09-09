@@ -30,6 +30,7 @@ export function useLoginFeature() {
         toast({
           title: "Erro ao entrar",
           description: describeApiError(err, "Credenciais inválidas. Tente novamente."),
+          error: err,
           variant: "destructive",
         });
       },

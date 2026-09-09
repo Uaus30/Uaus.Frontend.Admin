@@ -237,6 +237,7 @@ export function useCoupons() {
       toast({
         title: "Erro ao salvar o cupom",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       }),
   });
@@ -255,6 +256,7 @@ export function useCoupons() {
       toast({
         title: "Erro ao excluir o cupom",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       }),
   });

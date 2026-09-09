@@ -95,6 +95,7 @@ export function useCustomers() {
         toast({
           title: "Erro ao cadastrar cliente",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },
@@ -112,6 +113,7 @@ export function useCustomers() {
         toast({
           title: "Erro ao atualizar cliente",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },
@@ -128,6 +130,7 @@ export function useCustomers() {
         toast({
           title: "Erro ao remover cliente",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },

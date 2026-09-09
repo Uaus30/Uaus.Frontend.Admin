@@ -10,6 +10,18 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  /**
+   * Erro cru que originou o toast, quando existe um.
+   *
+   * Nunca é exibido: serve só para o clique no toast copiar status HTTP, rota
+   * da requisição e resposta do servidor junto da frase que está na tela. A
+   * `description` continua sendo a frase pronta (`describeApiError`) — este
+   * campo é o detalhe que ela descarta.
+   *
+   * É opcional de propósito: a maior parte dos toasts de recusa é validação de
+   * formulário, onde não existe exceção nenhuma para anexar.
+   */
+  error?: unknown;
 };
 
 let count = 0;
@@ -165,6 +177,18 @@ function toast({ ...props }: Toast) {
   };
 }
 
+/**
+ * Fecha um toast sem passar pelo hook.
+ *
+ * O `dismiss` que o `useToast` devolve é uma arrow function nova a cada render,
+ * e o toaster o usa como dependência do efeito que conta o tempo de tela. Com a
+ * referência instável, qualquer rerender — o do "Copiado", por exemplo —
+ * reiniciava o cronômetro do zero.
+ */
+function dismissToast(toastId?: string) {
+  dispatch({ type: "DISMISS_TOAST", toastId });
+}
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 
@@ -181,8 +205,9 @@ function useToast() {
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    dismiss: dismissToast,
   };
 }
 
-export { useToast, toast };
+export { useToast, toast, dismissToast };
+export type { ToasterToast };

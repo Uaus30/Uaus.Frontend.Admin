@@ -263,6 +263,7 @@ export function useSaleCheckout({
       toast({
         title: "Não foi possível registrar a venda",
         description: describeApiError(error),
+        error,
         variant: "destructive",
         duration: 6000,
       });

@@ -136,6 +136,7 @@ export function useFixedCosts() {
       toast({
         title: "Erro ao salvar o custo fixo",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -161,6 +162,7 @@ export function useFixedCosts() {
       toast({
         title: "Erro ao encerrar o custo fixo",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -176,6 +178,7 @@ export function useFixedCosts() {
       toast({
         title: "Erro ao excluir o custo fixo",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },

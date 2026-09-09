@@ -192,6 +192,7 @@ export function useStockWriteOffDraft({ open, onOpenChange, onRegistered }: UseS
       toast({
         title: "Não foi possível registrar a baixa",
         description: describeApiError(error),
+        error,
         variant: "destructive",
         duration: 6000,
       });

@@ -168,6 +168,7 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
         toast({
           title: "Erro na busca",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         });
       } finally {

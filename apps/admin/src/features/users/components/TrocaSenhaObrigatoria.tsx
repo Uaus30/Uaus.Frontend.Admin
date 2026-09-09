@@ -30,6 +30,7 @@ export function TrocaSenhaObrigatoria({ nome }: { nome: string }) {
         toast({
           title: "Não foi possível trocar a senha",
           description: describeApiError(error),
+          error,
           variant: "destructive",
         }),
     },

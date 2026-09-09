@@ -154,6 +154,7 @@ export function useProductForm({
       toast({
         title: "Erro ao remover produto",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     }

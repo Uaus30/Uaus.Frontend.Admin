@@ -186,6 +186,7 @@ export function usePaymentMethods() {
       toast({
         title: "Erro ao salvar",
         description: describeApiError(err, "Ocorreu um erro ao salvar a forma de pagamento."),
+        error: err,
         variant: "destructive",
       });
     }
@@ -207,6 +208,7 @@ export function usePaymentMethods() {
       toast({
         title: "Erro ao excluir",
         description: describeApiError(err, "Ocorreu um erro ao excluir a forma de pagamento."),
+        error: err,
         variant: "destructive",
       });
       throw err;

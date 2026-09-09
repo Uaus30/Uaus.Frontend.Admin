@@ -242,6 +242,7 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
       toast({
         title: "Erro ao salvar a compra",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       }),
   });

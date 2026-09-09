@@ -98,6 +98,7 @@ export function useSalesReport({
       toast({
         title: "Não foi possível imprimir o relatório",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     } finally {

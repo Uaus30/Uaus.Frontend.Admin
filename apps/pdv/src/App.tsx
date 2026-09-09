@@ -121,7 +121,9 @@ function App() {
           recomeçar a contagem a cada um. */}
       <TooltipProvider delayDuration={100} skipDelayDuration={300}>
         <Shell />
-        <Toaster />
+        {/* A versão entra no relatório que o clique no toast copia: separa "já
+            corrigi" de "o caixa está num build antigo". */}
+        <Toaster appVersion={import.meta.env.VITE_APP_VERSION} />
       </TooltipProvider>
     </QueryClientProvider>
   );

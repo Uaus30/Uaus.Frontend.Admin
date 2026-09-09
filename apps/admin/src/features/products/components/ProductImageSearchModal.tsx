@@ -96,6 +96,9 @@ export function ProductImageSearchModal({
         toast({
           title: "Erro na busca",
           description: "Não foi possível carregar as imagens da internet.",
+          // A frase não diz qual provedor caiu nem por quê; até aqui isso só
+          // existia no `console.error`, que ninguém pede ao usuário para abrir.
+          error,
           variant: "destructive",
         });
         setImages([]);
@@ -147,6 +150,7 @@ export function ProductImageSearchModal({
       toast({
         title: "Erro ao processar imagem",
         description: describeApiError(error, "Erro desconhecido."),
+        error,
         variant: "destructive",
       });
       setSelectedUrl(null);

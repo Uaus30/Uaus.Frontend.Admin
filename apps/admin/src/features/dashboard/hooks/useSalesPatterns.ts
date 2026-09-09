@@ -57,6 +57,7 @@ export function useSalesPatterns() {
       toast({
         title: "Não foi possível recalcular",
         description: describeApiError(error, "Tente novamente."),
+        error,
         variant: "destructive",
       });
     },

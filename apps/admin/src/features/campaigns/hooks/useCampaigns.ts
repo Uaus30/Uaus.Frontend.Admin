@@ -142,6 +142,7 @@ export function useCampaigns() {
       toast({
         title: "Erro ao salvar a campanha",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },
@@ -163,6 +164,7 @@ export function useCampaigns() {
       toast({
         title: "Erro ao excluir a campanha",
         description: describeApiError(error),
+        error,
         variant: "destructive",
       });
     },

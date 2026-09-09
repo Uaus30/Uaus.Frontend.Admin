@@ -375,6 +375,7 @@ export function useProductEditor() {
       toast({
         title: "Entrada gravada, mas a compra não foi fechada",
         description: describeApiError(error, "Feche a compra pela tela de Compras."),
+        error,
         variant: "destructive",
       });
     }
