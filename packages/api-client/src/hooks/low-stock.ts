@@ -47,6 +47,15 @@ export interface LowStockItemDto {
    * produto está saindo AGORA.
    */
   recentSales: number;
+  /**
+   * Unidades vendidas nos últimos 90 dias, sem as canceladas.
+   *
+   * É a matéria-prima da média e da previsão de duração — e, por isso, de quem
+   * entra no relatório e em que ordem. Vem na resposta porque a tela mostra a
+   * conta inteira no título da coluna "Dura": só a média arredondada não
+   * explica de onde saiu a previsão.
+   */
+  coverWindowSales: number;
   /** Média de unidades vendidas por dia nos últimos 90 dias. Zero sem venda no período. */
   averageDailySales: number;
   /**
@@ -64,25 +73,15 @@ export interface LowStockItemDto {
 /** A contagem do alerta. */
 export interface LowStockSummaryDto {
   /**
-   * Produtos que **vendem e estão acabando** — o número do alerta.
+   * Produtos que **venderam nos últimos 30 dias e estão esgotados ou acabam em
+   * menos de trinta** — o número do alerta (12/09/2026).
    *
-   * "Acabando" respeita o estoque mínimo de quem tem um e usa um teto para quem
-   * não tem; "vende" é ter saída na janela de 30 dias. A contagem antiga
-   * (`pending`) acendia o vermelho também para item parado há um ano, que não é
-   * urgência de reposição.
+   * É sempre menor ou igual ao tamanho do relatório, que mostra também quem
+   * atingiu o estoque mínimo e quem está acabando sem ter vendido no mês. Por
+   * isso o alerta abre a lista sem filtro nenhum: o que ele conta está lá, no
+   * topo, porque a lista ordena pelo que acaba antes.
    */
   restock: number;
-  /** Mínimo de vendas usado em `restock` — a tela monta texto e filtro com ele. */
-  restockMinSales: number;
-  /**
-   * Teto de saldo do alerta para quem NÃO tem estoque mínimo configurado.
-   *
-   * Vem junto pelo mesmo motivo de `restockMinSales`: é com ele que o relatório
-   * se abre já filtrado quando alguém chega pelo menu. Cravado no front, mudar o
-   * critério no backend deixaria a tela abrindo com o filtro antigo — sem erro,
-   * sem aviso, e com a lista discordando do alerta.
-   */
-  restockMaxStock: number;
 }
 
 /**
@@ -98,8 +97,9 @@ export const getGetLowStockSummaryQueryKey = (): QueryKey => [...getGetLowStockQ
 /**
  * Ordem da lista. Os nomes são os do enum do backend, que serializa por NOME.
  *
- * `Default` põe pendentes antes de resolvidos e, dentro do bloco, o menor saldo
- * primeiro; os outros dois ordenam pelas vendas dos últimos 30 dias.
+ * `Default` é por **duração do saldo**, do que acaba antes para o que acaba
+ * depois, com os esgotados na frente; os outros dois ordenam pelas vendas dos
+ * últimos 30 dias.
  */
 export type LowStockSort = "Default" | "RecentSalesDesc" | "RecentSalesAsc";
 
@@ -107,17 +107,14 @@ export interface LowStockParams {
   /** Mesma busca das demais telas de produto (nome, descrição, código, grade). */
   search?: string;
   /**
-   * Teto de saldo: informado, o relatório lista todo produto vendável com
-   * estoque MENOR que ele, **ignorando o estoque mínimo** — é a pergunta "o que
-   * tem menos de 5 unidades?". Sem ele vale o padrão (mínimo configurado e
-   * saldo igual ou abaixo dele), que é o que acende o alerta do painel.
+   * Teto de saldo: informado, **estreita** o relatório a quem tem estoque menor
+   * que ele. Não abre o catálogo (12/09/2026) — produto que não precisa de
+   * reposição continua fora, por menos saldo que tenha.
    */
   maxStock?: number;
   /**
-   * Mínimo de unidades vendidas nos últimos 30 dias. Como o teto de saldo, ele
-   * também **ignora o estoque mínimo**: a pergunta que ele responde — "o que
-   * está acabando e TEM saída?" — só faz sentido se alcançar os produtos sem
-   * controle de estoque, que são os que o mínimo deixaria de fora.
+   * Mínimo de unidades vendidas nos últimos 30 dias; também só estreita. É a
+   * pergunta "dentro do que precisa de compra, o que realmente sai?".
    */
   minRecentSales?: number;
   /** Ordem da lista. Ausente vale `Default`. */
@@ -126,7 +123,7 @@ export interface LowStockParams {
   limit?: number;
 }
 
-/** Página do relatório, do menor saldo para o maior. */
+/** Página do relatório: esgotados primeiro, depois do que dura menos para o que dura mais. */
 export function useGetLowStock(
   params?: LowStockParams,
   options?: {
@@ -179,5 +176,18 @@ export function useGetLowStockSummary(options?: {
 export async function disableStockControl(productId: number): Promise<LowStockItemDto> {
   const response = await apiPost<LowStockItemDto>(`/LowStock/${productId}/disable-stock-control`, {});
   if (!response.data) throw new Error("Não foi possível remover o controle de estoque.");
+  return response.data;
+}
+
+/**
+ * Inativa o produto: ele sai do relatório, do alerta e da venda, sem sair do
+ * catálogo — saldo, histórico e vendas passadas continuam onde estão.
+ *
+ * É a saída do que esgotou e não se quer repor. Não é exclusão, e nem poderia
+ * ser: produto com venda registrada não pode ser excluído.
+ */
+export async function inactivateProduct(productId: number): Promise<LowStockItemDto> {
+  const response = await apiPost<LowStockItemDto>(`/LowStock/${productId}/inactivate`, {});
+  if (!response.data) throw new Error("Não foi possível inativar o produto.");
   return response.data;
 }

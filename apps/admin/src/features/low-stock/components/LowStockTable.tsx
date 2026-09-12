@@ -2,6 +2,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Ban,
   CheckCircle2,
   ExternalLink,
   ImageIcon,
@@ -37,6 +38,7 @@ type LowStockTableProps = {
   /** Botão "Comprar": leva ao pedido de compra do produto, já preenchido. */
   onComprar: (item: LowStockItem) => void;
   onDisableStockControl: (item: LowStockItem) => void;
+  onInactivate: (item: LowStockItem) => void;
   mutatingProductId: number | null;
 };
 
@@ -46,10 +48,10 @@ function tituloDoVazio(maxStock: string, minRecentSales: string): string {
   const vendas = minRecentSales.trim();
 
   if (teto && vendas)
-    return `Nenhum produto com estoque menor que ${teto} e ${vendas} ou mais vendas em 30 dias.`;
-  if (teto) return `Nenhum produto com estoque menor que ${teto}.`;
-  if (vendas) return `Nenhum produto com ${vendas} ou mais vendas nos últimos 30 dias.`;
-  return "Nenhum produto abaixo do mínimo.";
+    return `Nenhum produto para repor com estoque menor que ${teto} e ${vendas} ou mais vendas em 30 dias.`;
+  if (teto) return `Nenhum produto para repor com estoque menor que ${teto}.`;
+  if (vendas) return `Nenhum produto para repor com ${vendas} ou mais vendas nos últimos 30 dias.`;
+  return "Nenhum produto precisando de reposição.";
 }
 
 /** Caminho do detalhe do produto — o id é o do GRUPO, que é o que a tela edita. */
@@ -111,6 +113,7 @@ export function LowStockTable({
   setPage,
   onComprar,
   onDisableStockControl,
+  onInactivate,
   mutatingProductId,
 }: LowStockTableProps) {
   return (
@@ -130,9 +133,9 @@ export function LowStockTable({
         {/* `w-full` é o que joga as quantidades para a linha de baixo no estreito. */}
         <div className="order-3 flex w-full flex-wrap items-center gap-4 lg:w-auto">
           {/*
-            Com o teto preenchido a pergunta do relatório muda: passa a ser
-            "quem tem menos de N unidades", sem olhar o estoque mínimo — é como
-            se varre o catálogo inteiro atrás do que está acabando.
+            Os dois campos ESTREITAM o relatório, nunca o abrem (12/09/2026).
+            Antes o teto trocava o critério da tela por "quem tem menos de N
+            unidades", e com isso ela deixava de responder à própria pergunta.
           */}
           <label className="flex items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
             Estoque menor que
@@ -148,10 +151,9 @@ export function LowStockTable({
             />
           </label>
           {/*
-            O filtro de saída é o que separa "acabando e vende" de "acabando e
-            está parado desde sempre". Como o teto de saldo, ele ignora o
-            estoque mínimo: senão deixaria de fora justamente os produtos sem
-            controle, que são os que se quer varrer atrás de saída.
+            O filtro de saída separa "acabando e vende" de "acabando e está
+            parado desde sempre" — o segundo é candidato a inativar, não a
+            comprar.
           */}
           <label className="flex items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
             Vendeu ao menos
@@ -180,23 +182,38 @@ export function LowStockTable({
           <p className="font-medium text-foreground">{tituloDoVazio(maxStock, minRecentSales)}</p>
           <p className="mt-1 text-xs">
             {maxStock.trim() || minRecentSales.trim()
-              ? "Os filtros de saldo e de saída ignoram o estoque mínimo e alcançam o catálogo inteiro."
-              : "Só entram aqui produtos com estoque mínimo configurado (maior que zero) na aba Opcionais."}
+              ? "Os dois filtros só estreitam o relatório; apague-os para ver tudo que precisa de compra."
+              : "Entram aqui os esgotados que venderam no mês, quem atingiu o estoque mínimo e quem tem saldo para menos de 30 dias."}
           </p>
         </div>
       ) : (
         // Largura minima + rolagem: sem ela o navegador espreme as colunas para
         // caber, e a ultima — a das acoes — e a que perde espaco, deixando o
-        // "Resolver" cortado. Com a largura minima a tela estreita ganha barra
-        // horizontal, que e o comportamento previsivel.
+        // "Comprar" cortado. Com a largura minima a tela estreita ganha barra
+        // horizontal, que e o comportamento previsivel. A largura minima cai
+        // junto com as colunas escondidas: exigir 64rem de quatro colunas
+        // devolveria a barra de rolagem que esconde-las veio tirar.
         <div className="overflow-x-auto rounded-xl border border-border/40">
-          <Table className="min-w-[64rem]">
+          <Table className="min-w-[44rem] 2xl:min-w-[64rem]">
             <TableHeader className="bg-muted/30">
               <TableRow>
                 <TableHead className="px-4 py-3">Produto</TableHead>
-                <TableHead className="px-4 py-3">Fornecedor</TableHead>
-                <TableHead className="px-4 py-3 text-right">Estoque / mín.</TableHead>
-                <TableHead className="px-4 py-3" title="Última venda registrada, de toda a história">
+                {/*
+                  Abaixo de `2xl` saem fornecedor, saldo/mínimo e última venda —
+                  mesmo tratamento da tela de Compras, e pela mesma razão: com as
+                  sete colunas a tabela pede mais de 1.200px, e a área útil de um
+                  notebook Full HD a 125% de zoom é de ~1.140px. O que caía fora
+                  da tela era a ponta direita, ou seja, o botão "Comprar" e o
+                  menu — as duas coisas que se veio fazer aqui. As três colunas
+                  continuam a um clique, no produto e no XLSX; a barra de
+                  rolagem não tinha atalho.
+                */}
+                <TableHead className="hidden px-4 py-3 2xl:table-cell">Fornecedor</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Estoque / mín.</TableHead>
+                <TableHead
+                  className="hidden px-4 py-3 2xl:table-cell"
+                  title="Última venda registrada, de toda a história"
+                >
                   Última venda
                 </TableHead>
                 <TableHead className="px-1 py-1 text-right">
@@ -268,12 +285,14 @@ export function LowStockTable({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">{item.supplierName ?? "—"}</TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-sm">
+                    <TableCell className="hidden px-4 py-3 text-sm 2xl:table-cell">
+                      {item.supplierName ?? "—"}
+                    </TableCell>
+                    <TableCell className="hidden px-4 py-3 text-right font-mono text-sm 2xl:table-cell">
                       <span className="font-semibold text-destructive">{item.stock}</span>
                       <span className="text-muted-foreground"> / {item.minStock}</span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">
+                    <TableCell className="hidden px-4 py-3 text-sm 2xl:table-cell">
                       {item.lastSaleAt ? (
                         <span title={formatDate(item.lastSaleAt)}>{formatShortDate(item.lastSaleAt)}</span>
                       ) : (
@@ -292,7 +311,14 @@ export function LowStockTable({
                     <TableCell
                       className={`px-4 py-3 text-right text-sm ${duracaoTone(item.daysOfCover, item.stock)}`}
                     >
-                      <span title={`Média de ${item.averageDailySales ?? 0} un./dia nos últimos 90 dias`}>
+                      {/*
+                        O título mostra a conta INTEIRA, e não só a média: "0,13
+                        un./dia" sozinho não diz de onde saiu, e é esta coluna
+                        que decide a ordem da lista e quem entra nela.
+                      */}
+                      <span
+                        title={`${item.coverWindowSales ?? 0} un. vendidas em 90 dias — média de ${item.averageDailySales ?? 0} un./dia`}
+                      >
                         {duracaoLegivel(item.daysOfCover, item.stock)}
                       </span>
                     </TableCell>
@@ -345,6 +371,18 @@ export function LowStockTable({
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onDisableStockControl(item)}>
                               <SlidersHorizontal className="mr-2 h-4 w-4" /> Remover controle de estoque
+                            </DropdownMenuItem>
+                            {/*
+                              A saída do que esgotou e não se quer repor: sem ela,
+                              a linha voltaria a cada abertura da tela pedindo uma
+                              decisão que já foi tomada. Fica por último e em
+                              âmbar porque é a única que tira o produto da venda.
+                            */}
+                            <DropdownMenuItem
+                              className="text-amber-600 focus:text-amber-600"
+                              onClick={() => onInactivate(item)}
+                            >
+                              <Ban className="mr-2 h-4 w-4" /> Inativar produto
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

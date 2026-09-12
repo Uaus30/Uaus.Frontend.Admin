@@ -9,24 +9,36 @@ nas entradas de estoque.
 
 ## Regras de negócio
 
-- **O que é "baixo".** Produto vivo (não excluído, não inativo, não rascunho),
-  com **estoque mínimo configurado** (`minStock > 0`, aba Opcionais do
-  produto) e saldo **igual ou abaixo** do mínimo. Mínimo zero é "não controlo
-  este item": sem essa exigência todo produto zerado do catálogo entraria no
-  alerta. O critério é o MESMO do relatório de inventário (`Stock <= MinStock`),
-  para os dois números não divergirem — a regra mora no backend
-  (`LowStockService.IsLowStock`), não aqui.
-- **Filtro "estoque menor que" (06/09/2026).** Preenchido, a pergunta muda:
-  passa a ser "quem tem menos de N unidades", **ignorando o mínimo** — senão o
-  filtro deixaria de fora justamente os produtos sem controle de estoque, que
-  são os que o operador quer varrer. Vazio, zero e lixo digitado voltam ao
-  padrão.
-- **Filtro "vendeu ao menos N em 30d" (06/09/2026).** Sozinho, ele mantém a
-  pergunta "quem está com pouco estoque?" na definição do alerta — abaixo do
-  próprio mínimo, ou abaixo do teto para quem não tem mínimo. Um relatório de
-  estoque baixo que lista produto com duzentas unidades só porque ele vende não
-  é relatório de estoque baixo. **Com o teto de saldo digitado, quem manda é o
-  número do operador**, e aí o mínimo configurado sai da conta.
+- **Quem entra (12/09/2026).** Produto vivo (não excluído, não inativo, não
+  rascunho) que passe por **uma** destas três portas — a regra mora no backend,
+  em `LowStockService.NeedsRestock`, não aqui:
+  1. **Esgotado que vende**: saldo zerado e com saída nos últimos 30 dias. É
+     venda que a loja já perdeu.
+  2. **Mínimo atingido**: `minStock > 0` (aba Opcionais do produto, decisão de
+     quem cadastrou) e saldo **igual ou abaixo** dele. O "igual conta" é o mesmo
+     critério do relatório de inventário (`Stock <= MinStock`), para os dois
+     números da tela não divergirem.
+  3. **Dura menos de 30 dias** no ritmo dos últimos noventa. É esta porta que
+     alcança o produto **sem mínimo configurado** — quase todo o catálogo, já
+     que o campo raramente é preenchido. Na loja, medido em 12/09/2026: 130
+     produtos de 1.042 entram no relatório, e 129 deles por esta porta.
+  - A terceira porta **contém** a primeira hoje, porque saldo zero dura zero. As
+    duas continuam escritas porque são regras diferentes do dono: mexer numa das
+    janelas separa uma da outra.
+  - A duração é comparada por multiplicação, e não dividindo saldo por média:
+    `saldo * 90 < 30 * vendas`. Divisão em consulta já derrubou o
+    `GET /Purchases` de produção; o motivo está em
+    `Uaus.Backend.Api/docs/projecoes-ef-e-avaliacao-no-cliente.md`.
+- **Ordem: esgotados primeiro, depois o que acaba antes (12/09/2026).** Era "do
+  menor saldo para o maior", e saldo solto não compara — três unidades de um
+  produto que vende dez por dia são mais urgentes que uma unidade de um produto
+  que vende uma por mês. Quem não tem previsão (não vendeu nos 90 dias) vai para
+  o fim: duração nula não é "dura pouco", é "não dá para saber".
+- **Os dois filtros só ESTREITAM (12/09/2026).** "Estoque menor que" e "vendeu ao
+  menos N em 30d" recortam o relatório; nenhum deles traz de volta produto que
+  não precisa de reposição. Antes o teto trocava o critério da tela por "quem tem
+  menos de N unidades", e com isso ela deixava de responder à própria pergunta.
+  Vazio, zero e lixo digitado voltam ao relatório inteiro.
 - **O relatório não guarda estado por item (06/09/2026).** Não existe
   "resolvido", nem histórico do que já foi tratado, nem a flag "mostrar
   resolvidos". Quem registra que a reposição foi **encaminhada** é a compra;
@@ -44,53 +56,43 @@ nas entradas de estoque.
     aberto" — célula vazia pareceria linha quebrada.
   - Compra **lançada** não conta como em aberto: ela já virou entrada, e o
     produto continuar baixo significa que aquele pedido não resolveu.
-- **O que tira um produto do relatório.** Uma **entrada de estoque** que leve o
-  saldo acima do mínimo tira sozinha — o critério é avaliado a cada consulta, e
-  nada precisa ser "baixado" na lista. **Remover o controle de estoque** (menu
-  de opções) zera o mínimo e também tira, sem tirar o produto do catálogo; a
-  mudança fica no histórico do produto. É a única ação da tela que pede
-  confirmação, porque é a única que altera cadastro sem desfazer à vista.
-- **O alerta conta quem VENDE e está acabando (06/09/2026).** `LowStockAlert`
-  usa `summary.restock`, não `summary.pending`: a contagem antiga acendia o
-  vermelho também para item parado há um ano, que não é urgência de reposição —
-  e alerta que aponta para o que não precisa de ação ensina a ser ignorado.
-  - "Está acabando" respeita o **estoque mínimo** de quem tem um (decisão de
-    quem cadastrou) e usa um **teto de 5 unidades** para quem não tem; sem o
-    teto, produto sem controle de estoque nunca acenderia, e é ali que mora boa
-    parte do que vende e some sem ninguém perceber.
-  - "Vende" é ter saído ao menos **3 unidades em 30 dias**. Os dois números são
-    do backend (`LowStockService.AlertMinRecentSales` e `AlertStockCeiling`); a
-    tela não os repete — o mínimo de vendas volta na resposta
-    (`restockMinSales`) e monta o texto e o link.
-  - O link já leva `?vendas=<mínimo>`, e o relatório abre com o campo
-    preenchido e **editável**. O backend trata esse filtro sozinho como "vende
-    E está acabando" (`LowStockService.IsRunningOut`), o mesmo par de condições
-    da contagem — é o que faz o número do alerta e o tamanho da lista baterem.
-    Antes o filtro abria a consulta sobre o catálogo inteiro: o alerta dizia
-    doze e a tela mostrava páginas, muitas com estoque de sobra.
+- **O que tira um produto do relatório.** Uma **entrada de estoque** que faça o
+  saldo durar mais de trinta dias tira sozinha — o critério é avaliado a cada
+  consulta, e nada precisa ser "baixado" na lista. O menu da linha tem as outras
+  duas portas, e as duas pedem confirmação porque alteram cadastro sem desfazer
+  à vista:
+  - **Remover o controle de estoque** zera o mínimo. Desde 12/09/2026 isso já
+    **não é saída universal**: tira quem estava aqui só por causa do mínimo, e
+    quem continua acabando pelo ritmo de venda permanece na lista (a porta 3 não
+    olha o mínimo). O diálogo diz isso.
+  - **Inativar produto** (12/09/2026) é a saída do que esgotou e não se quer
+    repor. O produto sai do relatório, do alerta e da venda — PDV e loja deixam
+    de oferecê-lo — sem sair do catálogo: saldo, histórico e vendas passadas
+    ficam onde estão, e reativar é um clique na tela do produto. Não é exclusão,
+    e nem poderia ser: produto com venda registrada não pode ser excluído.
+  - As duas ficam no **histórico do produto**, como qualquer edição de cadastro.
+- **O alerta conta quem VENDEU no mês e está acabando (12/09/2026).**
+  `LowStockAlert` usa `summary.restock`: produto com saída nos últimos 30 dias
+  que esteja **esgotado ou com menos de 30 dias de estoque**. A contagem antiga
+  — todo mundo abaixo do mínimo — acendia o vermelho também para item parado há
+  um ano, e alerta que aponta para o que não precisa de ação ensina a ser
+  ignorado.
+  - O critério é do backend (`LowStockService.SellsAndIsRunningOut`); a tela não
+    repete regra nem número. Os antigos `restockMinSales` e `restockMaxStock`
+    saíram da resposta junto com o mínimo de 3 unidades e o teto de 5.
+  - **É um subconjunto do relatório**, e por isso o link abre a lista **sem
+    filtro**. Filtrar para o número "bater" esconderia o resto do que precisa de
+    compra; e o que o alerta conta aparece no topo de qualquer forma, porque a
+    lista ordena pelo que acaba antes. Na loja, em 12/09/2026: 33 no alerta, 130
+    no relatório.
   - Com zero, o alerta some.
-- **A tela abre já filtrada, com os números do alerta (07/09/2026).** Aberta sem
-  filtro, ela caía no relatório clássico — e, como quase ninguém preenche o
-  estoque mínimo, isso eram **3 produtos de 1.042** na loja. A tela abria
-  praticamente vazia e o operador tinha de adivinhar dois números para ela servir
-  para alguma coisa. Agora "Estoque menor que" e "Vendeu ao menos" chegam
-  preenchidos com `restockMaxStock` e `restockMinSales`, os mesmos do alerta: 12
-  produtos, o mesmo número que o vermelho mostra.
-  - Os dois valores vêm do **backend**, e não de constantes da tela. Cravados
-    aqui, mudar o critério do alerta deixaria o relatório abrindo com o filtro
-    antigo — sem erro, sem aviso, e com a lista discordando do alerta.
-  - **A lista só é consultada depois que a contagem chega** (`enabled`). Sem a
-    espera, a primeira carga iria sem filtro e a tela trocaria a lista inteira um
-    instante depois. Falhando a contagem, a tela abre sem padrão em vez de ficar
-    em branco.
-  - **Vindo do alerta (`?vendas=`), o teto de saldo continua vazio**, e isso é
-    deliberado: sem ele, o backend aplica a definição do alerta de "está
-    acabando" — abaixo do PRÓPRIO mínimo de quem tem um. Preencher o teto trocaria
-    essa definição por um número fixo e esconderia o produto de mínimo 20 com
-    saldo 8, que o alerta acabou de contar.
-  - Campo esvaziado **pelo usuário** não volta ao padrão: `null` é "ainda não
-    mexeu", `""` é uma decisão de não filtrar, e o hook guarda os dois estados
-    separados por isso.
+- **A tela abre no critério do relatório, sem filtro semeado (12/09/2026).** Os
+  dois campos chegaram preenchidos com os números do alerta por uma semana,
+  porque sem filtro a tela caía no relatório clássico — **3 produtos de 1.042**.
+  Agora o critério do backend responde à pergunta sozinho, e semear filtro
+  esconderia justamente o que ele passou a alcançar: o produto sem mínimo que
+  acaba em duas semanas. Com isso saíram também a espera pela contagem
+  (`enabled`) e o `?vendas=` da URL.
 
 ## Giro do produto (06/09/2026)
 
@@ -116,7 +118,14 @@ há um ano com saldo 1 não é urgência:
   (`LowStockService.SalesWindowDays`), pela mesma fórmula do painel de
   inteligência (`DashboardMath.DaysOfCover`). Sem giro na janela a coluna fica
   vazia: zero diria "acaba hoje" para um produto que não sai. A cor é vermelha
-  até uma semana e âmbar até três.
+  até uma semana e âmbar até três. **É a coluna da ordem padrão** e a terceira
+  porta de entrada do relatório.
+  - O número que ordena e o que a tela mostra saem do MESMO `coverWindowSales`
+    que a projeção trouxe. Somar a janela duas vezes — uma para ordenar, outra
+    para exibir — deixaria a primeira linha aparecer durando mais que a segunda.
+  - O `title` mostra a conta inteira ("150 un. vendidas em 90 dias — média de
+    1,67 un./dia"): a média arredondada sozinha não explica de onde saiu a
+    previsão.
 - **Saldo zero diz "esgotado", não "acaba hoje"** (06/09/2026). Com saldo zero
   não há previsão a fazer — o produto já acabou, e mandar conferir uma data que
   passou confunde quem está decidindo o que comprar hoje.
@@ -141,10 +150,9 @@ inventário: o pedido era cabeçalho formatado, e CSV não carrega formato nenhu
 - **Contagem em endpoint próprio** (`/LowStock/summary`): o painel abre a cada
   visita e só precisa do número. Um minuto de `staleTime`.
 - **`LOW_STOCK_REPORT_PATH`** (`low-stock-route.ts`) é a única string do
-  caminho: rota, alerta do painel e alerta da listagem apontam para ela.
-  `lowStockRestockPath` monta o link com o filtro do alerta e
-  `salesFilterFromUrl` o lê — uma vez, na montagem, para o campo continuar
-  editável e apagá-lo não fazer o filtro voltar.
+  caminho: rota, alerta do painel e alerta da listagem apontam para ela. O
+  `?vendas=` que o alerta mandava saiu em 12/09/2026, junto com os filtros
+  semeados.
 - **A tela não repete a contagem em cards** (06/09/2026). Os dois cards
   (pendentes e resolvidos) diziam, em números grandes, o que a lista logo
   abaixo já mostra — e quem chega pelo alerta já leu o número lá.
@@ -154,6 +162,15 @@ inventário: o pedido era cabeçalho formatado, e CSV não carrega formato nenhu
   **situação**: a primeira não decide reposição e a segunda virou redundante
   quando o "resolvido" acabou. A categoria continua no XLSX, que não disputa
   largura com botão.
+- **A listagem encolhe por prioridade, não por sorte (12/09/2026).** Abaixo de
+  `2xl` saem **Fornecedor**, **Estoque / mín.** e **Última venda**, e ficam
+  produto, vendas 30d, duração e ações — mesmo tratamento da tela de Compras. Com
+  as sete colunas a tabela pede mais de 1.200px, e a área útil de um notebook
+  Full HD a 125% de zoom (ou do monitor auxiliar da loja) é de ~1.140px: o que
+  caía fora da tela era a ponta direita, ou seja, o botão "Comprar" e o menu — as
+  duas coisas que se veio fazer aqui. A largura mínima cai junto
+  (`min-w-[44rem] 2xl:min-w-[64rem]`): exigir 64rem de quatro colunas devolveria
+  a barra de rolagem que esconder as colunas veio tirar.
 - **O nome do produto tem teto de ~40 caracteres e quebra linha** (`max-w-[40ch]`
   - `break-words`), em vez de truncar. Nome com variação passa de sessenta
     caracteres com facilidade, e uma coluna que cresce sem limite empurra as

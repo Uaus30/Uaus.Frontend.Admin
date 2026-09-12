@@ -25,12 +25,13 @@ export default function LowStock() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Estoque baixo</h1>
             <p className="mt-1 max-w-4xl text-sm text-muted-foreground">
-              A tela abre com os mesmos filtros do alerta vermelho:{" "}
-              <strong>pouco saldo e com saída nos últimos 30 dias</strong> — que é o que precisa de compra
-              hoje. Os dois campos são editáveis e alcançam o catálogo inteiro; esvaziando os dois, sobra o
-              relatório clássico, só de quem tem estoque mínimo configurado e está abaixo dele.{" "}
+              O que precisa de compra hoje: produtos <strong>esgotados que venderam no último mês</strong>, os
+              que <strong>atingiram o estoque mínimo</strong> e os com{" "}
+              <strong>saldo para menos de 30 dias</strong> no ritmo dos últimos noventa. Os esgotados vêm
+              primeiro; depois, o que acaba antes. Os dois campos de quantidade apenas estreitam a lista.{" "}
               <strong>Comprar</strong> abre o pedido de reposição já preenchido; feito o pedido, o botão sai
-              da linha. Uma entrada de estoque que passe do mínimo tira o produto daqui sozinha.
+              da linha. Uma entrada de estoque tira o produto daqui sozinha — e, para o que não vale repor, o
+              menu da linha inativa o produto.
             </p>
           </div>
           <Button
@@ -63,6 +64,7 @@ export default function LowStock() {
           setPage={report.setPage}
           onComprar={report.comprar}
           onDisableStockControl={report.askDisableStockControl}
+          onInactivate={report.askInactivate}
           mutatingProductId={report.mutatingProductId}
         />
       </div>

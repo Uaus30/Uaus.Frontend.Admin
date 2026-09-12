@@ -7,15 +7,14 @@ import {
   apiGetOrThrow,
   disableStockControl,
   getGetLowStockQueryKey,
+  inactivateProduct,
   useGetLowStock,
-  useGetLowStockSummary,
   type LowStockSort,
 } from "@workspace/api-client-react";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { newPurchaseForProductPath } from "@/features/purchases/purchases-route";
-import { salesFilterFromUrl } from "../low-stock-route";
 import { exportLowStockToXlsx } from "../lib/export-low-stock";
-import type { LowStockItem, LowStockSummary } from "../types";
+import type { LowStockItem } from "../types";
 
 /** Linhas por página do relatório. */
 export const PAGE_SIZE = 20;
@@ -23,13 +22,17 @@ export const PAGE_SIZE = 20;
 /** Teto de linhas que a exportação baixa de uma vez. */
 const EXPORT_PAGE_SIZE = 1000;
 
+/** As duas ações do menu que mexem no cadastro — as duas perguntam antes. */
+export type LowStockAction = "disable-control" | "inactivate";
+
 /**
- * A única confirmação da tela: desligar o controle de estoque do produto.
+ * A confirmação pendente da tela.
  *
- * Continua sendo um objeto, e não um booleano, porque o texto do diálogo cita o
- * PRODUTO — "tem certeza?" sozinho obriga a lembrar em qual linha se clicou.
+ * Guarda o ITEM, e não só um booleano, porque o texto do diálogo cita o produto
+ * — "tem certeza?" sozinho obriga a lembrar em qual linha se clicou —, e a AÇÃO,
+ * porque as duas do menu alteram cadastro e não têm desfazer aqui.
  */
-export type LowStockConfirm = { item: LowStockItem };
+export type LowStockConfirm = { item: LowStockItem; action: LowStockAction };
 
 export interface LowStockState {
   search: string;
@@ -46,7 +49,7 @@ export interface LowStockState {
    */
   minRecentSales: string;
   setMinRecentSales: (value: string) => void;
-  /** Ordem da lista. `Default` é o mais crítico primeiro. */
+  /** Ordem da lista. `Default` é por duração, com os esgotados primeiro. */
   sort: LowStockSort;
   /** Clique no cabeçalho de "Vendas 30d": mais vendido → menos vendido → padrão. */
   toggleSalesSort: () => void;
@@ -57,11 +60,12 @@ export interface LowStockState {
   items: LowStockItem[];
   isLoading: boolean;
   isFetching: boolean;
-  summary: LowStockSummary | undefined;
   /** Botão "Comprar" da linha: leva ao pedido de compra já preenchido. */
   comprar: (item: LowStockItem) => void;
   /** Pede confirmação antes de desligar o controle de estoque do produto. */
   askDisableStockControl: (item: LowStockItem) => void;
+  /** Pede confirmação antes de inativar o produto. */
+  askInactivate: (item: LowStockItem) => void;
   /** Confirmação aberta, ou `null`. */
   confirm: LowStockConfirm | null;
   cancelConfirm: () => void;
@@ -88,18 +92,21 @@ export interface LowStockState {
  * enquanto **não** existe compra em aberto do produto; havendo uma, o pedido
  * já está feito e não há nada a fazer daqui.
  *
- * ## O que tira um produto do relatório
+ * ## O que tira um produto do relatório (12/09/2026)
  *
- * Uma **entrada de estoque** que leve o saldo acima do mínimo tira sozinha: o
- * critério é avaliado a cada consulta, e nada precisa ser dado baixa na lista.
- * **Remover o controle de estoque** (mínimo zero) também tira, e é a saída para
- * o item que não se quer acompanhar.
+ * Uma **entrada de estoque** que leve o saldo a durar mais de trinta dias tira
+ * sozinha: o critério é avaliado a cada consulta, e nada precisa ser dado baixa
+ * na lista. Do menu saem as outras duas portas: **remover o controle de
+ * estoque**, que tira quem estava aqui só por causa do mínimo, e **inativar o
+ * produto**, que é a saída do que esgotou e não se quer repor.
  *
- * ## A tela abre filtrada (07/09/2026)
+ * ## A tela abre no critério do relatório, sem filtro semeado (12/09/2026)
  *
- * Os dois campos de quantidade chegam preenchidos com os números do alerta. O
- * porquê e a exceção do caminho pelo alerta estão em `padroesDaTela`, no fim
- * deste arquivo.
+ * Os dois campos chegam vazios. Eles chegaram preenchidos por uma semana, com os
+ * números do alerta, porque sem filtro a tela caía no relatório clássico — só
+ * quem tem estoque mínimo configurado, três produtos de mil. Agora o critério do
+ * backend já responde à pergunta sozinho, e semear filtro esconderia justamente
+ * o que ele passou a alcançar: o produto sem mínimo que acaba em duas semanas.
  */
 export function useLowStock(): LowStockState {
   const queryClient = useQueryClient();
@@ -109,52 +116,24 @@ export function useLowStock(): LowStockState {
   const [search, setSearchState] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
-  // Quem chega pelo alerta ja abre filtrado por saida: o alerta fala de "boa
-  // saida e pouco estoque", e cair numa lista de outro criterio obrigaria a
-  // reconstruir na mao o que o alerta ja sabia. Lido UMA vez — o campo continua
-  // editavel, e apagar nao pode fazer o filtro voltar.
-  const [vindoDoAlerta] = useState(salesFilterFromUrl);
-
-  // `null` e "o usuario ainda nao mexeu": vale o padrao. Vazio ("") e uma
-  // decisao dele de nao filtrar, e precisa sobreviver — por isso os dois
-  // estados sao diferentes, e nao um texto so.
-  const [maxStockDigitado, setMaxStockDigitado] = useState<string | null>(null);
-  const [minRecentSalesDigitado, setMinRecentSalesDigitado] = useState<string | null>(null);
-  const debouncedMaxStock = useDebounce(maxStockDigitado, 400);
-  const debouncedMinRecentSales = useDebounce(minRecentSalesDigitado, 400);
+  const [maxStock, setMaxStockState] = useState("");
+  const [minRecentSales, setMinRecentSalesState] = useState("");
+  const debouncedMaxStock = useDebounce(maxStock, 400);
+  const debouncedMinRecentSales = useDebounce(minRecentSales, 400);
 
   const [sort, setSortState] = useState<LowStockSort>("Default");
   const [page, setPage] = useState(1);
   const [confirm, setConfirm] = useState<LowStockConfirm | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const summary = useGetLowStockSummary();
-  const padroes = padroesDaTela(vindoDoAlerta, summary.data);
-
-  const maxStock = maxStockDigitado ?? padroes?.maxStock ?? "";
-  const minRecentSales = minRecentSalesDigitado ?? padroes?.minRecentSales ?? "";
-
   const listParams = {
     search: debouncedSearch || undefined,
-    // O DEBOUNCE e' do que foi digitado, e o padrao entra depois dele. Fosse o
-    // contrario, o valor semeado passaria 400ms como texto novo e a tela faria
-    // duas consultas: uma sem filtro nenhum e outra com o padrao.
-    maxStock: filtroInteiro(debouncedMaxStock ?? padroes?.maxStock ?? ""),
-    minRecentSales: filtroInteiro(debouncedMinRecentSales ?? padroes?.minRecentSales ?? ""),
+    maxStock: filtroInteiro(debouncedMaxStock),
+    minRecentSales: filtroInteiro(debouncedMinRecentSales),
     sort: sort === "Default" ? undefined : sort,
   };
 
-  /**
-   * A lista so' e' consultada depois que os padroes existem.
-   *
-   * Sem a espera, a primeira carga iria ao servidor sem filtro (o relatorio
-   * classico: so' quem tem estoque minimo configurado), a contagem apareceria,
-   * e um instante depois a tela trocaria a lista inteira. Se a contagem falhar,
-   * a tela segue sem padrao em vez de ficar em branco.
-   */
-  const pronto = padroes !== null || summary.isError;
-
-  const list = useGetLowStock({ ...listParams, page, limit: PAGE_SIZE }, { query: { enabled: pronto } });
+  const list = useGetLowStock({ ...listParams, page, limit: PAGE_SIZE });
   useApiErrorToast(list.isError, list.error);
 
   function setSearch(value: string) {
@@ -163,12 +142,12 @@ export function useLowStock(): LowStockState {
   }
 
   function setMaxStock(value: string) {
-    setMaxStockDigitado(value);
+    setMaxStockState(value);
     setPage(1);
   }
 
   function setMinRecentSales(value: string) {
-    setMinRecentSalesDigitado(value);
+    setMinRecentSalesState(value);
     setPage(1);
   }
 
@@ -176,9 +155,9 @@ export function useLowStock(): LowStockState {
    * Três estados no mesmo cabeçalho: mais vendido, menos vendido e de volta ao
    * padrão.
    *
-   * O terceiro clique existe porque a ordem padrão (o mais crítico primeiro) é
-   * a razão de ser do relatório — sem ele, quem ordenasse por venda uma vez
-   * perderia o padrão até recarregar a tela.
+   * O terceiro clique existe porque a ordem padrão (por duração, o que acaba
+   * antes na frente) é a razão de ser do relatório — sem ele, quem ordenasse por
+   * venda uma vez perderia o padrão até recarregar a tela.
    */
   function toggleSalesSort() {
     setSortState((atual) =>
@@ -200,19 +179,37 @@ export function useLowStock(): LowStockState {
     return queryClient.invalidateQueries({ queryKey: getGetLowStockQueryKey() });
   }
 
-  const disableControlMutation = useMutation({
-    mutationFn: (productId: number) => disableStockControl(productId),
-    onSuccess: async () => {
+  /**
+   * As duas ações do menu numa mutação só.
+   *
+   * Elas têm o mesmo ciclo — pergunta, grava, invalida o prefixo, avisa — e o
+   * que muda é a chamada e o texto. Duas mutações separadas obrigariam a
+   * duplicar o `onSuccess`, o `onError` e a conta do `mutatingProductId`, que é
+   * onde a divergência costuma nascer.
+   */
+  const confirmMutation = useMutation({
+    mutationFn: ({ item, action }: LowStockConfirm) =>
+      action === "inactivate" ? inactivateProduct(item.productId) : disableStockControl(item.productId),
+    onSuccess: async (_data, { action }) => {
       await invalidate();
       setConfirm(null);
-      toast({
-        title: "Controle de estoque removido",
-        description: "O produto sai do relatório e do alerta, e continua no catálogo.",
-      });
+      toast(
+        action === "inactivate"
+          ? {
+              title: "Produto inativado",
+              description: "Ele sai do relatório e da venda, e continua no catálogo com o saldo que tem.",
+            }
+          : {
+              title: "Controle de estoque removido",
+              description:
+                "O produto deixa de ser cobrado pelo mínimo; se ainda estiver acabando, continua na lista.",
+            },
+      );
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, { action }) => {
       toast({
-        title: "Erro ao remover o controle de estoque",
+        title:
+          action === "inactivate" ? "Erro ao inativar o produto" : "Erro ao remover o controle de estoque",
         description: describeApiError(error, "Tente novamente."),
         error,
         variant: "destructive",
@@ -232,13 +229,17 @@ export function useLowStock(): LowStockState {
   }
 
   function askDisableStockControl(item: LowStockItem) {
-    setConfirm({ item });
+    setConfirm({ item, action: "disable-control" });
+  }
+
+  function askInactivate(item: LowStockItem) {
+    setConfirm({ item, action: "inactivate" });
   }
 
   function confirmAction() {
     if (!confirm) return;
 
-    disableControlMutation.mutate(confirm.item.productId);
+    confirmMutation.mutate(confirm);
   }
 
   /**
@@ -285,8 +286,8 @@ export function useLowStock(): LowStockState {
     }
   }
 
-  const mutatingProductId = disableControlMutation.isPending
-    ? (disableControlMutation.variables ?? null)
+  const mutatingProductId = confirmMutation.isPending
+    ? (confirmMutation.variables?.item.productId ?? null)
     : null;
 
   return {
@@ -303,18 +304,15 @@ export function useLowStock(): LowStockState {
     totalPages: list.data?.totalPages ?? 1,
     total: list.data?.total ?? 0,
     items: list.data?.data ?? [],
-    // Enquanto os padroes nao chegam a lista esta desligada, e uma query
-    // desligada nao e' `isLoading` no React Query — sem somar a espera da
-    // contagem, a tela mostraria "nenhum produto" antes da primeira consulta.
-    isLoading: !pronto || list.isLoading,
+    isLoading: list.isLoading,
     isFetching: list.isFetching,
-    summary: summary.data,
     comprar,
     askDisableStockControl,
+    askInactivate,
     confirm,
     cancelConfirm: () => setConfirm(null),
     confirmAction,
-    isConfirming: disableControlMutation.isPending,
+    isConfirming: confirmMutation.isPending,
     mutatingProductId,
     exportToXlsx: () => void exportToXlsx(),
     isExporting,
@@ -322,50 +320,11 @@ export function useLowStock(): LowStockState {
 }
 
 /**
- * Com o que os dois campos abrem quando ninguém digitou nada.
- *
- * ## Vindo do menu: os números do alerta
- *
- * Aberta sem filtro, a tela caía no relatório clássico — só quem tem estoque
- * mínimo configurado e está abaixo dele. Na loja isso são **três produtos** de
- * 1.042 (medido em 07/09/2026), porque quase ninguém preenche o campo de mínimo;
- * a tela abria praticamente vazia e o operador precisava adivinhar dois números
- * para ela servir para alguma coisa.
- *
- * Os números certos já existem e são os do alerta vermelho: teto de saldo
- * (`restockMaxStock`) e mínimo de saída em 30 dias (`restockMinSales`). Com eles
- * a tela abre com os mesmos doze produtos que o alerta conta. Vêm do BACKEND,
- * onde os critérios moram — cravados aqui, mudar o alerta deixaria a tela
- * abrindo com o filtro antigo, sem erro nenhum aparecendo.
- *
- * ## Vindo do alerta: o teto fica vazio, de propósito
- *
- * O link do alerta manda só `?vendas=`, e nesse caminho o teto de saldo continua
- * em branco. Não é esquecimento: sem ele, o backend aplica a definição do alerta
- * de "está acabando" — abaixo do PRÓPRIO mínimo para quem tem um, abaixo do teto
- * para quem não tem. Preencher o teto trocaria essa definição por um número fixo
- * e esconderia o produto de mínimo 20 com saldo 8, que o alerta acabou de contar.
- * O alerta e a lista que ele abre precisam mostrar o mesmo número.
- */
-function padroesDaTela(
-  vindoDoAlerta: string,
-  summary: LowStockSummary | undefined,
-): { maxStock: string; minRecentSales: string } | null {
-  if (vindoDoAlerta) return { maxStock: "", minRecentSales: vindoDoAlerta };
-  if (!summary) return null;
-
-  return {
-    maxStock: String(summary.restockMaxStock),
-    minRecentSales: String(summary.restockMinSales),
-  };
-}
-
-/**
  * O texto digitado vira filtro só se for inteiro positivo.
  *
- * Campo vazio, zero e lixo digitado voltam ao padrão do relatório: "menos de
- * zero unidades" e "vendeu ao menos zero" não são perguntas, e um dígito errado
- * não pode esvaziar a tela.
+ * Campo vazio, zero e lixo digitado voltam ao relatório inteiro: "menos de zero
+ * unidades" e "vendeu ao menos zero" não são perguntas, e um dígito errado não
+ * pode esvaziar a tela.
  */
 function filtroInteiro(texto: string): number | undefined {
   const numero = Number(texto);

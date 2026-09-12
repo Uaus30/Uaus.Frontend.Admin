@@ -6,8 +6,8 @@ import type { LowStockItemDto } from "@workspace/api-client-react";
 
 const mocks = vi.hoisted(() => ({
   useGetLowStock: vi.fn(),
-  useGetLowStockSummary: vi.fn(),
   disableStockControl: vi.fn(),
+  inactivateProduct: vi.fn(),
   apiGetOrThrow: vi.fn(),
   toast: vi.fn(),
   navigate: vi.fn(),
@@ -18,8 +18,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetLowStock: mocks.useGetLowStock,
-  useGetLowStockSummary: mocks.useGetLowStockSummary,
   disableStockControl: mocks.disableStockControl,
+  inactivateProduct: mocks.inactivateProduct,
   apiGetOrThrow: mocks.apiGetOrThrow,
 }));
 
@@ -55,6 +55,7 @@ const bexiga: LowStockItemDto = {
   costPrice: 4,
   lastSaleAt: "2026-09-05T10:00:00",
   recentSales: 12,
+  coverWindowSales: 12,
   averageDailySales: 0.13,
   daysOfCover: 23.1,
   hasOpenPurchase: false,
@@ -85,29 +86,27 @@ function givenList(items: LowStockItemDto[]) {
   });
 }
 
-/** A contagem do alerta, que é de onde saem os filtros padrão da tela. */
-const resumoDoAlerta = { restock: 1, restockMinSales: 3, restockMaxStock: 5 };
-
 describe("useLowStock", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Sem `?vendas=` na URL: é o caminho de quem chega pelo menu.
-    window.history.replaceState({}, "", "/relatorios/estoque-baixo");
     givenList([bexiga]);
-    mocks.useGetLowStockSummary.mockReturnValue({ data: resumoDoAlerta, isError: false });
     mocks.disableStockControl.mockResolvedValue({ ...bexiga, minStock: 0 });
+    mocks.inactivateProduct.mockResolvedValue(bexiga);
     mocks.apiGetOrThrow.mockResolvedValue({ items: [bexiga] });
     mocks.exportLowStockToXlsx.mockResolvedValue(undefined);
   });
 
-  it("abre com os filtros do alerta, na primeira página e sem ordem", () => {
-    // Sem padrão, a tela caía no relatório clássico — só quem tem estoque
-    // mínimo configurado —, que na loja são três produtos de mil.
+  it("abre sem filtro nenhum, na primeira página e na ordem padrão", () => {
+    // Os campos chegaram semeados com os números do alerta por uma semana,
+    // porque sem filtro a tela caía no relatório clássico — três produtos de
+    // mil. Agora o critério do backend responde sozinho, e semear filtro
+    // esconderia o que ele passou a alcançar: o produto sem mínimo que acaba em
+    // duas semanas.
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
     expect(lastListParams()).toMatchObject({
-      maxStock: 5,
-      minRecentSales: 3,
+      maxStock: undefined,
+      minRecentSales: undefined,
       // `Default` não vai na requisição: é o que o backend já faz sem o
       // parâmetro, e mandá-lo criaria uma chave de cache diferente para a mesma
       // consulta.
@@ -115,61 +114,25 @@ describe("useLowStock", () => {
       page: 1,
       limit: PAGE_SIZE,
     });
-    expect(result.current.maxStock).toBe("5");
-    expect(result.current.minRecentSales).toBe("3");
+    expect(result.current.maxStock).toBe("");
+    expect(result.current.minRecentSales).toBe("");
     expect(result.current.sort).toBe("Default");
     expect(result.current.items).toEqual([bexiga]);
-    expect(result.current.summary).toEqual(resumoDoAlerta);
   });
 
-  it("os números do padrão vêm do backend, não de constantes da tela", () => {
-    mocks.useGetLowStockSummary.mockReturnValue({
-      data: { restock: 4, restockMinSales: 10, restockMaxStock: 2 },
-      isError: false,
-    });
-
-    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
-
-    expect(result.current.maxStock).toBe("2");
-    expect(result.current.minRecentSales).toBe("10");
-  });
-
-  it("a lista só é consultada depois que os padrões chegam", () => {
-    // Sem a espera, a primeira carga iria sem filtro e a tela trocaria a lista
-    // inteira um instante depois.
-    mocks.useGetLowStockSummary.mockReturnValue({ data: undefined, isError: false });
-
-    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
-
-    expect(lastListParams()).toMatchObject({ maxStock: undefined, minRecentSales: undefined });
-    expect(mocks.useGetLowStock.mock.calls.at(-1)?.[1]).toMatchObject({ query: { enabled: false } });
-    expect(result.current.isLoading).toBe(true);
-  });
-
-  it("se a contagem falhar, a tela abre sem padrão em vez de ficar em branco", () => {
-    mocks.useGetLowStockSummary.mockReturnValue({ data: undefined, isError: true });
-
+  it("a lista é consultada na primeira renderização, sem esperar contagem nenhuma", () => {
+    // A espera existia para o filtro semeado chegar junto. Sem semeadura, a
+    // tela que espera é tela em branco de graça.
     renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
-    expect(mocks.useGetLowStock.mock.calls.at(-1)?.[1]).toMatchObject({ query: { enabled: true } });
+    expect(mocks.useGetLowStock.mock.calls.at(-1)?.[1]?.query?.enabled).toBeUndefined();
   });
 
-  it("vindo do alerta, o teto de saldo fica vazio para a lista bater com a contagem", () => {
-    // O backend, recebendo só o filtro de saída, aplica a definição do alerta de
-    // "está acabando" — abaixo do PRÓPRIO mínimo de quem tem um. Preencher o
-    // teto trocaria isso por um número fixo e esconderia o produto de mínimo 20
-    // com saldo 8, que o alerta acabou de contar.
-    window.history.replaceState({}, "", "/relatorios/estoque-baixo?vendas=7");
-
+  it("apagar o filtro devolve o relatório inteiro", async () => {
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
-    expect(result.current.minRecentSales).toBe("7");
-    expect(result.current.maxStock).toBe("");
-    expect(lastListParams()).toMatchObject({ maxStock: undefined, minRecentSales: 7 });
-  });
-
-  it("campo esvaziado pelo usuário não volta ao padrão", async () => {
-    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+    act(() => result.current.setMaxStock("5"));
+    await waitFor(() => expect(lastListParams()).toMatchObject({ maxStock: 5 }));
 
     act(() => result.current.setMaxStock(""));
 
@@ -261,7 +224,7 @@ describe("useLowStock", () => {
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
     act(() => result.current.askDisableStockControl(bexiga));
-    expect(result.current.confirm).toEqual({ item: bexiga });
+    expect(result.current.confirm).toEqual({ item: bexiga, action: "disable-control" });
     expect(mocks.disableStockControl).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -274,16 +237,39 @@ describe("useLowStock", () => {
         expect.objectContaining({ title: "Controle de estoque removido" }),
       ),
     );
+    expect(mocks.inactivateProduct).not.toHaveBeenCalled();
+  });
+
+  it("inativar pergunta antes e chama o OUTRO endpoint", async () => {
+    // As duas ações do menu passam pelo mesmo diálogo e pela mesma mutação; a
+    // que decide o que gravar é a ação guardada na confirmação. Trocá-las aqui
+    // não daria erro de compilação — daria produto inativado sem querer.
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.askInactivate(bexiga));
+    expect(result.current.confirm).toEqual({ item: bexiga, action: "inactivate" });
+    expect(mocks.inactivateProduct).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.confirmAction();
+    });
+
+    await waitFor(() => expect(mocks.inactivateProduct).toHaveBeenCalledWith(10));
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Produto inativado" })),
+    );
+    expect(mocks.disableStockControl).not.toHaveBeenCalled();
   });
 
   it("cancelar a confirmação não chama nada", () => {
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
-    act(() => result.current.askDisableStockControl(bexiga));
+    act(() => result.current.askInactivate(bexiga));
     act(() => result.current.cancelConfirm());
 
     expect(result.current.confirm).toBeNull();
     expect(mocks.disableStockControl).not.toHaveBeenCalled();
+    expect(mocks.inactivateProduct).not.toHaveBeenCalled();
   });
 
   it("exporta o relatório INTEIRO com os filtros da tela, não a página em memória", async () => {
@@ -329,7 +315,7 @@ describe("useLowStock", () => {
     expect(mocks.exportLowStockToXlsx).not.toHaveBeenCalled();
   });
 
-  it("avisa em vermelho quando a API recusa", async () => {
+  it("avisa em vermelho quando a API recusa, citando a ação que falhou", async () => {
     mocks.disableStockControl.mockRejectedValueOnce(new Error("Produto não encontrado!"));
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
