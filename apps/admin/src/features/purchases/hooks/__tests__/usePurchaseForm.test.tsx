@@ -33,8 +33,14 @@ vi.mock("@/services/products.service", () => ({
   getProductsPage: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
 }));
 
-const { usePurchaseForm, purchaseToForm, validatePurchaseForm, emptyPurchaseForm, todayDateKey } =
-  await import("../usePurchaseForm");
+const {
+  usePurchaseForm,
+  purchaseToForm,
+  validatePurchaseForm,
+  emptyPurchaseForm,
+  todayDateKey,
+  purchaseHasProduct,
+} = await import("../usePurchaseForm");
 
 const compra: PurchaseDto = {
   // Compra de um item so: a grade espelha o cabecalho, como 100% das
@@ -113,6 +119,26 @@ describe("validatePurchaseForm", () => {
   });
 });
 
+describe("purchaseHasProduct", () => {
+  it("reconhece a compra de UMA variação pelo productId", () => {
+    expect(purchaseHasProduct({ productId: 10, productGroupId: 1 })).toBe(true);
+  });
+
+  it("reconhece a compra com VARIAÇÕES pelo grupo", () => {
+    // REGRESSÃO: o cabeçalho de uma compra com grade não aponta para nenhuma das
+    // variações, e olhar só o `productId` mandava a compra para o cadastro em
+    // branco — criando um produto novo, sem variações, ao lado do que já existia
+    // (dev, 12/09/2026: compra do grupo 805 gerou o grupo 885).
+    expect(purchaseHasProduct({ productId: null, productGroupId: 805 })).toBe(true);
+  });
+
+  it("só a compra de produto NOVO fica sem produto", () => {
+    expect(purchaseHasProduct({ productId: null, productGroupId: null })).toBe(false);
+    // O backend omite campos nulos: eles chegam ausentes, não como null.
+    expect(purchaseHasProduct({})).toBe(false);
+  });
+});
+
 describe("validatePurchaseForm com grade de variações", () => {
   const comGrade = (quantidades: number[]) => ({
     ...emptyPurchaseForm(),
@@ -144,6 +170,14 @@ describe("validatePurchaseForm com grade de variações", () => {
 
   it("recusa quantidade negativa numa variação", () => {
     expect(validatePurchaseForm(comGrade([2, -1]))).toMatch(/maior ou igual a zero/i);
+  });
+
+  it("não exige nome quando a compra tem grupo, mesmo sem productId", () => {
+    // Compra com variações: o cabeçalho não aponta para nenhuma delas. Sem o
+    // critério certo, a validação pediria um "nome do produto" que não faz
+    // sentido — o produto já está cadastrado.
+    const semNome = { ...comGrade([0, 3]), productId: null, productName: "" };
+    expect(validatePurchaseForm(semNome)).toBeNull();
   });
 });
 

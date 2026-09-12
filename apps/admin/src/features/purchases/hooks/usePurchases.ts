@@ -21,7 +21,7 @@ import { productFromPurchasePath } from "../purchases-route";
 import type { PurchaseFormItem, ReceiveForm } from "../types";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
 import { usePurchaseFromUrl } from "./usePurchaseFromUrl";
-import { todayDateKey, usePurchaseForm } from "./usePurchaseForm";
+import { purchaseHasProduct, todayDateKey, usePurchaseForm } from "./usePurchaseForm";
 
 /** Linhas por página. */
 export const PAGE_SIZE = 20;
@@ -235,15 +235,17 @@ export function usePurchases() {
    *
    * Sem produto, a tela de Produtos abre o cadastro preenchido pela compra;
    * com produto, o diálogo de recebimento pede só o que a compra não sabe
-   * (data, nota, preço de venda).
+   * (data, nota, preço de venda) e confere a grade.
+   *
+   * Quem responde "tem produto?" é o `purchaseHasProduct`, e não o `productId`
+   * sozinho: numa compra com VARIAÇÕES o cabeçalho não aponta para nenhuma delas,
+   * e olhar só para ele mandava a compra para o cadastro em branco — criando um
+   * produto novo, sem variações, ao lado do que já existia.
    */
   function startReceive(purchase: PurchaseDto) {
     if (enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received) return;
 
-    // `== null` de propósito: o backend omite campos nulos, e `productId` de
-    // produto novo chega AUSENTE. Com `=== null` a compra de produto novo caía
-    // no diálogo de produto vinculado.
-    if (purchase.productId == null) {
+    if (!purchaseHasProduct(purchase)) {
       navigate(productFromPurchasePath(purchase.id));
       return;
     }

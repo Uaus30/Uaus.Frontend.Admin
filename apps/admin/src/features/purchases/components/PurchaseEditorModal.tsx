@@ -8,6 +8,7 @@ import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { ProductSearchPicker } from "@/components/product-search-picker";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import { purchaseHasProduct } from "../hooks/usePurchaseForm";
 import { PurchaseDerivedTotals } from "./PurchaseDerivedTotals";
 import { PurchaseVariationsGrid } from "./PurchaseVariationsGrid";
 import { PurchaseImagesField } from "./PurchaseImagesField";
@@ -44,6 +45,9 @@ type PurchaseEditorModalProps = {
 export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProps) {
   const { form: values, update, readOnly, linkRequired, costRequired } = form;
   const derived = derivePurchaseTotals(values.quantity, values.grossTotal, values.finalTotal);
+  // Com variações o cabeçalho não aponta para nenhuma delas: quem diz que a
+  // compra tem produto é o GRUPO. Ver `purchaseHasProduct`.
+  const temProduto = purchaseHasProduct(values);
 
   return (
     <Dialog open={form.open} onOpenChange={form.setOpen}>
@@ -140,7 +144,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             <label className="text-xs font-semibold uppercase text-muted-foreground">
               Produto já cadastrado (opcional)
             </label>
-            {values.productId === null ? (
+            {!temProduto ? (
               <ProductSearchPicker
                 onSelect={form.selectProduct}
                 selectedIds={[]}
@@ -154,7 +158,13 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{values.productName}</p>
                     <p className="font-mono text-xs text-muted-foreground">
-                      {values.productBarcode || "Sem código de barras"}
+                      {form.hasGrid ? (
+                        <span className="font-sans">
+                          Produto com variações — escolha as quantidades abaixo
+                        </span>
+                      ) : (
+                        values.productBarcode || "Sem código de barras"
+                      )}
                     </p>
                   </div>
                 </div>
@@ -174,7 +184,7 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             )}
           </div>
 
-          {values.productId === null && (
+          {!temProduto && (
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Nome do produto <span className="text-red-500">*</span>

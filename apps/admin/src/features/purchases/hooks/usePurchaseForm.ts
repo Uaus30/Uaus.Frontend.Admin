@@ -101,6 +101,26 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
 }
 
 /**
+ * A compra já aponta para um produto CADASTRADO?
+ *
+ * **Não basta olhar o `productId`.** Ele só é preenchido quando a compra é de
+ * UMA variação; com a grade preenchida o cabeçalho fica sem produto — quem
+ * responde o que foi comprado são os itens — e o que sempre está lá é o GRUPO.
+ *
+ * Errar isso não gera erro: a compra com variações passava por "produto novo" e
+ * o "Lançar recebimento" abria o CADASTRO em branco, criando um produto novo,
+ * sem variações, ao lado do que já existia. O mesmo critério decide se o
+ * formulário mostra a busca de produto ou o produto vinculado.
+ */
+export function purchaseHasProduct(dados: {
+  productId?: number | null;
+  productGroupId?: number | null;
+}): boolean {
+  // `!= null` de propósito: o backend omite campos nulos e eles chegam AUSENTES.
+  return dados.productId != null || dados.productGroupId != null;
+}
+
+/**
  * O link é exigido nesta compra?
  *
  * Em marketplace, sair de "Pendente" sem o link deixa a loja com uma compra que
@@ -139,7 +159,7 @@ export function purchaseCostIsRequired(form: PurchaseForm): boolean {
 /** O que falta no formulário para gravar, ou `null` quando está pronto. */
 export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto): string | null {
   if (!form.supplierId) return "Selecione o fornecedor.";
-  if (form.productId === null && !form.productName.trim()) return "Informe o produto ou o nome do produto.";
+  if (!purchaseHasProduct(form) && !form.productName.trim()) return "Informe o produto ou o nome do produto.";
   if (!form.purchaseDate) return "Informe a data da compra.";
   if (form.purchaseDate > todayDateKey()) return "A data da compra não pode estar no futuro.";
   if (form.items.length > 0 && form.items.every((item) => item.quantity <= 0))
