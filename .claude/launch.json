@@ -14,6 +14,12 @@
       "port": 5173
     },
     {
+      "name": "admin-api-local",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "API_PROXY_TARGET=http://localhost:5214 npm run dev:admin"],
+      "port": 5173
+    },
+    {
       "name": "pdv",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:pdv"],
