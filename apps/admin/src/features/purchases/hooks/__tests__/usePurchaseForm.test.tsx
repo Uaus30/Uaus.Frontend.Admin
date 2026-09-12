@@ -224,6 +224,17 @@ describe("purchaseToForm", () => {
           stock: 5,
           unitFinal: 20,
         },
+        {
+          id: 2,
+          productId: 11,
+          productName: "CAMISETA [VERMELHA]",
+          barcode: "111",
+          quantity: 3,
+          grossTotal: 0,
+          finalTotal: 60,
+          stock: 0,
+          unitFinal: 20,
+        },
       ],
     });
 
@@ -239,7 +250,44 @@ describe("purchaseToForm", () => {
         grossTotal: 0,
         finalTotal: 40,
       },
+      {
+        productId: 11,
+        name: "CAMISETA [VERMELHA]",
+        barcode: "111",
+        stock: 0,
+        quantity: 3,
+        grossTotal: 0,
+        finalTotal: 60,
+      },
     ]);
+  });
+
+  it("compra de UM produto não carrega a grade — o cabeçalho é que manda", () => {
+    // REGRESSÃO (produção, compra #31, 12/09/2026): toda compra tem um item no
+    // banco, espelho do cabeçalho. Carregá-lo no formulário fazia o campo de
+    // quantidade mentir — ele edita o cabeçalho, o item ficava com o valor
+    // antigo, e no salvar o backend deriva dos ITENS quando eles vêm. O operador
+    // trocava a quantidade, via "Compra atualizada" e o número não mudava.
+    const form = purchaseToForm({
+      ...compra,
+      quantity: 12,
+      items: [
+        {
+          id: 31,
+          productId: 589,
+          productName: "BATOM HIDRATANTE",
+          barcode: "790",
+          quantity: 1,
+          grossTotal: 199.99,
+          finalTotal: 186.2,
+          stock: 0,
+          unitFinal: 186.2,
+        },
+      ],
+    });
+
+    expect(form.items).toEqual([]);
+    expect(form.quantity).toBe(12);
   });
 
   it("compra sem preço sugerido vira zero, que é o vazio do campo de moeda", () => {

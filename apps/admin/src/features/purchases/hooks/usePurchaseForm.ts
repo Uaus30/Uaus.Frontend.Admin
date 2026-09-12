@@ -60,24 +60,37 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
     // `?? null`: o backend omite campos nulos e o formulário compara com `=== null`.
     productId: purchase.productId ?? null,
     productGroupId: purchase.productGroupId ?? null,
-    // A grade gravada. Reabrir a compra a traz de volta com as quantidades que
-    // foram salvas; as variações que ficaram de fora entram zeradas quando a
-    // lista do grupo chega (`usePurchaseVariations`).
-    items: (purchase.items ?? []).flatMap<PurchaseFormItem>((item) =>
-      item.productId == null
-        ? []
-        : [
-            {
-              productId: item.productId,
-              name: item.productName,
-              barcode: item.barcode ?? null,
-              stock: item.stock,
-              quantity: item.quantity,
-              grossTotal: item.grossTotal,
-              finalTotal: item.finalTotal,
-            },
-          ],
-    ),
+    // A grade gravada — só quando ela EXISTE, ou seja, com mais de uma variação.
+    //
+    // Compra de um produto só tem UM item no banco, espelho do cabeçalho, e
+    // nenhuma grade na tela para editá-lo. Carregá-lo aqui fazia o campo de
+    // quantidade mentir: ele edita o cabeçalho, o item ficava com o valor antigo,
+    // e no salvar o backend deriva a quantidade dos ITENS quando eles vêm — então
+    // o valor digitado era descartado em silêncio, com toast de sucesso
+    // (produção, compra #31: editada de 1 para outro número e gravada como 1).
+    //
+    // Com a lista vazia, o corpo vai sem `items` e o backend usa o cabeçalho, que
+    // é o caminho de compatibilidade de sempre. É também o que torna a regra à
+    // prova da corrida: a grade só aparece depois que a lista de variações do
+    // grupo chega, e até lá o cabeçalho manda.
+    items:
+      (purchase.items ?? []).length > 1
+        ? (purchase.items ?? []).flatMap<PurchaseFormItem>((item) =>
+            item.productId == null
+              ? []
+              : [
+                  {
+                    productId: item.productId,
+                    name: item.productName,
+                    barcode: item.barcode ?? null,
+                    stock: item.stock,
+                    quantity: item.quantity,
+                    grossTotal: item.grossTotal,
+                    finalTotal: item.finalTotal,
+                  },
+                ],
+          )
+        : [],
     costSplitManual: purchase.costSplitManual ?? false,
     replaceProductImages: purchase.replaceProductImages ?? true,
     productName: purchase.productName,
@@ -356,8 +369,9 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
       suggestedPrice: form.suggestedPrice > 0 ? form.suggestedPrice : null,
       status: Number(form.status),
       imageIds: form.images.map((image) => image.imageId),
-      // Sem grade, a lista vai vazia e o backend trata o corpo como o de sempre:
-      // a compra de um produto só, descrita pelo cabeçalho.
+      // Sem grade a lista é vazia, e o backend trata o corpo como o de sempre:
+      // a compra de um produto só, descrita pelo CABEÇALHO — que é onde mora o
+      // campo de quantidade que o operador acabou de editar.
       items: form.items
         .filter((item) => item.quantity > 0)
         .map((item) => ({
