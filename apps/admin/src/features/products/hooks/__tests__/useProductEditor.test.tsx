@@ -1,8 +1,9 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useProductEditor } from "../useProductEditor";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { GRADE_TYPE } from "@workspace/api-client-react";
 import { syncProductGroupImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
 
@@ -11,6 +12,10 @@ const mocks = vi.hoisted(() => ({
     Promise.resolve({ group: { id: 1 }, products: [{ id: 10, canDelete: true }] }),
   ),
   markPurchaseReceived: vi.fn(() => Promise.resolve({})),
+  /** A página de produtos do grupo aberto — a que hidrata a tabela de variações. */
+  getProductsPage: vi.fn((): Promise<{ data: unknown[]; total: number }> =>
+    Promise.resolve({ data: [], total: 0 }),
+  ),
 }));
 
 // Dubla só o que fala com a rede; o resto do api-client continua o de verdade.
@@ -25,7 +30,7 @@ vi.mock("@/services/products.service", () => ({
   getAllProducts: vi.fn(() => Promise.resolve([])),
   getAllProductGroupImages: vi.fn(() => Promise.resolve([])),
   getAllProductTags: vi.fn(() => Promise.resolve([])),
-  getProductsPage: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
+  getProductsPage: mocks.getProductsPage,
   syncProductTags: vi.fn(() => Promise.resolve()),
   syncProductGroupImages: vi.fn(() => Promise.resolve([])),
   deleteProduct: vi.fn(() => Promise.resolve()),
@@ -124,6 +129,72 @@ describe("useProductEditor Hook", () => {
     expect(result.current.editingGroupId).toBe(1);
     expect(result.current.productEditor.name).toBe("COPO VERDE");
     expect(result.current.productEditor.price).toBe(15.5);
+  });
+
+  it("produto simples ganhando variação: a carga do grupo não apaga a linha da modal", async () => {
+    // REGRESSÃO (produção, 12/09/2026 — produto 897 em admin.uaus.com.br):
+    // "Configurar Variações" gerava a tabela e, um instante depois, ela voltava
+    // a ter uma linha só, SEM a coluna da grade escolhida. O produto simples
+    // salvo tem a tabela vazia (ele mora no `productEditor`), então marcar as
+    // grades ligava `hasVariations` — e a query `products-by-group`, que
+    // acabava de ser habilitada, devolvia o mesmo produto sem valor de grade
+    // nenhum. O efeito que hidrata a tabela sobrescrevia o que a modal tinha
+    // acabado de aplicar. Nada disso dava erro: a tela só desfazia sozinha.
+    mocks.getProductsPage.mockResolvedValueOnce({
+      data: [
+        {
+          id: 897,
+          name: "CALCINHA INFANTIL LISA ALGODAO",
+          description: "",
+          price: 12.9,
+          stock: 7,
+          minStock: 2,
+          status: 2,
+          barcode: "7896725329402",
+          productGroupId: 1,
+          variationValues: [],
+          canDelete: true,
+        },
+      ],
+      total: 1,
+    });
+
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail({
+        id: 897,
+        name: "CALCINHA INFANTIL LISA ALGODAO",
+        price: 12.9,
+        barcode: "7896725329402",
+        productGroup: { id: 1, name: "CALCINHA INFANTIL LISA ALGODAO", hasVariations: false },
+        tags: [],
+        images: [],
+      });
+    });
+
+    expect(result.current.variationDrafts).toHaveLength(0);
+
+    act(() => {
+      result.current.applyGrades([{ type: GRADE_TYPE.Size, values: [] }]);
+    });
+
+    expect(result.current.variationDrafts).toHaveLength(1);
+    expect(result.current.variationDrafts[0].id).toBe(897);
+
+    // A query só é habilitada agora, com `hasVariations` ligado — e é a
+    // resposta dela que sobrescrevia a linha.
+    await waitFor(() => expect(mocks.getProductsPage).toHaveBeenCalled());
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(result.current.variationDrafts).toHaveLength(1);
+    expect(result.current.variationDrafts[0].id).toBe(897);
+    expect(result.current.variationDrafts[0].barcode).toBe("7896725329402");
+    expect(result.current.variationDrafts[0].values).toEqual([{ gradeType: GRADE_TYPE.Size, value: "" }]);
+    // A coluna existe para a tabela e para a validação, mesmo sem valor.
+    expect(result.current.selectedGrades).toEqual([{ type: GRADE_TYPE.Size, values: [] }]);
   });
 
   it("should reset HasVariations correctly when toggled", () => {

@@ -1,42 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { GRADE_TYPE } from "@workspace/api-client-react";
-import {
-  aplicarGradesNasLinhas,
-  gradesDasVariacoes,
-  juntarValoresDeGrade,
-  ordenarGrades,
-  separarValoresDeGrade,
-  temVariacaoSalva,
-  trocarTipoDeGrade,
-} from "../variationGrades";
-import type { ProductGrade, VariationDraft } from "../../types";
-
-const COR: ProductGrade = { type: GRADE_TYPE.Color, values: ["Azul", "Preto"] };
-const TAMANHO: ProductGrade = { type: GRADE_TYPE.Size, values: ["P", "M", "G"] };
-
-describe("ordenarGrades", () => {
-  it("põe Cor antes de Tamanho antes de Modelo, não a ordem dos cliques", () => {
-    // Sem ordem fixa, o mesmo produto sairia "[AZUL, G]" ou "[G, AZUL]"
-    // conforme a ordem em que o operador marcou as caixas.
-    const ordenadas = ordenarGrades([TAMANHO, { type: GRADE_TYPE.Model, values: ["X"] }, COR]);
-
-    expect(ordenadas.map((g) => g.type)).toEqual([GRADE_TYPE.Color, GRADE_TYPE.Size, GRADE_TYPE.Model]);
-  });
-
-  it("descarta grade sem valor e apara espaço dos valores", () => {
-    const ordenadas = ordenarGrades([
-      { type: GRADE_TYPE.Color, values: [" Azul ", "  "] },
-      { type: GRADE_TYPE.Size, values: [] },
-    ]);
-
-    expect(ordenadas).toEqual([{ type: GRADE_TYPE.Color, values: ["Azul"] }]);
-  });
-});
+import { aplicarGradesNasLinhas, gradesDasVariacoes, trocarTipoDeGrade } from "../variationGrades";
+import type { VariationDraft } from "../../types";
 
 describe("gradesDasVariacoes", () => {
   it("reconstrói grades e valores a partir das variações gravadas", () => {
-    // É o que faz a modal reabrir marcada com o que o produto já tem. Sem isto,
-    // reconfigurar começaria em branco e a matriz nova apagaria tudo.
+    // É o que faz a modal reabrir marcada com o que o produto já tem — e o que
+    // desenha as colunas da tabela. Sem isto, reconfigurar começaria em branco
+    // e desmarcaria as grades que o produto usa.
     const drafts = [
       { values: [{ gradeType: GRADE_TYPE.Color, value: "Azul" }] },
       { values: [{ gradeType: GRADE_TYPE.Color, value: "Preto" }] },
@@ -73,34 +44,15 @@ describe("gradesDasVariacoes", () => {
   });
 });
 
-describe("separarValoresDeGrade", () => {
-  it("um valor por linha, sem repetido nem vazio", () => {
-    expect(separarValoresDeGrade(" 10L \n\n6L\n10l ")).toEqual(["10L", "6L"]);
-  });
-
-  it("mantém a vírgula decimal dentro do valor", () => {
-    // Regressão: com vírgula como separador, "10L, 6L, 3,6L" virava "10L",
-    // "6L", "3" e "6L" — o repetido caía fora e a variação "[3,6L]", que tinha
-    // código de barras e venda, sumia da matriz.
-    expect(separarValoresDeGrade("10L\n6L\n3,6L")).toEqual(["10L", "6L", "3,6L"]);
-  });
-
-  it("vai e volta sem perder valor", () => {
-    const valores = ["3,6L", "1,5L", "10L"];
-
-    expect(separarValoresDeGrade(juntarValoresDeGrade(valores))).toEqual(valores);
-  });
-});
-
 describe("trocarTipoDeGrade", () => {
   const comGrade = (type: number, value: string) =>
     ({ key: `k-${value}`, values: [{ gradeType: type, value }] }) as VariationDraft;
 
   it("renomeia a grade em todas as variações, sem tocar nos valores", () => {
     // É a correção da importação do sistema anterior: o valor é uma cor, mas a
-    // grade veio como "Modelo". Trocar pela modal geraria combinações sem grade
-    // em comum com as atuais, e as variações com código de barras iriam para a
-    // exclusão.
+    // grade veio como "Modelo". Desmarcar "Modelo" e marcar "Cor" na modal
+    // apagaria a coluna com os valores dentro, e as centenas de variações
+    // importadas teriam que ser redigitadas uma a uma.
     const drafts = [comGrade(GRADE_TYPE.Model, "Azul"), comGrade(GRADE_TYPE.Model, "Preto")];
 
     const trocados = trocarTipoDeGrade(drafts, GRADE_TYPE.Model, GRADE_TYPE.Color);
@@ -125,17 +77,6 @@ describe("trocarTipoDeGrade", () => {
     ];
 
     expect(trocarTipoDeGrade(drafts, GRADE_TYPE.Model, GRADE_TYPE.Color)).toBe(drafts);
-  });
-});
-
-describe("temVariacaoSalva", () => {
-  it("distingue cadastro começando do zero de produto já gravado", () => {
-    // É este critério que escolhe entre gerar a matriz e só mexer em coluna.
-    const novo = [{ id: null, values: [] }] as unknown as VariationDraft[];
-    const gravado = [{ id: 42, values: [] }] as unknown as VariationDraft[];
-
-    expect(temVariacaoSalva(novo)).toBe(false);
-    expect(temVariacaoSalva(gravado)).toBe(true);
   });
 });
 

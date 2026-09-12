@@ -8,14 +8,14 @@ import type { ProductGrade } from "../../../types";
 /** O produto do relato: três variações distinguidas só pelo Tamanho. */
 const SO_TAMANHO: ProductGrade[] = [{ type: GRADE_TYPE.Size, values: ["10L", "6L", "3,6L"] }];
 
-function renderForm(selectedGrades = SO_TAMANHO) {
+function renderForm(selectedGrades = SO_TAMANHO, variationCount = 3) {
   const onConfirm = vi.fn();
 
   render(
     <Dialog open>
       <VariationColumnsForm
         selectedGrades={selectedGrades}
-        variationCount={3}
+        variationCount={variationCount}
         onCancel={vi.fn()}
         onConfirm={onConfirm}
       />
@@ -59,6 +59,25 @@ describe("VariationColumnsForm", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /tamanho/i }));
 
     expect(screen.getByText(/apaga a coluna e o valor dela em todas as variações/i)).toBeTruthy();
+  });
+
+  it("produto ainda sem variação: só o tipo, e o aviso da linha que vai nascer", () => {
+    // REGRESSÃO (produção, 12/09/2026 — produto 897): aqui a modal pedia os
+    // VALORES de cada grade, cruzava tudo e o resultado era descartado logo
+    // depois. Agora ela pergunta só o tipo, e a tabela nasce com o próprio
+    // produto para o operador preencher.
+    const { onConfirm } = renderForm([], 0);
+
+    expect(screen.queryByRole("textbox")).toBeNull();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /cor/i }));
+
+    expect(screen.getByText(/preenchimento obrigatório para salvar/i)).toBeTruthy();
+    expect(screen.getByText(/a tabela nasce com uma linha: o produto atual/i)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /criar variações/i }));
+
+    expect(onConfirm).toHaveBeenCalledWith([{ type: GRADE_TYPE.Color, values: [] }]);
   });
 
   it("não deixa aplicar sem grade nenhuma", () => {

@@ -3,13 +3,7 @@ import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { deleteProduct } from "@/services/products.service";
 import { createVariationDraft } from "./utils";
-import { gerarCombinacoes, mesclarMatriz } from "../../lib/variationMatrix";
-import {
-  aplicarGradesNasLinhas,
-  gradesDasVariacoes,
-  temVariacaoSalva,
-  trocarTipoDeGrade,
-} from "../../lib/variationGrades";
+import { aplicarGradesNasLinhas, gradesDasVariacoes, trocarTipoDeGrade } from "../../lib/variationGrades";
 import type { GradeTypeCode } from "@workspace/api-client-react";
 import type { VariationDraft, ProductGrade, ProductGroupForm, ProductEditorForm } from "../../types";
 
@@ -52,136 +46,67 @@ export function useProductVariations({
   }
 
   /**
-   * Aplica no cadastro as grades escolhidas na modal.
+   * Aplica no cadastro as grades escolhidas na modal — só as COLUNAS.
    *
-   * São dois caminhos, e quem decide é a existência de variação GRAVADA:
+   * Marcar "Cor" põe a coluna em branco em todas as linhas da tabela; desmarcar
+   * apaga a coluna e os valores dela. Nenhuma linha é criada nem excluída aqui,
+   * fora a PRIMEIRA (ver `primeiraVariacaoDoProduto`): linha nova sai do
+   * "Acrescentar variação" e o único caminho de exclusão é o lixo da linha, que
+   * pede confirmação.
    *
-   * - **Cadastro começando do zero** — a modal cruza as grades e cria a matriz
-   *   inteira (`generateVariationsMatrix`). É assim que nascem as primeiras
-   *   variações, e não há nada salvo para perder.
-   * - **Produto já cadastrado** — a modal só mexe em COLUNA
-   *   (`applyGradeColumns`): nenhuma linha é criada, nenhuma é excluída. A
-   *   coluna nova entra em branco e o operador digita o valor de cada variação
-   *   na própria tabela.
+   * A modal cruzava as grades e gerava a matriz cartesiana até 12/09/2026, no
+   * cadastro que ainda não tinha variação salva. Dois motivos derrubaram o
+   * cruzamento:
    *
-   * O desvio existe porque cruzar grades num produto com venda é destrutivo por
-   * natureza: a combinação que sai do cruzamento é apagada no servidor NA HORA,
-   * antes de qualquer Salvar, e a que entra obriga a chutar qual variação fica
-   * com qual valor novo. O cartesiano também não poupa digitação num produto que
-   * já existe — as combinações novas nascem sem preço e sem código de barras de
-   * qualquer jeito.
-   */
-  async function applyGrades(grades: ProductGrade[]) {
-    if (temVariacaoSalva(variationDrafts)) {
-      applyGradeColumns(grades.map((grade) => grade.type));
-      return;
-    }
-
-    await generateVariationsMatrix(grades);
-  }
-
-  /**
-   * Acrescenta e remove COLUNAS de grade, sem tocar nas linhas.
-   *
-   * Marcar "Cor" põe a coluna em branco em todas as variações; desmarcar apaga
-   * a coluna e os valores dela. Nenhuma variação é criada nem excluída — o que
-   * some do cadastro continua saindo só pelo lixo da linha, que pede
-   * confirmação.
+   * 1. **Ele nunca chegou à tela em produto já gravado.** Um produto simples
+   *    salvo tem a tabela VAZIA (ele mora no `productEditor`, não nos drafts),
+   *    então a modal pedia os valores, gerava a matriz — e a carga do grupo
+   *    pelo servidor a sobrescrevia logo depois, deixando uma linha só e sem
+   *    coluna nenhuma. É o relato do produto 897, em produção.
+   * 2. **Duas modais para o mesmo botão.** Qual delas aparecia dependia de o
+   *    produto já ter variação gravada, coisa que ninguém vê na tela.
    *
    * A validação do salvamento cobra valor em toda grade do grupo, então a
    * coluna nova sai vermelha até ser preenchida: é o "preenchimento manual
    * obrigatório" desenhado de propósito, não um efeito colateral.
    */
-  function applyGradeColumns(tipos: GradeTypeCode[]) {
-    setVariationDrafts((current) => aplicarGradesNasLinhas(current, tipos));
+  function applyGrades(grades: ProductGrade[]) {
+    const tipos: GradeTypeCode[] = grades.map((grade) => grade.type);
+    const linhas = variationDrafts.length > 0 ? variationDrafts : [primeiraVariacaoDoProduto()];
+    const proximos = aplicarGradesNasLinhas(linhas, tipos);
+
+    setVariationDrafts(proximos);
     setForm((atual) => ({ ...atual, hasVariations: true }));
+    setActiveVariationKey((atual) => atual ?? proximos[0]?.key ?? null);
   }
 
   /**
-   * Gera/regenera a matriz MESCLANDO com o que o produto já tem.
+   * A primeira linha da tabela: o PRÓPRIO produto que está na tela.
    *
-   * Quem decide qual variação vai para qual combinação é o `mesclarMatriz`, e
-   * ele aproveita tanto a combinação idêntica quanto a compatível — acrescentar
-   * a coluna "Cor: AZUL" num produto de "[10L]", "[6L]" e "[3,6L]" reaproveita
-   * as três linhas com id, preço, código de barras e imagens. Combinação sem
-   * dona nasce com preço e estoque mínimo do produto principal como ponto de
-   * partida. Combinação que saiu é excluída do servidor na hora (como o lixo da
-   * linha faz), exceto as que têm venda (`canDelete === false`), que permanecem
-   * na lista com um aviso.
+   * Um produto que ganha variações não vira um cadastro novo — ele vira a
+   * primeira variação de si mesmo. Por isso a linha carrega o `id`: no salvar,
+   * o `saveProductGroupWithProducts` ATUALIZA esse produto (código de barras,
+   * preço, estoque, etiquetas e histórico ficam onde estão) em vez de criar um
+   * irmão e deixar o original como variação sem grade nenhuma no mesmo grupo.
    *
-   * Antes a regeração descartava TUDO: drafts novos sem id viravam produtos
-   * NOVOS no salvar e os antigos ficavam no banco — o grupo acumulava
-   * duplicatas até a checagem de combinação repetida travar o cadastro.
+   * Em cadastro que ainda não foi salvo o `id` é nulo e a linha nasce com o que
+   * já estiver preenchido na aba Dados — o salvar cria o produto.
    */
-  async function generateVariationsMatrix(grades: ProductGrade[]) {
-    const combinacoes = gerarCombinacoes(grades);
-    if (combinacoes.length === 0) {
-      setVariationDrafts([]);
-      setForm((current) => ({ ...current, hasVariations: false }));
-      setActiveVariationKey(null);
-      return;
-    }
+  function primeiraVariacaoDoProduto(): VariationDraft {
+    const draft = createVariationDraft(defaultStatus, form.productGroupName.trim());
 
-    const { slots, removidas } = mesclarMatriz(variationDrafts, combinacoes);
-
-    const bloqueadas: VariationDraft[] = [];
-    let excluidas = 0;
-    for (const draft of removidas) {
-      if (draft.id == null || draft.id === 0) continue;
-
-      if (draft.canDelete === false) {
-        bloqueadas.push(draft);
-        continue;
-      }
-
-      try {
-        await deleteProduct(draft.id);
-        excluidas += 1;
-      } catch (error) {
-        // Exclusão recusada (ex.: ganhou venda entre o carregar e o agora):
-        // a variação fica na lista, senão ela some da tela mas continua no banco.
-        bloqueadas.push(draft);
-        toast({
-          title: "Variação não pôde ser excluída",
-          description: describeApiError(error, "Ela continua na lista."),
-          error,
-          variant: "destructive",
-        });
-      }
-    }
-
-    const finais = slots.map(({ values, existente }) => {
-      // Os valores vêm do SLOT, não do draft: quem casou por compatibilidade —
-      // a variação "[10L]" que a matriz nova quer como "[AZUL, 10L]" — ainda
-      // não tem a grade que entrou, e sem isto a linha ficaria com a coluna
-      // nova vazia e o salvar recusaria por combinação repetida.
-      if (existente) return { ...existente, values };
-      const draft = createVariationDraft(defaultStatus, form.productGroupName.trim());
-      draft.price = productEditor.price;
-      draft.stock = 0;
-      draft.minStock = productEditor.minStock;
-      draft.barcode = "";
-      draft.values = values;
-      return draft;
-    });
-
-    // As bloqueadas entram no fim: continuam existindo e o operador decide.
-    const proximos = [...finais, ...bloqueadas];
-    setVariationDrafts(proximos);
-    setForm((current) => ({ ...current, hasVariations: true }));
-    setActiveVariationKey(proximos[0].key);
-
-    if (excluidas > 0) {
-      await invalidateProductQueries(editingGroupId);
-      toast({ title: `${excluidas} variação(ões) fora da matriz foram excluídas.` });
-    }
-    if (bloqueadas.length > 0) {
-      toast({
-        title: "Variações com movimento foram mantidas",
-        description: `${bloqueadas.length} variação(ões) fora da matriz têm venda ou estoque e não podem ser excluídas.`,
-        variant: "warning",
-      });
-    }
+    return {
+      ...draft,
+      ...productEditor,
+      // A chave espelha a das variações vindas do servidor (`toVariationDraft`),
+      // senão a mesma linha teria duas identidades entre um salvar e outro.
+      key: productEditor.id ? `product-${productEditor.id}` : draft.key,
+      // O nome gravado é o do GRUPO em toda variação; o que distingue uma da
+      // outra são os valores de grade.
+      name: form.productGroupName.trim(),
+      status: productEditor.status || defaultStatus,
+      values: [],
+    };
   }
 
   /**

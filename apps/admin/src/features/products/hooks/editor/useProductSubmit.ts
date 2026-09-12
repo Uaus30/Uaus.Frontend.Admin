@@ -6,7 +6,7 @@ import {
 import { buildPublicImageUrl } from "@/services/core";
 import { syncProductTags, syncProductGroupImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
-import { chaveDaCombinacao } from "../../lib/variationMatrix";
+import { chaveDaCombinacao } from "../../lib/variationNames";
 import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft } from "../../types";
 import { describeApiError } from "@workspace/core";
 

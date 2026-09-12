@@ -5,7 +5,7 @@ import { Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { CurrencyInput } from "./CurrencyInput";
 import { VariationGradeHeader } from "./VariationGradeHeader";
-import { nomeExibidoDaVariacao } from "../lib/variationMatrix";
+import { nomeExibidoDaVariacao } from "../lib/variationNames";
 import type { VariationDraft, ProductGrade } from "../types";
 
 type ProductVariationsSectionProps = {

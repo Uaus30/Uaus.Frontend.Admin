@@ -7,7 +7,7 @@ import type { useProductEditor } from "../../hooks/useProductEditor";
 import type { ProductGrade, VariationDraft } from "../../types";
 import { buildDisplayBarcode, isFactoryEan } from "../../lib/barcode";
 import { printBarcodeLabel } from "../../lib/barcodeLabel";
-import { nomeExibidoDaVariacao } from "../../lib/variationMatrix";
+import { nomeExibidoDaVariacao } from "../../lib/variationNames";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
 import { orderCatalogByName } from "@/lib/select-options";
@@ -116,7 +116,6 @@ export function ProductDetailScreen({
     handleSubmit,
     handleDeleteVariation,
     selectedGrades,
-    hasSavedVariations,
     applyGrades,
     purchaseContext,
     completePurchaseReceipt,
@@ -205,11 +204,8 @@ export function ProductDetailScreen({
   }
 
   /** Aplica as grades e leva o operador até a tabela. */
-  async function aplicarGrades(grades: ProductGrade[]) {
-    // Espera de propósito: no cadastro novo a mesclagem pode excluir variações
-    // no servidor, e rolar para a tabela antes de ela refletir o resultado
-    // rolaria para nada.
-    await applyGrades(grades);
+  function aplicarGrades(grades: ProductGrade[]) {
+    applyGrades(grades);
     setGradesModalOpen(false);
     setActiveTab("dados");
 
@@ -420,7 +416,6 @@ export function ProductDetailScreen({
         onOpenChange={setGradesModalOpen}
         selectedGrades={selectedGrades}
         variationCount={variationDrafts.length}
-        somenteColunas={hasSavedVariations}
         onConfirm={aplicarGrades}
       />
 

@@ -24,7 +24,7 @@ import type {
   VariationDraft,
 } from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
-import { gradesDasVariacoes, temVariacaoSalva } from "../lib/variationGrades";
+import { gradesDasVariacoes } from "../lib/variationGrades";
 
 import { useBarcodeLookup } from "./editor/useBarcodeLookup";
 import { useProductForm } from "./editor/useProductForm";
@@ -518,17 +518,24 @@ export function useProductEditor() {
     handleSubmit: productSubmit.handleSubmit,
     toLocalImages: productImagesHook.toLocalImages,
     selectedGrades,
-    /**
-     * Produto já cadastrado: a modal de grades vira gerenciadora de COLUNA e
-     * para de gerar matriz. A tela precisa do mesmo critério do hook para
-     * mostrar a modal certa, por isso ele sai daqui em vez de ser recalculado
-     * lá — dois critérios diferentes deixariam a modal prometendo uma coisa e o
-     * botão fazendo outra.
-     */
-    hasSavedVariations: temVariacaoSalva(variationDrafts),
     applyGrades: (grades: ProductGrade[]) => {
       markDirty();
-      return productVariations.applyGrades(grades);
+      /*
+        Produto SIMPLES virando produto com variações: a primeira linha da
+        tabela é ele mesmo, criada agora pelo `applyGrades` com o id que já
+        tem. O grupo passa a ter variações, o que LIGA a query
+        `products-by-group` — e o efeito que hidrata a tabela com a resposta
+        sobrescreveria essa linha pela versão do servidor, que não conhece a
+        coluna recém-escolhida. Era o relato do produto 897 em produção
+        (12/09/2026): a tabela nascia com uma linha só, sem coluna de grade, e
+        o que a modal tinha acabado de aplicar sumia.
+
+        Marcar o grupo como já carregado é honesto: a linha da tela É o produto
+        do grupo, com id e tudo. Quem traz gente nova para a tabela daqui em
+        diante é o "Acrescentar variação".
+      */
+      if (variationDrafts.length === 0 && editingGroupId != null) setLoadedGroupId(editingGroupId);
+      productVariations.applyGrades(grades);
     },
     changeGradeType: (de: GradeTypeCode, para: GradeTypeCode) => {
       markDirty();

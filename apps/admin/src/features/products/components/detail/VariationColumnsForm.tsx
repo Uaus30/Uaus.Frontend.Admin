@@ -17,14 +17,20 @@ type VariationColumnsFormProps = {
 };
 
 /**
- * Escolha das COLUNAS de um produto que já tem variação gravada.
+ * Escolha das COLUNAS de grade do produto.
  *
  * Não pede valor nenhum de propósito. Marcar uma grade acrescenta a coluna em
- * branco nas variações que existem e o operador digita o valor de cada uma na
- * tabela; nenhuma linha é criada nem excluída aqui. Cruzar as grades num
- * produto com venda obrigaria a chutar qual variação fica com qual valor novo,
- * e a combinação que saísse do cruzamento seria apagada no servidor NA HORA,
- * antes de qualquer Salvar.
+ * branco na tabela e o operador digita o valor de cada linha lá; nenhuma
+ * variação é criada nem excluída aqui — exceto a PRIMEIRA linha, que é o
+ * próprio produto da tela quando a tabela ainda está vazia (ver `applyGrades`
+ * em `useProductVariations`).
+ *
+ * Cruzar as grades aqui — "Cor: AZUL, VERMELHO" × três tamanhos — obrigaria a
+ * chutar qual variação fica com qual valor novo num produto que tem código de
+ * barras e venda, e a combinação que saísse do cruzamento era apagada no
+ * servidor NA HORA, antes de qualquer Salvar. O cartesiano também não poupa
+ * digitação: as combinações novas nascem sem preço e sem código de barras de
+ * qualquer jeito.
  */
 export function VariationColumnsForm({
   selectedGrades,
@@ -38,6 +44,8 @@ export function VariationColumnsForm({
   const aRemover = selectedGrades.filter(
     (grade) => !marcadas.includes(grade.type) && grade.values.length > 0,
   );
+  /** Tabela vazia: a confirmação vai CRIAR a primeira linha, e não só a coluna. */
+  const primeiraVez = variationCount === 0;
   // Variação sem valor de grade nenhum é recusada no salvar: o produto tem que
   // ficar com ao menos uma coluna.
   const podeAplicar = marcadas.length > 0;
@@ -51,11 +59,21 @@ export function VariationColumnsForm({
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Grid3X3 className="w-5 h-5 text-primary" />
-          Colunas de Grade
+          Configurar Variações
         </DialogTitle>
         <DialogDescription>
-          Marque as grades que este produto usa. A coluna entra <strong>em branco</strong> e você preenche o
-          valor de cada variação na tabela.
+          {primeiraVez ? (
+            <>
+              Marque o tipo de variação que este produto usa. A tabela nasce com{" "}
+              <strong>o produto atual</strong> e a coluna <strong>em branco</strong>: você preenche o valor
+              dele e acrescenta as outras variações na própria tabela.
+            </>
+          ) : (
+            <>
+              Marque as grades que este produto usa. A coluna entra <strong>em branco</strong> e você preenche
+              o valor de cada variação na tabela.
+            </>
+          )}
         </DialogDescription>
       </DialogHeader>
 
@@ -77,7 +95,9 @@ export function VariationColumnsForm({
                 {valores.length > 0
                   ? `Em uso: ${valores.join(" · ")}`
                   : marcada
-                    ? `Coluna em branco — preencha nas ${variationCount} variações da tabela.`
+                    ? primeiraVez
+                      ? "Coluna em branco — preenchimento obrigatório para salvar."
+                      : `Coluna em branco — preencha nas ${variationCount} variações da tabela.`
                     : "Não usada neste produto."}
               </p>
             </div>
@@ -97,9 +117,11 @@ export function VariationColumnsForm({
 
       <DialogFooter className="items-center sm:justify-between">
         <span className="text-xs text-muted-foreground">
-          {podeAplicar
-            ? "Nenhuma variação é criada nem excluída aqui."
-            : "O produto precisa de ao menos uma grade."}
+          {!podeAplicar
+            ? "O produto precisa de ao menos uma grade."
+            : primeiraVez
+              ? "A tabela nasce com uma linha: o produto atual."
+              : "Nenhuma variação é criada nem excluída aqui."}
         </span>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>
@@ -112,7 +134,7 @@ export function VariationColumnsForm({
               onConfirm(marcadas.map((type) => ({ type, values: valoresEmUso.get(type) ?? [] })))
             }
           >
-            Aplicar Colunas
+            {primeiraVez ? "Criar Variações" : "Aplicar Colunas"}
           </Button>
         </div>
       </DialogFooter>

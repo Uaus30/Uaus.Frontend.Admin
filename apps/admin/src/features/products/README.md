@@ -11,7 +11,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductDetailScreen.tsx`: Tela de detalhe do produto, em três abas — orquestra o formulário, as confirmações e o salvar. Substituiu a modal de edição.
 - `components/detail/ProductGeneralTab.tsx`: Aba **Dados** (obrigatórios + código de barras + imagens + variações).
 - `components/detail/ProductStockTab.tsx`: Aba **Estoque** (histórico de entradas do produto e lançamento simplificado).
-- `components/detail/ProductEditorDialogs.tsx`: Confirmações de fora do formulário (configurar grades, excluir variação, regerar matriz).
+- `components/detail/ProductEditorDialogs.tsx`: Confirmação de exclusão de variação, fora do formulário.
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
 - `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
@@ -20,12 +20,12 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
-- `lib/variationMatrix.ts`: Cruzamento das grades em combinações, nome exibido da variação e mesclagem da matriz com o que já existe.
+- `lib/variationNames.ts`: Nome exibido da variação (o mesmo que o backend compõe) e a chave que reconhece combinação repetida.
 - `product-detail-route.ts`: A rota do detalhe (`/produtos/<grupo>/detalhes`), o padrão que a listagem e ela compartilham no `<Switch>` e o parser do caminho.
 - `hooks/useProductDetailFromUrl.ts`: Abertura de quem chega por link — a rota, o `?id=` antigo e o `?editar=` do PDV.
 - `lib/variationGrades.ts`: As grades em si — ordem, reconstrução a partir das variações, colunas de um produto já cadastrado e troca do tipo da grade.
-- `components/detail/VariationGradesModal.tsx`: Escolha das grades (Cor/Tamanho/Modelo) e dos valores de cada uma, no cadastro começando do zero.
-- `components/detail/VariationColumnsForm.tsx`: A mesma modal em produto já cadastrado — só marca e desmarca coluna, sem pedir valor.
+- `components/detail/VariationGradesModal.tsx`: A modal de variações — escolhe o TIPO da grade (Cor/Tamanho/Modelo), nunca os valores.
+- `components/detail/VariationColumnsForm.tsx`: O formulário dentro dela: marca e desmarca coluna. Com a tabela vazia, confirmar cria a primeira linha — o próprio produto.
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
 - `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
@@ -33,7 +33,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/VariationGradeHeader.tsx`: Cabeçalho da coluna de grade, com a troca do tipo (Cor/Tamanho/Modelo) para todas as linhas.
 - `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e a mutation da edição rápida de preço.
 - `hooks/mapProductTableRow.ts`: Traduz a linha que o servidor devolve para a linha que a tela usa.
-- `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, geração da matriz cartesiana de variações, validações e persistência no banco.
+- `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, as colunas de grade das variações, validações e persistência no banco.
 - `types.ts`: Tipagens TypeScript estritas que modelam os dados de formulários, imagens locais e variações.
 
 ---
@@ -93,35 +93,17 @@ Hoje:
 - **Os valores pertencem ao produto.** "Cor" pode ter duas opções aqui e cinco
   no produto vizinho, sem que os dois disputem um cadastro comum. É o que o
   desenho antigo não permitia sem criar uma grade por combinação.
-- **A modal `VariationGradesModal`** marca as grades e recebe os valores **um
-  por linha**; `gerarCombinacoes` cruza tudo (`lib/variationMatrix.ts`). A modal
-  só deixa gerar com **duas ou mais combinações** — é o mínimo que o salvamento
-  exige, e descobrir isso só no salvar era um erro anunciado. Isso vale para o
-  cadastro **começando do zero**: em produto já gravado ela nem pede valores,
-  ver "Produto já cadastrado" abaixo.
-- **Uma linha por valor, não vírgula (01/09/2026).** A vírgula é o separador
-  decimal do português: "10L, 6L, 3,6L" virava quatro valores — "10L", "6L", "3"
-  e "6L" —, o repetido caía fora e a variação "[3,6L]", com código de barras e
-  venda, deixava de existir na matriz. Quebra de linha não aparece dentro de
-  valor nenhum, então o vaivém entre a modal e a tabela é fiel
-  (`separarValoresDeGrade` / `juntarValoresDeGrade`).
-- **Reabrir a modal mostra o que o produto já tem.** As grades e os valores são
-  reconstruídos das próprias variações (`gradesDasVariacoes`), e não de estado
-  guardado à parte — o formulário é remontado por `key` a cada abertura.
-- **Regerar a matriz MESCLA com o que existe** (`mesclarMatriz`, 31/08/2026):
-  combinação que continua preserva o draft — id, preço, código de barras e
-  imagens; combinação nova nasce com os valores do produto principal; combinação
-  que saiu é **excluída do servidor na hora**, exceto as com venda
-  (`canDelete === false`), que permanecem na lista com aviso. Antes a regeração
-  descartava tudo: drafts sem id viravam produtos NOVOS no salvar e os antigos
-  ficavam no banco — o grupo acumulava duplicatas até a checagem de combinação
-  repetida travar o cadastro.
-- **A mesclagem aproveita a combinação COMPATÍVEL, não só a idêntica
-  (01/09/2026).** São duas passadas: primeiro a combinação igual, depois a que
-  concorda com a variação em todas as grades que as duas têm. Preserva o que foi
-  digitado quando o operador regera a matriz **antes de salvar** — trocar as
-  grades no meio do cadastro não zera preço nem código já preenchidos. Em
-  produto já gravado a matriz não é mais regerada; ver a seção seguinte.
+- **A modal `VariationGradesModal`** marca só o **tipo** da grade — Cor, Tamanho
+  ou Modelo. Não há campo de valores: a coluna entra em branco e o valor de cada
+  variação é digitado na tabela (`aplicarGradesNasLinhas`).
+- **A tabela nasce com o próprio produto** (12/09/2026). Confirmando a modal num
+  produto que ainda não tem variação, a primeira linha é o produto da tela — com
+  o `id` dele, para o salvar ATUALIZAR esse produto em vez de criar um irmão e
+  deixar o original como variação sem grade no mesmo grupo. As demais linhas
+  entram pelo "Acrescentar variação".
+- **Reabrir a modal mostra o que o produto já tem.** As grades são reconstruídas
+  das próprias variações (`gradesDasVariacoes`), e não de estado guardado à
+  parte — o formulário é remontado por `key` a cada abertura.
 - **Combinação repetida é bloqueada no salvamento** (`chaveDaCombinacao`, que
   ignora ordem e caixa). O NOME deixou de servir de critério: ele é o mesmo em
   todas as variações. A validação de preenchimento também exige valor em toda
@@ -129,29 +111,35 @@ Hoje:
   nome da variação NÃO é validado, porque é derivado e a coluna é somente
   leitura.
 
-#### Produto já cadastrado: a modal só mexe em COLUNA (01/09/2026)
+#### A modal não cruza grades — e por que o cartesiano saiu (12/09/2026)
 
-Havendo variação **gravada** (`temVariacaoSalva`), a modal deixa de cruzar
-grades: ela vira uma lista de caixas, sem campo de valores. Marcar "Cor"
-acrescenta a coluna **em branco** em todas as variações que existem, desmarcar
-apaga a coluna e os valores dela, e **nenhuma linha é criada ou excluída**. O
-valor de cada variação é digitado na tabela; linha nova sai do "Acrescentar
-variação", e o único caminho de exclusão volta a ser o lixo da linha, que pede
-confirmação. Quem escolhe entre os dois caminhos é o `applyGrades`.
+A modal já foi um gerador de **matriz cartesiana**: recebia os valores de cada
+grade, um por linha, cruzava tudo e criava uma variação por combinação. Em
+produto com variação gravada isso foi desligado em 01/09/2026 (cruzar em produto
+com venda é destrutivo), e o resto saiu em 12/09/2026, por dois motivos:
 
-O motivo é que cruzar grades em produto com venda é destrutivo por natureza:
+1. **Em produto simples salvo, o cruzamento nunca chegava à tela.** A tabela de
+   um produto sem variação está VAZIA — ele mora no `productEditor`, não nos
+   drafts —, então a modal caía no caminho do cartesiano, gerava a matriz, e a
+   query `products-by-group` (habilitada no mesmo instante pelo `hasVariations`)
+   devolvia o mesmo produto sem valor de grade nenhum. O efeito que hidrata a
+   tabela sobrescrevia o que a modal tinha acabado de aplicar: sobrava **uma
+   linha só, sem coluna de grade**, com o que foi digitado descartado. É o
+   relato do produto 897 em produção. A guarda está no `applyGrades` do
+   `useProductEditor`: a linha criada aqui É o produto do grupo, então o grupo
+   já conta como carregado (`loadedGroupId`).
+2. **Duas modais no mesmo botão.** Qual delas aparecia dependia de o produto já
+   ter variação gravada — coisa que não aparece na tela.
 
-1. **A combinação que sai do cruzamento é apagada no servidor NA HORA**, antes
-   de qualquer Salvar (`deleteProduct` dentro do `generateVariationsMatrix`).
+Cruzar grades em produto com venda era destrutivo por natureza:
+
+1. **A combinação que saía do cruzamento era apagada no servidor NA HORA**,
+   antes de qualquer Salvar.
 2. **A combinação que entra obriga a chutar** qual variação fica com qual valor
    novo — "Cor: AZUL, VERMELHO" em três tamanhos não tem resposta certa sobre
    qual item vira azul, e o item tem código de barras e venda.
-3. **O cartesiano não poupa digitação** num produto que já existe: as
-   combinações novas nascem sem preço e sem código de qualquer jeito.
-
-No cadastro **começando do zero** nada disso vale — não há o que perder —, e a
-modal continua cruzando as grades e gerando a matriz inteira, que é como as
-primeiras variações nascem.
+3. **O cartesiano não poupa digitação**: as combinações novas nascem sem preço e
+   sem código de barras de qualquer jeito.
 
 A coluna em branco mora nas próprias variações, como valor vazio, e não num
 estado à parte: é assim que ela existe para a tabela e para a validação (o
@@ -169,9 +157,8 @@ O título de cada coluna de grade é um seletor: "Modelo" vira "Cor" ou "Tamanho
 para todas as linhas de uma vez (`trocarTipoDeGrade`, `VariationGradeHeader`).
 A importação do sistema anterior trouxe centenas de produtos com a grade
 "Modelo" onde o valor é cor ou tamanho, e pela modal não havia como corrigir:
-desmarcar "Modelo" e marcar "Cor" gera combinações **sem grade nenhuma em
-comum** com as atuais, então a matriz nasceria em branco e as variações com
-código de barras iriam para a exclusão. Trocando na coluna, a variação continua
+desmarcar "Modelo" e marcar "Cor" apaga a coluna com os valores dentro, e as
+centenas de variações teriam que ser redigitadas uma a uma. Trocando na coluna, a variação continua
 a mesma — muda só o nome da grade, e a gravação acontece no Salvar como
 qualquer outra edição da tabela.
 

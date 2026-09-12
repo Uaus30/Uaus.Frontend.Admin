@@ -60,7 +60,7 @@ function gravada(id: number, tamanho: string, barcode: string): VariationDraft {
  * precisa realimentar o hook, senão o teste afirmaria o que o próprio dublê
  * devolveu em vez do que a tela passa a mostrar.
  */
-function renderVariations(iniciais: VariationDraft[]) {
+function renderVariations(iniciais: VariationDraft[], produto: ProductEditorForm = PRODUTO) {
   const estado = { drafts: iniciais };
 
   const view = renderHook(() => {
@@ -70,7 +70,7 @@ function renderVariations(iniciais: VariationDraft[]) {
     return useProductVariations({
       form: FORM,
       setForm: vi.fn(),
-      productEditor: PRODUTO,
+      productEditor: produto,
       variationDrafts: drafts,
       setVariationDrafts: setDrafts,
       activeVariationKey: null,
@@ -89,7 +89,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("applyGrades — produto já cadastrado", () => {
+describe("applyGrades — produto com a tabela já montada", () => {
   it("grade nova entra como coluna em branco, sem recriar as variações", () => {
     // Relato de 01/09/2026: acrescentar "Cor" a um produto de "[10L]", "[6L]" e
     // "[3,6L]" gerava três linhas novas com código de barras vazio e deixava as
@@ -166,36 +166,79 @@ describe("applyGrades — produto já cadastrado", () => {
   });
 });
 
-describe("applyGrades — cadastro começando do zero", () => {
-  /** Draft ainda não salvo: é o que a tela cria ao marcar "tem variações". */
-  const emBranco = (): VariationDraft => ({
-    ...PRODUTO,
-    key: "temp-1",
-    name: FORM.productGroupName,
-    images: [],
-    canDelete: true,
-    values: [],
+describe("applyGrades — produto que ainda não tem variação nenhuma", () => {
+  /** O produto simples da tela: ele é quem vira a primeira variação. */
+  const SALVO: ProductEditorForm = {
+    id: 897,
+    name: "CALCINHA INFANTIL LISA ALGODAO",
+    description: "",
+    price: 12.9,
+    stock: 7,
+    minStock: 2,
+    status: "2",
+    tagIds: [4],
+    barcode: "7896725329402",
+  };
+
+  it("a tabela nasce com o PRÓPRIO produto e a coluna em branco", () => {
+    // REGRESSÃO (produção, 12/09/2026 — produto 897): a modal pedia os valores
+    // de cada grade, cruzava tudo e, no fim, a tela mostrava uma linha só, sem
+    // coluna de grade, com o que tinha sido digitado descartado. Produto
+    // simples salvo tem a tabela VAZIA — ele mora no `productEditor` —, então
+    // o caminho do cruzamento gerava linhas novas que a carga do grupo pelo
+    // servidor sobrescrevia em seguida.
+    const { view, estado } = renderVariations([], SALVO);
+
+    act(() => {
+      view.result.current.applyGrades([{ type: GRADE_TYPE.Color, values: [] }]);
+    });
+
+    expect(estado.drafts).toHaveLength(1);
+    // Com o id do produto: o salvar ATUALIZA o 897 em vez de criar um irmão e
+    // deixar o original como variação sem grade no mesmo grupo.
+    expect(estado.drafts[0].id).toBe(897);
+    expect(estado.drafts[0].key).toBe("product-897");
+    expect(estado.drafts[0].barcode).toBe("7896725329402");
+    expect(estado.drafts[0].price).toBe(12.9);
+    expect(estado.drafts[0].status).toBe("2");
+    // O nome é o do GRUPO em toda variação; quem distingue são os valores.
+    expect(estado.drafts[0].name).toBe(FORM.productGroupName);
+    // Coluna vazia: o operador digita o valor na tabela, e a validação do
+    // salvamento cobra o preenchimento.
+    expect(estado.drafts[0].values).toEqual([{ gradeType: GRADE_TYPE.Color, value: "" }]);
+    expect(mocks.deleteProduct).not.toHaveBeenCalled();
   });
 
-  it("cruza as grades e cria a matriz inteira", async () => {
-    const { view, estado } = renderVariations([emBranco()]);
+  it("duas grades marcadas dão duas colunas — e continua uma linha só", () => {
+    // O cruzamento saiu de vez: marcar Cor e Tamanho não gera combinação
+    // nenhuma, gera duas colunas para preencher.
+    const { view, estado } = renderVariations([], SALVO);
 
-    await act(async () => {
-      await view.result.current.applyGrades([
-        { type: GRADE_TYPE.Color, values: ["AZUL", "ROSA"] },
-        { type: GRADE_TYPE.Size, values: ["P", "G"] },
+    act(() => {
+      view.result.current.applyGrades([
+        { type: GRADE_TYPE.Color, values: [] },
+        { type: GRADE_TYPE.Size, values: [] },
       ]);
     });
 
-    expect(estado.drafts).toHaveLength(4);
-    expect(estado.drafts.map((draft) => draft.values.map((value) => value.value).join("/"))).toEqual([
-      "AZUL/P",
-      "AZUL/G",
-      "ROSA/P",
-      "ROSA/G",
+    expect(estado.drafts).toHaveLength(1);
+    expect(estado.drafts[0].values).toEqual([
+      { gradeType: GRADE_TYPE.Color, value: "" },
+      { gradeType: GRADE_TYPE.Size, value: "" },
     ]);
-    // Nada gravado ainda, nada a excluir no servidor.
-    expect(mocks.deleteProduct).not.toHaveBeenCalled();
+  });
+
+  it("cadastro ainda não salvo nasce sem id, para o salvar criar o produto", () => {
+    const { view, estado } = renderVariations([]);
+
+    act(() => {
+      view.result.current.applyGrades([{ type: GRADE_TYPE.Size, values: [] }]);
+    });
+
+    expect(estado.drafts).toHaveLength(1);
+    expect(estado.drafts[0].id).toBeNull();
+    expect(estado.drafts[0].key.startsWith("temp-")).toBe(true);
+    expect(estado.drafts[0].values).toEqual([{ gradeType: GRADE_TYPE.Size, value: "" }]);
   });
 });
 

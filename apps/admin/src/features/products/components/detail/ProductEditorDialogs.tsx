@@ -20,10 +20,9 @@ type ProductEditorDialogsProps = {
 /**
  * Confirmação de exclusão de variação, fora do formulário.
  *
- * Sobrou só ela: a escolha de grades virou a `VariationGradesModal`, e o aviso
- * de "a matriz atual será substituída" foi para dentro dessa modal — ali ele
- * aparece junto da decisão que o provoca, e não num segundo diálogo empilhado
- * depois do primeiro.
+ * Sobrou só ela: a escolha de grades virou a `VariationGradesModal`, e o lixo
+ * da linha é o ÚNICO caminho que tira uma variação do cadastro — nem a modal
+ * nem o salvar excluem nada, de propósito.
  */
 export function ProductEditorDialogs({
   variationToDelete,

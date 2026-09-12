@@ -1,70 +1,41 @@
-import React, { useState } from "react";
-import { AlertTriangle, Grid3X3 } from "lucide-react";
-import { Button } from "@workspace/ui";
-import { Checkbox } from "@workspace/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui";
-import { Textarea } from "@workspace/ui";
-import { GRADE_TYPE, GRADE_TYPE_LABELS, type GradeTypeCode } from "@workspace/api-client-react";
-import { gerarCombinacoes } from "../../lib/variationMatrix";
-import { juntarValoresDeGrade, separarValoresDeGrade } from "../../lib/variationGrades";
+import React from "react";
+import { Dialog } from "@workspace/ui";
 import { VariationColumnsForm } from "./VariationColumnsForm";
 import type { ProductGrade } from "../../types";
-
-/** Ordem em que as grades aparecem na modal e no nome composto. */
-const GRADES_DISPONIVEIS: GradeTypeCode[] = [GRADE_TYPE.Color, GRADE_TYPE.Size, GRADE_TYPE.Model];
-
-/** Exemplo de preenchimento, já no formato de uma linha por valor. */
-const PLACEHOLDERS: Record<GradeTypeCode, string> = {
-  [GRADE_TYPE.Color]: "Azul\nPreto\nRosa",
-  [GRADE_TYPE.Size]: "10L\n6L\n3,6L",
-  [GRADE_TYPE.Model]: "Com alça\nSem alça",
-};
 
 type VariationGradesModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Grades do produto hoje. Reabrir a modal mostra o que já está configurado. */
   selectedGrades: ProductGrade[];
-  /** Quantas variações já existem — o aviso de perda usa este número. */
+  /** Quantas linhas a tabela já tem. Zero é o produto que ainda não tem variação. */
   variationCount: number;
-  /**
-   * O produto já tem variação gravada: a modal só mexe em COLUNA e nunca cria
-   * nem apaga variação. Ver `applyGrades` em `useProductVariations`.
-   */
-  somenteColunas: boolean;
   onConfirm: (grades: ProductGrade[]) => void;
 };
 
 /**
- * Escolha das grades da variação e dos valores de cada uma.
+ * Escolha das grades da variação — o TIPO, e só ele.
  *
  * Substituiu, em 30/08/2026, a modal que listava o CATÁLOGO de grades. Aquela
  * exigia cadastrar a grade antes — criar "Cor", associar à categoria, cadastrar
  * as opções — e ninguém cadastrava: o banco tinha 8 grades e 99 opções com zero
- * produtos ligados a elas.
+ * produtos ligados a elas. Aqui os três tipos são fixos e o valor de cada
+ * variação pertence ao produto, o que deixa "Cor" ter duas opções neste produto
+ * e cinco no vizinho.
  *
- * Aqui os três tipos são fixos e os valores são digitados no próprio produto.
- * É isso que deixa "Cor" ter duas opções neste produto e cinco no vizinho.
- *
- * São dois formulários, e não um com condicionais, porque as duas telas fazem
- * coisas diferentes: no cadastro novo a modal CRUZA as grades e gera a matriz
- * inteira; no produto já cadastrado ela só acrescenta e remove COLUNA, sem
- * tocar nas variações que existem — o valor de cada linha é digitado na
- * tabela. Ver `applyGrades` em `useProductVariations`.
+ * Os VALORES saíram da modal em 12/09/2026. Ela cruzava as grades e gerava a
+ * matriz cartesiana enquanto o cadastro não tinha variação salva, e isso
+ * significava duas modais no mesmo botão — a diferença entre elas dependia de
+ * algo que não aparece na tela. Pior: em produto simples JÁ SALVO, que é onde a
+ * maioria das variações nasce, a matriz era descartada logo em seguida pela
+ * carga do grupo. Hoje a tabela nasce com o próprio produto e a coluna em
+ * branco, e as demais linhas entram pelo "Acrescentar variação".
  */
 export function VariationGradesModal({
   open,
   onOpenChange,
   selectedGrades,
   variationCount,
-  somenteColunas,
   onConfirm,
 }: VariationGradesModalProps) {
   return (
@@ -75,164 +46,15 @@ export function VariationGradesModal({
         prop num efeito — que além de proibido pelo lint mostraria a modal em
         branco por um render.
       */}
-      {open &&
-        (somenteColunas ? (
-          <VariationColumnsForm
-            key={String(open)}
-            selectedGrades={selectedGrades}
-            variationCount={variationCount}
-            onCancel={() => onOpenChange(false)}
-            onConfirm={onConfirm}
-          />
-        ) : (
-          <GradesForm
-            key={String(open)}
-            selectedGrades={selectedGrades}
-            variationCount={variationCount}
-            onCancel={() => onOpenChange(false)}
-            onConfirm={onConfirm}
-          />
-        ))}
-    </Dialog>
-  );
-}
-
-type GradesFormProps = {
-  selectedGrades: ProductGrade[];
-  variationCount: number;
-  onCancel: () => void;
-  onConfirm: (grades: ProductGrade[]) => void;
-};
-
-function GradesForm({ selectedGrades, variationCount, onCancel, onConfirm }: GradesFormProps) {
-  const [marcadas, setMarcadas] = useState<GradeTypeCode[]>(() => selectedGrades.map((grade) => grade.type));
-  const [textos, setTextos] = useState<Record<number, string>>(
-    () =>
-      Object.fromEntries(
-        selectedGrades.map((grade) => [grade.type, juntarValoresDeGrade(grade.values)]),
-      ) as Record<number, string>,
-  );
-
-  const grades: ProductGrade[] = marcadas.map((type) => ({
-    type,
-    values: separarValoresDeGrade(textos[type] ?? ""),
-  }));
-
-  const totalDeVariacoes = gerarCombinacoes(grades).length;
-  // Mínimo DOIS: o cadastro com variações exige duas no salvar — deixar gerar
-  // uma só empurraria o operador para um erro que a modal já sabia prever.
-  const podeGerar =
-    marcadas.length > 0 && grades.every((grade) => grade.values.length > 0) && totalDeVariacoes >= 2;
-
-  function alternarGrade(type: GradeTypeCode) {
-    setMarcadas((atuais) => (atuais.includes(type) ? atuais.filter((t) => t !== type) : [...atuais, type]));
-  }
-
-  // Grade que ENTRA agora trazendo mais de um valor: as variações de hoje só
-  // cabem em uma das combinações novas, e quem escolhe é a ordem — a primeira
-  // fica com elas. Com um valor só não há escolha a fazer, e é por isso que o
-  // aviso não aparece nesse caso.
-  const gradesNovasComEscolha = grades.filter(
-    (grade) => grade.values.length > 1 && !selectedGrades.some((atual) => atual.type === grade.type),
-  );
-
-  return (
-    <DialogContent className="sm:max-w-[520px]">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <Grid3X3 className="w-5 h-5 text-primary" />
-          Configurar Variações
-        </DialogTitle>
-        <DialogDescription>
-          Escolha as grades e digite os valores de cada uma, <strong>um por linha</strong>.
-        </DialogDescription>
-      </DialogHeader>
-
-      <div className="space-y-3 py-2 max-h-[50vh] overflow-y-auto pr-1">
-        {GRADES_DISPONIVEIS.map((type) => {
-          const marcada = marcadas.includes(type);
-          const valores = separarValoresDeGrade(textos[type] ?? "");
-
-          return (
-            <div
-              key={type}
-              className={`rounded-xl border p-3 transition-colors ${marcada ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}
-            >
-              <label className="flex cursor-pointer items-center gap-3">
-                <Checkbox checked={marcada} onCheckedChange={() => alternarGrade(type)} />
-                <span className="text-sm font-medium text-foreground">{GRADE_TYPE_LABELS[type]}</span>
-              </label>
-
-              {marcada && (
-                <div className="mt-3 space-y-1.5 pl-7">
-                  {/*
-                    Um valor por LINHA, não por vírgula: a vírgula é o separador
-                    decimal do português e partia "3,6L" em "3" e "6L".
-                  */}
-                  <Textarea
-                    value={textos[type] ?? ""}
-                    onChange={(e) => setTextos((atuais) => ({ ...atuais, [type]: e.target.value }))}
-                    rows={3}
-                    placeholder={PLACEHOLDERS[type]}
-                    className="bg-background font-mono text-xs leading-relaxed"
-                    aria-label={`Valores de ${GRADE_TYPE_LABELS[type]}`}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {valores.length === 0
-                      ? "Digite ao menos um valor."
-                      : `${valores.length} valor(es): ${valores.join(" · ")}`}
-                  </p>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/*
-        Nada aqui está gravado: esta modal só cruza grades enquanto o cadastro
-        não tem variação salva (ver `applyGrades`). O aviso é sobre o que foi
-        DIGITADO na tela, não sobre o banco.
-      */}
-      {variationCount > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="space-y-1.5 text-sm leading-tight">
-            <p>
-              Regerar substitui a matriz da tela. As combinações que continuarem mantêm o preço e o código de
-              barras já digitados; as que saírem são descartadas.
-            </p>
-            {gradesNovasComEscolha.length > 0 && (
-              <p>
-                {gradesNovasComEscolha
-                  .map((grade) => `${GRADE_TYPE_LABELS[grade.type]} tem ${grade.values.length} valores novos`)
-                  .join("; ")}
-                : as linhas de agora ficam com{" "}
-                <strong>{gradesNovasComEscolha.map((grade) => grade.values[0]).join(" · ")}</strong> e as
-                demais combinações nascem em branco.
-              </p>
-            )}
-          </div>
-        </div>
+      {open && (
+        <VariationColumnsForm
+          key={String(open)}
+          selectedGrades={selectedGrades}
+          variationCount={variationCount}
+          onCancel={() => onOpenChange(false)}
+          onConfirm={onConfirm}
+        />
       )}
-
-      <DialogFooter className="items-center sm:justify-between">
-        <span className="text-xs text-muted-foreground">
-          {podeGerar
-            ? `A matriz terá ${totalDeVariacoes} variações.`
-            : totalDeVariacoes === 1
-              ? "O cadastro com variações exige ao menos duas combinações."
-              : "Escolha ao menos uma grade."}
-        </span>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="button" disabled={!podeGerar} onClick={() => onConfirm(grades)}>
-            Gerar Variações
-          </Button>
-        </div>
-      </DialogFooter>
-    </DialogContent>
+    </Dialog>
   );
 }
