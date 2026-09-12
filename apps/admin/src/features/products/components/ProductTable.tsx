@@ -25,11 +25,14 @@ import {
   MoreVertical,
   Package,
   History,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-client-react";
 import type { ProductTableRow } from "../types";
 import { productDetailPathname } from "../product-detail-route";
 import { ProductTableFilters } from "./ProductTableFilters";
+import { ProductTableVariations } from "./ProductTableVariations";
 import React, { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { ImageHoverZoom } from "@workspace/ui";
@@ -126,6 +129,43 @@ function CurrencyInputInline({
   );
 }
 
+/** Colunas da tabela — o `colSpan` da linha aninhada precisa cobrir todas. */
+const COLUNAS_DA_TABELA = 9;
+
+/**
+ * O rótulo "VARIAÇÕES" da linha, que abre e fecha a lista aninhada.
+ *
+ * Ele já existia como aviso ("o preço e o estoque desta linha não contam a
+ * história toda") e virou o próprio caminho para ver a história — em vez de um
+ * ícone novo, que seria mais uma coisa na linha para procurar. Aparece duas
+ * vezes, no preço e no estoque, porque é nas duas colunas que a linha resume
+ * várias variações; clicar em qualquer um dos dois abre a mesma lista.
+ */
+function BotaoVariacoes({
+  aberto,
+  quantidade,
+  onToggle,
+  className,
+}: {
+  aberto: boolean;
+  quantidade: number;
+  onToggle: () => void;
+  className: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={aberto}
+      title={aberto ? "Ocultar as variações" : `Ver as ${quantidade} variações`}
+      className={`mt-0.5 flex w-max items-center gap-0.5 text-[10px] font-semibold uppercase transition-colors hover:underline ${className}`}
+    >
+      {aberto ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+      Variações
+    </button>
+  );
+}
+
 export function ProductTable({
   isLoading,
   search,
@@ -157,6 +197,23 @@ export function ProductTable({
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = useState<ProductTableRow | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
+  /**
+   * Grupos com a lista de variações aberta, por id.
+   *
+   * Estado da TELA, não da URL: é um detalhe de leitura, e um link com meia
+   * dúzia de linhas abertas não diz nada a quem o recebe. Trocar de página ou de
+   * filtro fecha tudo, porque o componente remonta a lista — e uma linha aberta
+   * de um grupo que saiu do filtro não teria onde aparecer.
+   */
+  const [gruposAbertos, setGruposAbertos] = useState<number[]>([]);
+
+  function alternarVariacoes(productGroupId: number) {
+    setGruposAbertos((atuais) =>
+      atuais.includes(productGroupId)
+        ? atuais.filter((id) => id !== productGroupId)
+        : [...atuais, productGroupId],
+    );
+  }
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
       <ProductTableFilters
@@ -199,6 +256,7 @@ export function ProductTable({
             ) : (
               enrichedProducts.map((product, index) => {
                 const mainImage = product.images[0]?.image;
+                const aberto = gruposAbertos.includes(product.productGroupId);
 
                 return (
                   <ContextMenu key={`${product.id}-${index}`}>
@@ -269,9 +327,15 @@ export function ProductTable({
                               <span className="font-medium text-orange-500">
                                 {formatCurrency(product.price)}
                               </span>
-                              <span className="text-[10px] text-orange-500 font-semibold uppercase mt-0.5">
-                                Variações
-                              </span>
+                              {/* O preço da linha é o de UMA das variações (a de
+                                  maior id). O rótulo avisa disso e, desde
+                                  12/09/2026, abre a lista com o de cada uma. */}
+                              <BotaoVariacoes
+                                aberto={aberto}
+                                quantidade={product.variationCount}
+                                onToggle={() => alternarVariacoes(product.productGroupId)}
+                                className="text-orange-500"
+                              />
                             </div>
                           ) : (
                             <div className="flex items-center gap-1">
@@ -298,9 +362,12 @@ export function ProductTable({
                               {product.stock} un
                             </span>
                             {product.productGroup?.hasVariations && (
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase mt-0.5">
-                                Variações
-                              </span>
+                              <BotaoVariacoes
+                                aberto={aberto}
+                                quantidade={product.variationCount}
+                                onToggle={() => alternarVariacoes(product.productGroupId)}
+                                className="text-muted-foreground"
+                              />
                             )}
                           </div>
                         </td>
@@ -412,6 +479,18 @@ export function ProductTable({
                         Excluir
                       </ContextMenuItem>
                     </ContextMenuContent>
+
+                    {/* O conteúdo do menu de contexto mora num portal, então a
+                        linha das variações entra direto no `tbody`, logo abaixo
+                        da linha do grupo — que é onde ela precisa estar. */}
+                    {aberto && product.variations.length > 0 && (
+                      <ProductTableVariations
+                        variations={product.variations}
+                        departmentName={product.department?.name || "-"}
+                        statusOptions={statusOptions}
+                        colSpan={COLUNAS_DA_TABELA}
+                      />
+                    )}
                   </ContextMenu>
                 );
               })

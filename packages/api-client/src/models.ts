@@ -615,6 +615,7 @@ export interface ProductTableRowDto {
   barcode: string;
   price: number;
   costPrice: number;
+  /** Estoque do GRUPO: a SOMA das variações, não o saldo do representante. */
   stock: number;
   minStock: number;
   /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
@@ -624,6 +625,26 @@ export interface ProductTableRowDto {
   tags: ProductTableTagDto[];
   /** Na ordem de exibição; a primeira é a principal. */
   images: ProductTableImageDto[];
+  /**
+   * As variações do grupo, por id crescente — a mais antiga primeiro. **Vazia em
+   * grupo sem variações.**
+   *
+   * Vem junto na resposta da tabela porque o servidor já carrega os produtos do
+   * grupo para eleger o representante: pedir de novo a cada linha aberta seria
+   * reconstruir a cascata que o endereço agregado veio matar.
+   */
+  variations: ProductTableVariationDto[];
+}
+
+/** Uma variação do grupo, para a linha da tabela abrir e mostrar o que tem dentro. */
+export interface ProductTableVariationDto {
+  id: number;
+  /** Nome COMPOSTO — "CUECA INFANTIL CORES [G, SLIP]". */
+  name: string;
+  price: number;
+  stock: number;
+  /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
+  status: EnumValue;
 }
 
 export interface SupplierDto {

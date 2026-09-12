@@ -28,6 +28,13 @@ export function mapProductTableRow(row: ProductTableRowDto): ProductTableRow {
     minStock: row.minStock,
     status: row.status,
     variationCount: row.variationCount,
+    variations: (row.variations ?? []).map((variation) => ({
+      id: variation.id,
+      name: variation.name,
+      price: variation.price,
+      stock: variation.stock,
+      status: variation.status,
+    })),
     productGroup: {
       id: row.productGroupId,
       name: row.productGroupName,

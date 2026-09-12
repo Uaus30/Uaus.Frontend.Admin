@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PRODUCT_STATUS } from "@workspace/api-client-react";
 import { ProductTable } from "../ProductTable";
@@ -20,6 +20,22 @@ function row(overrides: Partial<ProductTableRow> = {}): ProductTableRow {
     minStock: 0,
     status: PRODUCT_STATUS.Active,
     variationCount: 2,
+    variations: [
+      {
+        id: 986,
+        name: "COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]",
+        price: 9.9,
+        stock: 3,
+        status: PRODUCT_STATUS.Active,
+      },
+      {
+        id: 987,
+        name: "COPO INFANTIL PLÁSTICO COM ESTAMPA [VERDE]",
+        price: 11.5,
+        stock: 12,
+        status: PRODUCT_STATUS.Inactive,
+      },
+    ],
     productGroup: {
       id: 825,
       name: "COPO INFANTIL PLÁSTICO COM ESTAMPA",
@@ -122,5 +138,73 @@ describe("ProductTable — nome do produto", () => {
     fireEvent.click(link, { shiftKey: true });
 
     expect(onEdit).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProductTable — variações aninhadas", () => {
+  afterEach(cleanup);
+
+  it("o rótulo VARIAÇÕES abre a lista embaixo da linha, somente leitura", () => {
+    // Pedido do dono (12/09/2026): a linha resume o grupo (preço de uma
+    // variação, soma do estoque) e não dizia o que havia dentro. Abrir exigia
+    // entrar no cadastro.
+    // O estoque da linha é a SOMA (3 + 12), como o servidor manda desde
+    // 12/09/2026 — por isso ele não colide com o de nenhuma variação.
+    renderTable({ enrichedProducts: [row({ stock: 15 })] });
+
+    // Duas entradas, no preço e no estoque — as duas colunas em que a linha
+    // resume várias variações.
+    const botoes = screen.getAllByRole("button", { name: /variações/i });
+    expect(botoes.length).toBe(2);
+    expect(screen.queryByRole("columnheader", { name: /^variação$/i })).toBeNull();
+
+    fireEvent.click(botoes[0]);
+
+    expect(screen.getByRole("columnheader", { name: /^variação$/i })).toBeTruthy();
+    expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toBeTruthy();
+    expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [VERDE]")).toBeTruthy();
+    // O estoque da linha é a soma; o de cada variação vai na sublista.
+    expect(screen.getByText("15 un")).toBeTruthy();
+    expect(screen.getByText("3 un")).toBeTruthy();
+    expect(screen.getByText("12 un")).toBeTruthy();
+    // Categoria e etiquetas ficaram de fora da sublista a pedido do dono: a
+    // categoria repetiria a da linha de cima em toda variação.
+    const sublista = screen.getByRole("columnheader", { name: /^variação$/i }).closest("table")!;
+    expect(
+      within(sublista)
+        .getAllByRole("columnheader")
+        .map((coluna) => coluna.textContent),
+    ).toEqual(["Variação", "Departamento", "Preço", "Estoque", "Status"]);
+  });
+
+  it("clicar de novo fecha", () => {
+    renderTable();
+
+    const botao = screen.getAllByRole("button", { name: /variações/i })[1];
+    fireEvent.click(botao);
+    expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toBeTruthy();
+
+    fireEvent.click(botao);
+    expect(screen.queryByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toBeNull();
+  });
+
+  it("produto simples não tem o que abrir", () => {
+    renderTable({
+      enrichedProducts: [
+        row({
+          variationCount: 1,
+          variations: [],
+          productGroup: {
+            id: 825,
+            name: "COPO INFANTIL PLÁSTICO COM ESTAMPA",
+            description: null,
+            hasVariations: false,
+            showOnSite: true,
+          },
+        }),
+      ],
+    });
+
+    expect(screen.queryByRole("button", { name: /variações/i })).toBeNull();
   });
 });

@@ -44,6 +44,7 @@ const linhaDoServidor: ProductTableRowDto = {
   minStock: 1,
   status: 2,
   variationCount: 1,
+  variations: [],
   tags: [{ id: 4, name: "Promoção", color: "#ff0000" }],
   images: [
     {

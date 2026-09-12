@@ -65,6 +65,12 @@ Como cada endpoint filtrava por **um id de cada vez**, não havia conserto poss�
 
 **Quem representa a linha.** A tabela lista GRUPOS e mostra o produto de **maior id** do grupo. Não é escolha estética: é o que o front já exibia (`/Products?productGroupId=` vem ordenado por id decrescente e ele pegava o primeiro). Trocar o critério mudaria a variação exibida — e o preço editado inline — em toda linha de grupo com variações.
 
+**O ESTOQUE da linha é a soma do grupo, não o do representante (12/09/2026).** O resto da linha continua sendo do representante — preço e status não se somam, e é isso que o rótulo "VARIAÇÕES" avisa. O estoque soma porque a pergunta "quanto tenho deste produto?" é do grupo: como o representante é o de maior id, logo depois de converter um produto simples em produto com variações ele é a variação recém-criada e zerada, e a listagem dizia **0 un** de um grupo com três unidades (relato de produção, grupo 168).
+
+**A linha ABRE e mostra as variações (12/09/2026).** O rótulo "VARIAÇÕES", que já existia como aviso nas colunas de preço e estoque, virou botão: clicando, entra embaixo da linha uma tabela recuada — somente leitura, sem menu de ações — com nome composto, departamento, preço, estoque e status de cada variação (`ProductTableVariations`). Categoria e etiquetas ficaram de fora a pedido do dono: a categoria é do grupo e repetiria a linha de cima, e a etiqueta quase nunca distingue uma variação da outra.
+
+As variações vêm **na mesma resposta** de `GET /Products/table`, e abrir não vai ao servidor: o agregado já carregava todos os produtos do grupo para eleger o representante — ele só descartava o resto. Uma requisição por linha aberta seria a cascata de volta. O catálogo cabe: o grupo com mais variações da loja tem oito, e a média é 1,2 (medido em produção).
+
 **Nome do grupo × nome do produto.** A linha exibe `name` (do grupo) e guarda `productName` (do produto) à parte. A edição rápida de preço faz `PUT /Products` e tem que devolver `productName`; mandar o nome exibido renomeia o produto silenciosamente, com registro no histórico, e o nome errado vaza para o cupom e para o PDV.
 
 **Invalidação.** A tabela é uma query só, sob `["products","table", params]`. Quem salva, exclui ou reordena invalida `RESOURCE_KEYS.products` — o prefixo do recurso alcança a tabela. Invalidar a chave errada não quebra nada: compila, roda, e a célula mostra o valor antigo depois de salvar.

@@ -64,6 +64,14 @@ export type ProductTableRow = {
   status: EnumValue;
   /** Produtos ativos do grupo. Grupo sem variações tem 1. */
   variationCount: number;
+  /**
+   * As variações do grupo, da mais antiga para a mais nova. **Vazia em grupo sem
+   * variações.**
+   *
+   * É o que a linha mostra quando o operador clica em "VARIAÇÕES": vem na mesma
+   * resposta da tabela, então abrir e fechar não vai ao servidor.
+   */
+  variations: ProductTableRowVariation[];
   productGroup: {
     id: number;
     name: string;
@@ -76,6 +84,24 @@ export type ProductTableRow = {
   tags: Array<{ id: number; name: string; color: string }>;
   /** Em ordem de exibição; a primeira é a principal. */
   images: ProductTableRowImage[];
+};
+
+/**
+ * Uma variação do grupo, do jeito que a linha aberta da tabela a mostra.
+ *
+ * Departamento vem da linha de cima (é do GRUPO, igual em todas as variações).
+ * Categoria e etiqueta ficaram de fora da lista aberta por decisão do dono
+ * (12/09/2026): a categoria repetiria a da linha e a etiqueta quase nunca
+ * distingue uma variação da outra.
+ */
+export type ProductTableRowVariation = {
+  id: number;
+  /** Nome COMPOSTO — "CUECA INFANTIL CORES [G, SLIP]" —, montado pelo servidor. */
+  name: string;
+  price: number;
+  stock: number;
+  /** Enum ProductStatus — pode vir como número ou nome; leia com `enumCode`. */
+  status: EnumValue;
 };
 
 /**
