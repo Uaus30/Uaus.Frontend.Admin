@@ -10,7 +10,7 @@ import {
   Truck,
 } from "lucide-react";
 import { Link } from "wouter";
-import { Button, Input, Spinner } from "@workspace/ui";
+import { Button, ImageHoverZoom, Input, Spinner } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
@@ -157,10 +157,9 @@ export function PurchasesTable({
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {cover ? (
-                          <img
+                          <ImageHoverZoom
                             src={buildPublicImageUrl(cover.url)}
                             alt=""
-                            loading="lazy"
                             className="h-10 w-10 shrink-0 rounded-md border border-border/50 bg-white object-contain"
                           />
                         ) : (

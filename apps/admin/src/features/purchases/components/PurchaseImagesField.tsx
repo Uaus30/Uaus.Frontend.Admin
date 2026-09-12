@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Globe, ImagePlus, Link2, Loader2, X } from "lucide-react";
-import { Button, Input } from "@workspace/ui";
+import { Button, ImageHoverZoom, Input } from "@workspace/ui";
 import type { PurchaseFormImage } from "../types";
 
 type PurchaseImagesFieldProps = {
@@ -121,7 +121,11 @@ export function PurchaseImagesField({
             key={image.imageId}
             className="relative h-20 w-20 overflow-hidden rounded-lg border border-border/50 bg-white"
           >
-            <img src={image.url} alt={image.name} className="h-full w-full object-contain" />
+            <ImageHoverZoom
+              src={image.url}
+              alt={image.name}
+              className="h-full w-full cursor-zoom-in object-contain"
+            />
             {index === 0 && (
               <span className="absolute inset-x-0 bottom-0 bg-primary/85 py-0.5 text-center text-[10px] font-medium text-primary-foreground">
                 Principal

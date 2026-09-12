@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Link } from "wouter";
-import { Button, Input, Spinner } from "@workspace/ui";
+import { Button, ImageHoverZoom, Input, Spinner } from "@workspace/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { buildPublicImageUrl } from "@workspace/api-client-react";
@@ -239,10 +239,9 @@ export function LowStockTable({
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {item.imageUrl ? (
-                          <img
+                          <ImageHoverZoom
                             src={buildPublicImageUrl(item.imageUrl)}
                             alt=""
-                            loading="lazy"
                             className="h-10 w-10 shrink-0 rounded-md border border-border/50 bg-white object-contain"
                           />
                         ) : (

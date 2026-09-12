@@ -32,7 +32,7 @@ import { productDetailPathname } from "../product-detail-route";
 import { ProductTableFilters } from "./ProductTableFilters";
 import React, { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@workspace/ui";
+import { ImageHoverZoom } from "@workspace/ui";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@workspace/ui";
 
@@ -207,29 +207,12 @@ export function ProductTable({
                         <td className="px-6 py-4">
                           <div className="relative h-10 w-10 group/img w-max">
                             {mainImage ? (
-                              <HoverCard openDelay={0} closeDelay={0}>
-                                <HoverCardTrigger asChild>
-                                  <img
-                                    loading="lazy"
-                                    decoding="async"
-                                    src={buildPublicImageUrl(mainImage.url)}
-                                    alt={mainImage.name}
-                                    className="h-10 w-10 rounded-lg border border-border/50 object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                    onClick={() =>
-                                      setSelectedImage({ url: mainImage.url, name: mainImage.name })
-                                    }
-                                  />
-                                </HoverCardTrigger>
-                                <HoverCardContent className="w-80 h-80 p-0 overflow-hidden border-border/50 shadow-2xl rounded-xl">
-                                  <img
-                                    loading="lazy"
-                                    decoding="async"
-                                    src={buildPublicImageUrl(mainImage.url)}
-                                    alt={mainImage.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </HoverCardContent>
-                              </HoverCard>
+                              <ImageHoverZoom
+                                src={buildPublicImageUrl(mainImage.url)}
+                                alt={mainImage.name}
+                                className="h-10 w-10 rounded-lg border border-border/50 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setSelectedImage({ url: mainImage.url, name: mainImage.name })}
+                              />
                             ) : (
                               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
                                 <ImageIcon className="h-4 w-4 text-muted-foreground/50" />

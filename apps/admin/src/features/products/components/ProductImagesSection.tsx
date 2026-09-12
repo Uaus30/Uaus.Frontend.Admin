@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus, Upload, X, HelpCircle, Globe } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
-import { Button } from "@workspace/ui";
+import { Button, ImageHoverZoom } from "@workspace/ui";
 import type { LocalImage } from "../types";
 
 type ProductImagesSectionProps = {
@@ -98,12 +98,18 @@ export function ProductImagesSection({
                 }
               }}
             >
-              <img
-                loading="lazy"
-                decoding="async"
+              {/* `draggable={false}` no lugar do `pointer-events-none` que a foto
+                  tinha: sem receber ponteiro ela nunca dispara o hover, e a
+                  ampliação não abriria justamente na galeria, que é onde se
+                  confere qual foto vai ser a principal. O arrasto continua o do
+                  cartão — imagem é arrastável por padrão no navegador, e era
+                  esse arrasto nativo que o `pointer-events-none` barrava; com
+                  ele desligado, o gesto sobe para o cartão, que é quem reordena. */}
+              <ImageHoverZoom
                 src={image.url}
                 alt={image.name}
-                className="aspect-square w-full object-cover pointer-events-none"
+                draggable={false}
+                className="aspect-square w-full object-cover"
               />
               <div className="p-2 pointer-events-none">
                 <p className="truncate text-xs font-medium">{image.name}</p>

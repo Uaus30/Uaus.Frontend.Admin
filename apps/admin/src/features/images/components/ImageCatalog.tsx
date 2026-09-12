@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, Copy, ExternalLink, ImageIcon, Loader2, Pencil, Search, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@workspace/ui";
+import { ImageHoverZoom } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { TablePagination } from "@workspace/ui";
@@ -130,12 +131,10 @@ export function ImageCatalog({
               className="group relative overflow-hidden rounded-xl border border-border/50 bg-background transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
             >
               <div className="flex aspect-square items-center justify-center overflow-hidden bg-muted/30">
-                <img
-                  loading="lazy"
-                  decoding="async"
+                <ImageHoverZoom
                   src={buildPublicImageUrl(image.url)}
                   alt={image.name}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full cursor-zoom-in object-cover"
                 />
               </div>
               <div className="p-2.5">

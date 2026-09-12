@@ -1,6 +1,7 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
+import { ImageHoverZoom } from "@workspace/ui";
 import { Label } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
@@ -47,12 +48,10 @@ export function ImageRenameModal({
         <div className="space-y-4 py-4">
           {renameImage && (
             <div className="flex items-center gap-3 rounded-xl bg-muted/30 p-3">
-              <img
-                loading="lazy"
-                decoding="async"
+              <ImageHoverZoom
                 src={buildPublicImageUrl(renameImage.url)}
                 alt={renameImage.name}
-                className="h-12 w-12 flex-shrink-0 rounded-lg border border-border/50 object-cover"
+                className="h-12 w-12 flex-shrink-0 cursor-zoom-in rounded-lg border border-border/50 object-cover"
               />
               <div>
                 <p className="text-xs text-muted-foreground">Arquivo atual</p>

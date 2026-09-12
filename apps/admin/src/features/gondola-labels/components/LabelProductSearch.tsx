@@ -1,5 +1,5 @@
 import { ImageIcon, Pencil, Plus, Search } from "lucide-react";
-import { Button } from "@workspace/ui";
+import { Button, ImageHoverZoom } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
@@ -32,7 +32,9 @@ interface LabelProductSearchProps {
  * em três marcas): conferir pela foto é mais rápido do que ler o código de
  * barras inteiro, e a etiqueta errada só aparece depois de impressa e colada na
  * gôndola. Ela é carregada com `lazy`, então as fotos fora da área visível da
- * lista rolável não chegam a ser baixadas.
+ * lista rolável não chegam a ser baixadas. Passar o mouse por cima abre a versão
+ * grande (`ImageHoverZoom`) — em 40px duas marcas da mesma bebida são a mesma
+ * mancha colorida, e é aí que a etiqueta sai errada.
  *
  * O lápis abre o produto no cadastro em nova aba — nova, e não navegação, porque
  * o lote montado até aqui só existe em memória e some se a tela sair.
@@ -96,12 +98,14 @@ export function LabelProductSearch({
             {results.map((product) => (
               <li key={product.id} className="flex items-center gap-3 py-2">
                 {product.imageUrl ? (
-                  <img
-                    loading="lazy"
-                    decoding="async"
+                  // Abre para a DIREITA: a busca mora na coluna de 340px e o
+                  // lote ocupa o resto da tela. Para baixo, o padrão do Radix,
+                  // a ampliação cairia dentro da própria lista rolável.
+                  <ImageHoverZoom
                     src={buildPublicImageUrl(product.imageUrl)}
                     alt={product.name}
-                    className="h-10 w-10 shrink-0 rounded-lg border border-border/50 object-cover"
+                    side="right"
+                    className="h-10 w-10 shrink-0 cursor-zoom-in rounded-lg border border-border/50 object-cover"
                   />
                 ) : (
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/50">

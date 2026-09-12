@@ -17,6 +17,7 @@ export * from "./components/dev-environment-banner";
 export * from "./components/dialog";
 export * from "./components/dropdown-menu";
 export * from "./components/hover-card";
+export * from "./components/image-hover-zoom";
 export * from "./components/input";
 export * from "./components/item";
 export * from "./components/label";
