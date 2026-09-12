@@ -5,12 +5,17 @@ import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } fro
 import { formatCurrency } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
-import type { PurchaseDto, ReceiveForm } from "../types";
+import { PurchaseReceiveGrid } from "./PurchaseReceiveGrid";
+import type { PurchaseDto, PurchaseFormItem, ReceiveForm } from "../types";
 
 type PurchaseReceiveDialogProps = {
   purchase: PurchaseDto | null;
   form: ReceiveForm;
   onChange: <K extends keyof ReceiveForm>(field: K, value: ReceiveForm[K]) => void;
+  /** Ajuste de uma variação na conferência. */
+  onItemChange: (productId: number, campo: "quantity" | "finalTotal", valor: number) => void;
+  /** Variação que veio e não estava no pedido. */
+  onAddItem: (item: PurchaseFormItem) => void;
   onCancel: () => void;
   onConfirm: () => void;
   /** Leva ao formulário da compra — o caminho quando ela foi anotada sem custo. */
@@ -19,13 +24,19 @@ type PurchaseReceiveDialogProps = {
 };
 
 /**
- * Recebimento de compra com produto JÁ cadastrado.
+ * Recebimento de compra com produto JÁ cadastrado — que é também a CONFERÊNCIA.
  *
- * Quantidade e custo vêm da compra e não se editam aqui — mudar o que chegou é
- * editar a compra antes de receber. O diálogo pede só o que a compra não
- * sabe: a data da entrada, o número da nota e o preço de venda (em branco
- * mantém o do cadastro). A prévia de margem usa o custo unitário FINAL, que é
- * o que a entrada vai gravar.
+ * Em compra de um produto só, quantidade e custo vêm da compra e não se editam:
+ * o diálogo pede o que a compra não sabe — data da entrada, número da nota e
+ * preço de venda (em branco mantém o do cadastro).
+ *
+ * Em compra com VARIAÇÕES a grade aparece editável (12/09/2026). Quem compra
+ * caixa sortida registra a grade no chute — não dá para saber as cores antes de
+ * abrir a embalagem — e só aqui sabe o que veio. O que se ajusta é a
+ * DISTRIBUIÇÃO, não o valor pago; enquanto a soma não fechar com o total da
+ * compra, o confirmar fica desabilitado.
+ *
+ * A prévia de margem usa o custo unitário FINAL, que é o que a entrada grava.
  *
  * Compra anotada SEM custo (pendente) não se recebe daqui: a entrada gravaria o
  * lote a custo zero em silêncio. O diálogo diz isso e troca o botão de confirmar
@@ -37,12 +48,23 @@ export function PurchaseReceiveDialog({
   purchase,
   form,
   onChange,
+  onItemChange,
+  onAddItem,
   onCancel,
   onConfirm,
   onEditPurchase,
   isSaving,
 }: PurchaseReceiveDialogProps) {
   const missingCost = purchase !== null && purchase.finalTotal <= 0;
+  // Com uma variação só não há conferência a fazer: o que foi pedido é o que
+  // chegou, e a grade seria uma tabela de uma linha para não decidir nada.
+  const conferindo = form.items.length > 1;
+  const somaDaGrade =
+    Math.round(
+      form.items.filter((item) => item.quantity > 0).reduce((total, item) => total + item.finalTotal, 0) *
+        100,
+    ) / 100;
+  const gradeFecha = !conferindo || somaDaGrade === form.finalTotal;
 
   return (
     <Dialog open={purchase !== null} onOpenChange={(open) => !open && onCancel()}>
@@ -66,7 +88,7 @@ export function PurchaseReceiveDialog({
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (missingCost) return;
+              if (missingCost || !gradeFecha) return;
               onConfirm();
             }}
             className="mt-2 flex flex-col gap-5"
@@ -150,6 +172,37 @@ export function PurchaseReceiveDialog({
               onApplySuggested={(price) => onChange("price", price)}
             />
 
+            {conferindo && (
+              <PurchaseReceiveGrid
+                items={form.items}
+                finalTotal={form.finalTotal}
+                onItemChange={onItemChange}
+                onAddVariation={onAddItem}
+                onUseSum={(soma) => onChange("finalTotal", soma)}
+              />
+            )}
+
+            {/* Substituir é destrutivo e o recebimento é a última chance de mudar
+                de ideia — por isso a escolha gravada na compra reaparece aqui. */}
+            {purchase.images.length > 0 && (
+              <label className="flex items-start gap-2.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-3 text-xs leading-relaxed">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-3.5 w-3.5"
+                  checked={form.replaceProductImages}
+                  onChange={(event) => onChange("replaceProductImages", event.target.checked)}
+                />
+                <span className="text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    Substituir as fotos do produto pelas desta compra
+                  </span>
+                  <br />
+                  Desmarcado, as {purchase.images.length} foto(s) da compra entram como principais e as que o
+                  produto já tem descem de posição. A imagem nunca é apagada do catálogo.
+                </span>
+              </label>
+            )}
+
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Observações</label>
               <Textarea
@@ -171,7 +224,7 @@ export function PurchaseReceiveDialog({
                 <Button
                   type="submit"
                   className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  disabled={isSaving}
+                  disabled={isSaving || !gradeFecha}
                 >
                   {isSaving ? "Lançando..." : "Confirmar recebimento"}
                 </Button>

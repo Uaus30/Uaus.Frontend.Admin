@@ -18,7 +18,7 @@ import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { productStockTabPathname } from "@/features/products/product-detail-route";
 import { productFromPurchasePath } from "../purchases-route";
-import type { ReceiveForm } from "../types";
+import type { PurchaseFormItem, ReceiveForm } from "../types";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
 import { usePurchaseFromUrl } from "./usePurchaseFromUrl";
 import { todayDateKey, usePurchaseForm } from "./usePurchaseForm";
@@ -63,6 +63,24 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
     invoiceNumber: "",
     notes: "",
     price: purchase?.suggestedPrice ?? 0,
+    // A grade vem com o que foi PEDIDO; conferir é ajustar o que veio.
+    items: (purchase?.items ?? []).flatMap((item) =>
+      item.productId == null
+        ? []
+        : [
+            {
+              productId: item.productId,
+              name: item.productName,
+              barcode: item.barcode ?? null,
+              stock: item.stock,
+              quantity: item.quantity,
+              grossTotal: item.grossTotal,
+              finalTotal: item.finalTotal,
+            },
+          ],
+    ),
+    finalTotal: purchase?.finalTotal ?? 0,
+    replaceProductImages: purchase?.replaceProductImages ?? true,
   };
 }
 
@@ -176,6 +194,20 @@ export function usePurchases() {
         invoiceNumber: payload.invoiceNumber || null,
         notes: payload.notes || null,
         price: payload.price > 0 ? payload.price : null,
+        // Grade só quando a compra tem mais de uma variação: com uma só não há
+        // conferência a fazer, e mandar a lista seria ruído no corpo.
+        items:
+          payload.items.length > 1
+            ? payload.items
+                .filter((item) => item.quantity > 0)
+                .map((item) => ({
+                  productId: item.productId,
+                  quantity: item.quantity,
+                  finalTotal: item.finalTotal,
+                }))
+            : undefined,
+        finalTotal: payload.items.length > 1 ? payload.finalTotal : undefined,
+        replaceProductImages: payload.replaceProductImages,
       }),
     onSuccess: async (purchase) => {
       await invalidate();
@@ -225,6 +257,28 @@ export function usePurchases() {
   }
 
   /**
+   * Ajusta uma variação na conferência.
+   *
+   * Só a quantidade e a fatia mudam aqui; o total pago é campo à parte, porque
+   * mexer no que chegou não deve mexer no que saiu do bolso por efeito colateral.
+   */
+  function updateReceiveItem(productId: number, campo: "quantity" | "finalTotal", valor: number) {
+    setReceiveForm((current) => ({
+      ...current,
+      items: current.items.map((item) => (item.productId === productId ? { ...item, [campo]: valor } : item)),
+    }));
+  }
+
+  /** Acrescenta à conferência uma variação que veio e não estava no pedido. */
+  function addReceiveItem(item: PurchaseFormItem) {
+    setReceiveForm((current) =>
+      current.items.some((atual) => atual.productId === item.productId)
+        ? current
+        : { ...current, items: [...current.items, item] },
+    );
+  }
+
+  /**
    * "Editar compra" de dentro do diálogo de recebimento: o caminho da compra
    * anotada sem custo. Fecha o diálogo e abre o formulário da mesma compra.
    */
@@ -271,6 +325,8 @@ export function usePurchases() {
     receiving,
     receiveForm,
     updateReceiveForm,
+    updateReceiveItem,
+    addReceiveItem,
     startReceive,
     cancelReceive: () => setReceiving(null),
     editReceiving,

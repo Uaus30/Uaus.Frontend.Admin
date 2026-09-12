@@ -65,6 +65,11 @@ export type PurchaseForm = {
    * isso que o flag também é gravado no banco.
    */
   costSplitManual: boolean;
+  /**
+   * No recebimento, as fotos desta compra SUBSTITUEM a galeria do grupo
+   * (padrão) ou entram na frente das que já existem.
+   */
+  replaceProductImages: boolean;
   productName: string;
   /** Código de barras do produto vinculado, só para conferência na tela. */
   productBarcode: string | null;
@@ -86,7 +91,13 @@ export type PurchaseForm = {
   images: PurchaseFormImage[];
 };
 
-/** Formulário de recebimento de compra com produto vinculado. */
+/**
+ * Formulário de recebimento — que é também a CONFERÊNCIA do que chegou.
+ *
+ * A grade vem preenchida com o que foi pedido; o operador ajusta quando a caixa
+ * traz outra coisa. O que se ajusta é a DISTRIBUIÇÃO, não o valor pago: a soma
+ * tem que fechar com o total da compra, ou o operador confirma um total novo.
+ */
 export type ReceiveForm = {
   /** `yyyy-MM-dd`. */
   entryDate: string;
@@ -94,4 +105,10 @@ export type ReceiveForm = {
   notes: string;
   /** Preço de venda a aplicar no cadastro. */
   price: number;
+  /** A grade conferida. Vazia em compra de produto simples. */
+  items: PurchaseFormItem[];
+  /** O total pago, que o operador pode confirmar como novo. */
+  finalTotal: number;
+  /** As fotos da compra substituem a galeria do grupo (padrão) ou unificam. */
+  replaceProductImages: boolean;
 };

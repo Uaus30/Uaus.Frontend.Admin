@@ -101,6 +101,13 @@ recebimento dela é o que gera a entrada.
   hospedagem aceita. URL e busca na web passam antes pelo proxy do backend
   (CORS). No recebimento de produto novo, as mesmas imagens viram a galeria do
   cadastro sem novo upload.
+- **As fotos da compra SUBSTITUEM a galeria do grupo no recebimento**
+  (12/09/2026), com uma flag para **unificar** em vez disso
+  (`replaceProductImages`, gravada na compra e repetida no diálogo de
+  recebimento, que é a última chance de mudar de ideia). Unificar é o
+  comportamento antigo: as novas entram como capa e as antigas descem. Em
+  qualquer um dos dois, **a imagem nunca é apagada** — sai só a associação, e
+  `images` é o catálogo compartilhado.
 - **A primeira foto da compra vira a CAPA do grupo de produto no recebimento**
   — e as que o grupo já tinha descem de posição, sem serem apagadas. O alvo é o
   GRUPO desde 12/09/2026 (`product_group_images`), e não o SKU: receber a
@@ -109,6 +116,27 @@ recebimento dela é o que gera a entrada.
   antiga é trabalho manual acumulado; faxina se faz pela galeria do produto, não
   por um efeito colateral do recebimento. Quem faz é
   `PurchaseService.PromotePurchaseImagesAsync`, dentro da transação.
+
+## O recebimento é uma CONFERÊNCIA (12/09/2026)
+
+Em compra com variações, a grade aparece **editável** no diálogo de
+recebimento: dá para ajustar quantidade, zerar a variação que não veio e
+acrescentar a que veio sem estar no pedido. Existe porque caixa sortida se
+registra no chute — não dá para saber as cores antes de abrir a embalagem.
+
+A regra que mantém os dois documentos coerentes: **ajusta-se a DISTRIBUIÇÃO, não
+o valor pago.** O total da compra é o que saiu do bolso e não muda por efeito
+colateral de um ajuste de quantidade; a grade redistribui esse total. Enquanto a
+soma não fechar, o aviso aparece e o **confirmar fica desabilitado** — deixar
+passar faria a entrada e a compra contarem histórias diferentes sobre o mesmo
+dinheiro, e a compra fica imutável logo em seguida. Quando o valor mudou de
+verdade (faltou item e o fornecedor abateu), o botão "Usar X como total pago"
+confirma o novo total, explicitamente.
+
+Conferida a grade, a compra passa a `costSplitManual`: o operador distribuiu à
+mão, e reabrir não pode re-ratear. Compra de um produto só não tem conferência —
+o que foi pedido é o que chegou, e a grade seria uma tabela de uma linha para
+não decidir nada.
 
 ## Os dois caminhos do "Lançar recebimento"
 

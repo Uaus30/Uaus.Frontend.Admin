@@ -342,6 +342,29 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             onSearchWeb={() => form.setImageSearchOpen(true)}
           />
 
+          {/* A foto da compra é do que ACABOU de chegar, e desde 12/09/2026 ela
+              passa a ser a galeria do produto. Unificar continua disponível —
+              agora como escolha explícita, e não como padrão silencioso. */}
+          {values.images.length > 0 && (
+            <label className="flex items-start gap-2.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-3 text-xs leading-relaxed">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-3.5 w-3.5"
+                checked={values.replaceProductImages}
+                onChange={(event) => update("replaceProductImages", event.target.checked)}
+                disabled={readOnly}
+              />
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  No recebimento, substituir as fotos do produto por estas
+                </span>
+                <br />
+                Desmarcado, estas entram como principais e as que o produto já tem descem de posição. A imagem
+                nunca é apagada do catálogo.
+              </span>
+            </label>
+          )}
+
           <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
             <Button type="button" variant="outline" onClick={() => form.setOpen(false)}>
               {readOnly ? "Fechar" : "Cancelar"}

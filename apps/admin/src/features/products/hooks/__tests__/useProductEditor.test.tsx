@@ -391,6 +391,7 @@ describe("cadastro a partir de uma compra", () => {
     // Compra de produto novo: um item so, sem variacao vinculada ainda.
     items: [],
     costSplitManual: false,
+    replaceProductImages: true,
   };
 
   it("abre o cadastro novo preenchido pela compra e fecha a compra depois da entrada", async () => {

@@ -35,6 +35,9 @@ export function emptyPurchaseForm(): PurchaseForm {
     productGroupId: null,
     items: [],
     costSplitManual: false,
+    // Substituir e o padrao desde 12/09/2026: quem fotografa na hora de
+    // comprar registra o que acabou de chegar.
+    replaceProductImages: true,
     productName: "",
     productBarcode: null,
     details: "",
@@ -76,6 +79,7 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
           ],
     ),
     costSplitManual: purchase.costSplitManual ?? false,
+    replaceProductImages: purchase.replaceProductImages ?? true,
     productName: purchase.productName,
     productBarcode: purchase.productBarcode ?? null,
     details: purchase.details ?? "",
@@ -343,6 +347,7 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
           finalTotal: item.finalTotal,
         })),
       costSplitManual: form.costSplitManual,
+      replaceProductImages: form.replaceProductImages,
     });
   }
 

@@ -74,6 +74,11 @@ export interface PurchaseDto {
   items: PurchaseItemDto[];
   /** Quem é a fonte da verdade do custo — ver `SavePurchasePayload.costSplitManual`. */
   costSplitManual: boolean;
+  /**
+   * As fotos da compra substituem a galeria do GRUPO no recebimento (padrão),
+   * em vez de entrarem na frente das que já existem.
+   */
+  replaceProductImages: boolean;
 }
 
 /**
@@ -147,9 +152,29 @@ export interface SavePurchasePayload {
    * à mão e mexer numa quantidade redistribuiria tudo em silêncio.
    */
   costSplitManual: boolean;
+  /**
+   * `true` (padrão) = as fotos da compra SUBSTITUEM a galeria do grupo no
+   * recebimento; `false` unifica, com as novas na frente. Substituir tira só a
+   * associação — a imagem é do catálogo e nunca é apagada.
+   */
+  replaceProductImages: boolean;
 }
 
-/** Recebimento de compra com produto vinculado. */
+/** Uma variação conferida no recebimento. */
+export interface ReceivePurchaseItemPayload {
+  productId: number;
+  /** Zero tira a variação do recebimento — ela não veio. */
+  quantity: number;
+  /** Fatia do total pago que cabe a esta variação. */
+  finalTotal: number;
+}
+
+/**
+ * Recebimento de compra com produto vinculado — que é também a CONFERÊNCIA.
+ *
+ * Quem compra caixa sortida registra a grade no chute e só sabe o que veio
+ * quando abre a embalagem, então o recebimento corrige a grade.
+ */
 export interface ReceivePurchasePayload {
   /** `yyyy-MM-ddT00:00:00`, sem fuso. Nulo é hoje. */
   entryDate?: string | null;
@@ -157,6 +182,15 @@ export interface ReceivePurchasePayload {
   notes?: string | null;
   /** Preço de venda a aplicar no cadastro. Nulo mantém o atual. */
   price?: number | null;
+  /** A grade conferida. Vazia mantém a da compra. */
+  items?: ReceivePurchaseItemPayload[];
+  /**
+   * O total pago, se mudou. Nulo mantém o da compra — e aí a soma dos itens
+   * precisa fechar com ele, senão o backend recusa dizendo a diferença.
+   */
+  finalTotal?: number | null;
+  /** Sobrescreve a escolha da compra sobre substituir ou unificar as fotos. */
+  replaceProductImages?: boolean | null;
 }
 
 /** Fechamento de compra de produto NOVO, depois do cadastro e da entrada. */

@@ -37,6 +37,7 @@ const compra = {
   images: [],
   items: [],
   costSplitManual: false,
+  replaceProductImages: true,
 } as PurchaseDto;
 
 describe("purchases-route — link da compra", () => {

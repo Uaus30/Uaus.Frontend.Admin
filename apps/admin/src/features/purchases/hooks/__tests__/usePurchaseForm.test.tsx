@@ -41,6 +41,7 @@ const compra: PurchaseDto = {
   // compras anteriores a 12/09/2026.
   items: [],
   costSplitManual: false,
+  replaceProductImages: true,
   id: 5,
   createdAt: "2026-09-05T10:00:00",
   updatedAt: null,
