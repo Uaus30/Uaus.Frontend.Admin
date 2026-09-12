@@ -304,6 +304,83 @@ describe("useProductEditor Hook", () => {
     expect(syncProductGroupImages).toHaveBeenCalledWith(expect.objectContaining({ imageIds: [99, 1, 2] }));
   });
 
+  it("abrir grupo COM variações mostra a galeria do grupo — e salvar não a apaga", async () => {
+    // REGRESSÃO (produção, 12/09/2026 — grupo 168): a foto aparecia na listagem
+    // e não na tela de detalhe. O ramo com variações do `openDetail` fazia
+    // `setImages([])`, resto de quando a foto pertencia ao SKU; a galeria é do
+    // GRUPO desde 12/09 e o produto que chega já traz as fotos dele.
+    //
+    // O que não aparecia era pior: `PUT /ProductGroupImages/{id}` manda a lista
+    // INTEIRA, então o primeiro Salvar naquela tela gravava galeria vazia e
+    // apagava as fotos do grupo — sem erro, sem aviso, e a vitrine perdia a
+    // capa.
+    mocks.saveProductGroupWithProducts.mockResolvedValueOnce({
+      group: { id: 1 },
+      products: [
+        { id: 10, canDelete: true },
+        { id: 11, canDelete: true },
+      ],
+    });
+
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    const comFoto = {
+      id: 10,
+      name: "CUECA INFANTIL CORES",
+      description: "",
+      price: 7,
+      stock: 3,
+      minStock: 0,
+      status: 2,
+      barcode: "789",
+      department: { id: 2 },
+      category: { id: 5 },
+      productGroup: {
+        id: 1,
+        name: "CUECA INFANTIL CORES",
+        description: "",
+        hasVariations: true,
+        showOnSite: true,
+      },
+      tags: [],
+      images: [
+        {
+          associationId: 202,
+          imageId: 483,
+          displayOrder: 0,
+          createdAt: "2026-09-12T00:00:00",
+          updatedAt: null,
+          image: { id: 483, name: "CUECA INFANTIL GG", url: "cueca.png" },
+        },
+      ],
+      variationValues: [{ gradeType: 1, value: "G" }],
+    };
+
+    act(() => {
+      result.current.openDetail(comFoto);
+    });
+
+    expect(result.current.galleryImages).toHaveLength(1);
+    expect(result.current.galleryImages[0].imageId).toBe(483);
+
+    // A segunda variação entra só para o submit passar da validação.
+    act(() => {
+      result.current.addVariationDraft({
+        status: "2",
+        barcode: "790",
+        price: 7,
+        values: [{ gradeType: 1, value: "GG" }],
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
+    });
+
+    // A foto que já estava lá é regravada como está — e NÃO some.
+    expect(syncProductGroupImages).toHaveBeenCalledWith({ productGroupId: 1, imageIds: [483] });
+  });
+
   it("deve gravar a imagem anexada em grupo COM variações, na galeria do GRUPO", async () => {
     // REGRESSÃO (produção, 06/09/2026 — grupo 825): a galeria da aba Dados
     // escrevia sempre em `images`, o estado do produto SIMPLES, mesmo em grupo

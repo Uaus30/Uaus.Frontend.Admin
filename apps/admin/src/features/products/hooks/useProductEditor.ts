@@ -269,12 +269,26 @@ export function useProductEditor() {
         isPublic: product.productGroup?.showOnSite ?? true,
       });
 
+      /*
+        A galeria é do GRUPO desde 12/09/2026 (`product_group_images`), e o
+        produto que chega aqui já traz as fotos DELE — de qualquer variação, são
+        as mesmas. Por isso ela é carregada FORA do ramo.
+
+        Dentro do ramo com variações estava um `setImages([])`, resto de quando
+        a foto pertencia ao SKU e a galeria da tela era a do produto simples.
+        Ele fazia duas coisas, e só uma aparecia: a tela de detalhe abria sem
+        foto nenhuma (a listagem mostrava, porque lê o catálogo do grupo) e,
+        pior, o primeiro Salvar gravava a galeria VAZIA — o
+        `PUT /ProductGroupImages/{id}` manda a lista inteira, então lista vazia
+        apaga as fotos do grupo, sem erro e sem aviso.
+      */
+      setImages(productImagesHook.toLocalImages(product.images));
+
       if (product.productGroup?.hasVariations) {
         const draft = toVariationDraft(product);
         setVariationDrafts([draft]);
         setActiveVariationKey(draft.key);
         setProductEditor(createEmptyProductEditor(productForm.defaultStatus));
-        setImages([]);
       } else {
         setProductEditor({
           id: product.id,
@@ -287,7 +301,6 @@ export function useProductEditor() {
           tagIds: product.tags.map((tag: any) => tag.id),
           barcode: product.barcode || "",
         });
-        setImages(productImagesHook.toLocalImages(product.images));
         setVariationDrafts([]);
         setActiveVariationKey(null);
       }

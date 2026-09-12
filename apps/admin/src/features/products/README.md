@@ -111,6 +111,25 @@ Hoje:
   nome da variação NÃO é validado, porque é derivado e a coluna é somente
   leitura.
 
+#### A galeria abre nos DOIS ramos (12/09/2026)
+
+`openDetail` carrega as fotos **fora** do `if (hasVariations)`. Dentro do ramo
+com variações havia um `setImages([])`, resto de quando a foto pertencia ao SKU
+e a galeria da tela era a do produto simples. Ele fazia duas coisas, e só uma
+aparecia:
+
+1. **A tela de detalhe abria sem foto** em todo produto com variação — a
+   listagem mostrava, porque lê o catálogo do grupo.
+2. **O primeiro Salvar apagava a galeria do grupo.** O
+   `PUT /ProductGroupImages/{id}` grava a lista INTEIRA: lista vazia é ordem de
+   apagar. Sem erro, sem aviso, e a vitrine perdia a capa.
+
+O produto que chega no `openDetail` já traz as fotos do grupo (o
+`buildProductCollections` resolve `images` por `productGroupId`), de qualquer
+variação — são as mesmas. O teste de regressão está em `useProductEditor.test.tsx`
+e cobre as duas metades: a galeria aberta e o `syncProductGroupImages` chamado
+com a foto que já existia, em vez de `[]`.
+
 #### O estoque de um produto que ganhou variações (12/09/2026)
 
 O produto simples que vira variação **leva o estoque junto** — ele continua sendo
