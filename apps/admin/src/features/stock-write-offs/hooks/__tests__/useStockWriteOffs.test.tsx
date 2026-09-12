@@ -39,7 +39,7 @@ const { useStockWriteOffs } = await import("../useStockWriteOffs");
  * de estoque, que os usa para sugerir custo e preço. A baixa ignora os dois.
  */
 function product(id: number, name = `Produto ${id}`) {
-  return { id, name, barcode: `789${id}`, stock: 50, price: 10, costPrice: 6 };
+  return { id, productGroupId: id, name, barcode: `789${id}`, stock: 50, price: 10, costPrice: 6 };
 }
 
 /** Baixa da listagem: `status` 1 é efetivada, 2 é estornada. */

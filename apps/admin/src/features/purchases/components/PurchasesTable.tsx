@@ -195,7 +195,14 @@ export function PurchasesTable({
                             </p>
                           )}
                           <p className="truncate font-mono text-xs text-muted-foreground">
-                            {purchase.productBarcode ?? purchase.details ?? ""}
+                            {/* Com várias variações o código de barras é de UMA
+                                delas e não representa a compra; o selo responde
+                                melhor "quantas cores vieram nesse pedido". */}
+                            {purchase.items.length > 1 ? (
+                              <span className="font-sans">{purchase.items.length} variações</span>
+                            ) : (
+                              (purchase.productBarcode ?? purchase.details ?? "")
+                            )}
                           </p>
                         </div>
                       </div>

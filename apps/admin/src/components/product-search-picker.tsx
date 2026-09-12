@@ -18,6 +18,11 @@ import { getProductsPage } from "@/services/products.service";
  */
 export type ProductSearchOption = {
   id: number;
+  /**
+   * Grupo do produto. A compra precisa dele para carregar as VARIAÇÕES irmãs:
+   * escolher uma cor no seletor abre a grade do produto inteiro.
+   */
+  productGroupId: number;
   name: string;
   barcode: string | null;
   stock: number;
@@ -69,6 +74,7 @@ export function ProductSearchPicker({
 
   const options: ProductSearchOption[] = (productsPage?.data ?? []).map((product) => ({
     id: product.id,
+    productGroupId: product.productGroupId,
     name: product.displayName || product.name,
     barcode: product.barcode || null,
     stock: product.stock,

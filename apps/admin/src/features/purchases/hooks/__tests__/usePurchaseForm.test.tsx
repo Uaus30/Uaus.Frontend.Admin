@@ -26,10 +26,21 @@ vi.mock("@/services/images.service", () => ({
   downloadWebImageAsFile: vi.fn(),
 }));
 
+// A grade de variações consulta o grupo do produto escolhido. Sem variação
+// irmã, `hasGrid` é falso e o formulário continua o de sempre — que é o caso da
+// esmagadora maioria das compras.
+vi.mock("@/services/products.service", () => ({
+  getProductsPage: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
+}));
+
 const { usePurchaseForm, purchaseToForm, validatePurchaseForm, emptyPurchaseForm, todayDateKey } =
   await import("../usePurchaseForm");
 
 const compra: PurchaseDto = {
+  // Compra de um item so: a grade espelha o cabecalho, como 100% das
+  // compras anteriores a 12/09/2026.
+  items: [],
+  costSplitManual: false,
   id: 5,
   createdAt: "2026-09-05T10:00:00",
   updatedAt: null,
@@ -101,6 +112,40 @@ describe("validatePurchaseForm", () => {
   });
 });
 
+describe("validatePurchaseForm com grade de variações", () => {
+  const comGrade = (quantidades: number[]) => ({
+    ...emptyPurchaseForm(),
+    supplierId: "1",
+    productId: 10,
+    productGroupId: 1,
+    quantity: quantidades.reduce((soma, q) => soma + q, 0),
+    finalTotal: 100,
+    items: quantidades.map((quantity, i) => ({
+      productId: 10 + i,
+      name: `CAMISETA [COR ${i}]`,
+      barcode: null,
+      stock: 0,
+      quantity,
+      grossTotal: 0,
+      finalTotal: 0,
+    })),
+  });
+
+  it("recusa a grade inteira zerada", () => {
+    // A grade mostra TODAS as variações do grupo; sem nenhuma quantidade a
+    // compra não diz o que foi comprado, e o backend recusaria depois do envio.
+    expect(validatePurchaseForm(comGrade([0, 0, 0]))).toMatch(/ao menos uma varia/i);
+  });
+
+  it("aceita a grade com uma variação só preenchida", () => {
+    expect(validatePurchaseForm(comGrade([0, 3, 0]))).toBeNull();
+  });
+
+  it("recusa quantidade negativa numa variação", () => {
+    expect(validatePurchaseForm(comGrade([2, -1]))).toMatch(/maior ou igual a zero/i);
+  });
+});
+
 describe("emptyPurchaseForm", () => {
   it("nasce com a data de hoje e sem preço sugerido", () => {
     const form = emptyPurchaseForm();
@@ -123,6 +168,43 @@ describe("purchaseToForm", () => {
     // O campo de data trabalha em `yyyy-MM-dd`; o backend manda o instante.
     expect(form.purchaseDate).toBe("2026-08-28");
     expect(form.suggestedPrice).toBe(55.6);
+  });
+
+  it("carrega a grade de variações gravada", () => {
+    // Reabrir a compra tem que devolver as quantidades por variação; as que
+    // ficaram de fora entram zeradas quando a lista do grupo chega.
+    const form = purchaseToForm({
+      ...compra,
+      productGroupId: 7,
+      costSplitManual: true,
+      items: [
+        {
+          id: 1,
+          productId: 10,
+          productName: "CAMISETA [AZUL]",
+          barcode: "110",
+          quantity: 2,
+          grossTotal: 0,
+          finalTotal: 40,
+          stock: 5,
+          unitFinal: 20,
+        },
+      ],
+    });
+
+    expect(form.productGroupId).toBe(7);
+    expect(form.costSplitManual).toBe(true);
+    expect(form.items).toEqual([
+      {
+        productId: 10,
+        name: "CAMISETA [AZUL]",
+        barcode: "110",
+        stock: 5,
+        quantity: 2,
+        grossTotal: 0,
+        finalTotal: 40,
+      },
+    ]);
   });
 
   it("compra sem preço sugerido vira zero, que é o vazio do campo de moeda", () => {
@@ -291,6 +373,7 @@ describe("usePurchaseForm", () => {
     act(() =>
       result.current.selectProduct({
         id: 10,
+        productGroupId: 10,
         name: "BEXIGA [AZUL]",
         barcode: "100",
         stock: 2,

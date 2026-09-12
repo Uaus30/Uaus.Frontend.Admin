@@ -35,6 +35,8 @@ const compra = {
   adjustmentPercent: 0,
   status: "Pending",
   images: [],
+  items: [],
+  costSplitManual: false,
 } as PurchaseDto;
 
 describe("purchases-route — link da compra", () => {

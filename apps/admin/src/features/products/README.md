@@ -263,7 +263,7 @@ fica para refazer.
 - **A galeria é do GRUPO, não da variação** (12/09/2026). Uma só na aba Dados,
   com ou sem variações; a primeira foto é a **capa** que a vitrine, o PDV, a
   listagem e a etiqueta mostram. Antes cada SKU tinha a sua, e a capa do grupo
-  saía do *representante* (o produto de maior id) — regra impossível de prever
+  saía do _representante_ (o produto de maior id) — regra impossível de prever
   ao cadastrar. O catálogo mostrou que a galeria por SKU nunca foi usada: 707
   produtos com foto e 707 associações, **uma foto por produto**, sem ordenação e
   sem principal escolhida.

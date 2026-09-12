@@ -70,6 +70,44 @@ export interface PurchaseDto {
   purchaseEntryId?: number | null;
   userName?: string | null;
   images: PurchaseImageDto[];
+  /** As variações compradas. Com uma só, é o espelho do cabeçalho. */
+  items: PurchaseItemDto[];
+  /** Quem é a fonte da verdade do custo — ver `SavePurchasePayload.costSplitManual`. */
+  costSplitManual: boolean;
+}
+
+/**
+ * Uma variação comprada.
+ *
+ * Sempre ao menos uma: a compra de um produto simples é um item só, e é assim
+ * que as compras anteriores a 12/09/2026 foram convertidas.
+ */
+export interface PurchaseItemDto {
+  id: number;
+  /** Ausente só na compra de produto que ainda não existe no cadastro. */
+  productId?: number | null;
+  /** Nome COMPOSTO da variação ("CAMISETA [AZUL]"). Vazio em produto novo. */
+  productName: string;
+  barcode?: string | null;
+  quantity: number;
+  grossTotal: number;
+  /** Fatia do total pago — dela sai o custo unitário do lote desta variação. */
+  finalTotal: number;
+  /** Saldo atual da variação, para a grade mostrar "X → X+N". */
+  stock: number;
+  /** Derivado: `finalTotal` ÷ `quantity`. Nunca é gravado. */
+  unitFinal: number;
+}
+
+/** Uma linha da grade, como a tela a envia. */
+export interface SavePurchaseItemPayload {
+  /** Nulo só em produto novo, que é sempre compra de um item. */
+  productId: number | null;
+  /** Zero é "não comprei esta variação" — o backend descarta a linha. */
+  quantity: number;
+  /** Ignorados em rateio (o padrão), que é quando o backend os deriva. */
+  grossTotal: number;
+  finalTotal: number;
 }
 
 /** Cadastro e edição — o mesmo corpo, porque a edição é total. */
@@ -96,6 +134,19 @@ export interface SavePurchasePayload {
   status: number;
   /** Ids de `images` já enviadas, na ordem de exibição. */
   imageIds: number[];
+  /**
+   * A grade de variações. Vazia mantém o corpo ANTIGO valendo — a compra de um
+   * produto só, descrita por `productId`, `quantity` e os totais.
+   */
+  items: SavePurchaseItemPayload[];
+  /**
+   * `false` (padrão) = rateio: os totais do PEDIDO mandam e a fatia de cada
+   * variação é derivada. `true` = o inverso, e o cabeçalho vira a soma.
+   *
+   * É GRAVADO de propósito: sem ele, reabrir uma compra cujo rateio foi digitado
+   * à mão e mexer numa quantidade redistribuiria tudo em silêncio.
+   */
+  costSplitManual: boolean;
 }
 
 /** Recebimento de compra com produto vinculado. */

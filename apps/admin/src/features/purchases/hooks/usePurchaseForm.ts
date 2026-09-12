@@ -14,8 +14,9 @@ import {
 } from "@workspace/api-client-react";
 import type { ProductSearchOption } from "@/components/product-search-picker";
 import { syncPurchaseDetailParam } from "../purchases-route";
-import type { PurchaseForm } from "../types";
+import type { PurchaseForm, PurchaseFormItem } from "../types";
 import { usePurchaseImages } from "./usePurchaseImages";
+import { usePurchaseVariations } from "./usePurchaseVariations";
 
 /** Hoje, em `yyyy-MM-dd` — componentes LOCAIS, nunca `toISOString()`. */
 export function todayDateKey(): string {
@@ -31,6 +32,9 @@ export function emptyPurchaseForm(): PurchaseForm {
   return {
     supplierId: "",
     productId: null,
+    productGroupId: null,
+    items: [],
+    costSplitManual: false,
     productName: "",
     productBarcode: null,
     details: "",
@@ -52,6 +56,26 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
     supplierId: String(purchase.supplierId),
     // `?? null`: o backend omite campos nulos e o formulário compara com `=== null`.
     productId: purchase.productId ?? null,
+    productGroupId: purchase.productGroupId ?? null,
+    // A grade gravada. Reabrir a compra a traz de volta com as quantidades que
+    // foram salvas; as variações que ficaram de fora entram zeradas quando a
+    // lista do grupo chega (`usePurchaseVariations`).
+    items: (purchase.items ?? []).flatMap<PurchaseFormItem>((item) =>
+      item.productId == null
+        ? []
+        : [
+            {
+              productId: item.productId,
+              name: item.productName,
+              barcode: item.barcode ?? null,
+              stock: item.stock,
+              quantity: item.quantity,
+              grossTotal: item.grossTotal,
+              finalTotal: item.finalTotal,
+            },
+          ],
+    ),
+    costSplitManual: purchase.costSplitManual ?? false,
     productName: purchase.productName,
     productBarcode: purchase.productBarcode ?? null,
     details: purchase.details ?? "",
@@ -114,6 +138,10 @@ export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto)
   if (form.productId === null && !form.productName.trim()) return "Informe o produto ou o nome do produto.";
   if (!form.purchaseDate) return "Informe a data da compra.";
   if (form.purchaseDate > todayDateKey()) return "A data da compra não pode estar no futuro.";
+  if (form.items.length > 0 && form.items.every((item) => item.quantity <= 0))
+    return "Informe a quantidade de ao menos uma variação.";
+  if (form.items.some((item) => !Number.isInteger(item.quantity) || item.quantity < 0))
+    return "A quantidade de cada variação deve ser um inteiro maior ou igual a zero.";
   if (!Number.isInteger(form.quantity) || form.quantity <= 0)
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
@@ -169,6 +197,7 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
   }
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
   const images = usePurchaseImages({ productName: form.productName, setForm });
+  const variations = usePurchaseVariations({ form, setForm });
   /**
    * Compra lançada abre em leitura, e não deixa de abrir.
    *
@@ -230,19 +259,34 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  /** Vincula um produto já cadastrado: o nome passa a ser o do cadastro. */
+  /**
+   * Vincula um produto já cadastrado: o nome passa a ser o do cadastro.
+   *
+   * O GRUPO viaja junto porque é ele que carrega as variações irmãs — escolher
+   * uma cor na busca abre a grade do produto inteiro. A grade em si é montada
+   * pelo `usePurchaseVariations` quando a lista chega.
+   */
   function selectProduct(product: ProductSearchOption) {
     setForm((current) => ({
       ...current,
       productId: product.id,
+      productGroupId: product.productGroupId,
       productName: product.name,
       productBarcode: product.barcode,
+      // A grade do grupo anterior não vale para o novo.
+      items: current.productGroupId === product.productGroupId ? current.items : [],
     }));
   }
 
   /** Tira o vínculo e libera o nome para digitação (produto novo). */
   function clearProduct() {
-    setForm((current) => ({ ...current, productId: null, productBarcode: null }));
+    setForm((current) => ({
+      ...current,
+      productId: null,
+      productGroupId: null,
+      productBarcode: null,
+      items: [],
+    }));
   }
 
   const saveMutation = useMutation({
@@ -288,6 +332,17 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
       suggestedPrice: form.suggestedPrice > 0 ? form.suggestedPrice : null,
       status: Number(form.status),
       imageIds: form.images.map((image) => image.imageId),
+      // Sem grade, a lista vai vazia e o backend trata o corpo como o de sempre:
+      // a compra de um produto só, descrita pelo cabeçalho.
+      items: form.items
+        .filter((item) => item.quantity > 0)
+        .map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          grossTotal: item.grossTotal,
+          finalTotal: item.finalTotal,
+        })),
+      costSplitManual: form.costSplitManual,
     });
   }
 
@@ -309,6 +364,8 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     // Fotos: quatro entradas (arquivo, colagem, URL e busca na web), todas pelo
     // mesmo funil de compressão e upload. Ver `usePurchaseImages`.
     ...images,
+    // Grade de variações: existe só quando o grupo tem mais de uma.
+    ...variations,
     submit,
     isSaving: saveMutation.isPending,
   };

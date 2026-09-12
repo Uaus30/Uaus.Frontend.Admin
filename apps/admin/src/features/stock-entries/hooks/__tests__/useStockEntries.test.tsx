@@ -51,7 +51,7 @@ const { useStockEntries } = await import("../useStockEntries");
 
 /** Produto como a busca compartilhada o devolve. */
 function product(id: number, name = `Produto ${id}`): ProductSearchOption {
-  return { id, name, barcode: `789${id}`, stock: 50, price: 9.9, costPrice: 4.5 };
+  return { id, productGroupId: id, name, barcode: `789${id}`, stock: 50, price: 9.9, costPrice: 4.5 };
 }
 
 const createWrapper = () => {

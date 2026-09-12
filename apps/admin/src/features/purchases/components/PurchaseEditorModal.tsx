@@ -9,6 +9,7 @@ import { PricingPreview } from "@/features/stock-entries/components/PricingPrevi
 import { ProductSearchPicker } from "@/components/product-search-picker";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
 import { PurchaseDerivedTotals } from "./PurchaseDerivedTotals";
+import { PurchaseVariationsGrid } from "./PurchaseVariationsGrid";
 import { PurchaseImagesField } from "./PurchaseImagesField";
 import { PurchaseLinkField } from "./PurchaseLinkField";
 import type { usePurchaseForm } from "../hooks/usePurchaseForm";
@@ -58,7 +59,8 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             {readOnly ? "Compra lançada" : form.editingId ? "Editar compra" : "Registrar compra"}
           </DialogTitle>
           <DialogDescription>
-            Um produto por compra. O recebimento vira uma entrada de estoque com a quantidade e o custo daqui.
+            Um produto por compra, com as variações dele. O recebimento vira uma entrada de estoque com as
+            quantidades e o custo daqui.
           </DialogDescription>
         </DialogHeader>
 
@@ -192,10 +194,26 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             </div>
           )}
 
+          {/* Produto com variações troca o campo de quantidade por uma GRADE: é
+              a mesma compra, só que dizendo quanto de cada cor. Produto simples
+              — a esmagadora maioria — continua com o campo de sempre, porque o
+              caso raro não podia deixar o comum mais trabalhoso. */}
+          {form.hasGrid && (
+            <PurchaseVariationsGrid
+              items={values.items}
+              costSplitManual={values.costSplitManual}
+              readOnly={readOnly}
+              loading={form.isLoadingVariations}
+              onQuantityChange={form.setItemQuantity}
+              onTotalChange={(productId, valor) => form.setItemTotal(productId, "finalTotal", valor)}
+              onToggleManual={form.setCostSplitManual}
+            />
+          )}
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">
-                Quantidade <span className="text-red-500">*</span>
+                Quantidade {!form.hasGrid && <span className="text-red-500">*</span>}
               </label>
               {/* Zero é o campo EM BRANCO, como no `CurrencyInput`. Com `value={0}` o
                   React escreve "0" no campo assim que o operador apaga tudo, e o que
@@ -212,8 +230,9 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 }}
                 aria-label="Quantidade comprada"
                 className="h-10 bg-background"
-                readOnly={readOnly}
+                readOnly={readOnly || form.hasGrid}
               />
+              {form.hasGrid && <p className="text-xs text-muted-foreground">Soma da grade.</p>}
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Total bruto</label>
@@ -221,13 +240,22 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                   digitada no campo deixa o total conferível. Ver `evaluateAmountFormula`. */}
               <CurrencyInput
                 value={values.grossTotal}
-                onChange={(value) => update("grossTotal", value)}
+                onChange={(value) => {
+                  update("grossTotal", value);
+                  if (form.hasGrid) form.refreshSplit(value, values.finalTotal);
+                }}
                 className="h-10 bg-background"
-                readOnly={readOnly}
+                readOnly={readOnly || values.costSplitManual}
                 allowFormula
               />
               <p className="text-xs text-muted-foreground">
-                Aceita conta: <span className="font-mono">=17,99*2</span>
+                {values.costSplitManual ? (
+                  "Soma das variações."
+                ) : (
+                  <>
+                    Aceita conta: <span className="font-mono">=17,99*2</span>
+                  </>
+                )}
               </p>
             </div>
             <div className="space-y-2">
@@ -236,13 +264,17 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               </label>
               <CurrencyInput
                 value={values.finalTotal}
-                onChange={(value) => update("finalTotal", value)}
+                onChange={(value) => {
+                  update("finalTotal", value);
+                  if (form.hasGrid) form.refreshSplit(values.grossTotal, value);
+                }}
                 className="h-10 bg-background"
-                readOnly={readOnly}
+                readOnly={readOnly || values.costSplitManual}
                 allowFormula
               />
               <p className="text-xs text-muted-foreground">
-                Já com desconto ou acréscimo (frete).{costRequired && " Obrigatório fora de Pendente."}
+                {values.costSplitManual ? "Soma das variações." : "Já com desconto ou acréscimo (frete)."}
+                {costRequired && " Obrigatório fora de Pendente."}
               </p>
             </div>
           </div>

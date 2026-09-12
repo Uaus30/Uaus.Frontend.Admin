@@ -10,9 +10,23 @@ recebimento dela é o que gera a entrada.
 
 ## Regras de negócio
 
-- **Um produto por compra.** O recebimento vira UMA entrada de estoque de um
-  produto só, que é como a entrada funciona desde 31/08/2026. Pedido com vários
-  itens são várias compras.
+- **Um produto por compra — com as VARIAÇÕES dele** (12/09/2026). Variação é
+  produto (uma linha em `products` dentro do mesmo grupo), e a compra era 1:1 com
+  um SKU: uma camiseta em três cores eram três compras, com fornecedor, data,
+  link e fotos digitados três vezes e o total rateado de cabeça. Agora a compra
+  tem uma **grade** (`purchase_items`) e o recebimento vira UMA entrada com um
+  lote por variação. Produtos diferentes continuam sendo compras diferentes:
+  fotos, preço sugerido e a grade são todos do grupo, e misturar dois produtos
+  esvaziaria os três.
+- **Comprar com variação exige o produto já cadastrado**, com as variações
+  definidas. O caminho de produto novo continua existindo e continua sendo de um
+  item só — quem precisa de variação cadastra o produto primeiro.
+- **A grade mostra TODAS as variações do grupo**, não só as compradas: é ela que
+  responde "o que existe para eu escolher". Quantidade zero é "não comprei esta"
+  e a linha nem vira item ao gravar, então a grade da tela e os itens gravados
+  não têm o mesmo tamanho. Produto simples não tem grade — a quantidade continua
+  num campo só, que é o caso da esmagadora maioria e não podia ficar mais
+  trabalhoso para atender ao caso raro.
 - **A data da compra é do OPERADOR, não do sistema.** Nasce hoje e pode ser
   retroagida (nunca adiantada): o pedido costuma ser digitado depois de fechado,
   e é essa data que a listagem exibe e por onde ela ORDENA — `created_at`
@@ -50,6 +64,16 @@ recebimento dela é o que gera a entrada.
   cadastro: sem produto vinculado, ela guarda nome, detalhes, link e fotos —
   o pré-cadastro que o recebimento abre preenchido. Com produto vinculado, o
   nome é o do cadastro (composto, com grades) e fica travado no formulário.
+- **O custo tem UM dono por compra, e ele é gravado** (`costSplitManual`). Em
+  **rateio** (o padrão) o operador digita os totais do PEDIDO e a fatia de cada
+  variação é derivada, proporcional à quantidade, com a **sobra do arredondamento
+  no último item** — sem ela, R$ 100 em três variações viraria 33,33 × 3 = 99,99 e
+  a soma da grade contradiria o total que a mesma tela mostra. Em **manual** é o
+  inverso: a fatia vira campo e o total do pedido passa a ser a soma. Existe para
+  a variação mais cara (o GG custa mais que o P). Nunca os dois digitados. O flag
+  é gravado porque, sem ele, reabrir a compra e mexer numa quantidade
+  redistribuiria em silêncio o que foi digitado à mão. A prévia é
+  `lib/purchase-items.ts`; quem vale é o `PurchaseCostSplit` do backend.
 - **Só os TOTAIS são digitados** (bruto e final, com desconto/acréscimo).
   Unitários e percentual são derivados — na tela por `derivePurchaseTotals`
   (prévia) e no backend pela mesma fórmula (o que vale). Nunca divergem do
@@ -143,9 +167,15 @@ recebimento dela é o que gera a entrada.
   escondidas. O nome completo fica no `title` e na compra.
 
 - `usePurchases` (listagem, situação, exclusão, recebimento), `usePurchaseForm`
-  (formulário e gravação) e `usePurchaseImages` (as quatro entradas de foto,
-  proxy, compressão e upload) são três hooks para nenhum arquivo passar de 300
-  linhas; a página só compõe. O `usePurchaseForm` reexporta o de imagens
+  (formulário e gravação), `usePurchaseImages` (as quatro entradas de foto,
+  proxy, compressão e upload) e `usePurchaseVariations` (a grade) são quatro
+  hooks para nenhum arquivo passar de 300 linhas; a página só compõe.
+- **A grade nasce como ajuste durante o RENDER, não num efeito.** Num efeito
+  seria preciso guardar "já montei esta" para não remontar a cada render — e
+  remontar apagaria a quantidade que o operador acabou de digitar. A condição
+  (`a grade não cobre as variações do grupo`) se desfaz sozinha depois do ajuste.
+- **A listagem mostra "N variações" no lugar do código de barras** quando a
+  compra tem mais de um item: o código é de UMA delas e não representa o pedido. O `usePurchaseForm` reexporta o de imagens
   inteiro, então a tela continua vendo um objeto só.
 - Busca e filtro voltam para a página 1 nos próprios setters, não em efeito.
 - Invalidar o prefixo `["purchases"]` alcança lista e itens; o recebimento

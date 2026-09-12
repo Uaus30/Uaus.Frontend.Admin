@@ -105,12 +105,12 @@ SKU. O grupo é a unidade da conferência; o SKU é a unidade do estoque.
 Segue `Uaus.Docs/dominio/convencoes-de-interface.md`, sempre com ícone e rótulo
 ao lado:
 
-| Onde               | Verde (emerald) | Âmbar (amber)              | Vermelho (destructive)    |
-| ------------------ | --------------- | -------------------------- | ------------------------- |
-| Progresso          | conferidos      | a conferir                 | —                         |
-| Linha da lista     | conferido       | —                          | cadastro sem foto nenhuma |
-| Tarja do produto   | já conferido    | espera conferência         | —                         |
-| Prévia da contagem | estoque confere | falta (vira baixa)         | —                         |
+| Onde               | Verde (emerald) | Âmbar (amber)      | Vermelho (destructive)    |
+| ------------------ | --------------- | ------------------ | ------------------------- |
+| Progresso          | conferidos      | a conferir         | —                         |
+| Linha da lista     | conferido       | —                  | cadastro sem foto nenhuma |
+| Tarja do produto   | já conferido    | espera conferência | —                         |
+| Prévia da contagem | estoque confere | falta (vira baixa) | —                         |
 
 A sobra na prévia usa a cor **primária**, e não um verde novo: "entrou
 mercadoria" não é o mesmo "positivo" do vocabulário, e inventar um quinto

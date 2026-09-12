@@ -388,6 +388,9 @@ describe("cadastro a partir de uma compra", () => {
     purchaseEntryId: null,
     userName: null,
     images: [{ imageId: 9, url: "produtos/caneca.jpg", displayOrder: 0 }],
+    // Compra de produto novo: um item so, sem variacao vinculada ainda.
+    items: [],
+    costSplitManual: false,
   };
 
   it("abre o cadastro novo preenchido pela compra e fecha a compra depois da entrada", async () => {
