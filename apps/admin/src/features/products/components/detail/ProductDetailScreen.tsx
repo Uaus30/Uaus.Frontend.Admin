@@ -18,6 +18,7 @@ import { VariationGradesModal } from "./VariationGradesModal";
 import { ProductGeneralTab } from "./ProductGeneralTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductWebImageSearch } from "./ProductWebImageSearch";
+import { ProductConferenceBanner } from "@/features/inventory-count/components/ProductConferenceBanner";
 
 type ProductDetailScreenProps = {
   editor: ReturnType<typeof useProductEditor>;
@@ -323,6 +324,10 @@ export function ProductDetailScreen({
             nextTabLabel={proximaAba}
           />
         </div>
+
+        {/* Só aparece quando o cadastro está numa conferência ABERTA — é o que
+            permite conferir sem sair da tela em que a correção é feita. */}
+        <ProductConferenceBanner productGroupId={editingGroupId} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex flex-wrap items-center gap-3">

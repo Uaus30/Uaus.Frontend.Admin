@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -48,14 +49,22 @@ const variacoes = [
 ];
 
 function renderTab(onSelectProduct: (id: number) => void) {
+  // A aba hospeda a contagem física, que invalida cache — sem o provider, o
+  // `useQueryClient` dela derruba o render inteiro.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+
   return render(
-    <ProductStockTab
-      productId={39}
-      productName="BALDE DE PLASTICO [12L, ORIGINAL]"
-      barcode="7908439800808"
-      variationOptions={variacoes}
-      onSelectProduct={onSelectProduct}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <ProductStockTab
+        productId={39}
+        productName="BALDE DE PLASTICO [12L, ORIGINAL]"
+        barcode="7908439800808"
+        variationOptions={variacoes}
+        onSelectProduct={onSelectProduct}
+      />
+    </QueryClientProvider>,
   );
 }
 

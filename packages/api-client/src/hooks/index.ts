@@ -27,6 +27,7 @@ export * from "./coupons";
 export * from "./campaigns";
 export * from "./storefront";
 export * from "./low-stock";
+export * from "./inventory-counts";
 export * from "./purchase-orders";
 export * from "./supplier-performance";
 export * from "./product-abc";

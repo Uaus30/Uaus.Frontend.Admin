@@ -16,6 +16,10 @@ vi.mock("../ProductEditorDialogs", () => ({ ProductEditorDialogs: () => null }))
 vi.mock("../VariationGradesModal", () => ({ VariationGradesModal: () => null }));
 vi.mock("../ProductWebImageSearch", () => ({ ProductWebImageSearch: () => null }));
 vi.mock("../../editor/ProductOptionalFields", () => ({ ProductOptionalFields: () => <div /> }));
+// A tarja da conferência consulta o servidor; aqui ela não decide nada.
+vi.mock("@/features/inventory-count/components/ProductConferenceBanner", () => ({
+  ProductConferenceBanner: () => null,
+}));
 
 // A validação tem teste próprio; aqui ela só precisa deixar o salvar seguir.
 vi.mock("../../../lib/validateProductForm", () => ({
