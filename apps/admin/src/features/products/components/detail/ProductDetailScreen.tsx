@@ -7,10 +7,9 @@ import type { useProductEditor } from "../../hooks/useProductEditor";
 import type { ProductGrade, VariationDraft } from "../../types";
 import { buildDisplayBarcode, isFactoryEan } from "../../lib/barcode";
 import { printBarcodeLabel } from "../../lib/barcodeLabel";
-import { nomeExibidoDaVariacao } from "../../lib/variationNames";
+import { nomeExibidoDaVariacao, opcoesDeVariacao } from "../../lib/variationNames";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
-import { orderCatalogByName } from "@/lib/select-options";
 import { ProductOptionalFields } from "../editor/ProductOptionalFields";
 import { ProductDetailActions } from "./ProductDetailActions";
 import { ProductEditorDialogs } from "./ProductEditorDialogs";
@@ -105,7 +104,6 @@ export function ProductDetailScreen({
     form,
     productEditor,
     variationDrafts,
-    activeVariation,
     editingGroupId,
     // A colagem de imagem entra pelo MESMO alvo da galeria (variação ativa em
     // grupo com variações, produto simples quando não há). Com `setImages` ela
@@ -141,24 +139,15 @@ export function ProductDetailScreen({
 
   /** Variações JÁ GRAVADAS: só elas têm id, e só id tem entrada de estoque. */
   const variationOptions = useMemo(
-    () =>
-      // Alfabético pelo nome composto, como todo select do admin: a ordem de
-      // criação não diz nada a quem procura a variação que chegou.
-      orderCatalogByName(
-        variationDrafts
-          .filter((draft): draft is VariationDraft & { id: number } => draft.id != null && draft.id > 0)
-          // Nome COMPOSTO: o seletor precisa distinguir as variações, e `name`
-          // é o do grupo em todas elas.
-          .map((draft) => ({
-            id: draft.id,
-            name: nomeExibidoDaVariacao(form.productGroupName, draft.values),
-          })),
-      ),
+    () => opcoesDeVariacao(variationDrafts, form.productGroupName),
     [variationDrafts, form.productGroupName],
   );
 
+  // A MAIS ANTIGA por padrão (menor id, a primeira da lista): num produto que
+  // ganhou grade depois de existir, é ela que continua com o estoque e o
+  // histórico — abrir a aba em qualquer outra faz o saldo parecer perdido.
   const defaultStockProductId = form.hasVariations
-    ? (activeVariation?.id ?? variationOptions[0]?.id ?? null)
+    ? (variationOptions[0]?.id ?? null)
     : (productEditor.id ?? null);
 
   // A escolha do operador só vale enquanto a variação existir: apagar a variação

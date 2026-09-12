@@ -20,7 +20,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
-- `lib/variationNames.ts`: Nome exibido da variação (o mesmo que o backend compõe) e a chave que reconhece combinação repetida.
+- `lib/variationNames.ts`: Nome exibido da variação (o mesmo que o backend compõe), a chave que reconhece combinação repetida e as opções do seletor da aba Estoque.
 - `product-detail-route.ts`: A rota do detalhe (`/produtos/<grupo>/detalhes`), o padrão que a listagem e ela compartilham no `<Switch>` e o parser do caminho.
 - `hooks/useProductDetailFromUrl.ts`: Abertura de quem chega por link — a rota, o `?id=` antigo e o `?editar=` do PDV.
 - `lib/variationGrades.ts`: As grades em si — ordem, reconstrução a partir das variações, colunas de um produto já cadastrado e troca do tipo da grade.
@@ -110,6 +110,30 @@ Hoje:
   grade que o grupo usa, pintando a célula `grade-<tipo>-<key>` da linha — o
   nome da variação NÃO é validado, porque é derivado e a coluna é somente
   leitura.
+
+#### O estoque de um produto que ganhou variações (12/09/2026)
+
+O produto simples que vira variação **leva o estoque junto** — ele continua sendo
+o mesmo produto, com o mesmo id e os mesmos lotes. Só que o saldo fica todo na
+variação mais antiga, e as novas nascem zeradas. Duas telas escondiam isso e
+faziam parecer que o estoque tinha sumido (relato do grupo 168, em produção):
+
+- **A tabela de variações não mostrava saldo.** Agora tem uma coluna
+  **ESTOQUE, somente leitura**: estoque é a SOMA DOS LOTES do produto
+  (`stock_lots`), mexida por entrada, venda, baixa e contagem — número digitado
+  ali seria apagado no próximo recálculo do backend, sem erro nenhum. Linha
+  ainda não salva mostra travessão, não "0 un": ela não existe no banco.
+- **O seletor da aba Estoque abria na variação errada.** Ele listava em ordem
+  ALFABÉTICA, com o nome do produto repetido em cada opção
+  ("CUECA INFANTIL CORES [G, SLIP..." — cortado no fim). Hoje `opcoesDeVariacao`
+  entrega por **id crescente**, com rótulo só da configuração ("G, SLIP"), e a
+  aba abre na **mais antiga** — a que carrega o estoque. A mesma ordem vale para
+  a tabela da aba Dados: o servidor ordena os produtos por NOME, que é igual em
+  todas as variações, então quem ordena por id é a tela.
+
+A listagem de produtos continua mostrando o saldo do produto **representante**
+(o de maior id) na linha do grupo, com o rótulo "VARIAÇÕES" — o que, logo depois
+de uma conversão, é justamente a variação zerada. Somar o grupo ali está na fila.
 
 #### A modal não cruza grades — e por que o cartesiano saiu (12/09/2026)
 

@@ -2,6 +2,7 @@ import React from "react";
 import { Loader2, Printer, Trash2 } from "lucide-react";
 import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
+import { formatQuantity } from "@workspace/core";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { CurrencyInput } from "./CurrencyInput";
 import { VariationGradeHeader } from "./VariationGradeHeader";
@@ -125,6 +126,15 @@ export function ProductVariationsSection({
               <th className="px-4 py-3 font-medium w-32 text-center">
                 PREÇO <span className="text-red-500">*</span>
               </th>
+              {/*
+                Somente leitura, e sem asterisco: estoque não se digita aqui —
+                ele é a soma dos LOTES do produto (entrada, venda, baixa e
+                contagem mexem nele). A coluna existe porque, num produto que
+                ganhou grade depois de existir, o saldo fica todo na variação
+                mais antiga: sem ela, o operador via a tabela nova e concluía
+                que o estoque tinha sumido.
+              */}
+              <th className="px-4 py-3 font-medium w-28 text-center">ESTOQUE</th>
               <th className="px-4 py-3 font-medium w-32 text-center">
                 Status <span className="text-red-500">*</span>
               </th>
@@ -211,6 +221,21 @@ export function ProductVariationsSection({
                     <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
                       Preenchimento obrigatório
                     </p>
+                  )}
+                </td>
+
+                {/*
+                  Linha ainda não salva mostra travessão, não "0 un": ela não
+                  existe no banco, então não tem saldo — zero ali seria um dado
+                  inventado. O estoque entra pela aba Estoque, depois de salvar.
+                */}
+                <td className="px-4 py-2 text-center text-xs">
+                  {variation.id ? (
+                    <span className="font-medium text-foreground">
+                      {formatQuantity(variation.stock ?? 0)} un
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
                   )}
                 </td>
 

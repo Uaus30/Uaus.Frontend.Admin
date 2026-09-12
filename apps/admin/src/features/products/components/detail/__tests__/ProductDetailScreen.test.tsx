@@ -35,7 +35,6 @@ function fakeEditor() {
     form: { productGroupName: "CANECA", hasVariations: false, images: [] },
     productEditor: { id: 7, name: "CANECA", barcode: "7891234567890" },
     variationDrafts: [],
-    activeVariation: null,
     editingGroupId: 7,
     setImages: vi.fn(),
     saving: false,

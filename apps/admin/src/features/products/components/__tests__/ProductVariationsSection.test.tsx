@@ -92,3 +92,35 @@ describe("ProductVariationsSection", () => {
     expect(opcaoModelo.getAttribute("aria-disabled")).toBe("true");
   });
 });
+
+describe("ProductVariationsSection — coluna de estoque", () => {
+  it("mostra o saldo de cada variação, sem deixar editar", () => {
+    // Relato do dono (12/09/2026, grupo 168): ao converter um produto simples em
+    // produto com variações, o estoque continuou na variação mais antiga — mas a
+    // tabela não mostrava saldo nenhum, e parecia que ele tinha sumido.
+    renderSection({
+      variationDrafts: [
+        { ...draft(213, "Slip", "789"), stock: 3 },
+        { ...draft(1077, "Boxer", "790"), stock: 0 },
+      ],
+    });
+
+    const linhas = screen.getAllByRole("row");
+
+    expect(within(linhas[1]).getByText("3 un")).toBeTruthy();
+    expect(within(linhas[2]).getByText("0 un")).toBeTruthy();
+    // Nada de campo: estoque é a soma dos lotes, não um número digitado aqui.
+    expect(within(linhas[1]).queryByDisplayValue("3")).toBeNull();
+  });
+
+  it("linha ainda não salva mostra travessão, não zero", () => {
+    // Ela não existe no banco: "0 un" seria um saldo inventado.
+    renderSection({
+      variationDrafts: [{ ...draft(0, "Slip", ""), id: null, key: "temp-1" }],
+    });
+
+    const linhas = screen.getAllByRole("row");
+
+    expect(within(linhas[1]).getByText("—")).toBeTruthy();
+  });
+});

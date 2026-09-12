@@ -43,9 +43,11 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 
 const { ProductStockTab } = await import("../ProductStockTab");
 
+// Na ordem que `opcoesDeVariacao` entrega: id crescente, rótulo só com a
+// configuração — o nome do produto está no título da tela.
 const variacoes = [
-  { id: 41, name: "BALDE DE PLASTICO [12L, MASTER]" },
-  { id: 39, name: "BALDE DE PLASTICO [12L, ORIGINAL]" },
+  { id: 39, label: "12L, ORIGINAL" },
+  { id: 41, label: "12L, MASTER" },
 ];
 
 function renderTab(onSelectProduct: (id: number) => void) {

@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { deleteProduct } from "@/services/products.service";
@@ -35,11 +34,6 @@ export function useProductVariations({
   refetchGroupProducts,
 }: UseProductVariationsProps) {
   const { toast } = useToast();
-
-  const activeVariation = useMemo(
-    () => variationDrafts.find((variation) => variation.key === activeVariationKey) ?? null,
-    [activeVariationKey, variationDrafts],
-  );
 
   function updateVariationDraft(key: string, updater: (draft: VariationDraft) => VariationDraft) {
     setVariationDrafts((current) => current.map((draft) => (draft.key === key ? updater(draft) : draft)));
@@ -184,7 +178,6 @@ export function useProductVariations({
   }
 
   return {
-    activeVariation,
     updateVariationDraft,
     applyGrades,
     changeGradeType,

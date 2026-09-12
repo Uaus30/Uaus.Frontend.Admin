@@ -411,7 +411,12 @@ export function useProductEditor() {
       return;
     }
 
-    const drafts = enrichedGroupProducts.map(toVariationDraft);
+    // Por id CRESCENTE: o servidor ordena os produtos por NOME, e o nome é o do
+    // grupo em todas as variações — ou seja, sem critério nenhum, na ordem que o
+    // Postgres devolver. A tabela da aba Dados e o seletor da aba Estoque
+    // (`opcoesDeVariacao`) precisam concordar, e a mais antiga primeiro é a que
+    // carrega o estoque de antes de o produto ganhar grade.
+    const drafts = [...enrichedGroupProducts].sort((um, outro) => um.id - outro.id).map(toVariationDraft);
     setVariationDrafts(drafts);
     setActiveVariationKey((current) => current ?? drafts[0]?.key ?? null);
     setLoadedGroupId(editingGroupId);
@@ -434,7 +439,6 @@ export function useProductEditor() {
     variationDrafts,
     activeVariationKey,
     setActiveVariationKey,
-    activeVariation: productVariations.activeVariation,
     images,
     setImages: (update: React.SetStateAction<LocalImage[]>) => {
       markDirty();

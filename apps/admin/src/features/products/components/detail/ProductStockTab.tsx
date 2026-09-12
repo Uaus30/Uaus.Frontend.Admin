@@ -16,7 +16,11 @@ import type { StockEntryPrefill } from "@/features/stock-entries/types";
 /** Uma variação já gravada, para o seletor de qual SKU a aba está mostrando. */
 export type StockTabProductOption = {
   id: number;
-  name: string;
+  /**
+   * Só a CONFIGURAÇÃO da variação — "G, SLIP" —, sem o nome do produto, que já
+   * está no título da tela. Montada por `opcoesDeVariacao`.
+   */
+  label: string;
 };
 
 type ProductStockTabProps = {
@@ -112,30 +116,45 @@ export function ProductStockTab({
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           {variationOptions.length > 0 && (
-            <Select
-              value={String(productId)}
-              // Só id de verdade sobe. O Radix avisa a mudança com string VAZIA
-              // quando o `value` aponta para um item que ainda não existe na
-              // lista — e `Number("")` é 0, que apagaria a escolha de quem abriu
-              // a aba já sabendo a variação (o recebimento de uma compra).
-              onValueChange={(value) => {
-                const id = Number(value);
-                if (Number.isInteger(id) && id > 0) onSelectProduct(id);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full sm:w-[260px]" aria-label="Variação">
-                <SelectValue placeholder="Selecione a variação" />
-              </SelectTrigger>
-              <SelectContent>
-                {variationOptions.map((option) => (
-                  <SelectItem key={option.id} value={String(option.id)}>
-                    {option.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            /*
+              O seletor ganhou rótulo em 12/09/2026: sem ele, a opção escolhida
+              aparecia sozinha entre dois botões e parecia o nome do produto —
+              que era o que ela mostrava, repetido em todas as opções. Hoje a
+              opção traz só a configuração, e quem diz o que aquilo é, é o
+              rótulo.
+            */
+            <div className="space-y-1.5">
+              <label
+                htmlFor="select-variacao-estoque"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Variação selecionada:
+              </label>
+              <Select
+                value={String(productId)}
+                // Só id de verdade sobe. O Radix avisa a mudança com string VAZIA
+                // quando o `value` aponta para um item que ainda não existe na
+                // lista — e `Number("")` é 0, que apagaria a escolha de quem abriu
+                // a aba já sabendo a variação (o recebimento de uma compra).
+                onValueChange={(value) => {
+                  const id = Number(value);
+                  if (Number.isInteger(id) && id > 0) onSelectProduct(id);
+                }}
+              >
+                <SelectTrigger id="select-variacao-estoque" className="h-9 w-full sm:w-[260px]">
+                  <SelectValue placeholder="Selecione a variação" />
+                </SelectTrigger>
+                <SelectContent>
+                  {variationOptions.map((option) => (
+                    <SelectItem key={option.id} value={String(option.id)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
           {/*
