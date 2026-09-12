@@ -76,7 +76,16 @@ export function ProductImagesSection({
       </div>
 
       {images.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        /*
+          Miniatura de tamanho FIXO (até 8.5rem), não uma fração da largura.
+          A galeria nasceu dentro da modal de edição, onde `sm:grid-cols-4` dava
+          uns 150px por foto; na tela de detalhe, que ocupa a página inteira, a
+          mesma regra esticava cada miniatura para perto de 400px — maior que a
+          própria ampliação do hover (`ImageHoverZoom`, 320px), que assim não
+          ampliava nada. Com `auto-fill` a faixa ganha mais colunas em vez de
+          colunas maiores, e sobra espaço à direita quando as fotos são poucas.
+        */
+        <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(6rem,8.5rem))]">
           {images.map((image, index) => (
             <div
               key={`${image.name}-${index}`}
@@ -128,7 +137,10 @@ export function ProductImagesSection({
               </div>
             </div>
           ))}
-          <label className="relative flex items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/40 bg-background/20 hover:bg-muted/30 hover:border-primary/40 transition-colors cursor-pointer aspect-square min-h-[140px]">
+          {/* Sem `min-h`: o quadrado do "+" acompanha a largura da coluna, que
+              agora é fixa. Com a altura mínima antiga ele ficava mais alto que
+              as miniaturas e desalinhava a última linha da grade. */}
+          <label className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/40 bg-background/20 hover:bg-muted/30 hover:border-primary/40 transition-colors cursor-pointer">
             <Plus className="h-10 w-10 text-muted-foreground/50" />
             <input
               type="file"
