@@ -6,7 +6,7 @@ import { describeApiError } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 
 import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.service";
-import { upsertProduct, syncProductImages } from "@/services/products.service";
+import { upsertProduct, syncProductGroupImages } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
 import {
@@ -16,7 +16,7 @@ import {
   type EnumOptionDto,
 } from "@workspace/api-client-react";
 import { useAllCategories, useAllDepartments, CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
-import { mapProductTableRow, toProductImageAssociations } from "./mapProductTableRow";
+import { mapProductTableRow } from "./mapProductTableRow";
 import type { ProductTableRow } from "../types";
 
 /**
@@ -247,27 +247,17 @@ export function useProductTable() {
       type: 3,
     });
 
-    // As associações atuais vêm da própria linha — antes custavam uma consulta a
-    // `/ProductImages?productId=` por produto da página.
-    const currentAssociations = toProductImageAssociations(product);
-
-    const nextImages = [
-      { imageId: uploadedImage.id, displayOrder: 0 },
-      ...currentAssociations.map((association, idx) => ({
-        imageId: association.imageId,
-        displayOrder: idx + 1,
-      })),
-    ];
-
-    await syncProductImages({
-      productId: product.id,
-      currentAssociations,
-      nextImages,
+    // A galeria atual vem da própria linha — antes custava uma consulta por
+    // produto da página. A nova entra como CAPA e as antigas descem, sem que
+    // nenhuma seja perdida.
+    await syncProductGroupImages({
+      productGroupId: product.productGroupId,
+      imageIds: [uploadedImage.id, ...product.images.map((image) => image.imageId)],
     });
 
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products }),
-      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productImages }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroupImages }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.images }),
     ]);
 

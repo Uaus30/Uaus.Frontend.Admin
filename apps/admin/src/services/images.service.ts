@@ -7,7 +7,7 @@ import {
   buildUrl,
   fetchAllPages,
   type ImageDto,
-  type ProductImageDto,
+  type ProductGroupImageDto,
 } from "@workspace/api-client-react";
 import { getPaged } from "./core";
 
@@ -15,8 +15,9 @@ export async function getAllImages(params?: { search?: string }) {
   return fetchAllPages<ImageDto>("/Images", params);
 }
 
-export async function getAllProductImages() {
-  return fetchAllPages<ProductImageDto>("/ProductImages");
+/** Todas as associações de foto de GRUPO — a montagem do catálogo do admin junta tudo em memória. */
+export async function getAllProductGroupImages() {
+  return fetchAllPages<ProductGroupImageDto>("/ProductGroupImages");
 }
 
 /**

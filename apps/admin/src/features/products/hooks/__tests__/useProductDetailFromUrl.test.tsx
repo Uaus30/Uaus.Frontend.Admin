@@ -33,7 +33,7 @@ vi.mock("@/hooks/use-catalog", () => {
     useAllDepartments: query,
     useAllImages: query,
     useAllProductGroups: query,
-    useAllProductImages: query,
+    useAllProductGroupImages: query,
     useAllProductTags: query,
     useAllTags: query,
   };
@@ -149,7 +149,7 @@ describe("resolvendo", () => {
 describe("a busca não espera os catálogos", () => {
   it("dispara na montagem, com os sete catálogos ainda carregando", async () => {
     // Era uma ida ao servidor inteira de atraso: `getAllImages` e
-    // `getAllProductImages` são as pesadas da lista e não têm nada a ver com
+    // `getAllProductGroupImages` são as pesadas da lista e não têm nada a ver com
     // descobrir qual produto abrir. Só a montagem final depende delas.
     mocks.catalogosCarregando.valor = true;
     irPara("/produtos/709/detalhes");

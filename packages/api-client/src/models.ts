@@ -539,13 +539,22 @@ export interface ImageDto {
   version: number;
 }
 
-export interface ProductImageDto {
+/**
+ * Uma foto da galeria do GRUPO de produto.
+ *
+ * Substituiu o `ProductImageDto` (foto por SKU) em 12/09/2026: a galeria passou
+ * a pertencer ao grupo, que é o que a tela edita e o que a loja publica. Traz
+ * `url` e `name` junto porque quem acabou de sincronizar precisa exibir o
+ * resultado sem uma segunda consulta ao catálogo de imagens.
+ */
+export interface ProductGroupImageDto {
   id: number;
-  createdAt: string;
-  updatedAt: string | null;
-  productId: number;
+  productGroupId: number;
   imageId: number;
   displayOrder: number;
+  /** Caminho relativo; passe por `buildPublicImageUrl` antes do `<img src>`. */
+  url: string;
+  name: string;
 }
 
 /** Etiqueta de uma linha da tabela de produtos, já com nome e cor resolvidos. */

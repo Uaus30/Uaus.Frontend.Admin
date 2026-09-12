@@ -9,7 +9,7 @@ import {
   useAllDepartments,
   useAllImages,
   useAllProductGroups,
-  useAllProductImages,
+  useAllProductGroupImages,
   useAllProductTags,
   useAllTags,
 } from "@/hooks/use-catalog";
@@ -42,7 +42,7 @@ import {
  * **Não espera os catálogos para começar.** A busca do produto sai na montagem,
  * junto com eles; só a montagem final (`buildProductCollections`) precisa dos
  * sete. Esperar era uma ida ao servidor inteira de atraso — e as pesadas da
- * lista, `getAllImages` e `getAllProductImages`, são justamente as que não têm
+ * lista, `getAllImages` e `getAllProductGroupImages`, são justamente as que não têm
  * nada a ver com descobrir qual produto abrir.
  *
  * **Não resolve pela LISTAGEM.** A versão anterior do link do PDV
@@ -166,9 +166,9 @@ export function useProductDetailFromUrl({
   const tags = useAllTags();
   const productTags = useAllProductTags();
   const images = useAllImages();
-  const productImages = useAllProductImages();
+  const productGroupImages = useAllProductGroupImages();
 
-  const catalogs = [productGroups, categories, departments, tags, productTags, images, productImages];
+  const catalogs = [productGroups, categories, departments, tags, productTags, images, productGroupImages];
   const catalogsProntos = catalogs.every((query) => !query.isLoading);
 
   /**
@@ -245,7 +245,7 @@ export function useProductDetailFromUrl({
         tags: tags.data ?? [],
         productTags: productTags.data ?? [],
         images: images.data ?? [],
-        productImages: productImages.data ?? [],
+        productGroupImages: productGroupImages.data ?? [],
       });
 
       // A URL vira a canônica ANTES de abrir: o `useProductDetailHistory` olha

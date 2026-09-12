@@ -7,7 +7,7 @@ import {
   fetchAllPages,
   type ProductDto,
   type ProductGroupDto,
-  type ProductImageDto,
+  type ProductGroupImageDto,
   type ProductTagDto,
   type ProductVariationValueDto,
 } from "@workspace/api-client-react";
@@ -25,8 +25,8 @@ export async function getAllProductTags(params?: { productId?: number; tagId?: n
   return fetchAllPages<ProductTagDto>("/ProductTags", params);
 }
 
-export async function getAllProductImages(params?: { productId?: number }) {
-  return fetchAllPages<ProductImageDto>("/ProductImages", params);
+export async function getAllProductGroupImages(params?: { productGroupId?: number }) {
+  return fetchAllPages<ProductGroupImageDto>("/ProductGroupImages", params);
 }
 
 export async function getProductsPage(params?: {
@@ -276,41 +276,19 @@ export async function syncProductTags(payload: {
   }
 }
 
-export async function syncProductImages(payload: {
-  productId: number;
-  currentAssociations: ProductImageDto[];
-  nextImages: Array<{ imageId: number; displayOrder: number }>;
-}) {
-  const currentByImageId = new Map(payload.currentAssociations.map((item) => [item.imageId, item]));
-  const nextImageIds = new Set(payload.nextImages.map((item) => item.imageId));
-
-  for (const association of payload.currentAssociations) {
-    if (!nextImageIds.has(association.imageId)) {
-      await apiDelete<null>(`/ProductImages/${association.id}`);
-    }
-  }
-
-  for (const nextImage of payload.nextImages) {
-    const existing = currentByImageId.get(nextImage.imageId);
-
-    if (!existing) {
-      await apiPost<null>("/ProductImages", {
-        productId: payload.productId,
-        imageId: nextImage.imageId,
-        displayOrder: nextImage.displayOrder,
-      });
-      continue;
-    }
-
-    if (existing.displayOrder !== nextImage.displayOrder) {
-      await apiPut<ProductImageDto>("/ProductImages", {
-        id: existing.id,
-        productId: existing.productId,
-        imageId: existing.imageId,
-        displayOrder: nextImage.displayOrder,
-      });
-    }
-  }
+/**
+ * Grava a galeria do GRUPO inteira, na ordem recebida.
+ *
+ * Uma requisição, idempotente. Era um CRUD em série até 12/09/2026 — um DELETE
+ * por foto removida, um POST por foto nova e um PUT por foto que só mudou de
+ * posição —, e uma falha no meio deixava a galeria pela metade, com outra capa
+ * na vitrine. Quem calcula a diferença agora é o servidor, dentro de uma
+ * transação.
+ */
+export async function syncProductGroupImages(payload: { productGroupId: number; imageIds: number[] }) {
+  return apiPut<ProductGroupImageDto[]>(`/ProductGroupImages/${payload.productGroupId}`, {
+    imageIds: payload.imageIds,
+  });
 }
 
 export async function getProductGroupById(id: number) {

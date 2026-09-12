@@ -21,7 +21,7 @@ vi.mock("@/services/products.service", () => ({
   getAllProducts: vi.fn(() => Promise.resolve([])),
   getAllProductGroups: vi.fn(() => Promise.resolve([])),
   getAllProductTags: vi.fn(() => Promise.resolve([])),
-  getAllProductImages: vi.fn(() => Promise.resolve([])),
+  getAllProductGroupImages: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("@/services/categories.service", () => ({

@@ -3,7 +3,7 @@ import { useProductEditor } from "../useProductEditor";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { syncProductImages } from "@/services/products.service";
+import { syncProductGroupImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
 
 const mocks = vi.hoisted(() => ({
@@ -23,11 +23,11 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
 // Mock services and utilities
 vi.mock("@/services/products.service", () => ({
   getAllProducts: vi.fn(() => Promise.resolve([])),
-  getAllProductImages: vi.fn(() => Promise.resolve([])),
+  getAllProductGroupImages: vi.fn(() => Promise.resolve([])),
   getAllProductTags: vi.fn(() => Promise.resolve([])),
   getProductsPage: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
   syncProductTags: vi.fn(() => Promise.resolve()),
-  syncProductImages: vi.fn(() => Promise.resolve()),
+  syncProductGroupImages: vi.fn(() => Promise.resolve([])),
   deleteProduct: vi.fn(() => Promise.resolve()),
   deleteProductGroup: vi.fn(() => Promise.resolve()),
 }));
@@ -229,27 +229,20 @@ describe("useProductEditor Hook", () => {
     });
 
     expect(createImageFromFile).toHaveBeenCalledTimes(1);
-    expect(syncProductImages).toHaveBeenCalledWith(
-      expect.objectContaining({
-        nextImages: [
-          { imageId: 99, displayOrder: 0 },
-          { imageId: 1, displayOrder: 1 },
-          { imageId: 2, displayOrder: 2 },
-        ],
-      }),
-    );
+    // A ordem da tela é a ordem gravada: a primeira é a capa.
+    expect(syncProductGroupImages).toHaveBeenCalledWith(expect.objectContaining({ imageIds: [99, 1, 2] }));
   });
 
-  it("deve gravar a imagem anexada em grupo COM variações, na variação ativa", async () => {
+  it("deve gravar a imagem anexada em grupo COM variações, na galeria do GRUPO", async () => {
     // REGRESSÃO (produção, 06/09/2026 — grupo 825): a galeria da aba Dados
     // escrevia sempre em `images`, o estado do produto SIMPLES, mesmo em grupo
-    // com variações. O `handleSubmit`, no ramo com variações, só percorre
+    // com variações. O `handleSubmit`, no ramo com variações, só percorria
     // `variationDrafts` — a foto anexada não ia para lugar nenhum, o toast
-    // dizia "Grupo e variações salvos" e ela sumia no recarregamento, porque
-    // `openDetail` faz `setImages([])` em grupo com variações.
+    // dizia "Grupo e variações salvos" e ela sumia no recarregamento.
     //
-    // Nada disso gerava erro. O teste trava o caminho pelo efeito observável:
-    // a imagem tem que chegar ao `syncProductImages` DO PRODUTO da variação.
+    // Nada disso gerava erro. Desde 12/09/2026 a galeria é do GRUPO e o ramo
+    // deixou de existir, mas o teste continua: ele trava o efeito observável —
+    // a foto anexada na aba Dados tem que ser persistida.
     mocks.saveProductGroupWithProducts.mockResolvedValueOnce({
       group: { id: 1 },
       products: [
@@ -295,37 +288,24 @@ describe("useProductEditor Hook", () => {
       });
     });
 
-    // Acrescentar variação a torna ativa. O operador volta para a primeira pelo
-    // seletor da galeria — é ele que responde "estas fotos são de qual".
-    expect(result.current.activeVariationKey).toBe(result.current.variationDrafts[1].key);
-    act(() => {
-      result.current.setActiveVariationKey(result.current.variationDrafts[0].key);
-    });
-
     // O operador anexa a foto pela galeria da aba Dados — a MESMA galeria em
-    // produto simples e em grupo com variações.
+    // produto simples e em grupo com variações, e agora também o MESMO destino.
     act(() => {
       result.current.setGalleryImages([
         { name: "foto", url: "blob:foto", file: new File(["x"], "foto.png", { type: "image/png" }) },
       ]);
     });
 
-    // A foto tem que aparecer na variação, e não no estado do produto simples.
     expect(result.current.galleryImages).toHaveLength(1);
-    expect(result.current.variationDrafts[0].images).toHaveLength(1);
-    expect(result.current.images).toHaveLength(0);
 
     await act(async () => {
       await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
     });
 
     expect(createImageFromFile).toHaveBeenCalledTimes(1);
-    expect(syncProductImages).toHaveBeenCalledWith(
-      expect.objectContaining({
-        productId: 10,
-        nextImages: [{ imageId: 99, displayOrder: 0 }],
-      }),
-    );
+    // UMA chamada, com o id do GRUPO — não uma por variação.
+    expect(syncProductGroupImages).toHaveBeenCalledTimes(1);
+    expect(syncProductGroupImages).toHaveBeenCalledWith({ productGroupId: 1, imageIds: [99] });
   });
 
   it("deve manter a tela aberta depois de salvar um produto simples, ja com o id do grupo", async () => {

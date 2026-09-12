@@ -62,7 +62,7 @@ const bacia: InventoryCountItemDto = {
   productGroupName: "BACIA PLASTICA",
   categoryName: "Utilidades",
   variationsCount: 3,
-  variationsWithoutImage: 1,
+  hasImage: true,
   imageUrl: null,
   stock: 8,
   stockAtSnapshot: 10,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProductTableRowDto } from "@workspace/api-client-react";
 
-import { mapProductTableRow, toProductImageAssociations } from "../mapProductTableRow";
+import { mapProductTableRow } from "../mapProductTableRow";
 
 /**
  * Tradução da linha do servidor para a linha da tela.
@@ -119,33 +119,5 @@ describe("mapProductTableRow", () => {
     expect(row.id).toBe(0);
     expect(row.tags).toEqual([]);
     expect(row.images).toEqual([]);
-  });
-});
-
-describe("toProductImageAssociations", () => {
-  it("remonta as associações com o id da ASSOCIAÇÃO, não o da imagem", () => {
-    // O `syncProductImages` remove e reordena pelo id da associação. Passar o id
-    // da imagem apagaria a associação errada — ou nenhuma, e a sincronização
-    // duplicaria o que já existe.
-    const associations = toProductImageAssociations(mapProductTableRow(linha));
-
-    expect(associations).toEqual([
-      {
-        id: 77,
-        createdAt: "2026-01-02T00:00:00",
-        updatedAt: null,
-        productId: 10,
-        imageId: 88,
-        displayOrder: 0,
-      },
-      {
-        id: 78,
-        createdAt: "2026-01-03T00:00:00",
-        updatedAt: null,
-        productId: 10,
-        imageId: 89,
-        displayOrder: 1,
-      },
-    ]);
   });
 });

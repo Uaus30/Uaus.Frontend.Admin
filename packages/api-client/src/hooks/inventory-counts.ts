@@ -55,8 +55,14 @@ export interface InventoryCountItemDto {
   categoryName?: string | null;
   /** Variações vivas. 1 em produto simples. */
   variationsCount: number;
-  /** Variações sem foto nenhuma — o que a conferência quer zerar. */
-  variationsWithoutImage: number;
+  /**
+   * O cadastro tem ao menos uma foto viva — o que a conferência quer garantir.
+   *
+   * Era `variationsWithoutImage` (uma contagem) enquanto a galeria vivia no SKU
+   * e um grupo podia estar "pela metade". Desde 12/09/2026 a foto é do GRUPO e
+   * a pergunta é binária.
+   */
+  hasImage: boolean;
   /** Caminho relativo da primeira foto; passe por `buildPublicImageUrl`. Ausente sem foto. */
   imageUrl?: string | null;
   /** Soma do estoque das variações vivas, agora. */

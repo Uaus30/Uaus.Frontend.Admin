@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { STALE_TIME } from "@workspace/api-client-react";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
 import { getAllCustomers } from "@/services/customers.service";
-import { getAllImages, getAllProductImages } from "@/services/images.service";
+import { getAllImages, getAllProductGroupImages } from "@/services/images.service";
 import { getAllProductGroups, getAllProductTags, getAllProducts } from "@/services/products.service";
 import { getAllSuppliers } from "@/services/suppliers.service";
 import { getAllTags } from "@/services/tags.service";
@@ -51,7 +51,7 @@ export const RESOURCE_KEYS = {
   suppliers: ["suppliers"],
   customers: ["customers"],
   images: ["images"],
-  productImages: ["product-images"],
+  productGroupImages: ["product-group-images"],
   products: ["products"],
 } as const;
 
@@ -65,7 +65,7 @@ export const CATALOG_KEYS = {
   suppliers: [...RESOURCE_KEYS.suppliers, "all"],
   customers: [...RESOURCE_KEYS.customers, "all"],
   images: [...RESOURCE_KEYS.images, "all"],
-  productImages: [...RESOURCE_KEYS.productImages, "all"],
+  productGroupImages: [...RESOURCE_KEYS.productGroupImages, "all"],
   products: [...RESOURCE_KEYS.products, "all"],
 } as const;
 
@@ -172,10 +172,10 @@ export function useAllImages(options?: CatalogOptions) {
   });
 }
 
-export function useAllProductImages(options?: CatalogOptions) {
+export function useAllProductGroupImages(options?: CatalogOptions) {
   return useQuery({
-    queryKey: CATALOG_KEYS.productImages,
-    queryFn: () => getAllProductImages(),
+    queryKey: CATALOG_KEYS.productGroupImages,
+    queryFn: () => getAllProductGroupImages(),
     staleTime: CATALOG_STALE_TIME,
     enabled: options?.enabled,
   });

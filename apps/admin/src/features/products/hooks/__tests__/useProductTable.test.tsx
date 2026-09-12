@@ -3,7 +3,7 @@ import { useProductTable } from "../useProductTable";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { upsertProduct, syncProductImages } from "@/services/products.service";
+import { upsertProduct, syncProductGroupImages } from "@/services/products.service";
 import type { ProductTableRowDto } from "@workspace/api-client-react";
 
 /**
@@ -94,7 +94,7 @@ function caminhosPedidos(): string[] {
 
 vi.mock("@/services/products.service", () => ({
   upsertProduct: vi.fn(() => Promise.resolve({ id: 10 })),
-  syncProductImages: vi.fn(() => Promise.resolve()),
+  syncProductGroupImages: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("@/services/images.service", () => ({
@@ -263,14 +263,10 @@ describe("useProductTable Hook", () => {
       );
     });
 
-    expect(syncProductImages).toHaveBeenCalledWith(
+    // A galeria é do GRUPO, e a foto nova entra como capa sem perder a antiga.
+    expect(syncProductGroupImages).toHaveBeenCalledWith(
       expect.objectContaining({
-        productId: 10,
-        currentAssociations: [expect.objectContaining({ id: 77, imageId: 88, productId: 10 })],
-        nextImages: [
-          { imageId: 99, displayOrder: 0 },
-          { imageId: 88, displayOrder: 1 },
-        ],
+        imageIds: [99, 88],
       }),
     );
   });

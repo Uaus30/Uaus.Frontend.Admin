@@ -155,14 +155,9 @@
       "count": 1
     }
   },
-  "apps/admin/src/features/products/hooks/editor/useProductImages.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 4
-    }
-  },
   "apps/admin/src/features/products/hooks/editor/useProductSubmit.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 4
+      "count": 3
     }
   },
   "apps/admin/src/features/products/hooks/useProductEditor.ts": {

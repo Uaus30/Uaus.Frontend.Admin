@@ -2,19 +2,14 @@ import type { InventoryCountItemDto } from "@workspace/api-client-react";
 import type { PhotoCoverage } from "../types";
 
 /**
- * Quanto da foto do cadastro está faltando.
+ * O cadastro tem foto?
  *
- * São três estados e não dois porque um grupo com variações pode estar pela
- * metade: "duas de cinco sem foto" é atenção (âmbar), "nenhuma variação com
- * foto" é defeito (vermelho), e o resto não precisa de aviso nenhum. O
- * vocabulário é o de `Uaus.Docs/dominio/convencoes-de-interface.md`.
- *
- * Cadastro **sem variação viva** conta como `missing`: não há foto porque não há
- * produto, e é exatamente o tipo de cadastro que a conferência existe para
- * achar.
+ * São DOIS estados desde 12/09/2026. Eram três — "duas de cinco variações sem
+ * foto" era atenção (âmbar) — enquanto a galeria pertencia ao SKU e um grupo
+ * podia estar pela metade. Com a foto no GRUPO não existe meio-termo: ou o
+ * cadastro tem galeria, ou não tem. O vocabulário de cor é o de
+ * `Uaus.Docs/dominio/convencoes-de-interface.md`.
  */
 export function photoCoverage(item: InventoryCountItemDto): PhotoCoverage {
-  if (item.variationsWithoutImage === 0 && item.variationsCount > 0) return "complete";
-  if (item.variationsWithoutImage >= item.variationsCount) return "missing";
-  return "partial";
+  return item.hasImage ? "complete" : "missing";
 }

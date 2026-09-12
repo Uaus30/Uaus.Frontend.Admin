@@ -4,7 +4,7 @@ import {
   type SaveProductGroupProductPayload,
 } from "@workspace/api-client-react";
 import { buildPublicImageUrl } from "@/services/core";
-import { syncProductTags, syncProductImages } from "@/services/products.service";
+import { syncProductTags, syncProductGroupImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
 import { chaveDaCombinacao } from "../../lib/variationMatrix";
 import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft } from "../../types";
@@ -25,7 +25,6 @@ export interface UseProductSubmitProps {
   invalidateProductQueries: (groupId?: number | null) => Promise<void>;
   refetchGroupProducts: () => Promise<any>;
   productTags: any[];
-  productImages: any[];
   getStatusNumber: (statusVal: any) => number;
   markClean: () => void;
 }
@@ -45,20 +44,30 @@ export function useProductSubmit({
   invalidateProductQueries,
   refetchGroupProducts,
   productTags,
-  productImages,
   getStatusNumber,
   markClean,
 }: UseProductSubmitProps) {
   const { toast } = useToast();
 
-  async function persistProductAssociations(productId: number, tagIds: number[], sourceImages: LocalImage[]) {
+  /** Etiquetas são do PRODUTO: uma sincronização por variação. */
+  async function persistProductTags(productId: number, tagIds: number[]) {
     const currentTagAssociations = productTags.filter((item) => item.productId === productId);
     await syncProductTags({
       productId,
       currentAssociations: currentTagAssociations,
       nextTagIds: tagIds,
     });
+  }
 
+  /**
+   * A galeria é do GRUPO: UMA sincronização por salvamento, não uma por
+   * variação.
+   *
+   * Sobe primeiro os arquivos que ainda não estão no catálogo (a imagem vive
+   * fora de qualquer transação de banco) e só então grava a lista final, na
+   * ordem da tela — a primeira é a capa.
+   */
+  async function persistGroupImages(productGroupId: number, sourceImages: LocalImage[]) {
     const normalizedImages: LocalImage[] = [];
     for (const image of sourceImages) {
       if (image.imageId) {
@@ -78,15 +87,9 @@ export function useProductSubmit({
       });
     }
 
-    const nextImages = normalizedImages.map((image, index) => ({
-      imageId: image.imageId as number,
-      displayOrder: index,
-    }));
-
-    await syncProductImages({
-      productId,
-      currentAssociations: productImages.filter((item) => item.productId === productId),
-      nextImages,
+    await syncProductGroupImages({
+      productGroupId,
+      imageIds: normalizedImages.map((image) => image.imageId as number),
     });
 
     return normalizedImages;
@@ -199,24 +202,28 @@ export function useProductSubmit({
       // Etiquetas e imagens continuam como sincronizações à parte: imagem passa
       // por upload (fora de qualquer transação de banco) e uma falha aqui deixa
       // o CATÁLOGO íntegro — só a associação fica para refazer.
+      //
+      // A galeria é do GRUPO: uma chamada só, fora do laço das variações. Antes
+      // era uma por variação, e cada uma com o seu conjunto de fotos.
+      const normalizedImages = await persistGroupImages(saved.group.id, images);
+      setImages(normalizedImages);
+
       if (!form.hasVariations) {
         const product = saved.products[0];
-        const normalizedImages = await persistProductAssociations(product.id, productEditor.tagIds, images);
+        await persistProductTags(product.id, productEditor.tagIds);
 
         setProductEditor((current) => ({ ...current, id: product.id }));
-        setImages(normalizedImages);
       } else {
         const nextDrafts: VariationDraft[] = [];
         for (let index = 0; index < variationDrafts.length; index++) {
           const draft = variationDrafts[index];
           // Resposta na MESMA ordem do envio — é o contrato do endpoint.
           const product = saved.products[index];
-          const normalizedImages = await persistProductAssociations(product.id, draft.tagIds, draft.images);
+          await persistProductTags(product.id, draft.tagIds);
 
           nextDrafts.push({
             ...draft,
             id: product.id,
-            images: normalizedImages,
             canDelete: product.canDelete,
             key: draft.id ? draft.key : `product-${product.id}`,
           });

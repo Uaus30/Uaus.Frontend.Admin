@@ -20,7 +20,7 @@ import {
   getAllProducts,
   getAllProductGroups,
   getAllProductTags,
-  getAllProductImages,
+  getAllProductGroupImages,
 } from "@/services/products.service";
 import { getAllCategories, getAllDepartments } from "@/services/categories.service";
 import { getAllTags } from "@/services/tags.service";
@@ -106,17 +106,25 @@ export function useSales() {
   const { data: enrichedProducts = [] } = useQuery({
     queryKey: ["products-enriched-for-sales"],
     queryFn: async () => {
-      const [products, productGroups, categories, departments, tags, productTags, images, productImages] =
-        await Promise.all([
-          getAllProducts(),
-          getAllProductGroups(),
-          getAllCategories(),
-          getAllDepartments(),
-          getAllTags(),
-          getAllProductTags(),
-          getAllImages(),
-          getAllProductImages(),
-        ]);
+      const [
+        products,
+        productGroups,
+        categories,
+        departments,
+        tags,
+        productTags,
+        images,
+        productGroupImages,
+      ] = await Promise.all([
+        getAllProducts(),
+        getAllProductGroups(),
+        getAllCategories(),
+        getAllDepartments(),
+        getAllTags(),
+        getAllProductTags(),
+        getAllImages(),
+        getAllProductGroupImages(),
+      ]);
 
       return buildProductCollections({
         products,
@@ -126,7 +134,7 @@ export function useSales() {
         tags,
         productTags,
         images,
-        productImages,
+        productGroupImages,
       }).enrichedProducts;
     },
     enabled: createModalOpen,

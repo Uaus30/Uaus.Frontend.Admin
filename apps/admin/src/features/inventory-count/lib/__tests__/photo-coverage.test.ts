@@ -3,14 +3,14 @@ import type { InventoryCountItemDto } from "@workspace/api-client-react";
 
 import { photoCoverage } from "../photo-coverage";
 
-function item(variationsCount: number, variationsWithoutImage: number): InventoryCountItemDto {
+function item(variationsCount: number, hasImage: boolean): InventoryCountItemDto {
   return {
     id: 1,
     productGroupId: 1,
     productGroupName: "BACIA",
     categoryName: "Utilidades",
     variationsCount,
-    variationsWithoutImage,
+    hasImage,
     imageUrl: null,
     stock: 0,
     stockAtSnapshot: 0,
@@ -20,21 +20,23 @@ function item(variationsCount: number, variationsWithoutImage: number): Inventor
 }
 
 describe("photoCoverage", () => {
-  it("não avisa nada quando toda variação tem foto", () => {
-    expect(photoCoverage(item(3, 0))).toBe("complete");
+  it("não avisa nada quando o cadastro tem foto", () => {
+    expect(photoCoverage(item(3, true))).toBe("complete");
   });
 
-  it("trata o cadastro inteiro sem foto como defeito", () => {
-    expect(photoCoverage(item(3, 3))).toBe("missing");
+  it("trata o cadastro sem foto como defeito", () => {
+    expect(photoCoverage(item(3, false))).toBe("missing");
   });
 
-  it("trata a metade sem foto como atenção", () => {
-    expect(photoCoverage(item(5, 2))).toBe("partial");
+  it("não depende do número de variações", () => {
+    // A galeria é do GRUPO desde 12/09/2026: uma variação ou dez, a resposta é
+    // a mesma. O estado "pela metade" deixou de existir com o modelo antigo.
+    expect(photoCoverage(item(1, true))).toBe("complete");
+    expect(photoCoverage(item(10, true))).toBe("complete");
   });
 
-  it("cadastro sem variação viva conta como sem foto", () => {
-    // Não há foto porque não há produto — e é justamente o cadastro órfão que a
-    // conferência existe para achar. "complete" o esconderia.
-    expect(photoCoverage(item(0, 0))).toBe("missing");
+  it("cadastro sem variação viva e sem foto conta como sem foto", () => {
+    // É justamente o cadastro órfão que a conferência existe para achar.
+    expect(photoCoverage(item(0, false))).toBe("missing");
   });
 });

@@ -1,4 +1,4 @@
-import { Camera, CheckCircle2, ImageOff, PartyPopper, Search, Undo2 } from "lucide-react";
+import { CheckCircle2, ImageOff, PartyPopper, Search, Undo2 } from "lucide-react";
 import {
   Badge,
   Button,
@@ -218,14 +218,6 @@ function Linha({
         {foto === "missing" && (
           <Badge variant="destructive" className="ml-2 gap-1 text-2xs">
             <ImageOff className="h-3 w-3" /> Sem foto
-          </Badge>
-        )}
-        {foto === "partial" && (
-          <Badge
-            variant="outline"
-            className="ml-2 gap-1 border-amber-500/40 text-2xs text-amber-600 dark:text-amber-400"
-          >
-            <Camera className="h-3 w-3" /> {item.variationsWithoutImage} sem foto
           </Badge>
         )}
       </TableCell>

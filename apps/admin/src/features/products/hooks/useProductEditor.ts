@@ -31,7 +31,7 @@ import { useProductForm } from "./editor/useProductForm";
 import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
 import { useProductSubmit } from "./editor/useProductSubmit";
-import { CATALOG_KEYS, RESOURCE_KEYS, useAllImages, useAllProductImages } from "@/hooks/use-catalog";
+import { CATALOG_KEYS, RESOURCE_KEYS, useAllImages, useAllProductGroupImages } from "@/hooks/use-catalog";
 
 export function useProductEditor() {
   const queryClient = useQueryClient();
@@ -119,7 +119,7 @@ export function useProductEditor() {
 
   const { data: imagesCatalog = [] } = useAllImages();
 
-  const { data: productImagesAll = [] } = useAllProductImages();
+  const { data: productGroupImagesAll = [] } = useAllProductGroupImages();
 
   /**
    * Código de barras já cadastrado carrega o produto existente na tela.
@@ -137,7 +137,7 @@ export function useProductEditor() {
     tags: productForm.tags,
     productTags: productForm.productTags,
     images: imagesCatalog,
-    productImages: productImagesAll,
+    productGroupImages: productGroupImagesAll,
   });
 
   const enrichedGroupProducts = useMemo(() => {
@@ -150,7 +150,7 @@ export function useProductEditor() {
       tags: productForm.tags,
       productTags: productForm.productTags,
       images: imagesCatalog,
-      productImages: productImagesAll,
+      productGroupImages: productGroupImagesAll,
     }).enrichedProducts;
   }, [
     productForm.categories,
@@ -158,7 +158,7 @@ export function useProductEditor() {
     groupProductsPage?.data,
     imagesCatalog,
     productForm.productGroups,
-    productImagesAll,
+    productGroupImagesAll,
     productForm.productTags,
     productForm.tags,
   ]);
@@ -181,7 +181,7 @@ export function useProductEditor() {
       queryClient.invalidateQueries({ queryKey: ["products-page"] }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroups }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productTags }),
-      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productImages }),
+      queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroupImages }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.images }),
       queryClient.invalidateQueries({ queryKey: ["products-by-group", groupId ?? editingGroupId] }),
       queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.tags }),
@@ -213,11 +213,7 @@ export function useProductEditor() {
     productVariations.updateVariationDraft(key, updater);
   }
 
-  const productImagesHook = useProductImages({
-    setImages,
-    activeVariation: productVariations.activeVariation,
-    updateVariationDraft,
-  });
+  const productImagesHook = useProductImages({ setImages });
 
   const productSubmit = useProductSubmit({
     form,
@@ -234,7 +230,6 @@ export function useProductEditor() {
     invalidateProductQueries,
     refetchGroupProducts,
     productTags: productForm.productTags,
-    productImages: productImagesAll,
     getStatusNumber: productForm.getStatusNumber,
     markClean,
   });
@@ -447,42 +442,29 @@ export function useProductEditor() {
     },
 
     /**
-     * A galeria da aba **Dados**, já apontada para o alvo certo: a VARIAÇÃO
-     * ATIVA quando o grupo tem variações, o produto simples quando não tem.
+     * A galeria da aba **Dados** — UMA, do GRUPO, com ou sem variações.
      *
-     * ## Por que a escolha mora aqui, e não na tela
+     * Havia duas até 12/09/2026, e a escolha entre elas morava aqui porque
+     * errá-la não gerava erro: até 06/09/2026 a galeria ficava fixa no estado do
+     * produto SIMPLES mesmo em grupo com variações, o `handleSubmit` só
+     * percorria os `variationDrafts`, e a foto recém-anexada não era gravada em
+     * lugar nenhum — o toast dizia "Grupo e variações salvos" e no F5 seguinte
+     * ela sumia.
      *
-     * Porque errá-la não gera erro. Até 06/09/2026 a galeria estava fixa em
-     * `images` — o estado do produto SIMPLES — mesmo em grupo com variações. E
-     * o `handleSubmit`, no ramo com variações, só percorre `variationDrafts`:
-     * a imagem que o operador acabara de anexar não era gravada em lugar
-     * nenhum, o toast dizia "Grupo e variações salvos" e no F5 seguinte
-     * `openDetail` fazia `setImages([])` e a foto sumia. Nenhum erro em lugar
-     * nenhum — só a foto que não estava lá.
-     *
-     * Com a decisão dentro do hook, a tela não tem como escolher errado: existe
-     * UMA galeria e ela já vem ligada no alvo que o `handleSubmit` persiste.
-     *
-     * As imagens são POR VARIAÇÃO, e não do grupo: no banco de dev, 62 dos 76
-     * grupos com variações e com foto têm fotos DIFERENTES em cada variação
-     * (toalha por cor, forma por tamanho). Aplicar uma galeria única ao grupo
-     * inteiro apagaria justamente essas.
+     * A foto passou a pertencer ao grupo (`product_group_images`), e o ramo
+     * deixou de existir: não há mais alvo errado para escolher.
      */
-    galleryImages: form.hasVariations ? (productVariations.activeVariation?.images ?? []) : images,
+    galleryImages: images,
     setGalleryImages: (update: React.SetStateAction<LocalImage[]>) => {
       markDirty();
-      if (form.hasVariations) return productImagesHook.setVariationImages(update);
       setImages(update);
     },
     handleGalleryFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => {
       markDirty();
-      return form.hasVariations
-        ? productImagesHook.handleVariationFileSelection(event)
-        : productImagesHook.handleSimpleFileSelection(event);
+      return productImagesHook.handleFileSelection(event);
     },
     reorderGalleryImage: (oldIndex: number, newIndex: number) => {
       markDirty();
-      if (form.hasVariations) return productImagesHook.reorderVariationImage(oldIndex, newIndex);
       productImagesHook.reorderProductImage(oldIndex, newIndex);
     },
     saving,
@@ -518,11 +500,7 @@ export function useProductEditor() {
     },
     handleSimpleFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => {
       markDirty();
-      return productImagesHook.handleSimpleFileSelection(event);
-    },
-    handleVariationFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => {
-      markDirty();
-      return productImagesHook.handleVariationFileSelection(event);
+      return productImagesHook.handleFileSelection(event);
     },
     toggleHasVariations: (checked: boolean) => {
       markDirty();

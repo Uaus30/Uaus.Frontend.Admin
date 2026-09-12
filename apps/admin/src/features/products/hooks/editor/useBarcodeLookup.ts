@@ -6,7 +6,7 @@ import type {
   DepartmentDto,
   ImageDto,
   ProductGroupDto,
-  ProductImageDto,
+  ProductGroupImageDto,
   ProductTagDto,
   TagDto,
 } from "@workspace/api-client-react";
@@ -47,7 +47,7 @@ type CatalogosDoProduto = {
   tags: TagDto[];
   productTags: ProductTagDto[];
   images: ImageDto[];
-  productImages: ProductImageDto[];
+  productGroupImages: ProductGroupImageDto[];
 };
 
 type UseBarcodeLookupParams = CatalogosDoProduto & {
@@ -156,7 +156,7 @@ export function useBarcodeLookup(params: UseBarcodeLookupParams) {
       tags: atual.tags,
       productTags: atual.productTags,
       images: atual.images,
-      productImages: atual.productImages,
+      productGroupImages: atual.productGroupImages,
     }).enrichedProducts;
 
     toast({

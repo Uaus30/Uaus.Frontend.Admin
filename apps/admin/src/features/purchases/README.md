@@ -77,9 +77,10 @@ recebimento dela é o que gera a entrada.
   hospedagem aceita. URL e busca na web passam antes pelo proxy do backend
   (CORS). No recebimento de produto novo, as mesmas imagens viram a galeria do
   cadastro sem novo upload.
-- **A primeira foto da compra vira a imagem PRINCIPAL do produto no
-  recebimento** — e as que o produto já tinha descem de posição, sem serem
-  apagadas. Quem fotografa na hora de comprar está registrando o que acabou de
+- **A primeira foto da compra vira a CAPA do grupo de produto no recebimento**
+  — e as que o grupo já tinha descem de posição, sem serem apagadas. O alvo é o
+  GRUPO desde 12/09/2026 (`product_group_images`), e não o SKU: receber a
+  variação AZUL atualiza a foto do produto, que é o que a loja publica. Quem fotografa na hora de comprar está registrando o que acabou de
   chegar, e é essa foto que deve aparecer na vitrine, no PDV e na etiqueta. Foto
   antiga é trabalho manual acumulado; faxina se faz pela galeria do produto, não
   por um efeito colateral do recebimento. Quem faz é

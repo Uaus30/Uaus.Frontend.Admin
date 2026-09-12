@@ -51,7 +51,7 @@ const CATALOGOS = {
   tags: [],
   productTags: [],
   images: [],
-  productImages: [],
+  productGroupImages: [],
 };
 
 function renderLookup(podeCarregar = true) {

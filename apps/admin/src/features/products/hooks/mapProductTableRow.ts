@@ -1,4 +1,4 @@
-import type { ProductImageDto, ProductTableRowDto } from "@workspace/api-client-react";
+import type { ProductTableRowDto } from "@workspace/api-client-react";
 
 import type { ProductTableRow } from "../types";
 
@@ -51,24 +51,4 @@ export function mapProductTableRow(row: ProductTableRowDto): ProductTableRow {
       },
     })),
   };
-}
-
-/**
- * Reconstrói as associações de imagem no formato que o `syncProductImages`
- * consome.
- *
- * A sincronização precisa do id da ASSOCIAÇÃO para reordenar e remover sem tocar
- * no arquivo. Antes esses objetos vinham de `/ProductImages?productId=` — uma
- * requisição por produto da página. Agora vêm da própria linha, e esta função só
- * remonta o formato.
- */
-export function toProductImageAssociations(row: ProductTableRow): ProductImageDto[] {
-  return row.images.map((image) => ({
-    id: image.associationId,
-    createdAt: image.createdAt,
-    updatedAt: image.updatedAt,
-    productId: row.id,
-    imageId: image.imageId,
-    displayOrder: image.displayOrder,
-  }));
 }

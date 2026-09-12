@@ -2,19 +2,23 @@ import { useToast } from "@workspace/ui";
 import { optimizeImage } from "@/lib/imageOptimizer";
 import { reorderItems, moveItemTo } from "./utils";
 import { buildPublicImageUrl } from "@/services/core";
-import type { LocalImage, VariationDraft } from "../../types";
+import type { LocalImage, ProductTableRowImage } from "../../types";
 
 export interface UseProductImagesProps {
   setImages: React.Dispatch<React.SetStateAction<LocalImage[]>>;
-  activeVariation: VariationDraft | null;
-  updateVariationDraft: (key: string, updater: (draft: VariationDraft) => VariationDraft) => void;
 }
 
-export function useProductImages({
-  setImages,
-  activeVariation,
-  updateVariationDraft,
-}: UseProductImagesProps) {
+/**
+ * A galeria do cadastro — UMA, do grupo.
+ *
+ * Até 12/09/2026 havia duas: a do produto simples e a da variação ativa, com
+ * um par de funções para cada (`setVariationImages`, `handleVariationFileSelection`,
+ * `reorderVariationImage`) e um `if (hasVariations)` em todo chamador. O
+ * catálogo mostrou que a segunda nunca foi usada de verdade — 707 produtos com
+ * foto e 707 associações, uma foto por produto —, e a foto passou a pertencer
+ * ao grupo (`product_group_images`). Sobrou uma galeria só, e nenhum ramo.
+ */
+export function useProductImages({ setImages }: UseProductImagesProps) {
   const { toast } = useToast();
 
   function moveProductImage(index: number, direction: -1 | 1) {
@@ -25,39 +29,14 @@ export function useProductImages({
     setImages((current) => moveItemTo(current, oldIndex, newIndex));
   }
 
-  function moveVariationImage(index: number, direction: -1 | 1) {
-    if (!activeVariation) return;
-    updateVariationDraft(activeVariation.key, (draft) => ({
-      ...draft,
-      images: reorderItems(draft.images, index, direction),
-    }));
-  }
-
-  function reorderVariationImage(oldIndex: number, newIndex: number) {
-    if (!activeVariation) return;
-    updateVariationDraft(activeVariation.key, (draft) => ({
-      ...draft,
-      images: moveItemTo(draft.images, oldIndex, newIndex),
-    }));
-  }
-
   /**
-   * O `setImages` da variação ativa, com a mesma assinatura do `setImages` do
-   * produto simples — é o que permite à galeria da tela ser UMA só, sem saber
-   * se está mexendo num produto com ou sem variações.
+   * Arquivos escolhidos entram na galeria já otimizados.
    *
-   * Aceita função ou valor porque a galeria remove imagem com
-   * `setImages((current) => current.filter(...))`.
+   * A compressão acontece ANTES do upload, como nas fotos da compra: a foto do
+   * site do fornecedor é PNG de vários MB, e um punhado delas estoura o que a
+   * hospedagem aceita.
    */
-  function setVariationImages(update: React.SetStateAction<LocalImage[]>) {
-    if (!activeVariation) return;
-    updateVariationDraft(activeVariation.key, (draft) => ({
-      ...draft,
-      images: typeof update === "function" ? update(draft.images) : update,
-    }));
-  }
-
-  async function handleSimpleFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
     const fileList = Array.from(event.target.files ?? []);
     const nextImages: { name: string; url: string; file: File }[] = [];
     let totalOriginalSize = 0;
@@ -85,47 +64,12 @@ export function useProductImages({
       });
     }
 
-    setImages((current) => [...current, ...(nextImages as any)]);
+    setImages((current) => [...current, ...(nextImages as LocalImage[])]);
   }
 
-  async function handleVariationFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
-    if (!activeVariation) return;
-
-    const fileList = Array.from(event.target.files ?? []);
-    const nextImages: { name: string; url: string; file: File }[] = [];
-    let totalOriginalSize = 0;
-    let totalOptimizedSize = 0;
-    let optimizedAny = false;
-
-    for (const file of fileList) {
-      const result = await optimizeImage(file);
-      totalOriginalSize += result.originalSize;
-      totalOptimizedSize += result.optimizedSize;
-      if (result.optimized) {
-        optimizedAny = true;
-      }
-      nextImages.push({
-        name: result.file.name.replace(/\.[^/.]+$/, ""),
-        url: URL.createObjectURL(result.file),
-        file: result.file,
-      });
-    }
-
-    if (optimizedAny) {
-      toast({
-        title: "Imagens otimizadas",
-        description: `${(totalOriginalSize / 1024 / 1024).toFixed(2)}MB reduzido para ${(totalOptimizedSize / 1024).toFixed(0)}KB (economizou ${Math.round((1 - totalOptimizedSize / totalOriginalSize) * 100)}%)`,
-      });
-    }
-
-    updateVariationDraft(activeVariation.key, (draft) => ({
-      ...draft,
-      images: [...draft.images, ...(nextImages as any)],
-    }));
-  }
-
-  function toLocalImages(items: any[] = []) {
-    return items.map((item: any) => ({
+  /** As fotos da linha da tabela, no formato que a galeria da tela consome. */
+  function toLocalImages(items: ProductTableRowImage[] = []): LocalImage[] {
+    return items.map((item) => ({
       imageId: item.imageId,
       associationId: item.associationId,
       name: item.image.name,
@@ -136,11 +80,7 @@ export function useProductImages({
   return {
     moveProductImage,
     reorderProductImage,
-    moveVariationImage,
-    reorderVariationImage,
-    setVariationImages,
-    handleSimpleFileSelection,
-    handleVariationFileSelection,
+    handleFileSelection,
     toLocalImages,
   };
 }

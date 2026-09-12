@@ -260,8 +260,19 @@ fica para refazer.
 
 ### 3. Associação de Imagens e Etiquetas (Tags)
 
-- As imagens do produto podem ser ordenadas via drag-and-drop. A primeira imagem é considerada a "principal".
-- Ao salvar, o sistema sincroniza de forma incremental as tags e imagens de cada variação com o servidor através das funções `syncProductTags` e `syncProductImages`.
+- **A galeria é do GRUPO, não da variação** (12/09/2026). Uma só na aba Dados,
+  com ou sem variações; a primeira foto é a **capa** que a vitrine, o PDV, a
+  listagem e a etiqueta mostram. Antes cada SKU tinha a sua, e a capa do grupo
+  saía do *representante* (o produto de maior id) — regra impossível de prever
+  ao cadastrar. O catálogo mostrou que a galeria por SKU nunca foi usada: 707
+  produtos com foto e 707 associações, **uma foto por produto**, sem ordenação e
+  sem principal escolhida.
+- Ordenação por drag-and-drop; a primeira é a capa.
+- **Etiquetas continuam por variação** (`syncProductTags`, uma chamada por SKU);
+  a galeria vai numa chamada só, `syncProductGroupImages`, com a lista final de
+  ids na ordem da tela. Era um CRUD em série (`/ProductImages`) até 12/09/2026 —
+  um DELETE por foto removida, um POST por nova e um PUT por reordenada —, e uma
+  falha no meio deixava a galeria pela metade, com outra capa na vitrine.
 
 ### 4. A tela de detalhe e suas três abas (30/08/2026)
 

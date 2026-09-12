@@ -5,7 +5,7 @@ import type {
   ImageDto,
   ProductDto,
   ProductGroupDto,
-  ProductImageDto,
+  ProductGroupImageDto,
   ProductTagDto,
   SaleDto,
   SaleItemDto,
@@ -120,7 +120,7 @@ export function buildProductCollections(input: {
   tags: TagDto[];
   productTags: ProductTagDto[];
   images: ImageDto[];
-  productImages: ProductImageDto[];
+  productGroupImages: ProductGroupImageDto[];
 }) {
   const groupsById = new Map(input.productGroups.map((item) => [item.id, item]));
   const categoriesById = new Map(input.categories.map((item) => [item.id, item]));
@@ -137,18 +137,20 @@ export function buildProductCollections(input: {
     tagsByProductId.set(item.productId, current);
   });
 
-  const imagesByProductId = new Map<number, ProductImageView[]>();
-  input.productImages.forEach((item) => {
+  // Por GRUPO, e não por produto: a galeria pertence ao grupo desde
+  // 12/09/2026, então todas as variações compartilham as mesmas fotos.
+  const imagesByGroupId = new Map<number, ProductImageView[]>();
+  input.productGroupImages.forEach((item) => {
     const image = imagesById.get(item.imageId);
     if (!image) return;
-    const current = imagesByProductId.get(item.productId) ?? [];
+    const current = imagesByGroupId.get(item.productGroupId) ?? [];
     current.push({
       associationId: item.id,
       imageId: item.imageId,
       displayOrder: item.displayOrder,
       image,
     });
-    imagesByProductId.set(item.productId, current);
+    imagesByGroupId.set(item.productGroupId, current);
   });
 
   const enrichedProducts = input.products.map<EnrichedProduct>((product) => {
@@ -158,7 +160,9 @@ export function buildProductCollections(input: {
     const tags = (tagsByProductId.get(product.id) ?? []).sort((a, b) =>
       a.name.localeCompare(b.name, "pt-BR"),
     );
-    const images = (imagesByProductId.get(product.id) ?? []).sort((a, b) => a.displayOrder - b.displayOrder);
+    const images = (imagesByGroupId.get(product.productGroupId) ?? []).sort(
+      (a, b) => a.displayOrder - b.displayOrder,
+    );
 
     return {
       ...product,

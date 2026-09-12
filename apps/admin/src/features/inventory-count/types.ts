@@ -12,7 +12,7 @@ export type InventoryCountStatusFilter = "pending" | "reviewed" | "all";
  * `Uaus.Docs/dominio/convencoes-de-interface.md`: âmbar é parcial, vermelho é
  * negativo.
  */
-export type PhotoCoverage = "complete" | "partial" | "missing";
+export type PhotoCoverage = "complete" | "missing";
 
 /** Estado que a aba de conferência expõe para os componentes. */
 export interface InventoryCountState {

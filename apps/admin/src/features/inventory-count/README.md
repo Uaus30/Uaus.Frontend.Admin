@@ -31,7 +31,7 @@ O desenho do servidor está em `docs/conferencia-de-produtos.md`, no repositóri
 - `components/InventoryCountTable.tsx`: filtros, listagem e paginação.
 - `components/ProductConferenceBanner.tsx`: a tarja dentro da tela do produto.
 - `components/StockCountModal.tsx`: a modal da contagem física.
-- `lib/photo-coverage.ts`: quanto da foto do cadastro está faltando.
+- `lib/photo-coverage.ts`: o cadastro tem foto ou não (dois estados desde 12/09/2026).
 - `lib/product-conference-link.ts`: o carimbo `?conferencia=1` no link do
   produto.
 
@@ -108,7 +108,7 @@ ao lado:
 | Onde               | Verde (emerald) | Âmbar (amber)              | Vermelho (destructive)    |
 | ------------------ | --------------- | -------------------------- | ------------------------- |
 | Progresso          | conferidos      | a conferir                 | —                         |
-| Linha da lista     | conferido       | variações sem foto (parte) | cadastro sem foto nenhuma |
+| Linha da lista     | conferido       | —                          | cadastro sem foto nenhuma |
 | Tarja do produto   | já conferido    | espera conferência         | —                         |
 | Prévia da contagem | estoque confere | falta (vira baixa)         | —                         |
 
@@ -123,5 +123,5 @@ significado quebraria os quatro que existem.
 - `hooks/__tests__/useInventoryCount.test.tsx`: o padrão de pendentes, o retorno
   à página 1 ao filtrar, os três avisos da marcação (faltam N / concluída /
   devolvido), o carimbo no link do produto e a confirmação do encerramento.
-- `lib/__tests__/photo-coverage.test.ts`: os três estados da foto, incluindo o
+- `lib/__tests__/photo-coverage.test.ts`: os dois estados da foto, incluindo o
   cadastro sem variação viva.
