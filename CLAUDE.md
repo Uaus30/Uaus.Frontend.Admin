@@ -23,7 +23,7 @@ seção no CLAUDE.md dele.
 ### Os três freios — pare e mostre antes de commitar
 
 1. **Gate vermelho.** Teste, `typecheck` ou `lint` falhando. Conserte primeiro;
-   nunca suba quebrado. Os comandos e o smoke test obrigatório estão na seção 8.
+   nunca suba quebrado. Os comandos e o smoke test obrigatório estão na seção 9.
 2. **Migração de banco ou de esquema.** Migration do EF no backend, script de
    esquema, e `DATABASE_VERSION` do IndexedDB do PDV (ver armadilha 4).
 3. **Configuração de deploy e segredo.** `vercel.json`, `railway.json`,
@@ -54,7 +54,83 @@ tema por commit: se o trabalho misturou feature e correção, são dois commits.
 
 ---
 
-## 2. Mapa dos workspaces
+## 2. A base de conhecimento vem antes e depois do código
+
+`C:\Projects\Uaus\Uaus.Docs` é a base de conhecimento dos projetos Uaus —
+repositório **próprio** (`Uaus30/Uaus.Docs`, privado), pasta vizinha a esta, com
+`main` já rastreando `origin/main`. Guarda o que atravessa repositórios: regra
+de domínio que backend, admin, PDV e site aplicam igual, ambientes, fluxo de
+publicação, o histórico do **porquê** de cada mudança e as pendências.
+
+Ela não é documentação opcional; é onde está a resposta que o código não dá. O
+código diz _o que_ o sistema faz hoje. A base diz _por que_ faz assim, o que já
+foi tentado, e o que quebrou quando alguém fez diferente. Para o front importam
+especialmente `dominio/convencoes-de-interface.md` (ordem dos selects,
+vocabulário de cores, confirmações) e `dominio/vitrine.md` — decisões de tela
+que **já foram tomadas** e que refazer do zero custa retrabalho e divergência.
+
+### Antes de atender qualquer demanda — leia
+
+1. `Uaus.Docs/README.md` — é o índice, e existe para você não ler 29 arquivos.
+2. A página de `dominio/` que a demanda toca, e `operacao/fluxo-de-trabalho.md`.
+3. `Uaus.Docs/pendencias.md` — a demanda pode já estar ali, com contexto.
+4. Em `historico/`, a entrada do tema; um `grep` pelo assunto resolve.
+
+Isso **não substitui** o README da feature nem o do pacote (seção 3): a base
+dá o porquê que atravessa repositórios, o README local dá a regra daquela tela.
+
+**Use o que encontrar.** Achou a regra, o número medido, a decisão e o motivo?
+Parta deles em vez de redescobrir, e diga na resposta de onde veio, para o dono
+poder conferir. Se a base contradisser o código, o **código é o fato** e a base
+está velha: corrija a base no mesmo trabalho, porque a próxima pessoa vai
+confiar nela de novo.
+
+### Ao terminar — escreva, commite e dê push
+
+Todo trabalho termina com uma passada na base. O que muda lá depende do que o
+trabalho mudou aqui:
+
+| O trabalho...                                             | Na base                                                                       |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| mudou regra de negócio, comportamento de tela ou contrato | atualize a página de `dominio/` **e** crie `historico/<aaaa-mm-dd>-<tema>.md` |
+| resolveu uma pendência                                    | mova de `pendencias.md` para o histórico, riscada (`~~...~~`) e com o link    |
+| revelou armadilha, número medido ou porquê não óbvio      | registre, ainda que dentro de uma página existente                            |
+| não mudou conceito nenhum (typo, formatação, renomeação)  | nada — entrada de histórico para isso é ruído que afoga o resto               |
+
+Criou entrada em `historico/`? **Acrescente o link no índice do `README.md`.**
+Entrada fora do índice é entrada que ninguém acha: em 12/09/2026 havia sete
+assim, e o efeito prático era o mesmo de não ter escrito.
+
+Depois, dentro de `Uaus.Docs`, **commite e dê push sem pedir confirmação**:
+
+```bash
+cd C:/Projects/Uaus/Uaus.Docs && git add <os arquivos que voce tocou> && git commit -m "docs: ..." && git push
+```
+
+**Por que ali o push é automático e aqui tem freio:** nada é publicado a partir
+do `Uaus.Docs`. Não há build, não há Vercel, não há loja com a tela quebrada. O
+pior commit possível lá custa um `git revert`; o pior commit aqui vai ao ar em
+minutos. Os três freios da seção 1 valem para **este** repositório, não para a
+base.
+
+### Cuidados ao escrever na base
+
+- **Segredo nenhum.** Nem senha, nem chave, nem string de conexão, nem token.
+  O repositório é privado, mas privado não é cofre — e o que entra no histórico
+  do git continua lá depois de apagado do arquivo.
+- **Não copie código para lá.** Aponte o caminho do arquivo: o código muda, o
+  caminho sobrevive melhor, e a cópia vira mentira em silêncio.
+- **Só o que aconteceu de verdade.** Histórico é registro do que foi entregue e
+  verificado, não plano nem intenção. Entrada sobre trabalho que não subiu faz a
+  próxima pessoa construir em cima do que não existe.
+- **Datas absolutas** (dd/mm/aaaa), e decisão não óbvia acompanhada do que
+  aconteceria sem ela. São as convenções do `README.md` de lá.
+- **Nunca `git add -A`** — vale ali pelo mesmo motivo que vale aqui: o working
+  tree é compartilhado com outras conversas.
+
+---
+
+## 3. Mapa dos workspaces
 
 | Workspace             | O que é                                                                                  | O que NÃO entra                    |
 | --------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------- |
@@ -70,7 +146,7 @@ Cada package tem README próprio. Leia o do pacote antes de mexer nele.
 
 ---
 
-## 3. Camada de dados — o caminho é UM só
+## 4. Camada de dados — o caminho é UM só
 
 Esta é a regra que mais importa, porque violá-la **não gera erro de
 compilação**.
@@ -92,7 +168,7 @@ em `packages/api-client/README.md`.
 
 ---
 
-## 4. Estrutura de uma feature (admin)
+## 5. Estrutura de uma feature (admin)
 
 ```
 src/features/<nome>/
@@ -131,7 +207,7 @@ passar batida.
 
 ---
 
-## 5. Tamanho e tipagem
+## 6. Tamanho, tipagem e acoplamento
 
 - **Máximo 300 linhas por arquivo.** Vale para código novo; o lint avisa
   (`max-lines` é warning porque 13 arquivos legados estouram hoje). Arquivo
@@ -140,9 +216,51 @@ passar batida.
   estão em `eslint-suppressions.json`, arquivo que só encolhe. Se você precisou
   de `any`, quase sempre o tipo certo já existe em `packages/api-client`.
 
+### Acoplamento é o que a seção 4 está defendendo
+
+A camada de dados e a tabela da seção 3 ("o que NÃO entra") são regras de
+acoplamento escritas caso a caso. A generalização vale para tudo o mais:
+
+- **Dependa do contrato, não do vizinho.** Componente recebe por props;
+  `components/` é puro e não busca dado. A página não contém query nem mutation
+  — quem busca é o hook.
+- **Nada de import atravessando feature.** `features/a` não importa de
+  `features/b`. O que os dois precisam desce para `packages/core` (regra),
+  `packages/ui` (visual) ou `packages/api-client` (rede). Import cruzado é o
+  jeito mais rápido de fazer duas telas caírem juntas por um motivo só.
+- **Sinal de alerta:** mudar uma regra e ter que editar arquivos em três
+  features. Se acontecer, a regra estava copiada, não compartilhada — foi assim
+  que `round2` chegou a cinco implementações e três algoritmos, com o total da
+  tela divergindo do total gravado.
+- Acoplamento a **detalhe** é o caro: formato de resposta, nome de coluna, ordem
+  de array, índice fixo. Acoplamento a **contrato** estável é barato e desejável.
+
+Um aviso contra o excesso: abstrair cedo demais também acopla, e ainda esconde.
+Duas ocorrências parecidas não são duplicata; três iguais, com a mesma razão de
+mudar, são.
+
 ---
 
-## 6. Documentação
+## 7. Documentação e idioma
+
+**O código é em inglês; tudo o que explica o código é em português do Brasil.**
+
+| Em inglês                                                                   | Em português                                           |
+| --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| nome de variável, função, componente, hook, tipo, arquivo e pasta de código | comentário e JSDoc                                     |
+| chave de objeto e campo de DTO (espelham a API)                             | README de feature e de pacote                          |
+| —                                                                           | texto de tela, rótulo, mensagem de erro e de validação |
+| —                                                                           | assunto e corpo do commit (sem acento no assunto)      |
+
+Motivo: o identificador é lido junto com React, TypeScript e as bibliotecas,
+todos em inglês — `orderCatalogByName` não muda de idioma no meio da linha. Já a
+explicação é para quem toma decisão de negócio, e essa pessoa pensa em português.
+
+**Não saia renomeando o que existe.** Medido em 13/09/2026: 50 de 2433
+identificadores do front estão em português (`nomeDaTela`, `comporTitulo`,
+`destinoAposLogin`, `codigoDoPapel`). A regra vale para código **novo** e para o
+arquivo que você já está editando por outro motivo; renomeação em massa é diff
+gigante, risco de regressão e zero valor para a loja.
 
 - README por feature, em português, explicando **regra de negócio** — não a
   lista de arquivos, que o `ls` já dá.
@@ -153,18 +271,36 @@ passar batida.
 
 ---
 
-## 7. Testes
+## 8. Testes
 
 - Lógica de dinheiro, cálculo, validação e hook customizado **têm que ter teste**
   (Vitest + React Testing Library).
+- **Implementação nova sai com teste no mesmo commit**, não em tarefa seguinte.
+  Teste que fica para depois é teste que não existe, e quem descobre é a loja.
 - Regra prática: se a lógica é importante o bastante para ser compartilhada, é
   importante o bastante para ser coberta.
 - Teste comportamento, não o mock. Um teste que afirma o que o próprio mock
   devolve não testa nada — foi assim que a perda do desconto por item passou.
 
+### O caso de borda é onde mora o bug
+
+O caminho feliz raramente quebra. Quando a borda **fizer sentido no domínio**,
+cubra-a — e neste repositório ela já cobrou o preço três vezes:
+
+| Borda                            | O que já aconteceu aqui                                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| divisor zero / lista vazia       | a primeira compra pendente **sem custo** derrubou a listagem de Compras (09/09/2026)                      |
+| campo vazio vs. valor inválido   | `parseAmount` devolve `NaN`; `parseAmountOrNull` separa "não informou" de "digitou bobagem" (armadilha 3) |
+| virada de fuso e fim de vigência | `toISOString()` joga o dia para trás no Brasil (armadilhas 2, 5 e 6)                                      |
+
+Outras que costumam valer o teste: zero e negativo, primeiro e último item da
+paginação, duplicata, arredondamento no meio (`.005`), coleção com um elemento
+só, e o retorno que a API **omite** por ser nulo. Não cubra borda impossível —
+teste de caso que o domínio não produz é manutenção sem retorno.
+
 ---
 
-## 8. Comandos de verificação
+## 9. Comandos de verificação
 
 ```bash
 npm run build:types      # obrigatório depois de mexer em packages/
@@ -213,9 +349,42 @@ push** quando houve alteração de comportamento, tela ou integração:
    antes do commit/push** e informe o bloqueio; não presuma que compilação prova
    que a implementação funciona.
 
+### Antes de mexer em código compartilhado, veja quem consome
+
+Mudar assinatura, retorno ou chave de cache em `packages/core`,
+`packages/api-client` ou `packages/ui` atinge **admin, PDV e loja ao mesmo
+tempo**. O `typecheck` pega a quebra de tipo; não pega a de comportamento —
+quem trocou a ordem de um array ou o arredondamento de uma função continua
+compilando e passa a errar em três telas.
+
+Procure os chamadores (`grep` pelo nome) antes de mudar, e rode os testes dos
+três apps, não só o do seu. É a mesma razão da seção 4: o caminho é um só
+justamente para a mudança valer nos três — e por isso o erro também vale.
+
+### Performance: o custo que não aparece no teste verde
+
+Teste verde e tela bonita não dizem nada sobre peso. Os quatro que mais custam
+aqui, em ordem de frequência:
+
+- **Payload.** Mande só o que a tela desenha. A listagem de produtos carregava o
+  grupo inteiro para exibir três colunas — peso em **toda** página, para todo
+  mundo (corrigido em 12/09/2026).
+- **Requisição por linha.** Uma chamada dentro do `map` da lista vira N
+  chamadas. Busque em lote, ou traga o campo junto na primeira resposta.
+- **Render.** Objeto ou array literal criado no corpo do componente muda de
+  identidade a cada render e derruba o `memo` de quem recebe. Com 1000+ produtos
+  no catálogo isso deixa de ser teoria.
+- **Bundle.** Importar a biblioteca inteira por causa de uma função entra no
+  build dos três apps e no tempo de carregamento da loja, que é a tela que o
+  cliente abre no celular, no 4G da cidade.
+
+Não otimize por suspeita: **meça** (aba Network, React DevTools Profiler,
+tamanho do chunk) e diga o número no handoff. Otimização sem medida é
+complexidade acoplada — o que a seção 6 pede para evitar.
+
 ---
 
-## 9. Armadilhas conhecidas
+## 10. Armadilhas conhecidas
 
 1. **Chave de cache.** A factory devolve só o prefixo; quem consulta acrescenta
    os parâmetros. Detalhe e motivo em `packages/api-client/README.md`. Errar
@@ -260,7 +429,7 @@ push** quando houve alteração de comportamento, tela ou integração:
 
 ---
 
-## 10. Deploy (Vercel)
+## 11. Deploy (Vercel)
 
 - `buildCommand` no `vercel.json` aponta para o script do workspace hospedado.
 - `package.json` da raiz mantém `"build"` como fallback para o mesmo alvo.
