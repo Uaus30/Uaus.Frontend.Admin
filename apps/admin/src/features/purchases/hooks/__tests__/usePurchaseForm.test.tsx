@@ -2,11 +2,13 @@ import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { PurchaseDto, SupplierDto } from "@workspace/api-client-react";
+import type { CategoryDto, PurchaseDto, SupplierDto } from "@workspace/api-client-react";
 
 const mocks = vi.hoisted(() => ({
   createPurchase: vi.fn(),
   updatePurchase: vi.fn(),
+  getProductGroupById: vi.fn(),
+  getProductGroupImages: vi.fn(),
   toast: vi.fn(),
 }));
 
@@ -31,6 +33,8 @@ vi.mock("@/services/images.service", () => ({
 // esmagadora maioria das compras.
 vi.mock("@/services/products.service", () => ({
   getProductsPage: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
+  getProductGroupById: mocks.getProductGroupById,
+  getProductGroupImages: mocks.getProductGroupImages,
 }));
 
 const {
@@ -40,14 +44,36 @@ const {
   emptyPurchaseForm,
   todayDateKey,
   purchaseHasProduct,
+  purchaseCategoryIsLocked,
 } = await import("../usePurchaseForm");
+
+/** Duas categorias do departamento 4, para a resolução do departamento ter o que achar. */
+const CATEGORIAS: CategoryDto[] = [
+  {
+    id: 7,
+    createdAt: "2026-01-01T00:00:00",
+    updatedAt: null,
+    departmentId: 4,
+    name: "Canecas",
+    description: null,
+    productCount: 0,
+  },
+  {
+    id: 8,
+    createdAt: "2026-01-01T00:00:00",
+    updatedAt: null,
+    departmentId: 4,
+    name: "Bexigas",
+    description: null,
+    productCount: 0,
+  },
+];
 
 const compra: PurchaseDto = {
   // Compra de um item so: a grade espelha o cabecalho, como 100% das
   // compras anteriores a 12/09/2026.
   items: [],
   costSplitManual: false,
-  replaceProductImages: true,
   id: 5,
   createdAt: "2026-09-05T10:00:00",
   updatedAt: null,
@@ -55,6 +81,9 @@ const compra: PurchaseDto = {
   supplierName: "Shopee",
   productId: null,
   productGroupId: null,
+  // Produto novo: a categoria e obrigatoria e e ela que o cadastro gerado no
+  // recebimento recebe pronto (13/09/2026).
+  categoryId: 7,
   productName: "CANECA TERMICA",
   productBarcode: null,
   details: "500ml",
@@ -85,7 +114,7 @@ const createWrapper = () => {
 
 describe("validatePurchaseForm", () => {
   it("exige fornecedor, produto ou nome, e quantidade inteira positiva", () => {
-    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X" };
+    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X", categoryId: "7" };
     expect(validatePurchaseForm(base)).toBeNull();
     expect(validatePurchaseForm({ ...base, supplierId: "" })).toMatch(/fornecedor/);
     expect(validatePurchaseForm({ ...base, productName: "  " })).toMatch(/nome/);
@@ -97,7 +126,7 @@ describe("validatePurchaseForm", () => {
   });
 
   it("custo: pendente pode ficar sem, a caminho não", () => {
-    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X" };
+    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X", categoryId: "7" };
 
     // Pendente é a anotação de "preciso comprar isto" — antes de saber o preço.
     expect(validatePurchaseForm({ ...base, finalTotal: 0 })).toBeNull();
@@ -110,7 +139,7 @@ describe("validatePurchaseForm", () => {
   });
 
   it("exige data da compra e recusa data futura", () => {
-    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X" };
+    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X", categoryId: "7" };
 
     expect(validatePurchaseForm({ ...base, purchaseDate: "" })).toMatch(/data da compra/i);
     // Retroagir é o caso comum (o pedido é digitado depois); adiantar não existe.
@@ -352,13 +381,17 @@ describe("usePurchaseForm", () => {
 
   it("grava uma compra nova com os totais e os ids das fotos, e fecha a modal", async () => {
     const onSaved = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => usePurchaseForm({ onSaved, suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved, suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openNew());
     act(() => {
       result.current.update("supplierId", "1");
+      result.current.update("categoryId", "7");
       result.current.update("productName", " CANECA ");
       result.current.update("quantity", 3);
       result.current.update("grossTotal", 120);
@@ -381,9 +414,11 @@ describe("usePurchaseForm", () => {
           finalTotal: 100,
           // Instante LOCAL: `toISOString()` jogaria o dia para trás no Brasil.
           purchaseDate: "2026-09-01T00:00:00",
-          // Não informado vai como nulo, não como zero — zero faria o
-          // recebimento tentar aplicar preço zero ao produto.
-          suggestedPrice: null,
+          categoryId: 7,
+          // O preço sugerido nasce do CÁLCULO DE MARGEM: custo unitário 33,33
+          // (R$ 100 ÷ 3) a 40% de margem dá 55,55, arredondado PARA CIMA ao
+          // múltiplo de dez centavos. Ninguém digitou — a tela já tinha a conta.
+          suggestedPrice: 55.6,
           status: 1,
           imageIds: [],
         }),
@@ -394,13 +429,17 @@ describe("usePurchaseForm", () => {
   });
 
   it("envia o preço sugerido quando ele foi informado", async () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openNew());
     act(() => {
       result.current.update("supplierId", "1");
+      result.current.update("categoryId", "7");
       result.current.update("productName", "CANECA");
       result.current.update("finalTotal", 100);
       result.current.update("suggestedPrice", 55.6);
@@ -416,9 +455,12 @@ describe("usePurchaseForm", () => {
   });
 
   it("não vai à rede com o formulário incompleto e avisa", async () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openNew());
     await act(async () => {
@@ -430,9 +472,12 @@ describe("usePurchaseForm", () => {
   });
 
   it("editar usa o PUT com o id da compra aberta", async () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openEdit(compra));
     expect(result.current.editingId).toBe(5);
@@ -448,9 +493,12 @@ describe("usePurchaseForm", () => {
   });
 
   it("vincular um produto trava o nome no do cadastro; desvincular libera", () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openNew());
     act(() =>
@@ -475,14 +523,126 @@ describe("usePurchaseForm", () => {
     expect(result.current.form.productName).toBe("BEXIGA [AZUL]");
   });
 
-  it("a caminho sem custo não vai à rede; com custo, vai", async () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
+  it("escolher um produto carrega a galeria e a categoria DELE", async () => {
+    // 13/09/2026: a modal exibe e edita a galeria do grupo. Sem isto, salvar uma
+    // compra de reposição mandaria uma lista de fotos vazia — e a edição
+    // esvaziaria a galeria do próprio produto.
+    mocks.getProductGroupById.mockResolvedValue({ id: 10, categoryId: 8, name: "BEXIGA" });
+    mocks.getProductGroupImages.mockResolvedValue([
+      { id: 1, productGroupId: 10, imageId: 91, displayOrder: 0, url: "produtos/bexiga.jpg", name: "bexiga" },
+    ]);
+
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    await act(async () => {
+      result.current.selectProduct({
+        id: 10,
+        productGroupId: 10,
+        name: "BEXIGA [AZUL]",
+        barcode: "100",
+        stock: 2,
+        price: 12.5,
+        costPrice: 4,
+      });
     });
+
+    await waitFor(() => expect(result.current.form.images).toHaveLength(1));
+    expect(result.current.form.images[0].imageId).toBe(91);
+    expect(result.current.form.categoryId).toBe("8");
+    // O departamento não viaja em lugar nenhum: sai da categoria, pelo catálogo.
+    expect(result.current.form.departmentId).toBe("4");
+    // O preço vigente, para a modal mostrar "Preço atual do produto".
+    expect(result.current.form.productPrice).toBe(12.5);
+    // Com produto cadastrado, categoria e departamento são do CADASTRO e não se
+    // editam aqui — quem edita é a tela de Produtos.
+    expect(purchaseCategoryIsLocked(result.current.form)).toBe(true);
+
+    // Desvincular tira as fotos junto: elas eram a galeria daquele produto, e
+    // deixá-las daria ao cadastro novo as fotos de outro item.
+    act(() => result.current.clearProduct());
+    expect(result.current.form.images).toEqual([]);
+    expect(result.current.form.productPrice).toBeNull();
+    expect(purchaseCategoryIsLocked(result.current.form)).toBe(false);
+  });
+
+  it("o preço sugerido acompanha o cálculo de margem até alguém digitar o seu", async () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    // Sem custo não há o que sugerir.
+    expect(result.current.form.suggestedPrice).toBe(0);
+
+    act(() => {
+      result.current.update("quantity", 2);
+      result.current.update("finalTotal", 20);
+    });
+    // Custo 10 a 40% de margem dá 16,67, que sobe ao múltiplo de dez centavos.
+    await waitFor(() => expect(result.current.form.suggestedPrice).toBe(16.7));
+
+    // Mexeu no preço, o número é dele: mudar o custo não o substitui mais.
+    act(() => result.current.update("suggestedPrice", 25));
+    act(() => result.current.update("finalTotal", 40));
+    await waitFor(() => expect(result.current.form.quantity).toBe(2));
+    expect(result.current.form.suggestedPrice).toBe(25);
+  });
+
+  it("compra com preço já decidido reabre sem recalcular", () => {
+    // Reabrir e ver o número mudar sozinho descartaria a decisão de quem comprou.
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openEdit({ ...compra, suggestedPrice: 99.9 }));
+    expect(result.current.form.suggestedPrice).toBe(99.9);
+    // E o departamento da categoria gravada aparece resolvido pelo catálogo.
+    expect(result.current.form.departmentId).toBe("4");
+  });
+
+  it("produto novo sem categoria não vai à rede", async () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    act(() => {
+      result.current.update("supplierId", "1");
+      result.current.update("productName", "CANECA");
+    });
+
+    await act(async () => result.current.submit());
+    expect(mocks.createPurchase).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "warning", description: expect.stringContaining("categoria") }),
+    );
+
+    act(() => result.current.update("categoryId", "7"));
+    await act(async () => result.current.submit());
+    await waitFor(() =>
+      expect(mocks.createPurchase).toHaveBeenCalledWith(expect.objectContaining({ categoryId: 7 })),
+    );
+  });
+
+  it("a caminho sem custo não vai à rede; com custo, vai", async () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openNew());
     act(() => {
       result.current.update("supplierId", "1"); // Nossa Casa, não é marketplace
+      result.current.update("categoryId", "7");
       result.current.update("productName", "CANECA");
       result.current.update("quantity", 2);
     });
@@ -509,13 +669,17 @@ describe("usePurchaseForm", () => {
   });
 
   it("marketplace: pendente sai sem link, a caminho não", async () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openNew());
     act(() => {
       result.current.update("supplierId", "2"); // Shopee, marketplace
+      result.current.update("categoryId", "7");
       result.current.update("productName", "CANECA");
       result.current.update("quantity", 1);
       // Com custo: o que está em teste aqui é o link, não a regra do custo.
@@ -544,13 +708,17 @@ describe("usePurchaseForm", () => {
   });
 
   it("fornecedor comum não precisa de link em situação nenhuma", async () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     act(() => result.current.openNew());
     act(() => {
       result.current.update("supplierId", "1"); // Nossa Casa, não é marketplace
+      result.current.update("categoryId", "7");
       result.current.update("productName", "CANECA");
       result.current.update("quantity", 1);
       result.current.update("finalTotal", 30);
@@ -564,9 +732,12 @@ describe("usePurchaseForm", () => {
 
   it("abrir uma compra escreve ?compra=<id> na URL sem mexer no resto, e fechar a modal tira", () => {
     window.history.replaceState(null, "", "/estoque/compras?produto=9");
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     // É o link que se copia da barra de endereços para mandar a compra a alguém.
     act(() => result.current.openEdit(compra));
@@ -578,9 +749,12 @@ describe("usePurchaseForm", () => {
   });
 
   it("compra lançada abre em leitura e não vai à rede", async () => {
-    const { result } = renderHook(() => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES }), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     // A linha inteira da listagem abre a compra, inclusive a já lançada — o que
     // muda é que ela abre bloqueada, em vez de não abrir.

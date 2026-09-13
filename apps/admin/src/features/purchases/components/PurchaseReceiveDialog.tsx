@@ -38,6 +38,11 @@ type PurchaseReceiveDialogProps = {
  *
  * A prévia de margem usa o custo unitário FINAL, que é o que a entrada grava.
  *
+ * **Não há mais escolha sobre as fotos aqui** (13/09/2026). A galeria do produto
+ * é editada na própria modal da compra e replicada no cadastro ao salvar, então
+ * as duas já são a mesma lista quando o recebimento acontece — não sobrou
+ * pergunta a fazer.
+ *
  * Compra anotada SEM custo (pendente) não se recebe daqui: a entrada gravaria o
  * lote a custo zero em silêncio. O diálogo diz isso e troca o botão de confirmar
  * por "Editar compra" — o backend recusa de qualquer jeito
@@ -180,27 +185,6 @@ export function PurchaseReceiveDialog({
                 onAddVariation={onAddItem}
                 onUseSum={(soma) => onChange("finalTotal", soma)}
               />
-            )}
-
-            {/* Substituir é destrutivo e o recebimento é a última chance de mudar
-                de ideia — por isso a escolha gravada na compra reaparece aqui. */}
-            {purchase.images.length > 0 && (
-              <label className="flex items-start gap-2.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-3 text-xs leading-relaxed">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-3.5 w-3.5"
-                  checked={form.replaceProductImages}
-                  onChange={(event) => onChange("replaceProductImages", event.target.checked)}
-                />
-                <span className="text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    Substituir as fotos do produto pelas desta compra
-                  </span>
-                  <br />
-                  Desmarcado, as {purchase.images.length} foto(s) da compra entram como principais e as que o
-                  produto já tem descem de posição. A imagem nunca é apagada do catálogo.
-                </span>
-              </label>
             )}
 
             <div className="space-y-2">

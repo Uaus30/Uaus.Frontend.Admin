@@ -29,6 +29,17 @@ export async function getAllProductGroupImages(params?: { productGroupId?: numbe
   return fetchAllPages<ProductGroupImageDto>("/ProductGroupImages", params);
 }
 
+/**
+ * A galeria de UM grupo, na ordem de exibição — a primeira é a capa.
+ *
+ * Endereço próprio (`/ProductGroupImages/{id}`), e não o `getAllProductGroupImages`
+ * com filtro: a listagem não filtra por grupo, e varrer o catálogo inteiro para
+ * ficar com meia dúzia de fotos é peso que ninguém pediu.
+ */
+export async function getProductGroupImages(productGroupId: number) {
+  return apiGetOrThrow<ProductGroupImageDto[]>(`/ProductGroupImages/${productGroupId}`);
+}
+
 export async function getProductsPage(params?: {
   search?: string;
   productGroupId?: number;

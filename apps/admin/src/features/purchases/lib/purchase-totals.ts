@@ -1,4 +1,5 @@
-import { round2 } from "@workspace/core";
+import { marginPercent, round2 } from "@workspace/core";
+import type { PurchaseDto } from "../types";
 
 /** Os derivados dos totais da compra, como a tela os mostra enquanto digita. */
 export interface PurchaseDerivedTotals {
@@ -32,4 +33,28 @@ export function derivePurchaseTotals(
     unitFinal: qty > 0 ? round2(final / qty) : 0,
     adjustmentPercent: gross > 0 ? round2(((final - gross) / gross) * 100) : 0,
   };
+}
+
+/**
+ * A margem prevista de uma compra, em pontos percentuais, ou `null`.
+ *
+ * É a coluna que substituiu o "Total final" na listagem (13/09/2026): o total é
+ * a soma de um pedido cujo tamanho varia, e R$ 1.500 ao lado de R$ 30 não diz
+ * qual compra foi melhor. A margem diz.
+ *
+ * O custo é o unitário final — o mesmo que a entrada vai gravar no lote. O preço
+ * é o **sugerido na compra**, porque é ali que o preço de venda é decidido; sem
+ * ele, o preço que o produto já tem, que é o que a loja cobra hoje e contra o
+ * qual o custo recém-negociado se compara.
+ *
+ * `null` — traço na tela, nunca zero — em três casos legítimos: compra pendente
+ * anotada sem custo, compra de produto novo sem preço decidido, e compra com
+ * VARIAÇÕES sem preço sugerido, onde o cabeçalho não aponta para nenhuma delas e
+ * o preço de uma não responde pela compra. Zero leria como "vende no custo", que
+ * é uma afirmação que ninguém fez.
+ */
+export function purchaseMarginPercent(purchase: PurchaseDto): number | null {
+  const price = purchase.suggestedPrice || purchase.productPrice || 0;
+  if (price <= 0 || purchase.unitFinal <= 0) return null;
+  return marginPercent(purchase.unitFinal, price);
 }

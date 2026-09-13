@@ -3,7 +3,8 @@ import { Button, Input, Textarea } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
-import { PURCHASE_STATUS, type SupplierDto } from "@workspace/api-client-react";
+import { PURCHASE_STATUS, type DepartmentDto, type SupplierDto } from "@workspace/api-client-react";
+import { formatCurrency } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { ProductSearchPicker } from "@/components/product-search-picker";
@@ -18,6 +19,7 @@ import type { usePurchaseForm } from "../hooks/usePurchaseForm";
 type PurchaseEditorModalProps = {
   form: ReturnType<typeof usePurchaseForm>;
   suppliers: SupplierDto[];
+  departments: DepartmentDto[];
 };
 
 /**
@@ -37,13 +39,22 @@ type PurchaseEditorModalProps = {
  * custo da entrada —, e o asterisco acompanha a situação escolhida, como o do
  * link em marketplace.
  *
+ * **As fotos são a galeria do GRUPO escolhido** (13/09/2026): escolher um
+ * produto já cadastrado carrega as fotos dele, e remover ou acrescentar aqui
+ * remove ou acrescenta no produto quando a compra é salva. Em produto novo elas
+ * ficam só na compra e viram a galeria do cadastro no recebimento.
+ *
+ * **Departamento e categoria** vêm junto do produto escolhido, travados — quem
+ * edita a categoria de um produto é a tela de Produtos. Sem cadastro, eles são
+ * obrigatórios: é com eles que o recebimento gera o produto já preenchido.
+ *
  * A colagem de foto (Ctrl+V) é escutada pelo DIÁLOGO inteiro, e não por uma
  * área de arrastar: o atalho existe para poupar o clique, e obrigar a acertar
  * um alvo antes de colar devolveria o clique que ele economiza. Quem cola
  * dentro de um campo de texto continua colando texto — o handler se afasta.
  */
-export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProps) {
-  const { form: values, update, readOnly, linkRequired, costRequired } = form;
+export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEditorModalProps) {
+  const { form: values, update, readOnly, linkRequired, costRequired, categoryLocked } = form;
   const derived = derivePurchaseTotals(values.quantity, values.grossTotal, values.finalTotal);
   // Com variações o cabeçalho não aponta para nenhuma delas: quem diz que a
   // compra tem produto é o GRUPO. Ver `purchaseHasProduct`.
@@ -204,6 +215,62 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             </div>
           )}
 
+          {/* Departamento e categoria do que está sendo comprado.
+              Com produto vinculado vêm do cadastro e ficam travados — a categoria
+              de um produto se edita na tela de Produtos, e mudá-la por efeito
+              colateral de salvar uma compra é o tipo de coisa que só aparece
+              quando o item some do filtro da vitrine. Sem cadastro são
+              obrigatórios: é com eles que o recebimento gera o produto pronto. */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
+                Departamento {!categoryLocked && <span className="text-red-500">*</span>}
+              </label>
+              <Select
+                value={values.departmentId}
+                onValueChange={form.setDepartment}
+                disabled={readOnly || categoryLocked}
+              >
+                <SelectTrigger className="h-10 bg-background" aria-label="Departamento">
+                  <SelectValue placeholder="Selecione um departamento..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((department) => (
+                    <SelectItem key={department.id} value={String(department.id)}>
+                      {department.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
+                Categoria {!categoryLocked && <span className="text-red-500">*</span>}
+              </label>
+              <Select
+                value={values.categoryId}
+                onValueChange={(value) => update("categoryId", value)}
+                disabled={readOnly || categoryLocked}
+              >
+                <SelectTrigger className="h-10 bg-background" aria-label="Categoria">
+                  <SelectValue placeholder="Selecione uma categoria..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {form.categories.map((category) => (
+                    <SelectItem key={category.id} value={String(category.id)}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {categoryLocked
+                  ? "Vem do cadastro do produto. Para trocar, edite o produto."
+                  : "O produto vai ser cadastrado com este departamento e esta categoria no recebimento."}
+              </p>
+            </div>
+          </div>
+
           {/* Produto com variações troca o campo de quantidade por uma GRADE: é
               a mesma compra, só que dizendo quanto de cada cor. Produto simples
               — a esmagadora maioria — continua com o campo de sempre, porque o
@@ -294,7 +361,12 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
           {/* O preço de venda decidido na hora de COMPRAR: é aqui que se olha para
               o custo, e é aqui que a conta de margem ainda pode mudar a decisão de
               comprar. No recebimento ele já vem preenchido e passa a valer no
-              cadastro do produto. */}
+              cadastro do produto.
+
+              O campo NASCE com o preço do cálculo de margem (40% sobre o custo
+              unitário) assim que o custo existe, e segue editável: na maioria das
+              compras a sugestão é o que se pratica, e digitá-la de novo seria
+              repetir uma conta que a tela já fez. Ver `usePurchaseForm`. */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">
@@ -307,9 +379,15 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
                 readOnly={readOnly}
                 allowFormula
               />
-              <p className="text-xs text-muted-foreground">
-                Em branco (zero) mantém o preço atual do produto no recebimento.
-              </p>
+              {/* O preço que a loja cobra HOJE, ao lado do que vai passar a valer:
+                  é a comparação que decide se a compra muda a etiqueta. Em produto
+                  novo não existe preço atual, e a linha simplesmente não aparece. */}
+              {values.productPrice !== null && (
+                <p className="text-xs text-muted-foreground">
+                  Preço atual do produto:{" "}
+                  <span className="font-medium text-foreground">{formatCurrency(values.productPrice)}</span>
+                </p>
+              )}
             </div>
             <div className="md:col-span-2">
               <PricingPreview
@@ -345,35 +423,14 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
             images={values.images}
             readOnly={readOnly}
             uploading={form.uploading}
+            loading={form.loadingGroup}
+            isProductGallery={temProduto}
             productName={values.productName}
             onFileSelection={form.handleFileSelection}
             onAddUrl={form.addImageFromUrl}
             onRemove={form.removeImage}
             onSearchWeb={() => form.setImageSearchOpen(true)}
           />
-
-          {/* A foto da compra é do que ACABOU de chegar, e desde 12/09/2026 ela
-              passa a ser a galeria do produto. Unificar continua disponível —
-              agora como escolha explícita, e não como padrão silencioso. */}
-          {values.images.length > 0 && (
-            <label className="flex items-start gap-2.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-3 text-xs leading-relaxed">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-3.5 w-3.5"
-                checked={values.replaceProductImages}
-                onChange={(event) => update("replaceProductImages", event.target.checked)}
-                disabled={readOnly}
-              />
-              <span className="text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  No recebimento, substituir as fotos do produto por estas
-                </span>
-                <br />
-                Desmarcado, estas entram como principais e as que o produto já tem descem de posição. A imagem
-                nunca é apagada do catálogo.
-              </span>
-            </label>
-          )}
 
           <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
             <Button type="button" variant="outline" onClick={() => form.setOpen(false)}>
@@ -383,7 +440,10 @@ export function PurchaseEditorModal({ form, suppliers }: PurchaseEditorModalProp
               <Button
                 type="submit"
                 className="bg-primary text-primary-foreground"
-                disabled={form.isSaving || form.uploading}
+                // `loadingGroup`: salvar antes de a galeria do produto chegar
+                // gravaria a compra sem fotos — e, numa edição, esvaziaria a
+                // galeria do próprio produto.
+                disabled={form.isSaving || form.uploading || form.loadingGroup}
               >
                 {form.isSaving ? "Salvando..." : form.editingId ? "Salvar alterações" : "Registrar compra"}
               </Button>

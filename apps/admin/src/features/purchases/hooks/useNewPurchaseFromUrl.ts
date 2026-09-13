@@ -38,8 +38,10 @@ type UseNewPurchaseFromUrlParams = {
   /** Abre o formulário de compra já preenchido. */
   abrirCompra: (dados: {
     productId: number;
+    productGroupId: number;
     productName: string;
     productBarcode: string | null;
+    productPrice: number | null;
     supplierId: number | null;
     quantity: number;
   }) => void;
@@ -91,8 +93,12 @@ export function useNewPurchaseFromUrl({ abrirCompra }: UseNewPurchaseFromUrlPara
 
         abrirCompra({
           productId: produto.id,
+          // O GRUPO abre a grade de variações, a categoria e a galeria de fotos
+          // do produto na modal — a reposição é compra de produto cadastrado.
+          productGroupId: produto.productGroupId,
           productName: produto.displayName || produto.name,
           productBarcode: produto.barcode || null,
+          productPrice: produto.price ?? null,
           supplierId: pedido.supplierId,
           quantity: Math.max(1, (produto.minStock ?? 0) - (produto.stock ?? 0)),
         });

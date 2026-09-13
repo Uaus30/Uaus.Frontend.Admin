@@ -66,7 +66,6 @@ function compra(extras: Record<string, unknown> = {}) {
     images: [],
     items: [],
     costSplitManual: false,
-    replaceProductImages: true,
     ...extras,
   } as never;
 }

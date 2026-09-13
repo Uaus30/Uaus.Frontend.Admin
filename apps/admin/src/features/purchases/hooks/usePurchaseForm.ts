@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { describeApiError, toDateKey } from "@workspace/core";
+import { describeApiError, suggestedPrice, toDateKey } from "@workspace/core";
 import {
   PURCHASE_STATUS,
   buildPublicImageUrl,
   createPurchase,
   enumCode,
   updatePurchase,
+  type CategoryDto,
   type PurchaseDto,
   type SavePurchasePayload,
   type SupplierDto,
 } from "@workspace/api-client-react";
+import { getProductGroupById, getProductGroupImages } from "@/services/products.service";
 import type { ProductSearchOption } from "@/components/product-search-picker";
 import { syncPurchaseDetailParam } from "../purchases-route";
+import { derivePurchaseTotals } from "../lib/purchase-totals";
 import type { PurchaseForm, PurchaseFormItem } from "../types";
 import { usePurchaseImages } from "./usePurchaseImages";
 import { usePurchaseVariations } from "./usePurchaseVariations";
@@ -33,11 +36,11 @@ export function emptyPurchaseForm(): PurchaseForm {
     supplierId: "",
     productId: null,
     productGroupId: null,
+    productPrice: null,
+    categoryId: "",
+    departmentId: "",
     items: [],
     costSplitManual: false,
-    // Substituir e o padrao desde 12/09/2026: quem fotografa na hora de
-    // comprar registra o que acabou de chegar.
-    replaceProductImages: true,
     productName: "",
     productBarcode: null,
     details: "",
@@ -52,14 +55,40 @@ export function emptyPurchaseForm(): PurchaseForm {
   };
 }
 
-/** Carrega uma compra gravada no formulário. */
-export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
+/**
+ * O departamento de uma categoria, como string do `<Select>`.
+ *
+ * O departamento não é gravado em lugar nenhum — nem na compra, nem no grupo de
+ * produto. Ele sai da categoria, e serve só para filtrar a lista de categorias
+ * na tela, como no editor de produto.
+ */
+export function departmentOfCategory(
+  categoryId: number | null | undefined,
+  categories: CategoryDto[],
+): string {
+  if (categoryId == null) return "";
+  const category = categories.find((item) => item.id === categoryId);
+  return category ? String(category.departmentId) : "";
+}
+
+/**
+ * Carrega uma compra gravada no formulário.
+ *
+ * As `categories` entram só para resolver o DEPARTAMENTO da categoria gravada —
+ * ele não viaja na compra. Sem elas (catálogo ainda carregando) o select de
+ * departamento nasce vazio e se preenche no render seguinte.
+ */
+export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] = []): PurchaseForm {
   const status = enumCode(purchase.status, PURCHASE_STATUS);
   return {
     supplierId: String(purchase.supplierId),
     // `?? null`: o backend omite campos nulos e o formulário compara com `=== null`.
     productId: purchase.productId ?? null,
     productGroupId: purchase.productGroupId ?? null,
+    productPrice: purchase.productPrice ?? null,
+    // Com produto vinculado o backend já devolve a categoria do GRUPO aqui.
+    categoryId: purchase.categoryId == null ? "" : String(purchase.categoryId),
+    departmentId: departmentOfCategory(purchase.categoryId, categories),
     // A grade gravada — só quando ela EXISTE, ou seja, com mais de uma variação.
     //
     // Compra de um produto só tem UM item no banco, espelho do cabeçalho, e
@@ -92,7 +121,6 @@ export function purchaseToForm(purchase: PurchaseDto): PurchaseForm {
           )
         : [],
     costSplitManual: purchase.costSplitManual ?? false,
-    replaceProductImages: purchase.replaceProductImages ?? true,
     productName: purchase.productName,
     productBarcode: purchase.productBarcode ?? null,
     details: purchase.details ?? "",
@@ -169,10 +197,32 @@ export function purchaseCostIsRequired(form: PurchaseForm): boolean {
   return Number(form.status) !== PURCHASE_STATUS.Pending;
 }
 
+/**
+ * Departamento e categoria são do PRODUTO, e por isso ficam travados quando a
+ * compra aponta para um cadastro.
+ *
+ * Eles aparecem preenchidos porque respondem "o que é isto que estou
+ * comprando?" sem obrigar a abrir outra tela. Mas quem edita a categoria de um
+ * produto é a tela de Produtos: deixá-la editável aqui daria duas respostas
+ * para a mesma pergunta — e mudar a do produto por efeito colateral de salvar
+ * uma compra é o tipo de coisa que ninguém procura quando o item some do filtro
+ * da vitrine.
+ *
+ * Sem produto vinculado é o contrário: a categoria é obrigatória, porque é ela
+ * que o cadastro gerado no recebimento recebe pronto.
+ */
+export function purchaseCategoryIsLocked(form: PurchaseForm): boolean {
+  return purchaseHasProduct(form);
+}
+
 /** O que falta no formulário para gravar, ou `null` quando está pronto. */
 export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto): string | null {
   if (!form.supplierId) return "Selecione o fornecedor.";
   if (!purchaseHasProduct(form) && !form.productName.trim()) return "Informe o produto ou o nome do produto.";
+  // Só onde ela tem dono: com produto vinculado a categoria é a do grupo, e vem
+  // preenchida e travada. Sem cadastro, é ela que o recebimento vai usar.
+  if (!purchaseCategoryIsLocked(form) && !form.categoryId)
+    return "Selecione o departamento e a categoria: é com eles que o produto vai ser cadastrado no recebimento.";
   if (!form.purchaseDate) return "Informe a data da compra.";
   if (form.purchaseDate > todayDateKey()) return "A data da compra não pode estar no futuro.";
   if (form.items.length > 0 && form.items.every((item) => item.quantity <= 0))
@@ -199,6 +249,12 @@ type UsePurchaseFormParams = {
    * foi digitado.
    */
   suppliers: SupplierDto[];
+  /**
+   * Catálogo de categorias. Serve para resolver o DEPARTAMENTO da categoria — a
+   * relação mora em `categories.departmentId`, e nem a compra nem o grupo de
+   * produto guardam o departamento.
+   */
+  categories: CategoryDto[];
 };
 
 /**
@@ -217,11 +273,28 @@ type UsePurchaseFormParams = {
  *   de zero, e um zero gravado faria o recebimento tentar aplicar preço zero ao
  *   produto — nulo é o que mantém o preço atual do cadastro.
  */
-export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
+export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseFormParams) {
   const { toast } = useToast();
 
   const [open, setOpenState] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  /**
+   * A galeria e a categoria do produto escolhido estão sendo buscadas.
+   *
+   * Trava o salvar enquanto isso. Sem a trava, quem escolhesse o produto e
+   * clicasse em "Registrar compra" no mesmo segundo gravaria a compra com a
+   * lista de fotos vazia — e, numa EDIÇÃO, isso esvaziaria a galeria do produto.
+   */
+  const [loadingGroup, setLoadingGroup] = useState(false);
+  /**
+   * O operador já mexeu no preço sugerido nesta compra?
+   *
+   * Enquanto não mexeu, o campo acompanha o cálculo de margem sobre o custo
+   * unitário: digitar o total final preenche o preço sozinho. Depois de mexer,
+   * o número é dele — recalcular jogaria fora a decisão que a tela acabou de
+   * pedir. Compra aberta com preço já gravado nasce "mexida" pelo mesmo motivo.
+   */
+  const [precoTocado, setPrecoTocado] = useState(false);
 
   /**
    * Fechar a modal tira a compra da URL. O link só vale enquanto ela está
@@ -247,17 +320,67 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
 
   const supplier = suppliers.find((item) => String(item.id) === form.supplierId);
 
+  /**
+   * Traz do servidor a categoria e a GALERIA do grupo escolhido.
+   *
+   * É o que faz a modal exibir as fotos do produto ao escolhê-lo: a galeria da
+   * compra e a do grupo são a mesma lista desde 13/09/2026, e salvar replica o
+   * que estiver aqui de volta no produto.
+   *
+   * Busca direta, e não `useQuery`: acontece UMA vez, no gesto de escolher o
+   * produto, e o que interessa é o estado do servidor naquele instante — cache
+   * aqui só serviria para devolver uma galeria que a tela de Produtos já mudou.
+   *
+   * A gravação só é liberada depois (`loadingGroup`), e o resultado é
+   * descartado se o operador trocar de produto no meio do caminho.
+   */
+  async function loadProductGroup(productGroupId: number) {
+    setLoadingGroup(true);
+    try {
+      const [grupo, galeria] = await Promise.all([
+        getProductGroupById(productGroupId),
+        getProductGroupImages(productGroupId),
+      ]);
+
+      setForm((current) => {
+        if (current.productGroupId !== productGroupId) return current;
+        return {
+          ...current,
+          categoryId: String(grupo.categoryId),
+          departmentId: departmentOfCategory(grupo.categoryId, categories),
+          images: galeria.map((image) => ({
+            imageId: image.imageId,
+            url: buildPublicImageUrl(image.url),
+            name: image.name,
+          })),
+        };
+      });
+    } catch (error) {
+      toast({
+        title: "Não foi possível carregar as fotos do produto",
+        description: describeApiError(error, "Reabra a compra antes de salvar, para não gravar sem elas."),
+        error,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingGroup(false);
+    }
+  }
+
   function openNew() {
     setEditingId(null);
     setForm(emptyPurchaseForm());
     setReadOnly(false);
+    setPrecoTocado(false);
     setOpen(true);
   }
 
   function openEdit(purchase: PurchaseDto) {
     setEditingId(purchase.id);
-    setForm(purchaseToForm(purchase));
+    setForm(purchaseToForm(purchase, categories));
     setReadOnly(enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received);
+    // Preço já decidido é decisão tomada: o cálculo de margem não a substitui.
+    setPrecoTocado((purchase.suggestedPrice ?? 0) > 0);
     setOpen(true);
     // A URL passa a dizer qual compra está aberta (`/estoque/compras?compra=12`):
     // é o link que se copia para mandar a compra a alguém, e `usePurchaseFromUrl`
@@ -274,26 +397,48 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
    */
   function openForRestock(dados: {
     productId: number;
+    productGroupId: number;
     productName: string;
     productBarcode: string | null;
+    productPrice: number | null;
     supplierId: number | null;
     quantity: number;
   }) {
     setEditingId(null);
     setReadOnly(false);
+    setPrecoTocado(false);
     setForm({
       ...emptyPurchaseForm(),
       productId: dados.productId,
+      productGroupId: dados.productGroupId,
       productName: dados.productName,
       productBarcode: dados.productBarcode,
+      productPrice: dados.productPrice,
       supplierId: dados.supplierId ? String(dados.supplierId) : "",
       quantity: dados.quantity,
     });
     setOpen(true);
+    // Reposição é compra de produto cadastrado: a grade, a categoria e as fotos
+    // dele valem aqui igual a quem escolhe pelo seletor.
+    void loadProductGroup(dados.productGroupId);
   }
 
   function update<K extends keyof PurchaseForm>(field: K, value: PurchaseForm[K]) {
+    // Mexeu no preço, o número passa a ser dele: o cálculo de margem para de
+    // repô-lo a cada mudança de custo.
+    if (field === "suggestedPrice") setPrecoTocado(true);
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  /**
+   * Troca o departamento: a categoria escolhida sai junto.
+   *
+   * Mantê-la faria o par ficar incoerente — categoria de um departamento,
+   * departamento de outro —, e a lista filtrada abaixo nem mostraria a que
+   * continuou selecionada.
+   */
+  function setDepartment(departmentId: string) {
+    setForm((current) => ({ ...current, departmentId, categoryId: "" }));
   }
 
   /**
@@ -302,27 +447,49 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
    * O GRUPO viaja junto porque é ele que carrega as variações irmãs — escolher
    * uma cor na busca abre a grade do produto inteiro. A grade em si é montada
    * pelo `usePurchaseVariations` quando a lista chega.
+   *
+   * **As fotos passam a ser as do produto** (13/09/2026), junto com a categoria.
+   * Escolher o produto é dizer "a compra é disto", e disto o sistema já sabe a
+   * foto. Foto que estivesse no formulário antes da escolha é substituída: a
+   * regra da modal é uma só — o que está aqui é a galeria do grupo escolhido —,
+   * e o seletor de produto fica acima do campo de fotos justamente porque ele
+   * vem primeiro.
    */
   function selectProduct(product: ProductSearchOption) {
+    const mesmoGrupo = form.productGroupId === product.productGroupId;
+
     setForm((current) => ({
       ...current,
       productId: product.id,
       productGroupId: product.productGroupId,
       productName: product.name,
       productBarcode: product.barcode,
+      productPrice: product.price,
       // A grade do grupo anterior não vale para o novo.
-      items: current.productGroupId === product.productGroupId ? current.items : [],
+      items: mesmoGrupo ? current.items : [],
     }));
+
+    // Trocar de variação dentro do MESMO grupo não muda foto nem categoria.
+    if (!mesmoGrupo) void loadProductGroup(product.productGroupId);
   }
 
-  /** Tira o vínculo e libera o nome para digitação (produto novo). */
+  /**
+   * Tira o vínculo e libera o nome para digitação (produto novo).
+   *
+   * As fotos saem junto: elas eram a galeria daquele produto, e deixá-las viraria
+   * a galeria de um cadastro novo com as fotos de outro item. O nome fica, para
+   * servir de ponto de partida; a categoria também, porque quase sempre é a
+   * mesma do que estava vinculado — e agora ela é editável.
+   */
   function clearProduct() {
     setForm((current) => ({
       ...current,
       productId: null,
       productGroupId: null,
       productBarcode: null,
+      productPrice: null,
       items: [],
+      images: [],
     }));
   }
 
@@ -343,10 +510,40 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
       }),
   });
 
+  // O departamento sai da CATEGORIA, e o catálogo de categorias pode chegar
+  // DEPOIS da compra: quem abre `/estoque/compras?compra=5` direto no navegador
+  // caía numa modal com a categoria certa e o departamento em branco — e a lista
+  // de categorias, que o departamento filtra, aparecia inteira. Ajuste durante o
+  // render, como o preço abaixo: a condição se desfaz sozinha depois dele.
+  const departamentoDaCategoria = departmentOfCategory(Number(form.categoryId) || null, categories);
+  if (open && form.categoryId && !form.departmentId && departamentoDaCategoria) {
+    setForm((current) => ({ ...current, departmentId: departamentoDaCategoria }));
+  }
+
+  // O preço sugerido nasce do CÁLCULO DE MARGEM (custo ÷ 0,6, arredondado para
+  // cima ao múltiplo de R$ 0,10) assim que o custo unitário existe, e continua
+  // editável. É ajuste durante o RENDER, e não efeito: a condição se desfaz
+  // sozinha depois do ajuste, e num efeito seria preciso guardar "já sugeri
+  // para este custo" só para não repor o número em cima do que foi digitado.
+  const custoUnitario = derivePurchaseTotals(form.quantity, form.grossTotal, form.finalTotal).unitFinal;
+  const precoPelaMargem = suggestedPrice(custoUnitario) ?? 0;
+  if (open && !readOnly && !precoTocado && form.suggestedPrice !== precoPelaMargem) {
+    setForm((current) => ({ ...current, suggestedPrice: precoPelaMargem }));
+  }
+
   function submit(event?: React.FormEvent) {
     event?.preventDefault();
 
     if (readOnly) return;
+
+    if (loadingGroup) {
+      toast({
+        title: "Aguarde",
+        description: "As fotos e a categoria do produto ainda estão carregando.",
+        variant: "warning",
+      });
+      return;
+    }
 
     const problem = validatePurchaseForm(form, supplier);
     if (problem) {
@@ -357,6 +554,8 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     saveMutation.mutate({
       supplierId: Number(form.supplierId),
       productId: form.productId,
+      // Com produto vinculado o backend usa a do grupo e ignora esta.
+      categoryId: form.categoryId ? Number(form.categoryId) : null,
       productName: form.productName.trim(),
       details: form.details.trim() || null,
       purchaseLink: form.purchaseLink.trim() || null,
@@ -368,6 +567,8 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
       finalTotal: form.finalTotal,
       suggestedPrice: form.suggestedPrice > 0 ? form.suggestedPrice : null,
       status: Number(form.status),
+      // Com produto vinculado esta lista VIRA a galeria do grupo, na mesma
+      // transação. Ver `SavePurchasePayload.imageIds`.
       imageIds: form.images.map((image) => image.imageId),
       // Sem grade a lista é vazia, e o backend trata o corpo como o de sempre:
       // a compra de um produto só, descrita pelo CABEÇALHO — que é onde mora o
@@ -381,7 +582,6 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
           finalTotal: item.finalTotal,
         })),
       costSplitManual: form.costSplitManual,
-      replaceProductImages: form.replaceProductImages,
     });
   }
 
@@ -394,7 +594,14 @@ export function usePurchaseForm({ onSaved, suppliers }: UsePurchaseFormParams) {
     supplier,
     linkRequired: purchaseLinkIsRequired(form, supplier),
     costRequired: purchaseCostIsRequired(form),
+    categoryLocked: purchaseCategoryIsLocked(form),
+    /** As categorias do departamento escolhido — a lista que o select mostra. */
+    categories: form.departmentId
+      ? categories.filter((item) => String(item.departmentId) === form.departmentId)
+      : categories,
+    loadingGroup,
     update,
+    setDepartment,
     openNew,
     openEdit,
     openForRestock,

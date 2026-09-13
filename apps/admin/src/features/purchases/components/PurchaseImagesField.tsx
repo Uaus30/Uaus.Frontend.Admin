@@ -7,6 +7,10 @@ type PurchaseImagesFieldProps = {
   images: PurchaseFormImage[];
   readOnly: boolean;
   uploading: boolean;
+  /** A galeria do produto escolhido ainda está sendo buscada. */
+  loading?: boolean;
+  /** A compra aponta para um produto cadastrado — estas fotos são as DELE. */
+  isProductGallery?: boolean;
   /** Habilita a busca na web — sem nome não há o que procurar. */
   productName: string;
   onFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -22,14 +26,20 @@ type PurchaseImagesFieldProps = {
  * porque exigir o clique numa área específica antes do Ctrl+V é justamente o
  * passo que o atalho existe para eliminar.
  *
- * A PRIMEIRA foto é a principal — a que vira imagem principal do produto no
- * recebimento. O rótulo diz isso na própria miniatura, porque a ordem só é
- * óbvia depois que alguém explica.
+ * **Com produto cadastrado, estas são as fotos DELE** (13/09/2026): a lista
+ * chega da galeria do grupo, e o que sair ou entrar aqui sai ou entra no produto
+ * quando a compra for salva. O aviso embaixo diz isso — remover uma foto aqui
+ * não é um gesto local, e quem descobre depois descobre pela vitrine.
+ *
+ * A PRIMEIRA foto é a principal (a capa do produto). O rótulo diz isso na
+ * própria miniatura, porque a ordem só é óbvia depois que alguém explica.
  */
 export function PurchaseImagesField({
   images,
   readOnly,
   uploading,
+  loading = false,
+  isProductGallery = false,
   productName,
   onFileSelection,
   onAddUrl,
@@ -143,23 +153,22 @@ export function PurchaseImagesField({
             )}
           </div>
         ))}
-        {uploading && (
+        {(uploading || loading) && (
           <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-border/50">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
       </div>
 
-      {images.length === 0 && !uploading ? (
-        <p className="text-xs text-muted-foreground">
-          Opcional. Em produto novo, as fotos viram a galeria do cadastro no recebimento.
-        </p>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          A primeira foto é a principal. No recebimento ela assume a imagem principal do produto, e as que já
-          existiam descem de posição sem serem perdidas.
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        {loading
+          ? "Carregando as fotos do produto..."
+          : isProductGallery
+            ? "Estas são as fotos do produto. Salvar a compra aplica no cadastro o que for removido ou acrescentado aqui, e a primeira vira a capa — a que a vitrine, o PDV e a etiqueta mostram."
+            : images.length === 0
+              ? "Opcional. Em produto novo, as fotos viram a galeria do cadastro no recebimento."
+              : "A primeira foto é a principal: ela vira a capa da galeria quando o produto for cadastrado no recebimento."}
+      </p>
     </div>
   );
 }

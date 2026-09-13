@@ -36,8 +36,22 @@ export interface PurchaseDto {
   productId?: number | null;
   /** Grupo do produto vinculado — é ele que abre a tela de detalhe do produto. */
   productGroupId?: number | null;
+  /**
+   * Categoria do produto: a escolhida na compra (produto ainda não cadastrado)
+   * ou a do GRUPO, com produto vinculado. O backend escolhe uma das duas — a
+   * compra nunca guarda cópia da do grupo.
+   *
+   * O departamento sai dela pelo catálogo de categorias, como no editor de
+   * produto: `categories.find(c => c.id === categoryId)?.departmentId`.
+   */
+  categoryId?: number | null;
   productName: string;
   productBarcode?: string | null;
+  /**
+   * Preço de venda vigente do produto vinculado. Ausente em produto novo e em
+   * compra com VARIAÇÕES, onde o cabeçalho não aponta para nenhuma delas.
+   */
+  productPrice?: number | null;
   details?: string | null;
   purchaseLink?: string | null;
   /**
@@ -69,16 +83,18 @@ export interface PurchaseDto {
   receivedAt?: string | null;
   purchaseEntryId?: number | null;
   userName?: string | null;
+  /**
+   * As fotos da compra.
+   *
+   * Com produto vinculado são a GALERIA DO GRUPO (13/09/2026): a modal de
+   * compra exibe e edita a galeria do produto, e salvar replica lá. Por isso a
+   * listagem mostra sempre a foto que o produto tem hoje.
+   */
   images: PurchaseImageDto[];
   /** As variações compradas. Com uma só, é o espelho do cabeçalho. */
   items: PurchaseItemDto[];
   /** Quem é a fonte da verdade do custo — ver `SavePurchasePayload.costSplitManual`. */
   costSplitManual: boolean;
-  /**
-   * As fotos da compra substituem a galeria do GRUPO no recebimento (padrão),
-   * em vez de entrarem na frente das que já existem.
-   */
-  replaceProductImages: boolean;
 }
 
 /**
@@ -119,6 +135,12 @@ export interface SavePurchaseItemPayload {
 export interface SavePurchasePayload {
   supplierId: number;
   productId: number | null;
+  /**
+   * Categoria do produto a comprar. **Obrigatória sem produto vinculado** — é
+   * ela que o cadastro gerado no recebimento recebe pronto. Com produto
+   * vinculado o backend a ignora e usa a do grupo.
+   */
+  categoryId: number | null;
   /** Obrigatório sem `productId`; com produto vinculado o backend usa o nome do cadastro. */
   productName: string;
   details: string | null;
@@ -137,7 +159,14 @@ export interface SavePurchasePayload {
   suggestedPrice: number | null;
   /** Código de PurchaseStatus: Pendente (1) ou A caminho (2). */
   status: number;
-  /** Ids de `images` já enviadas, na ordem de exibição. */
+  /**
+   * Ids de `images` já enviadas, na ordem de exibição — a primeira é a capa.
+   *
+   * Com produto vinculado esta lista **vira a galeria do GRUPO** na mesma
+   * transação (13/09/2026): a modal de compra edita a galeria do produto. Lista
+   * vazia esvazia a galeria na EDIÇÃO; no cadastro ela não mexe em nada, porque
+   * compra nasce sem foto o tempo todo.
+   */
   imageIds: number[];
   /**
    * A grade de variações. Vazia mantém o corpo ANTIGO valendo — a compra de um
@@ -152,12 +181,6 @@ export interface SavePurchasePayload {
    * à mão e mexer numa quantidade redistribuiria tudo em silêncio.
    */
   costSplitManual: boolean;
-  /**
-   * `true` (padrão) = as fotos da compra SUBSTITUEM a galeria do grupo no
-   * recebimento; `false` unifica, com as novas na frente. Substituir tira só a
-   * associação — a imagem é do catálogo e nunca é apagada.
-   */
-  replaceProductImages: boolean;
 }
 
 /** Uma variação conferida no recebimento. */
@@ -189,8 +212,6 @@ export interface ReceivePurchasePayload {
    * precisa fechar com ele, senão o backend recusa dizendo a diferença.
    */
   finalTotal?: number | null;
-  /** Sobrescreve a escolha da compra sobre substituir ou unificar as fotos. */
-  replaceProductImages?: boolean | null;
 }
 
 /** Fechamento de compra de produto NOVO, depois do cadastro e da entrada. */

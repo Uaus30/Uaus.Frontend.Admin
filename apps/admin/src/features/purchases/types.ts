@@ -53,6 +53,24 @@ export type PurchaseForm = {
    */
   productGroupId: number | null;
   /**
+   * Preço de venda VIGENTE do produto vinculado, só para a tela mostrar
+   * "Preço atual do produto: R$ X" ao lado do sugerido. Nulo em produto novo,
+   * onde não há preço atual a comparar.
+   */
+  productPrice: number | null;
+  /**
+   * Categoria do produto, como string do `<Select>`. Obrigatória na compra de
+   * produto novo — é ela que o cadastro gerado no recebimento recebe pronto.
+   * Com produto vinculado vem do GRUPO e o campo fica travado.
+   */
+  categoryId: string;
+  /**
+   * Departamento, como string do `<Select>`. **Não é gravado**: serve para
+   * filtrar as categorias, como no editor de produto — quem guarda a relação é
+   * `categories.departmentId`.
+   */
+  departmentId: string;
+  /**
    * A grade. Vazia em produto simples e em produto novo — aí a quantidade
    * continua sendo um campo só, como sempre foi.
    */
@@ -65,11 +83,6 @@ export type PurchaseForm = {
    * isso que o flag também é gravado no banco.
    */
   costSplitManual: boolean;
-  /**
-   * No recebimento, as fotos desta compra SUBSTITUEM a galeria do grupo
-   * (padrão) ou entram na frente das que já existem.
-   */
-  replaceProductImages: boolean;
   productName: string;
   /** Código de barras do produto vinculado, só para conferência na tela. */
   productBarcode: string | null;
@@ -88,6 +101,13 @@ export type PurchaseForm = {
   suggestedPrice: number;
   /** Código de PurchaseStatus como string do `<Select>`: "1" Pendente, "2" A caminho. */
   status: string;
+  /**
+   * As fotos.
+   *
+   * Com produto vinculado são a GALERIA DO GRUPO: a modal exibe e edita a
+   * galeria do produto, e salvar replica lá. Em produto novo são só da compra,
+   * e viram a galeria do cadastro quando ele nascer.
+   */
   images: PurchaseFormImage[];
 };
 
@@ -109,6 +129,4 @@ export type ReceiveForm = {
   items: PurchaseFormItem[];
   /** O total pago, que o operador pode confirmar como novo. */
   finalTotal: number;
-  /** As fotos da compra substituem a galeria do grupo (padrão) ou unificam. */
-  replaceProductImages: boolean;
 };

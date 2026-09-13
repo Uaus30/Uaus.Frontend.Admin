@@ -1,8 +1,8 @@
 import {
-  ExternalLink,
   ImageIcon,
   Loader2,
   MoreVertical,
+  Package,
   PackageCheck,
   Pencil,
   Search,
@@ -15,10 +15,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { PURCHASE_STATUS, buildPublicImageUrl, enumCode } from "@workspace/api-client-react";
-import { formatCurrency, formatPercentage, formatShortDate } from "@workspace/core";
+import { formatCurrency, formatPercentage, formatShortDate, marginBand } from "@workspace/core";
 import type { PurchaseDto } from "../types";
 import { STATUS_FILTER_ALL, STATUS_FILTER_OPEN } from "../hooks/usePurchases";
+import { purchaseMarginPercent } from "../lib/purchase-totals";
 import { PurchaseStatusBadge } from "./PurchaseStatusBadge";
+
+/** A cor de cada faixa de margem. Mesma regra da entrada de estoque e do recebimento. */
+const MARGIN_COLOR: Record<string, string> = {
+  healthy: "text-emerald-600",
+  tight: "text-amber-600",
+  low: "text-red-600",
+};
 
 type PurchasesTableProps = {
   items: PurchaseDto[];
@@ -40,25 +48,26 @@ type PurchasesTableProps = {
 /**
  * Listagem de compras.
  *
- * A coluna de valor mostra o total FINAL com o percentual de desconto ou
- * acréscimo ao lado: é o número que o operador confere contra o extrato, e o
- * bruto sozinho esconderia o frete ou o desconto que fecham a conta.
+ * As colunas de dinheiro respondem à pergunta que a tela existe para responder:
+ * <b>por quanto entrou e quanto sobra</b>. Ficaram o unitário final — o custo que
+ * o lote vai gravar — e a <b>margem prevista</b>, nas mesmas faixas de cor de
+ * toda tela que mostra margem (verde a partir de 40%, amarelo de 30% a 40%,
+ * vermelho abaixo). O <b>total final saiu</b> em 13/09/2026: é a soma de um
+ * pedido cujo tamanho varia, então R$ 1.500 e R$ 30 não se comparam entre linhas
+ * — quem compara é o unitário. O total continua a um clique, na compra.
  *
  * <b>Abaixo de `2xl` a tabela se reduz ao essencial</b> — produto, fornecedor,
- * quantidade, situação e ações. Com as oito colunas a largura mínima passa de
+ * quantidade, situação e ações. Com as oito colunas a largura mínima passava de
  * 1.200px, e a área útil de quem usa o notebook a 125% de zoom (ou o monitor
  * auxiliar da loja) é de ~1.140px: sobrava uma barra de rolagem horizontal, e o
  * que ficava fora da tela era justamente a ponta direita — a situação e o menu
- * de opções, que é onde se clica. Total final, unitário final e data da compra
- * seguem a um clique de distância, porque a linha abre a compra; a barra de
- * rolagem, não. Quem tem monitor largo continua vendo tudo.
+ * de opções, que é onde se clica.
  *
- * <b>A linha inteira abre a compra.</b> O botão verde de receber saiu daqui: ele
- * já existia por extenso no menu de opções, e ocupar a coluna de ações com uma
- * duplicata deixava a listagem sem o gesto mais óbvio de todos, que é clicar na
- * linha para ver o que se comprou. Compra já lançada abre em leitura — o backend
- * recusa alterá-la, e um formulário editável que não salva é pior que um
- * bloqueado que explica.
+ * <b>A linha inteira abre a compra, e o nome do produto também</b> (13/09/2026).
+ * O nome era link para o cadastro do produto, e clicar nele no meio de uma lista
+ * de compras levava para outra tela — o gesto mais natural da linha fazia a
+ * única coisa que não era "ver esta compra". O cadastro do produto continua a um
+ * clique, no menu de opções.
  */
 export function PurchasesTable({
   items,
@@ -122,8 +131,8 @@ export function PurchasesTable({
                 <TableHead className="px-4 py-3">Produto</TableHead>
                 <TableHead className="px-4 py-3">Fornecedor</TableHead>
                 <TableHead className="px-4 py-3 text-right">Qtd.</TableHead>
-                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Total final</TableHead>
                 <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Unit. final</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Margem</TableHead>
                 <TableHead className="px-4 py-3">Situação</TableHead>
                 <TableHead className="hidden px-4 py-3 2xl:table-cell">Data da compra</TableHead>
                 <TableHead className="w-16 px-4 py-3 text-right">Ações</TableHead>
@@ -133,11 +142,17 @@ export function PurchasesTable({
               {items.map((purchase) => {
                 const status = enumCode(purchase.status, PURCHASE_STATUS);
                 const received = status === PURCHASE_STATUS.Received;
+                // Pendente é a anotação de "preciso comprar isto": o pedido ainda
+                // não foi fechado, e é ali que o custo pode nem existir. Receber
+                // dali pularia a etapa que diz que a compra saiu.
+                const pending = status === PURCHASE_STATUS.Pending;
                 const busy = mutatingId === purchase.id;
                 const cover = purchase.images[0];
                 // Custo zero é "ainda não informado" — só compra pendente fica assim — e
                 // R$ 0,00 leria como "de graça". O traço diz que o número não existe.
                 const hasCost = purchase.finalTotal > 0;
+                const margin = purchaseMarginPercent(purchase);
+                const band = marginBand(margin);
                 return (
                   <TableRow
                     key={purchase.id}
@@ -176,24 +191,20 @@ export function PurchasesTable({
                             empurrava a tabela para fora da tela. Com ele o nome longo vira
                             reticências, e o completo continua no `title` e na compra, que
                             a linha abre. */}
+                        {/* O nome NÃO é link para o cadastro do produto: clicar nele
+                            abre esta compra, como o resto da linha. O cadastro está
+                            no menu de opções, que é onde se procura por "ir para
+                            outro lugar". */}
                         <div className="min-w-0 max-w-[20rem]">
-                          {purchase.productGroupId ? (
-                            <Link
-                              href={`/produtos/${purchase.productGroupId}/detalhes`}
-                              className="block truncate font-medium text-foreground hover:text-primary hover:underline"
-                              title={purchase.productName}
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              {purchase.productName}
-                            </Link>
-                          ) : (
-                            <p className="truncate font-medium text-foreground" title={purchase.productName}>
-                              {purchase.productName}{" "}
+                          <p className="truncate font-medium text-foreground" title={purchase.productName}>
+                            {purchase.productName}
+                            {!purchase.productGroupId && (
                               <span className="text-xs font-normal text-muted-foreground">
+                                {" "}
                                 (produto novo)
                               </span>
-                            </p>
-                          )}
+                            )}
+                          </p>
                           <p className="truncate font-mono text-xs text-muted-foreground">
                             {/* Com várias variações o código de barras é de UMA
                                 delas e não representa a compra; o selo responde
@@ -214,10 +225,11 @@ export function PurchasesTable({
                     <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
                       {hasCost ? (
                         <>
-                          <span className="font-semibold">{formatCurrency(purchase.finalTotal)}</span>
+                          <span className="font-semibold">{formatCurrency(purchase.unitFinal)}</span>
                           {purchase.adjustmentPercent !== 0 && (
                             <span
                               className={`ml-1 text-xs ${purchase.adjustmentPercent < 0 ? "text-emerald-600" : "text-amber-600"}`}
+                              title="Desconto (ou acréscimo) negociado sobre o total bruto"
                             >
                               ({purchase.adjustmentPercent > 0 ? "+" : ""}
                               {formatPercentage(purchase.adjustmentPercent)})
@@ -230,12 +242,24 @@ export function PurchasesTable({
                         </span>
                       )}
                     </TableCell>
+                    {/* Margem prevista: quanto sobra vendendo pelo preço decidido na
+                        compra (ou, sem ele, pelo preço que o produto já tem). Mesmas
+                        faixas de cor de toda tela que mostra margem. */}
                     <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
-                      {hasCost ? (
-                        formatCurrency(purchase.unitFinal)
-                      ) : (
-                        <span className="text-muted-foreground" title="Custo ainda não informado">
+                      {margin === null || band === null ? (
+                        <span className="text-muted-foreground" title="Sem custo ou sem preço de venda">
                           —
+                        </span>
+                      ) : (
+                        <span
+                          className={`font-semibold ${MARGIN_COLOR[band]}`}
+                          title={
+                            purchase.suggestedPrice
+                              ? `Sobre o preço sugerido nesta compra (${formatCurrency(purchase.suggestedPrice)})`
+                              : `Sobre o preço atual do produto (${formatCurrency(purchase.productPrice ?? 0)})`
+                          }
+                        >
+                          {formatPercentage(margin)}
                         </span>
                       )}
                     </TableCell>
@@ -273,16 +297,37 @@ export function PurchasesTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                            {/* Pendente não se recebe: o pedido ainda não foi
+                                fechado e o custo pode nem existir. O caminho é
+                                "Marcar como a caminho", que já exige o custo de
+                                que a entrada precisa. */}
                             {!received && (
-                              <DropdownMenuItem onClick={() => onReceive(purchase)}>
+                              <DropdownMenuItem
+                                disabled={pending}
+                                onClick={() => onReceive(purchase)}
+                                title={
+                                  pending
+                                    ? "Marque a compra como a caminho antes de lançar o recebimento."
+                                    : undefined
+                                }
+                              >
                                 <PackageCheck className="mr-2 h-4 w-4 text-emerald-600" /> Lançar recebimento
                               </DropdownMenuItem>
                             )}
-                            {purchase.purchaseLink && (
+                            {/* O cadastro do produto: o destino que o nome da linha
+                                deixou de ser. Sem produto cadastrado não há para
+                                onde ir — a compra é de algo que ainda não existe —,
+                                e a opção aparece desabilitada em vez de sumir, para
+                                a mesma linha ter sempre o mesmo menu. */}
+                            {purchase.productGroupId ? (
                               <DropdownMenuItem asChild>
-                                <a href={purchase.purchaseLink} target="_blank" rel="noreferrer">
-                                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir link da compra
-                                </a>
+                                <Link href={`/produtos/${purchase.productGroupId}/detalhes`}>
+                                  <Package className="mr-2 h-4 w-4" /> Abrir cadastro do produto
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem disabled title="Este produto ainda não foi cadastrado.">
+                                <Package className="mr-2 h-4 w-4" /> Abrir cadastro do produto
                               </DropdownMenuItem>
                             )}
                             {!received && status !== PURCHASE_STATUS.InTransit && (

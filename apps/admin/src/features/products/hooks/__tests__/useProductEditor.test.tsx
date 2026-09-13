@@ -37,10 +37,14 @@ vi.mock("@/services/products.service", () => ({
   deleteProductGroup: vi.fn(() => Promise.resolve()),
 }));
 
+// A categoria 7 existe para o cadastro vindo de uma COMPRA achar o departamento
+// dela: o departamento não é gravado em lugar nenhum, sai da categoria.
 vi.mock("@/services/categories.service", () => ({
-  getAllCategories: vi.fn(() => Promise.resolve([])),
+  getAllCategories: vi.fn(() =>
+    Promise.resolve([{ id: 7, departmentId: 4, name: "Canecas", description: null, productCount: 0 }]),
+  ),
   getGradesByCategoryId: vi.fn(() => Promise.resolve([])),
-  getAllDepartments: vi.fn(() => Promise.resolve([])),
+  getAllDepartments: vi.fn(() => Promise.resolve([{ id: 4, name: "Utilidades", description: null }])),
 }));
 
 vi.mock("@/services/tags.service", () => ({
@@ -539,11 +543,17 @@ describe("cadastro a partir de uma compra", () => {
     // Compra de produto novo: um item so, sem variacao vinculada ainda.
     items: [],
     costSplitManual: false,
-    replaceProductImages: true,
+    // Obrigatoria na compra de produto novo desde 13/09/2026, justamente para o
+    // cadastro abrir com departamento e categoria ja escolhidos.
+    categoryId: 7,
   };
 
   it("abre o cadastro novo preenchido pela compra e fecha a compra depois da entrada", async () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    // O catálogo de categorias precisa ter chegado: é dele que sai o
+    // departamento, que não viaja na compra.
+    await waitFor(() => expect(result.current.categories).toHaveLength(1));
 
     act(() => {
       result.current.openDetailFromPurchase(compra);
@@ -552,6 +562,9 @@ describe("cadastro a partir de uma compra", () => {
     expect(result.current.detailOpen).toBe(true);
     expect(result.current.editingGroupId).toBeNull();
     expect(result.current.form.productGroupName).toBe("CANECA TERMICA");
+    // A decisão foi tomada na compra; o recebimento não repete a pergunta.
+    expect(result.current.form.categoryId).toBe("7");
+    expect(result.current.form.departmentId).toBe("4");
     expect(result.current.form.description).toBe("500ml");
     expect(result.current.productEditor.name).toBe("CANECA TERMICA");
     // Sem preço sugerido na compra, cai na regra da loja: 40% de margem sobre o

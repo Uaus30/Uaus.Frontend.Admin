@@ -51,7 +51,7 @@ export default function Purchases() {
         />
       </div>
 
-      <PurchaseEditorModal form={form} suppliers={purchases.suppliers} />
+      <PurchaseEditorModal form={form} suppliers={purchases.suppliers} departments={purchases.departments} />
 
       <PurchaseReceiveDialog
         purchase={purchases.receiving}

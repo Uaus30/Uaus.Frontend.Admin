@@ -14,7 +14,7 @@ import {
   type PurchaseDto,
   type PurchasesParams,
 } from "@workspace/api-client-react";
-import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
+import { RESOURCE_KEYS, useAllCategories, useAllDepartments, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { productStockTabPathname } from "@/features/products/product-detail-route";
 import { productFromPurchasePath } from "../purchases-route";
@@ -23,8 +23,17 @@ import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
 import { usePurchaseFromUrl } from "./usePurchaseFromUrl";
 import { purchaseHasProduct, todayDateKey, usePurchaseForm } from "./usePurchaseForm";
 
-/** Linhas por página. */
-export const PAGE_SIZE = 20;
+/**
+ * Linhas por página.
+ *
+ * Cem, e não vinte (13/09/2026): a tela abre em "Não lançadas", que é o que
+ * ainda está por chegar — dezenas de linhas, não milhares —, e paginar isso
+ * esconde parte do que a pessoa veio olhar de uma vez. Cem é também o teto que
+ * a API aceita (`Math.Clamp(size, 1, 100)`), então pedir mais não traria mais.
+ * A paginação continua na tela para o filtro "Todas as situações", que inclui o
+ * histórico de lançadas e cresce sem parar.
+ */
+export const PAGE_SIZE = 100;
 
 /** Valor do filtro de situação que não filtra nada. */
 export const STATUS_FILTER_ALL = "all";
@@ -80,7 +89,6 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
           ],
     ),
     finalTotal: purchase?.finalTotal ?? 0,
-    replaceProductImages: purchase?.replaceProductImages ?? true,
   };
 }
 
@@ -128,6 +136,11 @@ export function usePurchases() {
   useApiErrorToast(list.isError, list.error);
 
   const { data: suppliers = [] } = useAllSuppliers();
+  // Departamento e categoria saíram do cadastro de produto para a compra
+  // (13/09/2026): o recebimento de produto novo gera o cadastro com os dois
+  // preenchidos. O departamento não é gravado — ele filtra as categorias.
+  const { data: departments = [] } = useAllDepartments();
+  const { data: categories = [] } = useAllCategories();
 
   /**
    * Invalida o PREFIXO: lista (todas as páginas e filtros) e itens. O
@@ -141,7 +154,7 @@ export function usePurchases() {
     ]);
   }
 
-  const form = usePurchaseForm({ onSaved: invalidate, suppliers });
+  const form = usePurchaseForm({ onSaved: invalidate, suppliers, categories });
 
   // Quem chega de `/estoque/compras?produto=10&fornecedor=13` — o "Resolver" do
   // relatório de estoque baixo — cai no formulário já preenchido.
@@ -207,7 +220,6 @@ export function usePurchases() {
                 }))
             : undefined,
         finalTotal: payload.items.length > 1 ? payload.finalTotal : undefined,
-        replaceProductImages: payload.replaceProductImages,
       }),
     onSuccess: async (purchase) => {
       await invalidate();
@@ -241,9 +253,16 @@ export function usePurchases() {
    * sozinho: numa compra com VARIAÇÕES o cabeçalho não aponta para nenhuma delas,
    * e olhar só para ele mandava a compra para o cadastro em branco — criando um
    * produto novo, sem variações, ao lado do que já existia.
+   *
+   * **Compra PENDENTE não se recebe** (13/09/2026). Pendente é a anotação de
+   * "preciso comprar isto" — o pedido ainda não foi fechado, e é justamente ali
+   * que o custo pode não existir. Receber dali pularia a etapa que diz que a
+   * compra saiu: o caminho é marcar como a caminho primeiro, o que já exige o
+   * custo de que a entrada precisa.
    */
   function startReceive(purchase: PurchaseDto) {
-    if (enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received) return;
+    const status = enumCode(purchase.status, PURCHASE_STATUS);
+    if (status === PURCHASE_STATUS.Received || status === PURCHASE_STATUS.Pending) return;
 
     if (!purchaseHasProduct(purchase)) {
       navigate(productFromPurchasePath(purchase.id));
@@ -313,6 +332,7 @@ export function usePurchases() {
     items: list.data?.data ?? [],
     isLoading: list.isLoading,
     suppliers,
+    departments,
     // formulário
     form,
     // ações da linha

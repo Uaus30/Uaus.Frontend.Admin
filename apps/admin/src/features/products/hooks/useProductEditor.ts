@@ -332,9 +332,14 @@ export function useProductEditor() {
   function openDetailFromPurchase(purchase: PurchaseDto) {
     setDirty(false);
     productForm.resetForm();
+    // Departamento e categoria vêm da COMPRA desde 13/09/2026: eles passaram a
+    // ser obrigatórios lá justamente para o cadastro abrir pronto aqui. O
+    // departamento não é gravado em lugar nenhum — sai da categoria, e serve
+    // para filtrar a lista abaixo dele.
+    const categoria = productForm.categories.find((item) => item.id === purchase.categoryId);
     setForm({
-      departmentId: "",
-      categoryId: "",
+      departmentId: categoria ? String(categoria.departmentId) : "",
+      categoryId: categoria ? String(categoria.id) : "",
       productGroupName: purchase.productName,
       description: purchase.details ?? "",
       hasVariations: false,

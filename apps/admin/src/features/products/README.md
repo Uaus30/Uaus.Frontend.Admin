@@ -461,10 +461,16 @@ O "Lançar recebimento" de uma compra de produto NOVO (`features/purchases`)
 abre esta tela com `?compra=<id da compra>`. `useProductDetailFromUrl` lê o
 parâmetro, busca a compra e chama `openDetailFromPurchase`, que abre o cadastro
 **em branco e preenchido**: nome e descrição da compra, as fotos dela (as
-mesmas imagens do catálogo, sem novo upload — o salvar só cria a associação) e
-o preço sugerido a 40% sobre o custo unitário FINAL (`suggestedPrice`, a mesma
-regra da entrada). O operador completa código de barras, departamento,
-categoria e variações, e salva.
+mesmas imagens do catálogo, sem novo upload — o salvar só cria a associação), o
+preço sugerido a 40% sobre o custo unitário FINAL (`suggestedPrice`, a mesma
+regra da entrada) e, desde 13/09/2026, **departamento e categoria**. Sobra o
+código de barras e as variações.
+
+A categoria vem de `purchase.categoryId`, que virou campo obrigatório da compra
+de produto novo justamente para isto: quem escolhe está olhando para o anúncio do
+fornecedor, e não com a caixa aberta na mão. O **departamento** não viaja na
+compra — sai da categoria pelo catálogo (`categories.departmentId`), como em todo
+lugar que mostra os dois selects.
 
 O que a compra sabe fica no `purchaseContext` do editor enquanto a tela está
 aberta, e é ele que fecha o ciclo:

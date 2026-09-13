@@ -20,13 +20,13 @@ const { PurchaseEditorModal } = await import("../PurchaseEditorModal");
  * síncrono que o lint recusa, o mesmo ajuste de `useProductStockEntries`.
  */
 function Harness() {
-  const form = usePurchaseForm({ onSaved: vi.fn(), suppliers: [] });
+  const form = usePurchaseForm({ onSaved: vi.fn(), suppliers: [], categories: [] });
   const [opened, setOpened] = useState(false);
   if (!opened) {
     setOpened(true);
     form.openNew();
   }
-  return <PurchaseEditorModal form={form} suppliers={[]} />;
+  return <PurchaseEditorModal form={form} suppliers={[]} departments={[]} />;
 }
 
 function renderModal() {

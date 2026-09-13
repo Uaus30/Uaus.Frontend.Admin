@@ -88,11 +88,30 @@ recebimento dela é o que gera a entrada.
 - **O custo unitário da entrada é o total FINAL ÷ quantidade**, arredondado ao
   centavo. R$ 100 em 3 unidades vira lote a R$ 33,33; a compra continua
   guardando os R$ 100 exatos.
+- **Departamento e categoria são obrigatórios** (13/09/2026). Com produto
+  vinculado eles vêm do cadastro e ficam **travados** — quem edita a categoria de
+  um produto é a tela de Produtos, e mudá-la por efeito colateral de salvar uma
+  compra é o tipo de coisa que só aparece quando o item some do filtro da
+  vitrine. Sem cadastro, são escolhidos aqui: é com eles que o recebimento gera o
+  produto **pronto**, em vez de abrir o cadastro com dois selects em branco para
+  quem está com a caixa aberta na mão. Só a categoria é gravada
+  (`purchases.category_id`); o departamento sai dela, como no cadastro de
+  produto, e serve para filtrar a lista de categorias.
 - **O preço sugerido de venda é decidido AQUI**, olhando para o custo, com a
   margem prevista ao lado (`PricingPreview`, o mesmo bloco da entrada de
   estoque). No recebimento ele já vem preenchido e passa a valer no cadastro do
   produto; em branco (zero) o produto fica com o preço que já tem. Perguntar de
   novo no recebimento seria pedir a mesma decisão duas vezes.
+- **O campo nasce preenchido com o preço do cálculo de margem** (13/09/2026):
+  informar o total final preenche o sugerido com 40% de margem sobre o custo
+  unitário, arredondado para cima ao múltiplo de dez centavos. Na maioria das
+  compras a sugestão é o que se pratica, e digitá-la de novo seria repetir uma
+  conta que a tela já fez ao lado. **Mexeu no campo, o número é dele** — mudar o
+  custo depois não o substitui, e compra reaberta com preço gravado não
+  recalcula: reabrir e ver o número mudar sozinho descartaria a decisão de quem
+  comprou. Abaixo do campo, o **preço atual do produto** quando há cadastro; é a
+  comparação que decide se a compra muda a etiqueta. Em produto novo não existe
+  preço atual, e a linha não aparece.
 - **Fotos são enviadas na hora** para o catálogo de imagens (o mesmo do
   produto); a compra guarda só os ids. São quatro entradas — arquivo, colagem
   (Ctrl+V, no diálogo inteiro), URL e busca na web — e **todas passam pelo mesmo
@@ -101,21 +120,46 @@ recebimento dela é o que gera a entrada.
   hospedagem aceita. URL e busca na web passam antes pelo proxy do backend
   (CORS). No recebimento de produto novo, as mesmas imagens viram a galeria do
   cadastro sem novo upload.
-- **As fotos da compra SUBSTITUEM a galeria do grupo no recebimento**
-  (12/09/2026), com uma flag para **unificar** em vez disso
-  (`replaceProductImages`, gravada na compra e repetida no diálogo de
-  recebimento, que é a última chance de mudar de ideia). Unificar é o
-  comportamento antigo: as novas entram como capa e as antigas descem. Em
-  qualquer um dos dois, **a imagem nunca é apagada** — sai só a associação, e
-  `images` é o catálogo compartilhado.
-- **A primeira foto da compra vira a CAPA do grupo de produto no recebimento**
-  — e as que o grupo já tinha descem de posição, sem serem apagadas. O alvo é o
-  GRUPO desde 12/09/2026 (`product_group_images`), e não o SKU: receber a
-  variação AZUL atualiza a foto do produto, que é o que a loja publica. Quem fotografa na hora de comprar está registrando o que acabou de
-  chegar, e é essa foto que deve aparecer na vitrine, no PDV e na etiqueta. Foto
-  antiga é trabalho manual acumulado; faxina se faz pela galeria do produto, não
-  por um efeito colateral do recebimento. Quem faz é
-  `PurchaseService.PromotePurchaseImagesAsync`, dentro da transação.
+
+## A galeria da compra É a galeria do produto (13/09/2026)
+
+Com produto vinculado, **as fotos da modal são as do GRUPO**
+(`product_group_images`), e o que é removido ou acrescentado ali é removido ou
+acrescentado no produto ao salvar a compra — na mesma transação
+(`PurchaseService.ReplicateImagesToGroupAsync`).
+
+Antes eram duas listas que só se encontravam no recebimento, e a pergunta
+"substituir ou unificar?" (`purchases.replace_product_images`) existia para
+resolver o encontro. Com uma lista só, a pergunta some — a flag saiu do
+formulário, do diálogo de recebimento e da API; a coluna fica no banco sem uso,
+porque derrubá-la é script destrutivo e não há pressa.
+
+As cinco regras que explicam o desenho:
+
+1. **Escolher um produto carrega a galeria dele.** O que estivesse no formulário
+   antes é substituído: a regra da modal é uma só — o que está ali é a galeria do
+   grupo escolhido —, e o seletor de produto fica acima do campo de fotos
+   justamente porque ele vem primeiro. Desvincular limpa, pelo inverso do mesmo
+   motivo: deixar as fotos daria ao cadastro novo as fotos de outro item.
+2. **A LEITURA vem do grupo, não de `purchase_images`.** A compra continua
+   guardando os ids que ela mandou, mas `PurchaseDto.Images` devolve a galeria do
+   grupo — em uma consulta em lote por página. Sem isso, editar a galeria pela
+   tela de Produtos deixaria a listagem de Compras e a modal mostrando a versão
+   velha, e salvar a compra devolveria essa versão velha ao produto.
+3. **Lista vazia esvazia na EDIÇÃO, e não faz nada no CADASTRO.** Remover a foto
+   tem que significar alguma coisa; mas compra nasce sem foto o tempo todo — a
+   anotação vinda do relatório de estoque baixo é o caso comum —, e apagar a
+   galeria do produto por ausência não é decisão de ninguém.
+4. **A imagem nunca é apagada.** Sai só a associação: `images` é o catálogo
+   compartilhado e a mesma foto pode estar em outro produto.
+5. **Produto novo continua guardando só na compra.** As fotos ficam em
+   `purchase_images` e viram a galeria do cadastro quando ele nascer, no
+   recebimento — como sempre funcionou.
+
+No recebimento, `PromotePurchaseImagesAsync` continua existindo para reconciliar
+as compras registradas **antes** desta data, que guardaram galeria própria; com
+a replicação no salvar, ele é um no-op no caso normal. Compra sem foto nenhuma
+não mexe na galeria, pela mesma razão do item 3.
 
 ## O recebimento é uma CONFERÊNCIA (12/09/2026)
 
@@ -140,12 +184,17 @@ não decidir nada.
 
 ## Os dois caminhos do "Lançar recebimento"
 
+**Compra PENDENTE não se recebe** (13/09/2026): a opção aparece bloqueada no
+menu da listagem. Pendente é a anotação de "preciso comprar isto" — o pedido
+ainda não foi fechado, e é ali que o custo pode nem existir. O caminho é marcar
+como a caminho primeiro, o que já exige o custo de que a entrada precisa.
+
 1. **Produto já cadastrado (reposição).** `PurchaseReceiveDialog` pede só o
    que a compra não sabe — data da entrada e número da nota. O preço de venda
    já vem do preço sugerido da compra (zero mantém o atual) e continua
    editável. Chama `POST /Purchases/{id}/receive`; o backend grava a entrada com
-   a quantidade e o custo da compra, **promove as fotos da compra a principais
-   do produto** e marca como lançada, **numa transação**, usando `compra-<id>`
+   a quantidade e o custo da compra, reconcilia as fotos da compra com a galeria
+   do produto e marca como lançada, **numa transação**, usando `compra-<id>`
    como chave de idempotência: um segundo clique devolve a mesma entrada em vez
    de lançar o estoque duas vezes. Depois a tela navega para o detalhe do
    produto **já na aba Estoque**
@@ -154,10 +203,10 @@ não decidir nada.
    efeito da ação que a pessoa acabou de confirmar.
 2. **Produto novo.** Navega para `/produtos?compra=<id>`
    (`productFromPurchasePath`). `useProductDetailFromUrl` lê o parâmetro,
-   busca a compra e abre o cadastro **preenchido** (nome, descrição, fotos e o
-   preço sugerido da compra — sem ele, 40% sobre o custo unitário). O operador completa código
-   de barras, departamento, categoria e variações, e salva. A aba Estoque
-   então abre com a entrada da compra já pronta (fornecedor, quantidade,
+   busca a compra e abre o cadastro **preenchido** — nome, descrição, fotos,
+   preço sugerido (sem ele, 40% sobre o custo unitário) e, desde 13/09/2026,
+   **departamento e categoria**. Sobra o código de barras e as variações. A aba
+   Estoque então abre com a entrada da compra já pronta (fornecedor, quantidade,
    custo); ao gravar a entrada, `mark-received` fecha a compra vinculando
    produto e entrada. Ver `features/products/README.md`, seção "Cadastro a
    partir de uma compra".
@@ -180,14 +229,35 @@ não decidir nada.
   o que ainda precisa de ação. A API recebe `onlyOpen=true`
   (`purchasesStatusParams` traduz o valor do select); o filtro se soma ao de
   situação em vez de substituí-lo.
+- **Cem linhas por página** (13/09/2026). A tela abre no que está por chegar —
+  dezenas de linhas, não milhares —, e paginar isso esconde parte do que a pessoa
+  veio olhar de uma vez. Cem é também o teto que a API aceita
+  (`Math.Clamp(size, 1, 100)`), então pedir mais não traria mais; a paginação
+  continua na tela para "Todas as situações", que inclui o histórico de lançadas
+  e cresce sem parar.
+- **As colunas de dinheiro respondem "por quanto entrou e quanto sobra".**
+  Ficaram o **unitário final** — o custo que o lote vai gravar, com o desconto
+  negociado ao lado — e a **margem prevista**, nas faixas de cor de toda tela que
+  mostra margem. O **total final saiu** em 13/09/2026: é a soma de um pedido cujo
+  tamanho varia, e R$ 1.500 ao lado de R$ 30 não diz qual compra foi melhor.
+  Continua a um clique, na compra. A margem sai de `purchaseMarginPercent`: custo
+  unitário contra o preço sugerido da compra e, sem ele, contra o preço que o
+  produto já tem — **traço, nunca zero**, quando falta um dos dois, porque zero
+  leria como "vende no custo".
 - **A listagem encolhe por prioridade, não por sorte.** Abaixo de `2xl` saem
-  **Total final**, **Unit. final** e **Data da compra**, e ficam produto,
-  fornecedor, quantidade, situação e ações. Com as oito colunas a tabela pede
-  mais de 1.200px, e a área útil de um notebook Full HD a 125% de zoom — ou do
-  monitor auxiliar da loja — é de ~1.140px: aparecia uma barra de rolagem
-  horizontal e o que caía fora da tela era a ponta direita, ou seja, a situação
-  e o menu de opções. Os três valores continuam a um clique, porque a linha
-  abre a compra; a barra de rolagem não tinha atalho.
+  **Unit. final**, **Margem** e **Data da compra**, e ficam produto, fornecedor,
+  quantidade, situação e ações. Com as oito colunas a tabela pede mais de
+  1.200px, e a área útil de um notebook Full HD a 125% de zoom — ou do monitor
+  auxiliar da loja — é de ~1.140px: aparecia uma barra de rolagem horizontal e o
+  que caía fora da tela era a ponta direita, ou seja, a situação e o menu de
+  opções. Os três valores continuam a um clique, porque a linha abre a compra; a
+  barra de rolagem não tinha atalho.
+- **O nome do produto NÃO é link para o cadastro** (13/09/2026): clicar nele abre
+  a compra, como o resto da linha. Era link, e o gesto mais natural de uma lista
+  de compras fazia a única coisa que não era "ver esta compra". O cadastro do
+  produto virou uma opção do menu, **no lugar de "Abrir link da compra"** — e ela
+  fica desabilitada quando o produto ainda não existe, em vez de sumir, para a
+  linha ter sempre o mesmo menu.
 - **O nome do produto tem teto de largura (`max-w-[20rem]`).** Sem ele o
   `truncate` não vale nada: em tabela de layout automático a largura mínima da
   coluna é a do conteúdo, e texto `nowrap` mede o nome inteiro. Um nome de 63
@@ -198,10 +268,17 @@ não decidir nada.
   (formulário e gravação), `usePurchaseImages` (as quatro entradas de foto,
   proxy, compressão e upload) e `usePurchaseVariations` (a grade) são quatro
   hooks para nenhum arquivo passar de 300 linhas; a página só compõe.
-- **A grade nasce como ajuste durante o RENDER, não num efeito.** Num efeito
-  seria preciso guardar "já montei esta" para não remontar a cada render — e
-  remontar apagaria a quantidade que o operador acabou de digitar. A condição
-  (`a grade não cobre as variações do grupo`) se desfaz sozinha depois do ajuste.
+- **Três ajustes acontecem durante o RENDER, não num efeito.** A montagem da
+  grade, a resolução do departamento a partir da categoria e o preenchimento do
+  preço sugerido. Em todos, a condição se desfaz sozinha depois do ajuste; num
+  efeito seria preciso guardar "já fiz este" para não refazer a cada render — e
+  refazer apagaria o que o operador acabou de digitar.
+- **A galeria e a categoria do grupo são buscadas na hora de ESCOLHER o
+  produto**, com `await` direto no serviço em vez de `useQuery`: acontece uma vez,
+  no gesto, e o que interessa é o estado do servidor naquele instante — cache aqui
+  só serviria para devolver uma galeria que a tela de Produtos já mudou. Enquanto
+  a busca corre, o salvar fica travado (`loadingGroup`): gravar antes gravaria a
+  compra sem fotos e, numa edição, esvaziaria a galeria do próprio produto.
 - **A listagem mostra "N variações" no lugar do código de barras** quando a
   compra tem mais de um item: o código é de UMA delas e não representa o pedido. O `usePurchaseForm` reexporta o de imagens
   inteiro, então a tela continua vendo um objeto só.
