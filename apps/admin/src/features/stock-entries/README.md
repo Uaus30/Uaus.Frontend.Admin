@@ -11,11 +11,14 @@ qual estoque **nasce** — não existe edição direta de saldo.
 de menu "Entradas".
 
 Ela existia de quando a entrada era uma nota com vários produtos. Desde
-31/08/2026 **a entrada é de UM produto por vez**, e a pergunta que a listagem
-respondia — "o que entrou na loja?" — passou a custar uma busca por produto para
-chegar no que interessa. A pergunta de quem abre o admin é outra: "o que entrou
-DESTE produto, a que custo, com que margem?" — e essa é a aba, que já mostra as
-notas daquele produto com detalhe e cancelamento.
+31/08/2026 **a entrada é de UM produto por vez**, e a listagem passou a custar
+uma busca por produto para chegar no que interessa: "o que entrou DESTE produto,
+a que custo, com que margem?" — que é a pergunta do dia a dia e é a aba que
+responde, com detalhe e cancelamento.
+
+**"O que entrou na loja" ficou sem tela própria**, e isso é decisão do dono, não
+consequência distraída. O relatório de Inventário (em Relatórios) responde o que
+a loja **tem** — saldo e valor —, que é outra pergunta.
 
 Saíram com ela: `pages/stock-entries.tsx`, `useStockEntries`,
 `StockEntriesTable` e `NewStockEntryModal` (o formulário com busca de produto).

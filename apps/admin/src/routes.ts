@@ -174,10 +174,10 @@ export const ROUTES: AppRoute[] = [
   },
   // "Entradas" saiu do menu em 13/09/2026: a entrada de mercadoria e sempre de
   // UM produto (regra de 31/08/2026), e a aba Estoque do cadastro ja mostra as
-  // notas daquele produto, com detalhe e cancelamento. A listagem geral so
-  // respondia "o que entrou na loja", pergunta que o relatorio de Inventario
-  // responde melhor — e cobrava uma busca por produto para chegar no que
-  // interessa.
+  // notas daquele produto, com detalhe e cancelamento. A listagem geral cobrava
+  // uma busca por produto para chegar no que interessa, e a pergunta que ela
+  // respondia — "o que entrou na loja" — ficou sem tela propria, por decisao do
+  // dono.
   { path: PURCHASES_PATH, label: "Compras", group: "Estoque", component: Purchases },
   { path: "/categorias", label: "Categorias", group: "Estoque", component: Categories },
   { path: "/departamentos", label: "Departamentos", group: "Estoque", component: Departments },
