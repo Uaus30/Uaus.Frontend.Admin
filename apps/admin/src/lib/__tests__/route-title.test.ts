@@ -14,13 +14,13 @@ describe("nomeDaTela", () => {
   });
 
   it("prefere o caminho mais LONGO que casa", () => {
-    // `/estoque/entradas` não pode virar "Estoque" só porque outra rota é
+    // `/estoque/compras` não pode virar "Estoque" só porque outra rota é
     // prefixo dela. Sem a ordenação por comprimento, quem ganharia seria a
     // ordem de declaração — que ninguém pensa em manter estável.
-    const entradas = ROUTES.find((rota) => rota.path === "/estoque/entradas");
+    const compras = ROUTES.find((rota) => rota.path === "/estoque/compras");
 
-    expect(entradas?.label).toBeTruthy();
-    expect(nomeDaTela("/estoque/entradas")).toBe(entradas?.label);
+    expect(compras?.label).toBeTruthy();
+    expect(nomeDaTela("/estoque/compras")).toBe(compras?.label);
   });
 
   it("devolve null para caminho que não é de rota conhecida", () => {

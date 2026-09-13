@@ -82,7 +82,6 @@ const FixedCosts = lazy(() => import("@/pages/fixed-costs"));
 const Partners = lazy(() => import("@/pages/partners"));
 const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods"));
 const Suppliers = lazy(() => import("@/pages/suppliers"));
-const StockEntries = lazy(() => import("@/pages/stock-entries"));
 const Purchases = lazy(() => import("@/pages/purchases"));
 const StockWriteOffs = lazy(() => import("@/pages/stock-write-offs"));
 const Inventory = lazy(() => import("@/pages/inventory"));
@@ -173,9 +172,12 @@ export const ROUTES: AppRoute[] = [
     group: "Estoque",
     component: Products,
   },
-  { path: "/estoque/entradas", label: "Entradas", group: "Estoque", component: StockEntries },
-  // Logo depois de Entradas: a compra é o que vem ANTES da entrada, e os dois
-  // se leem em sequencia num dia de reposicao.
+  // "Entradas" saiu do menu em 13/09/2026: a entrada de mercadoria e sempre de
+  // UM produto (regra de 31/08/2026), e a aba Estoque do cadastro ja mostra as
+  // notas daquele produto, com detalhe e cancelamento. A listagem geral so
+  // respondia "o que entrou na loja", pergunta que o relatorio de Inventario
+  // responde melhor — e cobrava uma busca por produto para chegar no que
+  // interessa.
   { path: PURCHASES_PATH, label: "Compras", group: "Estoque", component: Purchases },
   { path: "/categorias", label: "Categorias", group: "Estoque", component: Categories },
   { path: "/departamentos", label: "Departamentos", group: "Estoque", component: Departments },

@@ -28,7 +28,7 @@ describe("productGroupIdFromPathname", () => {
 
   it("devolve null para a listagem e para caminho de outra tela", () => {
     expect(productGroupIdFromPathname("/produtos")).toBeNull();
-    expect(productGroupIdFromPathname("/estoque/entradas")).toBeNull();
+    expect(productGroupIdFromPathname("/estoque/compras")).toBeNull();
   });
 
   it("devolve null para id que não é inteiro positivo", () => {

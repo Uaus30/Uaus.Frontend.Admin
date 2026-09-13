@@ -30,10 +30,12 @@ type SimpleStockEntryModalProps = {
 /**
  * Entrada de estoque de UM produto, lançada de dentro da tela do produto.
  *
- * Mesma gravação de `/estoque/entradas` (`POST /PurchaseEntries/receive`) — a
- * entrada é de um produto por vez nas DUAS rotas desde 31/08/2026. O que esta
- * modal tira é a busca de produto: quem chegou pela aba **Estoque** já escolheu
- * o produto, e reapresentar a busca era o atrito que a tela veio resolver.
+ * **É o único formulário de entrada do admin** desde 13/09/2026, quando a
+ * listagem `/estoque/entradas` saiu e levou junto o formulário com busca de
+ * produto. A gravação é a de sempre (`POST /PurchaseEntries/receive`), e a
+ * entrada já era de um produto por vez desde 31/08/2026 — o que sobrou foi a
+ * rota que não pedia a busca, porque quem chega pela aba **Estoque** já escolheu
+ * o produto.
  */
 export function SimpleStockEntryModal({
   open,

@@ -320,8 +320,8 @@ o que chegou dele:
   **Visibilidade**) ficavam atrás de um botão de olho que nada na tela
   anunciava. Quem não conhecia o ícone nunca marcava "exibir no site", e o
   produto não aparecia na loja sem ninguém entender por quê;
-- o estoque ficava a uma navegação de distância (`/estoque/entradas?productId=`),
-  que tirava a pessoa de dentro do cadastro.
+- o estoque ficava a uma navegação de distância (a listagem de entradas, com
+  `?productId=`), que tirava a pessoa de dentro do cadastro.
 
 As abas separam por **frequência de uso**, não por assunto:
 
@@ -399,22 +399,27 @@ fiados entre `pages/products.tsx` e dois hooks:
 
 #### A aba Estoque, em detalhe
 
+- **É o único lugar do admin que vê entradas** desde 13/09/2026, quando a
+  listagem `/estoque/entradas` e o item de menu "Entradas" saíram. A entrada é de
+  UM produto desde 31/08/2026, e a listagem geral cobrava uma busca por produto
+  para chegar no que interessa. Ver `features/stock-entries/README.md`.
 - O menu **Estoque** da listagem de produtos (dropdown e menu de contexto) abre
-  a tela de detalhe **já nesta aba** (`initialTab` do `ProductDetailScreen`),
-  em vez de navegar para `/estoque/entradas`. A linha da listagem é um GRUPO, e
-  é a aba que resolve qual variação recebe o lançamento.
-
+  a tela de detalhe **já nesta aba** (`initialTab` do `ProductDetailScreen`).
+  A linha da listagem é um GRUPO, e é a aba que resolve qual variação recebe o
+  lançamento.
 - Lista as **notas** que trouxeram o produto (`GET /PurchaseEntries?productId=`),
   da mais recente para a mais antiga. A ordenação é do backend (data de entrada
   decrescente e, no empate, id decrescente) — a tela não reordena nada.
 - A coluna de valor é o total da **nota inteira**, não o deste produto: a
   listagem de notas não quebra por item. Quantidade e custo deste produto saem
-  nos detalhes, pelo olho da linha.
+  nos detalhes, pelo **olho** da linha — que abre o espelho da nota e, com o lote
+  ainda intacto, o botão de **cancelar a entrada**. Consumido o lote, o botão dá
+  lugar à explicação de por que não dá mais e aponta a Contagem Física.
 - **Produto novo não tem aba de estoque útil**: sem id gravado não há lote para
   lançar, e a aba explica isso em vez de abrir um formulário que falharia.
 - **Grupo com variações ganha um seletor de variação**, porque estoque é do SKU,
-  não do grupo. A modal antiga mandava sempre a variação ativa para
-  `/estoque/entradas` — na prática, a primeira da lista.
+  não do grupo. A modal antiga mandava sempre a variação ativa para a listagem de
+  entradas — na prática, a primeira da lista.
 - O lançamento em si mora na feature de entradas
   (`features/stock-entries/hooks/useProductStockEntries.ts`), junto das regras de
   data e validação que ele compartilha com a nota completa.

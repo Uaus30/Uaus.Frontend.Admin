@@ -1,108 +1,121 @@
-# Módulo de Entradas de Estoque (`features/stock-entries`)
+# Entradas de estoque (`features/stock-entries`)
 
-Este módulo gerencia o recebimento de mercadorias no estoque, permitindo o registro de notas fiscais de fornecedores, atualização instantânea de custo/preço de venda de produtos e o cancelamento de lançamentos. Ele segue o padrão **AI-First**.
+O recebimento de mercadoria: a nota do fornecedor que vira **lote**, atualiza o
+custo e o preço de venda do produto e pode ser cancelada. É o único caminho pelo
+qual estoque **nasce** — não existe edição direta de saldo.
 
-**Desde 31/08/2026 a entrada é de UM produto por vez, nas duas rotas** (página
-Entradas e aba Estoque do detalhe do produto). A decisão é de controle — um lote
-por lançamento, conferível de uma olhada — e de simplicidade: a grade multi-item
-exigia busca, tabela e soma de linhas para o caso raro. Nota com vários produtos
-vira um lançamento por item; o backend continua aceitando lista em
-`POST /PurchaseEntries/receive`, então notas antigas multi-item seguem legíveis.
+## Onde isto aparece na tela
 
----
+**Só na aba Estoque do cadastro do produto** (`features/products`), desde
+13/09/2026. A listagem geral `/estoque/entradas` saiu do admin junto com o item
+de menu "Entradas".
 
-## 📂 Estrutura de Arquivos
+Ela existia de quando a entrada era uma nota com vários produtos. Desde
+31/08/2026 **a entrada é de UM produto por vez**, e a pergunta que a listagem
+respondia — "o que entrou na loja?" — passou a custar uma busca por produto para
+chegar no que interessa. A pergunta de quem abre o admin é outra: "o que entrou
+DESTE produto, a que custo, com que margem?" — e essa é a aba, que já mostra as
+notas daquele produto com detalhe e cancelamento.
 
-- `components/StockEntriesTable.tsx`: Exibe o histórico de entradas de estoque registradas com suporte a filtragem por fornecedor e controles de paginação.
-- `components/StockEntryDetailsModal.tsx`: Modal exibindo o espelho da nota fiscal, produtos recebidos com seus respectivos custos e preços, além do controle para exclusão de lançamento (cancelamento de entrada).
-- `components/NewStockEntryModal.tsx`: Modal contendo formulário de cabeçalho da nota (fornecedor, NF, data, observações) e a grade dos itens recebidos. O produto entra pelo [`ProductSearchPicker`](../../components/product-search-picker.tsx) compartilhado com as baixas de estoque. A data usa o `DatePicker` do [padrão de calendário](../../components/ui/README.md); como ele abre num portal fora do modal, o `DialogContent` aplica `guardCalendarDismiss` para não fechar o formulário ao escolher um dia.
-- `components/SimpleStockEntryModal.tsx`: Lançamento de UM produto, aberto de dentro da tela do produto. Mesmo `POST /PurchaseEntries/receive`, com um item só e sem busca de produto. Ver seção 6.
-- `hooks/useStockEntries.ts`: Centraliza requisições paginadas (`useGetPurchaseEntries`), detalhes (`useGetPurchaseEntryDetails`), mutations de recebimento (`useReceivePurchaseEntry`), mutations de exclusão (`useDeletePurchaseEntry`), e sincronização de query strings.
-- `hooks/useProductStockEntries.ts`: A mesma coisa recortada em UM produto — alimenta a aba **Estoque** da tela de detalhe do produto. Ver seção 6.
-- `types.ts`: Tipagens estruturadas locais.
+Saíram com ela: `pages/stock-entries.tsx`, `useStockEntries`,
+`StockEntriesTable` e `NewStockEntryModal` (o formulário com busca de produto).
+O caminho antigo responde "página não encontrada": a tela não mudou de lugar,
+deixou de existir, e redirecionar para Produtos seria adivinhar.
 
----
+## Estrutura
 
-## ⚙️ Regras de Negócio Importantes
+- `hooks/useProductStockEntries.ts` — o histórico de UM produto e o lançamento.
+  Alimenta a aba Estoque. Mora aqui, e não em `features/products`, porque tudo
+  que ele sabe é regra de entrada de mercadoria: a data sem fuso, a validação do
+  rascunho e a invalidação por prefixo. Duplicá-las lá reabriria a armadilha que
+  o `toISOString()` já custou uma vez.
+- `components/SimpleStockEntryModal.tsx` — o lançamento. Um produto, sem busca:
+  quem chegou pela aba já escolheu o produto.
+- `components/StockEntryDetailsModal.tsx` — o espelho da nota e o cancelamento.
+- `components/PricingPreview.tsx` — margem, markup e preço sugerido. Usado
+  também pela compra e pelo recebimento (`features/purchases`).
+- `lib/margin-tone.ts` — a cor de cada faixa de margem.
+- `types.ts` — só o que é da TELA. O que descreve a resposta da API vive em
+  `packages/api-client` (`ReceivedPurchaseEntryDto`); as cópias locais saíram em
+  13/09/2026, e uma delas já estava incompleta — faltava `userName`, e era por
+  isso que a modal de detalhes tipava a nota como `any`.
 
-### 1. O produto entra por busca, não por lista
+## Regras de negócio
 
-- O catálogo passa de mil produtos: quem escolhe é a API, pelo `ProductSearchPicker`, que aceita **nome ou código de barras** (o backend decide qual dos dois pelo formato do termo, a mesma regra da tela de produtos e do PDV).
-- Escolher outro produto **troca** o atual — a entrada é de um produto só. O X no cartão do produto limpa a escolha para buscar de novo.
-- A escolha já sugere o preço de venda (`price`), o custo (`costPrice`) e mostra o estoque atual com a prévia "X → X+N". É sugestão, não imposição: a nota manda no custo, e os campos seguem editáveis.
-- Preço abaixo do custo não é bloqueado, mas a modal avisa que a margem será negativa.
+### 1. A data viaja como instante LOCAL, sem fuso
 
-### 2. A data viaja como instante LOCAL, sem fuso
+O payload leva `2026-08-16T00:00:00` — **nunca** `toISOString()`. Não é
+preciosismo: `entry_date` é `timestamp without time zone` e o Npgsql **recusa**
+um `DateTime` com `Kind=Utc` nessa coluna; o `...T00:00:00.000Z` derrubava a
+gravação com **500**. Mesmo que gravasse, a entrada do dia 16 cairia no dia 15.
+Ver `docs/fuso-horario.md` do backend.
 
-- O payload leva `2026-08-16T00:00:00` — **nunca** `toISOString()`.
-- Não é preciosismo de fuso: `entry_date` é `timestamp without time zone` e o Npgsql **recusa** gravar um `DateTime` com `Kind=Utc` nessa coluna. O `...T00:00:00.000Z` que o `toISOString()` produzia derrubava a gravação com **500**. Mesmo que gravasse, a entrada do dia 16 cairia no dia 15 no Brasil.
-- A convenção completa está em `docs/fuso-horario.md` do backend.
+### 2. Validações ao salvar
 
-### 3. Validações ao Salvar
+- Fornecedor e data são obrigatórios.
+- Quantidade inteira e maior que zero — o backend só aceita inteiro, e fração
+  virava 400 cru.
+- Custo unitário não-negativo: **zero é legítimo** (bonificação, brinde).
+- **Preço de venda maior que zero.** O valor lançado **sobrescreve** o preço do
+  produto no cadastro; zero aqui zerava o preço da loja em silêncio. O backend
+  recusa pela mesma razão (`ReceivePurchaseEntryItemRequest`).
+- **Idempotência:** cada lançamento envia um `clientReference` (UUID) gerado na
+  abertura da modal. Um retry depois de timeout reenvia a mesma chave e o backend
+  devolve a nota já gravada, em vez de duplicar lote e estoque. A chave é
+  renovada a cada abertura — nunca por tentativa.
+- **Data futura é recusada**, no calendário (`maxDate`) e no backend: uma entrada
+  futura viraria o lote "mais recente" e passaria a ditar o `costPrice` do
+  produto. Retroativa continua valendo.
 
-- O fornecedor, a data e o produto são obrigatórios.
-- Quantidade: inteira e maior que zero (o backend só aceita inteiro; fração virava 400 cru).
-- Custo unitário: não-negativo — **zero é legítimo** (bonificação, brinde).
-- **Preço de venda: maior que zero.** O valor lançado sobrescreve o preço de venda do produto no cadastro; zero aqui zerava o preço da loja em silêncio. O backend recusa desde a mesma correção (`ReceivePurchaseEntryItemRequest`).
-- **Idempotência**: cada lançamento envia um `clientReference` (UUID) gerado na abertura da modal; um retry depois de timeout reenvia a mesma chave e o backend devolve a nota já gravada em vez de duplicar lote e estoque. A chave é renovada a cada abertura/reset — nunca por tentativa.
-- **Data futura é recusada** — no calendário (`maxDate`) e no backend. Uma entrada futura viraria o lote "mais recente" e passaria a ditar o `costPrice` do produto. Retroativa continua permitida.
-- Os campos de custo e preço usam o `CurrencyInput` (vírgula), o mesmo do resto do admin; a quantidade não tem trava no `onChange` — limpar o campo não volta para 1, quem barra zero é o submit.
+### 3. Ordenação
 
-### 4. Ordenação e recarga da listagem
+A listagem vem do backend por **data de entrada decrescente e, no empate, id
+decrescente** (`PurchaseEntryService.GetAllAsync`). O empate é o caso comum: a
+data é um dia-calendário à meia-noite, então tudo lançado no mesmo dia empata e a
+nota registrada por último aparece primeiro.
 
-- A listagem vem do backend ordenada por **data de entrada decrescente e, no empate, por ID decrescente** (`PurchaseEntryService.GetAllAsync`). O empate é o caso comum: como a data é um dia-calendário à meia-noite, tudo que foi lançado no mesmo dia empata, e aí a nota registrada por último aparece primeiro.
-- **Uma nota retroativa não vai para o topo** — ela cai na posição do dia que o operador escolheu. Isso é a ordenação funcionando, não um defeito: uma entrada lançada hoje com data de três dias atrás aparece três dias atrás.
-- Depois de salvar, a tela **volta para a página 1** e invalida a listagem pelo prefixo da chave (`getGetPurchaseEntriesQueryKey`). Os dois passos importam: `refetch()` sozinho atualizaria só a página aberta e deixaria as outras no cache com dados velhos, e ficar na página 2 esconderia justamente a nota que acabou de ser lançada.
-- Trocar o filtro de fornecedor também volta para a página 1, senão o recorte novo — que costuma ter menos páginas — mostraria "nenhuma entrada".
-- A listagem mostra o **nome (composto) do produto** da entrada (`firstProductName` do DTO); notas antigas multi-item exibem o primeiro produto e um selo `+N`. Ajustes manuais de estoque (edição inline na tabela de produtos) aparecem com o selo **Ajuste manual** no lugar do número da nota (`type` do DTO, normalizado com `enumCode` + `PURCHASE_ENTRY_TYPE`).
+**Uma nota retroativa não vai para o topo** — ela cai no dia que o operador
+escolheu. Isso é a ordenação funcionando, não defeito.
 
-### 5. Cancelamento de Entrada
+### 4. Cancelamento
 
-- A exclusão de uma entrada é permitida (controlada pelo flag `canDelete` do backend).
-- O cancelamento remove os lotes de estoque lançados por esta entrada e atualiza/recalcula os saldos físicos vigentes dos produtos relacionados.
-- Se o estoque de algum item da entrada já tiver sido vendido/consumido abaixo da quantidade de cancelamento, o backend retornará um erro impedindo a remoção.
+Cancelar uma entrada **apaga os lotes dela** e recalcula o saldo dos produtos.
+Por isso só existe enquanto o lote está **intacto** (`canDelete`, do backend:
+nenhum lote com `AvailableQuantity < OriginalQuantity`).
 
-### 6. A entrada simplificada, lançada de dentro do produto (30/08/2026)
+Quando não dá, a modal **diz por quê** e aponta a saída — a Contagem Física da
+mesma aba, que lança a diferença como baixa ou ajuste. Antes o botão apenas
+sumia, e a tela parecia quebrada para quem tinha acabado de cancelar outra.
 
-A tela de detalhe do produto (`features/products`) ganhou uma aba **Estoque**, e
-ela é servida por `useProductStockEntries` — daqui, não de lá. O motivo é que
-tudo o que ela sabe é regra desta feature: a data sem fuso da seção 2, as
-validações da seção 3 e a invalidação por prefixo da seção 4. Duplicar isso na
-outra feature reabriria a armadilha que o `toISOString()` já custou uma vez.
+### 5. O que a aba mostra, e o que ela não mostra
 
-O que muda em relação ao formulário completo:
-
-- **Sem busca de produto.** Quem chegou pela aba já escolheu o produto;
-  reapresentar a busca era o atrito que a tela veio resolver. Desde 31/08/2026
-  as duas rotas são de um produto por vez — a diferença entre elas é só a busca.
-- **Custo e preço vêm sugeridos do cadastro**, lidos por `GET /Products/{id}`. É
-  sugestão, não imposição, igual à seção 1. O botão **Registrar Entrada** fica
-  desabilitado até esse produto chegar: abrir antes preencheria custo e preço
-  com 0 — e o preço lançado passa a valer no cadastro.
-- **O fornecedor vem pré-selecionado** com o da entrada mais recente do produto
-  (primeiro item da listagem, que é ordenada da mais nova para a mais velha):
-  o caso comum é repor com quem já vendeu.
-- **A listagem da aba é filtrada por `productId`** e mostra o total da NOTA, não
-  o do produto: `GET /PurchaseEntries` não quebra por item. Quantidade e custo
-  daquele produto saem nos detalhes.
+- **A lista é de NOTAS filtradas por `productId`**, e a coluna de valor é o total
+  da NOTA — `GET /PurchaseEntries` não quebra por item. Quantidade e custo
+  daquele produto saem nos detalhes, pelo olho da linha.
+- **A margem da linha usa o preço de venda de HOJE**, e responde "se eu vender
+  pelo preço atual, quanto sobra do que paguei naquela compra?". É o que deixa
+  comparar duas entradas do mesmo produto. Usar o preço da época exigiria um
+  histórico de preço que não existe.
+- **Custo e preço vêm sugeridos do cadastro**, lidos por `GET /Products/{id}`. O
+  botão de lançar fica desabilitado até esse produto chegar: abrir antes
+  preencheria os dois com 0 — e o preço lançado passa a valer no cadastro.
+- **O fornecedor vem pré-selecionado** com o da entrada mais recente: o caso
+  comum é repor com quem já vendeu.
 - **A invalidação inclui `RESOURCE_KEYS.products`.** Receber mercadoria grava
-  custo, preço e saldo no PRODUTO; sem essa chave, a listagem de produtos atrás
-  da tela continuaria mostrando o estoque de antes. O formulário completo não
-  precisava disso porque não há tela de produto por baixo dele.
-- **Trocar de produto volta para a página 1.** Numa aba com seletor de variação,
-  manter a página 3 do SKU anterior mostraria "nenhuma entrada" para um produto
-  que tem entradas.
+  custo, preço e saldo no PRODUTO; sem essa chave, a listagem atrás da tela
+  continuaria mostrando o estoque de antes.
+- **Trocar de variação volta para a página 1.** Manter a página 3 do SKU anterior
+  mostraria "nenhuma entrada" para um produto que tem entradas.
 
 ## Margem, markup e preço sugerido (05/09/2026)
 
-As duas modais de entrada (a da tela `/estoque/entradas` e a da aba **Estoque**
-do produto) mostram, assim que há custo digitado, a **margem prevista**
-(`(preço − custo) / preço`), o **markup** (`(preço − custo) / custo`) e um
-**preço sugerido** — 40% de margem, arredondado ao múltiplo de 10 centavos mais
-PRÓXIMO (`suggestedPrice` em `packages/core/src/pricing.ts`). O botão "Usar
-sugerido" copia o valor para o campo de preço; sugerir não é impor.
+Assim que há custo digitado, a modal mostra a **margem prevista**
+(`(preço − custo) / preço`), o **markup** (`(preço − custo) / custo`) e um **preço
+sugerido** — 40% de margem, arredondado ao múltiplo de dez centavos
+(`suggestedPrice`, em `packages/core/src/pricing.ts`). "Usar sugerido" copia o
+valor; sugerir não é impor.
 
-Existe porque o preço lançado na entrada passa a valer no cadastro do produto,
-e a modal não dizia nada sobre a conta: quem recebia a custo novo tinha que
-calcular de cabeça se o preço antigo ainda dava lucro. O bloco some com custo
-zero — brinde e bonificação entram sem custo, e "margem 100%" ali seria ruído.
+Existe porque o preço lançado passa a valer no cadastro, e a modal não dizia nada
+sobre a conta: quem recebia a custo novo calculava de cabeça se o preço antigo
+ainda dava lucro. O bloco some com custo zero — brinde entra sem custo, e "margem
+100%" ali seria ruído.

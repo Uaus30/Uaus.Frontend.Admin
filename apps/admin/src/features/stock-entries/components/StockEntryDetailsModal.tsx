@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, Receipt, Trash2, Truck, UserRound } from "lucide-react";
+import { CalendarDays, Lock, Receipt, Trash2, Truck, UserRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,31 +12,39 @@ import { Button } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import type { StockEntryDetails } from "../types";
+import type { ReceivedPurchaseEntryDto } from "@workspace/api-client-react";
 
 type StockEntryDetailsModalProps = {
-  /** Visibility status of the modal */
+  /** A modal está aberta. */
   open: boolean;
-  /** Callback to change visibility status */
+  /** Fechar e abrir. */
   onOpenChange: (open: boolean) => void;
-  /** ID of the active stock entry */
+  /** Entrada aberta. Aparece no título enquanto os detalhes carregam. */
   selectedEntryId: number | null;
-  /** Detail payload object from the API */
-  entryDetails: any;
-  /** True if details are loading from the API */
+  /**
+   * O espelho da nota. `undefined` enquanto a consulta não respondeu — é o que
+   * o React Query devolve, e o tipo do api-client é o mesmo que a API serializa.
+   */
+  entryDetails: ReceivedPurchaseEntryDto | undefined;
+  /** A consulta dos detalhes está em andamento. */
   isLoadingDetails: boolean;
-  /** Callback to format numeric values as currency (BRL) */
   formatCurrency: (val: number) => string;
-  /** Callback to format date strings */
   formatShortDate: (dateStr: string) => string;
-  /** Callback to delete/cancel the stock entry by ID */
+  /** Cancela a entrada: apaga os lotes dela e recalcula o saldo dos produtos. */
   onDelete: (payload: { id: number }) => void;
 };
 
 /**
- * StockEntryDetailsModal
+ * O espelho da nota de entrada, com os itens recebidos e o cancelamento.
  *
- * Dialog component displaying itemized lists of products received in a purchase receipt.
+ * **É o único lugar que vê e cancela uma entrada** desde 13/09/2026, quando a
+ * listagem `/estoque/entradas` saiu do admin: quem chega aqui vem da aba
+ * **Estoque** do cadastro do produto, pelo olho da linha.
+ *
+ * O cancelamento **só existe enquanto o lote está intacto** (`canDelete`, do
+ * backend): apagar a entrada apaga os lotes dela, e lote com unidade já vendida
+ * não tem como voltar atrás. Antes, o botão simplesmente não aparecia nesse
+ * caso, e a tela ficava parecendo quebrada — hoje ela diz por quê.
  */
 export function StockEntryDetailsModal({
   open,
@@ -133,7 +141,7 @@ export function StockEntryDetailsModal({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {entryDetails.items.map((item: any) => (
+                      {entryDetails.items.map((item) => (
                         <TableRow key={item.id} className="hover:bg-muted/5">
                           <TableCell className="px-4 py-2 text-sm font-medium">{item.productName}</TableCell>
                           <TableCell className="px-4 py-2 text-sm font-mono text-xs">
@@ -159,16 +167,27 @@ export function StockEntryDetailsModal({
               </div>
             </div>
 
-            <DialogFooter className="mt-4 flex items-center justify-between border-t border-border/40 pt-4">
-              {entryDetails.canDelete && (
+            <DialogFooter className="mt-4 flex items-center justify-between gap-3 border-t border-border/40 pt-4">
+              {entryDetails.canDelete ? (
                 <Button
                   type="button"
                   variant="destructive"
-                  className="gap-2 mr-auto"
+                  className="mr-auto gap-2"
                   onClick={() => setCancelConfirmOpen(true)}
                 >
                   <Trash2 className="h-4 w-4" /> Cancelar Entrada
                 </Button>
+              ) : (
+                /* O botão sumia sem explicação, e a tela parecia quebrada para
+                   quem tinha acabado de cancelar outra entrada. O motivo é sempre
+                   o mesmo, e é definitivo: parte do lote já saiu. */
+                <p className="mr-auto flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                  <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Esta entrada não pode mais ser cancelada: parte do que ela trouxe já saiu do estoque. Para
+                    corrigir o saldo, use a Contagem Física na aba Estoque do produto.
+                  </span>
+                </p>
               )}
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Fechar

@@ -1,6 +1,6 @@
 import { AlertCircle, ArrowLeft, ShoppingCart } from "lucide-react";
 import { Link, useRoute } from "wouter";
-import { Badge, Button, Card, Spinner } from "@workspace/ui";
+import { Badge, Card, Spinner } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { AppLayout } from "@/components/layout";
 import { useSupplierDetail } from "@/features/supplier-performance/hooks/useSupplierDetail";
@@ -297,12 +297,12 @@ function Cabecalho({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/estoque/entradas?supplierId=${summary.supplierId}`}>Ver entradas</Link>
-        </Button>
-        <SupplierScoreRing score={summary.score} size={72} />
-      </div>
+      {/* "Ver entradas" saiu em 13/09/2026 junto com a listagem que ele abria
+          (`/estoque/entradas?supplierId=`). Não há tela que responda "o que este
+          fornecedor entregou" desde que a entrada passou a viver dentro do
+          produto — e um botão apontando para "página não encontrada" é pior que
+          botão nenhum. */}
+      <SupplierScoreRing score={summary.score} size={72} />
     </div>
   );
 }

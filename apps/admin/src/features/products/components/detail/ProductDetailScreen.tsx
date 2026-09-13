@@ -67,8 +67,10 @@ const ROTULO_DA_ABA: Record<string, string> = {
  *
  * Substituiu a modal de edição em 30/08/2026. A modal empilhava tudo numa
  * rolagem só e escondia cinco campos atrás de um botão de olho que nada na tela
- * anunciava; e o estoque do produto ficava a uma navegação de distância, em
- * `/estoque/entradas?productId=`, que tirava a pessoa do cadastro.
+ * anunciava; e o estoque do produto ficava a uma navegação de distância, na
+ * listagem de entradas filtrada por produto, que tirava a pessoa do cadastro.
+ * Essa listagem deixou de existir em 13/09/2026 — a aba **Estoque** daqui é o
+ * único lugar do admin que vê, lança e cancela entrada.
  *
  * As abas separam por FREQUÊNCIA de uso, não por assunto:
  *

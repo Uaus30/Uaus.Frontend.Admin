@@ -114,7 +114,7 @@ describe("podeAcessar", () => {
 
   it("o grupo BI fica em ordem ALFABÉTICA, e não na ordem de entrega", () => {
     // As telas de BI não têm sequência de trabalho entre si — nenhuma é "a
-    // próxima" depois da outra, como Entradas é depois de Compras. A ordem de
+    // próxima" depois da outra, como Compras é depois de Produtos. A ordem de
     // entrega só é previsível para quem acompanhou as entregas; a do alfabeto é
     // previsível para quem está procurando um nome numa lista.
     const bi = buildMenu(USER_ROLE.Admin).find((item) => item.name === "BI");
@@ -243,12 +243,16 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("Estoque segue a ordem: Produtos, Entradas, Compras, Categorias, Departamentos, Fornecedores, Tags, Etiquetas", () => {
+  it("Estoque segue a ordem: Produtos, Compras, Categorias, Departamentos, Fornecedores, Tags, Etiquetas", () => {
+    // "Entradas" saiu em 13/09/2026, e a igualdade estrita abaixo é o que impede
+    // a volta por descuido. A entrada é sempre de UM produto (regra de
+    // 31/08/2026) e a aba Estoque do cadastro já lista as notas daquele produto,
+    // com detalhe e cancelamento — a listagem geral cobrava uma busca para
+    // chegar no que interessa. Repô-la tem que ser decisão, não acidente.
     const produtos = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Estoque");
 
     expect(produtos?.items?.map((s) => s.name)).toEqual([
       "Produtos",
-      "Entradas",
       "Compras",
       "Categorias",
       "Departamentos",
@@ -259,7 +263,6 @@ describe("buildMenu", () => {
 
     expect(produtos?.items?.map((s) => s.href)).toEqual([
       "/produtos",
-      "/estoque/entradas",
       "/estoque/compras",
       "/categorias",
       "/departamentos",

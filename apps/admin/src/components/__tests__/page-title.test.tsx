@@ -63,9 +63,9 @@ describe("PageTitleProvider", () => {
   it("navegar troca o título", () => {
     const { navigate } = renderEm("/produtos", <TelaComTitulo />);
 
-    act(() => navigate("/estoque/entradas"));
+    act(() => navigate("/estoque/compras"));
 
-    expect(document.title).toBe(`Entradas · ${TITULO_DO_APP}`);
+    expect(document.title).toBe(`Compras · ${TITULO_DO_APP}`);
   });
 
   it("caminho fora das rotas fica só com o nome do app", () => {
