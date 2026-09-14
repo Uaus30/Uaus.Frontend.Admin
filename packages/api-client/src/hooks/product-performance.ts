@@ -166,6 +166,12 @@ export interface ProductPerformanceReportDto {
   startDate: string;
   endDate: string;
   periodDays: number;
+  /**
+   * O dia da apuração guardada de onde o relatório veio. **Ausente significa
+   * cálculo ao vivo** — os dois caminhos usam o mesmo código e só podem
+   * divergir por idade, e idade é informação de quem decide.
+   */
+  snapshotAt?: string | null;
   parameters: ProductPerformanceParametersDto;
   totals: ProductPerformanceTotalsDto;
   comparison: ProductPerformanceComparisonDto;
@@ -181,8 +187,58 @@ export interface ProductPerformanceParams {
   limit?: number;
 }
 
+/** Um ponto da série de um produto: como ele estava num dia. */
+export interface ProductPerformancePointDto {
+  /** O dia da apuração, sem hora. */
+  date: string;
+
+  score: number;
+  salesScore: number;
+  scoreBreakdown: ProductScoreBreakdownDto;
+
+  class: ProductPerformanceClass;
+  action: ProductActionCode;
+
+  /** Posição entre os JULGADOS. **Zero é "ainda não julgado"** — era novo naquele dia. */
+  rank: number;
+  /** Quantos disputavam posição — o analisado menos o novo. */
+  analysedProducts: number;
+
+  units: number;
+  revenue: number;
+  profit: number;
+  margin: number;
+  stock: number;
+  stockCost: number;
+  sellThrough: number;
+  coverageDays?: number | null;
+  capitalAtRisk: number;
+  missedProfit: number;
+}
+
+/** O desempenho de UM produto: onde ele está e como chegou até aqui. */
+export interface ProductPerformanceProfileDto {
+  productId: number;
+  productName: string;
+
+  /** A última apuração. **Ausente quando o produto ainda não foi apurado.** */
+  current?: ProductPerformancePointDto | null;
+
+  /** As réguas da loja na última apuração. Ausente junto com `current`. */
+  parameters?: ProductPerformanceParametersDto | null;
+
+  /** A série, do mais ANTIGO para o mais recente — a ordem em que o gráfico desenha. */
+  history: ProductPerformancePointDto[];
+}
+
 /** Prefixo da chave; quem consulta acrescenta os parâmetros. */
 export const getProductPerformanceQueryKey = (): QueryKey => ["product-performance"];
+
+/** Prefixo da chave da última apuração. */
+export const getLatestProductPerformanceQueryKey = (): QueryKey => ["product-performance", "ultima"];
+
+/** Prefixo da chave do perfil de um produto. */
+export const getProductPerformanceProfileQueryKey = (): QueryKey => ["product-performance", "produto"];
 
 export async function getProductPerformance(params?: ProductPerformanceParams) {
   return apiGetOrThrow<ProductPerformanceReportDto>("/ProductPerformance", {
@@ -204,6 +260,66 @@ export function useGetProductPerformance(
   return useQuery<ProductPerformanceReportDto, ApiError, ProductPerformanceReportDto, QueryKey>({
     queryKey: [...getProductPerformanceQueryKey(), params ?? {}],
     queryFn: () => getProductPerformance(params),
+    ...options?.query,
+  });
+}
+
+/**
+ * O mesmo relatório, a partir da última apuração diária.
+ *
+ * É o caminho do período padrão, e o que faz a tela abrir rápido: leitura
+ * indexada, sem varrer venda nenhuma. Medido em 13/09/2026 com 888 produtos:
+ * **~340 ms contra ~1.190 ms** do cálculo ao vivo.
+ *
+ * O servidor cai no cálculo ao vivo sozinho quando ainda não há apuração — o
+ * primeiro dia, antes das 19h —, e aí `snapshotAt` vem ausente. A tela lê esse
+ * campo para dizer o que está mostrando.
+ */
+export async function getLatestProductPerformance(limit?: number) {
+  return apiGetOrThrow<ProductPerformanceReportDto>("/ProductPerformance/ultima", { limit });
+}
+
+export function useGetLatestProductPerformance(
+  limit?: number,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<ProductPerformanceReportDto, ApiError, ProductPerformanceReportDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<ProductPerformanceReportDto, ApiError, ProductPerformanceReportDto, QueryKey>({
+    queryKey: [...getLatestProductPerformanceQueryKey(), limit ?? 100],
+    queryFn: () => getLatestProductPerformance(limit),
+    ...options?.query,
+  });
+}
+
+/**
+ * A foto e a série de um produto — a aba Desempenho da tela do produto.
+ *
+ * `productId` é a VARIAÇÃO, e não o grupo: é ela que tem estoque, preço e nota.
+ */
+export async function getProductPerformanceProfile(productId: number, days?: number) {
+  return apiGetOrThrow<ProductPerformanceProfileDto>(`/ProductPerformance/produto/${productId}`, {
+    days,
+  });
+}
+
+export function useGetProductPerformanceProfile(
+  productId: number | null | undefined,
+  days?: number,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<ProductPerformanceProfileDto, ApiError, ProductPerformanceProfileDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<ProductPerformanceProfileDto, ApiError, ProductPerformanceProfileDto, QueryKey>({
+    queryKey: [...getProductPerformanceProfileQueryKey(), productId ?? 0, days ?? 90],
+    queryFn: () => getProductPerformanceProfile(productId as number, days),
+    enabled: Boolean(productId),
     ...options?.query,
   });
 }

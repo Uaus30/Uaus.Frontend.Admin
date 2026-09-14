@@ -4,13 +4,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductPerformanceItemDto, ProductPerformanceReportDto } from "@workspace/api-client-react";
 
-const mocks = vi.hoisted(() => ({ useGetProductPerformance: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  useGetProductPerformance: vi.fn(),
+  useGetLatestProductPerformance: vi.fn(),
+}));
 
-// Dubla só o hook que fala com a REDE. As chaves de cache continuam vindo do
+// Dubla só os hooks que falam com a REDE. As chaves de cache continuam vindo do
 // api-client — um mock que redefine a chave valida a invenção do próprio mock.
+//
+// São DOIS porque a tela tem dois caminhos: o período padrão lê a apuração
+// diária e qualquer outro calcula ao vivo.
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetProductPerformance: mocks.useGetProductPerformance,
+  useGetLatestProductPerformance: mocks.useGetLatestProductPerformance,
 }));
 
 import { useProductPerformance, RANKING_SIZE } from "../useProductPerformance";
@@ -168,27 +175,38 @@ const RELATORIO: ProductPerformanceReportDto = {
 };
 
 describe("useProductPerformance", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.useGetProductPerformance.mockReturnValue({
-      data: RELATORIO,
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    });
+  const resposta = (data: typeof RELATORIO | undefined) => ({
+    data,
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
   });
 
-  it("abre em 90 dias e pede os cem de cada lado ao servidor", async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useGetProductPerformance.mockReturnValue(resposta(RELATORIO));
+    mocks.useGetLatestProductPerformance.mockReturnValue(resposta(RELATORIO));
+  });
+
+  it("abre em 90 dias lendo a apuração diária, e não recalculando", async () => {
     const { result } = renderHook(() => useProductPerformance(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.report).toBeDefined());
 
     // Noventa dias, a mesma janela da curva ABC: um mês só classificaria ruído —
     // com o agravante de que aqui o ruído vira ordem de queimar estoque.
     expect(result.current.period.label).toBe("Últimos 90 dias");
+
+    // E é a janela que o worker apura, então o padrão abre pela foto: medido em
+    // 13/09/2026 com 888 produtos, ~340 ms contra ~1.190 ms.
+    expect(mocks.useGetLatestProductPerformance).toHaveBeenCalledWith(
+      RANKING_SIZE,
+      expect.objectContaining({ query: expect.objectContaining({ enabled: true }) }),
+    );
     expect(mocks.useGetProductPerformance).toHaveBeenCalledWith(
-      expect.objectContaining({ limit: RANKING_SIZE }),
+      expect.anything(),
+      expect.objectContaining({ query: expect.objectContaining({ enabled: false }) }),
     );
   });
 
@@ -204,6 +222,22 @@ describe("useProductPerformance", () => {
     await waitFor(() => expect(result.current.period.label).toBe("Últimos 30 dias"));
     expect(mocks.useGetProductPerformance).toHaveBeenCalledWith(
       expect.objectContaining({ startDate: result.current.period.startDate }),
+      expect.objectContaining({ query: expect.objectContaining({ enabled: true }) }),
+    );
+  });
+
+  it("fora do período padrão a apuração guardada não serve", async () => {
+    const { result } = renderHook(() => useProductPerformance(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.report).toBeDefined());
+
+    act(() => result.current.handleSelectPreset("30d"));
+    await waitFor(() => expect(result.current.period.label).toBe("Últimos 30 dias"));
+
+    // A foto é de UMA janela — a de 90 dias. Em 30 dias as réguas da loja são
+    // outras e todo mundo é reclassificado; não há foto que sirva.
+    expect(mocks.useGetLatestProductPerformance).toHaveBeenLastCalledWith(
+      RANKING_SIZE,
+      expect.objectContaining({ query: expect.objectContaining({ enabled: false }) }),
     );
   });
 

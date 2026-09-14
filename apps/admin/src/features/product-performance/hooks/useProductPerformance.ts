@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useGetProductPerformance } from "@workspace/api-client-react";
+import { useGetLatestProductPerformance, useGetProductPerformance } from "@workspace/api-client-react";
 import type { ProductActionCode, ProductPerformanceItemDto } from "@workspace/api-client-react";
 import { resolveCustom, resolvePreset } from "@/features/dashboard/utils";
 import type { PeriodMode, PeriodPreset } from "@/features/dashboard/types";
@@ -38,12 +38,30 @@ export function useProductPerformance() {
     [periodMode, preset, customStart, customEnd],
   );
 
-  const query = useGetProductPerformance({
-    startDate: period.startDate,
-    endDate: period.endDate,
-    limit: RANKING_SIZE,
+  /**
+   * O período PADRÃO lê a apuração diária; qualquer outro calcula ao vivo.
+   *
+   * Medido em 13/09/2026 com 888 produtos: ~340 ms contra ~1.190 ms. A conta é a
+   * MESMA dos dois lados — a apuração é produzida pelo mesmo serviço —, então os
+   * dois caminhos não podem divergir por implementação, só por idade. É por isso
+   * que a tela mostra de quando é a foto em vez de esconder a diferença.
+   *
+   * Só o preset de 90 dias entra aqui: é a janela que o worker apura. Trocar
+   * para 30 dias ou para um intervalo escolhido muda as réguas da loja e
+   * reclassifica todo mundo, e aí não há foto que sirva.
+   */
+  const usaApuracao = periodMode === "preset" && preset === "90d";
+
+  const apuracao = useGetLatestProductPerformance(RANKING_SIZE, {
+    query: { enabled: usaApuracao },
   });
 
+  const aoVivo = useGetProductPerformance(
+    { startDate: period.startDate, endDate: period.endDate, limit: RANKING_SIZE },
+    { query: { enabled: !usaApuracao } },
+  );
+
+  const query = usaApuracao ? apuracao : aoVivo;
   const report = query.data;
 
   const best = React.useMemo(() => recortar(report?.best, search, action), [report, search, action]);

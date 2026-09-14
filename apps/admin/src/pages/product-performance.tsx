@@ -1,4 +1,4 @@
-import { AlertCircle, Flame, Sparkles, X } from "lucide-react";
+import { AlertCircle, Camera as CameraIcon, Flame, Radio, Sparkles, X } from "lucide-react";
 import { Button, Card, Spinner } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { AppLayout } from "@/components/layout";
@@ -13,7 +13,7 @@ import { PerformanceSuggestions } from "@/features/product-performance/component
 import { PerformanceHelp } from "@/features/product-performance/components/PerformanceHelp";
 import { ProductRankingTable } from "@/features/product-performance/components/ProductRankingTable";
 import { ACTION_INFO } from "@/features/product-performance/lib/performance";
-import { formatInteger } from "@/features/supplier-performance/lib/format";
+import { formatInteger, formatIsoDate } from "@/features/supplier-performance/lib/format";
 
 /**
  * BI › Desempenho de Produtos.
@@ -24,6 +24,39 @@ import { formatInteger } from "@/features/supplier-performance/lib/format";
  * juntas: é lá que se vê que um terço do capital está no grupo que devolve 4% do
  * lucro.
  */
+/**
+ * De onde o número veio: da apuração das 19h ou do cálculo ao vivo.
+ *
+ * <b>A diferença é mostrada, e não escondida.</b> Os dois caminhos usam o mesmo
+ * código do servidor e não podem divergir por implementação — só por IDADE. E
+ * idade é informação de quem decide: quem acabou de receber uma entrada de
+ * estoque precisa saber que o saldo da tela é o de ontem às 19h antes de mandar
+ * queimar alguma coisa.
+ */
+function OrigemDoNumero({ snapshotAt }: { snapshotAt?: string | null }) {
+  if (!snapshotAt) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground"
+        title="Calculado agora, sobre as vendas e o estoque deste instante."
+      >
+        <Radio className="h-3 w-3" />
+        ao vivo
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground"
+      title="A apuração diária, tirada às 19h — depois que a loja fecha, para o dia não ser medido pela metade. É ela que alimenta o histórico de cada produto."
+    >
+      <CameraIcon className="h-3 w-3" />
+      apurado em {formatIsoDate(snapshotAt)}
+    </span>
+  );
+}
+
 export default function ProductPerformancePage() {
   const tela = useProductPerformance();
   const relatorio = tela.report;
@@ -43,6 +76,7 @@ export default function ProductPerformancePage() {
             <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
               {tela.period.label}
             </span>
+            {relatorio && <OrigemDoNumero snapshotAt={relatorio.snapshotAt} />}
             {relatorio && (
               <span className="text-[13px] text-muted-foreground">
                 {formatInteger(relatorio.totals.products)} produtos analisados ·{" "}

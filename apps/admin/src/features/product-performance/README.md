@@ -6,8 +6,25 @@ pedindo.
 Rota: `/bi/produtos` (`pages/product-performance.tsx`), `SO_ADMIN` porque a
 resposta traz custo, lucro e margem item a item.
 
-Dados: `GET /ProductPerformance` em
-`packages/api-client/src/hooks/product-performance.ts`.
+Dados: `packages/api-client/src/hooks/product-performance.ts`. São **dois
+caminhos para o mesmo relatório**:
+
+| Endpoint                         | Quando                   | Medido em 13/09/2026 |
+| -------------------------------- | ------------------------ | -------------------- |
+| `GET /ProductPerformance/ultima` | período padrão (90 dias) | ~340 ms              |
+| `GET /ProductPerformance`        | qualquer outro período   | ~1.190 ms            |
+
+O primeiro lê a **apuração diária guardada** (tirada às 19h pelo worker do
+backend); o segundo calcula ao vivo. A conta é a mesma dos dois lados — a
+apuração é produzida pelo mesmo serviço —, então eles **não podem divergir por
+implementação, só por idade**. É por isso que a tela mostra uma tarja dizendo de
+quando é a foto (`snapshotAt`) ou "ao vivo", em vez de esconder a diferença:
+quem acabou de receber uma entrada precisa saber que o saldo é o de ontem às 19h
+antes de mandar queimar alguma coisa.
+
+**Só o preset de 90 dias usa a foto**, porque é a janela que o worker apura.
+Trocar para 30 dias muda as réguas da loja e reclassifica todo mundo — não há
+foto que sirva.
 
 ---
 

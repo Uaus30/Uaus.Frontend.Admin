@@ -17,6 +17,7 @@ import { VariationGradesModal } from "./VariationGradesModal";
 import { ProductGeneralTab } from "./ProductGeneralTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductWebImageSearch } from "./ProductWebImageSearch";
+import { ProductPerformanceTab } from "../performance/ProductPerformanceTab";
 import { ProductConferenceBanner } from "@/features/inventory-count/components/ProductConferenceBanner";
 
 type ProductDetailScreenProps = {
@@ -54,12 +55,14 @@ const PROXIMA_ABA: Record<string, "dados" | "estoque"> = {
   dados: "estoque",
   estoque: "dados",
   opcionais: "dados",
+  desempenho: "dados",
 };
 
 const ROTULO_DA_ABA: Record<string, string> = {
   dados: "Dados",
   estoque: "Estoque",
   opcionais: "Opcionais",
+  desempenho: "Desempenho",
 };
 
 /**
@@ -326,6 +329,9 @@ export function ProductDetailScreen({
               <TabsTrigger value="opcionais" disabled={cadastroNovo}>
                 Opcionais
               </TabsTrigger>
+              <TabsTrigger value="desempenho" disabled={cadastroNovo}>
+                Desempenho
+              </TabsTrigger>
             </TabsList>
             {cadastroNovo && (
               <p className="text-xs text-muted-foreground">
@@ -382,6 +388,15 @@ export function ProductDetailScreen({
 
           <TabsContent value="opcionais" className="mt-4">
             <ProductOptionalFields editor={editor} />
+          </TabsContent>
+
+          {/* Montada só quando a aba é aberta: a consulta é da apuração guardada,
+              barata, mas não há por que pagá-la em toda abertura de produto. Usa
+              o mesmo produto que a aba Estoque — é a VARIAÇÃO que tem nota. */}
+          <TabsContent value="desempenho" className="mt-4">
+            {activeTab === "desempenho" && stockProductId !== null && (
+              <ProductPerformanceTab productId={stockProductId} />
+            )}
           </TabsContent>
         </Tabs>
 
