@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { Flame, Sparkles } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 import type { ProductPerformanceItemDto, ProductPerformanceParametersDto } from "@workspace/api-client-react";
@@ -16,10 +16,12 @@ import { ProductRankingTable } from "../ProductRankingTable";
  */
 
 const PARAMETROS: ProductPerformanceParametersDto = {
-  turnoverWeight: 0.3,
-  marginWeight: 0.25,
-  resultWeight: 0.25,
-  consistencyWeight: 0.2,
+  turnoverWeight: 0.216,
+  marginWeight: 0.18,
+  resultWeight: 0.18,
+  consistencyWeight: 0.144,
+  capitalWeight: 0.16,
+  liquidityWeight: 0.12,
   standoutScore: 70,
   steadyScore: 40,
   goodScore: 60,
@@ -31,6 +33,8 @@ const PARAMETROS: ProductPerformanceParametersDto = {
   storeSellThrough: 23.17,
   storeMargin: 39.78,
   averageProfitPerProduct: 18.78,
+  averageStockCost: 271.5,
+  storeCoverageDays: 298.5,
 };
 
 function produto(overrides: Partial<ProductPerformanceItemDto>): ProductPerformanceItemDto {
@@ -59,7 +63,15 @@ function produto(overrides: Partial<ProductPerformanceItemDto>): ProductPerforma
     daysWithoutSelling: 1,
     daysInStore: 190,
     score: 100,
-    scoreBreakdown: { turnover: 100, margin: 100, result: 100, consistency: 100 },
+    salesScore: 100,
+    scoreBreakdown: {
+      turnover: 100,
+      margin: 100,
+      result: 100,
+      consistency: 100,
+      capital: 100,
+      liquidity: 100,
+    },
     class: "Standout",
     action: "Replicate",
     capitalAtRisk: 0,
@@ -151,6 +163,105 @@ describe("ProductRankingTable", () => {
     // Sem venda no período não há cobertura a prever — "0 dias" diria "acaba
     // hoje" para um produto que não sai.
     expect(screen.getByText("sem giro")).toBeTruthy();
+  });
+
+  it("sem venda no período a margem mostra a da última entrada, dizendo que é ela", () => {
+    render(
+      <ProductRankingTable
+        title="Os 100 piores"
+        description="pela nota"
+        icon={Flame}
+        variant="worst"
+        products={[
+          produto({
+            productName: "CHAPEU PESCADOR",
+            class: "Stalled",
+            units: 0,
+            margin: 0,
+            price: 20,
+            costPrice: 5,
+          }),
+        ]}
+        total={1}
+        parameters={PARAMETROS}
+        focusLabel={null}
+        emptyMessage="vazio"
+      />,
+    );
+
+    // R$ 20 de preço contra R$ 5 do último lote: 75% de espaço para descontar —
+    // a informação que decide se dá para queimar o estoque, e que a coluna
+    // escondia atrás de um "—".
+    expect(screen.getByText("75,0%")).toBeTruthy();
+    // E a origem em texto, não só num tom apagado: a tela vai impressa ao balcão.
+    expect(screen.getByText("entrada")).toBeTruthy();
+  });
+
+  it("abre na ordem que o servidor mandou e reordena ao clicar no cabeçalho", () => {
+    // Os três chegam como o servidor numerou: pior nota primeiro. O PARADO BARATO
+    // é o que menos prende dinheiro e o que tem a nota menos ruim — é ele que
+    // troca de ponta quando a leitura passa a ser pelo dinheiro.
+    const piores = [
+      produto({ productId: 1, productName: "PARADO CARO", score: 4.1, capitalAtRisk: 800, rank: 1 }),
+      produto({ productId: 2, productName: "FRACO", score: 16.9, capitalAtRisk: 120, rank: 2 }),
+      produto({ productId: 3, productName: "PARADO BARATO", score: 21.4, capitalAtRisk: 5, rank: 3 }),
+    ];
+
+    render(
+      <ProductRankingTable
+        title="Os 100 piores"
+        description="pela nota"
+        icon={Flame}
+        variant="worst"
+        products={piores}
+        total={3}
+        parameters={PARAMETROS}
+        focusLabel={null}
+        emptyMessage="vazio"
+      />,
+    );
+
+    const nomes = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((linha) => within(linha).getAllByRole("cell")[1].textContent);
+
+    expect(nomes()?.[0]).toContain("PARADO CARO");
+    expect(nomes()?.[2]).toContain("PARADO BARATO");
+
+    // Um clique em "Nota" inverte: o menos pior sobe.
+    fireEvent.click(screen.getByRole("button", { name: /Nota/ }));
+    expect(nomes()?.[0]).toContain("PARADO BARATO");
+
+    // E "Em risco" responde a outra pergunta, sobre as mesmas três linhas.
+    fireEvent.click(screen.getByRole("button", { name: /Em risco/ }));
+    expect(nomes()?.[0]).toContain("PARADO CARO");
+    expect(nomes()?.[2]).toContain("PARADO BARATO");
+  });
+
+  it("a nota aparece com uma casa decimal, que é o que separa uma linha da outra", () => {
+    render(
+      <ProductRankingTable
+        title="Os 100 piores"
+        description="pela nota"
+        icon={Flame}
+        variant="worst"
+        products={[
+          produto({ productId: 1, productName: "PARADO A", score: 4.08, class: "Stalled", units: 0 }),
+          produto({ productId: 2, productName: "PARADO B", score: 3.61, class: "Stalled", units: 0 }),
+        ]}
+        total={2}
+        parameters={PARAMETROS}
+        focusLabel={null}
+        emptyMessage="vazio"
+      />,
+    );
+
+    // Arredondadas para inteiro as duas virariam "4" e a lista pareceria fora de
+    // ordem — que foi o relato que originou a mudança.
+    expect(screen.getByText("4,1")).toBeTruthy();
+    expect(screen.getByText("3,6")).toBeTruthy();
   });
 
   it("o recorte vazio explica em vez de mostrar tabela em branco", () => {

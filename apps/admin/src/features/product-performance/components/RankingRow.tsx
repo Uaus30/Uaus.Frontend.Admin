@@ -4,7 +4,16 @@ import { formatCurrency, marginBand } from "@workspace/core";
 import type { ProductPerformanceItemDto, ProductPerformanceParametersDto } from "@workspace/api-client-react";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
 import { BI_TONE_FILL, BI_TONE_PILL, BI_TONE_TEXT } from "@/lib/bi-tone";
-import { ACTION_INFO, CLASS_INFO, coberturaLegivel, tomDaCobertura, tomDaNota } from "../lib/performance";
+import {
+  ACTION_INFO,
+  CLASS_INFO,
+  coberturaLegivel,
+  formatScore,
+  margemDaLinha,
+  tomDaCobertura,
+  tomDaNota,
+} from "../lib/performance";
+import type { MargemDaLinha } from "../lib/performance";
 
 type RankingRowProps = {
   produto: ProductPerformanceItemDto;
@@ -12,6 +21,66 @@ type RankingRowProps = {
   /** A coluna de capital em risco só aparece onde ela ordena a lista. */
   mostrarRisco: boolean;
 };
+
+/**
+ * A conta da nota por extenso, para o `title` da pílula.
+ *
+ * É o que responde "por que este produto está acima daquele" sem abrir o manual
+ * da tela: as seis parciais com o peso de cada uma, na ordem em que entram na
+ * média. Num produto parado as quatro primeiras são zero, e fica visível que
+ * quem o posicionou foram capital e liquidez.
+ */
+function detalharNota(
+  produto: ProductPerformanceItemDto,
+  parameters: ProductPerformanceParametersDto,
+): string {
+  const { scoreBreakdown: parciais } = produto;
+
+  const componentes: [string, number, number][] = [
+    ["Giro", parciais.turnover, parameters.turnoverWeight],
+    ["Margem", parciais.margin, parameters.marginWeight],
+    ["Resultado", parciais.result, parameters.resultWeight],
+    ["Constância", parciais.consistency, parameters.consistencyWeight],
+    ["Capital", parciais.capital, parameters.capitalWeight],
+    ["Liquidez", parciais.liquidity, parameters.liquidityWeight],
+  ];
+
+  const conta = componentes
+    .map(([nome, valor, peso]) => `${nome} ${formatScore(valor)} (${Math.round(peso * 100)}%)`)
+    .join(" · ");
+
+  return `Nota ${formatScore(produto.score)} — ${conta}`;
+}
+
+/** O que a célula de margem está mostrando, e o que fazer com o número. */
+function explicarMargem(
+  produto: ProductPerformanceItemDto,
+  margem: MargemDaLinha,
+  parameters: ProductPerformanceParametersDto,
+): string {
+  const daLoja = `Margem da loja no período: ${formatPercent(parameters.storeMargin)}`;
+
+  if (margem.deEntrada) {
+    if (margem.valor === null) return `Sem preço de venda cadastrado. ${daLoja}`;
+
+    return (
+      `Margem de ENTRADA: ${formatCurrency(produto.price)} de preço contra ` +
+      `${formatCurrency(produto.costPrice)} de custo da última entrada de estoque. ` +
+      `Este produto não vendeu no período, então não há margem realizada — é este o ` +
+      `espaço que existe para descontar. ${daLoja}.`
+    );
+  }
+
+  if (produto.missedProfit > 0) {
+    return (
+      `Margem realizada no período. Na margem média da loja ` +
+      `(${formatPercent(parameters.storeMargin)}), o período teria rendido ` +
+      `${formatCurrency(produto.missedProfit)} a mais`
+    );
+  }
+
+  return `Margem realizada no período. ${daLoja}`;
+}
 
 /** Cor da margem — a mesma faixa da entrada de estoque e do recebimento de compra. */
 const MARGEM_TOM = {
@@ -32,7 +101,9 @@ export function RankingRow({ produto, parameters, mostrarRisco }: RankingRowProp
   const classe = CLASS_INFO[produto.class];
   const acao = ACTION_INFO[produto.action];
   const notaTom = tomDaNota(produto.score, parameters.standoutScore, parameters.steadyScore);
-  const faixaDaMargem = marginBand(produto.margin);
+
+  const margem = margemDaLinha(produto);
+  const faixaDaMargem = marginBand(margem.valor);
 
   const coberturaTom = tomDaCobertura(
     produto.coverageDays,
@@ -64,16 +135,22 @@ export function RankingRow({ produto, parameters, mostrarRisco }: RankingRowProp
       </TableCell>
 
       {/* A nota traz a barra junto: o número sozinho obriga a lembrar que a
-          escala é de 0 a 100, e a barra responde isso sem texto. */}
+          escala é de 0 a 100, e a barra responde isso sem texto.
+
+          A casa decimal é o que torna a ordem legível. Com a nota arredondada
+          para inteiro, meia dúzia de parados seguidos aparecia como "4, 4, 4" e
+          a lista parecia fora de ordem — quando o que os separava era 4,1 · 3,9
+          · 3,6, e é exatamente essa diferença que decide a posição. */}
       <TableCell className="px-2 py-2">
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "w-9 shrink-0 rounded border px-1 py-0.5 text-center font-mono text-[11px] font-semibold tabular-nums",
+              "w-12 shrink-0 rounded border px-1 py-0.5 text-center font-mono text-[11px] font-semibold tabular-nums",
               BI_TONE_PILL[notaTom],
             )}
+            title={detalharNota(produto, parameters)}
           >
-            {Math.round(produto.score)}
+            {formatScore(produto.score)}
           </span>
           <span className="h-1.5 w-10 overflow-hidden rounded-full bg-muted">
             <span
@@ -100,7 +177,7 @@ export function RankingRow({ produto, parameters, mostrarRisco }: RankingRowProp
       {mostrarRisco && (
         <TableCell
           className="px-2 py-2 text-right font-mono text-[12px] font-semibold tabular-nums text-destructive"
-          title={`${formatCurrency(produto.stockCost)} na prateleira, ponderados por uma nota de ${Math.round(produto.score)}`}
+          title={`${formatCurrency(produto.stockCost)} na prateleira, ponderados pela nota de venda (${formatScore(produto.salesScore)}). O capital preso já está dentro da nota cheia; pesar os reais por ela também os contaria duas vezes.`}
         >
           {formatCurrency(produto.capitalAtRisk)}
         </TableCell>
@@ -132,13 +209,18 @@ export function RankingRow({ produto, parameters, mostrarRisco }: RankingRowProp
           "px-2 py-2 text-right font-mono text-[12px] tabular-nums",
           faixaDaMargem ? MARGEM_TOM[faixaDaMargem] : "text-muted-foreground",
         )}
-        title={
-          produto.missedProfit > 0
-            ? `Na margem média da loja (${formatPercent(parameters.storeMargin)}), o período teria rendido ${formatCurrency(produto.missedProfit)} a mais`
-            : `Margem da loja no período: ${formatPercent(parameters.storeMargin)}`
-        }
+        title={explicarMargem(produto, margem, parameters)}
       >
-        {produto.units > 0 ? formatPercent(produto.margin) : "—"}
+        {formatPercent(margem.valor)}
+        {/* A origem vai em TEXTO, e não só num tom mais apagado: a mesma regra
+            das outras colunas desta tela, que se imprime em preto e branco para
+            ir ao balcão. Sem o rótulo, "38,2%" numa linha de produto parado
+            seria lido como margem realizada — que ele não tem. */}
+        {margem.deEntrada && margem.valor !== null && (
+          <span className="block text-[9.5px] font-normal uppercase tracking-wide text-muted-foreground">
+            entrada
+          </span>
+        )}
       </TableCell>
 
       <TableCell

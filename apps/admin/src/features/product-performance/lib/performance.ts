@@ -1,6 +1,11 @@
 import { CopyPlus, Flame, Minus, PackagePlus, Sparkles, Sprout, TrendingUp, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ProductActionCode, ProductPerformanceClass } from "@workspace/api-client-react";
+import { marginPercent } from "@workspace/core";
+import type {
+  ProductActionCode,
+  ProductPerformanceClass,
+  ProductPerformanceItemDto,
+} from "@workspace/api-client-react";
 import type { BiTone } from "@/lib/bi-tone";
 
 /**
@@ -99,6 +104,49 @@ export const ACTION_INFO: Record<ProductActionCode, Descricao> = {
     explicacao: "Nada a decidir agora sobre este produto.",
   },
 };
+
+/** A margem que a linha mostra, e de onde ela veio. */
+export type MargemDaLinha = {
+  /** Em pontos percentuais. Nulo quando o produto não tem preço para dividir. */
+  valor: number | null;
+  /** Veio da última entrada de estoque, e não do que foi vendido no período. */
+  deEntrada: boolean;
+};
+
+/**
+ * A margem da linha: a REALIZADA para quem vendeu, a de ENTRADA para quem não.
+ *
+ * <b>São duas perguntas diferentes</b>, e a coluna responde a que tem resposta.
+ * Quem vendeu tem margem realizada — lucro sobre faturamento —, e é ela que diz
+ * o que o produto rendeu de verdade. Quem não vendeu não tem nenhuma, e a coluna
+ * mostrava "—" em quase toda a lista dos piores, que é só produto parado.
+ *
+ * Justamente ali a pergunta "quanto de espaço eu tenho para dar desconto" é a
+ * que decide se dá para queimar o estoque, e ela se responde pelo preço de hoje
+ * contra o custo da <b>última entrada</b> — que é o que o
+ * <c>CostPrice</c> do produto guarda (ver <c>InventoryService</c>, que documenta
+ * isso para não multiplicá-lo pelo saldo inteiro).
+ *
+ * A linha marca qual das duas está mostrando. Misturar os dois números sem dizer
+ * qual é qual faria a coluna mentir em silêncio na metade das linhas.
+ */
+export function margemDaLinha(produto: ProductPerformanceItemDto): MargemDaLinha {
+  if (produto.units > 0) return { valor: produto.margin, deEntrada: false };
+  return { valor: marginPercent(produto.costPrice, produto.price), deEntrada: true };
+}
+
+/**
+ * A nota com uma casa decimal.
+ *
+ * A casa não é enfeite: ela É a ordem. Desde que o capital preso e a liquidez
+ * entraram na conta (13/09/2026), a nota passou a posicionar o produto no
+ * ranking, e duas linhas seguidas exibindo "4" e "4" estão de fato em 4,1 e 3,6
+ * — arredondar para inteiro esconderia justamente o que decidiu qual delas vem
+ * primeiro, e a lista voltaria a parecer desordenada.
+ */
+export function formatScore(nota: number): string {
+  return nota.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
 
 /**
  * A cor da nota, na mesma escala de tom da faixa.

@@ -3,6 +3,8 @@ import { Badge, Button, Card, Table, TableBody, TableHeader, TableRow, cn } from
 import type { ProductPerformanceItemDto, ProductPerformanceParametersDto } from "@workspace/api-client-react";
 import { BiColumnHeader } from "@/components/bi-column-header";
 import { formatInteger } from "@/features/supplier-performance/lib/format";
+import { direcaoInicial, ordenarRanking, proximaOrdem } from "../lib/ranking-sort";
+import type { RankingSort, RankingSortColumn } from "../lib/ranking-sort";
 import { RankingRow } from "./RankingRow";
 
 type ProductRankingTableProps = {
@@ -27,10 +29,14 @@ const PAGINA = 25;
  * Um dos dois rankings.
  *
  * O mesmo componente serve aos dois porque as colunas são as mesmas — o que muda
- * é a ORDEM e uma coluna: os melhores saem por nota, os piores por capital em
- * risco, que só aparece do lado em que ela decide alguma coisa. Duas tabelas
- * escritas à mão divergiriam no primeiro ajuste de coluna, e comparar os dois
- * extremos exige que eles sejam lidos do mesmo jeito.
+ * é o SENTIDO da nota (os melhores descem dela, os piores sobem) e uma coluna, a
+ * de capital em risco, que só aparece do lado em que ela responde alguma coisa.
+ * Duas tabelas escritas à mão divergiriam no primeiro ajuste de coluna, e
+ * comparar os dois extremos exige que eles sejam lidos do mesmo jeito.
+ *
+ * A ordenação é estado LOCAL desta tabela, e não do hook da tela, porque as duas
+ * tabelas ordenam separado: olhar os piores por estoque não tem por que mexer na
+ * lista dos melhores, que está respondendo outra pergunta na mesma rolagem.
  */
 export function ProductRankingTable({
   title,
@@ -49,10 +55,25 @@ export function ProductRankingTable({
    */
   const recorte = focusLabel ?? "";
   const [paginacao, setPaginacao] = React.useState({ recorte, limite: PAGINA });
+  const melhores = variant === "best";
+
+  // A nota é a ordem de entrada, no sentido de cada tabela. Sendo a MESMA que o
+  // servidor aplicou, e com o desempate pela posição de origem, a tela abre
+  // idêntica à resposta — o estado inicial não reordena nada.
+  const [ordem, setOrdem] = React.useState<RankingSort>({
+    coluna: "nota",
+    direcao: direcaoInicial("nota", melhores),
+  });
+
+  const ordenados = React.useMemo(() => ordenarRanking(products, ordem), [products, ordem]);
 
   const limite = paginacao.recorte === recorte ? paginacao.limite : PAGINA;
-  const visiveis = products.slice(0, limite);
-  const melhores = variant === "best";
+  const visiveis = ordenados.slice(0, limite);
+
+  const ordenavel = (coluna: RankingSortColumn) => ({
+    onOrdenar: () => setOrdem((atual) => proximaOrdem(atual, coluna, melhores)),
+    ordem: ordem.coluna === coluna ? ordem.direcao : null,
+  });
 
   return (
     <Card className="border-border/60 p-5">
@@ -90,11 +111,18 @@ export function ProductRankingTable({
           <Table className="min-w-[70rem]">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <BiColumnHeader className="w-10">#</BiColumnHeader>
-                <BiColumnHeader>Produto</BiColumnHeader>
                 <BiColumnHeader
-                  className="w-28 text-center"
-                  dica={`Média ponderada de giro (${pct(parameters.turnoverWeight)}), margem (${pct(parameters.marginWeight)}), resultado (${pct(parameters.resultWeight)}) e constância (${pct(parameters.consistencyWeight)}), cada um medido contra a própria loja`}
+                  className="w-10"
+                  dica="Posição pela nota — ela não muda quando você ordena por outra coluna"
+                >
+                  #
+                </BiColumnHeader>
+                <BiColumnHeader {...ordenavel("produto")}>Produto</BiColumnHeader>
+                <BiColumnHeader
+                  className="w-32 text-center"
+                  dica={`Média ponderada de giro (${pct(parameters.turnoverWeight)}), margem (${pct(parameters.marginWeight)}), resultado (${pct(parameters.resultWeight)}), constância (${pct(parameters.consistencyWeight)}), capital preso (${pct(parameters.capitalWeight)}) e liquidez (${pct(parameters.liquidityWeight)}), cada um medido contra a própria loja. É ela que ordena esta lista`}
+                  alinhamento="center"
+                  {...ordenavel("nota")}
                 >
                   Nota
                 </BiColumnHeader>
@@ -104,17 +132,25 @@ export function ProductRankingTable({
                 {!melhores && (
                   <BiColumnHeader
                     className="text-right"
-                    dica="Custo do que está na prateleira, ponderado pela nota, mais o prejuízo já realizado. É o que ordena esta lista."
+                    dica="Custo do que está na prateleira, ponderado pela parte de venda da nota, mais o prejuízo já realizado"
+                    alinhamento="right"
+                    {...ordenavel("risco")}
                   >
                     Em risco
                   </BiColumnHeader>
                 )}
-                <BiColumnHeader className="text-right">Vendidos</BiColumnHeader>
-                <BiColumnHeader className="text-right">Faturamento</BiColumnHeader>
+                <BiColumnHeader className="text-right" alinhamento="right" {...ordenavel("vendidos")}>
+                  Vendidos
+                </BiColumnHeader>
+                <BiColumnHeader className="text-right" alinhamento="right" {...ordenavel("faturamento")}>
+                  Faturamento
+                </BiColumnHeader>
                 <BiColumnHeader className="text-right">Lucro</BiColumnHeader>
                 <BiColumnHeader
                   className="text-right"
-                  dica={`Margem da loja no período: ${pct(parameters.storeMargin / 100)}. Verde a partir de ${pct(parameters.healthyMarginThreshold / 100)}, vermelho abaixo de ${pct(parameters.lowMarginThreshold / 100)}.`}
+                  dica={`Margem da loja no período: ${pct(parameters.storeMargin / 100)}. Verde a partir de ${pct(parameters.healthyMarginThreshold / 100)}, vermelho abaixo de ${pct(parameters.lowMarginThreshold / 100)}`}
+                  alinhamento="right"
+                  {...ordenavel("margem")}
                 >
                   Margem
                 </BiColumnHeader>
@@ -124,12 +160,19 @@ export function ProductRankingTable({
                 >
                   Giro
                 </BiColumnHeader>
-                <BiColumnHeader className="text-right" dica="Saldo de hoje e o custo dele">
+                <BiColumnHeader
+                  className="text-right"
+                  dica="Saldo de hoje e o custo dele"
+                  alinhamento="right"
+                  {...ordenavel("estoque")}
+                >
                   Estoque
                 </BiColumnHeader>
                 <BiColumnHeader
                   className="text-right"
-                  dica={`Quanto o saldo dura no ritmo do período. Até ${parameters.shortCoverageDays} dias é risco de faltar; a partir de um ano é estoque demais.`}
+                  dica={`Quanto o saldo dura no ritmo do período. Até ${parameters.shortCoverageDays} dias é risco de faltar; a partir de um ano é estoque demais`}
+                  alinhamento="right"
+                  {...ordenavel("dura")}
                 >
                   Dura
                 </BiColumnHeader>

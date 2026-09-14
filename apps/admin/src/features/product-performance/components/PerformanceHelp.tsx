@@ -1,8 +1,9 @@
 import { Flame, Gauge, ListOrdered, Sparkles } from "lucide-react";
 import { cn } from "@workspace/ui";
 import type { ProductPerformanceParametersDto } from "@workspace/api-client-react";
+import { formatCurrency } from "@workspace/core";
 import { BiHelpDialog, BiHelpTerm } from "@/components/bi-help-dialog";
-import { formatPercent } from "@/features/supplier-performance/lib/format";
+import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
 import { BI_TONE_PILL } from "@/lib/bi-tone";
 import { ACTION_INFO, CLASS_INFO } from "../lib/performance";
 
@@ -64,10 +65,15 @@ export function PerformanceHelp({ parameters, size }: PerformanceHelpProps) {
           body: (
             <div className="flex flex-col gap-2">
               <p>
-                Média ponderada de quatro medidas. Três delas comparam o produto com a{" "}
+                Média ponderada de seis medidas. Cinco delas comparam o produto com a{" "}
                 <strong className="text-foreground/85">própria loja no período</strong>, e não com um alvo
                 inventado — é o que faz a nota separar os produtos entre si em vez de decidir, por fora, que a
                 loja inteira vai bem ou vai mal.
+              </p>
+              <p>
+                <strong className="text-foreground/85">É a nota que ordena as duas tabelas</strong>: os piores
+                sobem da menor para a maior, os melhores descem da maior para a menor. Por isso ela precisa
+                desempatar — as duas últimas medidas existem para isso.
               </p>
               <ul className="flex flex-col gap-1.5">
                 <li>
@@ -94,8 +100,28 @@ export function PerformanceHelp({ parameters, size }: PerformanceHelpProps) {
                     — é o que diz se dá para repor por média.
                   </BiHelpTerm>
                 </li>
+                <li>
+                  <BiHelpTerm term={`Capital preso (${peso(parameters.capitalWeight)})`}>
+                    quanto POUCO dinheiro o produto segura na prateleira. Quem está na média da loja (
+                    {formatCurrency(parameters.averageStockCost)} por produto com saldo) tira 50; o dobro da
+                    média tira 33, a metade tira 67. Nunca chega a zero nem a 100 — é o que impede o topo e o
+                    fundo da lista de empatarem.
+                  </BiHelpTerm>
+                </li>
+                <li>
+                  <BiHelpTerm term={`Liquidez (${peso(parameters.liquidityWeight)})`}>
+                    em quanto tempo o saldo sai. Quem dura o que a loja dura (
+                    {formatInteger(Math.round(parameters.storeCoverageDays))} dias) tira 50. Quem não vendeu
+                    no período não tem ritmo para projetar, e aí conta há quanto tempo está parado — com teto
+                    na metade, para nenhum parado passar à frente de quem vendeu.
+                  </BiHelpTerm>
+                </li>
               </ul>
-              <p>Quem não vendeu nada no período fica com zero, e as quatro parciais zeram junto.</p>
+              <p>
+                Quem não vendeu nada no período zera as quatro primeiras — elas medem venda, e não houve. O
+                que o posiciona são as duas últimas, e é por isso que os produtos parados deixaram de empatar
+                todos na mesma nota.
+              </p>
             </div>
           ),
         },
@@ -157,19 +183,30 @@ export function PerformanceHelp({ parameters, size }: PerformanceHelpProps) {
           ),
         },
         {
-          title: "Por que os piores saem por dinheiro, e não por nota",
+          title: "A ordem das tabelas, e como trocá-la",
           icon: Flame,
           body: (
             <div className="flex flex-col gap-2">
               <p>
-                <strong className="text-foreground/85">Capital em risco</strong> é o custo do que está na
-                prateleira ponderado pela nota, mais o prejuízo já realizado. Dos R$ 400 parados num produto
-                nota 10, R$ 360 estão em risco; num nota 90, R$ 40.
+                As duas listas descem pela <strong className="text-foreground/85">nota</strong>: os piores da
+                menor para a maior, os melhores ao contrário. A posição na coluna{" "}
+                <strong className="text-foreground/85">#</strong> é sempre a da nota — ela não muda quando
+                você ordena por outra coluna, e é isso que permite ver que o produto que mais ocupa prateleira
+                é o 47º pior, e não o primeiro.
               </p>
               <p>
-                Ordenar os piores pela nota empilharia no topo centenas de itens de cinco reais que não
-                venderam — todos com zero — e empurraria para a quarta página os oitocentos reais parados num
-                produto só. A pergunta desta lista é onde está o dinheiro, e ela se responde em reais.
+                <strong className="text-foreground/85">Clique no nome de uma coluna para reordenar</strong> —
+                produto, nota, em risco, vendidos, faturamento, margem, estoque e dura respondem ao clique;
+                clicar de novo inverte o sentido. A reordenação é sobre as {size} linhas que já estão na tela,
+                e não um novo pedido ao servidor: trocar o conjunto embaixo de quem está lendo responderia
+                outra pergunta.
+              </p>
+              <p>
+                <strong className="text-foreground/85">Capital em risco</strong> é o custo do que está na
+                prateleira ponderado pela parte de VENDA da nota, mais o prejuízo já realizado. Dos R$ 400
+                parados num produto que vende como nota 10, R$ 360 estão em risco; num nota 90, R$ 40. O peso
+                é só a parte de venda porque o capital preso já entra na nota cheia — usá-la aqui contaria o
+                mesmo dinheiro duas vezes.
               </p>
               <p>
                 Produto <strong className="text-foreground/85">Destaque</strong> nunca entra na lista dos
@@ -191,13 +228,16 @@ export function PerformanceHelp({ parameters, size }: PerformanceHelpProps) {
                 é risco de faltar; a partir de um ano é estoque demais.
               </BiHelpTerm>
               <BiHelpTerm term="Margem">
-                lucro sobre o faturamento do que foi vendido. Verde a partir de{" "}
+                lucro sobre o faturamento do que foi vendido. Quem não vendeu no período não tem essa margem,
+                e a coluna mostra a <strong className="text-foreground/85">de entrada</strong> — preço de hoje
+                contra o custo da última entrada de estoque —, marcada com a palavra "entrada" embaixo. É ela
+                que diz quanto espaço existe para descontar num produto parado. Verde a partir de{" "}
                 {formatPercent(parameters.healthyMarginThreshold, 0)}, vermelho abaixo de{" "}
                 {formatPercent(parameters.lowMarginThreshold, 0)} — a mesma faixa da entrada de estoque.
               </BiHelpTerm>
               <BiHelpTerm term="Em risco">
-                o capital em risco da linha. Só aparece na tabela dos piores, que é a única em que ele decide
-                a ordem.
+                o capital em risco da linha. Só aparece na tabela dos piores, que é a única em que a pergunta
+                "quanto dinheiro está preso aqui" faz sentido.
               </BiHelpTerm>
             </div>
           ),

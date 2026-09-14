@@ -28,6 +28,8 @@ export interface ProductPerformanceParametersDto {
   marginWeight: number;
   resultWeight: number;
   consistencyWeight: number;
+  capitalWeight: number;
+  liquidityWeight: number;
 
   standoutScore: number;
   steadyScore: number;
@@ -43,6 +45,10 @@ export interface ProductPerformanceParametersDto {
   storeSellThrough: number;
   storeMargin: number;
   averageProfitPerProduct: number;
+  /** Custo de prateleira médio por produto COM saldo — a régua do capital. */
+  averageStockCost: number;
+  /** Dias que o estoque da loja inteira cobre — a régua da liquidez. */
+  storeCoverageDays: number;
 }
 
 export interface ProductPerformanceTotalsDto {
@@ -104,6 +110,10 @@ export interface ProductScoreBreakdownDto {
   margin: number;
   result: number;
   consistency: number;
+  /** Quanto POUCO dinheiro o produto prende, contra a média da loja. */
+  capital: number;
+  /** Em quanto tempo o saldo sai, contra o tempo que a loja leva. */
+  liquidity: number;
 }
 
 export interface ProductPerformanceItemDto {
@@ -140,11 +150,13 @@ export interface ProductPerformanceItemDto {
   daysInStore?: number | null;
 
   score: number;
+  /** A parte de VENDA da nota, renormalizada — é ela que pesa o capital em risco. */
+  salesScore: number;
   scoreBreakdown: ProductScoreBreakdownDto;
   class: ProductPerformanceClass;
   action: ProductActionCode;
 
-  /** Capital parado ponderado pela nota, mais o prejuízo já realizado. */
+  /** Capital parado ponderado pela nota de VENDA, mais o prejuízo já realizado. */
   capitalAtRisk: number;
   /** Lucro que a margem da loja teria produzido a mais no período. */
   missedProfit: number;

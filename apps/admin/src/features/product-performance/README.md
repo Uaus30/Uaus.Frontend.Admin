@@ -28,15 +28,22 @@ A pergunta da tela é a seguinte à do ABC: não "quanto este produto pesa", mas
 
 ## A nota, e por que ela mede contra a própria loja
 
-Média ponderada de quatro componentes, cada um de 0 a 100. **Três medem o produto
+Média ponderada de seis componentes, cada um de 0 a 100. **Cinco medem o produto
 contra a loja no período**, e não contra um alvo escrito à mão:
 
-| Componente | Peso | Régua                                  |
-| ---------- | ---- | -------------------------------------- |
-| Giro       | 30%  | o sell-through da loja no período      |
-| Margem     | 25%  | a margem média da loja                 |
-| Resultado  | 25%  | o lucro médio por produto que vendeu   |
-| Constância | 20%  | 60% das semanas do período (alvo fixo) |
+| Componente   | Peso | Régua                                             |
+| ------------ | ---- | ------------------------------------------------- |
+| Giro         | 22%  | o sell-through da loja no período                 |
+| Margem       | 18%  | a margem média da loja                            |
+| Resultado    | 18%  | o lucro médio por produto que vendeu              |
+| Constância   | 14%  | 60% das semanas do período (alvo fixo)            |
+| **Capital**  | 16%  | o custo de prateleira médio por produto com saldo |
+| **Liquidez** | 12%  | os dias que o estoque da loja inteira cobre       |
+
+As quatro primeiras somam **72%** e mantêm entre si a proporção calibrada
+original (30/25/25/20). Esse bloco tem nome — `SaleWeight`, no backend — porque
+ele é usado duas vezes: para compor a nota e para renormalizar a **nota de
+venda**, que é o que pesa o capital em risco.
 
 A loja escoou **23,17%** do que tinha em noventa dias. Um alvo fixo de 25% ou de
 50% decidiria, por fora, que a loja inteira vai bem ou vai mal — e a nota
@@ -49,30 +56,91 @@ a média da loja arrastaria o alvo para tão baixo que "vendeu uma vez" viraria
 nota cheia. O que se quer saber é se dá para **repor por média**, e isso não é
 relativo aos vizinhos.
 
-Quem não vendeu no período fica com zero, e as quatro parciais zeram junto — a
-tela mostra a conta por extenso, e uma parcial sobrevivente ali seria uma
-contradição na cara de quem lê.
+### Capital e liquidez existem para DESEMPATAR
+
+Os dois entraram em 13/09/2026, quando a nota virou a ordem dos rankings. Antes,
+quem não vendia no período recebia zero por atalho: **390 produtos parados com a
+mesma nota**, e nenhuma maneira de dizer qual é o pior.
+
+Hoje o atalho não existe. Quem não vendeu chega às quatro medidas de venda com
+valores que já valem zero — a conta por extenso continua honesta —, e o que o
+posiciona são capital e liquidez:
+
+```
+capital  = 100 × média / (média + custo na prateleira)
+liquidez = 100 × cobertura da loja / (cobertura da loja + dias que o saldo dura)
+```
+
+A forma é hiperbólica, e não uma razão cortada em 0 e 100, por duas razões:
+
+- **Não satura.** Um corte em 100 empataria todo mundo que prende pouco; um corte
+  em 0 empataria todo mundo que prende muito — as duas pontas que a lista precisa
+  separar. R$ 800 e R$ 810 numa loja de média R$ 25 valem 3,03 e 3,00.
+- **Lê-se direto.** Quem está na média da loja tira 50; o dobro tira 33; a metade
+  tira 67. É a mesma filosofia das outras quatro: medir contra a própria loja.
+
+**Quem não vendeu no período não tem cobertura** — não há ritmo para dividir — e
+aí a liquidez responde pelo outro lado: **há quanto tempo o produto está
+parado**, com teto em 50, para nenhum parado passar à frente de quem vendeu.
+Quem nunca vendeu na vida fica com zero de verdade: dele não há evidência
+nenhuma.
 
 ---
 
-## Os piores saem por dinheiro, não por nota
+## Os dois rankings saem pela nota
 
-**Capital em risco** = custo na prateleira × (100 − nota) / 100 + prejuízo já
-realizado.
+Os melhores descem da maior para a menor; os piores sobem da menor para a maior.
+A posição é **sempre** a nota — foi o pedido que originou a mudança: com a ordem
+por dinheiro, a coluna "situação" descia embaralhada, e um `Regular` de R$ 400
+aparecia acima de um `Parado` de R$ 30.
 
-Ordenar os piores pela nota empilharia no topo centenas de itens de cinco reais
-que não venderam — todos com zero — e empurraria para a quarta página os
-oitocentos reais parados num produto só. A pergunta desta lista é **onde está o
-dinheiro**, e ela se responde em reais.
+A tela mostra a nota com **uma casa decimal**, e a casa não é enfeite: é ela que
+torna a ordem legível. Arredondada para inteiro, meia dúzia de parados seguidos
+aparece como "4, 4, 4" quando o que os separa é 4,1 · 3,9 · 3,6.
 
-Duas consequências que valem estar escritas:
+**Capital em risco** = custo na prateleira × (100 − **nota de venda**) / 100 +
+prejuízo já realizado.
+
+Ele deixou de ordenar a lista e continua respondendo **quanto**, em reais, depois
+que a ordem já respondeu **quem**. O peso é a nota de venda, e não a nota cheia,
+porque esta já desconta o capital parado — usá-la aqui contaria o mesmo dinheiro
+duas vezes e mudaria o patamar de um número que o dono já conhece.
+
+Três consequências que valem estar escritas:
 
 - **Produto `Destaque` nunca entra** na lista dos piores, por mais estoque que
   tenha. Uma lista chamada "piores" com o campeão de vendas dentro perde o leitor
   na primeira linha. O dinheiro dele continua contado no KPI de capital em risco.
+- **Não há mais filtro por capital em risco.** O antigo (`> 0`) tirava da lista,
+  em silêncio, o produto com saldo e nenhum lote cadastrado — o custo dele sai
+  zero, e ele podia estar parado havia meses.
 - **Prejuízo entra em reais**, não como nota negativa. As parciais são de 0 a 100
   e a média ponderada precisa continuar sendo lida como percentual; o prejuízo
   não se perde, ele muda de coluna.
+
+---
+
+## Ordenar clicando na coluna
+
+`lib/ranking-sort.ts`. Respondem ao clique: **Produto, Nota, Em risco, Vendidos,
+Faturamento, Margem, Estoque e Dura**; clicar de novo inverte. Situação, giro,
+lucro e ação sugerida ficam de fora — as três primeiras não acrescentam ângulo
+que as outras já não deem, e ação é rótulo, não medida.
+
+- **A ordenação é local**, sobre as cem linhas que já chegaram classificadas.
+  Pedir outra ordem ao servidor traria outras cem linhas e trocaria o conjunto
+  debaixo do leitor: quem clica em "Em risco" quer o dinheiro **dos cem piores**,
+  não os cem maiores capitais em risco da loja.
+- **O desempate é a posição de origem.** É o que faz "Nota" na direção padrão
+  devolver exatamente a ordem que o servidor numerou, inclusive entre linhas de
+  mesma nota — que o servidor já desempatou por capital em risco e por nome.
+- **A coluna `#` continua sendo a posição por nota**, mesmo com a tabela ordenada
+  por outra coisa. É informação: um `#47` no topo da ordem por estoque diz que
+  aquele produto não está entre os piores, mas é o que mais ocupa prateleira.
+- **Cada valor ordena pelo número que a célula mostra.** Duas exceções, e as duas
+  são leitura da própria célula: em "Dura", `esgotado` vale zero (já acabou) e
+  `sem giro` vale infinito (não acaba nunca); em "Margem", quem não vendeu mostra
+  "—" e vai para o fim nas duas direções — "não se aplica" não é 0%.
 
 ---
 
@@ -121,8 +189,12 @@ catálogo inteiro pareceria ter nascido naquele dia.
 - **O período vai ao servidor.** Ele muda as réguas da loja e, com elas, a nota
   de todo mundo. Recortar depois deixaria a nota da tela sendo a nota de outro
   período.
-- **Busca e ação em foco são locais.** Só estreitam as duas listas já pontuadas.
-  Clicar de novo no mesmo card desfaz.
+- **Busca, ação em foco e ordenação são locais.** Só estreitam ou reordenam as
+  duas listas já pontuadas. Clicar de novo no mesmo card desfaz.
+- **As duas tabelas ordenam separado.** O estado da ordenação vive em
+  `ProductRankingTable`, e não no hook da tela: olhar os piores por estoque não
+  tem por que mexer na lista dos melhores, que está respondendo outra pergunta na
+  mesma rolagem.
 - **O recorte por ação usa a ação gravada na linha**, e não uma lista de ids
   devolvida junto com o card. Os dois caminhos dariam o mesmo resultado hoje e
   divergiriam no dia em que a regra mudasse de um lado só — o card dizendo "23

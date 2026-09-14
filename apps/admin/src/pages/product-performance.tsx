@@ -1,5 +1,6 @@
 import { AlertCircle, Flame, Sparkles, X } from "lucide-react";
 import { Button, Card, Spinner } from "@workspace/ui";
+import { formatCurrency } from "@workspace/core";
 import { AppLayout } from "@/components/layout";
 import {
   useProductPerformance,
@@ -123,7 +124,7 @@ export default function ProductPerformancePage() {
 
             <ProductRankingTable
               title={`Os ${RANKING_SIZE} melhores`}
-              description="do primeiro ao último colocado por nota — não deixe faltar, e repita o perfil na próxima compra"
+              description="da maior nota para a menor — não deixe faltar, e repita o perfil na próxima compra. Clique num cabeçalho para reordenar"
               icon={Sparkles}
               variant="best"
               products={tela.best}
@@ -135,7 +136,7 @@ export default function ProductPerformancePage() {
 
             <ProductRankingTable
               title={`Os ${RANKING_SIZE} piores`}
-              description="ordenados por capital em risco — é onde o dinheiro está preso, e não onde a nota é mais baixa"
+              description="da menor nota para a maior — a nota já carrega o dinheiro preso e o tempo que o saldo dura. Clique num cabeçalho para reordenar"
               icon={Flame}
               variant="worst"
               products={tela.worst}
@@ -147,7 +148,7 @@ export default function ProductPerformancePage() {
 
             <p className="mt-2 border-t border-dashed border-border pt-4 text-xs leading-relaxed text-muted-foreground">
               <strong className="text-foreground/80">Como a nota é calculada</strong> — média ponderada de
-              quatro componentes, cada um de 0 a 100: <strong className="text-foreground/80">giro</strong> (
+              seis componentes, cada um de 0 a 100: <strong className="text-foreground/80">giro</strong> (
               {Math.round(relatorio.parameters.turnoverWeight * 100)}%, quanto do que existia saiu, contra os{" "}
               {Math.round(relatorio.parameters.storeSellThrough)}% da loja) ·{" "}
               <strong className="text-foreground/80">margem</strong> (
@@ -157,10 +158,18 @@ export default function ProductPerformancePage() {
               {Math.round(relatorio.parameters.resultWeight * 100)}%, o lucro contra o lucro médio por produto
               que vendeu) · <strong className="text-foreground/80">constância</strong> (
               {Math.round(relatorio.parameters.consistencyWeight * 100)}%, em quantas semanas do período o
-              produto vendeu). Quem não vendeu no período fica com zero. O ranking dos piores sai por{" "}
-              <strong className="text-foreground/80">capital em risco</strong> — o custo na prateleira
-              ponderado pela nota, mais o prejuízo já realizado —, porque a pergunta dele é onde está o
-              dinheiro, e não onde a nota é mais baixa.
+              produto vendeu) · <strong className="text-foreground/80">capital preso</strong> (
+              {Math.round(relatorio.parameters.capitalWeight * 100)}%, o custo na prateleira contra os{" "}
+              {formatCurrency(relatorio.parameters.averageStockCost)} de um produto médio com saldo) ·{" "}
+              <strong className="text-foreground/80">liquidez</strong> (
+              {Math.round(relatorio.parameters.liquidityWeight * 100)}%, em quanto tempo o saldo sai, contra
+              os {formatInteger(Math.round(relatorio.parameters.storeCoverageDays))} dias da loja). Quem não
+              vendeu no período zera as quatro primeiras, e são as duas últimas que o posicionam —{" "}
+              <strong className="text-foreground/80">é a nota que ordena as duas tabelas</strong>, e ela
+              precisa desempatar até entre os parados.{" "}
+              <strong className="text-foreground/80">Capital em risco</strong> continua sendo o custo na
+              prateleira ponderado pela parte de venda da nota, mais o prejuízo já realizado: ele responde
+              "quanto", depois que a ordem já respondeu "quem".
             </p>
           </>
         )}
