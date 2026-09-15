@@ -71,3 +71,29 @@ describe("PurchaseEditorModal — campo de quantidade", () => {
     expect(input.value).toBe("20");
   });
 });
+
+describe("PurchaseEditorModal — sair sem salvar", () => {
+  afterEach(() => cleanup());
+
+  it("fechar com algo digitado pergunta antes de descartar", () => {
+    renderModal();
+
+    fireEvent.change(screen.getByPlaceholderText("COMO VAI SE CHAMAR NO CADASTRO"), {
+      target: { value: "CANECA" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    // O botão e o clique no fundo saem pelo mesmo `requestClose`. Antes disto,
+    // o formulário inteiro ia embora sem aviso.
+    expect(screen.getByText("Descartar alterações?")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continuar editando" })).toBeTruthy();
+  });
+
+  it("fechar sem ter digitado nada não pergunta nada", () => {
+    renderModal();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByText("Descartar alterações?")).toBeNull();
+  });
+});

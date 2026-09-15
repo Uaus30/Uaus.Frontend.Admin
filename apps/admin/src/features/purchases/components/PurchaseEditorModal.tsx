@@ -1,6 +1,7 @@
 import { Lock, Package, ShoppingCart, X } from "lucide-react";
 import { Button, Input, Textarea } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
+import { ConfirmDialog } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
 import { PURCHASE_STATUS, type DepartmentDto, type SupplierDto } from "@workspace/api-client-react";
@@ -52,6 +53,12 @@ type PurchaseEditorModalProps = {
  * área de arrastar: o atalho existe para poupar o clique, e obrigar a acertar
  * um alvo antes de colar devolveria o clique que ele economiza. Quem cola
  * dentro de um campo de texto continua colando texto — o handler se afasta.
+ *
+ * **Fechar com algo digitado pergunta antes** (15/09/2026), como a tela de
+ * produto. O clique no fundo fechava a modal e levava o formulário inteiro
+ * junto; quem digita fornecedor, quantidade, totais e sobe foto perde tudo por
+ * um clique de dois pixels fora da caixa. Quem decide se há o que perder é o
+ * `dirty` do `usePurchaseForm` — compra aberta só para consultar fecha direto.
  */
 export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEditorModalProps) {
   const { form: values, update, readOnly, linkRequired, costRequired, categoryLocked } = form;
@@ -61,7 +68,10 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
   const temProduto = purchaseHasProduct(values);
 
   return (
-    <Dialog open={form.open} onOpenChange={form.setOpen}>
+    // Todo caminho de FECHAR passa pelo `onOpenChange` do Radix — o clique no
+    // fundo, o Esc e o X do canto —, então é aqui que a pergunta de descartar
+    // se planta uma vez só. Abrir continua direto.
+    <Dialog open={form.open} onOpenChange={(aberto) => (aberto ? form.setOpen(true) : form.requestClose())}>
       <DialogContent
         className="max-h-[90vh] max-w-3xl overflow-y-auto"
         onPaste={readOnly ? undefined : form.handlePaste}
@@ -433,7 +443,7 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
           />
 
           <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
-            <Button type="button" variant="outline" onClick={() => form.setOpen(false)}>
+            <Button type="button" variant="outline" onClick={form.requestClose}>
               {readOnly ? "Fechar" : "Cancelar"}
             </Button>
             {!readOnly && (
@@ -450,6 +460,17 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
             )}
           </div>
         </form>
+
+        <ConfirmDialog
+          open={form.discardOpen}
+          onOpenChange={(aberto) => !aberto && form.cancelDiscard()}
+          title="Descartar alterações?"
+          description="Há alterações não salvas nesta compra. Sair agora descarta tudo o que foi preenchido — inclusive as fotos adicionadas."
+          confirmLabel="Descartar e sair"
+          cancelLabel="Continuar editando"
+          destructive
+          onConfirm={form.confirmDiscard}
+        />
       </DialogContent>
     </Dialog>
   );

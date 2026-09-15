@@ -768,4 +768,77 @@ describe("usePurchaseForm", () => {
     act(() => result.current.openEdit(compra));
     expect(result.current.readOnly).toBe(false);
   });
+
+  it("fechar sem ter digitado nada não pergunta nada", () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    // Abrir uma compra gravada preenche categoria, departamento e preço
+    // sugerido sozinho. Nada disso é gesto do operador: a pergunta que aparece
+    // à toa é a que ninguém lê.
+    act(() => result.current.openEdit(compra));
+    expect(result.current.dirty).toBe(false);
+
+    act(() => result.current.requestClose());
+    expect(result.current.discardOpen).toBe(false);
+    expect(result.current.open).toBe(false);
+  });
+
+  it("fechar com algo digitado pergunta antes de descartar", () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    act(() => result.current.update("quantity", 12));
+
+    // O clique no fundo chega aqui pelo `onOpenChange` do Radix, como o Esc e o
+    // X. Antes disto ele fechava a modal e levava o formulário junto.
+    act(() => result.current.requestClose());
+    expect(result.current.discardOpen).toBe(true);
+    expect(result.current.open).toBe(true);
+
+    // "Continuar editando": o que foi digitado continua lá.
+    act(() => result.current.cancelDiscard());
+    expect(result.current.discardOpen).toBe(false);
+    expect(result.current.open).toBe(true);
+    expect(result.current.form.quantity).toBe(12);
+
+    act(() => result.current.requestClose());
+    act(() => result.current.confirmDiscard());
+    expect(result.current.open).toBe(false);
+  });
+
+  it("mexer na galeria conta como digitar", () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    // A galeria da compra é a do GRUPO desde 13/09/2026: tirar uma foto aqui
+    // tira do produto quando a compra é salva. É decisão, não preenchimento.
+    act(() => result.current.openEdit(compra));
+    act(() => result.current.removeImage(9));
+    expect(result.current.form.images).toHaveLength(0);
+
+    act(() => result.current.requestClose());
+    expect(result.current.discardOpen).toBe(true);
+    expect(result.current.open).toBe(true);
+  });
+
+  it("compra lançada fecha direto — não há o que perder", () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openEdit({ ...compra, status: 3 }));
+    act(() => result.current.requestClose());
+
+    expect(result.current.open).toBe(false);
+    expect(result.current.discardOpen).toBe(false);
+  });
 });

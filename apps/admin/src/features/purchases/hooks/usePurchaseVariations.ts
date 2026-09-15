@@ -11,6 +11,15 @@ type VariationOption = { productId: number; name: string; barcode: string | null
 type UsePurchaseVariationsParams = {
   form: PurchaseForm;
   setForm: React.Dispatch<React.SetStateAction<PurchaseForm>>;
+  /**
+   * O operador mexeu na grade — quantidade, fatia ou o modo do custo.
+   *
+   * Avisa quem guarda o "há algo para perder" do formulário. Só os GESTOS
+   * chamam: a montagem da grade quando a lista de variações chega é
+   * preenchimento automático, e marcar ali faria abrir uma compra já perguntar
+   * se quer descartar na saída.
+   */
+  onEdit: () => void;
 };
 
 /**
@@ -36,7 +45,7 @@ type UsePurchaseVariationsParams = {
  * que é o caso da esmagadora maioria das compras e não podia ficar mais
  * trabalhoso para atender ao caso raro.
  */
-export function usePurchaseVariations({ form, setForm }: UsePurchaseVariationsParams) {
+export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVariationsParams) {
   const groupId = form.productGroupId;
 
   const { data: page, isFetching } = useQuery({
@@ -68,6 +77,7 @@ export function usePurchaseVariations({ form, setForm }: UsePurchaseVariationsPa
   }
 
   function setItemQuantity(productId: number, quantity: number) {
+    onEdit();
     setForm((atual) =>
       recompute({
         ...atual,
@@ -82,6 +92,7 @@ export function usePurchaseVariations({ form, setForm }: UsePurchaseVariationsPa
 
   /** Só tem efeito em modo manual — em rateio a fatia é derivada. */
   function setItemTotal(productId: number, campo: "grossTotal" | "finalTotal", valor: number) {
+    onEdit();
     setForm((atual) =>
       recompute({
         ...atual,
@@ -98,6 +109,7 @@ export function usePurchaseVariations({ form, setForm }: UsePurchaseVariationsPa
    * que já estava certo. Desligar recalcula tudo — por isso a tela avisa antes.
    */
   function setCostSplitManual(manual: boolean) {
+    onEdit();
     setForm((atual) => {
       const comFatias = manual
         ? applyCostSplit(atual.items, atual.grossTotal, atual.finalTotal, false)
@@ -108,6 +120,7 @@ export function usePurchaseVariations({ form, setForm }: UsePurchaseVariationsPa
 
   /** Recalcula as fatias quando o operador mexe nos totais do pedido. */
   function refreshSplit(grossTotal: number, finalTotal: number) {
+    onEdit();
     setForm((atual) => recompute({ ...atual, grossTotal, finalTotal }));
   }
 

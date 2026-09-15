@@ -303,11 +303,40 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    */
   function setOpen(value: boolean) {
     setOpenState(value);
-    if (!value) syncPurchaseDetailParam(null);
+    if (!value) {
+      syncPurchaseDetailParam(null);
+      setDirty(false);
+      setDiscardOpen(false);
+    }
   }
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
-  const images = usePurchaseImages({ productName: form.productName, setForm });
-  const variations = usePurchaseVariations({ form, setForm });
+
+  /**
+   * O operador mexeu em alguma coisa desde que a modal abriu?
+   *
+   * É o que decide se fechar pergunta antes de descartar. Sujam o formulário só
+   * os GESTOS dele; o preenchimento automático — a grade das variações, a
+   * categoria e as fotos do grupo escolhido, o departamento vindo da categoria e
+   * o preço pela margem — usa o `setForm` cru e não conta. Sem essa separação,
+   * abrir uma compra e fechá-la sem digitar nada já perguntaria se quer
+   * descartar, e a pergunta que aparece à toa é a que ninguém lê.
+   */
+  const [dirty, setDirty] = useState(false);
+  /** A confirmação de descartar está aberta, esperando a resposta. */
+  const [discardOpen, setDiscardOpen] = useState(false);
+
+  function markDirty() {
+    setDirty(true);
+  }
+
+  /** O `setForm` dos gestos do operador — o que os sub-hooks recebem. */
+  const setFormTouched: React.Dispatch<React.SetStateAction<PurchaseForm>> = (value) => {
+    markDirty();
+    setForm(value);
+  };
+
+  const images = usePurchaseImages({ productName: form.productName, setForm: setFormTouched });
+  const variations = usePurchaseVariations({ form, setForm, onEdit: markDirty });
   /**
    * Compra lançada abre em leitura, e não deixa de abrir.
    *
@@ -368,6 +397,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   }
 
   function openNew() {
+    setDirty(false);
     setEditingId(null);
     setForm(emptyPurchaseForm());
     setReadOnly(false);
@@ -376,6 +406,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   }
 
   function openEdit(purchase: PurchaseDto) {
+    setDirty(false);
     setEditingId(purchase.id);
     setForm(purchaseToForm(purchase, categories));
     setReadOnly(enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received);
@@ -404,6 +435,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     supplierId: number | null;
     quantity: number;
   }) {
+    setDirty(false);
     setEditingId(null);
     setReadOnly(false);
     setPrecoTocado(false);
@@ -424,6 +456,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   }
 
   function update<K extends keyof PurchaseForm>(field: K, value: PurchaseForm[K]) {
+    markDirty();
     // Mexeu no preço, o número passa a ser dele: o cálculo de margem para de
     // repô-lo a cada mudança de custo.
     if (field === "suggestedPrice") setPrecoTocado(true);
@@ -438,6 +471,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    * continuou selecionada.
    */
   function setDepartment(departmentId: string) {
+    markDirty();
     setForm((current) => ({ ...current, departmentId, categoryId: "" }));
   }
 
@@ -456,6 +490,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    * vem primeiro.
    */
   function selectProduct(product: ProductSearchOption) {
+    markDirty();
     const mesmoGrupo = form.productGroupId === product.productGroupId;
 
     setForm((current) => ({
@@ -482,6 +517,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    * mesma do que estava vinculado — e agora ela é editável.
    */
   function clearProduct() {
+    markDirty();
     setForm((current) => ({
       ...current,
       productId: null,
@@ -491,6 +527,34 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       items: [],
       images: [],
     }));
+  }
+
+  /**
+   * Pedido de fechar vindo da tela — clique no fundo, Esc, o X e o "Cancelar".
+   *
+   * Com algo digitado, pergunta antes de descartar, como a tela de produto já
+   * fazia. O clique no fundo era o caso real: a modal fechava e levava junto o
+   * formulário inteiro — fornecedor, quantidade, totais, as fotos que acabaram
+   * de subir —, sem nada explicando o que tinha acontecido.
+   *
+   * Compra lançada abre em leitura e não tem o que perder: fecha direto.
+   */
+  function requestClose() {
+    if (dirty && !readOnly) {
+      setDiscardOpen(true);
+      return;
+    }
+    setOpen(false);
+  }
+
+  /** "Descartar e sair": fecha de verdade. */
+  function confirmDiscard() {
+    setOpen(false);
+  }
+
+  /** "Continuar editando": some a pergunta e o formulário fica como estava. */
+  function cancelDiscard() {
+    setDiscardOpen(false);
   }
 
   const saveMutation = useMutation({
@@ -588,6 +652,12 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   return {
     open,
     setOpen,
+    /** Fechar pedido pela tela: pergunta antes quando há o que perder. */
+    requestClose,
+    dirty,
+    discardOpen,
+    confirmDiscard,
+    cancelDiscard,
     editingId,
     readOnly,
     form,

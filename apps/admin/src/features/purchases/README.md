@@ -213,6 +213,20 @@ como a caminho primeiro, o que já exige o custo de que a entrada precisa.
 
 ## Decisões de implementação
 
+- **Fechar com algo digitado pergunta antes** (15/09/2026). O clique no fundo
+  fechava a modal e levava o formulário inteiro junto — fornecedor, quantidade,
+  totais, as fotos que acabaram de subir —, sem nada explicando o que
+  aconteceu. Agora os quatro caminhos de fechar (fundo, Esc, X e "Cancelar")
+  passam por `requestClose`, e com `dirty` a confirmação aparece. É o mesmo
+  padrão do cadastro de produto.
+  - **Só gesto do operador suja o formulário.** O preenchimento automático usa o
+    `setForm` cru: a grade que nasce quando as variações chegam, a categoria e a
+    galeria do grupo escolhido, o departamento derivado da categoria e o preço
+    pela margem. Sem essa separação, abrir uma compra e fechá-la sem digitar
+    nada já perguntaria — e a pergunta que aparece à toa é a que ninguém lê.
+  - Mexer na **galeria** conta: a lista da modal é a do grupo, e remover uma
+    foto ali remove do produto quando a compra é salva.
+  - **Compra lançada fecha direto**: ela abre em leitura e não tem o que perder.
 - **A URL diz qual compra está aberta.** Clicar na linha abre a modal e
   escreve `?compra=<id>` na barra de endereços (`/estoque/compras?compra=12`);
   fechar a modal tira o parâmetro. Quem chega por esse link cai na mesma
