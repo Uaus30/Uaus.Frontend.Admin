@@ -30,7 +30,10 @@ type StockEntryDetailsModalProps = {
   isLoadingDetails: boolean;
   formatCurrency: (val: number) => string;
   formatShortDate: (dateStr: string) => string;
-  /** Cancela a entrada: apaga os lotes dela e recalcula o saldo dos produtos. */
+  /**
+   * Cancela a entrada: apaga os lotes dela, recalcula o saldo dos produtos e
+   * devolve para "A caminho" a compra que a lançou, quando houve uma.
+   */
   onDelete: (payload: { id: number }) => void;
 };
 
@@ -45,6 +48,12 @@ type StockEntryDetailsModalProps = {
  * backend): apagar a entrada apaga os lotes dela, e lote com unidade já vendida
  * não tem como voltar atrás. Antes, o botão simplesmente não aparecia nesse
  * caso, e a tela ficava parecendo quebrada — hoje ela diz por quê.
+ *
+ * Desde 14/09/2026 o cancelamento **também devolve a compra** que lançou a nota
+ * para "A caminho", e a confirmação avisa. Sem esse aviso, quem cancela pela aba
+ * Estoque do produto mexe numa compra que não está vendo — e o efeito é bom
+ * (antes ela ficava travada em "Lançado" sem saída), mas surpresa em tela de
+ * estoque é como se perde a confiança no botão.
  */
 export function StockEntryDetailsModal({
   open,
@@ -199,7 +208,12 @@ export function StockEntryDetailsModal({
               onOpenChange={setCancelConfirmOpen}
               title="Cancelar esta entrada de estoque?"
               itemName={`Entrada #${entryDetails.id} — ${entryDetails.supplierName} — ${formatCurrency(entryDetails.total)}`}
-              description="Isto removerá os lotes de estoque associados e recalculará o estoque atual dos produtos. Os itens recebidos nesta nota deixam de contar no saldo. A ação não pode ser desfeita."
+              /* A compra volta junto desde 14/09/2026, e quem cancela aqui não
+                 tem como saber disso — a aba Estoque não fala de Compras. O "se"
+                 é obrigatório: a mesma nota serve à entrada lançada direto por
+                 esta aba, que não veio de compra nenhuma, e o espelho da nota
+                 não guarda qual dos dois caminhos a criou. */
+              description="Isto removerá os lotes de estoque associados e recalculará o estoque atual dos produtos. Os itens recebidos nesta nota deixam de contar no saldo. Se ela veio de uma compra, a compra volta para A caminho e pode ser lançada de novo. A nota cancelada não volta."
               confirmLabel="Sim, cancelar entrada"
               destructive
               onConfirm={() => onDelete({ id: entryDetails.id })}

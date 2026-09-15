@@ -90,6 +90,17 @@ Quando não dá, a modal **diz por quê** e aponta a saída — a Contagem Físi
 mesma aba, que lança a diferença como baixa ou ajuste. Antes o botão apenas
 sumia, e a tela parecia quebrada para quem tinha acabado de cancelar outra.
 
+**Cancelar também devolve a compra** que lançou a nota (14/09/2026, regra do
+backend): ela volta para "A caminho", com o produto ainda vinculado, e pode ser
+lançada de novo. Antes ficava travada em "Lançado" apontando para uma nota que
+não existe mais, sem saída pela tela — e o reparo era script.
+
+A confirmação avisa com um **"se"**: a mesma nota serve à entrada lançada direto
+por esta aba, que não veio de compra nenhuma, e o espelho da nota
+(`ReceivedPurchaseEntryDto`) não guarda qual dos dois caminhos a criou. Avisar
+sempre é melhor que calar: quem cancela aqui não está olhando para a tela de
+Compras.
+
 ### 5. O que a aba mostra, e o que ela não mostra
 
 - **A lista é de NOTAS filtradas por `productId`**, e a coluna de valor é o total
