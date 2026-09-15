@@ -18,6 +18,7 @@ import { TopProductsTable } from "@/features/dashboard/components/TopProductsTab
 import { PatternsPanel } from "@/features/dashboard/components/PatternsPanel";
 import { IntelligencePanel } from "@/features/dashboard/components/IntelligencePanel";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
+import { OpenPurchasesAlert } from "@/features/purchases/components/OpenPurchasesAlert";
 
 /**
  * Dashboard
@@ -60,6 +61,11 @@ export default function Dashboard() {
 
         {/* Vermelho só com pendência: some sozinho quando não há o que repor. */}
         <LowStockAlert />
+
+        {/* E o outro lado da reposição: o que já foi pedido e ainda não chegou.
+            Âmbar, e abaixo do vermelho, porque é trabalho em curso — não
+            urgência. Some sozinho quando não há compra em aberto. */}
+        <OpenPurchasesAlert />
 
         {dashboard.isError && (
           <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

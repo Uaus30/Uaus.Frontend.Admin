@@ -213,6 +213,22 @@ como a caminho primeiro, o que já exige o custo de que a entrada precisa.
 
 ## Decisões de implementação
 
+- **O painel avisa o que está por chegar** (15/09/2026). `OpenPurchasesAlert` é
+  uma faixa âmbar no painel com a contagem das compras **não lançadas**, e o
+  clique cai nesta tela — que já abre nessa mesma aba. Os dois números vêm
+  separados (`GET /Purchases/summary` → `pending` e `inTransit`) porque pedem
+  ações diferentes: a pendente espera alguém COMPRAR, a que está a caminho
+  espera a mercadoria CHEGAR; somados, o painel diria quanta coisa está aberta
+  sem dizer o que fazer com ela.
+  - **Âmbar, não vermelho.** Âmbar é "em andamento" no vocabulário de cores da
+    loja; vermelho é "negativo, bloqueado" e já é do alerta de estoque baixo,
+    logo acima. Compra em aberto não é problema — é trabalho em curso —, e
+    pintá-la de vermelho gastaria a única cor que significa "resolva agora".
+  - **Endpoint próprio, e não a listagem.** Contar pela página traria
+    fornecedor, itens e galeria de cada compra para a resposta ser dois
+    inteiros. O agrupamento acontece no banco.
+  - A chave de cache é `["purchases", "summary"]`, sob o mesmo prefixo da
+    listagem: qualquer `invalidate()` desta tela já atualiza o painel.
 - **Fechar com algo digitado pergunta antes** (15/09/2026). O clique no fundo
   fechava a modal e levava o formulário inteiro junto — fornecedor, quantidade,
   totais, as fotos que acabaram de subir —, sem nada explicando o que

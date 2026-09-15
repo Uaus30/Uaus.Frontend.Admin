@@ -268,6 +268,35 @@ export function useGetPurchases(
   });
 }
 
+export interface PurchaseSummaryDto {
+  /** Compras Pendentes — anotadas, ainda não compradas. */
+  pending: number;
+  /** Compras A caminho — compradas, ainda não recebidas. */
+  inTransit: number;
+}
+
+export const getGetPurchasesSummaryQueryKey = (): QueryKey => [...getGetPurchasesQueryKey(), "summary"];
+
+/**
+ * Contagem das compras em aberto, por situação — o aviso do painel.
+ *
+ * Um minuto de `staleTime`, como o resumo do estoque baixo: o número muda
+ * quando alguém registra ou recebe uma compra, não a cada troca de tela.
+ */
+export function useGetPurchasesSummary(options?: {
+  query?: Omit<
+    UseQueryOptions<PurchaseSummaryDto, ApiError, PurchaseSummaryDto, QueryKey>,
+    "queryKey" | "queryFn"
+  >;
+}) {
+  return useQuery<PurchaseSummaryDto, ApiError, PurchaseSummaryDto, QueryKey>({
+    queryKey: getGetPurchasesSummaryQueryKey(),
+    queryFn: () => apiGetOrThrow<PurchaseSummaryDto>("/Purchases/summary"),
+    staleTime: 60_000,
+    ...options?.query,
+  });
+}
+
 /** Uma compra pelo id. É o que a tela de produto usa para abrir o cadastro preenchido (`?compra=`). */
 export function getPurchase(id: number): Promise<PurchaseDto> {
   return apiGetOrThrow<PurchaseDto>(`/Purchases/${id}`);
