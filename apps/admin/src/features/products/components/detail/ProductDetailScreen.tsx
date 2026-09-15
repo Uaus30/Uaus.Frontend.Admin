@@ -415,6 +415,9 @@ export function ProductDetailScreen({
         variationToDelete={variationToDelete}
         setVariationToDelete={setVariationToDelete}
         onConfirmDeleteVariation={handleDeleteVariation}
+        purchaseConflict={editor.purchaseConflict}
+        onGoToConflictingPurchase={editor.goToConflictingPurchase}
+        onDismissPurchaseConflict={editor.dismissPurchaseConflict}
       />
 
       <VariationGradesModal

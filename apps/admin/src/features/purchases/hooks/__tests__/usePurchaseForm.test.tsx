@@ -45,6 +45,7 @@ const {
   todayDateKey,
   purchaseHasProduct,
   purchaseCategoryIsLocked,
+  purchaseDataWouldBeReplaced,
 } = await import("../usePurchaseForm");
 
 /** Duas categorias do departamento 4, para a resolução do departamento ter o que achar. */
@@ -165,6 +166,35 @@ describe("purchaseHasProduct", () => {
     expect(purchaseHasProduct({ productId: null, productGroupId: null })).toBe(false);
     // O backend omite campos nulos: eles chegam ausentes, não como null.
     expect(purchaseHasProduct({})).toBe(false);
+  });
+});
+
+describe("purchaseDataWouldBeReplaced", () => {
+  const novo = (over: Partial<ReturnType<typeof emptyPurchaseForm>> = {}) => ({
+    ...emptyPurchaseForm(),
+    ...over,
+  });
+
+  it("foto anexada na compra é sempre algo a perder", () => {
+    const comFoto = novo({ images: [{ imageId: 91, url: "x", name: "y" }] });
+    expect(purchaseDataWouldBeReplaced(comFoto, "CANECA TERMICA")).toBe(true);
+  });
+
+  it("nome digitado diferente do catálogo também", () => {
+    expect(purchaseDataWouldBeReplaced(novo({ productName: "CANECA TERMICA" }), "CANECA TÉRMICA 500ML")).toBe(
+      true,
+    );
+  });
+
+  it("nome igual, sem foto: não há o que perguntar", () => {
+    // A comparação é em caixa alta porque é assim que o nome é gravado e assim
+    // que o campo da modal digita. Sem isso, escolher o produto certo depois de
+    // digitar o nome dele perguntaria à toa — e pergunta à toa ninguém lê.
+    expect(purchaseDataWouldBeReplaced(novo({ productName: "caneca termica" }), "CANECA TERMICA")).toBe(
+      false,
+    );
+    expect(purchaseDataWouldBeReplaced(novo({ productName: "  " }), "CANECA TERMICA")).toBe(false);
+    expect(purchaseDataWouldBeReplaced(novo(), "CANECA TERMICA")).toBe(false);
   });
 });
 
@@ -372,6 +402,17 @@ const FORNECEDORES: SupplierDto[] = [
   },
 ];
 
+/** O produto que o seletor devolve nos testes de vínculo. */
+const PRODUTO_ESCOLHIDO = {
+  id: 10,
+  productGroupId: 10,
+  name: "CANECA TÉRMICA 500ML",
+  barcode: "7891234567895",
+  stock: 4,
+  price: 39.9,
+  costPrice: 18.4,
+};
+
 describe("usePurchaseForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -567,6 +608,122 @@ describe("usePurchaseForm", () => {
     expect(result.current.form.images).toEqual([]);
     expect(result.current.form.productPrice).toBeNull();
     expect(purchaseCategoryIsLocked(result.current.form)).toBe(false);
+  });
+
+  it("vincular por cima de foto anexada pergunta antes, e nada muda enquanto não responderem", () => {
+    // Antes disto, escolher o produto trocava nome e fotos em silêncio: quem
+    // anotou a compra de um produto novo, subiu as fotos do anúncio e só depois
+    // descobriu que o item já tinha cadastro via o trabalho sumir sem aviso.
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    act(() => result.current.update("productName", "CANECA TERMICA"));
+    act(() => result.current.update("images", [{ imageId: 91, url: "anuncio.jpg", name: "anuncio" }]));
+
+    act(() => result.current.selectProduct(PRODUTO_ESCOLHIDO));
+
+    expect(result.current.pendingProduct).toEqual(PRODUTO_ESCOLHIDO);
+    // O formulário fica intacto até a resposta, e o grupo nem é consultado.
+    expect(result.current.form.productId).toBeNull();
+    expect(result.current.form.productName).toBe("CANECA TERMICA");
+    expect(mocks.getProductGroupById).not.toHaveBeenCalled();
+  });
+
+  it("'Usar as fotos do produto' vincula e troca a galeria pela do cadastro", async () => {
+    mocks.getProductGroupById.mockResolvedValue({ id: 10, categoryId: 8, name: "CANECA TÉRMICA" });
+    mocks.getProductGroupImages.mockResolvedValue([
+      { id: 1, productGroupId: 10, imageId: 55, displayOrder: 0, url: "produtos/caneca.jpg", name: "caneca" },
+    ]);
+
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    act(() => result.current.update("images", [{ imageId: 91, url: "anuncio.jpg", name: "anuncio" }]));
+    act(() => result.current.selectProduct(PRODUTO_ESCOLHIDO));
+
+    await act(async () => {
+      result.current.confirmProductWithGallery();
+    });
+
+    await waitFor(() => expect(result.current.form.images).toHaveLength(1));
+    expect(result.current.form.images[0].imageId).toBe(55);
+    expect(result.current.form.productId).toBe(10);
+    expect(result.current.form.productName).toBe("CANECA TÉRMICA 500ML");
+    expect(result.current.pendingProduct).toBeNull();
+  });
+
+  it("'Manter as fotos desta compra' vincula sem buscar a galeria, mas a categoria continua vindo do cadastro", async () => {
+    // A galeria do grupo nem é consultada: a lista do formulário é que vai
+    // SUBSTITUIR a do produto no salvar (`SyncGroupImagesAsync`). Já a categoria
+    // não é escolha — com produto vinculado ela é sempre a do cadastro.
+    mocks.getProductGroupById.mockResolvedValue({ id: 10, categoryId: 8, name: "CANECA TÉRMICA" });
+
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    act(() => result.current.update("images", [{ imageId: 91, url: "anuncio.jpg", name: "anuncio" }]));
+    act(() => result.current.selectProduct(PRODUTO_ESCOLHIDO));
+
+    await act(async () => {
+      result.current.confirmProductKeepingImages();
+    });
+
+    await waitFor(() => expect(result.current.form.categoryId).toBe("8"));
+    expect(mocks.getProductGroupImages).not.toHaveBeenCalled();
+    expect(result.current.form.images).toEqual([{ imageId: 91, url: "anuncio.jpg", name: "anuncio" }]);
+    expect(result.current.form.productId).toBe(10);
+    expect(result.current.pendingProduct).toBeNull();
+  });
+
+  it("'Não vincular' deixa o formulário exatamente como estava", () => {
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    act(() => result.current.update("images", [{ imageId: 91, url: "anuncio.jpg", name: "anuncio" }]));
+    act(() => result.current.selectProduct(PRODUTO_ESCOLHIDO));
+
+    act(() => result.current.cancelProductSelection());
+
+    expect(result.current.pendingProduct).toBeNull();
+    expect(result.current.form.productId).toBeNull();
+    expect(result.current.form.images).toHaveLength(1);
+    expect(mocks.getProductGroupById).not.toHaveBeenCalled();
+  });
+
+  it("trocar um produto JÁ vinculado por outro não pergunta nada", async () => {
+    // O que está na tela é a galeria do produto ANTERIOR, não trabalho de
+    // ninguém: perguntar ali seria a pergunta que aparece à toa.
+    mocks.getProductGroupById.mockResolvedValue({ id: 20, categoryId: 8, name: "CANECA LISA" });
+    mocks.getProductGroupImages.mockResolvedValue([]);
+
+    const { result } = renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+
+    act(() => result.current.openNew());
+    act(() => result.current.selectProduct(PRODUTO_ESCOLHIDO));
+    await waitFor(() => expect(result.current.form.productId).toBe(10));
+
+    act(() => result.current.update("images", [{ imageId: 91, url: "outra.jpg", name: "outra" }]));
+    act(() =>
+      result.current.selectProduct({ ...PRODUTO_ESCOLHIDO, id: 20, productGroupId: 20, name: "CANECA LISA" }),
+    );
+
+    expect(result.current.pendingProduct).toBeNull();
+    expect(result.current.form.productId).toBe(20);
   });
 
   it("o preço sugerido acompanha o cálculo de margem até alguém digitar o seu", async () => {

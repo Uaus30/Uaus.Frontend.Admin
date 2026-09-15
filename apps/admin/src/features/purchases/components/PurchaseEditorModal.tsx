@@ -15,6 +15,7 @@ import { PurchaseDerivedTotals } from "./PurchaseDerivedTotals";
 import { PurchaseVariationsGrid } from "./PurchaseVariationsGrid";
 import { PurchaseImagesField } from "./PurchaseImagesField";
 import { PurchaseLinkField } from "./PurchaseLinkField";
+import { PurchaseProductLinkDialog } from "./PurchaseProductLinkDialog";
 import type { usePurchaseForm } from "../hooks/usePurchaseForm";
 
 type PurchaseEditorModalProps = {
@@ -460,6 +461,17 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
             )}
           </div>
         </form>
+
+        {/* Escolher um produto já cadastrado por cima de nome digitado ou foto
+            anexada pergunta antes de substituir. Ver `PurchaseProductLinkDialog`. */}
+        <PurchaseProductLinkDialog
+          product={form.pendingProduct}
+          purchaseName={values.productName}
+          imageCount={values.images.length}
+          onUseProductGallery={form.confirmProductWithGallery}
+          onKeepPurchaseImages={form.confirmProductKeepingImages}
+          onCancel={form.cancelProductSelection}
+        />
 
         <ConfirmDialog
           open={form.discardOpen}

@@ -54,19 +54,27 @@ const CATALOGOS = {
   productGroupImages: [],
 };
 
-function renderLookup(podeCarregar = true) {
+function renderLookup(podeCarregar = true, vindoDeCompra = false) {
   const carregarProduto = vi.fn();
+  const aoAcharVindoDeCompra = vi.fn();
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   const view = renderHook(
-    ({ pode }: { pode: boolean }) => useBarcodeLookup({ ...CATALOGOS, podeCarregar: pode, carregarProduto }),
+    ({ pode }: { pode: boolean }) =>
+      useBarcodeLookup({
+        ...CATALOGOS,
+        podeCarregar: pode,
+        carregarProduto,
+        vindoDeCompra,
+        aoAcharVindoDeCompra,
+      }),
     { wrapper, initialProps: { pode: podeCarregar } },
   );
 
-  return { ...view, carregarProduto };
+  return { ...view, carregarProduto, aoAcharVindoDeCompra };
 }
 
 /** Digita o termo e deixa o tempo do debounce passar. */
@@ -105,6 +113,31 @@ describe("useBarcodeLookup", () => {
       department: { id: 3 },
     });
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "warning" }));
+  });
+
+  it("vindo de uma compra, entrega o achado em vez de trocar a tela", async () => {
+    // Trocar a tela resolveria o cadastro e deixaria a COMPRA para trás, ainda
+    // registrada como produto novo: o vínculo teria saído do bipe, e o nome e as
+    // fotos dela sumiriam sem ninguém decidir nada. Quem se ajusta é a compra.
+    const { result, carregarProduto, aoAcharVindoDeCompra } = renderLookup(true, true);
+
+    await digitar(result, EAN);
+
+    expect(aoAcharVindoDeCompra).toHaveBeenCalledWith({ barcode: EAN, productName: "COPO TÉRMICO 500ML" });
+    expect(carregarProduto).not.toHaveBeenCalled();
+    // O aviso é a modal, não o toast: ele passaria despercebido no meio do
+    // recebimento e deixaria a pessoa seguir digitando o cadastro duplicado.
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
+  it("vindo de uma compra, código que não é de ninguém não interrompe nada", async () => {
+    mocks.getProductsPage.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+    const { result, carregarProduto, aoAcharVindoDeCompra } = renderLookup(true, true);
+
+    await digitar(result, EAN);
+
+    expect(aoAcharVindoDeCompra).not.toHaveBeenCalled();
+    expect(carregarProduto).not.toHaveBeenCalled();
   });
 
   it("consulta uma vez só quando o leitor de código digita caractere a caractere", async () => {

@@ -215,6 +215,28 @@ export function purchaseCategoryIsLocked(form: PurchaseForm): boolean {
   return purchaseHasProduct(form);
 }
 
+/**
+ * Vincular este produto descarta algo que o operador escreveu nesta compra?
+ *
+ * Duas coisas são substituídas ao escolher um produto já cadastrado, e as duas
+ * podem ter sido preenchidas à mão numa compra de produto novo:
+ *
+ * - **o nome**, que passa a ser o do catálogo (o backend regrava
+ *   `purchases.product_name` a partir do produto, em toda compra vinculada);
+ * - **as fotos**, porque a galeria da compra e a do grupo são a mesma lista
+ *   desde 13/09/2026.
+ *
+ * Compara o nome em caixa alta porque é assim que ele é gravado
+ * (`ProductDisplayName.Normalize`) e é assim que o campo da modal digita: sem
+ * isso, escolher o produto certo depois de digitar o nome dele perguntaria à
+ * toa, e pergunta que aparece à toa é a que ninguém lê.
+ */
+export function purchaseDataWouldBeReplaced(form: PurchaseForm, productName: string): boolean {
+  if (form.images.length > 0) return true;
+  const digitado = form.productName.trim().toUpperCase();
+  return digitado.length > 0 && digitado !== productName.trim().toUpperCase();
+}
+
 /** O que falta no formulário para gravar, ou `null` quando está pronto. */
 export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto): string | null {
   if (!form.supplierId) return "Selecione o fornecedor.";
@@ -307,6 +329,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       syncPurchaseDetailParam(null);
       setDirty(false);
       setDiscardOpen(false);
+      setPendingProduct(null);
     }
   }
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
@@ -324,6 +347,14 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   const [dirty, setDirty] = useState(false);
   /** A confirmação de descartar está aberta, esperando a resposta. */
   const [discardOpen, setDiscardOpen] = useState(false);
+  /**
+   * O produto escolhido no seletor, esperando a resposta sobre nome e fotos.
+   *
+   * Existe só quando o vínculo vai substituir alguma coisa — ver
+   * `purchaseDataWouldBeReplaced`. Nos outros casos o produto é aplicado direto,
+   * porque não há duas respostas possíveis e a pergunta seria ruído.
+   */
+  const [pendingProduct, setPendingProduct] = useState<ProductSearchOption | null>(null);
 
   function markDirty() {
     setDirty(true);
@@ -362,13 +393,18 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    *
    * A gravação só é liberada depois (`loadingGroup`), e o resultado é
    * descartado se o operador trocar de produto no meio do caminho.
+   *
+   * Com `manterFotos`, a galeria do grupo nem é buscada: o operador respondeu
+   * que as fotos desta compra é que valem, e é a lista do formulário que vai
+   * substituir a do produto no salvar. A categoria continua vindo, porque ela
+   * não é escolha — com produto vinculado, é sempre a do cadastro.
    */
-  async function loadProductGroup(productGroupId: number) {
+  async function loadProductGroup(productGroupId: number, manterFotos = false) {
     setLoadingGroup(true);
     try {
       const [grupo, galeria] = await Promise.all([
         getProductGroupById(productGroupId),
-        getProductGroupImages(productGroupId),
+        manterFotos ? Promise.resolve(null) : getProductGroupImages(productGroupId),
       ]);
 
       setForm((current) => {
@@ -377,11 +413,14 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
           ...current,
           categoryId: String(grupo.categoryId),
           departmentId: departmentOfCategory(grupo.categoryId, categories),
-          images: galeria.map((image) => ({
-            imageId: image.imageId,
-            url: buildPublicImageUrl(image.url),
-            name: image.name,
-          })),
+          images:
+            galeria === null
+              ? current.images
+              : galeria.map((image) => ({
+                  imageId: image.imageId,
+                  url: buildPublicImageUrl(image.url),
+                  name: image.name,
+                })),
         };
       });
     } catch (error) {
@@ -490,6 +529,26 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    * vem primeiro.
    */
   function selectProduct(product: ProductSearchOption) {
+    // Vínculo NOVO — a compra estava como produto novo — em cima de nome
+    // digitado ou foto anexada: pergunta antes de substituir. Trocar de produto
+    // já vinculado não pergunta: o que está na tela é a galeria do produto
+    // ANTERIOR, não trabalho de ninguém.
+    if (!purchaseHasProduct(form) && purchaseDataWouldBeReplaced(form, product.name)) {
+      setPendingProduct(product);
+      return;
+    }
+    applyProduct(product, false);
+  }
+
+  /**
+   * Grava o vínculo no formulário.
+   *
+   * `manterFotos` é a resposta do operador quando havia foto na compra: com ele
+   * a galeria do formulário fica como está e, no salvar, SUBSTITUI a do produto
+   * — que é o que a galeria única de 13/09/2026 significa. O nome não tem essa
+   * escolha: com produto vinculado ele é sempre o do catálogo, aqui e no backend.
+   */
+  function applyProduct(product: ProductSearchOption, manterFotos: boolean) {
     markDirty();
     const mesmoGrupo = form.productGroupId === product.productGroupId;
 
@@ -505,7 +564,26 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     }));
 
     // Trocar de variação dentro do MESMO grupo não muda foto nem categoria.
-    if (!mesmoGrupo) void loadProductGroup(product.productGroupId);
+    if (!mesmoGrupo) void loadProductGroup(product.productGroupId, manterFotos);
+  }
+
+  /** "Usar os dados do produto": o caminho de sempre. */
+  function confirmProductWithGallery() {
+    if (!pendingProduct) return;
+    applyProduct(pendingProduct, false);
+    setPendingProduct(null);
+  }
+
+  /** "Manter as fotos desta compra": elas passam a valer no produto ao salvar. */
+  function confirmProductKeepingImages() {
+    if (!pendingProduct) return;
+    applyProduct(pendingProduct, true);
+    setPendingProduct(null);
+  }
+
+  /** Fecha a pergunta sem vincular nada — o formulário fica como estava. */
+  function cancelProductSelection() {
+    setPendingProduct(null);
   }
 
   /**
@@ -677,6 +755,14 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     openForRestock,
     selectProduct,
     clearProduct,
+    /**
+     * O produto escolhido à espera da resposta sobre nome e fotos, ou `null`.
+     * Ver `purchaseDataWouldBeReplaced`.
+     */
+    pendingProduct,
+    confirmProductWithGallery,
+    confirmProductKeepingImages,
+    cancelProductSelection,
     // Fotos: quatro entradas (arquivo, colagem, URL e busca na web), todas pelo
     // mesmo funil de compressão e upload. Ver `usePurchaseImages`.
     ...images,

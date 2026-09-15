@@ -50,6 +50,17 @@ type CatalogosDoProduto = {
   productGroupImages: ProductGroupImageDto[];
 };
 
+/**
+ * O produto que já tem o código bipado, para quem precisa só nomeá-lo.
+ *
+ * O nome é o `displayName` — o mesmo que o seletor de produto da tela de Compras
+ * exibe —, porque quem lê isto vai procurar o item exatamente ali.
+ */
+export type BarcodeMatch = {
+  barcode: string;
+  productName: string;
+};
+
 type UseBarcodeLookupParams = CatalogosDoProduto & {
   /**
    * A tela pode receber um produto agora?
@@ -62,6 +73,17 @@ type UseBarcodeLookupParams = CatalogosDoProduto & {
   podeCarregar: boolean;
   /** Carrega o produto encontrado na tela. É o `openDetail` do editor. */
   carregarProduto: (produto: EnrichedProduct) => void;
+  /**
+   * O cadastro aberto nasceu de uma COMPRA de produto novo (`/produtos?compra=`)?
+   *
+   * Aí o achado NÃO troca a tela. Trocar resolveria o cadastro e deixaria a
+   * COMPRA para trás: ela continua registrada como produto novo, com nome e
+   * fotos próprios, e o vínculo sairia do bipe em vez da escolha de alguém.
+   * Quem tem que ser ajustada é a compra, e é para lá que o achado vai.
+   */
+  vindoDeCompra: boolean;
+  /** Recebe o achado quando `vindoDeCompra`. No lugar de `carregarProduto`. */
+  aoAcharVindoDeCompra: (achado: BarcodeMatch) => void;
 };
 
 /**
@@ -74,6 +96,15 @@ type UseBarcodeLookupParams = CatalogosDoProduto & {
  *
  * Aqui a tela troca de assunto no momento do bipe: carrega o produto existente
  * e avisa. O que era retrabalho vira o caminho curto para editar o que já está lá.
+ *
+ * ## Menos o cadastro que veio de uma COMPRA
+ *
+ * Vindo de `/produtos?compra=`, o achado não troca a tela — ele vai para a modal
+ * que manda ajustar o vínculo na compra (`vindoDeCompra`). Trocar ali resolveria
+ * o cadastro e deixaria a compra para trás, ainda registrada como produto novo:
+ * o recebimento seguiria em frente com o nome e as fotos DELA descartados em
+ * silêncio, e o vínculo entre compra e produto teria saído de um bipe em vez da
+ * escolha de alguém.
  *
  * ## Por que não é um efeito
  *
@@ -147,6 +178,14 @@ export function useBarcodeLookup(params: UseBarcodeLookupParams) {
     // Relido DEPOIS da viagem: nesse intervalo a pessoa pode ter fechado a tela
     // ou aberto outro produto pela lista.
     if (!atual.podeCarregar) return;
+
+    if (atual.vindoDeCompra) {
+      atual.aoAcharVindoDeCompra({
+        barcode: termo,
+        productName: encontrado.displayName || encontrado.name,
+      });
+      return;
+    }
 
     const [linha] = buildProductCollections({
       products: [encontrado],

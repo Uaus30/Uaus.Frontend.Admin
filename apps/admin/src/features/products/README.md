@@ -18,6 +18,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `lib/barcode.ts`: Validação de EAN, dígito verificador, simbologia (item 4.4), código de prévia e desenho das barras (SVG).
 - `lib/barcodeLabel.ts`: Documento e impressão da etiqueta de 80mm × 40mm.
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
+- `hooks/editor/usePurchaseProductConflict.ts` e `components/detail/PurchaseProductConflictDialog.tsx`: o mesmo achado num cadastro vindo de compra, onde ele PARA o cadastro e leva de volta à tela de Compras. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
 - `lib/pasteProductImages.ts`: Coleta e comprime as imagens coladas com Ctrl+V.
 - `lib/variationNames.ts`: Nome exibido da variação (o mesmo que o backend compõe), a chave que reconhece combinação repetida e as opções do seletor da aba Estoque.
@@ -459,6 +460,35 @@ O que vale a pena saber antes de mexer:
 - **Erro de rede é silencioso de propósito.** A busca é conveniência; o backend
   continua recusando código repetido ao salvar, e quem está apenas digitando não
   deve receber aviso de servidor fora do ar.
+
+#### O cadastro vindo de uma COMPRA não troca de assunto — ele para (15/09/2026)
+
+No caminho de recebimento de produto novo (`?compra=<id>`, seção 4.3), o achado
+**não** carrega o produto na tela: ele abre o `PurchaseProductConflictDialog`,
+que nomeia o produto existente e leva a pessoa de volta para
+`/estoque/compras?compra=<id>` com a modal daquela compra aberta
+(`usePurchaseProductConflict`).
+
+Carregar o produto ali resolveria o cadastro e deixaria a COMPRA para trás. Ela
+continua registrada como produto novo, com nome e fotos próprios; o recebimento
+seguiria em frente descartando os dois em silêncio, e o vínculo entre compra e
+produto teria saído de um bipe, não da escolha de alguém. Seguir sem bipar é
+pior ainda: nasce o **segundo cadastro do mesmo item**, com o estoque dividido
+entre os dois, duas etiquetas e duas linhas na vitrine.
+
+Três detalhes que valem a pena conhecer:
+
+- **É âmbar, não vermelho.** Nada foi perdido nem está sendo excluído — o
+  cadastro é interrompido ANTES da duplicata. Vermelho gastaria a cor que no
+  admin significa "resolva agora, isto é destrutivo".
+- **Tem duas saídas**, porque há dois motivos para o código já ter dono: o item é
+  mesmo o que está cadastrado (e a compra é que precisa mudar), ou o bipe pegou a
+  caixa errada. "Corrigir o código" fica na tela e **limpa o campo** — deixar o
+  código duplicado ali só adiaria a recusa para o salvar, e o leitor de código
+  ACRESCENTA ao que já está no campo.
+- **A navegação não fecha a tela antes.** Ela desmonta a página inteira; um
+  `setDetailOpen(false)` no mesmo tick faria o `useProductDetailHistory` disparar
+  um `history.back()` correndo com o `pushState` do wouter.
 
 ### 4.3. Cadastro a partir de uma compra (`/produtos?compra=<id>`, 05/09/2026)
 

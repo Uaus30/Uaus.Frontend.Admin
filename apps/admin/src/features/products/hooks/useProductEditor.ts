@@ -27,6 +27,7 @@ import { createEmptyProductEditor } from "./editor/utils";
 import { gradesDasVariacoes } from "../lib/variationGrades";
 
 import { useBarcodeLookup } from "./editor/useBarcodeLookup";
+import { usePurchaseProductConflict } from "./editor/usePurchaseProductConflict";
 import { useProductForm } from "./editor/useProductForm";
 import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
@@ -122,15 +123,38 @@ export function useProductEditor() {
   const { data: productGroupImagesAll = [] } = useAllProductGroupImages();
 
   /**
+   * O código bipado já é de um produto, e este cadastro veio de uma compra.
+   *
+   * O `limparCodigo` é o setter CRU: apagar o campo é consequência do "Corrigir
+   * o código", não gesto de edição — sujar o formulário por causa dele faria a
+   * saída perguntar se quer descartar o que ninguém digitou.
+   */
+  const purchaseConflict = usePurchaseProductConflict({
+    limparCodigo: () => setProductEditor((current) => ({ ...current, barcode: "" })),
+  });
+
+  /**
    * Código de barras já cadastrado carrega o produto existente na tela.
    *
    * Só em cadastro NOVO: na edição o operador já escolheu o produto, e trocá-lo
    * no meio da digitação jogaria fora o que ele preencheu. `openDetail` é
    * declaração de função, então já existe aqui — a chamada abaixo é hoisted.
+   *
+   * Vindo de uma COMPRA o achado desemboca na modal de conflito, que manda
+   * ajustar o vínculo lá — ver `usePurchaseProductConflict`.
    */
   const { lookupBarcode } = useBarcodeLookup({
     podeCarregar: detailOpen && editingGroupId === null,
     carregarProduto: openDetail,
+    vindoDeCompra: purchaseContext !== null,
+    aoAcharVindoDeCompra: (achado) => {
+      if (!purchaseContext) return;
+      purchaseConflict.reportConflict({
+        ...achado,
+        purchaseName: purchaseContext.productName,
+        purchaseId: purchaseContext.purchaseId,
+      });
+    },
     productGroups: productForm.productGroups,
     categories: productForm.categories,
     departments: productForm.departments,
@@ -503,10 +527,15 @@ export function useProductEditor() {
     purchaseContext,
     completePurchaseReceipt,
     lookupBarcode,
+    /** O código bipado já tem dono, e este cadastro veio de uma compra. */
+    purchaseConflict: purchaseConflict.conflict,
+    goToConflictingPurchase: purchaseConflict.goToPurchase,
+    dismissPurchaseConflict: purchaseConflict.dismissConflict,
     resetForm: () => {
       // Fechar a tela descarta o contexto da compra: um cadastro aberto depois
       // pela lista não pode herdar a entrada de um pedido que não é dele.
       setPurchaseContext(null);
+      purchaseConflict.clearConflict();
       productForm.resetForm();
     },
     registerTag: productForm.registerTag,

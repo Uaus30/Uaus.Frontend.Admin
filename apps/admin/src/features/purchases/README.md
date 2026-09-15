@@ -161,6 +161,32 @@ as compras registradas **antes** desta data, que guardaram galeria própria; com
 a replicação no salvar, ele é um no-op no caso normal. Compra sem foto nenhuma
 não mexe na galeria, pela mesma razão do item 3.
 
+### O item 1 passou a PERGUNTAR (15/09/2026)
+
+Vincular um produto a uma compra que estava como **produto novo** substitui duas
+coisas que podem ter sido preenchidas à mão: o nome e as fotos. Agora, quando há
+o que substituir, isso vira uma pergunta — `PurchaseProductLinkDialog`, aberta
+pelo `pendingProduct` do `usePurchaseForm`. Antes, quem anotou a compra de um
+item novo, subiu as fotos do anúncio do fornecedor e só depois descobriu que o
+produto já tinha cadastro via o trabalho sumir sem aviso nenhum.
+
+- **Só quando há o que perder** (`purchaseDataWouldBeReplaced`): foto anexada, ou
+  nome digitado diferente do nome do produto escolhido — comparando em caixa
+  alta, que é como ele é gravado. Pergunta que aparece à toa é a que ninguém lê.
+- **Só no vínculo NOVO.** Trocar um produto já vinculado por outro não pergunta:
+  o que está na tela é a galeria do produto ANTERIOR, não trabalho de ninguém.
+- **O nome não é escolha, é aviso.** Com produto vinculado ele é sempre o do
+  catálogo — o campo nem aparece na modal, e o backend regrava
+  `purchases.product_name` a partir do produto em todo salvamento
+  (`PurchaseService.ResolveProductAsync`). A modal informa a troca para o
+  operador não procurar depois pelo nome que digitou.
+- **A foto tem duas respostas legítimas**, e por isso é a única pergunta de
+  verdade: "usar as fotos do produto" (o caminho de sempre) ou "manter as desta
+  compra", que **substituem** a galeria do produto no salvar — consequência
+  direta de a lista ser uma só. Mantendo, a galeria do grupo nem é buscada; a
+  categoria continua vindo do cadastro, porque ela nunca foi escolha aqui.
+- **"Não vincular"** fecha sem aplicar nada, e é para onde o Esc cai.
+
 ## O recebimento é uma CONFERÊNCIA (12/09/2026)
 
 Em compra com variações, a grade aparece **editável** no diálogo de
@@ -210,6 +236,11 @@ como a caminho primeiro, o que já exige o custo de que a entrada precisa.
    custo); ao gravar a entrada, `mark-received` fecha a compra vinculando
    produto e entrada. Ver `features/products/README.md`, seção "Cadastro a
    partir de uma compra".
+   **Se o código bipado ali já for de um produto** (15/09/2026), o cadastro é
+   interrompido por uma modal que manda ajustar o vínculo aqui e traz a pessoa de
+   volta para `/estoque/compras?compra=<id>` — ver a seção 4.2 daquele README. O
+   conserto é nesta tela porque é a COMPRA que está dizendo "produto novo"; e
+   ajustada ela, o recebimento passa a ser o caminho 1, que nem abre cadastro.
 
 ## Decisões de implementação
 
