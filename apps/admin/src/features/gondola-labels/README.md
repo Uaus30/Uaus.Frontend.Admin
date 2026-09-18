@@ -53,6 +53,12 @@ reimpressão.
   `print-color-adjust: exact` para os fundos coloridos) e imprime via
   `printReceiptHtml` do `@workspace/receipt` (iframe fora da tela, cleanup por
   `afterprint`).
+- **A borda da etiqueta é a linha de corte, e por isso o canto é vivo.** A folha
+  é recortada com tesoura na loja; com o canto arredondado que existia até
+  18/09/2026 não havia o que seguir na curva, e a mão cortava reto de qualquer
+  jeito — sobrava rebarba de fora da linha. A prévia em tela
+  (`LabelPreviewCard`) usa o mesmo contorno, senão ela deixa de valer como
+  prévia.
 - As barras saem do `buildBarcodeSvg` de `features/products/lib/barcode.ts`:
   **jsbarcode local** (sem CDN, funciona offline), EAN-13/EAN-8 quando o dígito
   verificador fecha e CODE128 no resto. O módulo era daqui e mudou de casa em

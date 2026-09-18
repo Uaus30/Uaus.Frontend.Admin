@@ -8,6 +8,11 @@ import { getLabelTypeInfo, type PrintableLabel } from "./types";
  * As medidas são absolutas em milímetros para o layout não depender do viewport
  * do iframe de impressão, e `print-color-adjust: exact` garante o fundo
  * amarelo/vermelho no papel.
+ *
+ * O contorno da etiqueta é um retângulo de canto vivo: ele não é enfeite, é a
+ * linha de corte. A folha sai da impressora e alguém recorta com tesoura, e
+ * canto arredondado não dá para seguir — a mão corta reto e sobra rebarba de um
+ * lado da curva.
  */
 const SHEET_STYLES = `
   @page { size: A4 portrait; margin: 8mm; }
@@ -28,7 +33,6 @@ const SHEET_STYLES = `
   .label {
     height: 24mm;
     border: 0.35mm solid #9a9a9a;
-    border-radius: 2mm;
     padding: 1.5mm 3.5mm;
     display: flex;
     flex-direction: column;

@@ -99,4 +99,11 @@ describe("buildLabelSheetHtml", () => {
     expect(html).toContain("height: 24mm;");
     expect(html).toContain("print-color-adjust: exact");
   });
+
+  it("contorna a etiqueta com retângulo de canto vivo, que é a linha do recorte", () => {
+    const html = buildLabelSheetHtml([label()], stubBarcode);
+
+    expect(html).toContain("border: 0.35mm solid #9a9a9a;");
+    expect(html).not.toContain("border-radius");
+  });
 });

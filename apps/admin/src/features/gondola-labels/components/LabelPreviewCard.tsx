@@ -7,6 +7,10 @@ import { getLabelTypeInfo, type PrintableLabel } from "../types";
  * Réplica em tela de uma etiqueta impressa (proporção ~95mm × 24mm): nome em
  * caixa alta no topo com tamanho dinâmico, código de barras SVG à esquerda
  * e preço grande à direita, com o fundo do tipo (branca, amarela ou vermelha).
+ *
+ * O contorno é retângulo de canto vivo igual ao do papel (ver `print.ts`): a
+ * borda é a linha de corte, e a prévia só serve se mostrar o que vai sair na
+ * impressora.
  */
 export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
   const info = getLabelTypeInfo(label.labelType);
@@ -19,7 +23,7 @@ export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
 
   return (
     <div
-      className="relative flex h-[24mm] flex-col justify-between overflow-hidden rounded-[2mm] border border-[#9a9a9a] px-[3.5mm] py-[1.5mm] shadow-sm select-none"
+      className="relative flex h-[24mm] flex-col justify-between overflow-hidden border border-[#9a9a9a] px-[3.5mm] py-[1.5mm] shadow-sm select-none"
       style={{ background: info.background, color: info.foreground }}
     >
       {label.quantity > 1 && (
