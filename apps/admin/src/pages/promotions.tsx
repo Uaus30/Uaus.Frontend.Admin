@@ -34,6 +34,7 @@ export default function PromotionsPage() {
     abrirNova,
     abrirDetalhe,
     voltarParaLista,
+    aoSalvar,
     encerrar,
     excluir,
     isBusy,
@@ -48,7 +49,7 @@ export default function PromotionsPage() {
         <PromotionEditorScreen
           promotionId={screen.kind === "detalhe" ? screen.id : undefined}
           onBack={voltarParaLista}
-          onSaved={abrirDetalhe}
+          onSaved={aoSalvar}
         />
       </AppLayout>
     );

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebounce, useToast } from "@workspace/ui";
 import {
@@ -12,10 +13,10 @@ import {
 } from "@workspace/api-client-react";
 import { describeApiError } from "@workspace/core";
 import {
+  PROMOTIONS_PATH,
   promotionCreatePathname,
   promotionDetailPathname,
   promotionScreenFromPathname,
-  promotionsListPathname,
   type PromotionScreen,
 } from "../promotion-route";
 import { promotionSituation } from "./promotionRules";
@@ -37,9 +38,19 @@ export function usePromotions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [screen, setScreen] = useState<PromotionScreen>(() =>
-    promotionScreenFromPathname(window.location.pathname),
-  );
+  /**
+   * A tela vem da URL, e a URL vem do ROTEADOR.
+   *
+   * Antes isto era estado próprio sincronizado à mão com `pushState` e um
+   * ouvinte de `popstate` — e faltava metade: o wouter navega por `pushState`,
+   * que **não dispara `popstate`**. Clicar em "Promoções" no menu estando no
+   * detalhe trocava a URL e deixava a tela no detalhe. Derivando da location, o
+   * menu, o voltar do navegador e os botões da própria tela entram pelo mesmo
+   * caminho.
+   */
+  const [location, setLocation] = useLocation();
+  const screen = useMemo<PromotionScreen>(() => promotionScreenFromPathname(location), [location]);
+
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [typeFilter, setTypeFilter] = useState<PromotionTypeCode | null>(null);
@@ -82,49 +93,21 @@ export function usePromotions() {
 
   // ------------------------------------------------------------- navegação
 
-  /**
-   * O voltar do navegador fecha o cadastro e o detalhe.
-   *
-   * Sem isto, quem abre a promoção e aperta "voltar" sai da tela inteira — a
-   * listagem e o detalhe dividem a mesma entrada de rota, então o histórico é a
-   * única coisa que distingue os dois.
-   */
-  useEffect(() => {
-    const aoVoltar = () => setScreen(promotionScreenFromPathname(window.location.pathname));
-    window.addEventListener("popstate", aoVoltar);
-    return () => window.removeEventListener("popstate", aoVoltar);
-  }, []);
+  const abrirNova = useCallback(() => setLocation(promotionCreatePathname()), [setLocation]);
 
-  const irPara = useCallback((destino: PromotionScreen, pathname: string) => {
-    // A marca no estado é o que distingue a entrada que ESTA tela empilhou —
-    // ver `voltarParaLista`.
-    window.history.pushState({ promocoes: true }, "", pathname);
-    setScreen(destino);
-  }, []);
+  const abrirDetalhe = useCallback((id: number) => setLocation(promotionDetailPathname(id)), [setLocation]);
 
-  const abrirNova = useCallback(() => irPara({ kind: "nova" }, promotionCreatePathname()), [irPara]);
-
-  const abrirDetalhe = useCallback(
-    (id: number) => irPara({ kind: "detalhe", id }, promotionDetailPathname(id)),
-    [irPara],
-  );
+  const voltarParaLista = useCallback(() => setLocation(PROMOTIONS_PATH), [setLocation]);
 
   /**
-   * Volta para a listagem DEVOLVENDO a entrada do histórico, quando foi esta tela
-   * que a empilhou.
+   * Fim do salvamento: volta para a listagem SUBSTITUINDO a entrada do histórico.
    *
-   * Empilhar uma terceira entrada faria o "voltar" do navegador reabrir o
-   * cadastro que a pessoa acabou de fechar. É o mesmo desenho de
-   * `useProductDetailHistory`.
+   * `replace` e não `push` porque o formulário já cumpriu o papel dele: com
+   * `push`, o voltar do navegador reabriria o cadastro que acabou de ser salvo —
+   * e era isso que fazia o botão "Voltar" da tela precisar de dois cliques,
+   * porque o primeiro desempilhava para uma tela igual à que estava na frente.
    */
-  const voltarParaLista = useCallback(() => {
-    if (window.history.state?.promocoes) {
-      window.history.back();
-      return;
-    }
-
-    irPara({ kind: "lista" }, promotionsListPathname());
-  }, [irPara]);
+  const aoSalvar = useCallback(() => setLocation(PROMOTIONS_PATH, { replace: true }), [setLocation]);
 
   // ---------------------------------------------------------------- ações
 
@@ -191,6 +174,7 @@ export function usePromotions() {
     abrirNova,
     abrirDetalhe,
     voltarParaLista,
+    aoSalvar,
     /** Encerra agora, preservando a janela em que a promoção valeu. */
     encerrar: (id: number) => endMutation.mutateAsync(id),
     excluir: (id: number) => deleteMutation.mutateAsync(id),

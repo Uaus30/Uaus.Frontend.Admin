@@ -21,6 +21,7 @@ import {
 import { ConfirmDialog } from "@workspace/ui";
 import { ArrowLeft, Loader2, Save, Tag, Zap } from "lucide-react";
 import { formatCurrency } from "@workspace/core";
+import { DEFAULT_END_TIME, DEFAULT_START_TIME } from "../hooks/promotionRules";
 import { usePromotionEditor } from "../hooks/usePromotionEditor";
 import { ProductGroupPicker } from "./ProductGroupPicker";
 import { PromotionPricePanel } from "./PromotionPricePanel";
@@ -30,7 +31,8 @@ interface PromotionEditorScreenProps {
   /** Promoção sendo editada, ou `undefined` no cadastro novo. */
   promotionId?: number;
   onBack: () => void;
-  onSaved: (id: number) => void;
+  /** Chamado depois de gravar. A página leva de volta para a listagem. */
+  onSaved: () => void;
 }
 
 /**
@@ -95,9 +97,14 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* O `min-w-0` nas duas colunas não é detalhe: filho de grid não encolhe
+          abaixo da largura do conteúdo sem ele, e a tabela da prévia (seis
+          colunas) empurrava uma barra de rolagem horizontal para a tela toda.
+          A prévia é 3/5 porque é onde está a decisão — preço, margem e
+          investimento —, e o formulário cabe em 2/5. */}
+      <div className="grid gap-6 xl:grid-cols-5">
         {/* ---------------------------------------------------------- formulário */}
-        <div className="space-y-4 rounded-lg border bg-card p-4">
+        <div className="min-w-0 space-y-4 rounded-lg border bg-card p-4 xl:col-span-2">
           <div className="space-y-2">
             <Label>Produto</Label>
             <ProductGroupPicker
@@ -124,6 +131,12 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
                     // Banner é coisa de relâmpago; trocar para Dia a Dia com a
                     // caixa marcada devolveria um 400 que ninguém relaciona com ela.
                     showOnSite: Number(valor) === PROMOTION_TYPE.Flash ? atual.showOnSite : false,
+                    // O horário só existe na relâmpago. Sair dela com "das 14h
+                    // às 18h" preenchido faria um PATAMAR de preço começar às
+                    // 14h de um dia qualquer — e o campo nem estaria na tela
+                    // para a pessoa desfazer.
+                    startTime: Number(valor) === PROMOTION_TYPE.Flash ? atual.startTime : DEFAULT_START_TIME,
+                    endTime: Number(valor) === PROMOTION_TYPE.Flash ? atual.endTime : DEFAULT_END_TIME,
                   }))
                 }
               >
@@ -198,24 +211,29 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label className="text-xs">Das</Label>
-                  <Input
-                    type="time"
-                    value={form.startTime}
-                    onChange={(event) => setForm((atual) => ({ ...atual, startTime: event.target.value }))}
-                  />
+              {/* O intervalo de horário é do RELÂMPAGO. No Dia a Dia ele não
+                  significa nada — o patamar vale o dia inteiro —, e um campo
+                  sem sentido na tela é um campo que alguém preenche. */}
+              {isFlash && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Das</Label>
+                    <Input
+                      type="time"
+                      value={form.startTime}
+                      onChange={(event) => setForm((atual) => ({ ...atual, startTime: event.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Até</Label>
+                    <Input
+                      type="time"
+                      value={form.endTime}
+                      onChange={(event) => setForm((atual) => ({ ...atual, endTime: event.target.value }))}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Até</Label>
-                  <Input
-                    type="time"
-                    value={form.endTime}
-                    onChange={(event) => setForm((atual) => ({ ...atual, endTime: event.target.value }))}
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
             {isFlash ? (
@@ -303,7 +321,7 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
         </div>
 
         {/* --------------------------------------------------------- prévia */}
-        <div className="space-y-4 rounded-lg border bg-card p-4">
+        <div className="min-w-0 space-y-4 rounded-lg border bg-card p-4 xl:col-span-3">
           <p className="text-sm font-medium">Efeito no preço</p>
           <PromotionPricePanel
             preview={preview}

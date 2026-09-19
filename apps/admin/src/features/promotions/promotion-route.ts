@@ -13,6 +13,12 @@
  * recém-nascida — sem o filtro, a busca e a página em que ela estava. É o mesmo
  * motivo (e o mesmo desenho) de `PRODUCTS_MATCH_PATH`.
  *
+ * ## Os caminhos são RELATIVOS AO BASE
+ *
+ * Quem navega é o wouter (`setLocation`), e ele já monta o `base` declarado no
+ * `<WouterRouter>` do App. Prefixar `import.meta.env.BASE_URL` aqui produziria
+ * `/admin/admin/marketing/...` num deploy em subpasta.
+ *
  * ## Por que tela, e não modal
  *
  * Pedido do dono, com duas razões concretas: a URL de uma promoção específica
@@ -23,7 +29,7 @@
 /** Segmento do cadastro novo. Não é id, e é isso que o distingue. */
 const SEGMENTO_NOVA = "nova";
 
-/** Caminho da listagem, sem o base do Vite — é o que o menu usa. */
+/** Caminho da listagem — é o que o menu usa. */
 export const PROMOTIONS_PATH = "/marketing/promocoes";
 
 /**
@@ -33,28 +39,23 @@ export const PROMOTIONS_PATH = "/marketing/promocoes";
  */
 export const PROMOTIONS_MATCH_PATH = "/marketing/promocoes/:segmento?";
 
-/** Caminho da listagem, já com o base do Vite. */
-export function promotionsListPathname(): string {
-  return `${import.meta.env.BASE_URL}marketing/promocoes`;
-}
-
-/** Caminho do cadastro novo, já com o base do Vite. */
+/** Caminho do cadastro novo. */
 export function promotionCreatePathname(): string {
-  return `${promotionsListPathname()}/${SEGMENTO_NOVA}`;
+  return `${PROMOTIONS_PATH}/${SEGMENTO_NOVA}`;
 }
 
-/** Caminho do detalhe de uma promoção, já com o base do Vite. */
+/** Caminho do detalhe de uma promoção. */
 export function promotionDetailPathname(id: number): string {
-  return `${promotionsListPathname()}/${id}`;
+  return `${PROMOTIONS_PATH}/${id}`;
 }
 
 /**
- * O que o pathname atual está pedindo.
+ * O que o caminho atual está pedindo.
  *
- * Lido por expressão regular, e não pelos parâmetros do router, porque a página
- * precisa da resposta ANTES do primeiro render — para não desenhar a listagem
- * que vai ser substituída. O base do Vite é ignorado de propósito: o que importa
- * é o fim do caminho.
+ * Lê por expressão regular, e não pelos parâmetros do router, porque a mesma
+ * função responde tanto para a location do wouter (sem o base) quanto para um
+ * `window.location.pathname` cru (com o base) — o que importa é o fim do
+ * caminho.
  */
 export type PromotionScreen = { kind: "lista" } | { kind: "nova" } | { kind: "detalhe"; id: number };
 

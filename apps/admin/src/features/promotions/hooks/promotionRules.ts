@@ -228,18 +228,26 @@ export function buildPromotionPayload(form: PromotionForm): SavePromotionPayload
   const startDate = form.startDate ?? new Date();
   const isFlash = form.type === PROMOTION_TYPE.Flash;
 
+  // O intervalo de horário é do RELÂMPAGO. O Dia a Dia é um patamar: vale o dia
+  // inteiro, e a tela nem mostra o campo. Compor com o que estiver no
+  // formulário faria um patamar começar às 14h caso a pessoa tivesse passado
+  // pelo tipo Relâmpago antes de decidir — com o campo já fora da tela para ela
+  // desfazer.
+  const startTime = isFlash ? form.startTime : DEFAULT_START_TIME;
+  const endTime = isFlash ? form.endTime : DEFAULT_END_TIME;
+
   const validUntil = isFlash
-    ? toEndInstant(startDate, form.endTime)
+    ? toEndInstant(startDate, endTime)
     : form.noEndDate
       ? null
-      : toEndInstant(form.endDate ?? startDate, form.endTime);
+      : toEndInstant(form.endDate ?? startDate, endTime);
 
   return {
     productGroupId: form.productGroupId ?? 0,
     type: form.type,
     discountType: form.discountType,
     discountValue: parseAmountOrNull(form.discountValue) ?? 0,
-    validFrom: toStartInstant(startDate, form.startTime),
+    validFrom: toStartInstant(startDate, startTime),
     validUntil,
     maxQuantityPerSale: normalizeCount(form.maxQuantityPerSale),
     targetQuantity: normalizeCount(form.targetQuantity),

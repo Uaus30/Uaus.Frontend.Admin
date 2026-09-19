@@ -24,9 +24,9 @@ import type { PromotionForm } from "../types";
  * Controlador do cadastro e do detalhe de uma promoção.
  *
  * @param promotionId Promoção que está sendo editada, ou `undefined` no cadastro novo.
- * @param onSaved Chamado depois de gravar, com o id — a página usa para trocar de tela.
+ * @param onSaved Chamado depois de gravar — a página leva de volta para a listagem.
  */
-export function usePromotionEditor(promotionId: number | undefined, onSaved: (id: number) => void) {
+export function usePromotionEditor(promotionId: number | undefined, onSaved: () => void) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -84,7 +84,7 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: (id
         description: "O preço passa a valer no balcão dentro da vigência.",
       });
 
-      if (saved?.id) onSaved(saved.id);
+      if (saved?.id) onSaved();
     },
     onError: (error) => {
       toast({

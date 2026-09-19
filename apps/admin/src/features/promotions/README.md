@@ -104,6 +104,26 @@ avisos por variação. A conta é a mesma que vai decidir o preço no carrinho;
 refazê-la na tela pouparia uma requisição e criaria a divergência clássica — a
 tela prometendo um número que o balcão não pratica.
 
+### 10. A navegação é do ROTEADOR, não do `history`
+
+A tela deriva o que mostra de `useLocation()` do wouter, e navega por
+`setLocation`. A primeira versão guardava a própria `screen` e sincronizava à
+mão com `pushState` + um ouvinte de `popstate` — e faltava metade: **o wouter
+navega por `pushState`, que não dispara `popstate`**. Clicar em "Promoções" no
+menu estando no detalhe trocava a URL e deixava o detalhe na tela.
+
+Salvar volta para a listagem com `{ replace: true }`. Com `push`, o voltar do
+navegador reabriria o formulário recém-salvo — e era isso que obrigava a clicar
+duas vezes em "Voltar", porque o primeiro clique desempilhava para uma tela
+igual à que estava na frente.
+
+### 11. O horário só existe no Relâmpago
+
+O Dia a Dia é um patamar: vale o dia inteiro. O campo some da tela, e
+`buildPromotionPayload` **força** `00:00`/`23:59` — compor com o que estivesse no
+formulário faria um patamar começar às 14h quando a pessoa passasse pelo tipo
+Relâmpago antes de decidir, com o campo já fora da tela para ela desfazer.
+
 ## Estrutura
 
 - `promotion-route.ts`: os três caminhos numa entrada de rota só (`matchPath`),

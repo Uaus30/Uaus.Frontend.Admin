@@ -213,6 +213,24 @@ describe("payload", () => {
     expect(payload.showOnSite).toBe(false);
   });
 
+  it("ignora o horário no Dia a Dia, mesmo vindo preenchido do tipo Relâmpago", () => {
+    // Cenário real: a pessoa começa cadastrando uma relâmpago das 14h às 18h e
+    // muda para Dia a Dia. O campo de horário sai da tela — compor com ele faria
+    // um PATAMAR de preço começar às 14h, sem nada na tela para desfazer.
+    const trocouDeTipo = formulario({
+      discountValue: "10",
+      startTime: "14:00",
+      endTime: "18:00",
+      noEndDate: false,
+      endDate: diaDaPromocao,
+    });
+
+    const payload = buildPromotionPayload(trocouDeTipo);
+
+    expect(payload.validFrom).toBe("2026-09-19T00:00:00");
+    expect(payload.validUntil).toBe("2026-09-19T23:59:59");
+  });
+
   it("não manda fim quando o Dia a Dia é sem prazo", () => {
     const payload = buildPromotionPayload(formulario({ discountValue: "10", noEndDate: true }));
 

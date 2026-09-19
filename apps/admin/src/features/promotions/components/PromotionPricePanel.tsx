@@ -118,22 +118,25 @@ export function PromotionPricePanel({ preview, isLoading, targetQuantity }: Prom
               <TableRow className="bg-muted/40">
                 <TableHead>Variação</TableHead>
                 <TableHead className="text-right">Preço</TableHead>
-                <TableHead className="text-right">Custo</TableHead>
+                {/* Custo e Estoque saem primeiro em tela estreita: são contexto,
+                    enquanto preço, promocional e margem são a decisão. A regra é
+                    esconder coluna, nunca rolar — `convencoes-de-interface.md`. */}
+                <TableHead className="hidden text-right 2xl:table-cell">Custo</TableHead>
                 <TableHead className="text-right">Promocional</TableHead>
                 <TableHead className="text-right">Margem</TableHead>
-                <TableHead className="text-right">Estoque</TableHead>
+                <TableHead className="hidden text-right 2xl:table-cell">Estoque</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {preview.variations.map((variation) => (
                 <TableRow key={variation.productId}>
-                  <TableCell className="max-w-[18rem] truncate" title={variation.name}>
+                  <TableCell className="max-w-[14rem] truncate" title={variation.name}>
                     {variation.name}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground line-through">
                     {formatCurrency(variation.price)}
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
+                  <TableCell className="hidden text-right text-muted-foreground 2xl:table-cell">
                     {formatCurrency(variation.costPrice)}
                   </TableCell>
                   <TableCell className="text-right font-medium">
@@ -142,7 +145,7 @@ export function PromotionPricePanel({ preview, isLoading, targetQuantity }: Prom
                   <TableCell className={`text-right font-medium ${marginClass(variation.marginPercent)}`}>
                     {formatMargin(variation.marginPercent)}
                   </TableCell>
-                  <TableCell className="text-right">{variation.stock}</TableCell>
+                  <TableCell className="hidden text-right 2xl:table-cell">{variation.stock}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

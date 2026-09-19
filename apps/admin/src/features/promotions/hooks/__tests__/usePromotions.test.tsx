@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PROMOTION_DISCOUNT_TYPE, PROMOTION_TYPE, type PromotionDto } from "@workspace/api-client-react";
+import { navigate } from "wouter/use-browser-location";
 
 const mocks = vi.hoisted(() => ({
   useGetPromotions: vi.fn(),
@@ -120,6 +121,35 @@ describe("usePromotions", () => {
 
     await waitFor(() => expect(result.current.screen).toEqual({ kind: "lista" }));
     expect(window.location.pathname).toMatch(/promocoes$/);
+  });
+
+  it("segue a URL quando ela muda POR FORA — o clique no menu", async () => {
+    // O wouter navega por `pushState`, que não dispara `popstate`. Enquanto a
+    // tela guardava a própria `screen` e só escutava `popstate`, clicar em
+    // "Promoções" no menu estando no detalhe trocava a URL e deixava o detalhe
+    // na tela. Derivar de `useLocation` é o que conserta.
+    window.history.replaceState({}, "", "/marketing/promocoes/7");
+    const { result } = renderHook(() => usePromotions(), { wrapper });
+    expect(result.current.screen).toEqual({ kind: "detalhe", id: 7 });
+
+    act(() => navigate("/marketing/promocoes"));
+
+    await waitFor(() => expect(result.current.screen).toEqual({ kind: "lista" }));
+  });
+
+  it("volta para a listagem ao salvar, SEM empilhar o formulário", async () => {
+    // `replace`, e não `push`: com push, o voltar do navegador reabriria o
+    // cadastro recém-salvo — e era isso que obrigava a clicar duas vezes em
+    // "Voltar".
+    const { result } = renderHook(() => usePromotions(), { wrapper });
+
+    act(() => result.current.abrirNova());
+    const entradasAntes = window.history.length;
+
+    act(() => result.current.aoSalvar());
+
+    await waitFor(() => expect(result.current.screen).toEqual({ kind: "lista" }));
+    expect(window.history.length).toBe(entradasAntes);
   });
 
   it("abre o detalhe pelo id", () => {
