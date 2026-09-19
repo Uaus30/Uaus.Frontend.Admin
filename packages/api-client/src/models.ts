@@ -1758,3 +1758,190 @@ export interface StorefrontCompanyDto {
    */
   newProductsCount?: number;
 }
+
+// ---------------------------------------------------------------- Promoções
+
+/**
+ * A espécie da promoção.
+ *
+ * As duas respondem perguntas diferentes: a Relâmpago é um evento com hora
+ * marcada, a Dia a Dia é um patamar de preço. Só a primeira tem teto de 24h,
+ * banner no site e nota de desempenho.
+ *
+ * **Vigendo as duas no mesmo produto, aplica-se a Relâmpago** — é a única
+ * precedência do domínio, e existe para o produto com preço de patamar entrar na
+ * relâmpago de sábado sem ninguém encerrar e recriar nada toda semana.
+ */
+export const PROMOTION_TYPE = {
+  None: 0,
+  /** Preço de patamar, sem hora marcada. Aceita desconto ZERO (a isca da porta). */
+  Everyday: 1,
+  /** Evento de preço num dia só, no máximo 24 horas. Exige desconto maior que zero. */
+  Flash: 2,
+} as const;
+
+export type PromotionTypeCode = (typeof PROMOTION_TYPE)[keyof typeof PROMOTION_TYPE];
+
+/** Rótulos das espécies, para tabela, select e cartaz. */
+export const PROMOTION_TYPE_LABEL: Record<number, string> = {
+  [PROMOTION_TYPE.Everyday]: "Dia a Dia",
+  [PROMOTION_TYPE.Flash]: "Relâmpago",
+};
+
+/** Espécies que o administrador pode escolher. `None` existe só para o zero do banco. */
+export const SELECTABLE_PROMOTION_TYPES = [PROMOTION_TYPE.Everyday, PROMOTION_TYPE.Flash] as const;
+
+/**
+ * Como a promoção derruba o preço de cada variação do grupo.
+ *
+ * O preço promocional NUNCA é gravado no produto: é derivado deste tipo mais o
+ * valor, a cada leitura. É o que mantém o "de/por" honesto e dispensa restaurar
+ * preço quando a promoção acaba.
+ */
+export const PROMOTION_DISCOUNT_TYPE = {
+  None: 0,
+  /** Percentual sobre o preço de cada variação — respeita preços diferentes no grupo. */
+  Percentage: 1,
+  /** Preço final em reais, o MESMO para todas as variações. É o formato do cartaz. */
+  FinalPrice: 2,
+} as const;
+
+export type PromotionDiscountTypeCode =
+  (typeof PROMOTION_DISCOUNT_TYPE)[keyof typeof PROMOTION_DISCOUNT_TYPE];
+
+export const PROMOTION_DISCOUNT_TYPE_LABEL: Record<number, string> = {
+  [PROMOTION_DISCOUNT_TYPE.Percentage]: "Percentual",
+  [PROMOTION_DISCOUNT_TYPE.FinalPrice]: "Preço final",
+};
+
+export const SELECTABLE_PROMOTION_DISCOUNT_TYPES = [
+  PROMOTION_DISCOUNT_TYPE.Percentage,
+  PROMOTION_DISCOUNT_TYPE.FinalPrice,
+] as const;
+
+/**
+ * Promoção como a retaguarda a exibe.
+ *
+ * Os preços viajam RESOLVIDOS, em faixa mín–máx: a listagem precisa deles em toda
+ * linha, e mandar as variações de cada grupo para desenhar três colunas é o peso
+ * de payload que a listagem de produtos já pagou uma vez.
+ *
+ * **Não há campo de situação** ("No ar", "Programada", "Encerrada", "Inativa"):
+ * ela é derivada de `validFrom`, `validUntil` e `isActive` na tela, como a
+ * listagem de campanhas faz.
+ */
+export interface PromotionDto {
+  id: number;
+  createdAt: string;
+  updatedAt?: string | null;
+  productGroupId: number;
+  /** Nome do grupo promovido, já resolvido para a linha da tabela. */
+  productGroupName: string;
+  /** Capa do grupo. Ausente quando o produto não tem foto. */
+  productGroupImageUrl?: string | null;
+  /** Enum PromotionType — pode vir como número ou nome; use `enumCode`. */
+  type: EnumValue;
+  /** Enum PromotionDiscountType — idem. */
+  discountType: EnumValue;
+  /** Percentual (0 a 90) ou preço final em reais, conforme `discountType`. */
+  discountValue: number;
+  /** Início da vigência, inclusivo. Instante local, sem `Z`. */
+  validFrom: string;
+  /** Fim da vigência, inclusivo. Ausente = sem prazo (só em Dia a Dia). */
+  validUntil?: string | null;
+  /** Teto de unidades do grupo por VENDA. Ausente = sem limite. Compare com `== null`. */
+  maxQuantityPerSale?: number | null;
+  /** Meta de unidades escrita pelo dono. Ausente = a nota usa a meta calculada. */
+  targetQuantity?: number | null;
+  isActive: boolean;
+  /** Exibe no BANNER da vitrine. Só em Relâmpago. */
+  showOnSite: boolean;
+  /** Menor preço de TABELA entre as variações ativas — o "de". */
+  referencePriceMin: number;
+  referencePriceMax: number;
+  /** Menor preço promocional resultante — o "por". */
+  promotionalPriceMin: number;
+  promotionalPriceMax: number;
+  /**
+   * Menor margem sobre o preço promocional. **Ausente = desconhecida**, nunca
+   * zero: grupo sem variação ativa não tem margem 0%, tem margem que a tela não
+   * conseguiu medir. Compare com `== null`.
+   */
+  marginPercentMin?: number | null;
+  marginPercentMax?: number | null;
+  /**
+   * Quanto a promoção custaria de faturamento vendendo a meta, pelo desconto
+   * médio das variações. **Ausente sem meta** — o investimento REAL vem das
+   * vendas atribuídas, e um projetado sem meta declarada seria confundido com ele.
+   */
+  projectedInvestment?: number | null;
+}
+
+/** Uma variação do grupo com a conta do preço promocional feita. */
+export interface PromotionVariationDto {
+  productId: number;
+  /** Nome exibido, já com os valores de grade entre colchetes. */
+  name: string;
+  price: number;
+  /** Custo da variação. Zero em produto que nunca teve entrada de estoque. */
+  costPrice: number;
+  promotionalPrice: number;
+  /** Ausente = desconhecida. Negativa quando a promoção vende abaixo do custo. */
+  marginPercent?: number | null;
+  stock: number;
+}
+
+/** Detalhe de uma promoção: tudo da listagem mais a tabela por variação. */
+export interface PromotionDetailsDto extends PromotionDto {
+  variations: PromotionVariationDto[];
+}
+
+/**
+ * Prévia do que uma promoção faria, sem gravar nada.
+ *
+ * Existe para o formulário não recalcular preço e margem por conta própria: a
+ * conta é a mesma que vai valer no carrinho e na vitrine, e duas implementações
+ * dela é como o site anuncia um preço e o caixa cobra outro.
+ */
+export interface PromotionPreviewDto {
+  productGroupId: number;
+  productGroupName: string;
+  variations: PromotionVariationDto[];
+  referencePriceMin: number;
+  referencePriceMax: number;
+  promotionalPriceMin: number;
+  promotionalPriceMax: number;
+  marginPercentMin?: number | null;
+  marginPercentMax?: number | null;
+  projectedInvestment?: number | null;
+  /** Alguma variação ficaria abaixo do custo. **Aviso, não recusa.** */
+  hasPriceBelowCost: boolean;
+  /** Alguma variação ficaria com margem abaixo de 30% (o corte apertado da loja). */
+  hasTightMargin: boolean;
+  /** O grupo tem variações com preços de tabela diferentes — importa com preço final. */
+  hasMixedPrices: boolean;
+  /** O grupo não tem nenhuma variação ativa: a promoção não apareceria em lugar nenhum. */
+  hasNoActiveVariations: boolean;
+}
+
+/** Criação e edição de promoção. */
+export interface SavePromotionPayload {
+  productGroupId: number;
+  /** Nunca envie `None` (0): o backend recusa com 400. */
+  type: PromotionTypeCode;
+  /** Nunca envie `None` (0). */
+  discountType: PromotionDiscountTypeCode;
+  /** 0 a 90 no percentual; preço final em reais no outro. Zero só vale em Dia a Dia. */
+  discountValue: number;
+  /** Instante "yyyy-MM-ddTHH:mm:ss", sem `Z`. Obrigatório. */
+  validFrom: string;
+  /** Instante ou null. **Obrigatório em Relâmpago**, no mesmo dia e com no máximo 24h. */
+  validUntil?: string | null;
+  /** Teto de unidades por venda. Zero, negativo ou null significam SEM limite. */
+  maxQuantityPerSale?: number | null;
+  /** Meta de unidades. Zero, negativo ou null deixam a nota usar a meta calculada. */
+  targetQuantity?: number | null;
+  isActive: boolean;
+  /** Só aceito em Relâmpago; o backend recusa com 400 em Dia a Dia. */
+  showOnSite: boolean;
+}

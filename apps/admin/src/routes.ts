@@ -17,6 +17,7 @@ import { enumCode, USER_ROLE, type EnumValue } from "@workspace/api-client-react
 import { PRODUCTS_MATCH_PATH } from "@/features/products/product-detail-route";
 import { LOW_STOCK_REPORT_PATH } from "@/features/low-stock/low-stock-route";
 import { PURCHASES_PATH } from "@/features/purchases/purchases-route";
+import { PROMOTIONS_MATCH_PATH, PROMOTIONS_PATH } from "@/features/promotions/promotion-route";
 
 /**
  * Fonte ÚNICA das rotas do admin.
@@ -94,6 +95,7 @@ const LogDetails = lazy(() => import("@/pages/log-details"));
 const UsersPage = lazy(() => import("@/pages/users"));
 const Coupons = lazy(() => import("@/pages/coupons"));
 const Campaigns = lazy(() => import("@/pages/campaigns"));
+const Promotions = lazy(() => import("@/pages/promotions"));
 const CampaignReport = lazy(() => import("@/pages/campaign-report"));
 const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 const SupplierPerformance = lazy(() => import("@/pages/supplier-performance"));
@@ -231,6 +233,18 @@ export const ROUTES: AppRoute[] = [
     label: "Campanhas",
     group: "Marketing",
     component: Campaigns,
+    roles: SO_ADMIN,
+  },
+
+  // Logo abaixo de Campanhas, a pedido do dono. `matchPath` cobre os três
+  // caminhos da tela (listagem, `/nova` e `/<id>`) numa entrada só: separadas,
+  // ir para o cadastro desmontaria a listagem e voltar perderia filtro e página.
+  {
+    path: PROMOTIONS_PATH,
+    matchPath: PROMOTIONS_MATCH_PATH,
+    label: "Promoções",
+    group: "Marketing",
+    component: Promotions,
     roles: SO_ADMIN,
   },
   // O comparativo vem ANTES do relatório de propósito: não há colisão (dois

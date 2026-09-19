@@ -24,6 +24,7 @@ export * from "./stock-write-offs";
 export * from "./financial";
 export * from "./product-labels";
 export * from "./coupons";
+export * from "./promotions";
 export * from "./campaigns";
 export * from "./storefront";
 export * from "./low-stock";

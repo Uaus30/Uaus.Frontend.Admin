@@ -29,6 +29,8 @@ const RESTRITAS = [
   "/marketing/cupons",
   "/marketing/campanhas",
   "/marketing/campanhas/comparativo",
+  // Promoções expõe custo e margem item a item, como as telas de BI.
+  "/marketing/promocoes",
 ];
 
 describe("declaração das rotas", () => {
@@ -189,17 +191,20 @@ describe("buildMenu", () => {
     const menu = buildMenu(USER_ROLE.Seller);
 
     expect(menu.find((item) => item.name === "Sistema")).toBeUndefined();
-    // "Marketing" está na mesma situação: as três telas são de Admin.
+    // "Marketing" está na mesma situação: as quatro telas são de Admin.
     expect(menu.find((item) => item.name === "Marketing")).toBeUndefined();
   });
 
-  it("o Admin vê o grupo Marketing com as três telas", () => {
+  it("o Admin vê o grupo Marketing com as quatro telas", () => {
     const menu = buildMenu(USER_ROLE.Admin);
     const marketing = menu.find((item) => item.name === "Marketing");
 
+    // Promoções entra LOGO ABAIXO de Campanhas, a pedido do dono (18/09/2026) —
+    // e não no fim do grupo, que seria a posição natural de uma tela nova.
     expect(marketing?.items?.map((s) => s.href)).toEqual([
       "/marketing/cupons",
       "/marketing/campanhas",
+      "/marketing/promocoes",
       "/marketing/campanhas/comparativo",
     ]);
   });
