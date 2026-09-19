@@ -124,6 +124,55 @@ O Dia a Dia é um patamar: vale o dia inteiro. O campo some da tela, e
 formulário faria um patamar começar às 14h quando a pessoa passasse pelo tipo
 Relâmpago antes de decidir, com o campo já fora da tela para ela desfazer.
 
+### 12. A nota mede movimento; o investimento mede preço
+
+São **duas colunas**, nunca uma. A nota responde "funcionou?" e vive na aba
+Performance; o investimento responde "quanto custou?" e vive na listagem.
+Fundi-los faria uma nota baixa virar ambígua — não vendeu, ou vendeu caro
+demais? — e daria nota alta a uma promoção mixuruca só por ser barata.
+
+A nota **não vem na listagem** por um motivo concreto: ela custa cinco consultas
+por promoção (a régua do dia da semana, o dia-calendário, o excedente do limite,
+o saldo e o histórico). Vinte linhas por página seriam cem consultas. O
+investimento sai de uma consulta agrupada para a página inteira.
+
+### 13. A nota vem sempre com a conta aberta
+
+O velocímetro nunca aparece sozinho: ao lado dele vão os quatro componentes com
+**o que foi medido, contra qual régua e quantos pontos valeu**. Sem isso não há
+como recalibrar peso nenhum depois, e a nota vira um número que se aceita ou se
+ignora — o oposto do que ela existe para fazer. Os pesos vão mudar depois da
+primeira temporada de promoções, e a tela precisa mostrar **o que** mudar.
+
+Três coisas o painel **declara** em vez de afirmar:
+
+- a régua que caiu para "todos os dias" por falta de ocorrências daquele dia da
+  semana (ela é mais fraca, e esconder isso a faria parecer forte);
+- os componentes que saíram da conta por falta de vendas;
+- o esgotamento, que é **inferência** — a loja não guarda a série do saldo, pelo
+  mesmo motivo que o giro do BI é sell-through. Importa porque muda a leitura de
+  tudo: uma promoção que esgotou às 15h20 não tirou nota baixa por falta de
+  apelo, tirou por falta de mercadoria.
+
+### 14. O investimento não se subtrai do lucro
+
+`profit` do item já está líquido do desconto. Fazer "retorno − investimento"
+conta o mesmo dinheiro duas vezes, exatamente como somar o cupom ao desconto
+faria. O investimento é a **explicação do buraco**, não uma segunda subtração —
+e por isso a escada separa na tela o que é exato do que é estimativa.
+
+### 15. Repetir copia tudo menos a data e o banner
+
+A relâmpago da loja é semanal, então repetir propõe a **próxima ocorrência do
+mesmo dia da semana** — copiar a data original seria cadastro condenado, e
+deixá-la em branco devolveria a redigitação que o atalho existe para evitar.
+Hoje conta como próxima ocorrência: a loja cadastra a relâmpago no próprio
+sábado de manhã.
+
+O banner (`showOnSite`) **não** é herdado: duas relâmpagos no banner não podem se
+sobrepor, e herdar a marcação faria o salvamento voltar um 400 sobre uma caixa
+que a pessoa não marcou.
+
 ## Estrutura
 
 - `promotion-route.ts`: os três caminhos numa entrada de rota só (`matchPath`),
@@ -138,12 +187,17 @@ Relâmpago antes de decidir, com o campo já fora da tela para ela desfazer.
 - `components/PromotionPricePanel.tsx`: o efeito no preço, ao lado do formulário.
 - `components/ProductGroupPicker.tsx`: busca do produto, reusando `useGetProductTable`.
 - `components/PromotionSituationBadge.tsx`: cor **com** ícone e palavra, nunca só cor.
+- `components/PromotionPerformanceTab.tsx`: a aba Performance — nota (relâmpago)
+  ou totalizadores (dia a dia), a escada de reais, quem saiu junto e o histórico
+  do produto.
+- `components/PromotionScorePanel.tsx`: o velocímetro com os quatro componentes
+  abertos. O medidor vem do `packages/ui` (`ScoreGauge`), compartilhado com o
+  desempenho de produtos — feature não importa de feature.
+- `components/PromotionInvestmentPanel.tsx`: a escada de reais, com o exato e o
+  estimado separados.
 
 ## O que NÃO está aqui
 
-- **Aplicação no balcão** — fase 1b, no PDV.
-- **Nota de desempenho e investimento realizado** — fase 2; o que existe hoje é o
-  investimento **projetado**, que depende da meta declarada.
 - **Artes 4:5 e 9:16 com o prompt** — fase 3. As colunas já existem na tabela,
   mas ficam fora do contrato da API até lá.
 - **Etiqueta, de/por e banner na vitrine** — fase 4.

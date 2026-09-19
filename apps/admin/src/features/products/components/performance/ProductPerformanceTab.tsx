@@ -1,4 +1,4 @@
-import { Card, Spinner, cn } from "@workspace/ui";
+import { Card, ScoreGauge, Spinner, cn } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { useGetProductPerformanceProfile } from "@workspace/api-client-react";
 import type {
@@ -13,7 +13,6 @@ import {
   formatScore,
 } from "@/features/product-performance/lib/performance";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
-import { ScoreGauge } from "./ScoreGauge";
 import { ScoreHistoryChart } from "./ScoreHistoryChart";
 
 type ProductPerformanceTabProps = {

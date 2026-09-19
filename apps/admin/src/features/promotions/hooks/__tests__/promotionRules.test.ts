@@ -8,9 +8,11 @@ import {
   instantToDate,
   instantToTime,
   promotionSituation,
+  repeatFormFromPromotion,
   toEndInstant,
   toStartInstant,
 } from "../promotionRules";
+import { promotionRepeatPathname, promotionRepeatSourceFromSearch } from "../../promotion-route";
 import type { PromotionForm } from "../../types";
 
 /**
@@ -40,6 +42,7 @@ function promocao(parcial: Partial<PromotionDto> = {}): PromotionDto {
     validUntil: "2026-09-19T18:00:59",
     isActive: true,
     showOnSite: false,
+    investment: 0,
     referencePriceMin: 1.75,
     referencePriceMax: 1.75,
     promotionalPriceMin: 0.99,
@@ -247,5 +250,69 @@ describe("formulário a partir de uma promoção", () => {
     expect(form.noEndDate).toBe(true);
     expect(form.discountValue).toBe("12,5");
     expect(form.startTime).toBe("14:00");
+  });
+});
+
+describe("repetir promoção", () => {
+  // 19/09/2026 é um sábado; 21/09/2026 é uma segunda.
+  const sabado = new Date(2026, 8, 19);
+  const segunda = new Date(2026, 8, 21);
+
+  it("propõe a PRÓXIMA ocorrência do mesmo dia da semana", () => {
+    // A relâmpago da loja é semanal. Repetir a de sábado passado numa segunda
+    // deve propor o sábado seguinte — copiar a data original seria cadastro
+    // condenado, e deixá-la em branco devolveria a redigitação que o atalho
+    // existe para evitar.
+    const form = repeatFormFromPromotion(promocao(), segunda);
+
+    expect(form.startDate?.getDay()).toBe(6);
+    expect(form.startDate?.getDate()).toBe(26);
+    expect(form.endDate?.getDate()).toBe(26);
+  });
+
+  it("mantém HOJE quando hoje já é o dia da semana da promoção", () => {
+    // A loja cadastra a relâmpago no próprio sábado de manhã; empurrar para o
+    // sábado seguinte obrigaria a corrigir a data toda vez.
+    const form = repeatFormFromPromotion(promocao(), sabado);
+
+    expect(form.startDate?.getDate()).toBe(19);
+  });
+
+  it("copia produto, desconto e horário, mas não o banner nem a data original", () => {
+    const form = repeatFormFromPromotion(
+      promocao({ maxQuantityPerSale: 6, targetQuantity: 60, showOnSite: true }),
+      segunda,
+    );
+
+    expect(form.productGroupId).toBe(7);
+    expect(form.discountValue).toBe("0,99");
+    expect(form.startTime).toBe("14:00");
+    expect(form.maxQuantityPerSale).toBe("6");
+    expect(form.targetQuantity).toBe("60");
+    // Duas relâmpagos no banner não podem se sobrepor: herdar a marcação faria o
+    // salvamento voltar um 400 sobre uma caixa que a pessoa não marcou.
+    expect(form.showOnSite).toBe(false);
+    expect(form.isActive).toBe(true);
+  });
+
+  it("o Dia a Dia repetido começa hoje e sem prazo", () => {
+    const form = repeatFormFromPromotion(
+      promocao({ type: PROMOTION_TYPE.Everyday, validUntil: null }),
+      segunda,
+    );
+
+    expect(form.startDate?.getDate()).toBe(21);
+    expect(form.noEndDate).toBe(true);
+    expect(form.endDate).toBeUndefined();
+  });
+
+  it("a promoção de origem viaja na URL, e o id inválido é ignorado", () => {
+    // A barra de endereços é editável por qualquer um: um id quebrado não pode
+    // deixar a tela esperando por uma promoção que não existe.
+    expect(promotionRepeatPathname(5)).toBe("/marketing/promocoes/nova?repetir=5");
+    expect(promotionRepeatSourceFromSearch("?repetir=5")).toBe(5);
+    expect(promotionRepeatSourceFromSearch("?repetir=abc")).toBeUndefined();
+    expect(promotionRepeatSourceFromSearch("?repetir=0")).toBeUndefined();
+    expect(promotionRepeatSourceFromSearch("")).toBeUndefined();
   });
 });

@@ -24,6 +24,7 @@ export * from "./components/label";
 export * from "./components/not-found-screen";
 export * from "./components/pagination";
 export * from "./components/popover";
+export * from "./components/score-gauge";
 export * from "./components/scroll-area";
 export * from "./components/select";
 export * from "./components/separator";

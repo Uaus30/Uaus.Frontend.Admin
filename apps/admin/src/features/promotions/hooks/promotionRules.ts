@@ -146,6 +146,60 @@ export function formFromPromotion(promotion: PromotionDto): PromotionForm {
 }
 
 /**
+ * O formulário de uma promoção NOVA copiada de outra.
+ *
+ * Copia produto, tipo, desconto, limite, meta e o horário; **não** copia a data.
+ * A relâmpago da loja é semanal, então a data proposta é a **próxima ocorrência
+ * do mesmo dia da semana** — repetir a de sábado passado num sábado que já
+ * passou seria cadastro condenado, e obrigar a redigitar tudo é o que este
+ * atalho existe para evitar.
+ *
+ * O Dia a Dia não tem dia da semana: ele começa hoje, que é quando alguém
+ * decidiu repetir o patamar.
+ *
+ * `showOnSite` fica desligado de propósito: duas relâmpagos no banner não podem
+ * se sobrepor, e herdar a marcação faria o salvamento voltar um 400 sobre uma
+ * caixa que a pessoa não marcou.
+ *
+ * @param origem Promoção a copiar.
+ * @param hoje Data de referência, injetada para o teste não depender do relógio.
+ */
+export function repeatFormFromPromotion(origem: PromotionDto, hoje: Date): PromotionForm {
+  const base = formFromPromotion(origem);
+  const relampago = enumCode(origem.type, PROMOTION_TYPE) === PROMOTION_TYPE.Flash;
+
+  const inicio = relampago ? nextWeekdayOccurrence(base.startDate ?? hoje, hoje) : startOfDay(hoje);
+
+  return {
+    ...base,
+    startDate: inicio,
+    endDate: relampago ? inicio : undefined,
+    noEndDate: relampago ? false : true,
+    isActive: true,
+    showOnSite: false,
+  };
+}
+
+/** Meia-noite do dia informado, sem hora. */
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * A próxima data, de hoje em diante, que cai no mesmo dia da semana da original.
+ *
+ * Devolve HOJE quando hoje já é esse dia: a loja cadastra a relâmpago no próprio
+ * sábado de manhã, e empurrar para o sábado seguinte obrigaria a corrigir a data
+ * toda vez.
+ */
+function nextWeekdayOccurrence(original: Date, hoje: Date): Date {
+  const alvo = startOfDay(hoje);
+  const distancia = (original.getDay() - alvo.getDay() + 7) % 7;
+  alvo.setDate(alvo.getDate() + distancia);
+  return alvo;
+}
+
+/**
  * O que impede o formulário de ser enviado, em uma frase — ou `null`.
  *
  * As mesmas recusas do servidor, com a mesma redação: barrar aqui poupa uma ida

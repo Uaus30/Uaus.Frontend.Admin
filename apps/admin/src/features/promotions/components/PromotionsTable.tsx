@@ -17,7 +17,7 @@ import {
   enumCode,
 } from "@workspace/api-client-react";
 import { formatCurrency } from "@workspace/core";
-import { PowerOff, Tag, Trash2, Zap } from "lucide-react";
+import { CopyPlus, PowerOff, Tag, Trash2, Zap } from "lucide-react";
 import { useState } from "react";
 import { PromotionSituationBadge } from "./PromotionSituationBadge";
 import type { PromotionDto, PromotionRow } from "../types";
@@ -67,6 +67,8 @@ interface PromotionsTableProps {
   /** True enquanto uma ação está em voo — bloqueia o segundo clique. */
   isBusy: boolean;
   onOpen: (promotion: PromotionRow) => void;
+  /** Abre o cadastro já preenchido com esta promoção, para a semana seguinte. */
+  onRepeat: (promotion: PromotionRow) => void;
   onEnd: (promotion: PromotionRow) => Promise<unknown>;
   onDelete: (promotion: PromotionRow) => Promise<unknown>;
 }
@@ -82,7 +84,15 @@ interface PromotionsTableProps {
  * nunca viram rolagem horizontal: o que a barra empurra para fora é a ponta
  * direita, onde moram a situação e as ações.
  */
-export function PromotionsTable({ items, isLoading, isBusy, onOpen, onEnd, onDelete }: PromotionsTableProps) {
+export function PromotionsTable({
+  items,
+  isLoading,
+  isBusy,
+  onOpen,
+  onRepeat,
+  onEnd,
+  onDelete,
+}: PromotionsTableProps) {
   const [pendente, setPendente] = useState<{ acao: "encerrar" | "excluir"; item: PromotionRow } | null>(null);
 
   if (isLoading) {
@@ -114,6 +124,11 @@ export function PromotionsTable({ items, isLoading, isBusy, onOpen, onEnd, onDel
               <TableHead className="hidden 2xl:table-cell">De</TableHead>
               <TableHead>Por</TableHead>
               <TableHead className="hidden 2xl:table-cell">Limite</TableHead>
+              {/* Ao lado da situação, e NÃO dentro de uma nota: a nota mede
+                  movimento ("funcionou?") e mora na aba Performance; o
+                  investimento mede preço ("quanto custou?"). Fundir os dois faria
+                  uma nota baixa virar ambígua — não vendeu, ou vendeu caro? */}
+              <TableHead className="text-right">Investimento</TableHead>
               <TableHead>Vigência</TableHead>
               <TableHead>Situação</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -168,6 +183,16 @@ export function PromotionsTable({ items, isLoading, isBusy, onOpen, onEnd, onDel
                     {item.maxQuantityPerSale == null ? "—" : `${item.maxQuantityPerSale} un`}
                   </TableCell>
 
+                  <TableCell className="text-right font-mono text-sm">
+                    {/* Zero aparece como traço: "R$ 0,00" numa promoção que ainda
+                        não vendeu parece medida, e é ausência dela. */}
+                    {item.investment > 0 ? (
+                      formatCurrency(item.investment)
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+
                   <TableCell className="text-sm text-muted-foreground">{formatWindow(item)}</TableCell>
 
                   <TableCell>
@@ -187,6 +212,20 @@ export function PromotionsTable({ items, isLoading, isBusy, onOpen, onEnd, onDel
                           <PowerOff className="h-4 w-4" />
                         </Button>
                       )}
+
+                      {/* Repetir é o fluxo que o dono descreveu: a promoção de
+                          sábado que deu certo volta no sábado seguinte. Sem ele, a
+                          decisão de repetir vira redigitação — produto, desconto,
+                          limite e meta, tudo de novo. */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={isBusy}
+                        title="Repetir promoção"
+                        onClick={() => onRepeat(item)}
+                      >
+                        <CopyPlus className="h-4 w-4" />
+                      </Button>
 
                       <Button
                         variant="ghost"

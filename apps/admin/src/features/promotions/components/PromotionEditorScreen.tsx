@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Button,
   DatePicker,
@@ -24,6 +25,7 @@ import { formatCurrency } from "@workspace/core";
 import { DEFAULT_END_TIME, DEFAULT_START_TIME } from "../hooks/promotionRules";
 import { usePromotionEditor } from "../hooks/usePromotionEditor";
 import { ProductGroupPicker } from "./ProductGroupPicker";
+import { PromotionPerformanceTab } from "./PromotionPerformanceTab";
 import { PromotionPricePanel } from "./PromotionPricePanel";
 import type { PromotionDiscountTypeCode, PromotionTypeCode } from "../types";
 
@@ -47,6 +49,13 @@ interface PromotionEditorScreenProps {
  * ver o efeito do que se acabou de digitar é perder o fio.
  */
 export function PromotionEditorScreen({ promotionId, onBack, onSaved }: PromotionEditorScreenProps) {
+  /**
+   * Aba corrente. Mora em estado, e não na URL, de propósito: o que se
+   * compartilha é a PROMOÇÃO, e um link que abrisse direto na Performance
+   * mandaria a pessoa para os números antes do cadastro que os explica.
+   */
+  const [aba, setAba] = useState<"cadastro" | "performance">("cadastro");
+
   const {
     form,
     setForm,
@@ -91,18 +100,44 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
           </div>
         </div>
 
-        <Button onClick={handleSubmit} disabled={isSaving} className="gap-2">
-          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Salvar
-        </Button>
+        {aba === "cadastro" && (
+          <Button onClick={handleSubmit} disabled={isSaving} className="gap-2">
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Salvar
+          </Button>
+        )}
       </div>
+
+      {/* As abas só existem no DETALHE: uma promoção que ainda não foi gravada não
+          tem venda para medir, e oferecer a aba Performance vazia no cadastro novo
+          só ensinaria que ela não serve para nada. */}
+      {promotionId && (
+        <div className="flex gap-1 border-b">
+          {(["cadastro", "performance"] as const).map((chave) => (
+            <button
+              key={chave}
+              type="button"
+              onClick={() => setAba(chave)}
+              className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                aba === chave
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {chave === "cadastro" ? "Cadastro" : "Performance"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {promotionId && aba === "performance" && <PromotionPerformanceTab promotionId={promotionId} />}
 
       {/* O `min-w-0` nas duas colunas não é detalhe: filho de grid não encolhe
           abaixo da largura do conteúdo sem ele, e a tabela da prévia (seis
           colunas) empurrava uma barra de rolagem horizontal para a tela toda.
           A prévia é 3/5 porque é onde está a decisão — preço, margem e
           investimento —, e o formulário cabe em 2/5. */}
-      <div className="grid gap-6 xl:grid-cols-5">
+      <div className={`grid gap-6 xl:grid-cols-5 ${aba === "cadastro" ? "" : "hidden"}`}>
         {/* ---------------------------------------------------------- formulário */}
         <div className="min-w-0 space-y-4 rounded-lg border bg-card p-4 xl:col-span-2">
           <div className="space-y-2">

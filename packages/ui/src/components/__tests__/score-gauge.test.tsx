@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ScoreGauge } from "../ScoreGauge";
+import { ScoreGauge } from "../score-gauge";
 
 /**
  * O medidor da nota.

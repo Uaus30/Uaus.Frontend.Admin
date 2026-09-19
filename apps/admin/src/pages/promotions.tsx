@@ -32,6 +32,7 @@ export default function PromotionsPage() {
     setOnlyActive,
     abrirNova,
     abrirDetalhe,
+    repetir,
     voltarParaLista,
     aoSalvar,
     encerrar,
@@ -86,6 +87,7 @@ export default function PromotionsPage() {
         isLoading={isLoading}
         isBusy={isBusy}
         onOpen={(promotion) => abrirDetalhe(promotion.id)}
+        onRepeat={(promotion) => repetir(promotion.id)}
         onEnd={(promotion) => encerrar(promotion.id)}
         onDelete={(promotion) => excluir(promotion.id)}
       />

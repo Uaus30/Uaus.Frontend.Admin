@@ -42,6 +42,7 @@ function promocao(parcial: Partial<PromotionDto> = {}): PromotionDto {
     validUntil: "2026-09-19T18:00:59",
     isActive: true,
     showOnSite: false,
+    investment: 0,
     referencePriceMin: 1.75,
     referencePriceMax: 1.75,
     promotionalPriceMin: 0.99,

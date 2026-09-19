@@ -16,6 +16,7 @@ import {
   PROMOTIONS_PATH,
   promotionCreatePathname,
   promotionDetailPathname,
+  promotionRepeatPathname,
   promotionScreenFromPathname,
   type PromotionScreen,
 } from "../promotion-route";
@@ -97,6 +98,15 @@ export function usePromotions() {
 
   const abrirDetalhe = useCallback((id: number) => setLocation(promotionDetailPathname(id)), [setLocation]);
 
+  /**
+   * Abre o cadastro novo copiando uma promoção existente.
+   *
+   * É o fluxo que o dono descreveu: a relâmpago de sábado que deu certo volta no
+   * sábado seguinte. Sem ele, repetir é redigitar produto, desconto, limite e
+   * meta — e o que mais se repete é justamente o que mais se erra ao redigitar.
+   */
+  const repetir = useCallback((id: number) => setLocation(promotionRepeatPathname(id)), [setLocation]);
+
   const voltarParaLista = useCallback(() => setLocation(PROMOTIONS_PATH), [setLocation]);
 
   /**
@@ -173,6 +183,7 @@ export function usePromotions() {
     setOnlyActive: comReset(setOnlyActive),
     abrirNova,
     abrirDetalhe,
+    repetir,
     voltarParaLista,
     aoSalvar,
     /** Encerra agora, preservando a janela em que a promoção valeu. */

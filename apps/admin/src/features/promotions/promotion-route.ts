@@ -44,6 +44,29 @@ export function promotionCreatePathname(): string {
   return `${PROMOTIONS_PATH}/${SEGMENTO_NOVA}`;
 }
 
+/**
+ * Caminho do cadastro novo já apontando para a promoção a repetir.
+ *
+ * A promoção de origem viaja na URL, e não em estado de tela: o cadastro é uma
+ * TELA, e um F5 no meio do preenchimento perderia a origem — a pessoa voltaria
+ * para um formulário em branco sem entender por quê.
+ */
+export function promotionRepeatPathname(id: number): string {
+  return `${promotionCreatePathname()}?repetir=${id}`;
+}
+
+/**
+ * A promoção que o cadastro novo deve copiar, ou `undefined`.
+ *
+ * Pura e separada para ter teste: é o que decide se o formulário abre em branco
+ * ou preenchido, e um id inválido na barra de endereços não pode deixar a tela
+ * esperando por uma promoção que não existe.
+ */
+export function promotionRepeatSourceFromSearch(search: string): number | undefined {
+  const id = Number(new URLSearchParams(search).get("repetir"));
+  return Number.isInteger(id) && id > 0 ? id : undefined;
+}
+
 /** Caminho do detalhe de uma promoção. */
 export function promotionDetailPathname(id: number): string {
   return `${PROMOTIONS_PATH}/${id}`;

@@ -1,7 +1,12 @@
 import * as React from "react";
 
 /**
- * O medidor da nota do produto, de 0 a 100.
+ * O medidor de uma nota de 0 a 100.
+ *
+ * Mora no `packages/ui` porque duas telas o usam — o desempenho do produto e o
+ * da promoção relâmpago — e feature não importa de feature (CLAUDE.md §6). Ele
+ * é visual puro: não conhece regra de domínio nenhuma, e é por isso que a
+ * palavra da faixa entra por prop em vez de sair de um corte escrito aqui.
  *
  * <b>A geometria e o estilo vêm do velocímetro do Prisma</b>
  * (`app/src/componentes/graficos/Velocimetro.tsx`), a pedido do dono: trilha em
@@ -92,9 +97,18 @@ type ScoreGaugeProps = {
    */
   rotulo?: string;
   tamanho?: number;
+  /**
+   * Casas decimais do número no miolo.
+   *
+   * Uma por padrão, que é o do produto: ela existe para desempatar dois rankings
+   * de 888 itens. A promoção passa zero — algumas dezenas por ano não são
+   * ordenadas por nota, e a decimal só sugeriria uma precisão que a medida não
+   * tem.
+   */
+  casasDecimais?: 0 | 1;
 };
 
-export function ScoreGauge({ score, rotulo, tamanho = 260 }: ScoreGaugeProps) {
+export function ScoreGauge({ score, rotulo, tamanho = 260, casasDecimais = 1 }: ScoreGaugeProps) {
   const id = React.useId();
   const alvo = Math.min(100, Math.max(0, score));
 
@@ -117,7 +131,10 @@ export function ScoreGauge({ score, rotulo, tamanho = 260 }: ScoreGaugeProps) {
   const cor = corDaNota(alvo);
   const transicao = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-  const nota = alvo.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nota = alvo.toLocaleString("pt-BR", {
+    minimumFractionDigits: casasDecimais,
+    maximumFractionDigits: casasDecimais,
+  });
 
   return (
     <svg
@@ -213,7 +230,11 @@ export function ScoreGauge({ score, rotulo, tamanho = 260 }: ScoreGaugeProps) {
         y={CY - 2}
         textAnchor="middle"
         fill={cor}
-        style={{ fontSize: alvo >= 100 ? 38 : 46, fontWeight: 700, letterSpacing: "-0.02em" }}
+        style={{
+          fontSize: alvo >= 100 && casasDecimais > 0 ? 38 : 46,
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+        }}
       >
         {nota}
       </text>

@@ -1890,6 +1890,14 @@ export interface PromotionDto {
    * vendas atribuídas, e um projetado sem meta declarada seria confundido com ele.
    */
   projectedInvestment?: number | null;
+  /**
+   * O que a promoção JÁ custou de faturamento, sobre as vendas atribuídas a ela.
+   *
+   * Zero na que ainda não vendeu e na de destaque sem corte de preço — a tela
+   * distingue as duas pela vigência. **Não é a nota**: a nota mede movimento
+   * ("funcionou?") e mora na aba Performance; este número mede preço.
+   */
+  investment: number;
 }
 
 /** Uma variação do grupo com a conta do preço promocional feita. */
@@ -1909,6 +1917,158 @@ export interface PromotionVariationDto {
 /** Detalhe de uma promoção: tudo da listagem mais a tabela por variação. */
 export interface PromotionDetailsDto extends PromotionDto {
   variations: PromotionVariationDto[];
+}
+
+/** Faixa da nota de uma promoção relâmpago. */
+export const PROMOTION_PERFORMANCE_CLASS = {
+  None: 0,
+  Standout: 1,
+  Steady: 2,
+  Weak: 3,
+  /** Nenhuma venda atribuída. Não é nota zero: é ausência de medida. */
+  NoSales: 4,
+} as const;
+
+export type PromotionPerformanceClassCode =
+  (typeof PROMOTION_PERFORMANCE_CLASS)[keyof typeof PROMOTION_PERFORMANCE_CLASS];
+
+export const PROMOTION_PERFORMANCE_CLASS_LABEL: Record<number, string> = {
+  [PROMOTION_PERFORMANCE_CLASS.Standout]: "Destaque",
+  [PROMOTION_PERFORMANCE_CLASS.Steady]: "Regular",
+  [PROMOTION_PERFORMANCE_CLASS.Weak]: "Fraco",
+  [PROMOTION_PERFORMANCE_CLASS.NoSales]: "Sem venda",
+};
+
+/**
+ * Um componente da nota, aberto: quanto valeu, contra qual régua, com o número
+ * medido ao lado.
+ *
+ * Sem isso não há como recalibrar peso nenhum depois, e a nota vira um número
+ * que se aceita ou se ignora — o oposto do que ela existe para fazer.
+ */
+export interface PromotionScoreComponentDto {
+  /** Chave estável: `volume`, `dayShare`, `ticket` ou `basket`. */
+  key: string;
+  /** Peso na nota final, de 0 a 1. */
+  weight: number;
+  /** Pontos de 0 a 100 deste componente. */
+  score: number;
+  /** O que a promoção mediu — unidades, percentual, reais ou unidades por venda. */
+  measured: number;
+  /** A régua: o valor que vale nota cheia. */
+  target: number;
+  /** De onde a régua saiu, em uma frase curta. */
+  targetSource: string;
+  /** Saiu da conta por falta de vendas. Continua na lista, para a tela dizer o motivo. */
+  excluded: boolean;
+}
+
+/** A nota da relâmpago, com os quatro componentes abertos. */
+export interface PromotionScoreDto {
+  /** Nota final de 0 a 100, inteira. */
+  score: number;
+  class: PromotionPerformanceClassCode;
+  components: PromotionScoreComponentDto[];
+  /** Quantas ocorrências do mesmo dia da semana sustentaram a régua. */
+  rulerOccurrences: number;
+  /** A régua caiu para todos os dias por falta de ocorrências daquele dia. */
+  rulerFellBackToAllDays: boolean;
+  /** Nome do dia da semana da promoção, para a tela escrever "sábados". */
+  weekdayName: string;
+  /** Ticket e arraste saíram da conta e os dois que sobraram foram renormalizados. */
+  renormalizedWithoutTicketAndBasket: boolean;
+  /** Quantas vezes a promoção multiplicou o ritmo normal. Ausente sem régua. */
+  impulseMultiplier?: number | null;
+  /** Vendas em que a quantidade promocional passou do limite. */
+  salesOverLimit: number;
+  /**
+   * Hora da última venda. Ao lado do fim da janela e do saldo, é a assinatura do
+   * estoque que acabou — e é **inferência**, que a tela precisa declarar.
+   */
+  lastSaleAt?: string | null;
+  /** Saldo atual do grupo. */
+  groupStock: number;
+}
+
+/**
+ * A escada de reais: o que a promoção custou e o que veio junto.
+ *
+ * **O investimento NÃO se subtrai do lucro.** O `profit` do item já está líquido
+ * do desconto; fazer "retorno − investimento" conta o mesmo dinheiro duas vezes.
+ */
+export interface PromotionInvestmentDto {
+  /** `Σ (promotion_discount × quantidade)`. Exato. */
+  amount: number;
+  /** Investimento por dia de vigência — é o que torna a Dia a Dia longa legível. */
+  perDay: number;
+  /** Lucro das linhas promocionais. Negativo quando o preço ficou abaixo do custo. */
+  itemProfit: number;
+  /** Lucro das outras linhas das vendas que levaram o produto. */
+  dragProfit: number;
+  /** `arraste ÷ investimento`. Ausente quando não houve investimento. */
+  returnPerInvestedReal?: number | null;
+  /** O mesmo num período equivalente sem promoção. **Estimativa.** */
+  baselineProfit: number;
+  /** `(lucro do item + arraste) − linha de base`. **Estimativa.** */
+  balance: number;
+  /** Não houve desconto: promoção de destaque. */
+  isShowcaseOnly: boolean;
+}
+
+/** Totalizadores do patamar de preço. O Dia a Dia não tem nota. */
+export interface PromotionEverydayDto {
+  days: number;
+  unitsPerDay: number;
+  unitsPerDayBefore: number;
+  /** Ausente quando o produto não vendia antes — não houve impulso infinito. */
+  impulsePercent?: number | null;
+  marginPercent?: number | null;
+  marginPercentBefore?: number | null;
+  ticket: number;
+  storeTicket: number;
+}
+
+/** Um produto que saiu junto, nas mesmas vendas. */
+export interface PromotionCompanionDto {
+  productId: number;
+  productName: string;
+  units: number;
+  profit: number;
+}
+
+/** Uma promoção anterior do mesmo grupo, com a nota que ela tirou. */
+export interface PromotionHistoryEntryDto {
+  promotionId: number;
+  type: EnumValue;
+  validFrom: string;
+  validUntil?: string | null;
+  soldUnits: number;
+  investment: number;
+  /** Ausente em Dia a Dia e na relâmpago que ainda corre. */
+  score?: number | null;
+}
+
+/**
+ * A aba Performance de uma promoção.
+ *
+ * `score` só vem em Relâmpago e `everyday` só em Dia a Dia: um evento de preço e
+ * um patamar respondem a perguntas diferentes, mas dividem a escada de reais.
+ */
+export interface PromotionPerformanceDto {
+  promotionId: number;
+  type: EnumValue;
+  validFrom: string;
+  validUntil?: string | null;
+  /** Ainda no ar: os números são parciais, e a tela avisa. */
+  isRunning: boolean;
+  soldUnits: number;
+  salesCount: number;
+  revenue: number;
+  investment: PromotionInvestmentDto;
+  score?: PromotionScoreDto | null;
+  everyday?: PromotionEverydayDto | null;
+  companions: PromotionCompanionDto[];
+  groupHistory: PromotionHistoryEntryDto[];
 }
 
 /**

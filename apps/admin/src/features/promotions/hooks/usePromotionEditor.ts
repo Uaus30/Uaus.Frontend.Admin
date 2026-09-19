@@ -17,7 +17,9 @@ import {
   emptyPromotionForm,
   formFromPromotion,
   parsePositiveIntegerOrNaN,
+  repeatFormFromPromotion,
 } from "./promotionRules";
+import { promotionRepeatSourceFromSearch } from "../promotion-route";
 import type { PromotionForm } from "../types";
 
 /**
@@ -33,7 +35,21 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
   const [form, setForm] = useState<PromotionForm>(() => emptyPromotionForm());
   const [loadedId, setLoadedId] = useState<number | null>(null);
   const [confirmingBelowCost, setConfirmingBelowCost] = useState(false);
+
+  /**
+   * A promoção que este cadastro está copiando, quando veio de "Repetir".
+   *
+   * Lida uma vez, do `window.location`, e não por estado de rota: o cadastro é
+   * uma tela, e um F5 no meio do preenchimento não pode devolver um formulário
+   * em branco. Só vale no cadastro NOVO — repetir sobre um detalhe aberto
+   * reescreveria a promoção que está na tela.
+   */
+  const [repeatSourceId] = useState(() =>
+    promotionId ? undefined : promotionRepeatSourceFromSearch(window.location.search),
+  );
+
   const { data: promotion, isLoading } = useGetPromotionById(promotionId);
+  const { data: repeatSource } = useGetPromotionById(repeatSourceId);
 
   /**
    * Preenche o formulário quando o detalhe chega.
@@ -50,6 +66,14 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
   if (promotion && promotion.id !== loadedId) {
     setLoadedId(promotion.id);
     setForm(formFromPromotion(promotion));
+  }
+
+  // O mesmo ajuste em render, e pela mesma razão, para a promoção copiada. A
+  // guarda pelo id impede que uma reconsulta em segundo plano (foco na janela)
+  // apague o que a pessoa já corrigiu no formulário.
+  if (repeatSource && repeatSource.id !== loadedId) {
+    setLoadedId(repeatSource.id);
+    setForm(repeatFormFromPromotion(repeatSource, new Date()));
   }
 
   // Os dois campos são digitados caractere a caractere; sem o debounce a prévia
@@ -132,7 +156,7 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
     form,
     setForm,
     promotion,
-    isLoading: !!promotionId && isLoading,
+    isLoading: (!!promotionId || !!repeatSourceId) && isLoading,
     preview,
     isPreviewing,
     problem,

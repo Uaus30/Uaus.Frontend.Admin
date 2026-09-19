@@ -17,6 +17,7 @@ import type {
   PromotionDetailsDto,
   PromotionDiscountTypeCode,
   PromotionDto,
+  PromotionPerformanceDto,
   PromotionPreviewDto,
   PromotionTypeCode,
   QueryKey,
@@ -115,6 +116,39 @@ export function useGetPromotionById(
     queryKey: [...getGetPromotionByIdQueryKey(), id ?? 0],
     enabled: !!id,
     queryFn: () => apiGetOrThrow<PromotionDetailsDto>(`/Promotions/${id}`),
+    ...options?.query,
+  });
+}
+
+/**
+ * Chave de cache da aba Performance.
+ *
+ * Prefixo próprio, distinto da listagem e do detalhe: gravar a promoção
+ * invalida os dois primeiros, e não há por que refazer quatro consultas de
+ * medição porque alguém corrigiu o nome do produto.
+ */
+export const getGetPromotionPerformanceQueryKey = (): QueryKey => ["PromotionPerformance"];
+
+/**
+ * A aba Performance: o que a promoção vendeu, quanto custou e — na relâmpago —
+ * que nota tirou.
+ *
+ * @param id Promoção; a query fica desabilitada enquanto for indefinido, que é o
+ *   que impede a aba de consultar antes de a tela saber qual promoção é.
+ */
+export function useGetPromotionPerformance(
+  id?: number,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<PromotionPerformanceDto, ApiError, PromotionPerformanceDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<PromotionPerformanceDto, ApiError, PromotionPerformanceDto, QueryKey>({
+    queryKey: [...getGetPromotionPerformanceQueryKey(), id ?? 0],
+    enabled: !!id,
+    queryFn: () => apiGetOrThrow<PromotionPerformanceDto>(`/Promotions/${id}/performance`),
     ...options?.query,
   });
 }
