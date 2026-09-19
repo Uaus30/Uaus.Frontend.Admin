@@ -78,6 +78,19 @@ export interface ReceiptItem {
    * cupom mostraria um valor a mais sem dizer do que se trata.
    */
   surchargeReason?: string | null;
+  /**
+   * Quanto de {@link unitDiscount} veio da PROMOÇÃO, por unidade — o resto é o
+   * abatimento que o operador deu no balcão.
+   *
+   * **Parcela, não adição.** A linha do item imprime as duas separadas
+   * ("Promoção − R$ 4,56" e "Desconto − R$ 1,00") justamente porque são coisas
+   * diferentes para quem lê: uma é o cartaz da vitrine, a outra é uma
+   * negociação. Somadas, continuam fechando a coluna da direita.
+   *
+   * Ausente ou zero, a linha sai como sempre saiu — é o caso de toda venda sem
+   * promoção e de toda venda gravada antes desta feature.
+   */
+  unitPromotionDiscount?: number;
   /** Unidade de medida exibida ao lado da quantidade. */
   unit?: string;
   /**

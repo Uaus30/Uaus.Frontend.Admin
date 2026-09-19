@@ -63,6 +63,28 @@ describe("findStockShortages", () => {
   it("deve aceitar venda sem itens", () => {
     expect(findStockShortages(CATALOG, [])).toEqual([]);
   });
+
+  it("deve somar as duas linhas do mesmo produto antes de conferir", () => {
+    // O limite por venda da promoção divide o produto em duas linhas — três no
+    // preço do cartaz e três no normal. Conferidas separadamente, as duas caberiam
+    // no saldo de 5 e a venda passaria vendendo 6 unidades de um estoque de 5.
+    const shortages = findStockShortages(CATALOG, [
+      { productId: 1, quantity: 3 },
+      { productId: 1, quantity: 3 },
+    ]);
+
+    expect(shortages).toHaveLength(1);
+    expect(shortages[0]).toMatchObject({ productId: 1, requested: 6, available: 5 });
+  });
+
+  it("deve aceitar duas linhas do mesmo produto que somadas cabem no estoque", () => {
+    expect(
+      findStockShortages(CATALOG, [
+        { productId: 1, quantity: 3 },
+        { productId: 1, quantity: 2 },
+      ]),
+    ).toEqual([]);
+  });
 });
 
 /**
@@ -121,6 +143,18 @@ describe("estoque local na base de verdade", () => {
     await consumeLocalStock([{ productId: 2, quantity: 99 }]);
 
     expect(await storedStock(2)).toBe(0);
+  });
+
+  it("deve debitar as duas linhas do mesmo produto, e não só a primeira", async () => {
+    // REGRESSÃO da divisão pelo limite da promoção: a baixa casava o movimento
+    // pelo id do produto e achava só a PRIMEIRA linha. O excedente saía da
+    // prateleira sem sair da base local, e o caixa seguia vendendo o que acabou.
+    await consumeLocalStock([
+      { productId: 1, quantity: 3 },
+      { productId: 1, quantity: 2 },
+    ]);
+
+    expect(await storedStock(1)).toBe(5);
   });
 
   it("deve ignorar produto que não está na base local", async () => {

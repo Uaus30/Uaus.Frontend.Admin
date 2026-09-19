@@ -198,4 +198,50 @@ describe("buildSaleReceipt", () => {
 
     expect(doCarrinho.items).toEqual(reimpressao.items);
   });
+
+  it("leva a parcela da promoção para o cupom, discriminada do desconto do operador", () => {
+    const receipt = build({
+      items: [{ ...ITEM, price: 2.5, quantity: 6, discount: 1.71, promotionId: 4, promotionDiscount: 1.51 }],
+    });
+
+    expect(receipt.items[0]).toMatchObject({
+      unitPrice: 0.79,
+      unitDiscount: 1.71,
+      unitPromotionDiscount: 1.51,
+    });
+  });
+
+  it("não leva a parcela órfã: sem promoção atribuída, não há economia a anunciar", () => {
+    const receipt = build({ items: [{ ...ITEM, promotionId: null, promotionDiscount: 1.51 }] });
+
+    expect(receipt.items[0].unitPromotionDiscount).toBe(0);
+  });
+
+  it("sai igual à reimpressão também quando houve promoção", () => {
+    // Mesmo pareamento do teste acima, e pelo mesmo motivo: a segunda via é a que
+    // o cliente traz de volta ao balcão, e ela não pode contar outra história.
+    const doCarrinho = build({
+      items: [{ ...ITEM, price: 2.5, quantity: 6, discount: 1.51, promotionId: 4, promotionDiscount: 1.51 }],
+      saved: { ...SAVED, total: 5.94 },
+      payments: [{ paymentMethodId: 1, amount: 5.94, installmentNumber: 1 }],
+    });
+
+    const reimpressao = buildReceiptFromSale(
+      { id: 42, createdAt: "2026-08-15T12:00:00", total: 5.94, discount: 0, notes: null },
+      [
+        {
+          productId: 7,
+          productName: "Coca-Cola 350ml",
+          quantity: 6,
+          unitPrice: 0.99,
+          discount: 1.51,
+          promotionId: 4,
+          promotionDiscount: 1.51,
+          barcode: "7891000100103",
+        },
+      ],
+    );
+
+    expect(doCarrinho.items).toEqual(reimpressao.items);
+  });
 });

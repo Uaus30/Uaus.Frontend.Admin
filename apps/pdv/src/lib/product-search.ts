@@ -22,6 +22,12 @@ const SEARCH_LIMIT = 20;
  * Os campos ausentes são preenchidos com valores neutros, e nenhum deles
  * participa da venda ou da baixa — custo, mínimo e datas ficam fora da base
  * local de propósito.
+ *
+ * **`productGroupId` NÃO é um desses campos neutros.** É o grupo que a promoção
+ * promove: sem ele a linha entra no carrinho sem grupo, nenhuma promoção casa, e
+ * o copo da relâmpago sai a R$ 2,50 em vez de R$ 0,99 — sem selo e sem aviso.
+ * Como este caminho é o fallback da busca, isso aconteceria justamente no sábado
+ * com a internet caída, que é quando a base local existe para servir.
  */
 export function toProductPdvSearchDtos(products: LocalProduct[]): ProductPdvSearchDto[] {
   return products.map((product) => ({
@@ -30,6 +36,7 @@ export function toProductPdvSearchDtos(products: LocalProduct[]): ProductPdvSear
     barcode: product.barcode,
     price: product.price,
     stock: product.stock,
+    productGroupId: product.productGroupId,
     groupName: null,
     imageUrl: null,
   }));

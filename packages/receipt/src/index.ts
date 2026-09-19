@@ -10,7 +10,7 @@ export type {
 export { STORE_LOGO_DATA_URI } from "./logo";
 export { RECEIPT_FOOTER_MESSAGE, STORE_INFO, resolveStoreInfo } from "./store-info";
 export { formatReceiptCurrency } from "./document";
-export { buildReceiptHtml, computeItemsSubtotal } from "./render";
+export { buildReceiptHtml, computeItemsSubtotal, computePromotionSavings } from "./render";
 export { buildSalesReportHtml, printSalesReport } from "./sales-report";
 export { buildReceiptFromSale } from "./from-sale";
 export { printReceipt, printReceiptHtml } from "./print";

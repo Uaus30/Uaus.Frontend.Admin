@@ -242,7 +242,18 @@ describe("syncPendingSales", () => {
     // Os nomes de produto e forma de pagamento são só da fila local; enviá-los
     // faria o backend recusar o corpo.
     expect(body.sales[0].items).toEqual([
-      { productId: 1, quantity: 2, unitPrice: 25, discount: 0, surcharge: 0, surchargeReason: null },
+      {
+        productId: 1,
+        quantity: 2,
+        unitPrice: 25,
+        discount: 0,
+        surcharge: 0,
+        surchargeReason: null,
+        // Venda da fila sem promoção sobe com o par zerado: o CHECK do banco
+        // recusa parcela de promoção sem promoção atribuída.
+        promotionId: null,
+        promotionDiscount: 0,
+      },
     ]);
     expect(body.sales[0]).toMatchObject({ clientReference: "ref-1", cashRegisterSessionId: 7 });
   });
@@ -267,6 +278,69 @@ describe("syncPendingSales", () => {
     const body = apiPost.mock.calls[0][1] as { sales: Array<{ items: Array<Record<string, number>> }> };
     expect(body.sales[0].items[0].discount).toBe(2);
     expect(body.sales[1].items[0].discount).toBe(0);
+  });
+
+  it("deve enviar a promoção que a venda praticou no balcão, e não a de hoje", async () => {
+    // A venda das 17h50 de sábado sobe na segunda. O servidor confere a janela
+    // contra o `occurredAt` e aceita; o que ele NÃO pode receber é a venda sem a
+    // atribuição, senão o desconto do cartaz vira desconto do vendedor e a
+    // promoção perde a venda na medição.
+    const comPromocao = pendingSale("ref-1");
+    comPromocao.items = [
+      {
+        productId: 1,
+        quantity: 6,
+        unitPrice: 0.99,
+        discount: 1.51,
+        promotionId: 4,
+        promotionDiscount: 1.51,
+        productName: "Copo americano",
+      },
+    ];
+
+    listSalesToSync.mockResolvedValue([comPromocao]);
+    apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<{ items: Array<Record<string, unknown>> }> };
+    expect(body.sales[0].items[0]).toMatchObject({ promotionId: 4, promotionDiscount: 1.51 });
+  });
+
+  it("deve enviar o instante em que o balcão precificou, e não o da sincronização", async () => {
+    const comPromocao = pendingSale("ref-1");
+    comPromocao.promotionReferenceAt = "2026-09-19T17:59:40";
+
+    listSalesToSync.mockResolvedValue([comPromocao]);
+    apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
+    expect(body.sales[0].promotionReferenceAt).toBe("2026-09-19T17:59:40");
+  });
+
+  it("deve mandar nulo quando a venda da fila é anterior ao campo", async () => {
+    listSalesToSync.mockResolvedValue([pendingSale("ref-1")]);
+    apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
+    expect(body.sales[0].promotionReferenceAt).toBeNull();
+  });
+
+  it("deve descartar a parcela de promoção sem promoção atribuída", async () => {
+    const orfa = pendingSale("ref-1");
+    orfa.items = [{ productId: 1, quantity: 1, unitPrice: 25, promotionDiscount: 5, productName: "Café" }];
+
+    listSalesToSync.mockResolvedValue([orfa]);
+    apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<{ items: Array<Record<string, unknown>> }> };
+    expect(body.sales[0].items[0]).toMatchObject({ promotionId: null, promotionDiscount: 0 });
   });
 
   it("deve enviar o bloco do cupom, sem campanha nenhuma", async () => {

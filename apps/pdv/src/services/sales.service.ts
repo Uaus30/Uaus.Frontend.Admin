@@ -41,6 +41,26 @@ export type SaleItemInput = {
   surcharge?: number;
   /** Justificativa do acréscimo, impressa no cupom. Nula quando não houve. */
   surchargeReason?: string | null;
+  /**
+   * Promoção que abateu esta linha, ou ausente/`null` quando o preço é o de
+   * tabela.
+   *
+   * Quem decide é o PDV, pelo relógio local: é o que faz a relâmpago valer numa
+   * venda offline, e é por isso que o servidor CONFERE (existe, é do grupo do
+   * produto, estava na janela no instante da venda) em vez de recalcular.
+   * Recalcular recusaria uma venda já paga se a promoção fosse editada enquanto a
+   * fila esperava internet.
+   */
+  promotionId?: number | null;
+  /**
+   * Parcela de `discount` que veio da promoção, em R$ por unidade.
+   *
+   * **Já está dentro de `discount` — não somar.** É o que separa o desconto do
+   * cartaz do desconto que o operador deu: sem ela, toda relâmpago de 40% passaria
+   * a exigir senha de administrador no balcão, pelo mesmo motivo que o cupom
+   * precisa da discriminação dele.
+   */
+  promotionDiscount?: number;
   /** Nome do produto, guardado na fila offline para o cupom e a lista de pendências. */
   productName?: string;
 };
@@ -86,6 +106,21 @@ export type SaleCouponInput = {
 };
 
 export type RegisterSalePayload = {
+  /**
+   * Instante que o balcão congelou para decidir a promoção — o momento do
+   * PRIMEIRO item, não o do pagamento.
+   *
+   * **O `occurredAt` não serve para isso.** Ele é gerado na confirmação do
+   * pagamento, minutos depois. Numa relâmpago que acaba às 18:00, o cliente que
+   * começou 17:59:40 já levou o preço do cartaz no cupom impresso, e a venda
+   * fecha 18:00:12: conferindo a janela contra o pagamento, o servidor
+   * descartaria a atribuição de uma venda JÁ PAGA com desconto — a promoção
+   * sumiria da medição e o abatimento inteiro contaria como desconto do vendedor,
+   * podendo exigir senha de administrador na frente do cliente.
+   *
+   * Nulo quando não houve venda a congelar (reedição, venda sem promoção).
+   */
+  promotionReferenceAt?: string | null;
   /**
    * Sessão de caixa da venda, ou `null` quando a loja não usa controle de caixa.
    *
@@ -244,6 +279,7 @@ function buildRequestBody(
   return {
     clientReference,
     occurredAt,
+    promotionReferenceAt: payload.promotionReferenceAt ?? null,
     cashRegisterSessionId: payload.cashRegisterSessionId,
     customerId: payload.customerId ?? null,
     customerDocument: payload.customerDocument?.trim() || null,
@@ -265,6 +301,11 @@ function buildRequestBody(
       // Nulo, e não string vazia: o servidor exige o par (acréscimo > 0 exige
       // motivo; acréscimo zero exige motivo nulo), e "" derrubaria o CHECK.
       surchargeReason: (item.surcharge ?? 0) > 0 ? (item.surchargeReason ?? null) : null,
+      // Par obrigatório também aqui: o CHECK `ck_sale_items_promotion_discount`
+      // recusa parcela sem promoção. Uma linha sem promoção vai com os dois
+      // zerados, nunca com o desconto do cartaz órfão.
+      promotionId: item.promotionId ?? null,
+      promotionDiscount: item.promotionId ? (item.promotionDiscount ?? 0) : 0,
     })),
     payments: payload.payments.map((payment) => ({
       paymentMethodId: payment.paymentMethodId,
@@ -390,6 +431,9 @@ async function enqueueSale(
     clientReference,
     offlineNumber,
     occurredAt,
+    // Vai para a fila junto com a venda: o que decide a promoção é quando o
+    // balcão precificou, e não quando a internet voltou.
+    promotionReferenceAt: payload.promotionReferenceAt ?? null,
     cashRegisterSessionId: payload.cashRegisterSessionId,
     customerId: payload.customerId ?? null,
     customerDocument: payload.customerDocument?.trim() || null,
@@ -407,6 +451,12 @@ async function enqueueSale(
       discount: item.discount ?? 0,
       surcharge: item.surcharge ?? 0,
       surchargeReason: (item.surcharge ?? 0) > 0 ? (item.surchargeReason ?? null) : null,
+      // A fila guarda a promoção como ela valia NO BALCÃO, pelo mesmo motivo do
+      // cupom logo acima: é o preço que saiu impresso no comprovante do cliente,
+      // e é ele que prevalece quando a promoção já tiver sido editada no admin no
+      // momento em que a internet voltar.
+      promotionId: item.promotionId ?? null,
+      promotionDiscount: item.promotionId ? (item.promotionDiscount ?? 0) : 0,
       productName: item.productName ?? `Produto #${item.productId}`,
     })),
     payments: payload.payments.map((payment) => ({

@@ -416,6 +416,116 @@ describe("buildReceiptHtml", () => {
     expect(html).toContain(`1 UN x ${formatReceiptCurrency(0.25)}`);
   });
 
+  it("separa a promoção do desconto do operador em duas linhas", () => {
+    // Copo de R$ 2,50 na relâmpago a R$ 0,99, e mais R$ 0,20 que o operador deu
+    // no balcão. São coisas diferentes para quem lê o papel: uma é o cartaz da
+    // vitrine, a outra é negociação — e somadas continuam fechando a coluna.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [
+          {
+            name: "COPO AMERICANO",
+            quantity: 2,
+            unitPrice: 1.31,
+            unitDiscount: 1.71,
+            unitPromotionDiscount: 1.51,
+          },
+        ],
+        payments: [{ name: "Dinheiro", amount: 2.62 }],
+        total: 2.62,
+      }),
+    );
+
+    expect(html).toContain(`2 UN x ${formatReceiptCurrency(3.02)}`);
+    expect(html).toContain(
+      `<div class="row item-discount"><span class="row-label">Promoção</span><span class="row-value">- ${formatReceiptCurrency(3.02)}</span></div>`,
+    );
+    expect(html).toContain(
+      `<div class="row item-discount"><span class="row-label">Desconto</span><span class="row-value">- ${formatReceiptCurrency(0.4)}</span></div>`,
+    );
+  });
+
+  it("omite a linha de desconto quando a promoção é o abatimento inteiro", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [
+          {
+            name: "COPO AMERICANO",
+            quantity: 1,
+            unitPrice: 0.99,
+            unitDiscount: 1.51,
+            unitPromotionDiscount: 1.51,
+          },
+        ],
+        payments: [{ name: "Dinheiro", amount: 0.99 }],
+        total: 0.99,
+      }),
+    );
+
+    expect(html).toContain(">Promoção<");
+    expect(html).not.toContain(">Desconto<");
+  });
+
+  it("imprime o quanto a promoção economizou, depois do troco", () => {
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [
+          {
+            name: "COPO AMERICANO",
+            quantity: 6,
+            unitPrice: 0.99,
+            unitDiscount: 1.51,
+            unitPromotionDiscount: 1.51,
+          },
+        ],
+        payments: [{ name: "Dinheiro", amount: 5.94 }],
+        total: 5.94,
+      }),
+    );
+
+    expect(html).toContain(
+      `<div class="row savings"><span class="row-label">VOCÊ ECONOMIZOU</span><span class="row-value">${formatReceiptCurrency(9.06)}</span></div>`,
+    );
+  });
+
+  it("não anuncia economia quando o abatimento foi só do operador", () => {
+    // O desconto negociado no balcão não é economia do cartaz: anunciá-lo como
+    // tal ensinaria o cliente a esperar o mesmo abatimento na semana seguinte.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [{ name: "CARREGADOR", quantity: 1, unitPrice: 20, unitDiscount: 2 }],
+        payments: [{ name: "Dinheiro", amount: 20 }],
+        total: 20,
+      }),
+    );
+
+    expect(html).not.toContain("ECONOMIZOU");
+  });
+
+  it("limita a parcela da promoção ao desconto da própria linha", () => {
+    // Dado corrompido (parcela maior que o abatimento) faria a subtração de cima
+    // para baixo não bater com o total impresso ao lado.
+    const html = buildReceiptHtml(
+      makeReceipt({
+        items: [
+          {
+            name: "COPO AMERICANO",
+            quantity: 1,
+            unitPrice: 2,
+            unitDiscount: 0.5,
+            unitPromotionDiscount: 9,
+          },
+        ],
+      }),
+    );
+
+    expect(html).toContain(
+      `<div class="row item-discount"><span class="row-label">Promoção</span><span class="row-value">- ${formatReceiptCurrency(0.5)}</span></div>`,
+    );
+    expect(html).not.toContain(">Desconto<");
+    expect(html).toContain(`${formatReceiptCurrency(0.5)}</span></div>`);
+  });
+
   it("imprime o preço do produto, o acréscimo e a justificativa quando houve acréscimo", () => {
     // Pendrive de R$ 25,00 de tabela vendido a R$ 30,00 por causa da gravação.
     // Sem tirar o acréscimo da linha da quantidade, o cupom diria que a tabela

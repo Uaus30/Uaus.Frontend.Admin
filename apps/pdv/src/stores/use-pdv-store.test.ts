@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PROMOTION_DISCOUNT_TYPE, PROMOTION_TYPE } from "@workspace/api-client-react";
+import type { LocalPromotion } from "@/offline";
 import { EMPTY_CONSUMER, FONT_SCALES, usePdvStore, type PdvItem } from "./use-pdv-store";
 
 /** Estado inicial de um carrinho vazio, usado entre os testes. */
@@ -12,6 +14,11 @@ const EMPTY = {
   saleClientReference: null,
   lastAddedItemId: null,
   lastAddedSeq: 0,
+  // As promoções entram na limpeza como o resto: uma promoção esquecida pelo
+  // teste anterior mudaria o total do próximo sem ele pedir nada.
+  promotions: [],
+  promotionInstant: null,
+  releasedPromotions: [],
 };
 
 /** Produto de referência: R$ 10,00 com 20 unidades em estoque. */
@@ -24,6 +31,29 @@ function product(overrides: Partial<Omit<PdvItem, "id">> = {}): Omit<PdvItem, "i
     quantity: 1,
     discount: 0,
     availableStock: 20,
+    ...overrides,
+  };
+}
+
+/**
+ * Promoção de referência: a caneca de R$ 10,00 sai a R$ 6,00.
+ *
+ * A vigência é ABERTA de propósito. Quem congela o instante da venda é o próprio
+ * store, no primeiro item, e ele lê o relógio de verdade — uma janela com hora
+ * fixa faria estes testes passarem de manhã e falharem à noite, que é um erro que
+ * este projeto já cometeu duas vezes. A virada da janela é testada em
+ * `lib/promotions.test.ts`, onde o instante é parâmetro.
+ */
+function promocao(overrides: Partial<LocalPromotion> = {}): LocalPromotion {
+  return {
+    id: 1,
+    productGroupId: 10,
+    type: PROMOTION_TYPE.Flash,
+    discountType: PROMOTION_DISCOUNT_TYPE.FinalPrice,
+    discountValue: 6,
+    validFrom: "2020-01-01T00:00:00",
+    validUntil: null,
+    maxQuantityPerSale: null,
     ...overrides,
   };
 }
@@ -651,6 +681,164 @@ describe("usePdvStore", () => {
       expect(state.globalDiscount).toBe(5);
       expect(state.getSubtotal()).toBe(18);
       expect(state.getTotal()).toBe(13);
+    });
+
+    it("não realoca promoção na reedição — a parcela já está no desconto gravado", () => {
+      // A venda gravada guarda o preço praticado: R$ 10,00 de tabela com R$ 4,00
+      // de desconto, dos quais a promoção pagou parte. Realocar somaria o
+      // desconto do cartaz por cima dele mesmo, e a reedição cobraria menos que a
+      // venda original.
+      const items: PdvItem[] = [
+        { ...product(), id: "linha-1", productGroupId: 10, quantity: 1, discount: 4 },
+      ];
+
+      usePdvStore.setState({ promotions: [promocao()] });
+      usePdvStore.getState().loadSaleForEditing(99, items, 0);
+
+      const state = usePdvStore.getState();
+      expect(state.getTotal()).toBe(6);
+      expect(state.getSaleLines()[0].promotionId).toBeUndefined();
+    });
+  });
+
+  describe("promoções", () => {
+    beforeEach(() => {
+      usePdvStore.setState({ promotions: [promocao()] });
+    });
+
+    it("deve abater a promoção no total sem tocar no desconto da linha", () => {
+      usePdvStore.getState().addItem(product({ productGroupId: 10, quantity: 2 }));
+
+      const state = usePdvStore.getState();
+      // Duas canecas de R$ 10,00 a R$ 6,00 pelo cartaz.
+      expect(state.getSubtotal()).toBe(12);
+      expect(state.getTotal()).toBe(12);
+      // A linha do carrinho continua crua: o preço da promoção é DERIVADO, e
+      // gravá-lo no item faria a próxima bipada abatê-lo de novo.
+      expect(state.items[0].discount).toBe(0);
+    });
+
+    it("deve congelar o instante no primeiro item e soltá-lo ao esvaziar o carrinho", () => {
+      usePdvStore.setState({ promotionInstant: null });
+      usePdvStore.getState().addItem(product({ productGroupId: 10 }));
+
+      expect(usePdvStore.getState().promotionInstant).toBeTruthy();
+
+      usePdvStore.getState().cancelSale();
+      expect(usePdvStore.getState().promotionInstant).toBeNull();
+    });
+
+    it("deve dividir a venda no limite e deixar o excedente a preço normal", () => {
+      usePdvStore.setState({ promotions: [promocao({ maxQuantityPerSale: 3 })] });
+      usePdvStore.getState().addItem(product({ productGroupId: 10, quantity: 5 }));
+
+      const linhas = usePdvStore.getState().getSaleLines();
+      expect(linhas).toHaveLength(2);
+      expect(linhas[0]).toMatchObject({ quantity: 3, discount: 4, promotionId: 1 });
+      expect(linhas[1]).toMatchObject({ quantity: 2, discount: 0, promotionId: null });
+      // 3 × 6,00 + 2 × 10,00
+      expect(usePdvStore.getState().getTotal()).toBe(38);
+    });
+
+    it("deve valer para a venda inteira quando o operador libera o limite", () => {
+      usePdvStore.setState({ promotions: [promocao({ maxQuantityPerSale: 3 })] });
+      usePdvStore.getState().addItem(product({ productGroupId: 10, quantity: 5 }));
+
+      usePdvStore.getState().togglePromotionLimit(1);
+
+      expect(usePdvStore.getState().getSaleLines()).toHaveLength(1);
+      expect(usePdvStore.getState().getTotal()).toBe(30);
+    });
+
+    it("a liberação morre com a venda — o próximo cliente da fila não a herda", () => {
+      usePdvStore.getState().addItem(product({ productGroupId: 10 }));
+      usePdvStore.getState().togglePromotionLimit(1);
+      usePdvStore.getState().finishSale();
+
+      expect(usePdvStore.getState().releasedPromotions).toEqual([]);
+    });
+
+    it("a liberação morre também quando o carrinho é esvaziado item a item", () => {
+      // REGRESSÃO: `removeItem` não limpava nada além dos itens. O cliente desistia,
+      // o operador removia a linha, e o PRÓXIMO da fila levava dez copos no preço
+      // do cartaz sem ninguém ter liberado o limite.
+      usePdvStore.setState({ promotions: [promocao({ maxQuantityPerSale: 3 })] });
+      usePdvStore.getState().addItem(product({ productGroupId: 10, quantity: 5 }));
+      usePdvStore.getState().togglePromotionLimit(1);
+
+      usePdvStore.getState().removeItem(usePdvStore.getState().items[0].id);
+
+      const state = usePdvStore.getState();
+      expect(state.status).toBe("IDLE");
+      expect(state.releasedPromotions).toEqual([]);
+      expect(state.promotionInstant).toBeNull();
+      expect(state.salePromotions).toBeNull();
+    });
+
+    it("o operador pode retravar o limite que liberou por engano", () => {
+      usePdvStore.setState({ promotions: [promocao({ maxQuantityPerSale: 3 })] });
+      usePdvStore.getState().addItem(product({ productGroupId: 10, quantity: 5 }));
+
+      usePdvStore.getState().togglePromotionLimit(1);
+      expect(usePdvStore.getState().getTotal()).toBe(30);
+
+      usePdvStore.getState().togglePromotionLimit(1);
+      expect(usePdvStore.getState().getTotal()).toBe(38);
+    });
+
+    it("congela a lista de promoções na venda: o tique de 5 minutos não muda o preço", () => {
+      // O relógio congelado não basta. `usePromotions` troca a lista inteira a cada
+      // cinco minutos, e se o tique cair com o diálogo de pagamento aberto — onde o
+      // valor a receber foi gravado uma vez só — o total do payload deixa de fechar
+      // com a soma das formas e o servidor RECUSA a venda.
+      usePdvStore.getState().addItem(product({ productGroupId: 10, quantity: 2 }));
+      expect(usePdvStore.getState().getTotal()).toBe(12);
+
+      usePdvStore.getState().setPromotions([]);
+
+      expect(usePdvStore.getState().getTotal()).toBe(12);
+      // A lista viva foi trocada; só a congelada é que decide esta venda.
+      expect(usePdvStore.getState().promotions).toEqual([]);
+    });
+
+    it("a próxima venda já nasce com a lista nova", () => {
+      usePdvStore.getState().addItem(product({ productGroupId: 10 }));
+      usePdvStore.getState().setPromotions([]);
+      usePdvStore.getState().finishSale();
+
+      usePdvStore.getState().addItem(product({ productGroupId: 10 }));
+
+      expect(usePdvStore.getState().getTotal()).toBe(10);
+    });
+
+    it("a liberação acompanha a venda pausada e volta com ela", () => {
+      usePdvStore.setState({ promotions: [promocao({ maxQuantityPerSale: 3 })] });
+      usePdvStore.getState().addItem(product({ productGroupId: 10, quantity: 5 }));
+      usePdvStore.getState().togglePromotionLimit(1);
+
+      const held = usePdvStore.getState().holdSale();
+      expect(held?.releasedPromotions).toEqual([1]);
+      expect(usePdvStore.getState().releasedPromotions).toEqual([]);
+
+      usePdvStore.getState().resumeHeldSale(held!.id);
+      // Sem a liberação de volta, o total cairia sozinho de R$ 30,00 para
+      // R$ 38,00 com o cliente esperando no balcão.
+      expect(usePdvStore.getState().releasedPromotions).toEqual([1]);
+      expect(usePdvStore.getState().getTotal()).toBe(30);
+    });
+
+    it("a venda retomada relê o relógio: a relâmpago encerrada não vale mais", () => {
+      usePdvStore.getState().addItem(product({ productGroupId: 10 }));
+      const held = usePdvStore.getState().holdSale();
+
+      // A promoção terminou enquanto a venda esperava no balcão.
+      usePdvStore.setState({
+        promotions: [promocao({ validUntil: "2020-01-01T00:00:00" })],
+      });
+      usePdvStore.getState().resumeHeldSale(held!.id);
+
+      expect(usePdvStore.getState().getTotal()).toBe(10);
+      expect(held?.total).toBe(6);
     });
   });
 });

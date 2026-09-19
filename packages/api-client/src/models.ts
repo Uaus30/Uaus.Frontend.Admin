@@ -795,6 +795,21 @@ export interface SaleItemDto {
    * Ausente quando não houve acréscimo: o backend omite nulo do JSON.
    */
   surchargeReason?: string | null;
+  /**
+   * Promoção que abateu esta linha, ou ausente quando o preço foi o de tabela.
+   *
+   * É o vínculo que a apuração da promoção usa para somar quantidade e
+   * investimento. Ausente nas vendas gravadas antes da feature.
+   */
+  promotionId?: number | null;
+  /**
+   * Parcela unitária de `discount` que veio da promoção, em reais.
+   *
+   * **Parcela, não adição** — já está dentro de `discount`, e somá-la de novo
+   * inflaria o desconto em qualquer relatório. É o que separa o preço do cartaz
+   * do desconto que o operador deu no balcão. Leia com `?? 0`.
+   */
+  promotionDiscount?: number;
   subtotal: number;
   /** Custo unitário praticado no momento da venda. */
   unitCost: number;

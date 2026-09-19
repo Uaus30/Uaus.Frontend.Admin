@@ -24,6 +24,16 @@ export interface BuildSalePayloadParams {
    * derivado aqui, do carrinho que está sendo gravado. Ver `AppliedCoupon`.
    */
   coupon?: AppliedCoupon | null;
+  /**
+   * Instante que o carrinho congelou para decidir a promoção — o primeiro item
+   * da venda. Nulo quando não havia promoção a congelar (reedição, ou carrinho
+   * que nunca teve item).
+   *
+   * Sobe no payload porque o servidor confere a janela contra ELE, e não contra
+   * o momento do pagamento: a relâmpago que acaba às 18:00 tem que valer para
+   * quem começou 17:59:40 e pagou 18:00:12.
+   */
+  promotionReferenceAt?: string | null;
 }
 
 /**
@@ -69,6 +79,7 @@ export function buildSalePayload({
   paymentMethods,
   paymentMethodNameById,
   coupon = null,
+  promotionReferenceAt = null,
 }: BuildSalePayloadParams): RegisterSalePayload {
   const totals = computeCartTotals(items, globalDiscount, coupon);
 
@@ -79,6 +90,7 @@ export function buildSalePayload({
   const couponBase = round2(totals.subtotal - totals.globalDiscount);
 
   return {
+    promotionReferenceAt,
     cashRegisterSessionId: sessionId,
     customerId: consumer.customerId,
     customerDocument: consumer.document,
@@ -113,6 +125,22 @@ export function buildSalePayload({
         discount: item.discount,
         surcharge,
         surchargeReason: surcharge > 0 ? (item.surchargeReason?.trim() ?? "") : null,
+        // A promoção é PARCELA de `discount`, como o cupom é parcela do desconto
+        // da venda — e pelo mesmo motivo: somá-la por fora faria o servidor
+        // recusar a venda por total divergente, e omiti-la faria o desconto do
+        // cartaz contar como desconto do vendedor e pedir senha de administrador
+        // a cada cliente da fila do sábado.
+        //
+        // O teto no desconto da própria linha não é paranoia: o servidor RECUSA
+        // parcela maior que o desconto ("O desconto da promoção não pode ser maior
+        // que o desconto do item!"), e na reedição o operador pode subir o preço
+        // unitário de uma linha que veio com promoção — o desconto encolhe e a
+        // parcela gravada fica maior que ele. Sem o teto, a venda seria recusada
+        // no balcão por um campo que o operador não digitou.
+        promotionId: item.promotionId ?? null,
+        promotionDiscount: item.promotionId
+          ? Math.min(round2(item.promotionDiscount ?? 0), item.discount)
+          : 0,
         productName: item.name,
       };
     }),

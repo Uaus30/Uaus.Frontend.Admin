@@ -17,6 +17,7 @@ import { usePdvDialogs } from "@/features/pdv/hooks/use-pdv-dialogs";
 import { usePdvOperator } from "@/features/pdv/hooks/use-pdv-operator";
 import { usePdvPaymentMethods } from "@/features/pdv/hooks/use-pdv-payment-methods";
 import { usePdvSessionActions } from "@/features/pdv/hooks/use-pdv-session-actions";
+import { usePromotions } from "@/features/pdv/hooks/use-promotions";
 import { useSaleCheckout } from "@/features/pdv/hooks/use-sale-checkout";
 import { useSaleHistoryActions } from "@/features/pdv/hooks/use-sale-history-actions";
 import { useSalesReport } from "@/features/pdv/hooks/use-sales-report";
@@ -76,6 +77,10 @@ export default function Pdv() {
 
   /** Formas de pagamento em uso: API quando responde, base local quando não. */
   const { paymentMethods, paymentMethodNameById } = usePdvPaymentMethods(online, hasLocalDatabase);
+
+  // As promoções que valem no balcão. Nada é lido de volta aqui: quem as consome
+  // é o carrinho, dentro do store, a cada item bipado.
+  usePromotions(online);
 
   /** Operador do caixa; sem sessão autenticada o hook redireciona para o login. */
   const { user, isLoading, operatorName, deveTrocarSenha } = usePdvOperator();

@@ -101,6 +101,15 @@ export interface SaleItemLike {
   /** Justificativa do acréscimo, do que foi gravado na venda. */
   surchargeReason?: string | null;
   /**
+   * Parcela UNITÁRIA de `discount` que veio da promoção, em reais.
+   *
+   * Opcional pelo mesmo motivo dos dois campos acima: vendas gravadas antes da
+   * feature chegam sem ele. É o que faz a segunda via repetir o "Promoção" e o
+   * "VOCÊ ECONOMIZOU" da primeira — sem ele o abatimento do cartaz voltaria ao
+   * papel como se tivesse sido desconto do operador.
+   */
+  promotionDiscount?: number | null;
+  /**
    * Código de barras do produto. A API não o devolve no item da venda, então na
    * reimpressão ele fica de fora e a linha do código não é impressa; o campo
    * existe para quem já tiver o dado em mãos poder repassá-lo.
@@ -248,6 +257,11 @@ export function buildReceiptFromSale(
       // desconto no papel, que é justamente o que o cliente não contestaria.
       unitSurcharge: round2(Math.max(0, item.surcharge ?? 0)),
       surchargeReason: item.surchargeReason ?? null,
+      // Piso em zero pela terceira vez, e aqui com um motivo a mais: a parcela da
+      // promoção é o que o papel anuncia como economia, e um valor negativo
+      // viraria uma economia inventada na segunda via. O teto contra o desconto
+      // da linha fica no `render`, que é quem imprime as duas.
+      unitPromotionDiscount: round2(Math.max(0, item.promotionDiscount ?? 0)),
       barcode: item.barcode ?? null,
     })),
     payments,

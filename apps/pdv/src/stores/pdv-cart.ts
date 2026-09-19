@@ -25,6 +25,13 @@ export interface PdvItem {
   /** Identificador local da linha do carrinho. */
   id: string;
   productId: number;
+  /**
+   * Grupo do produto — é o que a PROMOÇÃO promove.
+   *
+   * Opcional porque as vendas pausadas no `localStorage` de antes desta feature
+   * voltam sem o campo; sem ele a linha simplesmente não recebe promoção.
+   */
+  productGroupId?: number;
   name: string;
   barcode?: string;
   /** Preço de tabela do produto. */
@@ -50,6 +57,23 @@ export interface PdvItem {
    * Sai impressa no cupom. Vazia quando não há acréscimo.
    */
   surchargeReason?: string;
+  /**
+   * Promoção aplicada nesta linha, ou nula.
+   *
+   * DERIVADA, nunca digitada: `applyPromotionsToCart` a recalcula a cada mudança
+   * do carrinho, pelo mesmo motivo do cupom — bipar mais uma unidade muda a
+   * alocação do limite, e um valor congelado deixaria a tela mostrando um número
+   * e o payload levando outro.
+   */
+  promotionId?: number | null;
+  /**
+   * Parcela de {@link discount} que veio da promoção, em R$ por unidade.
+   *
+   * **Não somar a `discount`** — ela já está dentro. É o que o servidor usa para
+   * tirar a promoção do limite de desconto do vendedor, e é por ela que o
+   * desconto manual do operador se distingue do desconto do cartaz.
+   */
+  promotionDiscount?: number;
   /** Estoque disponível no momento em que o item entrou no carrinho. */
   availableStock: number;
   /**
@@ -136,6 +160,14 @@ export interface HeldSale {
    * e é por isso que quem retoma lê com `?? null`.
    */
   coupon?: AppliedCoupon | null;
+  /**
+   * Promoções cujo limite por venda o operador tinha liberado.
+   *
+   * Opcional na leitura pelo mesmo motivo do cupom: as vendas pausadas antes
+   * desta feature voltam sem o campo, e aí a retomada simplesmente não tem
+   * liberação nenhuma — que é o estado correto delas.
+   */
+  releasedPromotions?: number[];
   /** Total no momento da pausa, para a lista não precisar recalcular. */
   total: number;
 }

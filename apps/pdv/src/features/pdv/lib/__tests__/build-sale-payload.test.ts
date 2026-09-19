@@ -335,4 +335,74 @@ describe("buildSalePayload", () => {
     expect(payload.coupon?.discountAmount).toBe(3);
     expect(payload.discount).toBe(3);
   });
+
+  describe("promoção", () => {
+    it("deve mandar a parcela da promoção discriminada, DENTRO do desconto da linha", () => {
+      // Copo de R$ 2,50 na relâmpago a R$ 0,99, com mais R$ 0,20 que o operador
+      // deu no balcão. Sem a discriminação, os R$ 1,71 inteiros contariam como
+      // desconto do vendedor e cada cliente da fila passaria a exigir senha de
+      // administrador.
+      const payload = build({
+        items: [
+          {
+            ...ITEM,
+            price: 2.5,
+            quantity: 1,
+            discount: 1.71,
+            promotionId: 4,
+            promotionDiscount: 1.51,
+          },
+        ],
+        payments: [{ paymentMethodId: 2, amount: 0.79, installmentNumber: 1 }],
+      });
+
+      expect(payload.items[0]).toMatchObject({
+        unitPrice: 0.79,
+        discount: 1.71,
+        promotionId: 4,
+        promotionDiscount: 1.51,
+      });
+    });
+
+    it("deve zerar o par quando a linha não tem promoção", () => {
+      // O CHECK ck_sale_items_promotion_discount recusa parcela sem promoção
+      // atribuída: a linha sem promoção sobe com os dois zerados.
+      expect(build().items[0]).toMatchObject({ promotionId: null, promotionDiscount: 0 });
+    });
+
+    it("deve descartar a parcela órfã de promoção", () => {
+      const payload = build({
+        items: [{ ...ITEM, promotionId: null, promotionDiscount: 1.51 }],
+      });
+
+      expect(payload.items[0]).toMatchObject({ promotionId: null, promotionDiscount: 0 });
+    });
+
+    it("deve enviar as duas linhas do limite como itens separados do mesmo produto", () => {
+      // É o que o limite por venda produz, e é o que o servidor passou a aceitar:
+      // a chave de duplicidade de lá é o par produto + promoção, não o produto
+      // sozinho. Uma linha só com desconto médio produziria centavos que o cupom
+      // impresso não consegue explicar.
+      const payload = build({
+        items: [
+          {
+            ...ITEM,
+            id: "a",
+            price: 2.5,
+            quantity: 6,
+            discount: 1.51,
+            promotionId: 4,
+            promotionDiscount: 1.51,
+          },
+          { ...ITEM, id: "b", price: 2.5, quantity: 4, discount: 0 },
+        ],
+        payments: [{ paymentMethodId: 2, amount: 15.94, installmentNumber: 1 }],
+      });
+
+      expect(payload.items.map((item) => [item.productId, item.promotionId])).toEqual([
+        [7, 4],
+        [7, null],
+      ]);
+    });
+  });
 });

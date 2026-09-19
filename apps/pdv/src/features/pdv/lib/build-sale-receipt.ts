@@ -106,6 +106,10 @@ export function buildSaleReceipt({
         unitDiscount: round2(item.discount),
         unitSurcharge: surcharge,
         surchargeReason: surcharge > 0 ? (item.surchargeReason?.trim() ?? null) : null,
+        // Parcela do desconto, não um quarto valor: o papel imprime "Promoção" e
+        // "Desconto" em linhas separadas, e as duas somadas continuam sendo o
+        // abatimento que já está fora do preço praticado acima.
+        unitPromotionDiscount: item.promotionId ? round2(item.promotionDiscount ?? 0) : 0,
         barcode: item.barcode,
       };
     }),

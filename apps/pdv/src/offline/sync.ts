@@ -68,6 +68,10 @@ function toRequestBody(sale: PendingSale) {
   return {
     clientReference: sale.clientReference,
     occurredAt: sale.occurredAt,
+    // O instante em que o balcão precificou, e não o da sincronização: é ele que
+    // faz a venda das 17h59 de sábado manter a relâmpago ao subir na segunda.
+    // Ausente nas vendas enfileiradas antes deste campo — aí vale o `occurredAt`.
+    promotionReferenceAt: sale.promotionReferenceAt ?? null,
     cashRegisterSessionId: sale.cashRegisterSessionId,
     customerId: sale.customerId,
     customerDocument: sale.customerDocument,
@@ -88,6 +92,16 @@ function toRequestBody(sale: PendingSale) {
       // objeto já gravado não é mudança de esquema do IndexedDB.
       surcharge: item.surcharge ?? 0,
       surchargeReason: (item.surcharge ?? 0) > 0 ? (item.surchargeReason ?? null) : null,
+      // A promoção entrou pelo mesmo caminho dos dois campos acima, e o `?? 0`
+      // cobre a mesma coisa: venda que já estava na fila antes desta feature sobe
+      // sem promoção nenhuma, como o preço que ela cobrou de fato.
+      //
+      // O servidor confere a janela contra `occurredAt`, não contra a hora do
+      // sync — é o que faz a venda das 17h50 de sábado subir na segunda sem
+      // perder a atribuição. Falhando a conferência, ele apenas descarta o
+      // vínculo e registra alerta: venda paga não é recusada por promoção.
+      promotionId: item.promotionId ?? null,
+      promotionDiscount: item.promotionId ? (item.promotionDiscount ?? 0) : 0,
     })),
     payments: sale.payments.map((payment) => ({
       paymentMethodId: payment.paymentMethodId,

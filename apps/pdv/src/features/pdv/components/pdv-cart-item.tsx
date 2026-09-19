@@ -6,11 +6,21 @@ import { computeDiscount, formatCurrency, parseAmount, round2 } from "@workspace
 import { itemListPrice, usePdvStore } from "@/stores/use-pdv-store";
 import { scrollIntoViewVertically } from "@/lib/scroll-into-view";
 import { PdvCartItemImage } from "./pdv-cart-item-image";
+import { PdvCartItemPromotionChip } from "./pdv-cart-item-promotion";
 import { PdvCartItemSurchargeChip, PdvSurchargeReasonDialog } from "./pdv-cart-item-surcharge";
+import type { PromotionLineInfo } from "@/lib/promotions";
 import type { PdvItem } from "../types";
 
 type PdvCartItemProps = {
   item: PdvItem;
+  /**
+   * A promoção que alcançou esta linha, quando houve.
+   *
+   * Chega por prop, e não é buscada aqui: o limite por venda é do GRUPO e da
+   * VENDA, então a alocação de uma linha depende das anteriores — quem calcula é
+   * o painel, uma vez para a lista inteira.
+   */
+  promotion?: PromotionLineInfo;
 };
 
 /**
@@ -44,7 +54,7 @@ type PdvCartItemProps = {
  * tinha acabado de entrar. O contorno pulsa UMA vez na própria linha — a
  * confirmação acontece onde o item foi parar.
  */
-export function PdvCartItem({ item }: PdvCartItemProps) {
+export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
   const { toast } = useToast();
   const removeItem = usePdvStore((state) => state.removeItem);
   const updateQuantity = usePdvStore((state) => state.updateQuantity);
@@ -66,8 +76,29 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
    */
   const [priceResetSeq, setPriceResetSeq] = useState(0);
 
-  /** O que esta unidade custa hoje: tabela, menos o desconto, mais o acréscimo. */
+  /**
+   * O que esta unidade custa hoje: tabela, menos o desconto, mais o acréscimo.
+   *
+   * **A promoção NÃO entra aqui**, e isso é deliberado: este número é o que o
+   * campo de preço edita, e o campo é a porta da negociação do operador. Mostrar
+   * o preço já promocional faria um simples clique-e-sai no campo gravar o
+   * abatimento do cartaz como desconto manual — e a promoção seria somada por
+   * cima dele mesmo, com o cliente pagando menos do que o cartaz anuncia.
+   */
   const effectiveUnitPrice = round2(itemListPrice(item) - item.discount);
+
+  /**
+   * O abatimento que a promoção dá NESTA linha, na venda inteira.
+   *
+   * Só as unidades promocionais: com limite por venda, seis saem no preço do
+   * cartaz e quatro no preço normal. É a mesma conta que `computeCartTotals` faz
+   * sobre as linhas já divididas — é o que mantém a soma das linhas igual ao
+   * total grande do rodapé.
+   */
+  const promotionSavings = round2((promotion?.unitDiscount ?? 0) * (promotion?.promotionalQuantity ?? 0));
+
+  /** O que a linha custa: preço praticado vezes quantidade, menos a promoção. */
+  const lineTotal = round2(effectiveUnitPrice * item.quantity - promotionSavings);
 
   // Zero quando o bipe foi em outra linha. O número (e não um booleano) é o que
   // reinicia a animação quando o MESMO produto é bipado de novo: ele muda, a
@@ -317,13 +348,13 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
                   o desconto foi negociado sobre o que a linha custava de fato.
                   Riscar só o preço do produto mostraria um abatimento diferente
                   do que a conta da direita fez. */}
-              {item.discount > 0 && (
+              {(item.discount > 0 || promotionSavings > 0) && (
                 <span className="text-[10px] text-emerald-500 line-through leading-none mb-0.5">
                   {formatCurrency(itemListPrice(item) * item.quantity)}
                 </span>
               )}
               <span className="font-mono font-bold text-primary leading-none">
-                {formatCurrency((itemListPrice(item) - item.discount) * item.quantity)}
+                {formatCurrency(lineTotal)}
               </span>
             </div>
             {item.discount > 0 ? (
@@ -351,6 +382,10 @@ export function PdvCartItem({ item }: PdvCartItemProps) {
         {/* Linha inteira, abaixo de quantidade/preço/total: o acréscimo carrega
             uma justificativa em texto, que não cabe numa das três colunas. */}
         <PdvCartItemSurchargeChip item={item} onRemove={removeSurcharge} />
+
+        {/* Abaixo do acréscimo pela mesma razão, e nesta ordem porque é a ordem
+            em que os dois compõem o preço: o acréscimo entra, a promoção abate. */}
+        <PdvCartItemPromotionChip info={promotion} productName={item.name} />
       </div>
 
       <PdvSurchargeReasonDialog

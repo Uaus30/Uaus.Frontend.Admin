@@ -110,6 +110,21 @@ export const META_KEY = {
    * logout, contrariando a razão de existir daquela limpeza.
    */
   coupons: "coupons",
+  /**
+   * Promoções vigentes e as dos próximos dias, como o snapshot (e a atualização
+   * em tempo real) as trouxeram.
+   *
+   * Moram aqui pelo MESMO motivo dos cupons, e o comentário da
+   * {@link DATABASE_VERSION} explica o preço de escolher diferente: store nova
+   * exigiria a v3, e a migração apagaria `products`, `paymentMethods` e
+   * `customers` de todo caixa da rede na primeira abertura depois do deploy —
+   * um caixa que subisse sem internet ficaria sem catálogo para vender.
+   * Promoção é lista pequena de registros pequenos, lida inteira a cada venda.
+   *
+   * O preço da escolha é o mesmo: `clearLocalCatalog` apaga esta chave à mão,
+   * porque `meta` é store preservada.
+   */
+  promotions: "promotions",
 } as const;
 
 /** Um registro da store de metadados. */

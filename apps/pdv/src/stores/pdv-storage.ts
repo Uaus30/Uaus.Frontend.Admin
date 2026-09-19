@@ -58,6 +58,15 @@ export interface PersistedSale {
   globalDiscount: number;
   consumer: PdvConsumer;
   coupon: AppliedCoupon | null;
+  /**
+   * Promoções cujo limite o operador liberou nesta venda.
+   *
+   * Opcional na leitura, e o `v` NÃO subiu: o campo é acréscimo, e descartar a
+   * venda inteira de quem atualizou o app no meio do expediente custaria o
+   * carrinho já bipado — bem mais do que ler uma liberação ausente como nenhuma.
+   * Sem ele, um F5 faria o total subir sozinho com o cliente no balcão.
+   */
+  releasedPromotions?: number[];
   editingSaleId: number | null;
   saleClientReference: string | null;
 }

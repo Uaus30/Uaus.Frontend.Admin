@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
-import { formatCurrency } from "@workspace/core";
+import { formatCurrency, round2 } from "@workspace/core";
 import { useToast } from "@workspace/ui";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
 import type { CheckoutState } from "@/hooks/use-checkout";
@@ -67,6 +67,7 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
       // que tinha acabado de entrar. A imagem foi junto para o carrinho.
       addItem({
         productId: product.id,
+        productGroupId: product.productGroupId,
         name: product.name,
         barcode: product.barcode,
         price: product.price,
@@ -135,6 +136,27 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
     (held: HeldSale) => {
       resetCheckoutFields();
       search.clear();
+
+      // O total é RECALCULADO na retomada, com o relógio de agora: a relâmpago
+      // pode ter acabado enquanto a venda esperava no balcão. A diferença precisa
+      // aparecer AQUI, e não na sincronização de amanhã — o cliente está na
+      // frente, e um preço que muda sozinho sem aviso é o operador descobrindo
+      // junto com ele. Um centavo de folga porque arredondamento por linha não
+      // fecha exato em toda combinação.
+      const totalAgora = usePdvStore.getState().getTotal();
+      const diferenca = round2(totalAgora - held.total);
+
+      if (Math.abs(diferenca) >= 0.01) {
+        toast({
+          title: "O preço desta venda mudou",
+          description:
+            `A venda foi pausada em ${formatCurrency(held.total)} e agora soma ${formatCurrency(totalAgora)}. ` +
+            "Uma promoção começou ou terminou desde então — confira com o cliente antes de receber.",
+          variant: "destructive",
+          duration: 8000,
+        });
+        return;
+      }
 
       toast({
         title: "Venda retomada",

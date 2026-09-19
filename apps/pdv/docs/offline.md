@@ -367,6 +367,7 @@ src/
 │   ├── snapshot.ts              baixa o cadastro e substitui a base local
 │   ├── catalog.ts               busca de produtos e clientes na base local
 │   ├── coupons.ts               cupons de desconto e a consulta pelo código, sem rede
+│   ├── promotions.ts            promoções de preço vigentes (a REGRA, nunca o preço)
 │   ├── stock.ts                 projeção local do estoque
 │   ├── pending-sales.ts         a fila de vendas
 │   ├── sync.ts                  envio em lotes e aplicação dos desfechos
@@ -377,6 +378,7 @@ src/
 │   └── types.ts
 ├── lib/
 │   ├── product-search.ts        busca de produtos (API → base local)
+│   ├── promotions.ts            aloca a promoção e o limite por venda no carrinho
 │   ├── write-off-draft.ts       regras da lista de itens da baixa
 │   └── cash-register-mode.ts    o que as configurações da empresa mudam
 ├── stores/use-offline-store.ts   estado observável + ações assíncronas
@@ -403,14 +405,14 @@ IndexedDB e sem DOM. As regras da tela que também são puras moram em `lib/`
 
 Banco `uaus-pdv-offline`, versão em `database.ts` (v2: entrou `pendingWriteOffs`):
 
-| Store              | Chave             | Conteúdo                                                                                    | Sobrevive à migração? |
-| ------------------ | ----------------- | ------------------------------------------------------------------------------------------- | --------------------- |
-| `meta`             | `key`             | data do snapshot, sequencial offline, sessão de caixa, configurações da empresa, **cupons** | **sim**               |
-| `products`         | `id`              | catálogo + estoque local                                                                    | recriada              |
-| `paymentMethods`   | `id`              | formas ativas com taxas                                                                     | recriada              |
-| `customers`        | `id`              | clientes cadastrados                                                                        | recriada              |
-| `pendingSales`     | `clientReference` | vendas offline                                                                              | **sim**               |
-| `pendingWriteOffs` | `clientReference` | baixas de estoque offline                                                                   | **sim**               |
+| Store              | Chave             | Conteúdo                                                                                                   | Sobrevive à migração? |
+| ------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------- | --------------------- |
+| `meta`             | `key`             | data do snapshot, sequencial offline, sessão de caixa, configurações da empresa, **cupons**, **promoções** | **sim**               |
+| `products`         | `id`              | catálogo + estoque local                                                                                   | recriada              |
+| `paymentMethods`   | `id`              | formas ativas com taxas                                                                                    | recriada              |
+| `customers`        | `id`              | clientes cadastrados                                                                                       | recriada              |
+| `pendingSales`     | `clientReference` | vendas offline                                                                                             | **sim**               |
+| `pendingWriteOffs` | `clientReference` | baixas de estoque offline                                                                                  | **sim**               |
 
 O critério é simples: sobrevive o que **só** existe aqui. As filas contêm
 movimento que o servidor nunca viu; os metadados guardam o sequencial dos cupons
@@ -418,13 +420,14 @@ provisórios, a sessão de caixa e as configurações da empresa, que também n�
 de onde ser recuperados sem internet. O cadastro é cópia descartável — o próximo
 snapshot o repovoa.
 
-**A única exceção ao critério são os cupons de desconto**, que são cadastro
-descartável e mesmo assim moram numa chave de `meta` (`META_KEY.coupons`). O
-motivo está em "Por que a versão do banco não subiu", logo abaixo. A
-contrapartida é que eles não são apagados por `clearAll(CATALOG_STORES)`, e por
-isso `clearLocalCatalog` remove essa chave **explicitamente** — sem a linha, os
-cupons e as perguntas de campanha do operador anterior sobreviveriam ao logout,
-que é exatamente o que aquela limpeza existe para impedir.
+**As exceções ao critério são os cupons de desconto e as promoções de preço**,
+que são cadastro descartável e mesmo assim moram em chaves de `meta`
+(`META_KEY.coupons` e `META_KEY.promotions`). O motivo está em "Por que a versão
+do banco não subiu", logo abaixo. A contrapartida é que elas não são apagadas por
+`clearAll(CATALOG_STORES)`, e por isso `clearLocalCatalog` remove as duas chaves
+**explicitamente** — sem essas linhas, os cupons, as perguntas de campanha e as
+promoções do operador anterior sobreviveriam ao logout, que é exatamente o que
+aquela limpeza existe para impedir.
 
 ### Duas versões, não confunda
 
@@ -435,11 +438,13 @@ que é exatamente o que aquela limpeza existe para impedir.
 
 Um muda sem o outro.
 
-### Por que a versão do banco NÃO subiu com os cupons
+### Por que a versão do banco NÃO subiu com os cupons (nem com as promoções)
 
 Os cupons de desconto entraram na base local **sem** subir `DATABASE_VERSION`:
 ele continua em 2. Eles moram numa chave da store `meta`, e só o
-`snapshotSchemaVersion` — o formato do DTO, que é decisão do backend — sobe.
+`snapshotSchemaVersion` — o formato do DTO, que é decisão do backend — sobe. As
+promoções de preço entraram em 19/09/2026 pelo mesmo caminho e pela mesma razão,
+em `META_KEY.promotions`.
 
 Uma store `coupons` própria seria mais arrumada e custaria caro: qualquer store
 nova exige `DATABASE_VERSION` 3, e a migração **apaga `products`,
@@ -517,6 +522,7 @@ Para inspecionar: DevTools → Application → IndexedDB → `uaus-pdv-offline`.
 | Levar mais dados para a base local       | `PdvSnapshotDto` no backend, `offline/types.ts`, `offline/snapshot.ts` — e suba as duas versões           |
 | Mudar a relevância da busca local        | `offline/catalog.ts` → `filterProducts` (tem teste)                                                       |
 | Mudar a regra do cupom offline           | `offline/coupons.ts` → `resolveLocalCoupon` (tem teste) — leia "Estourar o limite offline é ACEITO" antes |
+| Mudar como a promoção abate no carrinho  | `lib/promotions.ts` → `allocatePromotions` (tem teste) — o limite por venda divide a linha ali            |
 | Mudar o que a venda envia de cupom       | `offline/sync.ts` → `toCouponBody` (tem teste)                                                            |
 | Mudar o fallback da busca de produtos    | `lib/product-search.ts` → `searchProducts` (tem teste)                                                    |
 | Mudar a regra de estoque offline         | `offline/stock.ts` → `findStockShortages` (tem teste)                                                     |

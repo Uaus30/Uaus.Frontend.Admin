@@ -18,6 +18,7 @@
  * - `snapshot.ts` — baixa o cadastro da API e substitui a base local.
  * - `catalog.ts` — busca de produtos e clientes na base local.
  * - `coupons.ts` — cupons do snapshot e a consulta do cupom pelo código, sem rede.
+ * - `promotions.ts` — promoções do snapshot e da atualização em tempo real.
  * - `stock.ts` — projeção local do estoque: conferência, baixa e devolução.
  * - `pending-sales.ts` — a fila de vendas offline.
  * - `sync.ts` — envio da fila de vendas em lotes e aplicação dos desfechos.
@@ -72,6 +73,8 @@ export {
   type LocalCouponRefusal,
   type LocalCouponRefused,
 } from "./coupons";
+
+export { readLocalPromotions, toLocalPromotion, writeLocalPromotions } from "./promotions";
 
 export {
   checkLocalStock,
@@ -132,8 +135,10 @@ export type {
   LocalPaymentMethod,
   LocalPaymentMethodInstallment,
   LocalProduct,
+  LocalPromotion,
   PdvSnapshot,
   PdvSnapshotCoupon,
+  PdvSnapshotPromotion,
   PendingSale,
   PendingSaleCoupon,
   PendingSaleCouponAnswer,

@@ -10,6 +10,7 @@ import { ApiError, apiGet, apiGetOrThrow, apiPost, apiPut, extractCreatedId } fr
 import type {
   CouponDiscountTypeCode,
   CouponLookupDto,
+  EnumValue,
   QueryKey,
   SaleDto,
   StorePerformanceDto,
@@ -38,6 +39,15 @@ export interface ProductPdvSearchDto {
   stock: number;
   /** Nome do grupo do produto, para desambiguar itens de nome parecido. */
   groupName?: string | null;
+  /**
+   * Grupo do produto.
+   *
+   * A promoção é do GRUPO, não da variação: sem este id o carrinho não teria como
+   * saber que o copo azul e o copo vermelho dividem o mesmo limite de "6 por
+   * cliente". Opcional por segurança de versão — uma API anterior a 19/09/2026
+   * não devolve o campo, e aí o balcão simplesmente não aplica promoção.
+   */
+  productGroupId?: number;
   /** URL da primeira imagem do produto, ou nulo quando não há foto. */
   imageUrl?: string | null;
 }
@@ -194,6 +204,61 @@ export interface RegisterPdvSaleItemPayload {
    * maior que zero; recusada em silêncio (vira nula) quando o acréscimo é zero.
    */
   surchargeReason?: string | null;
+  /**
+   * Promoção aplicada nesta linha, ou nula.
+   *
+   * O servidor confere três portas — a promoção existe, cobre o grupo daquele
+   * produto, e a janela dela alcança o `occurredAt` (nunca a hora do sync).
+   * Falhando qualquer uma, a atribuição some e o abatimento continua na linha
+   * como desconto do vendedor: **venda paga nunca é recusada por promoção**.
+   */
+  promotionId?: number | null;
+  /**
+   * Parcela de `discount` que veio da promoção, por unidade. **Não somar** — ela
+   * já está dentro do desconto, e o total da venda não a conhece.
+   *
+   * É ela que tira a promoção do limite de desconto do vendedor. Sem ela, toda
+   * relâmpago de 30% passaria a exigir senha de administrador a cada cliente da
+   * fila.
+   */
+  promotionDiscount?: number;
+}
+
+/**
+ * Promoção como o PDV a recebe — no snapshot e em `GET /Pdv/promotions`.
+ *
+ * É a REGRA, não um preço pronto: o balcão avalia a janela pelo relógio local, e
+ * é isso que faz a relâmpago das 14h valer numa sessão aberta às 9h, com ou sem
+ * internet.
+ */
+export interface PdvPromotionDto {
+  id: number;
+  /** Grupo promovido. Vale para todas as variações ativas dele. */
+  productGroupId: number;
+  /** Enum PromotionType — chega pelo nome; normalize com `enumCode`. */
+  type: EnumValue;
+  /** Enum PromotionDiscountType — idem. */
+  discountType: EnumValue;
+  discountValue: number;
+  validFrom: string;
+  validUntil?: string | null;
+  /** Teto de unidades do grupo por venda. Ausente = sem limite. */
+  maxQuantityPerSale?: number | null;
+}
+
+/**
+ * Só as promoções vigentes e as dos próximos dias.
+ *
+ * O snapshot é baixado uma vez, na abertura da sessão de caixa; promoção é
+ * decidida no dia — às vezes no próprio sábado de manhã. Sem esta chamada, a
+ * relâmpago cadastrada às 13h exigiria fechar e reabrir o caixa para valer no
+ * balcão.
+ *
+ * Devolve lista vazia quando a API é anterior a esta feature: o balcão
+ * simplesmente não aplica promoção, que é o comportamento de antes.
+ */
+export async function getPdvPromotions(): Promise<PdvPromotionDto[]> {
+  return (await apiGet<PdvPromotionDto[]>("/Pdv/promotions")) ?? [];
 }
 
 /** Uma forma de pagamento no formato que os endpoints de venda esperam. */
@@ -222,6 +287,19 @@ export interface RegisterPdvSalePayload {
    * ("2026-07-25T17:34:12"). Sem ele o servidor usa a hora do recebimento.
    */
   occurredAt?: string | null;
+  /**
+   * Instante que o balcão congelou para decidir a promoção — o primeiro item da
+   * venda, e **não** o pagamento.
+   *
+   * O servidor confere a janela da promoção contra ele, limitado à janela da
+   * própria venda (nunca depois do `occurredAt`, nunca mais de 12h antes). Sem
+   * ele, a venda que começou 17:59:40 numa relâmpago que acaba às 18:00 e foi
+   * paga 18:00:12 perderia a atribuição — e o abatimento que o cliente já levou
+   * impresso viraria desconto do vendedor, podendo exigir senha de administrador.
+   *
+   * Nulo é o normal de quem não congela nada; aí vale o `occurredAt`.
+   */
+  promotionReferenceAt?: string | null;
   /** Sessão de caixa da venda, ou nulo quando a loja não controla caixa. */
   cashRegisterSessionId: number | null;
   customerId?: number | null;

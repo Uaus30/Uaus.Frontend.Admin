@@ -52,7 +52,20 @@ describe("toProductPdvSearchDtos", () => {
   it("deve mapear campos para ProductPdvSearchDto", () => {
     const [dto] = toProductPdvSearchDtos([localProduct(1, "Café")]);
 
-    expect(dto).toMatchObject({ id: 1, name: "Café", stock: 4, price: 10 });
+    // `toEqual`, e não `toMatchObject`: o objeto INTEIRO é o contrato. Com o
+    // `toMatchObject` daqui, o `productGroupId` esquecido no mapeamento passou
+    // batido — e sem ele nenhuma promoção casa com o produto vindo da base local,
+    // ou seja, a relâmpago não valia justamente com a internet caída.
+    expect(dto).toEqual({
+      id: 1,
+      name: "Café",
+      barcode: "1",
+      price: 10,
+      stock: 4,
+      productGroupId: 1,
+      groupName: null,
+      imageUrl: null,
+    });
   });
 });
 

@@ -23,6 +23,31 @@ export function computeItemsSubtotal(items: ReceiptItem[]) {
 }
 
 /**
+ * Quanto as PROMOÇÕES abateram na venda inteira — o número da linha "VOCÊ
+ * ECONOMIZOU" do rodapé.
+ *
+ * Só a parcela da promoção entra: o desconto que o operador deu no balcão é
+ * negociação, e anunciá-lo como economia do cartaz ensinaria o cliente a esperar
+ * o mesmo abatimento na semana seguinte. Zero (e nenhuma linha impressa) é o
+ * caso normal da loja na maior parte da semana.
+ *
+ * Exportada porque é a mesma conta que o cupom da venda nova e a reimpressão da
+ * venda antiga precisam fazer, e duas implementações divergiriam no dia em que o
+ * teto mudasse.
+ */
+export function computePromotionSavings(items: ReceiptItem[]) {
+  const savings = items.reduce((sum, item) => {
+    // O mesmo teto da linha do item: a parcela nunca passa do abatimento total
+    // daquela linha, senão o rodapé anunciaria economia que o papel não mostra.
+    const unitDiscount = Math.max(0, item.unitDiscount ?? 0);
+    const unitPromotion = Math.min(unitDiscount, Math.max(0, item.unitPromotionDiscount ?? 0));
+    return sum + unitPromotion * item.quantity;
+  }, 0);
+
+  return round2(savings);
+}
+
+/**
  * Sanitiza o texto das observações eliminando redundâncias históricas
  * (como "Cancelamento: Cancelada no PDV" -> "Cancelada no PDV").
  */
@@ -42,6 +67,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
   const store = resolveStore(data.store);
   const subtotal = computeItemsSubtotal(data.items);
   const discount = data.discount ?? 0;
+  const promotionSavings = computePromotionSavings(data.items);
 
   const itemRows = data.items
     .map((item) => {
@@ -78,11 +104,31 @@ export function buildReceiptHtml(data: ReceiptData): string {
             (surchargeReason ? `<div class="item-surcharge-reason">${escapeHtml(surchargeReason)}</div>` : "")
           : "";
 
+      // A parcela da promoção sai em linha PRÓPRIA, e o que sobra continua sendo
+      // "Desconto": para quem lê o papel, o preço do cartaz e a negociação do
+      // balcão são coisas diferentes. Somadas, as duas linhas continuam fechando
+      // a coluna da direita — a promoção é parcela do desconto, nunca uma adição.
+      //
+      // O teto no desconto da linha protege o papel de dado corrompido: uma
+      // parcela maior que o próprio abatimento faria a subtração de cima para
+      // baixo não bater com o total impresso ao lado.
+      const unitPromotion = Math.min(unitDiscount, Math.max(0, item.unitPromotionDiscount ?? 0));
+      const unitManualDiscount = round2(unitDiscount - unitPromotion);
+
+      const promotionRow =
+        unitPromotion > 0
+          ? row(
+              "Promoção",
+              `- ${formatReceiptCurrency(round2(unitPromotion * item.quantity))}`,
+              "item-discount",
+            )
+          : "";
+
       const discountRow =
-        unitDiscount > 0
+        unitManualDiscount > 0
           ? row(
               "Desconto",
-              `- ${formatReceiptCurrency(round2(unitDiscount * item.quantity))}`,
+              `- ${formatReceiptCurrency(round2(unitManualDiscount * item.quantity))}`,
               "item-discount",
             )
           : "";
@@ -100,6 +146,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
           ${row(escapeHtml(item.name), total, "item-head")}
           <div class="item-breakdown">${breakdown}</div>
           ${surchargeRow}
+          ${promotionRow}
           ${discountRow}
         </div>`;
     })
@@ -156,6 +203,11 @@ export function buildReceiptHtml(data: ReceiptData): string {
     row("TOTAL", formatReceiptCurrency(data.total), "total"),
     data.amountReceived != null ? row("Valor recebido", formatReceiptCurrency(data.amountReceived)) : "",
     data.change != null ? row("Troco", formatReceiptCurrency(data.change)) : "",
+    // Depois do troco, e não dentro da conta: economia não é parcela de nada que
+    // o cliente confere de cima para baixo — é o recado da promoção, e entrar no
+    // meio das linhas somáveis faria o papel parecer não fechar. Sem promoção,
+    // sem linha: é o estado normal da loja na maior parte da semana.
+    promotionSavings > 0 ? row("VOCÊ ECONOMIZOU", formatReceiptCurrency(promotionSavings), "savings") : "",
   ].join("");
 
   const banners = [

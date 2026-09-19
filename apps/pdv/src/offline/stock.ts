@@ -22,6 +22,28 @@ export interface StockMovement {
   quantity: number;
 }
 
+/**
+ * Soma os movimentos do MESMO produto num só.
+ *
+ * Existe porque a venda passou a ter duas linhas do mesmo produto: com limite
+ * por venda, seis copos saem no preço do cartaz e quatro no preço normal. Sem a
+ * soma, a conferência aprovaria 6 e 4 separadamente contra um saldo de 8, e a
+ * baixa debitaria só a primeira linha — o excedente sairia da prateleira sem
+ * sair do estoque local, e o caixa seguiria vendendo o que já acabou.
+ *
+ * A ordem da saída acompanha a primeira aparição de cada produto, para o
+ * relatório de falta continuar listando os itens na ordem do carrinho.
+ */
+function aggregateMovements(movements: StockMovement[]): StockMovement[] {
+  const byProduct = new Map<number, number>();
+
+  for (const movement of movements) {
+    byProduct.set(movement.productId, (byProduct.get(movement.productId) ?? 0) + movement.quantity);
+  }
+
+  return [...byProduct.entries()].map(([productId, quantity]) => ({ productId, quantity }));
+}
+
 /** Um produto cuja quantidade pedida não cabe no estoque local. */
 export interface StockShortage {
   productId: number;
@@ -37,6 +59,10 @@ export interface StockShortage {
  *
  * Pura, para poder ser testada sem IndexedDB.
  *
+ * As quantidades são SOMADAS por produto antes da conferência: a venda com
+ * limite de promoção tem duas linhas do mesmo produto, e conferir cada uma
+ * sozinha aprovaria 6 + 4 contra um saldo de 8.
+ *
  * @param products Catálogo local.
  * @param movements Itens da venda com as quantidades.
  * @returns Os produtos que não têm saldo. Vazio significa que a venda pode entrar.
@@ -45,7 +71,7 @@ export function findStockShortages(products: LocalProduct[], movements: StockMov
   const byId = new Map(products.map((product) => [product.id, product]));
   const shortages: StockShortage[] = [];
 
-  for (const movement of movements) {
+  for (const movement of aggregateMovements(movements)) {
     const product = byId.get(movement.productId);
 
     // Produto fora da base local: o snapshot é anterior ao cadastro dele, ou ele
@@ -90,7 +116,12 @@ export async function checkLocalStock(movements: StockMovement[]): Promise<Stock
  * @param direction `-1` debita (venda), `+1` devolve (cancelamento ou recusa na
  *   sincronização).
  */
-async function applyStockMovement(movements: StockMovement[], direction: -1 | 1): Promise<void> {
+async function applyStockMovement(entrada: StockMovement[], direction: -1 | 1): Promise<void> {
+  // Somados antes de qualquer escrita: o `find` abaixo acha só a PRIMEIRA
+  // ocorrência de cada produto, e duas linhas do mesmo produto (o limite da
+  // promoção separa a venda em promocional e excedente) debitariam apenas a
+  // primeira. O saldo local ficaria maior que a prateleira.
+  const movements = aggregateMovements(entrada);
   if (movements.length === 0) return;
 
   const db = await openLocalDatabase();

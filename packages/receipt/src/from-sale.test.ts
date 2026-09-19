@@ -72,6 +72,7 @@ describe("buildReceiptFromSale", () => {
         unitDiscount: 0,
         unitSurcharge: 0,
         surchargeReason: null,
+        unitPromotionDiscount: 0,
         barcode: null,
       },
     ]);
@@ -284,6 +285,9 @@ describe("buildReceiptFromSale", () => {
       unitDiscount: 2,
       unitSurcharge: 0,
       surchargeReason: null,
+      // Desconto do operador, não do cartaz: a promoção fica zerada, e o cupom
+      // não anuncia economia nenhuma.
+      unitPromotionDiscount: 0,
       barcode: null,
     });
   });
@@ -310,8 +314,35 @@ describe("buildReceiptFromSale", () => {
       unitDiscount: 0,
       unitSurcharge: 5,
       surchargeReason: "Gravação de músicas",
+      unitPromotionDiscount: 0,
       barcode: null,
     });
+  });
+
+  it("repassa a parcela da promoção para a segunda via", () => {
+    // Sem isso, a segunda via mostraria como desconto do operador o que foi
+    // preço de cartaz — e perderia a linha "VOCÊ ECONOMIZOU" que a primeira via
+    // imprimiu.
+    const receipt = buildReceiptFromSale(makeSale({ total: 5.94 }), [
+      {
+        productId: 55,
+        productName: "COPO AMERICANO",
+        quantity: 6,
+        unitPrice: 0.99,
+        discount: 1.51,
+        promotionDiscount: 1.51,
+      },
+    ]);
+
+    expect(receipt.items[0].unitPromotionDiscount).toBe(1.51);
+  });
+
+  it("não deixa parcela de promoção negativa virar economia inventada", () => {
+    const receipt = buildReceiptFromSale(makeSale(), [
+      { productId: 7, productName: "CHICLETE", quantity: 1, unitPrice: 6, promotionDiscount: -2 },
+    ]);
+
+    expect(receipt.items[0].unitPromotionDiscount).toBe(0);
   });
 
   it("trata acréscimo de item ausente ou negativo como zero", () => {

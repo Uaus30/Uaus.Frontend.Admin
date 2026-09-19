@@ -1,6 +1,7 @@
 import { apiGetOrThrow } from "@workspace/api-client-react";
 import { normalizeForSearch } from "./catalog";
 import { toLocalCoupon, writeLocalCoupons } from "./coupons";
+import { toLocalPromotion, writeLocalPromotions } from "./promotions";
 import { CATALOG_STORES, META_KEY, STORE, openLocalDatabase } from "./database";
 import { clearAll, putAll, remove } from "./idb";
 import { writeMeta } from "./meta";
@@ -166,6 +167,12 @@ export async function installSnapshot(snapshot: PdvSnapshot): Promise<SnapshotIn
   // quando é `null`, que apaga a lista do turno anterior.
   await writeLocalCoupons(coupons);
 
+  // As promoções seguem a mesma regra, e pela mesma razão. Substituição por
+  // inteiro: promoção que sumiu da lista do servidor (excluída, desativada, ou
+  // fora da janela de sete dias) tem que sumir daqui, senão ela continuaria
+  // valendo no balcão até alguém fechar o caixa.
+  await writeLocalPromotions((snapshot.promotions ?? []).map(toLocalPromotion));
+
   // Re-aplica os débitos da fila pendente sobre o estoque que acabou de chegar.
   // Sem isso, um snapshot instalado com fila pendente (botão "Atualizar", ou a
   // reconexão que baixa o snapshot antes de a fila subir) inflaria o saldo local
@@ -223,6 +230,7 @@ export async function clearLocalCatalog(): Promise<void> {
 
   await clearAll(db, CATALOG_STORES);
   await remove(db, STORE.meta, META_KEY.coupons);
+  await remove(db, STORE.meta, META_KEY.promotions);
 
   // Sem as marcas o PDV sabe que a base sumiu: `hasLocalDatabase` volta a ser
   // falso e a venda offline fica bloqueada até o próximo snapshot.

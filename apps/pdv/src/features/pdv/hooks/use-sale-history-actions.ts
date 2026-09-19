@@ -181,6 +181,13 @@ export function useSaleHistoryActions({
             discount: round2(item.discount ?? 0),
             surcharge,
             surchargeReason: item.surchargeReason ?? "",
+            // A promoção volta junto, e não é detalhe: a reedição REGRAVA a venda
+            // inteira, então sem estes dois campos qualquer correção — até a de um
+            // CPF — apagaria a atribuição da promoção e jogaria o abatimento do
+            // cartaz na conta do vendedor, que pode passar a exigir senha de
+            // administrador para reenviar uma venda que já estava gravada.
+            promotionId: item.promotionId ?? null,
+            promotionDiscount: round2(item.promotionDiscount ?? 0),
             // O estoque atual já não contém as unidades desta venda.
             availableStock: (product?.stock ?? 0) + item.quantity,
             // A foto é do cadastro de hoje, e não da venda: ela não é dado da

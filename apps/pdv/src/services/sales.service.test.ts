@@ -154,10 +154,43 @@ describe("registerSale online", () => {
     // validação de totais, mas o servidor os usa para auditoria — e o desconto,
     // ainda, para o limite de desconto do vendedor. Sem acréscimo, o par sobe
     // como zero e nulo, que é o que o CHECK do banco exige.
+    //
+    // A promoção segue a mesma regra do acréscimo: linha sem promoção sobe com o
+    // par zerado, porque o CHECK ck_sale_items_promotion_discount recusa parcela
+    // sem promoção atribuída.
     expect(postBody(0).items).toEqual([
-      { productId: 1, quantity: 2, unitPrice: 10, discount: 0, surcharge: 0, surchargeReason: null },
-      { productId: 2, quantity: 1, unitPrice: 30, discount: 0, surcharge: 0, surchargeReason: null },
+      {
+        productId: 1,
+        quantity: 2,
+        unitPrice: 10,
+        discount: 0,
+        surcharge: 0,
+        surchargeReason: null,
+        promotionId: null,
+        promotionDiscount: 0,
+      },
+      {
+        productId: 2,
+        quantity: 1,
+        unitPrice: 30,
+        discount: 0,
+        surcharge: 0,
+        surchargeReason: null,
+        promotionId: null,
+        promotionDiscount: 0,
+      },
     ]);
+  });
+
+  it("deve mandar o instante em que o balcao precificou, junto do da venda", async () => {
+    // Os dois são diferentes de propósito: `occurredAt` é o pagamento e
+    // `promotionReferenceAt` é o primeiro item. Sem o segundo, a relâmpago que
+    // acaba às 18:00 seria descartada na venda que começou 17:59:40 e fechou
+    // 18:00:12 — com o cliente já tendo pago o preço do cartaz.
+    await registerSale(payload({ promotionReferenceAt: "2026-09-19T17:59:40" }));
+
+    expect(postBody(0).promotionReferenceAt).toBe("2026-09-19T17:59:40");
+    expect(postBody(0).occurredAt).not.toBe("2026-09-19T17:59:40");
   });
 
   it("o desconto do item sobrevive ao caminho online", async () => {

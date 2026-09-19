@@ -290,6 +290,15 @@ const PRINT_STYLES = `
     margin-top: 1mm;
   }
 
+  /* A economia da promoção fecha o bloco de totais em destaque: é o recado que o
+     cliente leva no bolso, e no corpo das linhas comuns ele se perderia entre o
+     troco e o rodapé. Negrito sem aumentar o corpo — o TOTAL continua sendo a
+     maior linha do papel, porque é ele que o cliente confere. */
+  .row.savings {
+    font-weight: 700;
+    margin-top: 1mm;
+  }
+
   .row.strong { font-weight: 700; }
   .row.small { font-size: ${fontSize(10)}; }
   .row.muted .row-value { font-variant-numeric: tabular-nums; }

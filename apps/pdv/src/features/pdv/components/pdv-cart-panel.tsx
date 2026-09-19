@@ -3,6 +3,8 @@ import { AnimatePresence } from "framer-motion";
 import { ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@workspace/ui";
 import { usePdvStore } from "@/stores/use-pdv-store";
+import { toLocalTimestamp } from "@/services/sales.service";
+import { describePromotions } from "@/lib/promotions";
 import { useCouponDialog } from "../hooks/use-coupon";
 import { ConfirmActionDialog } from "./confirm-action-dialog";
 import { PdvCartActionsCompact, PdvCartActionsExtended } from "./pdv-cart-actions";
@@ -45,6 +47,14 @@ export function PdvCartPanel({
 }: PdvCartPanelProps) {
   const items = usePdvStore((state) => state.items);
   const editingSaleId = usePdvStore((state) => state.editingSaleId);
+  const promotions = usePdvStore((state) => state.promotions);
+  // A lista CONGELADA da venda, com a viva como reserva — a mesma escolha de
+  // `allocatedLines` no store. Ler a viva aqui faria o selo da linha contar uma
+  // história e o total do rodapé contar outra assim que o tique de cinco minutos
+  // trouxesse uma lista diferente no meio da venda.
+  const salePromotions = usePdvStore((state) => state.salePromotions);
+  const promotionInstant = usePdvStore((state) => state.promotionInstant);
+  const releasedPromotions = usePdvStore((state) => state.releasedPromotions);
   const cartLayout = usePdvStore((state) => state.cartLayout);
   const setCheckout = usePdvStore((state) => state.setCheckout);
   const cancelSale = usePdvStore((state) => state.cancelSale);
@@ -53,6 +63,25 @@ export function PdvCartPanel({
   // A confirmação vive AQUI, e não em cada layout: os dois disparam o mesmo
   // cancelamento, e duplicar o estado faria a pergunta divergir entre eles.
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+
+  /**
+   * A promoção de cada linha, calculada UMA vez para a lista inteira.
+   *
+   * Aqui, e não dentro de `PdvCartItem`: o limite por venda é do grupo e da
+   * venda, então a alocação da terceira linha depende das duas anteriores — cada
+   * linha calculando a sua daria a promoção cheia a todas elas. E um seletor por
+   * item devolvendo objeto novo a cada leitura faria o zustand ver estado novo a
+   * cada render.
+   *
+   * A reedição fica de fora pelo mesmo motivo do total (ver `allocatedLines` no
+   * store): a parcela já está dentro do desconto gravado na venda.
+   */
+  const promotionByItem = describePromotions(
+    editingSaleId === null ? items : [],
+    salePromotions ?? promotions,
+    promotionInstant ?? toLocalTimestamp(),
+    releasedPromotions,
+  );
 
   const actions = {
     hasItems: items.length > 0,
@@ -88,7 +117,9 @@ export function PdvCartPanel({
             {items.length === 0 ? (
               <div className="py-20 text-center text-muted-foreground uppercase">Carrinho vazio</div>
             ) : (
-              items.map((item) => <PdvCartItem key={item.id} item={item} />)
+              items.map((item) => (
+                <PdvCartItem key={item.id} item={item} promotion={promotionByItem.get(item.id)} />
+              ))
             )}
           </AnimatePresence>
         </div>

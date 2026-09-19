@@ -80,7 +80,16 @@ export function useSaleCheckout({
   const [savingSale, setSavingSale] = useState(false);
 
   const status = usePdvStore((state) => state.status);
-  const items = usePdvStore((state) => state.items);
+  // As linhas da venda vêm de `getSaleLines`, não de `items`: é ele que aloca a
+  // promoção e separa o excedente do limite ("6 no preço promocional, 4 no
+  // normal"). Gravar `items` cru mandaria ao servidor o preço de tabela de uma
+  // venda que o carrinho já tinha mostrado com desconto — a mesma classe de
+  // divergência que o cupom causou quando ficou de fora do payload.
+  //
+  // É a FUNÇÃO que é lida daqui, e não o resultado dela: `getSaleLines()` devolve
+  // um array novo a cada chamada, e usá-lo como seletor faria o zustand ver
+  // estado novo a cada render e girar em laço.
+  const getSaleLines = usePdvStore((state) => state.getSaleLines);
   const globalDiscount = usePdvStore((state) => state.globalDiscount);
   // O cupom precisa vir do store até aqui. Enquanto o payload era montado sem
   // ele, o carrinho exibia o total COM o abatimento (`getTotal` o deriva) e o
@@ -148,15 +157,24 @@ export function useSaleCheckout({
       return;
     }
 
+    // Uma leitura só, reusada no payload e no cupom impresso: chamar duas vezes
+    // abriria a janela para a promoção virar entre a gravação e a impressão, e o
+    // papel do cliente sairia com um preço que a venda não tem.
+    const saleLines = getSaleLines();
+
     const payload = buildSalePayload({
       sessionId,
       consumer,
       globalDiscount,
-      items,
+      items: saleLines,
       payments,
       paymentMethods,
       paymentMethodNameById,
       coupon,
+      // Lido do store na hora, e não por seletor: é o instante do PRIMEIRO item,
+      // e é contra ele — não contra o pagamento, que acontece minutos depois —
+      // que o servidor confere se a promoção ainda valia.
+      promotionReferenceAt: usePdvStore.getState().promotionInstant,
     });
 
     setSavingSale(true);
@@ -217,7 +235,7 @@ export function useSaleCheckout({
       // este objeto que o futuro CRUD vai gravar e reler.
       const receipt = buildSaleReceipt({
         saved,
-        items,
+        items: saleLines,
         payments,
         paymentMethodNameById,
         globalDiscount,
@@ -279,9 +297,9 @@ export function useSaleCheckout({
     ensureSaleClientReference,
     finishSale,
     focusSearch,
+    getSaleLines,
     globalDiscount,
     hasLocalDatabase,
-    items,
     mode,
     onSaleFinished,
     onSaleRecorded,

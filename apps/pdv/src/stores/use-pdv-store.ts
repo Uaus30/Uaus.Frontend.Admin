@@ -1,5 +1,8 @@
 import { create } from "zustand";
 import { computeSaleTotals } from "@workspace/core";
+import { applyPromotionsToCart } from "@/lib/promotions";
+import { toLocalTimestamp } from "@/services/sales.service";
+import type { LocalPromotion } from "@/offline";
 import {
   EMPTY_CONSUMER,
   computeCartTotals,
@@ -58,6 +61,52 @@ export type { CartLayout } from "./pdv-storage";
 interface PdvState {
   status: "IDLE" | "SELLING" | "CHECKOUT";
   items: PdvItem[];
+  /**
+   * Promoções da base local — a REGRA, não um preço pronto.
+   *
+   * Quem as carrega é `usePromotions`, do snapshot e da atualização em tempo
+   * real. O carrinho só lê: sem rede, vale o que está gravado, e é isso que faz
+   * uma queda de internet no meio do sábado não mudar preço nenhum.
+   */
+  promotions: LocalPromotion[];
+  /**
+   * Instante que decide quais promoções valem NESTA venda, congelado no primeiro
+   * item.
+   *
+   * Sem o congelamento, uma relâmpago terminando às 18:00:00 mudaria o preço no
+   * meio da conferência do carrinho, com o cliente olhando. A venda em espera
+   * retomada relê o relógio — e aí o PDV avisa se a promoção acabou.
+   */
+  promotionInstant: string | null;
+  /**
+   * As promoções como estavam quando esta venda começou. Nulo com o caixa
+   * ocioso, e aí vale a lista viva de {@link promotions}.
+   *
+   * **Congelar o relógio não basta.** `usePromotions` substitui a lista inteira a
+   * cada cinco minutos, e o tique cai no meio da venda como cai em qualquer outro
+   * momento: o dono desativa a promoção no admin, ou a meia-noite vira, e o
+   * número grande do carrinho muda sozinho com o cliente olhando. Pior, se o tique
+   * pegar o diálogo de pagamento aberto — onde o valor a receber foi gravado uma
+   * vez só — o total do payload deixa de fechar com a soma das formas e o servidor
+   * RECUSA a venda por divergência, com o dinheiro na mão do operador.
+   *
+   * É congelada e descongelada exatamente junto de {@link promotionInstant}: as
+   * duas são a mesma decisão ("esta venda foi precificada assim").
+   */
+  salePromotions: LocalPromotion[] | null;
+  /**
+   * Promoções cujo limite por venda o operador liberou NESTA venda.
+   *
+   * O limite é comunicação comercial, não trava: o caso real é o casal que soma
+   * as compras e passa junto no caixa, e sem a liberação o balcão teria que
+   * desfazer e refazer a venda em duas para chegar ao mesmo total. A venda acima
+   * do limite é carimbada em `logs` pelo servidor — é o que faz o limite
+   * continuar significando alguma coisa quando a promoção for medida.
+   *
+   * Morre com a venda, como o cupom: liberar para um cliente não libera para o
+   * próximo da fila.
+   */
+  releasedPromotions: number[];
   globalDiscount: number;
   /** Consumidor da venda em andamento. */
   consumer: PdvConsumer;
@@ -101,6 +150,26 @@ interface PdvState {
 
   /** Adiciona o produto ao carrinho, somando a quantidade se ele já estiver lá. */
   addItem: (item: Omit<PdvItem, "id">) => void;
+  /** Substitui as promoções conhecidas pelo balcão. */
+  setPromotions: (promotions: LocalPromotion[]) => void;
+  /**
+   * Liga e desliga a liberação do limite por venda de uma promoção.
+   *
+   * É alternância, e não só "liberar", porque a ação muda PREÇO com um toque num
+   * balcão de tela sensível: sem o caminho de volta, um toque errado só teria
+   * saída cancelando a venda inteira, com o cliente esperando.
+   */
+  togglePromotionLimit: (promotionId: number) => void;
+  /**
+   * As linhas da venda com a promoção JÁ ALOCADA — é o que vira total, payload e
+   * cupom impresso.
+   *
+   * Derivadas, e não guardadas: o limite por venda redistribui a cada unidade
+   * bipada, e uma alocação congelada deixaria a tela mostrando um número e o
+   * payload levando outro. O carrinho continua exibindo a linha crua, uma por
+   * produto — dividir ali faria a próxima bipada dividir a linha já dividida.
+   */
+  getSaleLines: () => PdvItem[];
   /** Remove a linha do carrinho e volta ao estado ocioso quando ele fica vazio. */
   removeItem: (id: string) => void;
   /** Define a quantidade da linha. A validação de estoque fica na tela. */
@@ -187,9 +256,53 @@ interface PdvState {
   getTotal: () => number;
 }
 
+/**
+ * As linhas da venda com a promoção alocada — total, payload e cupom impresso
+ * passam todos por aqui.
+ *
+ * O carrinho na tela continua mostrando a linha crua: a divisão do limite ("6 na
+ * promoção, 4 a preço normal") é informação da venda, não uma segunda linha
+ * editável. Dividir dentro do store faria a próxima bipada dividir a linha já
+ * dividida, e duas linhas nasceriam com o mesmo id.
+ *
+ * **A reedição não recebe promoção**, e não por descuido: os itens vêm da venda
+ * gravada, onde a parcela da promoção JÁ está dentro do `discount` de cada linha.
+ * Realocar somaria o desconto do cartaz por cima dele mesmo. O efeito colateral é
+ * o mesmo já declarado para o cupom — ao reenviar, a parcela vira desconto manual
+ * e pode passar a exigir senha de administrador. Reeditar venda com promoção
+ * continua sendo caminho a evitar: cancele e registre de novo.
+ */
+const allocatedLines = (
+  state: Pick<
+    PdvState,
+    "items" | "promotions" | "salePromotions" | "promotionInstant" | "releasedPromotions" | "editingSaleId"
+  >,
+): PdvItem[] => {
+  if (state.editingSaleId !== null) return state.items;
+
+  return applyPromotionsToCart(
+    state.items,
+    // A lista CONGELADA no começo da venda; a viva só enquanto não há venda.
+    state.salePromotions ?? state.promotions,
+    state.promotionInstant ?? toLocalTimestamp(),
+    state.releasedPromotions,
+  );
+};
+
 /** Atalho dos getters: os totais da venda que está no carrinho agora. */
-const currentTotals = (state: Pick<PdvState, "items" | "globalDiscount" | "coupon">) =>
-  computeCartTotals(state.items, state.globalDiscount, state.coupon);
+const currentTotals = (
+  state: Pick<
+    PdvState,
+    | "items"
+    | "globalDiscount"
+    | "coupon"
+    | "promotions"
+    | "salePromotions"
+    | "promotionInstant"
+    | "releasedPromotions"
+    | "editingSaleId"
+  >,
+) => computeCartTotals(allocatedLines(state), state.globalDiscount, state.coupon);
 
 /** Gera o identificador local de uma linha do carrinho ou de uma venda em espera. */
 const generateId = () => Math.random().toString(36).slice(2, 11);
@@ -214,6 +327,16 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   // FINALIZAR de novo — que é o que ele faria de qualquer jeito.
   status: restoredSale && restoredSale.items.length > 0 ? "SELLING" : "IDLE",
   items: restoredSale?.items ?? [],
+  promotions: [],
+  // A venda restaurada de um recarregamento relê o relógio: se a relâmpago
+  // acabou enquanto a página estava fechada, o preço volta ao normal em vez de
+  // ficar congelado no que era antes.
+  promotionInstant: restoredSale?.items?.length ? toLocalTimestamp() : null,
+  // Nulo mesmo com venda restaurada: a lista viva ainda nem foi carregada (quem a
+  // carrega é `usePromotions`, depois da montagem), e congelar `[]` aqui deixaria
+  // a venda restaurada sem promoção nenhuma até o operador cancelá-la.
+  salePromotions: null,
+  releasedPromotions: restoredSale?.releasedPromotions ?? [],
   globalDiscount: restoredSale?.globalDiscount ?? 0,
   consumer: restoredSale?.consumer ?? EMPTY_CONSUMER,
   coupon: restoredSale?.coupon ?? null,
@@ -225,6 +348,17 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   lastAddedSeq: 0,
   fontScaleIndex: initialFontScaleIndex,
   heldSales: readHeldSales(),
+
+  setPromotions: (promotions) => set({ promotions }),
+
+  togglePromotionLimit: (promotionId) =>
+    set((state) => ({
+      releasedPromotions: state.releasedPromotions.includes(promotionId)
+        ? state.releasedPromotions.filter((id) => id !== promotionId)
+        : [...state.releasedPromotions, promotionId],
+    })),
+
+  getSaleLines: () => allocatedLines(get()),
 
   addItem: (item) =>
     set((state) => {
@@ -247,6 +381,13 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       return {
         status: "SELLING",
         items: [...state.items, { ...item, id }],
+        // O relógio da venda é congelado no PRIMEIRO item: sem isso, uma
+        // relâmpago terminando às 18:00:00 mudaria o preço no meio da
+        // conferência do carrinho, com o cliente olhando.
+        promotionInstant: state.items.length === 0 ? toLocalTimestamp() : state.promotionInstant,
+        // A lista de promoções congela no mesmo instante, e pelo mesmo motivo:
+        // ver `salePromotions`.
+        salePromotions: state.items.length === 0 ? state.promotions : state.salePromotions,
         lastAddedItemId: id,
         lastAddedSeq: state.lastAddedSeq + 1,
       };
@@ -255,7 +396,19 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   removeItem: (id) =>
     set((state) => {
       const items = state.items.filter((i) => i.id !== id);
-      return { items, status: items.length === 0 ? "IDLE" : state.status };
+      if (items.length > 0) return { items, status: state.status };
+
+      // Esvaziar o carrinho encerra a venda como `cancelSale` encerra, e precisa
+      // limpar o mesmo tanto. A liberação do limite é o campo que mais dói
+      // esquecer: o cliente desiste, o operador remove a linha, e o PRÓXIMO da
+      // fila leva dez copos no preço do cartaz sem ninguém ter liberado nada.
+      return {
+        items,
+        status: "IDLE" as const,
+        promotionInstant: null,
+        salePromotions: null,
+        releasedPromotions: [],
+      };
     }),
 
   updateQuantity: (id, quantity) =>
@@ -301,6 +454,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({
       status: "IDLE",
       items: [],
+      promotionInstant: null,
+      salePromotions: null,
+      releasedPromotions: [],
       // Carrinho vazio não tem linha realçada para apontar.
       lastAddedItemId: null,
       globalDiscount: 0,
@@ -318,6 +474,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({
       status: "IDLE",
       items: [],
+      promotionInstant: null,
+      salePromotions: null,
+      releasedPromotions: [],
       // Carrinho vazio não tem linha realçada para apontar.
       lastAddedItemId: null,
       globalDiscount: 0,
@@ -355,6 +514,11 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       // outro produto não pode ter que apresentar o panfleto de novo. O `total`
       // abaixo já sai com o abatimento aplicado, porque `getTotal` o deriva.
       coupon: state.coupon,
+      // A liberação do limite também vai junto, e pelo mesmo motivo: ela foi uma
+      // decisão sobre AQUELE cliente. Perdê-la na retomada faria o total cair
+      // sozinho enquanto ele espera no balcão, e o operador teria que descobrir
+      // de novo por que o preço mudou.
+      releasedPromotions: state.releasedPromotions,
       total: state.getTotal(),
     };
 
@@ -365,6 +529,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       heldSales,
       status: "IDLE",
       items: [],
+      promotionInstant: null,
+      salePromotions: null,
+      releasedPromotions: [],
       // Carrinho vazio não tem linha realçada para apontar.
       lastAddedItemId: null,
       globalDiscount: 0,
@@ -394,6 +561,14 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       heldSales,
       status: "SELLING",
       items: held.items,
+      // A venda retomada relê o relógio: se a relâmpago acabou enquanto ela
+      // esperava no balcão, o preço volta ao normal em vez de ficar congelado no
+      // que era na hora da pausa. Sem esta linha o instante ficaria nulo e cada
+      // leitura do total pegaria um relógio diferente — o congelamento existe
+      // justamente para o preço não mudar no meio da conferência.
+      promotionInstant: toLocalTimestamp(),
+      salePromotions: state.promotions,
+      releasedPromotions: held.releasedPromotions ?? [],
       globalDiscount: held.globalDiscount,
       consumer: held.consumer,
       // `?? null`: as vendas pausadas antes desta feature continuam gravadas no
@@ -448,7 +623,18 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   // manual, o que pode passar a exigir senha de administrador. Reeditar venda com
   // cupom continua sendo caminho a evitar: cancele e registre de novo.
   loadSaleForEditing: (saleId, items, globalDiscount) =>
-    set(() => ({ items, globalDiscount, coupon: null, status: "SELLING", editingSaleId: saleId })),
+    set(() => ({
+      items,
+      globalDiscount,
+      coupon: null,
+      // A reedição não realoca promoção (ver `allocatedLines`): a parcela já está
+      // dentro do desconto gravado em cada linha.
+      promotionInstant: null,
+      salePromotions: null,
+      releasedPromotions: [],
+      status: "SELLING",
+      editingSaleId: saleId,
+    })),
 
   setEditingSaleId: (id) => set(() => ({ editingSaleId: id })),
 
@@ -458,6 +644,9 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set(() => ({
       status: "IDLE",
       items: [],
+      promotionInstant: null,
+      salePromotions: null,
+      releasedPromotions: [],
       // Carrinho vazio não tem linha realçada para apontar.
       lastAddedItemId: null,
       globalDiscount: 0,
@@ -467,7 +656,10 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       saleClientReference: null,
     })),
 
-  getSubtotal: () => computeSaleTotals({ items: toTotalsItems(get().items) }).subtotal,
+  // Sobre as linhas ALOCADAS, não sobre as cruas: o subtotal é o número grande
+  // do carrinho, e mostrá-lo sem a promoção deixaria a tela prometendo um valor
+  // e o pagamento cobrando outro.
+  getSubtotal: () => computeSaleTotals({ items: toTotalsItems(allocatedLines(get())) }).subtotal,
 
   getCouponDiscount: () => currentTotals(get()).couponDiscount,
 
@@ -492,6 +684,7 @@ usePdvStore.subscribe((state, prev) => {
     state.globalDiscount !== prev.globalDiscount ||
     state.consumer !== prev.consumer ||
     state.coupon !== prev.coupon ||
+    state.releasedPromotions !== prev.releasedPromotions ||
     state.editingSaleId !== prev.editingSaleId ||
     state.saleClientReference !== prev.saleClientReference;
 
@@ -502,6 +695,10 @@ usePdvStore.subscribe((state, prev) => {
     globalDiscount: state.globalDiscount,
     consumer: state.consumer,
     coupon: state.coupon,
+    // Sem isto, um F5 no meio da venda faria o total SUBIR sozinho: a liberação
+    // do limite sumiria e o excedente voltaria ao preço normal com o cliente no
+    // balcão. É o espelho do motivo pelo qual ela acompanha a venda pausada.
+    releasedPromotions: state.releasedPromotions,
     editingSaleId: state.editingSaleId,
     // A chave de idempotência é o campo que MAIS precisa sobreviver ao F5: se o
     // POST chegou ao servidor e a resposta se perdeu junto com a tela, é ela que

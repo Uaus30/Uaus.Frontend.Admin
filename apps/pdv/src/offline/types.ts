@@ -149,6 +149,66 @@ export interface PdvSnapshot {
    * consulta offline recusa de formas diferentes nos dois casos.
    */
   coupons?: PdvSnapshotCoupon[] | null;
+  /**
+   * Promoções vigentes e as dos próximos dias.
+   *
+   * Opcional porque um snapshot gerado por um backend anterior a esta feature
+   * não traz o campo — e aí o caixa simplesmente não aplica promoção nenhuma,
+   * que é o comportamento de antes.
+   */
+  promotions?: PdvSnapshotPromotion[] | null;
+}
+
+/**
+ * Promoção como o servidor a manda — no snapshot e em `GET /Pdv/promotions`.
+ *
+ * Os enums chegam pelo NOME (a API serializa assim) e são normalizados para o
+ * código numérico na carga, em `toLocalPromotion`.
+ */
+export interface PdvSnapshotPromotion {
+  id: number;
+  productGroupId: number;
+  /**
+   * Enum `PromotionType` da API. Aceita nulo pelo mesmo motivo que `EnumValue`
+   * do `api-client` aceita: a API **omite o campo nulo** do JSON, e o tipo que
+   * recusasse a ausência mentiria sobre o que chega pela rede. `toLocalPromotion`
+   * normaliza para `None`, e promoção sem tipo não casa com nada no carrinho.
+   */
+  type?: number | string | null;
+  /** Enum `PromotionDiscountType` da API — mesma história do campo acima. */
+  discountType?: number | string | null;
+  discountValue: number;
+  validFrom: string;
+  validUntil?: string | null;
+  maxQuantityPerSale?: number | null;
+}
+
+/**
+ * Promoção na base local: a REGRA que o carrinho avalia, com os enums já
+ * normalizados.
+ *
+ * Não guarda preço calculado de propósito. Quem calcula é `allocatePromotions`,
+ * a cada venda, contra o relógio local — é isso que faz a relâmpago começar e
+ * acabar sozinha sem o caixa precisar de rede.
+ */
+export interface LocalPromotion {
+  id: number;
+  /** Grupo promovido. A promoção vale para todas as variações ativas dele. */
+  productGroupId: number;
+  /** Código do enum `PromotionType`: 1 = Dia a Dia, 2 = Relâmpago. */
+  type: number;
+  /** Código do enum `PromotionDiscountType`: 1 = percentual, 2 = preço final. */
+  discountType: number;
+  discountValue: number;
+  /** Início da vigência, inclusivo, no formato local `"yyyy-MM-ddTHH:mm:ss"`. */
+  validFrom: string;
+  /** Fim da vigência, inclusivo. Nulo = sem prazo. */
+  validUntil: string | null;
+  /**
+   * Teto de unidades do grupo com preço promocional na MESMA venda, somando as
+   * variações. Nulo = sem limite. Compare com `== null`.
+   */
+  maxQuantityPerSale: number | null;
 }
 
 /** Um item da venda, no formato que a API espera. */
@@ -176,6 +236,22 @@ export interface PendingSaleItem {
   surcharge?: number;
   /** Justificativa do acréscimo, impressa no cupom. Ausente quando não houve. */
   surchargeReason?: string | null;
+  /**
+   * Promoção que baixou o preço desta linha, ou ausente.
+   *
+   * O servidor confere contra o instante da venda (`occurredAt`), não contra a
+   * hora do sync: a venda das 17h50 que sobe às 8h do dia seguinte tem que
+   * passar. Opcional pelo mesmo motivo do acréscimo — as vendas enfileiradas
+   * antes deste campo existir sobem sem ele.
+   */
+  promotionId?: number | null;
+  /**
+   * Parcela de `discount` que veio da promoção, por unidade. **Não somar.**
+   *
+   * É ela que tira a promoção do limite de desconto do vendedor no servidor.
+   * Leia com `?? 0`.
+   */
+  promotionDiscount?: number;
   /** Nome do produto no momento da venda, para o cupom e a lista de pendências. */
   productName: string;
 }
@@ -251,6 +327,15 @@ export interface PendingSale {
   offlineNumber: number;
   /** Momento real da venda no balcão, em ISO. */
   occurredAt: string;
+  /**
+   * Instante que o balcão congelou para decidir a promoção — o primeiro item da
+   * venda, não o pagamento.
+   *
+   * Opcional pelo mesmo motivo do cupom: as vendas enfileiradas antes deste campo
+   * existir sobem sem ele, e aí o servidor confere a janela contra o
+   * `occurredAt`, que é o comportamento de antes.
+   */
+  promotionReferenceAt?: string | null;
   /**
    * Sessão de caixa da venda, ou `null` quando a loja não usa controle de caixa.
    *

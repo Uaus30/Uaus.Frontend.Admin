@@ -167,8 +167,13 @@ function netSubtotal(item: SaleItemForTotals): number {
  * em outra ordem para o centavo do resíduo cair em outro produto, e o rateio
  * gravado deixaria de bater com o que o PDV calculou.
  *
- * A validação da venda já proíbe o mesmo produto em duas linhas, então o
- * desempate é sempre decidido.
+ * **O mesmo produto PODE aparecer em duas linhas** desde o limite por venda da
+ * promoção: seis copos no preço do cartaz e quatro no preço normal são duas
+ * linhas do mesmo `productId`. Empatando nos dois critérios, ganha a PRIMEIRA
+ * posição da lista — e é a mesma saída do `IndexOfLargestSubtotal` do
+ * `CouponRedemptionService.Allocation.cs`, que lê os itens ordenados por `Id`,
+ * ou seja, na ordem em que este payload foi montado. A coincidência de ordem é o
+ * que mantém o centavo do resíduo no mesmo item dos dois lados.
  */
 function indexOfLargestSubtotal(items: CouponAllocationItem[], subtotals: number[]): number {
   let largest = 0;
