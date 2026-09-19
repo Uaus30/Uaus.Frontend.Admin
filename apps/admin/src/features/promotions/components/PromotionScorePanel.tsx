@@ -3,6 +3,7 @@ import { formatCurrency, formatQuantity } from "@workspace/core";
 import {
   PROMOTION_PERFORMANCE_CLASS,
   PROMOTION_PERFORMANCE_CLASS_LABEL,
+  enumCode,
   type PromotionScoreComponentDto,
   type PromotionScoreDto,
 } from "@workspace/api-client-react";
@@ -76,8 +77,13 @@ function ComponenteDaNota({ componente }: { componente: PromotionScoreComponentD
 }
 
 export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
-  const semVenda = score.class === PROMOTION_PERFORMANCE_CLASS.NoSales;
-  const rotulo = PROMOTION_PERFORMANCE_CLASS_LABEL[score.class] ?? "";
+  // A API serializa enum pelo NOME: `class` chega como "Standout", não como 1.
+  // Comparar direto com o código deixava o velocímetro sem a palavra da faixa e
+  // fazia a promoção SEM VENDA mostrar "poucas vendas para medir" em vez de
+  // "Sem venda", que é a guarda que este `enumCode` restaura.
+  const faixa = enumCode(score.class, PROMOTION_PERFORMANCE_CLASS);
+  const semVenda = faixa === PROMOTION_PERFORMANCE_CLASS.NoSales;
+  const rotulo = PROMOTION_PERFORMANCE_CLASS_LABEL[faixa ?? 0] ?? "";
 
   return (
     <div className="space-y-4">
@@ -102,8 +108,12 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
           <span>
             Medido contra{" "}
             <strong>
-              {score.rulerOccurrences} {score.weekdayName.toLowerCase()}
-              {score.rulerOccurrences === 1 ? "" : "s"}
+              {score.rulerOccurrences}{" "}
+              {score.rulerFellBackToAllDays
+                ? score.rulerOccurrences === 1
+                  ? "dia"
+                  : "dias"
+                : `${score.weekdayName.toLowerCase()}${score.rulerOccurrences === 1 ? "" : "s"}`}
             </strong>{" "}
             anteriores.{" "}
             {score.rulerFellBackToAllDays && (
@@ -124,9 +134,12 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
           </p>
         )}
 
+        {/* "Um dia comum" seria mentira quando a régua é de sábados: sábado fatura
+            1,75× o dia médio, e a frase genérica subestimaria o múltiplo. */}
         {score.impulseMultiplier != null && (
           <p className="text-muted-foreground">
-            Vendeu <strong>{formatQuantity(score.impulseMultiplier)}×</strong> o de um dia comum do produto.
+            Vendeu <strong>{formatQuantity(score.impulseMultiplier)}×</strong> o que o produto sai num{" "}
+            {score.rulerFellBackToAllDays ? "dia comum" : score.weekdayName.toLowerCase()} normal.
           </p>
         )}
 

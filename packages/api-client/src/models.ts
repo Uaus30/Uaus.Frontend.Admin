@@ -1967,7 +1967,13 @@ export interface PromotionScoreComponentDto {
 export interface PromotionScoreDto {
   /** Nota final de 0 a 100, inteira. */
   score: number;
-  class: PromotionPerformanceClassCode;
+  /**
+   * Faixa da nota. **Chega pelo NOME** (`"Standout"`), como todo enum desta API:
+   * o `JsonStringEnumConverter` está registrado globalmente. Leia com
+   * `enumCode(x, PROMOTION_PERFORMANCE_CLASS)` — comparar direto com o código
+   * numérico dá sempre falso, e o rótulo sai vazio.
+   */
+  class: EnumValue;
   components: PromotionScoreComponentDto[];
   /** Quantas ocorrências do mesmo dia da semana sustentaram a régua. */
   rulerOccurrences: number;

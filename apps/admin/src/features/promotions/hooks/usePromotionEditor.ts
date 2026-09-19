@@ -49,7 +49,7 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
   );
 
   const { data: promotion, isLoading } = useGetPromotionById(promotionId);
-  const { data: repeatSource } = useGetPromotionById(repeatSourceId);
+  const { data: repeatSource, isLoading: isLoadingRepeat } = useGetPromotionById(repeatSourceId);
 
   /**
    * Preenche o formulário quando o detalhe chega.
@@ -156,7 +156,11 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
     form,
     setForm,
     promotion,
-    isLoading: (!!promotionId || !!repeatSourceId) && isLoading,
+    // Os DOIS estados de carga, cada um da sua query. Compor só o do detalhe não
+    // fazia nada no modo "repetir" (query desabilitada tem `isLoading` falso no
+    // React Query v5): num link lento a tela pintava o formulário vazio, e a
+    // cópia que chegasse depois apagaria o que a pessoa já tivesse digitado.
+    isLoading: (!!promotionId && isLoading) || (!!repeatSourceId && isLoadingRepeat),
     preview,
     isPreviewing,
     problem,

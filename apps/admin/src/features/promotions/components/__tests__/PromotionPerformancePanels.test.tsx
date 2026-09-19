@@ -1,10 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import {
-  PROMOTION_PERFORMANCE_CLASS,
-  type PromotionInvestmentDto,
-  type PromotionScoreDto,
-} from "@workspace/api-client-react";
+import { type PromotionInvestmentDto, type PromotionScoreDto } from "@workspace/api-client-react";
 import { PromotionInvestmentPanel } from "../PromotionInvestmentPanel";
 import { PromotionScorePanel } from "../PromotionScorePanel";
 
@@ -21,7 +17,10 @@ import { PromotionScorePanel } from "../PromotionScorePanel";
 function nota(parcial: Partial<PromotionScoreDto> = {}): PromotionScoreDto {
   return {
     score: 82,
-    class: PROMOTION_PERFORMANCE_CLASS.Standout,
+    // Pelo NOME, como a API manda de verdade (`JsonStringEnumConverter`). O
+    // fixture anterior usava a constante numérica, e foi por isso que o teste
+    // passava enquanto a tela saía sem a palavra da faixa.
+    class: "Standout",
     rulerOccurrences: 12,
     rulerFellBackToAllDays: false,
     weekdayName: "Sábado",
@@ -103,6 +102,37 @@ describe("PromotionScorePanel", () => {
 
     expect(screen.getByText("Fora da conta: poucas vendas para medir.")).toBeTruthy();
     expect(screen.getByText(/ticket e arraste são ruído/)).toBeTruthy();
+  });
+
+  it("trata a faixa que chega pelo nome, como a API manda", () => {
+    // REGRESSÃO: `class` chega como "NoSales", e a comparação com o código
+    // numérico dava sempre falso — a promoção sem venda mostrava "poucas vendas
+    // para medir" em vez de "Sem venda", e o velocímetro saía sem a palavra.
+    render(
+      <PromotionScorePanel
+        score={nota({ class: "NoSales", score: 0, renormalizedWithoutTicketAndBasket: true })}
+      />,
+    );
+
+    expect(screen.getByLabelText(/Nota 0 de 100 — Sem venda/)).toBeTruthy();
+    expect(screen.queryByText(/ticket e arraste são ruído/)).toBeNull();
+  });
+
+  it("diz DIAS, e não sábados, quando a régua caiu para todos os dias", () => {
+    // "Medido contra 71 sábados anteriores" numa loja que tem 3 sábados é falso,
+    // e é a primeira frase que se lê.
+    render(<PromotionScorePanel score={nota({ rulerOccurrences: 71, rulerFellBackToAllDays: true })} />);
+
+    expect(screen.getByText(/71 dias/)).toBeTruthy();
+    expect(screen.queryByText(/71 sábados/)).toBeNull();
+  });
+
+  it("nomeia o dia da semana no impulso quando a régua é dele", () => {
+    // A régua é de sábados, e sábado fatura 1,75× o dia médio: chamar a
+    // referência de "dia comum" subestimaria o múltiplo.
+    render(<PromotionScorePanel score={nota({ impulseMultiplier: 40 })} />);
+
+    expect(screen.getByText(/sábado normal/)).toBeTruthy();
   });
 
   it("declara que o esgotamento é inferência", () => {
