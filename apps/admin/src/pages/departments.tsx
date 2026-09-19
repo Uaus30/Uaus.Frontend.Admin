@@ -1,5 +1,4 @@
 import React from "react";
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { Plus } from "lucide-react";
 import { useDepartments } from "@/features/departments/hooks/useDepartments";
@@ -16,7 +15,7 @@ export default function Departments() {
   const model = useDepartments();
 
   return (
-    <AppLayout>
+    <>
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -52,6 +51,6 @@ export default function Departments() {
         saving={model.saving}
         onSubmit={model.handleSubmit}
       />
-    </AppLayout>
+    </>
   );
 }

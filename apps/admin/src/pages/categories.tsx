@@ -1,5 +1,4 @@
 import React from "react";
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { Plus } from "lucide-react";
 import { useCategories } from "@/features/categories/hooks/useCategories";
@@ -17,7 +16,7 @@ export default function Categories() {
   const model = useCategories();
 
   return (
-    <AppLayout>
+    <>
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -63,6 +62,6 @@ export default function Categories() {
         selectedReport={model.selectedReport}
         isLoading={model.isReportLoading}
       />
-    </AppLayout>
+    </>
   );
 }

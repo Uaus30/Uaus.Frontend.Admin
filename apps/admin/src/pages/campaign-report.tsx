@@ -1,6 +1,5 @@
 import { AlertTriangle, ArrowLeft, BarChart3, Megaphone, RefreshCw } from "lucide-react";
 import { useLocation, useParams } from "wouter";
-import { AppLayout } from "@/components/layout";
 import { Button, cn } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { useCampaignReport } from "@/features/campaigns/hooks/useCampaignReport";
@@ -47,101 +46,99 @@ export default function CampaignReportPage() {
   } = useCampaignReport(campaignId);
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover-elevate border border-border bg-card"
-              onClick={() => setLocation("/marketing/campanhas")}
-              aria-label="Voltar para as campanhas"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <Megaphone className="h-6 w-6 text-primary" />
-                <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
-                  {report?.campaignName ?? "Relatório da campanha"}
-                </h1>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {windowLabel || "O que a campanha moveu, contra o que a loja fez no mesmo intervalo."}
-              </p>
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover-elevate border border-border bg-card"
+            onClick={() => setLocation("/marketing/campanhas")}
+            aria-label="Voltar para as campanhas"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-6 w-6 text-primary" />
+              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
+                {report?.campaignName ?? "Relatório da campanha"}
+              </h1>
             </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 hover-elevate"
-              onClick={() => setLocation("/marketing/campanhas/comparativo")}
-            >
-              <BarChart3 className="h-4 w-4" /> Comparar campanhas
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              title="Atualizar dados"
-              className="hover-elevate"
-              disabled={!campaignId}
-            >
-              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-            </Button>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {windowLabel || "O que a campanha moveu, contra o que a loja fez no mesmo intervalo."}
+            </p>
           </div>
         </div>
 
-        {!campaignId ? (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive" />
-            <p className="text-sm font-medium text-foreground">Campanha não informada.</p>
-            <p className="text-sm text-muted-foreground">Abra o relatório pela lista de campanhas.</p>
-          </div>
-        ) : isError ? (
-          /*
+        <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 hover-elevate"
+            onClick={() => setLocation("/marketing/campanhas/comparativo")}
+          >
+            <BarChart3 className="h-4 w-4" /> Comparar campanhas
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            title="Atualizar dados"
+            className="hover-elevate"
+            disabled={!campaignId}
+          >
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+          </Button>
+        </div>
+      </div>
+
+      {!campaignId ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <p className="text-sm font-medium text-foreground">Campanha não informada.</p>
+          <p className="text-sm text-muted-foreground">Abra o relatório pela lista de campanhas.</p>
+        </div>
+      ) : isError ? (
+        /*
             Falha na consulta substitui o conteúdo: sem este estado, os skeletons
             dos indicadores ficariam girando para sempre (o relatório nunca chega).
           */
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive" />
-            <p className="text-sm font-medium text-foreground">
-              Não foi possível carregar o relatório da campanha.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {describeApiError(error, "Campanha não encontrada.")}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Tentar novamente
-            </Button>
-          </div>
-        ) : (
-          <>
-            <CampaignReportCards cards={cards} isLoading={isLoading} />
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <p className="text-sm font-medium text-foreground">
+            Não foi possível carregar o relatório da campanha.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {describeApiError(error, "Campanha não encontrada.")}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+            <RefreshCw className="h-4 w-4" /> Tentar novamente
+          </Button>
+        </div>
+      ) : (
+        <>
+          <CampaignReportCards cards={cards} isLoading={isLoading} />
 
-            <CampaignReportDailyChart
-              daily={daily}
-              hasMovement={hasDailyMovement}
-              windowLabel={windowLabel}
-              isLoading={isLoading}
-            />
+          <CampaignReportDailyChart
+            daily={daily}
+            hasMovement={hasDailyMovement}
+            windowLabel={windowLabel}
+            isLoading={isLoading}
+          />
 
-            <CampaignReportQuestionsChart questions={questions} isLoading={isLoading} />
+          <CampaignReportQuestionsChart questions={questions} isLoading={isLoading} />
 
-            {/* As tabelas só aparecem com o dado em mãos: um esqueleto de tabela
+          {/* As tabelas só aparecem com o dado em mãos: um esqueleto de tabela
                 vazia sugere colunas que talvez nem existam neste relatório. */}
-            {!isLoading && (
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <CampaignReportAnswersTable questions={questions} />
-                <CampaignReportCouponsTable coupons={coupons} />
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </AppLayout>
+          {!isLoading && (
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <CampaignReportAnswersTable questions={questions} />
+              <CampaignReportCouponsTable coupons={coupons} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

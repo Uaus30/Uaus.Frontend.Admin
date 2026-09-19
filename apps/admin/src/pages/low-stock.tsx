@@ -1,5 +1,4 @@
 import { FileSpreadsheet, Loader2 } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { useLowStock } from "@/features/low-stock/hooks/useLowStock";
 import { LowStockTable } from "@/features/low-stock/components/LowStockTable";
@@ -19,7 +18,7 @@ export default function LowStock() {
   const report = useLowStock();
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -75,6 +74,6 @@ export default function LowStock() {
         onConfirm={report.confirmAction}
         isSaving={report.isConfirming}
       />
-    </AppLayout>
+    </>
   );
 }

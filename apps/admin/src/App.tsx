@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, matchRoute, useLocation, useRouter } from "wouter";
 import { PageTitleProvider } from "@/components/page-title";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@workspace/ui";
@@ -10,6 +10,7 @@ import { useToast } from "@workspace/ui";
 import { DevEnvironmentBanner, DEV_ENVIRONMENT_BANNER_HEIGHT, isDevEnvironment } from "@workspace/ui";
 import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
 import { AuthGate, RequireRole } from "@/components/route-guards";
+import { AppLayout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = createQueryClient();
@@ -17,11 +18,85 @@ const queryClient = createQueryClient();
 /** Altura da faixa de conexão, em pixels, espelhando o `h-10` da classe. */
 const OFFLINE_BANNER_HEIGHT = 40;
 
+/** Carregando uma tela PÚBLICA, que não tem casca nenhuma em volta. */
 const PageFallback = () => (
   <div className="flex h-screen w-full items-center justify-center">
     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
   </div>
 );
+
+/**
+ * Carregando o chunk de uma tela PRIVADA — ocupa só a área de conteúdo.
+ *
+ * Antes o fallback era de tela cheia e o `AppLayout` morava dentro de cada
+ * página: trocar de menu apagava a barra lateral inteira até o chunk chegar, e a
+ * tela "piscava escuro" a cada navegação. Agora a casca fica montada e só o
+ * miolo espera.
+ */
+const ContentFallback = () => (
+  <div className="flex min-h-[60vh] w-full items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
+
+/** As rotas que exigem sessão — todas, menos as marcadas como públicas. */
+const ROTAS_PRIVADAS = ROUTES.filter((route) => !route.publica);
+
+/**
+ * A área autenticada, com a casca PERSISTENTE.
+ *
+ * O `AppLayout` fica aqui, fora do `<Switch>` de dentro, e não em cada página:
+ * é isso que o mantém montado entre uma tela e outra. Trocar de rota troca só o
+ * miolo, e a barra lateral não pisca.
+ *
+ * <b>Por que a 404 não entra aqui.</b> Ela precisa responder SEM sessão — quem
+ * digitou um endereço errado tem que ler "não existe", e não cair num login que
+ * não leva a lugar nenhum (é a decisão registrada em `pages/not-found.tsx`).
+ * Por isso a casca só é montada quando a URL casa com alguma rota privada
+ * conhecida; o resto cai na 404 pelada. O matcher é o do próprio wouter
+ * (`matchRoute` + o `parser` do router), e não um segundo escrito à mão: rota e
+ * menu saem da mesma fonte desde 2026, e um matcher paralelo é a porta para
+ * eles divergirem de novo.
+ */
+function AreaPrivada() {
+  const router = useRouter();
+  const [location] = useLocation();
+
+  const conhecida = ROTAS_PRIVADAS.some(
+    (route) => matchRoute(router.parser, route.matchPath ?? route.path, location)[0],
+  );
+
+  if (!conhecida) return <NOT_FOUND_COMPONENT />;
+
+  return (
+    <AuthGate>
+      <AppLayout>
+        <Suspense fallback={<ContentFallback />}>
+          <Switch>
+            {ROTAS_PRIVADAS.map((route) => {
+              const Page = route.component;
+
+              return (
+                // `matchPath` quando a página responde por mais de um caminho: um
+                // `<Route>` só, para a página não desmontar entre eles (ver
+                // `features/products/product-detail-route.ts`).
+                <Route key={route.path} path={route.matchPath ?? route.path}>
+                  {route.roles ? (
+                    <RequireRole route={route}>
+                      <Page />
+                    </RequireRole>
+                  ) : (
+                    <Page />
+                  )}
+                </Route>
+              );
+            })}
+          </Switch>
+        </Suspense>
+      </AppLayout>
+    </AuthGate>
+  );
+}
 
 /**
  * Rotas derivadas de `src/routes.tsx`, a fonte única.
@@ -33,39 +108,34 @@ const PageFallback = () => (
  * Toda rota privada passa pelo `AuthGate`; as que declaram `roles` ganham o
  * `RequireRole` por cima. Antes a proteção dependia de cada página lembrar de
  * renderizar o `<AppLayout>`.
+ *
+ * Exportado para o teste de `__tests__/app-shell.test.tsx`, que é quem prova as
+ * duas propriedades desta estrutura: a casca não desmonta entre telas, e a 404
+ * continua respondendo sem sessão.
  */
-function Router() {
+export function Router() {
   return (
-    <Suspense fallback={<PageFallback />}>
-      <Switch>
-        <Route path="/" component={() => <Redirect to="/dashboard" />} />
-        {ROUTES.map((route) => {
-          const Page = route.component;
+    <Switch>
+      <Route path="/" component={() => <Redirect to="/dashboard" />} />
 
-          return (
-            // `matchPath` quando a página responde por mais de um caminho: um
-            // `<Route>` só, para a página não desmontar entre eles (ver
-            // `features/products/product-detail-route.ts`).
-            <Route key={route.path} path={route.matchPath ?? route.path}>
-              {route.publica ? (
-                <Page />
-              ) : (
-                <AuthGate>
-                  {route.roles ? (
-                    <RequireRole route={route}>
-                      <Page />
-                    </RequireRole>
-                  ) : (
-                    <Page />
-                  )}
-                </AuthGate>
-              )}
-            </Route>
-          );
-        })}
-        <Route component={NOT_FOUND_COMPONENT} />
-      </Switch>
-    </Suspense>
+      {/* Públicas: sem sessão e sem casca. O fallback aqui é de tela cheia
+          porque não há barra lateral para preservar. */}
+      {ROUTES.filter((route) => route.publica).map((route) => {
+        const Page = route.component;
+
+        return (
+          <Route key={route.path} path={route.matchPath ?? route.path}>
+            <Suspense fallback={<PageFallback />}>
+              <Page />
+            </Suspense>
+          </Route>
+        );
+      })}
+
+      <Route>
+        <AreaPrivada />
+      </Route>
+    </Switch>
   );
 }
 

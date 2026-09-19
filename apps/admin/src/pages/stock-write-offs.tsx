@@ -1,5 +1,4 @@
 import { PackageMinus, Plus } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { useStockWriteOffs } from "@/features/stock-write-offs/hooks/useStockWriteOffs";
 import { StockWriteOffsTable } from "@/features/stock-write-offs/components/StockWriteOffsTable";
@@ -52,7 +51,7 @@ export default function StockWriteOffs() {
   } = useStockWriteOffs();
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -117,6 +116,6 @@ export default function StockWriteOffs() {
         onConfirm={confirmReversal}
         isReversing={isReversing}
       />
-    </AppLayout>
+    </>
   );
 }

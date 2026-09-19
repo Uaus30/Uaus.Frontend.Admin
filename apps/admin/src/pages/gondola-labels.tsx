@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { LabelBatchDeleteDialog } from "@/features/gondola-labels/components/LabelBatchDeleteDialog";
 import { LabelBatchDetailsModal } from "@/features/gondola-labels/components/LabelBatchDetailsModal";
@@ -18,7 +17,7 @@ export default function GondolaLabels() {
   const history = useLabelBatchHistory();
 
   return (
-    <AppLayout>
+    <>
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Etiquetas</h1>
@@ -105,6 +104,6 @@ export default function GondolaLabels() {
         onCancel={() => history.setDeleteTarget(null)}
         onConfirm={history.handleDelete}
       />
-    </AppLayout>
+    </>
   );
 }

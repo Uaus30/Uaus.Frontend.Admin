@@ -1,6 +1,5 @@
 import React from "react";
 import { Plus } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { useImages } from "@/features/images/hooks/useImages";
 import { ImageCatalog } from "@/features/images/components/ImageCatalog";
@@ -54,7 +53,7 @@ export default function Images() {
   } = useImages();
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -119,6 +118,6 @@ export default function Images() {
         renaming={renaming}
         onRename={handleRename}
       />
-    </AppLayout>
+    </>
   );
 }

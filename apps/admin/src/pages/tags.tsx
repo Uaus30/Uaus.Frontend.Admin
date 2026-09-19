@@ -1,6 +1,5 @@
 import React from "react";
 import { Plus } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { useTags } from "@/features/tags/hooks/useTags";
 import { TagTable } from "@/features/tags/components/TagTable";
@@ -45,7 +44,7 @@ export default function Tags() {
   } = useTags();
 
   return (
-    <AppLayout>
+    <>
       <div className="mx-auto flex max-w-5xl flex-col gap-6">
         <div className="flex justify-between items-center gap-4">
           <div>
@@ -96,6 +95,6 @@ export default function Tags() {
         selectedReport={selectedReport}
         isLoading={isReportLoading}
       />
-    </AppLayout>
+    </>
   );
 }

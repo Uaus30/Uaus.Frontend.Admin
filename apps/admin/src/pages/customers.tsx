@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { CustomerEditorModal } from "@/features/customers/components/CustomerEditorModal";
 import { CustomersTable } from "@/features/customers/components/CustomersTable";
@@ -30,7 +29,7 @@ export default function Customers() {
   } = useCustomers();
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -67,6 +66,6 @@ export default function Customers() {
         isSaving={isSaving}
         onSubmit={handleSaveCustomer}
       />
-    </AppLayout>
+    </>
   );
 }

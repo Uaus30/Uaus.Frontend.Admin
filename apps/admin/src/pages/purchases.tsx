@@ -1,5 +1,4 @@
 import { Plus } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { usePurchases } from "@/features/purchases/hooks/usePurchases";
 import { PurchasesTable } from "@/features/purchases/components/PurchasesTable";
@@ -18,7 +17,7 @@ export default function Purchases() {
   const { form } = purchases;
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -72,6 +71,6 @@ export default function Purchases() {
         onOpenChange={form.setImageSearchOpen}
         onSelectImage={form.addWebImage}
       />
-    </AppLayout>
+    </>
   );
 }

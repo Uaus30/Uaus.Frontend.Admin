@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/layout";
 import { Button } from "@workspace/ui";
 import { SupplierEditorModal } from "@/features/suppliers/components/SupplierEditorModal";
 import { SuppliersTable } from "@/features/suppliers/components/SuppliersTable";
@@ -39,7 +38,7 @@ export default function Suppliers() {
   } = useSuppliers();
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -85,6 +84,6 @@ export default function Suppliers() {
         activeStatusValue={activeStatusValue}
         onSubmit={handleSubmitSupplier}
       />
-    </AppLayout>
+    </>
   );
 }

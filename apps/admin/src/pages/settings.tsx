@@ -1,5 +1,4 @@
 import { Store } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { CompanySettingsForm } from "@/features/company-settings/components/CompanySettingsForm";
 import { useCompanySettings } from "@/features/company-settings/hooks/useCompanySettings";
 
@@ -23,34 +22,32 @@ export default function CompanySettings() {
   } = useCompanySettings();
 
   return (
-    <AppLayout>
-      <div className="flex flex-col gap-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <Store className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-display font-bold text-foreground">Configurações</h1>
-          </div>
-          <p className="mt-1 text-muted-foreground">
-            Identidade impressa nos cupons, opções de operação da loja e da vitrine do site. Valem para todos
-            os terminais.
-          </p>
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="flex items-center gap-2">
+          <Store className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-display font-bold text-foreground">Configurações</h1>
         </div>
-
-        <CompanySettingsForm
-          usesCashRegister={usesCashRegister}
-          onUsesCashRegisterChange={setUsesCashRegister}
-          maxSellerDiscountPercentage={maxSellerDiscountPercentage}
-          onMaxSellerDiscountPercentageChange={setMaxSellerDiscountPercentage}
-          identity={identity}
-          onIdentityChange={setIdentityField}
-          site={site}
-          onSiteChange={setSiteField}
-          isDirty={isDirty}
-          isLoading={isLoading}
-          isSaving={isSaving}
-          onSubmit={handleSubmit}
-        />
+        <p className="mt-1 text-muted-foreground">
+          Identidade impressa nos cupons, opções de operação da loja e da vitrine do site. Valem para todos os
+          terminais.
+        </p>
       </div>
-    </AppLayout>
+
+      <CompanySettingsForm
+        usesCashRegister={usesCashRegister}
+        onUsesCashRegisterChange={setUsesCashRegister}
+        maxSellerDiscountPercentage={maxSellerDiscountPercentage}
+        onMaxSellerDiscountPercentageChange={setMaxSellerDiscountPercentage}
+        identity={identity}
+        onIdentityChange={setIdentityField}
+        site={site}
+        onSiteChange={setSiteField}
+        isDirty={isDirty}
+        isLoading={isLoading}
+        isSaving={isSaving}
+        onSubmit={handleSubmit}
+      />
+    </div>
   );
 }

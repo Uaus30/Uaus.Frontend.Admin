@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/layout";
 import { usePartners } from "@/features/partners/hooks/usePartners";
 import { PartnersTable } from "@/features/partners/components/PartnersTable";
 import { PartnerEditorModal } from "@/features/partners/components/PartnerEditorModal";
@@ -47,90 +46,88 @@ export default function PartnersPage() {
   } = usePartners();
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Handshake className="w-6 h-6 text-primary" />
-              <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Sócios</h1>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Cadastre os sócios da empresa e configure a distribuição de lucros usada nos fechamentos
-              financeiros.
-            </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Handshake className="w-6 h-6 text-primary" />
+            <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Sócios</h1>
           </div>
-
-          <Button onClick={() => handleOpenModal()} className="gap-2 hover-elevate">
-            <Plus className="w-4 h-4" /> Novo Sócio
-          </Button>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cadastre os sócios da empresa e configure a distribuição de lucros usada nos fechamentos
+            financeiros.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-          {/* Seção 1: cadastro de sócios */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Filtros */}
-            <div className="flex items-center gap-3 bg-card p-4 rounded-xl border shadow-sm">
-              <div className="relative flex-1 w-full">
-                <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome do sócio..."
-                  value={searchVal}
-                  onChange={(e) => setSearchVal(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
+        <Button onClick={() => handleOpenModal()} className="gap-2 hover-elevate">
+          <Plus className="w-4 h-4" /> Novo Sócio
+        </Button>
+      </div>
 
-            {/* Tabela */}
-            <PartnersTable
-              partners={partners}
-              isLoading={isLoading}
-              isDeleting={isDeleting}
-              onEdit={handleOpenModal}
-              onDelete={handleDeletePartner}
-            />
-
-            {/* Paginação */}
-            {pagination && (
-              <TablePagination
-                page={page}
-                pageSize={pagination.pageSize}
-                total={pagination.total}
-                onPageChange={setPage}
-                itemLabel={{ singular: "sócio", plural: "sócios" }}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+        {/* Seção 1: cadastro de sócios */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Filtros */}
+          <div className="flex items-center gap-3 bg-card p-4 rounded-xl border shadow-sm">
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome do sócio..."
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                className="pl-9"
               />
-            )}
+            </div>
           </div>
 
-          {/* Seção 2: distribuição de lucros */}
-          <ProfitSharesCard
-            shares={activeShares}
-            isLoading={isLoadingShares}
-            draftPercentages={draftPercentages}
-            onPercentageChange={setSharePercentage}
-            onPercentageBlur={handleSharePercentageBlur}
-            sum={sharesSum}
-            isSumValid={isSharesSumValid}
-            canSave={canSaveShares}
-            isSaving={isSavingShares}
-            onSubmit={handleSaveShares}
+          {/* Tabela */}
+          <PartnersTable
+            partners={partners}
+            isLoading={isLoading}
+            isDeleting={isDeleting}
+            onEdit={handleOpenModal}
+            onDelete={handleDeletePartner}
           />
+
+          {/* Paginação */}
+          {pagination && (
+            <TablePagination
+              page={page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onPageChange={setPage}
+              itemLabel={{ singular: "sócio", plural: "sócios" }}
+            />
+          )}
         </div>
 
-        {/* Modal Editor */}
-        <PartnerEditorModal
-          open={modalOpen}
-          editingId={editingId}
-          editingWasActive={editingWasActive}
-          formData={form}
-          onClose={closeModal}
-          onFormChange={setForm}
-          onSubmit={handleSubmitPartner}
-          isSaving={isSaving}
+        {/* Seção 2: distribuição de lucros */}
+        <ProfitSharesCard
+          shares={activeShares}
+          isLoading={isLoadingShares}
+          draftPercentages={draftPercentages}
+          onPercentageChange={setSharePercentage}
+          onPercentageBlur={handleSharePercentageBlur}
+          sum={sharesSum}
+          isSumValid={isSharesSumValid}
+          canSave={canSaveShares}
+          isSaving={isSavingShares}
+          onSubmit={handleSaveShares}
         />
       </div>
-    </AppLayout>
+
+      {/* Modal Editor */}
+      <PartnerEditorModal
+        open={modalOpen}
+        editingId={editingId}
+        editingWasActive={editingWasActive}
+        formData={form}
+        onClose={closeModal}
+        onFormChange={setForm}
+        onSubmit={handleSubmitPartner}
+        isSaving={isSaving}
+      />
+    </div>
   );
 }

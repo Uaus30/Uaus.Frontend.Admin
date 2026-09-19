@@ -1,6 +1,5 @@
 import React from "react";
 import { AlertCircle } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { useDashboard } from "@/features/dashboard/hooks/useDashboard";
 import { useLiveToday } from "@/features/dashboard/hooks/useLiveToday";
 import { useMonthlyComparison } from "@/features/dashboard/hooks/useMonthlyComparison";
@@ -42,96 +41,94 @@ export default function Dashboard() {
   const intelligence = useSalesIntelligence();
 
   return (
-    <AppLayout>
-      <div className="flex flex-col gap-6">
-        <PeriodSelector
-          periodMode={dashboard.periodMode}
-          preset={dashboard.preset}
-          periodLabel={dashboard.period.label}
-          customStart={dashboard.customStart}
-          setCustomStart={dashboard.setCustomStart}
-          customEnd={dashboard.customEnd}
-          setCustomEnd={dashboard.setCustomEnd}
-          handleApplyCustom={dashboard.handleApplyCustom}
-          handleSelectPreset={dashboard.handleSelectPreset}
-          handleClearCustom={dashboard.handleClearCustom}
-          isFetching={dashboard.isFetching}
-          onRefresh={dashboard.refreshAll}
-        />
+    <div className="flex flex-col gap-6">
+      <PeriodSelector
+        periodMode={dashboard.periodMode}
+        preset={dashboard.preset}
+        periodLabel={dashboard.period.label}
+        customStart={dashboard.customStart}
+        setCustomStart={dashboard.setCustomStart}
+        customEnd={dashboard.customEnd}
+        setCustomEnd={dashboard.setCustomEnd}
+        handleApplyCustom={dashboard.handleApplyCustom}
+        handleSelectPreset={dashboard.handleSelectPreset}
+        handleClearCustom={dashboard.handleClearCustom}
+        isFetching={dashboard.isFetching}
+        onRefresh={dashboard.refreshAll}
+      />
 
-        {/* Vermelho só com pendência: some sozinho quando não há o que repor. */}
-        <LowStockAlert />
+      {/* Vermelho só com pendência: some sozinho quando não há o que repor. */}
+      <LowStockAlert />
 
-        {/* E o outro lado da reposição: o que já foi pedido e ainda não chegou.
+      {/* E o outro lado da reposição: o que já foi pedido e ainda não chegou.
             Âmbar, e abaixo do vermelho, porque é trabalho em curso — não
             urgência. Some sozinho quando não há compra em aberto. */}
-        <OpenPurchasesAlert />
+      <OpenPurchasesAlert />
 
-        {dashboard.isError && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>
-              Não foi possível carregar os indicadores do período. Verifique a conexão com o servidor e tente
-              novamente.
-            </span>
-          </div>
-        )}
-
-        <LiveTodayCard
-          today={live.today}
-          isLoading={live.isLoading}
-          isFetching={live.isFetching}
-          updatedAt={live.updatedAt}
-          onRefresh={live.refetch}
-        />
-
-        <DashboardKpis overview={dashboard.overview} isLoading={dashboard.isLoading} />
-
-        <RevenueProfitChart
-          series={dashboard.overview?.series ?? []}
-          periodLabel={dashboard.period.label}
-          isLoading={dashboard.isLoading}
-        />
-
-        <WeekComparisonCard
-          days={weekComparison.days}
-          week={weekComparison.week}
-          isLoading={weekComparison.isLoading}
-        />
-
-        <MonthComparisonCard
-          monthly={monthly.monthly}
-          comparison={monthly.comparison}
-          isLoading={monthly.isLoading}
-        />
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <RevenueBreakdownCard
-            title="Faturamento por categoria"
-            description={dashboard.period.label}
-            items={dashboard.overview?.byCategory ?? []}
-            isLoading={dashboard.isLoading}
-            emptyMessage="Nenhuma venda por categoria no período selecionado."
-          />
-          <RevenueBreakdownCard
-            title="Formas de pagamento"
-            description={dashboard.period.label}
-            items={dashboard.overview?.byPaymentMethod ?? []}
-            isLoading={dashboard.isLoading}
-            emptyMessage="Nenhum pagamento registrado no período selecionado."
-          />
+      {dashboard.isError && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>
+            Não foi possível carregar os indicadores do período. Verifique a conexão com o servidor e tente
+            novamente.
+          </span>
         </div>
+      )}
 
-        <TopProductsTable
-          products={dashboard.overview?.topProducts ?? []}
-          periodLabel={dashboard.period.label}
+      <LiveTodayCard
+        today={live.today}
+        isLoading={live.isLoading}
+        isFetching={live.isFetching}
+        updatedAt={live.updatedAt}
+        onRefresh={live.refetch}
+      />
+
+      <DashboardKpis overview={dashboard.overview} isLoading={dashboard.isLoading} />
+
+      <RevenueProfitChart
+        series={dashboard.overview?.series ?? []}
+        periodLabel={dashboard.period.label}
+        isLoading={dashboard.isLoading}
+      />
+
+      <WeekComparisonCard
+        days={weekComparison.days}
+        week={weekComparison.week}
+        isLoading={weekComparison.isLoading}
+      />
+
+      <MonthComparisonCard
+        monthly={monthly.monthly}
+        comparison={monthly.comparison}
+        isLoading={monthly.isLoading}
+      />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <RevenueBreakdownCard
+          title="Faturamento por categoria"
+          description={dashboard.period.label}
+          items={dashboard.overview?.byCategory ?? []}
           isLoading={dashboard.isLoading}
+          emptyMessage="Nenhuma venda por categoria no período selecionado."
         />
-
-        <PatternsPanel {...patterns} />
-
-        <IntelligencePanel {...intelligence} />
+        <RevenueBreakdownCard
+          title="Formas de pagamento"
+          description={dashboard.period.label}
+          items={dashboard.overview?.byPaymentMethod ?? []}
+          isLoading={dashboard.isLoading}
+          emptyMessage="Nenhum pagamento registrado no período selecionado."
+        />
       </div>
-    </AppLayout>
+
+      <TopProductsTable
+        products={dashboard.overview?.topProducts ?? []}
+        periodLabel={dashboard.period.label}
+        isLoading={dashboard.isLoading}
+      />
+
+      <PatternsPanel {...patterns} />
+
+      <IntelligencePanel {...intelligence} />
+    </div>
   );
 }

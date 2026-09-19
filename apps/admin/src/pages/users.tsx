@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/layout";
 import { Button, ConfirmDialog } from "@workspace/ui";
 import { FirstAccessDialog } from "@/features/users/components/FirstAccessDialog";
 import { UserEditorModal } from "@/features/users/components/UserEditorModal";
@@ -44,7 +43,7 @@ export default function Users() {
   } = useUsers();
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -111,6 +110,6 @@ export default function Users() {
           if (deleteId) handleDeleteUser(deleteId);
         }}
       />
-    </AppLayout>
+    </>
   );
 }

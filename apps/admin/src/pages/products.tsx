@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Loader2, Plus } from "lucide-react";
-import { AppLayout } from "@/components/layout";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Button } from "@workspace/ui";
 import { useProductTable } from "@/features/products/hooks/useProductTable";
@@ -102,17 +101,17 @@ export default function Products() {
   // instante a tela que já se sabe que vai ser substituída.
   if (resolvendoDetalheDaUrl && !editor.detailOpen) {
     return (
-      <AppLayout>
+      <>
         <div className="flex min-h-[60vh] w-full items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </AppLayout>
+      </>
     );
   }
 
   if (editor.detailOpen) {
     return (
-      <AppLayout>
+      <>
         <ProductDetailScreen
           editor={editor}
           initialTab={detailInitialTab}
@@ -125,12 +124,12 @@ export default function Products() {
           onCancel={() => setPendingClose(null)}
           onConfirm={fecharDetalhe}
         />
-      </AppLayout>
+      </>
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -202,6 +201,6 @@ export default function Products() {
           }
         }}
       />
-    </AppLayout>
+    </>
   );
 }
