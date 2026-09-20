@@ -7,10 +7,12 @@ import {
   getGetPromotionByIdQueryKey,
   getGetPromotionsQueryKey,
   updatePromotion,
+  useGetCompanySettings,
   useGetPromotionById,
   useGetPromotionPreview,
 } from "@workspace/api-client-react";
 import { describeApiError, parseAmountOrNull } from "@workspace/core";
+import { buildPublicImageUrl } from "@/services/core";
 import {
   buildPromotionPayload,
   describeFormProblem,
@@ -19,7 +21,9 @@ import {
   parsePositiveIntegerOrNaN,
   repeatFormFromPromotion,
 } from "./promotionRules";
+import { usePromotionArtwork, uploadPendingArtwork } from "./usePromotionArtwork";
 import { promotionRepeatSourceFromSearch } from "../promotion-route";
+import type { PromotionPromptInput } from "./promotionPrompt";
 import type { PromotionForm } from "../types";
 
 /**
@@ -92,11 +96,54 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
     targetQuantity: normalizeTargetForPreview(targetQuantity),
   });
 
-  const problem = useMemo(() => describeFormProblem(form), [form]);
+  // `isNew` muda UMA recusa: a relâmpago cujo horário de hoje já passou. Cadastro
+  // novo com a janela vencida nasceria "Encerrada"; a mesma promoção EDITADA é
+  // gesto legítimo — corrigir a meta depois que ela acabou.
+  const problem = useMemo(() => describeFormProblem(form, { isNew: !promotionId }), [form, promotionId]);
+
+  const { pickArtwork, clearArtwork } = usePromotionArtwork(setForm);
+
+  // Endereço e nome da loja saem de Configurações da Empresa — os mesmos campos
+  // que o cupom imprime. Duas das três artes publicadas trazem o endereço, e é
+  // por isso que o bloco é condicional em vez de obrigatório.
+  const { data: empresa } = useGetCompanySettings();
+
+  /**
+   * O que o prompt precisa, ou `null` quando ainda não dá para montá-lo.
+   *
+   * Depende da PRÉVIA, e não do formulário: o preço que vai no cartaz é o
+   * promocional resolvido por variação, que é a mesma conta do balcão. Montá-lo
+   * aqui a partir do percentual digitado seria a segunda implementação do preço
+   * — exatamente o que a prévia existe para impedir.
+   */
+  const promptInput = useMemo<Omit<PromotionPromptInput, "format" | "signature"> | null>(() => {
+    if (!form.productGroupId || !preview || preview.variations.length === 0) return null;
+
+    const vigencia = buildPromotionPayload(form);
+
+    return {
+      productName: form.productGroupName || preview.productGroupName,
+      price: preview.promotionalPriceMin,
+      priceMax: preview.promotionalPriceMax,
+      maxQuantityPerSale: parsePositiveIntegerOrNaN(form.maxQuantityPerSale) ?? undefined,
+      validFrom: vigencia.validFrom,
+      validUntil: vigencia.validUntil,
+      addressLine: empresa?.addressLine,
+      cityState: empresa?.cityState,
+    };
+  }, [form, preview, empresa?.addressLine, empresa?.cityState]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = buildPromotionPayload(form);
+      // As artes sobem PRIMEIRO, e só então o payload é montado: o id de uma
+      // imagem que ainda não existe não pode entrar na promoção. Falha de upload
+      // derruba a mutação inteira — meia promoção gravada, com a arte do feed e
+      // sem a do story, seria pior que nenhuma.
+      const nome = form.productGroupName || "Promoção";
+      const feedImageId = await uploadPendingArtwork(form.feedImage, `${nome} 4x5`);
+      const storyImageId = await uploadPendingArtwork(form.storyImage, `${nome} 9x16`);
+
+      const payload = buildPromotionPayload(form, { feedImageId, storyImageId });
       return promotionId ? updatePromotion(promotionId, payload) : createPromotion(payload);
     },
     onSuccess: (saved) => {
@@ -171,7 +218,28 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
     belowCost,
     confirmingBelowCost,
     dismissBelowCost: () => setConfirmingBelowCost(false),
+    pickArtwork,
+    clearArtwork,
+    promptInput,
+    /**
+     * Capa do produto, para anexar junto do prompt na ferramenta de IA.
+     *
+     * Sai da PRÉVIA antes do detalhe: a modal do prompt é aberta no cadastro
+     * novo, onde `promotion` ainda não existe — e é ali que a arte da semana é
+     * montada, na sexta à tarde.
+     */
+    coverImageUrl: toCoverUrl(preview?.productGroupImageUrl ?? promotion?.productGroupImageUrl),
   };
+}
+
+/**
+ * A capa em URL pública, ou `null` quando o produto não tem foto.
+ *
+ * A guarda do vazio não é zelo: `buildPublicImageUrl("")` devolve a base da API
+ * com uma barra — uma string verdadeira que vira `<img>` quebrado na modal.
+ */
+function toCoverUrl(url?: string | null): string | null {
+  return url ? buildPublicImageUrl(url) : null;
 }
 
 /** Meta que a prévia aceita: inteiro positivo, ou nada. */

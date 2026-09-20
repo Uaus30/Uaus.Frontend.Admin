@@ -25,6 +25,7 @@ import { formatCurrency } from "@workspace/core";
 import { DEFAULT_END_TIME, DEFAULT_START_TIME } from "../hooks/promotionRules";
 import { usePromotionEditor } from "../hooks/usePromotionEditor";
 import { ProductGroupPicker } from "./ProductGroupPicker";
+import { PromotionArtworkPanel } from "./PromotionArtworkPanel";
 import { PromotionPerformanceTab } from "./PromotionPerformanceTab";
 import { PromotionPricePanel } from "./PromotionPricePanel";
 import type { PromotionDiscountTypeCode, PromotionTypeCode } from "../types";
@@ -69,6 +70,10 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
     belowCost,
     confirmingBelowCost,
     dismissBelowCost,
+    pickArtwork,
+    clearArtwork,
+    promptInput,
+    coverImageUrl,
   } = usePromotionEditor(promotionId, onSaved);
 
   if (isLoading) {
@@ -172,6 +177,12 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
                     // para a pessoa desfazer.
                     startTime: Number(valor) === PROMOTION_TYPE.Flash ? atual.startTime : DEFAULT_START_TIME,
                     endTime: Number(valor) === PROMOTION_TYPE.Flash ? atual.endTime : DEFAULT_END_TIME,
+                    // As artes também são da relâmpago. Sair dela com uma
+                    // escolhida gravaria a arte num patamar de preço — com os
+                    // slots já fora da tela para a pessoa desfazer, que é o
+                    // mesmo erro do horário logo acima.
+                    feedImage: Number(valor) === PROMOTION_TYPE.Flash ? atual.feedImage : null,
+                    storyImage: Number(valor) === PROMOTION_TYPE.Flash ? atual.storyImage : null,
                   }))
                 }
               >
@@ -356,13 +367,31 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
         </div>
 
         {/* --------------------------------------------------------- prévia */}
-        <div className="min-w-0 space-y-4 rounded-lg border bg-card p-4 xl:col-span-3">
-          <p className="text-sm font-medium">Efeito no preço</p>
-          <PromotionPricePanel
-            preview={preview}
-            isLoading={isPreviewing}
-            targetQuantity={form.targetQuantity}
-          />
+        <div className="min-w-0 space-y-4 xl:col-span-3">
+          <div className="space-y-4 rounded-lg border bg-card p-4">
+            <p className="text-sm font-medium">Efeito no preço</p>
+            <PromotionPricePanel
+              preview={preview}
+              isLoading={isPreviewing}
+              targetQuantity={form.targetQuantity}
+            />
+          </div>
+
+          {/* As artes são de RELÂMPAGO: o Dia a Dia é patamar de preço e não vira
+              cartaz de sábado no grupo de WhatsApp. Mostrar os slots ali só
+              ensinaria que eles não servem para nada. */}
+          {isFlash && (
+            <div className="rounded-lg border bg-card p-4">
+              <PromotionArtworkPanel
+                feedImage={form.feedImage}
+                storyImage={form.storyImage}
+                onPick={pickArtwork}
+                onClear={clearArtwork}
+                promptInput={promptInput}
+                coverImageUrl={coverImageUrl}
+              />
+            </div>
+          )}
         </div>
       </div>
 

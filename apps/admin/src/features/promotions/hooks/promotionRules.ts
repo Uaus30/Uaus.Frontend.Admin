@@ -5,7 +5,7 @@ import {
   enumCode,
   type PromotionDto,
 } from "@workspace/api-client-react";
-import type { PromotionForm, PromotionSituation, SavePromotionPayload } from "../types";
+import type { PromotionArtwork, PromotionForm, PromotionSituation, SavePromotionPayload } from "../types";
 
 /**
  * As regras puras das promoções: composição dos instantes, situação, validação e
@@ -121,6 +121,8 @@ export function emptyPromotionForm(today: Date = new Date()): PromotionForm {
     targetQuantity: "",
     isActive: true,
     showOnSite: false,
+    feedImage: null,
+    storyImage: null,
   };
 }
 
@@ -142,7 +144,21 @@ export function formFromPromotion(promotion: PromotionDto): PromotionForm {
     targetQuantity: promotion.targetQuantity == null ? "" : String(promotion.targetQuantity),
     isActive: promotion.isActive,
     showOnSite: promotion.showOnSite,
+    feedImage: artworkFromPromotion(promotion.feedImageId, promotion.feedImageUrl),
+    storyImage: artworkFromPromotion(promotion.storyImageId, promotion.storyImageUrl),
   };
+}
+
+/**
+ * A arte gravada, como o formulário a carrega.
+ *
+ * `url` ausente COM id presente e significa "a imagem sumiu do catálogo": a
+ * associação sobrevive à remoção do arquivo. O slot volta vazio em vez de
+ * mostrar miniatura quebrada, e salvar de novo limpa o vínculo morto.
+ */
+function artworkFromPromotion(imageId?: number | null, url?: string | null): PromotionArtwork | null {
+  if (imageId == null || !url) return null;
+  return { imageId, url };
 }
 
 /**
@@ -175,10 +191,17 @@ export function repeatFormFromPromotion(origem: PromotionDto, hoje: Date): Promo
   return {
     ...base,
     startDate: inicio,
-    endDate: relampago ? inicio : undefined,
+    // Cópia, e não o mesmo objeto: `Date` é mutável, e um `setDate()` em qualquer
+    // um dos dois campos moveria o outro junto, em silêncio.
+    endDate: relampago ? new Date(inicio) : undefined,
     noEndDate: relampago ? false : true,
     isActive: true,
     showOnSite: false,
+    // As artes NÃO são copiadas: a validade está escrita dentro da imagem
+    // ("SOMENTE NESTE SÁBADO"), e herdá-la publicaria no grupo de WhatsApp um
+    // cartaz com a data da semana passada. O prompt se regenera de graça.
+    feedImage: null,
+    storyImage: null,
   };
 }
 
@@ -230,7 +253,10 @@ function nextWeekdayOccurrence(original: Date, hoje: Date, endTime: string): Dat
  * servidor, e qualquer heurística local seria palpite sobre dado que a tela não
  * tem — a mesma regra que o editor de campanhas segue.
  */
-export function describeFormProblem(form: PromotionForm): string | null {
+export function describeFormProblem(
+  form: PromotionForm,
+  options: { isNew?: boolean; now?: Date } = {},
+): string | null {
   if (!form.productGroupId) return "Escolha o produto da promoção.";
 
   // Campo VAZIO é cobrado antes de parsear: `parseAmountOrNull("")` devolve 0, e
@@ -268,8 +294,20 @@ export function describeFormProblem(form: PromotionForm): string | null {
     if (toEndInstant(form.startDate, form.endTime) <= toStartInstant(form.startDate, form.startTime))
       return "O fim da promoção relâmpago tem que ser depois do início.";
 
-    if (toDateKey(form.startDate) < toDateKey(new Date()))
+    const agora = options.now ?? new Date();
+
+    if (toDateKey(form.startDate) < toDateKey(agora))
       return "A promoção relâmpago tem que ser de hoje ou de um dia futuro.";
+
+    // A hora também conta — mas SÓ no cadastro novo.
+    //
+    // Às 19h40 de sábado, "Nova promoção" já vem com a data de hoje: escolher
+    // Relâmpago, digitar 14h–18h e salvar passava por esta validação (que compara
+    // datas) e pelo servidor (que compara datas), e a promoção nascia "Encerrada".
+    // Na EDIÇÃO a mesma recusa seria errada: corrigir a meta da relâmpago que
+    // acabou de terminar é gesto legítimo, e travá-lo trancaria o cadastro.
+    if (options.isNew && toEndInstant(form.startDate, form.endTime) <= nowInstant(agora))
+      return "Esta promoção relâmpago já teria terminado. Escolha outro dia ou outro horário.";
 
     return null;
   }
@@ -297,7 +335,13 @@ export function describeFormProblem(form: PromotionForm): string | null {
  * são a mesma coisa para o servidor, mas mandar zero faria a intenção depender de
  * uma normalização remota em vez de estar escrita aqui.
  */
-export function buildPromotionPayload(form: PromotionForm): SavePromotionPayload {
+export function buildPromotionPayload(
+  form: PromotionForm,
+  artworks: { feedImageId: number | null; storyImageId: number | null } = {
+    feedImageId: form.feedImage?.imageId ?? null,
+    storyImageId: form.storyImage?.imageId ?? null,
+  },
+): SavePromotionPayload {
   const startDate = form.startDate ?? new Date();
   const isFlash = form.type === PROMOTION_TYPE.Flash;
 
@@ -329,6 +373,11 @@ export function buildPromotionPayload(form: PromotionForm): SavePromotionPayload
     // evita que trocar o tipo com a caixa marcada devolva um 400 que a pessoa
     // não relaciona com a caixa.
     showOnSite: isFlash && form.showOnSite,
+    // Os ids chegam RESOLVIDOS de quem salva: a arte escolhida e ainda não
+    // enviada não tem id, e o upload acontece no salvamento. Nulo apaga o
+    // vínculo, que é o que tirar a arte do formulário significa.
+    feedImageId: artworks.feedImageId,
+    storyImageId: artworks.storyImageId,
   };
 }
 

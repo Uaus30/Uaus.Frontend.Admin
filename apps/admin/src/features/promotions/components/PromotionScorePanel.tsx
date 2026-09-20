@@ -177,8 +177,12 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
         )}
 
         {/* "Um dia comum" seria mentira quando a régua é de sábados: sábado fatura
-            1,75× o dia médio, e a frase genérica subestimaria o múltiplo. */}
-        {score.impulseMultiplier != null && (
+            1,75× o dia médio, e a frase genérica subestimaria o múltiplo.
+
+            Sem venda a frase sai de cena inteira: `ImpulseMultiplier(0, x)` é 0, e
+            "Vendeu 0× o que o produto sai num sábado normal" é a mesma afirmação de
+            fracasso que o velocímetro logo acima se recusa a fazer. */}
+        {score.impulseMultiplier != null && !semVenda && (
           <p className="text-muted-foreground">
             Vendeu <strong>{formatQuantity(score.impulseMultiplier)}×</strong> o que o produto sai num{" "}
             {score.rulerFellBackToAllDays ? "dia comum" : score.weekdayName.toLowerCase()} normal.

@@ -21,54 +21,75 @@ import { PromotionScorePanel } from "./PromotionScorePanel";
  * números hoje e daqui a um ano.
  */
 
-function TotaisDoDiaADia({ everyday }: { everyday: PromotionEverydayDto }) {
+function TotaisDoDiaADia({
+  everyday,
+  soldUnits,
+}: {
+  everyday: PromotionEverydayDto;
+  /** Unidades carimbadas com o id DESTE patamar. Zero muda a leitura de tudo abaixo. */
+  soldUnits: number;
+}) {
   const subiu = (everyday.impulsePercent ?? 0) >= 0;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="rounded-lg border p-3">
-        <p className="text-xs text-muted-foreground">Unidades por dia</p>
-        <p className="font-mono text-xl font-bold">{formatQuantity(everyday.unitsPerDay)}</p>
-        <p className="text-xs text-muted-foreground">
-          antes: {formatQuantity(everyday.unitsPerDayBefore)} / dia
+    <div className="space-y-3">
+      {/* Os quatro cartões medem o PRODUTO, não as linhas carimbadas — é o que os
+          torna comparáveis com o "antes". Sem esta faixa, um patamar que nunca se
+          aplicou (coberto pela relâmpago do sábado, ou desativado antes da
+          primeira venda) mostrava "Impulso +2,9%" em VERDE logo acima da frase
+          que diz que ele não vendeu nada. */}
+      {soldUnits <= 0 && (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+          Nenhuma venda foi atribuída a este patamar. Os números abaixo são o movimento do produto no período
+          — não o efeito dele.
         </p>
-      </div>
+      )}
 
-      <div className="rounded-lg border p-3">
-        <p className="text-xs text-muted-foreground">Impulso</p>
-        {/* Verde é "positivo" e vermelho é "negativo" no vocabulário da casa, e
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Unidades do produto por dia</p>
+          <p className="font-mono text-xl font-bold">{formatQuantity(everyday.unitsPerDay)}</p>
+          <p className="text-xs text-muted-foreground">
+            antes: {formatQuantity(everyday.unitsPerDayBefore)} / dia
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Impulso</p>
+          {/* Verde é "positivo" e vermelho é "negativo" no vocabulário da casa, e
             nunca cor sozinha: o sinal vai escrito junto. Sem ritmo anterior não
             há impulso a mostrar — não houve alta infinita, houve estreia. */}
-        {everyday.impulsePercent == null ? (
-          <p className="font-mono text-xl font-bold text-muted-foreground">—</p>
-        ) : (
-          <p
-            className={`font-mono text-xl font-bold ${subiu ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}
-          >
-            {subiu ? "+" : "−"}
-            {formatQuantity(Math.abs(everyday.impulsePercent))}%
+          {everyday.impulsePercent == null ? (
+            <p className="font-mono text-xl font-bold text-muted-foreground">—</p>
+          ) : (
+            <p
+              className={`font-mono text-xl font-bold ${subiu ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}
+            >
+              {subiu ? "+" : "−"}
+              {formatQuantity(Math.abs(everyday.impulsePercent))}%
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {everyday.impulsePercent == null ? "o produto não vendia antes" : "contra os 30 dias anteriores"}
           </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          {everyday.impulsePercent == null ? "o produto não vendia antes" : "contra os 30 dias anteriores"}
-        </p>
-      </div>
+        </div>
 
-      <div className="rounded-lg border p-3">
-        <p className="text-xs text-muted-foreground">Margem praticada</p>
-        <p className="font-mono text-xl font-bold">
-          {everyday.marginPercent == null ? "—" : `${formatQuantity(everyday.marginPercent)}%`}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          antes:{" "}
-          {everyday.marginPercentBefore == null ? "—" : `${formatQuantity(everyday.marginPercentBefore)}%`}
-        </p>
-      </div>
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Margem do produto</p>
+          <p className="font-mono text-xl font-bold">
+            {everyday.marginPercent == null ? "—" : `${formatQuantity(everyday.marginPercent)}%`}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            antes:{" "}
+            {everyday.marginPercentBefore == null ? "—" : `${formatQuantity(everyday.marginPercentBefore)}%`}
+          </p>
+        </div>
 
-      <div className="rounded-lg border p-3">
-        <p className="text-xs text-muted-foreground">Ticket com o produto</p>
-        <p className="font-mono text-xl font-bold">{formatCurrency(everyday.ticket)}</p>
-        <p className="text-xs text-muted-foreground">loja: {formatCurrency(everyday.storeTicket)}</p>
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Ticket com o produto</p>
+          <p className="font-mono text-xl font-bold">{formatCurrency(everyday.ticket)}</p>
+          <p className="text-xs text-muted-foreground">loja: {formatCurrency(everyday.storeTicket)}</p>
+        </div>
       </div>
     </div>
   );
@@ -77,23 +98,31 @@ function TotaisDoDiaADia({ everyday }: { everyday: PromotionEverydayDto }) {
 export function PromotionPerformanceTab({ promotionId }: { promotionId: number }) {
   const { data, isLoading, isError } = useGetPromotionPerformance(promotionId);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 py-12 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Medindo a promoção...
-      </div>
-    );
-  }
-
   /*
+   * O ERRO vem antes do carregamento, e é por isso que a ordem importa.
+   *
    * Sem este ramo a aba girava PARA SEMPRE: depois das tentativas, `isLoading` vira
    * falso e `data` continua indefinido, então um `if (isLoading || !data)` caía de
    * volta no spinner — sem toast, sem mensagem, e com o dono concluindo que a tela
    * travou. A aba gêmea do produto já resolvia assim.
    */
-  if (isError || !data) {
+  if (isError) {
     return (
       <p className="py-12 text-sm text-destructive">Não foi possível carregar o desempenho desta promoção.</p>
+    );
+  }
+
+  /*
+   * `!data` sem erro é espera, e SPINNER é a leitura certa — inclusive com o
+   * navegador offline, quando o React Query pausa a consulta (`fetchStatus:
+   * "paused"`) e `isLoading` fica falso. Pintar "não foi possível carregar" ali
+   * afirmaria uma falha que não aconteceu.
+   */
+  if (isLoading || !data) {
+    return (
+      <div className="flex items-center gap-2 py-12 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Medindo a promoção...
+      </div>
     );
   }
 
@@ -123,7 +152,7 @@ export function PromotionPerformanceTab({ promotionId }: { promotionId: number }
       </div>
 
       {relampago && data.score && <PromotionScorePanel score={data.score} />}
-      {!relampago && data.everyday && <TotaisDoDiaADia everyday={data.everyday} />}
+      {!relampago && data.everyday && <TotaisDoDiaADia everyday={data.everyday} soldUnits={data.soldUnits} />}
 
       <PromotionInvestmentPanel
         investment={data.investment}

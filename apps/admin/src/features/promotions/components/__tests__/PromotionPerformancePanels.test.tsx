@@ -209,6 +209,21 @@ describe("PromotionScorePanel", () => {
     expect(screen.getByText(/sábado normal/)).toBeTruthy();
   });
 
+  it("concorda no singular quando uma venda só passou do limite", () => {
+    render(<PromotionScorePanel score={nota({ salesOverLimit: 1 })} />);
+
+    expect(screen.getByText(/venda passou do limite/)).toBeTruthy();
+  });
+
+  it("não afirma 0× o normal quando não houve venda", () => {
+    // `ImpulseMultiplier(0, x)` é 0, e "Vendeu 0× o que o produto sai num sábado
+    // normal" é a mesma afirmação de fracasso que o velocímetro logo acima se
+    // recusa a fazer.
+    render(<PromotionScorePanel score={nota({ class: "NoSales", score: 0, impulseMultiplier: 0 })} />);
+
+    expect(screen.queryByText(/sábado normal/)).toBeNull();
+  });
+
   it("declara que o esgotamento é inferência", () => {
     // A loja não guarda a série do saldo, pelo mesmo motivo que o giro do BI é
     // sell-through. Afirmar "esgotou" sem essa ressalva seria inventar histórico.

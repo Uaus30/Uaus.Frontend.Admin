@@ -171,7 +171,38 @@ sábado de manhã.
 
 O banner (`showOnSite`) **não** é herdado: duas relâmpagos no banner não podem se
 sobrepor, e herdar a marcação faria o salvamento voltar um 400 sobre uma caixa
-que a pessoa não marcou.
+que a pessoa não marcou. As **artes** também não: a validade está escrita dentro
+da imagem ("SOMENTE NESTE SÁBADO"), e herdá-la publicaria no grupo de WhatsApp um
+cartaz com a data da semana passada.
+
+**A hora entra na conta do "próxima ocorrência".** O dono confere a relâmpago
+depois que ela acaba — é quando a aba Performance deixa de avisar que os números
+são parciais. Às 19h40 de sábado, a cópia de 14h–18h caía em hoje e nascia
+"Encerrada". Pelo mesmo motivo, o cadastro **novo** recusa uma relâmpago cujo
+horário de hoje já passou; a **edição** não, porque corrigir a meta da promoção
+que acabou é gesto legítimo.
+
+### 16. As artes: duas por relâmpago, e o prompt se monta na hora
+
+4:5 (feed e grupos de WhatsApp) e 9:16 (Stories), as duas opcionais e **só em
+Relâmpago** — o Dia a Dia é patamar de preço, e não vira cartaz de sábado. Trocar
+o tipo para Dia a Dia limpa os slots pela mesma razão que limpa o horário: campo
+sem sentido que fica preenchido é campo que alguém grava sem querer.
+
+O arquivo sobe no **salvamento**, e não na escolha: quem abre o cadastro, anexa a
+arte e desiste não deixa imagem órfã no catálogo. Proporção fora de 4:5 ou 9:16 é
+**aviso, não recusa** — a loja pode ter uma arte 1:1 pronta, e travar o upload por
+dez pixels seria o sistema decidindo direção de arte.
+
+O prompt é **composto na hora e nunca guardado**: regenerar é de graça, e um texto
+gravado envelheceria junto com o preço — a promoção que muda de R$ 0,99 para
+R$ 1,29 na sexta teria um prompt prometendo o preço de quarta. Ele sai **editável**
+porque as três artes que a loja publicou divergem entre si (duas assinam "Máximo
+30", uma "Uaus!"; duas trazem endereço, uma não), e um molde rígido viraria um
+parágrafo que alguém reescreve à mão toda semana.
+
+O preço do prompt vem da **prévia**, não do percentual digitado: é a mesma conta
+que vale no balcão, e montá-la aqui seria a segunda implementação do preço.
 
 ## Estrutura
 
@@ -195,9 +226,15 @@ que a pessoa não marcou.
   desempenho de produtos — feature não importa de feature.
 - `components/PromotionInvestmentPanel.tsx`: a escada de reais, com o exato e o
   estimado separados.
+- `hooks/promotionPrompt.ts`: o texto do prompt da arte — função pura, sem rede.
+- `hooks/promotionArtRules.ts`: a proporção esperada de cada arte e o aviso.
+- `hooks/usePromotionArtwork.ts`: escolher, tirar e subir as artes.
+- `components/PromotionArtworkPanel.tsx`: os dois slots, com o botão "Prompt".
+- `components/PromotionPromptDialog.tsx`: o prompt editável, com copiar e a foto
+  de capa para anexar.
 
 ## O que NÃO está aqui
 
-- **Artes 4:5 e 9:16 com o prompt** — fase 3. As colunas já existem na tabela,
-  mas ficam fora do contrato da API até lá.
 - **Etiqueta, de/por e banner na vitrine** — fase 4.
+- **Geração da imagem pela IA dentro do admin** — decisão do §13 do plano: o
+  prompt é sugerido, a arte é feita fora e volta por upload.

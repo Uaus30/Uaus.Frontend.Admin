@@ -1871,6 +1871,20 @@ export interface PromotionDto {
   isActive: boolean;
   /** Exibe no BANNER da vitrine. Só em Relâmpago. */
   showOnSite: boolean;
+  /** Arte 4:5 (feed e WhatsApp). Ausente quando não há arte. Compare com `== null`. */
+  feedImageId?: number | null;
+  /**
+   * URL GRAVADA da arte 4:5 — a mesma coluna que a capa do grupo usa, então passe
+   * por `buildPublicImageUrl` antes de exibir.
+   *
+   * Pode vir ausente **com** `feedImageId` presente: a associação sobrevive à
+   * remoção do arquivo do catálogo, e o slot aparece vazio em vez de quebrado.
+   */
+  feedImageUrl?: string | null;
+  /** Arte 9:16 (Stories). */
+  storyImageId?: number | null;
+  /** URL gravada da arte 9:16. */
+  storyImageUrl?: string | null;
   /** Menor preço de TABELA entre as variações ativas — o "de". */
   referencePriceMin: number;
   referencePriceMax: number;
@@ -2087,6 +2101,13 @@ export interface PromotionPerformanceDto {
 export interface PromotionPreviewDto {
   productGroupId: number;
   productGroupName: string;
+  /**
+   * Capa do grupo, já na forma gravada (passe por `buildPublicImageUrl`).
+   *
+   * Vem na PRÉVIA, e não só no detalhe, porque a modal do prompt da arte abre no
+   * cadastro novo — antes de existir promoção para consultar.
+   */
+  productGroupImageUrl?: string | null;
   variations: PromotionVariationDto[];
   referencePriceMin: number;
   referencePriceMax: number;
@@ -2125,4 +2146,13 @@ export interface SavePromotionPayload {
   isActive: boolean;
   /** Só aceito em Relâmpago; o backend recusa com 400 em Dia a Dia. */
   showOnSite: boolean;
+  /**
+   * Arte 4:5, pelo ID de uma imagem **já enviada** por `POST /Images`.
+   *
+   * Null, zero ou ausente removem a arte: o formulário não tem "manter", e o
+   * backend recusa com 400 um id que não existe mais no catálogo.
+   */
+  feedImageId?: number | null;
+  /** Arte 9:16, mesma regra. */
+  storyImageId?: number | null;
 }

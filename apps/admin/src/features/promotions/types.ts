@@ -47,6 +47,34 @@ export interface PromotionForm {
   targetQuantity: string;
   isActive: boolean;
   showOnSite: boolean;
+  /** Arte 4:5 para o feed e para os grupos de WhatsApp. Nula = sem arte. */
+  feedImage: PromotionArtwork | null;
+  /** Arte 9:16 para os Stories. */
+  storyImage: PromotionArtwork | null;
+}
+
+/**
+ * Uma arte no formulário — já gravada, ou escolhida e ainda sem subir.
+ *
+ * O arquivo sobe no SALVAMENTO, e não na escolha, pelo mesmo motivo da galeria do
+ * produto: quem abre o cadastro, anexa a arte e desiste não deixa imagem órfã no
+ * catálogo. O preço disso é o `blob:` local no preview até salvar.
+ */
+export interface PromotionArtwork {
+  /** Id no catálogo de imagens. Ausente enquanto o arquivo não subiu. */
+  imageId?: number;
+  /** O que a tela mostra: URL pública quando já gravada, `blob:` quando é local. */
+  url: string;
+  /** Arquivo escolhido, à espera do upload. */
+  file?: File;
+  /**
+   * A proporção medida do arquivo, quando ela foge da esperada.
+   *
+   * **Aviso, não recusa** (§7.4): a loja pode ter uma arte 1:1 pronta e querer
+   * usá-la assim mesmo, e travar o upload por causa de dez pixels seria o
+   * sistema decidindo direção de arte.
+   */
+  aspectWarning?: string;
 }
 
 /**

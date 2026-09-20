@@ -23,7 +23,7 @@ import type { PromotionForm } from "../../types";
  * assimetria do desconto zero entre as duas espécies.
  */
 
-const diaDaPromocao = new Date(2026, 8, 19); // 19/09/2026, sexta
+const diaDaPromocao = new Date(2026, 8, 19); // 19/09/2026, sábado
 
 function formulario(parcial: Partial<PromotionForm> = {}): PromotionForm {
   return { ...emptyPromotionForm(diaDaPromocao), productGroupId: 7, productGroupName: "COPO", ...parcial };
@@ -160,6 +160,27 @@ describe("validação do formulário", () => {
     });
 
     expect(describeFormProblem(relampago)).toMatch(/depois do início/i);
+  });
+
+  it("recusa o CADASTRO NOVO de uma relâmpago cujo horário de hoje já passou", () => {
+    // REGRESSÃO: "Nova promoção" já vem com a data de hoje. Às 19h40 de sábado,
+    // escolher Relâmpago e digitar 14h–18h passava pela validação (que compara
+    // datas) e pelo servidor (idem), e a promoção nascia "Encerrada".
+    const relampago = formulario({
+      type: PROMOTION_TYPE.Flash,
+      discountValue: "30",
+      startTime: "14:00",
+      endTime: "18:00",
+    });
+
+    const tarde = new Date(2026, 8, 19, 19, 40);
+
+    expect(describeFormProblem(relampago, { isNew: true, now: tarde })).toMatch(/já teria terminado/i);
+    // Na EDIÇÃO, não: corrigir a meta da promoção que acabou é gesto legítimo, e
+    // recusá-lo trancaria o cadastro.
+    expect(describeFormProblem(relampago, { isNew: false, now: tarde })).toBeNull();
+    // E antes de a janela acabar, o cadastro novo continua livre.
+    expect(describeFormProblem(relampago, { isNew: true, now: new Date(2026, 8, 19, 9, 0) })).toBeNull();
   });
 
   it("recusa relâmpago em dia passado", () => {
