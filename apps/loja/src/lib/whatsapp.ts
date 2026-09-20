@@ -20,8 +20,12 @@ export interface ContactMessageInput {
 /** Dados do produto que viram mensagem de reserva. */
 export interface ReservationMessageInput {
   name: string;
+  /** Preço de TABELA. Só é citado quando não há promoção vigente. */
   price: number;
   priceMax?: number | null;
+  /** O que o cliente paga com a promoção. Ausente sem promoção. */
+  promotionalPrice?: number | null;
+  promotionalPriceMax?: number | null;
   /** Variação escolhida no detalhe, quando o grupo tem mais de uma. */
   variationName?: string;
   /** URL absoluta do produto no site, para a lojista abrir direto. */
@@ -52,12 +56,19 @@ export function buildContactMessage(input: ContactMessageInput): string {
  * Cita nome, preço e o LINK do produto: o link é o que permite à lojista abrir
  * o cadastro certo sem adivinhar qual "caneca" o cliente quis — nome de produto
  * repete, URL não.
+ *
+ * **O preço citado é o que o cliente VAI PAGAR.** Com promoção vigente a página
+ * mostra "de R$ 1,75 por R$ 0,99" e a mensagem chegava na loja dizendo R$ 1,75:
+ * a cliente pede reserva citando um preço que não é o dela, e quem descobre é o
+ * balcão. Quando há variação escolhida, o preço é o DELA — é a razão de o
+ * detalhe carregar o promocional por variação.
  */
 export function buildReservationMessage(input: ReservationMessageInput): string {
+  const base = input.promotionalPrice ?? input.price;
+  const baseMax = input.promotionalPrice != null ? input.promotionalPriceMax : input.priceMax;
+
   const price =
-    input.priceMax != null && input.priceMax > input.price
-      ? `a partir de ${formatCurrency(input.price)}`
-      : formatCurrency(input.price);
+    baseMax != null && baseMax > base ? `a partir de ${formatCurrency(base)}` : formatCurrency(base);
 
   const lines = [`Olá! Quero reservar o produto *${input.name.trim()}* (${price}) que vi no site.`];
 

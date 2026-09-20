@@ -57,11 +57,17 @@ export function useProductDetail(productGroupId: number): ProductDetailState {
         ? `${window.location.origin}${productDetailPath(product.productGroupId)}`
         : undefined;
 
+    // A variação escolhida manda no preço citado: ela é a que a cliente quer, e
+    // o detalhe já carrega o promocional de cada uma.
+    const escolhida = product.variations.find((x) => x.name === selectedVariation);
+
     return buildWhatsAppUrl(
       buildReservationMessage({
         name: product.name,
-        price: product.price,
-        priceMax: product.priceMax,
+        price: escolhida?.price ?? product.price,
+        priceMax: escolhida ? null : product.priceMax,
+        promotionalPrice: escolhida ? escolhida.promotionalPrice : product.promotion?.price,
+        promotionalPriceMax: escolhida ? null : product.promotion?.priceMax,
         variationName: selectedVariation,
         url,
       }),

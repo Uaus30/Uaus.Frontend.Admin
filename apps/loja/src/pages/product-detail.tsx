@@ -173,7 +173,12 @@ export default function ProductDetailPage() {
                                 R$ 25,00 logo abaixo do "a partir de R$ 15,00" — e
                                 quem escolhesse a variação lia justamente o preço que
                                 não vai pagar. */}
-                            {variation.promotionalPrice != null ? (
+                            {/* Risca só quando há CORTE. A isca de percentual zero
+                                devolve o próprio preço, e "de R$ 25,00 por R$ 25,00"
+                                é o mesmo anúncio vazio que a regra dos 5% impede
+                                logo acima, no bloco de preço. */}
+                            {variation.promotionalPrice != null &&
+                            variation.promotionalPrice < variation.price ? (
                               <>
                                 <span className="text-muted-foreground line-through">
                                   {formatCurrency(variation.price)}

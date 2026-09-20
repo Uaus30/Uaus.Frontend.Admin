@@ -80,3 +80,38 @@ describe("buildReservationMessage", () => {
     expect(message).not.toContain("http");
   });
 });
+
+describe("buildReservationMessage com promoção", () => {
+  it("cita o preço que o cliente VAI PAGAR", () => {
+    // REGRESSÃO: a página mostrava "de R$ 1,75 por R$ 0,99" e a mensagem chegava
+    // na loja dizendo R$ 1,75. A cliente pede reserva citando um preço que não é
+    // o dela, e quem descobre é o balcão.
+    const mensagem = buildReservationMessage({
+      name: "COPO AMERICANO",
+      price: 1.75,
+      promotionalPrice: 0.99,
+    });
+
+    expect(mensagem).toContain("0,99");
+    expect(mensagem).not.toContain("1,75");
+  });
+
+  it("sem promoção, continua citando o preço de tabela", () => {
+    const mensagem = buildReservationMessage({ name: "CANECA", price: 25 });
+
+    expect(mensagem).toContain("25,00");
+  });
+
+  it("a faixa da promoção manda quando as variações saem por preços diferentes", () => {
+    const mensagem = buildReservationMessage({
+      name: "CANECA",
+      price: 25,
+      priceMax: 35,
+      promotionalPrice: 15,
+      promotionalPriceMax: 21,
+    });
+
+    expect(mensagem).toContain("a partir de");
+    expect(mensagem).toContain("15,00");
+  });
+});
