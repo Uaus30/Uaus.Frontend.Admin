@@ -30,6 +30,18 @@ export const MOBILE_FEATURED_COUNT = 8;
 /** Teto da vitrine (MaxPageSize do backend): acima disso o endpoint cortaria calado. */
 const MAX_FEATURED_COUNT = 100;
 
+/**
+ * Quantas promoções no máximo entram na seção.
+ *
+ * Quatro entre os doze (e entre os oito do celular). Sem teto, marcar quarenta
+ * produtos como isca faz a seção parar de mostrar NOVIDADE nenhuma e a etiqueta
+ * parar de significar alguma coisa — o preço de usar destaque para tudo é não
+ * destacar nada. Quem aplica o corte é o servidor, porque ele precisa
+ * PREENCHER o resto com os mais recentes sem promoção; cortar aqui deixaria
+ * buracos na grade.
+ */
+export const MAX_PROMOTED_IN_FEATURED = 4;
+
 /** Quantidade configurada saneada; lixo ou ausência caem no padrão. */
 export function resolveFeaturedCount(configured: number | null | undefined): number {
   if (configured == null || !Number.isFinite(configured)) return DEFAULT_FEATURED_COUNT;
@@ -80,7 +92,7 @@ export function useFeaturedProducts(): FeaturedProductsState {
   const isMobile = useIsMobile();
   const count = isMobile ? Math.min(configured, MOBILE_FEATURED_COUNT) : configured;
 
-  const query = useGetStorefrontProducts({ page: 1, size: count });
+  const query = useGetStorefrontProducts({ page: 1, size: count, maxPromoted: MAX_PROMOTED_IN_FEATURED });
 
   const products = query.data?.data ?? [];
 

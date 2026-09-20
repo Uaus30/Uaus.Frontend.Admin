@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StorefrontProductDto, UiPagedResult } from "@workspace/api-client-react";
 import {
   DEFAULT_FEATURED_COUNT,
+  MAX_PROMOTED_IN_FEATURED,
   MOBILE_FEATURED_COUNT,
   resolveFeaturedCount,
   useFeaturedProducts,
@@ -107,7 +108,11 @@ describe("useFeaturedProducts", () => {
 
     renderHook(() => useFeaturedProducts());
 
-    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: DEFAULT_FEATURED_COUNT });
+    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({
+      page: 1,
+      size: DEFAULT_FEATURED_COUNT,
+      maxPromoted: MAX_PROMOTED_IN_FEATURED,
+    });
   });
 
   it("pede a quantidade configurada no admin quando ela chega", () => {
@@ -118,7 +123,11 @@ describe("useFeaturedProducts", () => {
 
     renderHook(() => useFeaturedProducts());
 
-    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: 20 });
+    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({
+      page: 1,
+      size: 20,
+      maxPromoted: MAX_PROMOTED_IN_FEATURED,
+    });
   });
 
   it("corta em 8 no celular em pé, mesmo com 20 configurados", () => {
@@ -131,7 +140,11 @@ describe("useFeaturedProducts", () => {
 
     renderHook(() => useFeaturedProducts());
 
-    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: MOBILE_FEATURED_COUNT });
+    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({
+      page: 1,
+      size: MOBILE_FEATURED_COUNT,
+      maxPromoted: MAX_PROMOTED_IN_FEATURED,
+    });
   });
 
   it("no celular respeita configuração MENOR que o teto, em vez de inventar cards", () => {
@@ -141,7 +154,11 @@ describe("useFeaturedProducts", () => {
 
     renderHook(() => useFeaturedProducts());
 
-    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({ page: 1, size: 4 });
+    expect(mocks.useGetStorefrontProducts).toHaveBeenCalledWith({
+      page: 1,
+      size: 4,
+      maxPromoted: MAX_PROMOTED_IN_FEATURED,
+    });
   });
 
   it("entrega os produtos sem repassar o total do catálogo", () => {

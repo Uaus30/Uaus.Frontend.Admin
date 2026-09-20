@@ -21,6 +21,7 @@ import type {
   QueryKey,
   StorefrontCompanyDto,
   StorefrontDepartmentDto,
+  StorefrontFlashPromotionDto,
   StorefrontProductDetailDto,
   StorefrontProductDto,
   UiPagedResult,
@@ -44,6 +45,15 @@ export interface StorefrontProductsPageParams {
   categoryId?: number;
   page?: number;
   size?: number;
+  /**
+   * Teto de cards com promoção na página. **Só a seção Novidades usa.**
+   *
+   * Sem ele, marcar quarenta produtos como isca faz a seção parar de mostrar
+   * novidade nenhuma e a etiqueta parar de significar alguma coisa — o preço de
+   * usar destaque para tudo é não destacar nada. A página pode vir com MENOS
+   * itens que `size` quando não há produto sem promoção para preencher.
+   */
+  maxPromoted?: number;
 }
 
 /** Uma página de cards da vitrine, sem autenticação. */
@@ -58,6 +68,7 @@ export async function getStorefrontProductsPage(
       categoryId: params?.categoryId,
       page: params?.page ?? 1,
       size: params?.size ?? 24,
+      maxPromoted: params?.maxPromoted,
     },
     { auth: false },
   );
@@ -174,5 +185,37 @@ export function useGetStorefrontCompany() {
     queryKey: [...getGetStorefrontCompanyQueryKey()],
     queryFn: getStorefrontCompany,
     staleTime: STALE_TIME.referencia,
+  });
+}
+
+/** Prefixo da relâmpago do banner da home. */
+export const getGetStorefrontFlashPromotionQueryKey = (): QueryKey => ["storefront-flash-promotion"];
+
+/**
+ * A relâmpago do banner, ou `null` — que é o caso da maior parte da semana.
+ *
+ * O endpoint devolve 200 com corpo nulo em vez de 404: "não há banner hoje" é
+ * resposta normal, e um 404 no console em toda visita à home ensinaria a ignorar
+ * 404.
+ */
+export function getStorefrontFlashPromotion(): Promise<StorefrontFlashPromotionDto | null> {
+  return apiGetOrThrow<StorefrontFlashPromotionDto | null>("/Storefront/flash-promotion", undefined, {
+    auth: false,
+  });
+}
+
+/**
+ * A relâmpago do banner.
+ *
+ * `staleTime` de CATÁLOGO, e não de referência: ela começa e acaba dentro do
+ * mesmo dia, e um cache longo deixaria o banner no ar depois de a promoção
+ * terminar — ou escondido depois de ela começar. Quem conta os segundos é a
+ * tela, com o `endsInSeconds` que veio na resposta.
+ */
+export function useGetStorefrontFlashPromotion() {
+  return useQuery<StorefrontFlashPromotionDto | null, ApiError>({
+    queryKey: [...getGetStorefrontFlashPromotionQueryKey()],
+    queryFn: getStorefrontFlashPromotion,
+    staleTime: STALE_TIME.catalogo,
   });
 }

@@ -3,6 +3,7 @@ import { productDetailPath } from "@/routes";
 import type { CatalogProduct } from "../types";
 import { PriceTag } from "./PriceTag";
 import { ProductImage } from "./ProductImage";
+import { PromotionRibbon } from "./PromotionRibbon";
 import { StockBadge } from "./StockBadge";
 import { TagRibbons } from "./TagRibbons";
 
@@ -28,6 +29,15 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           alt={product.name}
           className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
         />
+        {/* A etiqueta de promoção fica no alto à ESQUERDA — as públicas do
+            cadastro ficam à direita e a de escassez embaixo, então os três
+            podem coexistir sem um cobrir o outro. */}
+        {product.promotion && (
+          <div className="absolute top-3 left-3 z-10">
+            <PromotionRibbon promotion={product.promotion} />
+          </div>
+        )}
+
         {/* Canto oposto ao das etiquetas (que ficam no alto, à direita): os dois
             selos podem coexistir sem um cobrir o outro. */}
         <div className="absolute bottom-3 left-3 z-10">
@@ -46,7 +56,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           {product.name}
         </h3>
         <div className="mt-3">
-          <PriceTag price={product.price} priceMax={product.priceMax} />
+          <PriceTag price={product.price} priceMax={product.priceMax} promotion={product.promotion} />
         </div>
       </div>
     </Link>
