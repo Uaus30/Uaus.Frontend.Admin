@@ -38,11 +38,54 @@ describe("describeValidity", () => {
 
   it("hoje com hora de fim, com o meio-dia escrito como a loja fala", () => {
     expect(describeValidity("2026-09-19T08:00:00", "2026-09-19T12:00:59", SABADO)).toBe(
-      "SOMENTE HOJE ATÉ MEIO DIA!",
+      "SOMENTE HOJE ATÉ O MEIO-DIA!",
     );
     expect(describeValidity("2026-09-19T14:00:00", "2026-09-19T18:00:59", SABADO)).toBe(
       "SOMENTE HOJE ATÉ AS 18H!",
     );
+  });
+
+  it("o dia futuro COM horário não duplica a preposição", () => {
+    // REGRESSÃO: a hora trazia o "AS" junto e o template punha outro, então o
+    // ramo que a loja mais usa — a relâmpago de sábado das 14h às 18h, cadastrada
+    // na sexta — saía "DAS AS 14H ÀS AS 18H" impresso no cartaz do WhatsApp.
+    const sexta = new Date(2026, 8, 18, 16, 0);
+
+    expect(describeValidity("2026-09-19T14:00:00", "2026-09-19T18:00:59", sexta)).toBe(
+      "SOMENTE NESTE SÁBADO, DAS 14H ÀS 18H!",
+    );
+  });
+
+  it("o meio-dia rege as duas pontas do intervalo", () => {
+    const quinta = new Date(2026, 8, 17, 9, 0);
+
+    expect(describeValidity("2026-09-19T12:00:00", "2026-09-19T18:00:59", quinta)).toBe(
+      "SOMENTE NESTE SÁBADO, DO MEIO-DIA ÀS 18H!",
+    );
+    expect(describeValidity("2026-09-19T08:00:00", "2026-09-19T12:00:59", quinta)).toBe(
+      "SOMENTE NESTE SÁBADO, DAS 8H AO MEIO-DIA!",
+    );
+  });
+
+  it("concorda com o gênero do dia da semana", () => {
+    // REGRESSÃO: "NESTE SEGUNDA-FEIRA". Cinco dos sete dias são "-feira", e feira
+    // é feminina — o artigo fixo errava na maioria da semana.
+    const domingo = new Date(2026, 8, 20, 9, 0);
+
+    // 21/09/2026 é segunda; 26/09/2026 é sábado.
+    expect(describeValidity("2026-09-21T00:00:00", "2026-09-21T23:59:59", domingo)).toBe(
+      "SOMENTE NESTA SEGUNDA-FEIRA — O DIA TODO!",
+    );
+    expect(describeValidity("2026-09-25T00:00:00", "2026-09-25T23:59:59", domingo)).toBe(
+      "SOMENTE NESTA SEXTA-FEIRA — O DIA TODO!",
+    );
+  });
+
+  it("a sete dias volta a data, porque o dia da semana seria o de hoje", () => {
+    // "NESTE SÁBADO" lido num sábado significa HOJE.
+    const sabado = new Date(2026, 8, 19, 9, 0);
+
+    expect(describeValidity("2026-09-26T00:00:00", "2026-09-26T23:59:59", sabado)).toContain("26/09/2026");
   });
 
   it("o dia futuro é nomeado pelo dia da semana dentro da semana", () => {
@@ -81,6 +124,13 @@ describe("extractAttribute", () => {
   it("não inventa medida onde não há", () => {
     // "TAMANHO ÚNICO" escrito no cartaz seria afirmação que ninguém conferiu.
     expect(extractAttribute("CANECA DE PORCELANA")).toBeNull();
+  });
+
+  it("a dimensão dupla sai inteira", () => {
+    // REGRESSÃO: a regra pegava só a segunda medida, e o cartaz da toalha 45×70
+    // saía anunciando uma toalha de "70CM" — que não é o produto.
+    expect(extractAttribute("TOALHA DE ROSTO 45X70CM")).toBe("45X70CM");
+    expect(extractAttribute("TAPETE 40 x 60 CM")).toBe("40X60CM");
   });
 });
 

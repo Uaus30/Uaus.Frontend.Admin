@@ -101,7 +101,7 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
   // gesto legítimo — corrigir a meta depois que ela acabou.
   const problem = useMemo(() => describeFormProblem(form, { isNew: !promotionId }), [form, promotionId]);
 
-  const { pickArtwork, clearArtwork } = usePromotionArtwork(setForm);
+  const { pickArtwork, clearArtwork, rememberUploaded } = usePromotionArtwork(setForm);
 
   // Endereço e nome da loja saem de Configurações da Empresa — os mesmos campos
   // que o cupom imprime. Duas das três artes publicadas trazem o endereço, e é
@@ -123,6 +123,7 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
 
     return {
       productName: form.productGroupName || preview.productGroupName,
+      productDescription: preview.productGroupDescription,
       price: preview.promotionalPriceMin,
       priceMax: preview.promotionalPriceMax,
       maxQuantityPerSale: parsePositiveIntegerOrNaN(form.maxQuantityPerSale) ?? undefined,
@@ -140,8 +141,12 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
       // derruba a mutação inteira — meia promoção gravada, com a arte do feed e
       // sem a do story, seria pior que nenhuma.
       const nome = form.productGroupName || "Promoção";
-      const feedImageId = await uploadPendingArtwork(form.feedImage, `${nome} 4x5`);
-      const storyImageId = await uploadPendingArtwork(form.storyImage, `${nome} 9x16`);
+      const feedImageId = await uploadPendingArtwork(form.feedImage, `${nome} 4x5`, "4:5", (id) =>
+        rememberUploaded("feed", id),
+      );
+      const storyImageId = await uploadPendingArtwork(form.storyImage, `${nome} 9x16`, "9:16", (id) =>
+        rememberUploaded("story", id),
+      );
 
       const payload = buildPromotionPayload(form, { feedImageId, storyImageId });
       return promotionId ? updatePromotion(promotionId, payload) : createPromotion(payload);
@@ -180,11 +185,23 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
   );
 
   function handleSubmit() {
+    /*
+     * Reavaliada AQUI, e não lida do `useMemo`.
+     *
+     * Uma das recusas é de HORA ("esta relâmpago já teria terminado"), e o
+     * relógio não está nas dependências do memo — ele congela no último render.
+     * O caminho é real e nasceu nesta mesma fase: 17h50, a pessoa abre a modal
+     * do prompt, copia o texto, monta a arte na ferramenta de IA e volta às
+     * 18h10 para salvar. Nada disso toca o formulário, o memo não reexecuta, e a
+     * promoção nasceria "Encerrada".
+     */
+    const problemaAgora = describeFormProblem(form, { isNew: !promotionId });
+
     // A frase do problema é a mesma do servidor, e barrar aqui poupa o 400 —
     // mas as três recusas que dependem do banco (sobreposição, banner ocupado e
     // preço final acima do de tabela) continuam vindo de lá.
-    if (problem) {
-      toast({ title: "Confira o formulário", description: problem, variant: "destructive" });
+    if (problemaAgora) {
+      toast({ title: "Confira o formulário", description: problemaAgora, variant: "destructive" });
       return;
     }
 
@@ -228,18 +245,29 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
      * novo, onde `promotion` ainda não existe — e é ali que a arte da semana é
      * montada, na sexta à tarde.
      */
-    coverImageUrl: toCoverUrl(preview?.productGroupImageUrl ?? promotion?.productGroupImageUrl),
+    coverImageUrl: coverDoProdutoEscolhido(form.productGroupId, preview, promotion),
   };
 }
 
 /**
- * A capa em URL pública, ou `null` quando o produto não tem foto.
+ * A capa do produto que está escolhido AGORA, em URL pública.
  *
- * A guarda do vazio não é zelo: `buildPublicImageUrl("")` devolve a base da API
- * com uma barra — uma string verdadeira que vira `<img>` quebrado na modal.
+ * A comparação do id não é zelo. `WhenWritingNull` faz o campo SUMIR quando o
+ * grupo não tem foto, e "ausente" é indistinguível de "a prévia ainda não
+ * chegou": trocar o produto para um grupo sem foto oferecia a capa do produto
+ * ANTERIOR, com a frase "é ela que impede a IA de inventar um produto que a loja
+ * não tem" do lado. O cartaz sairia com o produto errado.
+ *
+ * A guarda do vazio também não é: `buildPublicImageUrl("")` devolve a base da
+ * API com uma barra — string verdadeira que vira `<img>` quebrado na modal.
  */
-function toCoverUrl(url?: string | null): string | null {
-  return url ? buildPublicImageUrl(url) : null;
+function coverDoProdutoEscolhido(
+  productGroupId: number | null,
+  preview?: { productGroupId: number; productGroupImageUrl?: string | null },
+  promotion?: { productGroupId: number; productGroupImageUrl?: string | null },
+): string | null {
+  const fonte = [preview, promotion].find((candidato) => candidato?.productGroupId === productGroupId);
+  return fonte?.productGroupImageUrl ? buildPublicImageUrl(fonte.productGroupImageUrl) : null;
 }
 
 /** Meta que a prévia aceita: inteiro positivo, ou nada. */

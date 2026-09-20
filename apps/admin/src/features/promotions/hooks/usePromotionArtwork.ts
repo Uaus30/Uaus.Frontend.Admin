@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createImageFromFile } from "@/services/images.service";
+import { describeApiError } from "@workspace/core";
 import { optimizeImage } from "@/lib/imageOptimizer";
 import { describeAspectWarning } from "./promotionArtRules";
 import type { PromotionArtFormat } from "./promotionPrompt";
@@ -57,7 +58,18 @@ export function usePromotionArtwork(setForm: React.Dispatch<React.SetStateAction
     setForm((atual) => ({ ...atual, ...(format === "feed" ? { feedImage: null } : { storyImage: null }) }));
   }
 
-  return { pickArtwork, clearArtwork };
+  /** Guarda no formulário o id que o upload acabou de criar — ver `uploadPendingArtwork`. */
+  function rememberUploaded(format: PromotionArtFormat, imageId: number) {
+    setForm((atual) => {
+      const arte = format === "feed" ? atual.feedImage : atual.storyImage;
+      if (!arte) return atual;
+
+      const comId = { ...arte, imageId };
+      return { ...atual, ...(format === "feed" ? { feedImage: comId } : { storyImage: comId }) };
+    });
+  }
+
+  return { pickArtwork, clearArtwork, rememberUploaded };
 }
 
 /**
@@ -67,17 +79,38 @@ export function usePromotionArtwork(setForm: React.Dispatch<React.SetStateAction
  * deixa imagem órfã no catálogo. Nulo é resposta legítima: significa "sem arte",
  * e é o que tirar a arte do formulário grava.
  *
+ * **O id volta para o formulário** (`onUploaded`), e essa é a parte que não pode
+ * sumir numa refatoração: as três recusas que dependem do banco — sobreposição,
+ * banner ocupado e preço acima do de tabela — são ESPERADAS, e a gravação falha
+ * depois de as imagens já terem subido. Sem devolver o id, cada nova tentativa
+ * subia tudo de novo: duas tentativas com as duas artes deixavam quatro imagens
+ * órfãs no catálogo e no S3.
+ *
  * @param artwork A arte do formulário, ou nula.
  * @param nome Nome com que a imagem entra no catálogo.
+ * @param rotulo Como a arte se chama na mensagem de erro ("4:5", "9:16").
+ * @param onUploaded Recebe o id recém-criado, para o formulário guardá-lo.
  */
 export async function uploadPendingArtwork(
   artwork: PromotionArtwork | null,
   nome: string,
+  rotulo: string,
+  onUploaded: (imageId: number) => void,
 ): Promise<number | null> {
   if (!artwork) return null;
   if (artwork.imageId) return artwork.imageId;
   if (!artwork.file) return null;
 
-  const criada = await createImageFromFile({ file: artwork.file, name: nome, type: IMAGE_TYPE_BANNER });
-  return criada.id;
+  try {
+    const criada = await createImageFromFile({ file: artwork.file, name: nome, type: IMAGE_TYPE_BANNER });
+    onUploaded(criada.id);
+    return criada.id;
+  } catch (erro) {
+    // O erro cru viraria "Erro ao criar a promoção: 413 ao acessar /Images", e o
+    // dono não relacionaria com a arte — reapertaria Salvar, que é exatamente o
+    // caminho que multiplica órfãos.
+    throw new Error(`Não foi possível enviar a arte ${rotulo}. ${describeApiError(erro)}`, {
+      cause: erro,
+    });
+  }
 }

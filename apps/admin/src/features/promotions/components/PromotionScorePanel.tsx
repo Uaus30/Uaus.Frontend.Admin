@@ -40,13 +40,16 @@ const FORMATO: Record<string, { rotulo: string; formatar: (valor: number) => str
 function ComponenteDaNota({
   componente,
   pesoEfetivo,
+  motivoDaExclusao,
 }: {
   componente: PromotionScoreComponentDto;
+  /** A frase que explica por que ticket e arraste saíram — vem do servidor. */
+  motivoDaExclusao?: string | null;
   /**
    * O peso que de fato produziu a nota.
    *
-   * Não é sempre o `weight` que a API manda: com menos de três vendas, ticket e
-   * arraste saem da conta e os dois que sobram são renormalizados (58,3% e 41,7%).
+   * Não é sempre o `weight` que a API manda: quando ticket e arraste saem da
+   * conta, os dois que sobram são renormalizados (58,3% e 41,7%).
    * Imprimir os pesos nominais ali fazia a conta aberta ao lado do velocímetro
    * **não fechar** com o número dentro dele — 85,71 × 35% + 25 × 25% dá 36, e o
    * ponteiro marcava 60. Era o oposto do motivo de o painel existir.
@@ -69,7 +72,12 @@ function ComponenteDaNota({
 
       <div className="flex items-baseline gap-2">
         <span className="font-mono text-lg font-bold">{formato.formatar(componente.measured)}</span>
-        <span className="text-xs text-muted-foreground">de {formato.formatar(componente.target)}</span>
+        {/* Alvo só quando ele EXISTE. Produto que nunca saiu naquele dia da semana
+            tem régua zerada, e "de R$ 0,00" ao lado de "fora da conta" é ruído
+            que o leitor tenta interpretar. */}
+        {componente.target > 0 && (
+          <span className="text-xs text-muted-foreground">de {formato.formatar(componente.target)}</span>
+        )}
       </div>
 
       {/* A barra é a mesma leitura do número ao lado, para quem bate o olho. Nunca
@@ -87,7 +95,9 @@ function ComponenteDaNota({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {componente.excluded ? "Fora da conta: poucas vendas para medir." : componente.targetSource}
+        {componente.excluded
+          ? `Fora da conta: ${motivoDaExclusao ?? "não há população comparável"}.`
+          : componente.targetSource}
       </p>
     </div>
   );
@@ -139,6 +149,7 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
               key={componente.key}
               componente={componente}
               pesoEfetivo={somaAtiva <= 0 ? 0 : componente.weight / somaAtiva}
+              motivoDaExclusao={score.ticketAndBasketExclusionReason}
             />
           ))}
         </div>
@@ -148,30 +159,49 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
         <p className="flex items-start gap-2 text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            Medido contra{" "}
-            <strong>
-              {score.rulerOccurrences}{" "}
-              {score.rulerFellBackToAllDays
-                ? score.rulerOccurrences === 1
-                  ? "dia"
-                  : "dias"
-                : `${score.weekdayName.toLowerCase()}${score.rulerOccurrences === 1 ? "" : "s"}`}
-            </strong>{" "}
-            {score.rulerOccurrences === 1 ? "anterior" : "anteriores"}.{" "}
-            {score.rulerFellBackToAllDays && (
+            {/* Zero ocorrências não é "régua fraca", é régua NENHUMA: dizer "medido
+                contra 0 dias anteriores" e, na frase seguinte, "a régua usou todos
+                os dias" é a tela afirmando duas coisas que não aconteceram. */}
+            {score.rulerOccurrences === 0 ? (
               <>
-                Como não há {score.weekdayName.toLowerCase()}s suficientes no histórico, a régua usou{" "}
-                <strong>todos os dias</strong> — e por isso ela é mais fraca.
+                <strong>Sem histórico anterior</strong> para comparar: a loja não tinha venda antes deste dia,
+                e volume e peso no dia são o que dá para medir.
+              </>
+            ) : (
+              <>
+                Medido contra{" "}
+                <strong>
+                  {score.rulerOccurrences}{" "}
+                  {score.rulerFellBackToAllDays
+                    ? score.rulerOccurrences === 1
+                      ? "dia"
+                      : "dias"
+                    : `${score.weekdayName.toLowerCase()}${score.rulerOccurrences === 1 ? "" : "s"}`}
+                </strong>{" "}
+                {score.rulerOccurrences === 1 ? "anterior" : "anteriores"}.{" "}
+                {score.rulerFellBackToAllDays && (
+                  <>
+                    Como não há {score.weekdayName.toLowerCase()}s suficientes no histórico, a régua usou{" "}
+                    <strong>todos os dias</strong> — e por isso ela é mais fraca.
+                  </>
+                )}
               </>
             )}
           </span>
         </p>
 
+        {/* O MOTIVO vem do servidor, e não é um só: além de "poucas vendas no dia",
+            existe "o produto saiu em poucas vendas da régua" — que é o caso
+            NORMAL (na dev, 203 dos 241 grupos que venderam nos 12 sábados). Com
+            a frase fixa, a tela escrevia "com menos de três vendas" ao lado de
+            "Vendas: 30". */}
         {score.renormalizedWithoutTicketAndBasket && !semVenda && (
           <p className="flex items-start gap-2 text-muted-foreground">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
             <span>
-              Com menos de três vendas, ticket e arraste são ruído: a nota saiu só de volume e peso no dia.
+              Ticket e arraste saíram da conta porque{" "}
+              {score.ticketAndBasketExclusionReason ?? "não há população comparável"}. A nota saiu só de
+              volume e peso no dia.
             </span>
           </p>
         )}

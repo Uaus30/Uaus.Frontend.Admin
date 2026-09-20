@@ -82,9 +82,14 @@ describe("PromotionScorePanel", () => {
     expect(screen.getByText(/todos os dias/)).toBeTruthy();
   });
 
-  it("marca como excluído o componente que saiu da conta", () => {
+  it("diz o MOTIVO de o componente ter saído da conta", () => {
+    // REGRESSÃO: a frase era fixa ("com menos de três vendas") e havia DOIS
+    // motivos. O segundo — o produto ter saído em poucas vendas da régua — é o
+    // caso normal: na dev, 203 dos 241 grupos que venderam nos 12 sábados. A
+    // tela escrevia "com menos de três vendas" ao lado de "Vendas: 30".
     const comExcluido = nota({
       renormalizedWithoutTicketAndBasket: true,
+      ticketAndBasketExclusionReason: "o produto saiu em só 2 venda(s) das ocorrências anteriores",
       components: [
         {
           key: "ticket",
@@ -100,8 +105,42 @@ describe("PromotionScorePanel", () => {
 
     render(<PromotionScorePanel score={comExcluido} />);
 
-    expect(screen.getByText("Fora da conta: poucas vendas para medir.")).toBeTruthy();
-    expect(screen.getByText(/ticket e arraste são ruído/)).toBeTruthy();
+    expect(screen.getAllByText(/só 2 venda\(s\) das ocorrências anteriores/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/menos de três vendas/)).toBeNull();
+  });
+
+  it("não imprime alvo zerado no componente sem régua", () => {
+    // REGRESSÃO: produto que nunca saiu naquele dia da semana tem régua zerada, e
+    // a tela mostrava "de R$ 0,00" com a barra CHEIA — `TicketScore(x, 0)` vale
+    // 100 — ao lado da frase "fora da conta". São 675 dos 916 grupos da dev.
+    const semRegua = nota({
+      renormalizedWithoutTicketAndBasket: true,
+      ticketAndBasketExclusionReason: "o produto não saiu nenhuma vez nas ocorrências anteriores",
+      components: [
+        {
+          key: "ticket",
+          weight: 0.2,
+          score: 0,
+          measured: 26.5,
+          target: 0,
+          targetSource: "1,5× o ticket de Sábado",
+          excluded: true,
+        },
+      ],
+    });
+
+    render(<PromotionScorePanel score={semRegua} />);
+
+    expect(screen.queryByText(/de R\$\s?0,00/)).toBeNull();
+  });
+
+  it("régua vazia não afirma que usou todos os dias", () => {
+    // "Medido contra 0 dias anteriores" seguido de "a régua usou todos os dias"
+    // é a tela afirmando duas coisas que não aconteceram.
+    render(<PromotionScorePanel score={nota({ rulerOccurrences: 0, rulerFellBackToAllDays: true })} />);
+
+    expect(screen.getByText(/Sem histórico anterior/)).toBeTruthy();
+    expect(screen.queryByText(/0 dias/)).toBeNull();
   });
 
   it("trata a faixa que chega pelo nome, como a API manda", () => {

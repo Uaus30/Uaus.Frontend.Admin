@@ -2,6 +2,7 @@ import { parseAmountOrNull, toDateKey } from "@workspace/core";
 import {
   PROMOTION_DISCOUNT_TYPE,
   PROMOTION_TYPE,
+  buildPublicImageUrl,
   enumCode,
   type PromotionDto,
 } from "@workspace/api-client-react";
@@ -114,7 +115,9 @@ export function emptyPromotionForm(today: Date = new Date()): PromotionForm {
     discountValue: "",
     startDate: today,
     startTime: DEFAULT_START_TIME,
-    endDate: today,
+    // Cópia, e não o mesmo objeto, pelo mesmo motivo do formulário de "Repetir":
+    // `Date` é mutável, e um `setDate()` em um dos campos moveria o outro junto.
+    endDate: new Date(today),
     endTime: DEFAULT_END_TIME,
     noEndDate: true,
     maxQuantityPerSale: "",
@@ -158,7 +161,11 @@ export function formFromPromotion(promotion: PromotionDto): PromotionForm {
  */
 function artworkFromPromotion(imageId?: number | null, url?: string | null): PromotionArtwork | null {
   if (imageId == null || !url) return null;
-  return { imageId, url };
+  // Pela mesma porta que a capa do grupo: `images.url` é caminho GRAVADO, e o
+  // contrato do `api-client` diz que ele passa por aqui antes de virar `src`.
+  // Hoje o S3 devolve URL absoluta e os dois caminhos coincidem — no dia em que
+  // o armazenamento mudar, só o slot da arte quebraria.
+  return { imageId, url: buildPublicImageUrl(url) };
 }
 
 /**
@@ -255,7 +262,14 @@ function nextWeekdayOccurrence(original: Date, hoje: Date, endTime: string): Dat
  */
 export function describeFormProblem(
   form: PromotionForm,
-  options: { isNew?: boolean; now?: Date } = {},
+  /**
+   * `isNew` é OBRIGATÓRIO de propósito.
+   *
+   * Ele muda uma recusa — a relâmpago cujo horário de hoje já passou —, e um
+   * padrão `false` devolveria a regra frouxa em silêncio para quem esquecesse o
+   * parâmetro. Recusa que se perde por omissão é recusa que volta a não existir.
+   */
+  options: { isNew: boolean; now?: Date },
 ): string | null {
   if (!form.productGroupId) return "Escolha o produto da promoção.";
 

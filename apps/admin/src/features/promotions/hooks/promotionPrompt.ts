@@ -96,19 +96,70 @@ export function describeValidity(
   const diaTodo = inicio === "00:00" && fim >= "23:59";
 
   if (toDateKey(dia) === toDateKey(hoje)) {
-    return diaTodo ? "VÁLIDO APENAS PARA HOJE!" : `SOMENTE HOJE ATÉ ${porExtenso(fim)}!`;
+    return diaTodo ? "VÁLIDO APENAS PARA HOJE!" : `SOMENTE HOJE ATÉ ${ate(fim)}!`;
   }
 
-  // Dentro da semana, o dia da semana é mais legível que a data: "NESTE SÁBADO"
-  // é o que a cliente confere sem abrir o calendário. Fora dela, a data não tem
-  // substituto — "no sábado" a três semanas daqui é ambíguo.
-  const distancia = Math.round((diaSemHora(dia).getTime() - diaSemHora(hoje).getTime()) / 86_400_000);
-  const quando =
-    distancia > 0 && distancia <= 7 ? `NESTE ${nomeDoDia(dia)}` : `EM ${dia.toLocaleDateString("pt-BR")}`;
-
   return diaTodo
-    ? `SOMENTE ${quando} — O DIA TODO!`
-    : `SOMENTE ${quando}, DAS ${porExtenso(inicio)} ÀS ${porExtenso(fim)}!`;
+    ? `SOMENTE ${quando(dia, hoje)} — O DIA TODO!`
+    : `SOMENTE ${quando(dia, hoje)}, ${de(inicio)} ${ateDoIntervalo(fim)}!`;
+}
+
+/**
+ * Como o cartaz nomeia o dia da promoção.
+ *
+ * Dentro da semana o dia da semana é mais legível que a data: "NESTA SEXTA" é o
+ * que a cliente confere sem abrir o calendário. **De sete dias em diante volta a
+ * data**, e o corte é em SEIS de propósito: a sete dias o dia da semana é o
+ * mesmo de hoje, e "NESTE SÁBADO" lido num sábado significa "hoje".
+ */
+function quando(dia: Date, hoje: Date): string {
+  const distancia = Math.round((diaSemHora(dia).getTime() - diaSemHora(hoje).getTime()) / 86_400_000);
+
+  if (distancia < 1 || distancia > 6) return `EM ${dia.toLocaleDateString("pt-BR")}`;
+
+  const nome = nomeDoDia(dia);
+  // Segunda a sexta são "-feira", e feira é FEMININA: "NESTE SEGUNDA-FEIRA" é o
+  // erro que cinco dos sete dias produziriam com um artigo fixo.
+  return `${nome.endsWith("-FEIRA") ? "NESTA" : "NESTE"} ${nome}`;
+}
+
+/**
+ * A ponta inicial de um intervalo: "DAS 14H", "DO MEIO-DIA".
+ *
+ * A preposição é composta AQUI, e não dentro da hora, porque ela muda com a
+ * ponta e com o meio-dia. Enquanto a hora trazia o "AS" junto, o cartaz saía
+ * "DAS AS 14H ÀS AS 18H" — no ramo que a loja mais usa, a relâmpago de sábado
+ * das 14h às 18h cadastrada na sexta.
+ */
+function de(hhmm: string): string {
+  return ehMeioDia(hhmm) ? "DO MEIO-DIA" : `DAS ${horaCurta(hhmm)}`;
+}
+
+/**
+ * A ponta final depois de "ATÉ": "ATÉ AS 18H", "ATÉ O MEIO-DIA".
+ *
+ * Separada da ponta final de um INTERVALO porque a regência é outra: ali é "às
+ * 18h" e "ao meio-dia".
+ */
+function ate(hhmm: string): string {
+  return ehMeioDia(hhmm) ? "O MEIO-DIA" : `AS ${horaCurta(hhmm)}`;
+}
+
+/** A ponta final de um intervalo: "ÀS 18H", "AO MEIO-DIA". */
+function ateDoIntervalo(hhmm: string): string {
+  return ehMeioDia(hhmm) ? "AO MEIO-DIA" : `ÀS ${horaCurta(hhmm)}`;
+}
+
+function ehMeioDia(hhmm: string): boolean {
+  return hhmm === "12:00";
+}
+
+/** "18H", "18H30" — sem preposição e sem dois pontos, que o cartaz não usa. */
+function horaCurta(hhmm: string): string {
+  const [hora = "0", minuto = "00"] = hhmm.split(":");
+  const numero = Number(hora);
+
+  return minuto === "00" ? `${numero}H` : `${numero}H${minuto}`;
 }
 
 /**
@@ -118,16 +169,25 @@ export function describeValidity(
  * que responde "é grande?" antes de a cliente perguntar. Nulo quando não há, e
  * aí o bloco não entra — inventar "TAMANHO ÚNICO" seria escrever no cartaz algo
  * que ninguém conferiu.
+ *
+ * A DIMENSÃO DUPLA vem primeiro na busca. "TOALHA 45X70CM" tem duas medidas, e
+ * a regra ingênua pegava só a segunda: o cartaz saía anunciando uma toalha de
+ * "70CM", que não é o produto.
  */
 export function extractAttribute(productName: string, description?: string | null): string | null {
   const texto = `${productName} ${description ?? ""}`;
-  const medida = /(\d+(?:[.,]\d+)?)\s*(ml|lt|l|kg|g|cm|mm|und|un|pçs|pç|pcs|peças|peça|pares|par)\b/i.exec(
-    texto,
-  );
+  const unidades = "ml|lt|l|kg|g|cm|mm|und|un|pçs|pç|pcs|peças|peça|pares|par";
+
+  const dimensao = new RegExp(
+    `(\\d+(?:[.,]\\d+)?\\s*[x×]\\s*\\d+(?:[.,]\\d+)?)\\s*(${unidades})\\b`,
+    "i",
+  ).exec(texto);
+
+  const medida = dimensao ?? new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${unidades})\\b`, "i").exec(texto);
 
   if (!medida) return null;
 
-  return `${medida[1]}${medida[2].toUpperCase()}`.replace(/\s+/g, "");
+  return `${medida[1]}${medida[2]}`.replace(/\s+/g, "").toUpperCase();
 }
 
 /** O prompt inteiro, pronto para copiar. */
@@ -140,6 +200,14 @@ export function buildPromotionPrompt(input: PromotionPromptInput, hoje: Date = n
     `- Cabeçalho: "PROMOÇÃO" numa caixa preta, e logo abaixo "RELÂMPAGO" em laranja, com um raio ao lado`,
     `- Produto: "${input.productName.toUpperCase()}"`,
   ];
+
+  // O subtítulo do §7.4: a descrição do cadastro, quando ela existe e não é só a
+  // repetição do nome. Sem ela o bloco não entra — inventar subtítulo é escrever
+  // no cartaz o que ninguém conferiu.
+  const subtitulo = input.productDescription?.trim();
+  if (subtitulo && subtitulo.toUpperCase() !== input.productName.trim().toUpperCase()) {
+    textos.push(`- Subtítulo, menor, abaixo do nome: "${subtitulo}"`);
+  }
 
   if (medida) textos.push(`- Medida, numa faixa própria: "${medida}"`);
 
@@ -207,19 +275,4 @@ function diaSemHora(date: Date): Date {
 
 function nomeDoDia(date: Date): string {
   return date.toLocaleDateString("pt-BR", { weekday: "long" }).toUpperCase();
-}
-
-/**
- * A hora como o cartaz escreve.
- *
- * "MEIO DIA" saiu de uma das artes de referência, e é assim que a loja fala.
- * "18:00" vira "AS 18H" porque o cartaz não usa dois pontos.
- */
-function porExtenso(hhmm: string): string {
-  if (hhmm === "12:00") return "MEIO DIA";
-
-  const [hora = "0", minuto = "00"] = hhmm.split(":");
-  const numero = Number(hora);
-
-  return minuto === "00" ? `AS ${numero}H` : `AS ${numero}H${minuto}`;
 }

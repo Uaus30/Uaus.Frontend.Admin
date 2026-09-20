@@ -56,7 +56,6 @@ function Slot({
           className="gap-1.5"
           onClick={onPrompt}
           disabled={promptDisabled}
-          title={promptDisabled ? "Escolha o produto e o desconto para montar o prompt" : undefined}
         >
           <Sparkles className="h-3.5 w-3.5" /> Prompt
         </Button>
@@ -74,6 +73,13 @@ function Slot({
           </span>
         )}
       </div>
+
+      {/* O motivo vai em TEXTO, não em `title`: o botão desabilitado do
+          `packages/ui` tem `pointer-events-none`, então o tooltip nunca
+          renderiza e o dono via um botão cinza sem explicação. */}
+      {promptDisabled && (
+        <p className="text-xs text-muted-foreground">Escolha o produto e o desconto para montar o prompt.</p>
+      )}
 
       {artwork?.aspectWarning && (
         <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">

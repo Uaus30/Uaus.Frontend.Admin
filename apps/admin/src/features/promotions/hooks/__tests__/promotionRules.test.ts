@@ -99,16 +99,18 @@ describe("situação", () => {
 
 describe("validação do formulário", () => {
   it("cobra o produto e o valor", () => {
-    expect(describeFormProblem(formulario({ productGroupId: null }))).toMatch(/produto/i);
-    expect(describeFormProblem(formulario({ discountValue: "" }))).toMatch(/valor do desconto/i);
+    expect(describeFormProblem(formulario({ productGroupId: null }), { isNew: true })).toMatch(/produto/i);
+    expect(describeFormProblem(formulario({ discountValue: "" }), { isNew: true })).toMatch(
+      /valor do desconto/i,
+    );
   });
 
   it("aceita desconto zero no Dia a Dia e recusa na relâmpago", () => {
     // A isca da porta: o pote de R$ 2,00 já é barato de propósito.
-    expect(describeFormProblem(formulario({ discountValue: "0" }))).toBeNull();
+    expect(describeFormProblem(formulario({ discountValue: "0" }), { isNew: true })).toBeNull();
 
     const relampago = formulario({ type: PROMOTION_TYPE.Flash, discountValue: "0" });
-    expect(describeFormProblem(relampago)).toMatch(/maior que zero/i);
+    expect(describeFormProblem(relampago, { isNew: true })).toMatch(/maior que zero/i);
   });
 
   it("recusa preço final ZERO, ainda que seja Dia a Dia", () => {
@@ -119,24 +121,26 @@ describe("validação do formulário", () => {
       discountValue: "0",
     });
 
-    expect(describeFormProblem(iscaComPrecoFinal)).toMatch(/maior que zero/i);
+    expect(describeFormProblem(iscaComPrecoFinal, { isNew: true })).toMatch(/maior que zero/i);
   });
 
   it("cobra limite e meta ilegíveis, em vez de descartar em silêncio", () => {
     // Descartar faria o cadastro gravar "sem limite" numa promoção cujo cartaz
     // promete um limite — e ninguém saberia até o sábado.
     expect(
-      describeFormProblem(formulario({ discountValue: "10", maxQuantityPerSale: "meia dúzia" })),
+      describeFormProblem(formulario({ discountValue: "10", maxQuantityPerSale: "meia dúzia" }), {
+        isNew: true,
+      }),
     ).toMatch(/limite por venda/i);
 
-    expect(describeFormProblem(formulario({ discountValue: "10", targetQuantity: "bastante" }))).toMatch(
-      /meta/i,
-    );
+    expect(
+      describeFormProblem(formulario({ discountValue: "10", targetQuantity: "bastante" }), { isNew: true }),
+    ).toMatch(/meta/i);
 
     // Fração não é unidade: "6,5" não é um limite possível.
-    expect(describeFormProblem(formulario({ discountValue: "10", maxQuantityPerSale: "6,5" }))).toMatch(
-      /limite por venda/i,
-    );
+    expect(
+      describeFormProblem(formulario({ discountValue: "10", maxQuantityPerSale: "6,5" }), { isNew: true }),
+    ).toMatch(/limite por venda/i);
   });
 
   it("perdoa o sufixo que o operador digita junto do número", () => {
@@ -148,7 +152,7 @@ describe("validação do formulário", () => {
   });
 
   it("recusa percentual acima de 90", () => {
-    expect(describeFormProblem(formulario({ discountValue: "95" }))).toMatch(/90%/);
+    expect(describeFormProblem(formulario({ discountValue: "95" }), { isNew: true })).toMatch(/90%/);
   });
 
   it("recusa relâmpago terminando antes de começar", () => {
@@ -159,7 +163,7 @@ describe("validação do formulário", () => {
       endTime: "14:00",
     });
 
-    expect(describeFormProblem(relampago)).toMatch(/depois do início/i);
+    expect(describeFormProblem(relampago, { isNew: true })).toMatch(/depois do início/i);
   });
 
   it("recusa o CADASTRO NOVO de uma relâmpago cujo horário de hoje já passou", () => {
@@ -189,7 +193,44 @@ describe("validação do formulário", () => {
 
     const relampago = formulario({ type: PROMOTION_TYPE.Flash, discountValue: "30", startDate: ontem });
 
-    expect(describeFormProblem(relampago)).toMatch(/hoje ou de um dia futuro/i);
+    expect(describeFormProblem(relampago, { isNew: true })).toMatch(/hoje ou de um dia futuro/i);
+  });
+});
+
+describe("artes", () => {
+  it("carrega a arte gravada com a URL pública", () => {
+    // `images.url` é caminho GRAVADO; exibi-lo cru é o contrato do api-client
+    // sendo ignorado só neste slot.
+    const form = formFromPromotion(promocao({ feedImageId: 9, feedImageUrl: "banners/feed.jpg" }));
+
+    expect(form.feedImage?.imageId).toBe(9);
+    expect(form.feedImage?.url).toContain("banners/feed.jpg");
+    expect(form.feedImage?.url).not.toBe("banners/feed.jpg");
+  });
+
+  it("id sem URL volta como slot VAZIO", () => {
+    // A associação sobrevive à remoção do arquivo do catálogo: o slot vazio é o
+    // certo, e salvar de novo limpa o vínculo morto.
+    const form = formFromPromotion(promocao({ feedImageId: 9 }));
+
+    expect(form.feedImage).toBeNull();
+  });
+
+  it("o payload manda os ids resolvidos, e null apaga o vínculo", () => {
+    const base = formulario({ type: PROMOTION_TYPE.Flash, discountValue: "0,99" });
+
+    expect(buildPromotionPayload(base, { feedImageId: 9, storyImageId: null })).toMatchObject({
+      feedImageId: 9,
+      storyImageId: null,
+    });
+
+    // Sem os ids resolvidos, o payload lê o que já está gravado no formulário.
+    const comArte = { ...base, feedImage: { imageId: 12, url: "x" }, storyImage: null };
+    expect(buildPromotionPayload(comArte).feedImageId).toBe(12);
+
+    // Arte escolhida e ainda não enviada não tem id — e não pode inventar um.
+    const pendente = { ...base, feedImage: { url: "blob:x", file: new File([], "a.png") }, storyImage: null };
+    expect(buildPromotionPayload(pendente).feedImageId).toBeNull();
   });
 });
 
@@ -345,6 +386,18 @@ describe("repetir promoção", () => {
     expect(form.startDate?.getDate()).toBe(21);
     expect(form.noEndDate).toBe(true);
     expect(form.endDate).toBeUndefined();
+  });
+
+  it("não copia as artes da promoção de origem", () => {
+    // A validade está escrita DENTRO da imagem ("SOMENTE NESTE SÁBADO"), e
+    // herdá-la publicaria no grupo de WhatsApp um cartaz com a data da semana
+    // passada.
+    const comArte = promocao({ feedImageId: 9, feedImageUrl: "banners/feed.jpg" });
+
+    const form = repeatFormFromPromotion(comArte, segunda);
+
+    expect(form.feedImage).toBeNull();
+    expect(form.storyImage).toBeNull();
   });
 
   it("a promoção de origem viaja na URL, e o id inválido é ignorado", () => {

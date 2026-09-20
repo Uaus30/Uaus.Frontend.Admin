@@ -1678,6 +1678,48 @@ export interface StorefrontImageDto {
  * O card é o GRUPO (`ProductGroup.ShowOnSite`): produto simples é grupo de um;
  * grupo com variações vira um card só com faixa de preço (`price`..`priceMax`).
  */
+/**
+ * A promoção vigente do grupo, como o site a mostra. Ausente quando não há.
+ *
+ * **Ela não substitui `price`/`priceMax` do card**, que continuam sendo o preço
+ * de TABELA: mudar o significado deles atingiria filtro, ordenação e o card em
+ * silêncio. Quem desenha o "de/por" é a tela, com os dois números na mão.
+ */
+export interface StorefrontPromotionDto {
+  /** Enum PromotionType — pode vir como número ou nome; use `enumCode`. */
+  type: EnumValue;
+  /** O que o cliente paga hoje — menor preço promocional do grupo. */
+  price: number;
+  /** Maior preço promocional. Ausente quando todas as variações saem pelo mesmo. */
+  priceMax?: number | null;
+  /**
+   * O "de". **Ausente quando o corte é de 5% ou menos** — o corte é do servidor,
+   * como a tag de escassez, e abaixo dele o site não tem como imprimir "de
+   * R$ 5,00 por R$ 4,90". Compare com `== null`.
+   */
+  referencePrice?: number | null;
+  /**
+   * Segundos até a contagem do banner acabar. **Só em Relâmpago**, e ausente
+   * quando já zerou. É `min(fim da vigência, hoje às 18h) − agora`: a loja fecha
+   * às 18h, e a VIGÊNCIA não é cortada por isso.
+   */
+  endsInSeconds?: number | null;
+  /** Teto de unidades por venda. Ausente = sem limite. */
+  maxQuantityPerSale?: number | null;
+}
+
+/**
+ * A relâmpago que ocupa o banner da home. No máximo **uma** — o banco garante
+ * isso, e o site mostra um banner só.
+ */
+export interface StorefrontFlashPromotionDto {
+  productGroupId: number;
+  name: string;
+  /** Caminho gravado; passe por `buildPublicImageUrl`. */
+  imageUrl?: string | null;
+  promotion: StorefrontPromotionDto;
+}
+
 export interface StorefrontProductDto {
   productGroupId: number;
   name: string;
@@ -1697,6 +1739,12 @@ export interface StorefrontProductDto {
    * Opcional por segurança de versão: um backend anterior responde sem ela.
    */
   stockBadge?: EnumValue;
+  /**
+   * Promoção vigente do grupo. Ausente quando não há — e também quando o grupo
+   * está **sem saldo**: anunciar preço de quem não tem o que vender é mandar o
+   * cliente à loja para ouvir "acabou". Compare com `== null`.
+   */
+  promotion?: StorefrontPromotionDto | null;
 }
 
 /** Variação ativa exibida no detalhe ("Caneca 300ml — R$ 25,00"). */
@@ -1731,6 +1779,8 @@ export interface StorefrontProductDetailDto {
   variations: StorefrontVariationDto[];
   /** A mesma tag do card — o detalhe não pode discordar da vitrine. */
   stockBadge?: EnumValue;
+  /** A mesma promoção do card, pela mesma razão. */
+  promotion?: StorefrontPromotionDto | null;
 }
 
 /** Categoria na lista de filtros da vitrine. */
@@ -1997,6 +2047,14 @@ export interface PromotionScoreDto {
   weekdayName: string;
   /** Ticket e arraste saíram da conta e os dois que sobraram foram renormalizados. */
   renormalizedWithoutTicketAndBasket: boolean;
+  /**
+   * POR QUE os dois saíram, em meia frase. Ausente quando eles entraram.
+   *
+   * São **dois** motivos — poucas vendas no dia, e poucas vendas do produto na
+   * régua —, e a tela que conhecia só o primeiro escrevia "com menos de três
+   * vendas" ao lado de "Vendas: 30". Compare com `== null`.
+   */
+  ticketAndBasketExclusionReason?: string | null;
   /** Quantas vezes a promoção multiplicou o ritmo normal. Ausente sem régua. */
   impulseMultiplier?: number | null;
   /** Vendas em que a quantidade promocional passou do limite. */
@@ -2064,7 +2122,11 @@ export interface PromotionHistoryEntryDto {
   validUntil?: string | null;
   soldUnits: number;
   investment: number;
-  /** Ausente em Dia a Dia e na relâmpago que ainda corre. */
+  /**
+   * Ausente em Dia a Dia, na relâmpago que ainda corre e na encerrada **sem venda
+   * atribuída** — ali não há nota, e sim ausência de medida. Compare com
+   * `== null`: "nota 0" em negrito condenaria o produto por algo não medido.
+   */
   score?: number | null;
 }
 
@@ -2108,6 +2170,12 @@ export interface PromotionPreviewDto {
    * cadastro novo — antes de existir promoção para consultar.
    */
   productGroupImageUrl?: string | null;
+  /**
+   * Descrição do grupo. Alimenta dois blocos do prompt da arte: o subtítulo do
+   * produto e a MEDIDA, que o plano manda procurar "no nome ou na descrição".
+   * Ausente quando o grupo não tem descrição — compare com `== null`.
+   */
+  productGroupDescription?: string | null;
   variations: PromotionVariationDto[];
   referencePriceMin: number;
   referencePriceMax: number;
