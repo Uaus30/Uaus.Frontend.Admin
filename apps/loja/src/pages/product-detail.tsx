@@ -167,7 +167,22 @@ export default function ProductDetailPage() {
                                 : "rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/60"
                             }
                           >
-                            {variation.name} — {formatCurrency(variation.price)}
+                            {variation.name} —{" "}
+                            {/* Com promoção, o preço da variação é o PROMOCIONAL, com
+                                o de tabela riscado ao lado. Sem isso, a lista mostrava
+                                R$ 25,00 logo abaixo do "a partir de R$ 15,00" — e
+                                quem escolhesse a variação lia justamente o preço que
+                                não vai pagar. */}
+                            {variation.promotionalPrice != null ? (
+                              <>
+                                <span className="text-muted-foreground line-through">
+                                  {formatCurrency(variation.price)}
+                                </span>{" "}
+                                {formatCurrency(variation.promotionalPrice)}
+                              </>
+                            ) : (
+                              formatCurrency(variation.price)
+                            )}
                           </button>
                         ))}
                       </div>

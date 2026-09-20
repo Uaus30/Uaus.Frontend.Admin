@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { formatCountdown } from "../useCountdown";
+import { renderHook } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { formatCountdown, useCountdown } from "../useCountdown";
 
 /**
  * A contagem do banner.
@@ -20,5 +21,40 @@ describe("formatCountdown", () => {
     // é pior que zero.
     expect(formatCountdown(-10)).toBe("00:00:00");
     expect(formatCountdown(0)).toBe("00:00:00");
+  });
+});
+
+describe("useCountdown", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("desconta o tempo decorrido desde a LEITURA, e não a partir do zero", () => {
+    // REGRESSÃO: sem a âncora, voltar para a home dentro do cache de 5 minutos
+    // remontava o componente com o mesmo `endsInSeconds` e o relógio pulava de
+    // 03:56:00 de volta para 04:00:00 — para trás, na frente da cliente.
+    vi.useFakeTimers();
+    const agora = Date.now();
+    vi.setSystemTime(agora);
+
+    const lidoHaQuatroMinutos = agora - 4 * 60 * 1000;
+    const { result } = renderHook(() => useCountdown(4 * 60 * 60, lidoHaQuatroMinutos));
+
+    expect(result.current).toBe(4 * 60 * 60 - 4 * 60);
+  });
+
+  it("zera quando a duração já passou — a aba que ficou aberta a noite inteira", () => {
+    vi.useFakeTimers();
+    const agora = Date.now();
+    vi.setSystemTime(agora);
+
+    const lidoHaSeisHoras = agora - 6 * 60 * 60 * 1000;
+    const { result } = renderHook(() => useCountdown(4 * 60 * 60, lidoHaSeisHoras));
+
+    expect(result.current).toBe(0);
+  });
+
+  it("sem duração, é zero e não liga relógio nenhum", () => {
+    const { result } = renderHook(() => useCountdown(null, Date.now()));
+
+    expect(result.current).toBe(0);
   });
 });

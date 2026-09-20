@@ -96,7 +96,15 @@ export function describeValidity(
   const diaTodo = inicio === "00:00" && fim >= "23:59";
 
   if (toDateKey(dia) === toDateKey(hoje)) {
-    return diaTodo ? "VÁLIDO APENAS PARA HOJE!" : `SOMENTE HOJE ATÉ ${ate(fim)}!`;
+    if (diaTodo) return "VÁLIDO APENAS PARA HOJE!";
+
+    // O HORÁRIO DE INÍCIO entra quando existe. Sábado 9h, o dono cadastra a
+    // relâmpago de 14h–18h do próprio dia, gera a arte e publica no grupo às
+    // 9h30: "SOMENTE HOJE ATÉ AS 18H" faz a cliente chegar às 10h e o caixa
+    // cobrar o preço cheio. O cartaz tem que dizer as duas pontas.
+    return inicio === "00:00"
+      ? `SOMENTE HOJE ATÉ ${ate(fim)}!`
+      : `SOMENTE HOJE, ${de(inicio)} ${ateDoIntervalo(fim)}!`;
   }
 
   return diaTodo
@@ -132,6 +140,7 @@ function quando(dia: Date, hoje: Date): string {
  * das 14h às 18h cadastrada na sexta.
  */
 function de(hhmm: string): string {
+  if (ehMeiaNoite(hhmm)) return "DA MEIA-NOITE";
   return ehMeioDia(hhmm) ? "DO MEIO-DIA" : `DAS ${horaCurta(hhmm)}`;
 }
 
@@ -152,6 +161,11 @@ function ateDoIntervalo(hhmm: string): string {
 
 function ehMeioDia(hhmm: string): boolean {
   return hhmm === "12:00";
+}
+
+/** "DAS 0H" não é frase de cartaz — a mesma família do meio-dia. */
+function ehMeiaNoite(hhmm: string): boolean {
+  return hhmm === "00:00";
 }
 
 /** "18H", "18H30" — sem preposição e sem dois pontos, que o cartaz não usa. */

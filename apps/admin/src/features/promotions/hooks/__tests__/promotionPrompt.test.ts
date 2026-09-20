@@ -36,12 +36,33 @@ describe("describeValidity", () => {
     expect(frase).toBe("VÁLIDO APENAS PARA HOJE!");
   });
 
-  it("hoje com hora de fim, com o meio-dia escrito como a loja fala", () => {
-    expect(describeValidity("2026-09-19T08:00:00", "2026-09-19T12:00:59", SABADO)).toBe(
+  it("hoje ATÉ uma hora — só quando a promoção já começou de manhã cedo", () => {
+    // Começa à meia-noite: o "até" sozinho é verdadeiro.
+    expect(describeValidity("2026-09-19T00:00:00", "2026-09-19T12:00:59", SABADO)).toBe(
       "SOMENTE HOJE ATÉ O MEIO-DIA!",
     );
+  });
+
+  it("hoje COM horário de início diz as duas pontas", () => {
+    // REGRESSÃO: o ramo de hoje descartava o início. Sábado 9h, o dono cadastra a
+    // relâmpago de 14h–18h do próprio dia, gera a arte e publica no grupo às
+    // 9h30: "SOMENTE HOJE ATÉ AS 18H" faz a cliente chegar às 10h e o caixa
+    // cobrar o preço cheio.
     expect(describeValidity("2026-09-19T14:00:00", "2026-09-19T18:00:59", SABADO)).toBe(
-      "SOMENTE HOJE ATÉ AS 18H!",
+      "SOMENTE HOJE, DAS 14H ÀS 18H!",
+    );
+    expect(describeValidity("2026-09-19T08:00:00", "2026-09-19T12:00:59", SABADO)).toBe(
+      "SOMENTE HOJE, DAS 8H AO MEIO-DIA!",
+    );
+  });
+
+  it("a meia-noite tem nome, como o meio-dia", () => {
+    // "DAS 0H" não é frase de cartaz. O horário de início é opcional e o padrão
+    // é 00:00, então o caso aparece sozinho.
+    const quinta = new Date(2026, 8, 17, 9, 0);
+
+    expect(describeValidity("2026-09-19T00:00:00", "2026-09-19T10:00:59", quinta)).toBe(
+      "SOMENTE NESTE SÁBADO, DA MEIA-NOITE ÀS 10H!",
     );
   });
 
@@ -141,7 +162,7 @@ describe("buildPromotionPrompt", () => {
     expect(texto).toContain("escreva EXATAMENTE o que está entre aspas, em português do Brasil");
     expect(texto).toContain('"COPO AMERICANO"');
     expect(texto).toContain('"R$ 0,99"');
-    expect(texto).toContain('"SOMENTE HOJE ATÉ AS 18H!"');
+    expect(texto).toContain('"SOMENTE HOJE, DAS 14H ÀS 18H!"');
     expect(texto).toContain('"Máximo 30"');
   });
 

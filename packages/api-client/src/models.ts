@@ -1750,7 +1750,17 @@ export interface StorefrontProductDto {
 /** Variação ativa exibida no detalhe ("Caneca 300ml — R$ 25,00"). */
 export interface StorefrontVariationDto {
   name: string;
+  /** Preço de TABELA da variação. */
   price: number;
+  /**
+   * O que o cliente paga nesta variação enquanto a promoção durar. Ausente sem
+   * promoção vigente — compare com `== null`.
+   *
+   * A lista "Escolha uma opção" fica logo abaixo do preço promocional do grupo:
+   * sem este campo, quem escolhesse a variação leria o preço de tabela ao lado
+   * do "a partir de" promocional.
+   */
+  promotionalPrice?: number | null;
 }
 
 /**

@@ -37,8 +37,11 @@ import { formatCountdown, useCountdown } from "../hooks/useCountdown";
  * que a loja publica no grupo de WhatsApp —, e isso vale só na vitrine.
  */
 export function FlashPromotionBanner() {
-  const { data } = useGetStorefrontFlashPromotion();
-  const restante = useCountdown(data?.promotion.endsInSeconds);
+  const { data, dataUpdatedAt } = useGetStorefrontFlashPromotion();
+  // `dataUpdatedAt` é o instante em que a duração foi LIDA. Sem essa âncora, a
+  // contagem voltava para trás a cada ida e volta na home dentro do cache de 5
+  // minutos, e sobrevivia às 18h numa aba deixada aberta.
+  const restante = useCountdown(data?.promotion.endsInSeconds, dataUpdatedAt);
   const reduzirMovimento = useReducedMotion();
 
   if (!data || restante <= 0) return null;
@@ -64,9 +67,14 @@ export function FlashPromotionBanner() {
 
           {data.imageUrl && (
             <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-white p-2">
+              {/* `eager`: é a única imagem acima da dobra no dia de relâmpago, e
+                  o §6.3 justifica o raio em SVG justamente pelo primeiro paint
+                  no 4G. Deixá-la em `lazy` atrasaria o que o banner existe para
+                  mostrar. */}
               <ProductImage
                 src={buildPublicImageUrl(data.imageUrl)}
                 alt={data.name}
+                loading="eager"
                 className="h-full w-full object-contain"
               />
             </div>

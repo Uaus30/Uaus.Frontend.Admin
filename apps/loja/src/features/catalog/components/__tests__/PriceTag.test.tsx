@@ -30,10 +30,26 @@ describe("PriceTag", () => {
   });
 
   it("com promoção, o preço grande é o PROMOCIONAL e o de tabela vai riscado", () => {
-    render(<PriceTag price={1.75} promotion={promocao()} />);
+    // Afirmar só que os dois números aparecem não discrimina: trocar um pelo
+    // outro — o defeito que este arquivo existe para impedir — passaria igual.
+    const { container } = render(<PriceTag price={1.75} promotion={promocao()} />);
 
-    expect(screen.getByText(/0,99/)).toBeTruthy();
-    expect(screen.getByText(/1,75/)).toBeTruthy();
+    const grande = container.querySelector(".font-display");
+    expect(grande?.textContent).toContain("0,99");
+
+    const riscado = container.querySelector(".line-through");
+    expect(riscado?.textContent).toContain("1,75");
+  });
+
+  it("a isca de desconto zero marca o produto sem inventar um de/por", () => {
+    // O pote de R$ 2,00 da porta: para o cliente aquele preço É promocional,
+    // ainda que nunca tenha sido mais caro (§13 do plano).
+    const { container } = render(
+      <PriceTag price={2} promotion={promocao({ type: "Everyday", price: 2, referencePrice: null })} />,
+    );
+
+    expect(container.querySelector(".line-through")).toBeNull();
+    expect(screen.getByText("Por apenas")).toBeTruthy();
   });
 
   it("sem o de, não inventa um", () => {
