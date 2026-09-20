@@ -75,13 +75,25 @@ function TotaisDoDiaADia({ everyday }: { everyday: PromotionEverydayDto }) {
 }
 
 export function PromotionPerformanceTab({ promotionId }: { promotionId: number }) {
-  const { data, isLoading } = useGetPromotionPerformance(promotionId);
+  const { data, isLoading, isError } = useGetPromotionPerformance(promotionId);
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="flex items-center gap-2 py-12 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Medindo a promoção...
       </div>
+    );
+  }
+
+  /*
+   * Sem este ramo a aba girava PARA SEMPRE: depois das tentativas, `isLoading` vira
+   * falso e `data` continua indefinido, então um `if (isLoading || !data)` caía de
+   * volta no spinner — sem toast, sem mensagem, e com o dono concluindo que a tela
+   * travou. A aba gêmea do produto já resolvia assim.
+   */
+  if (isError || !data) {
+    return (
+      <p className="py-12 text-sm text-destructive">Não foi possível carregar o desempenho desta promoção.</p>
     );
   }
 
@@ -113,7 +125,11 @@ export function PromotionPerformanceTab({ promotionId }: { promotionId: number }
       {relampago && data.score && <PromotionScorePanel score={data.score} />}
       {!relampago && data.everyday && <TotaisDoDiaADia everyday={data.everyday} />}
 
-      <PromotionInvestmentPanel investment={data.investment} showPerDay={!relampago} />
+      <PromotionInvestmentPanel
+        investment={data.investment}
+        showPerDay={!relampago}
+        soldUnits={data.soldUnits}
+      />
 
       {data.companions.length > 0 && (
         <div className="space-y-2">

@@ -37,7 +37,22 @@ const FORMATO: Record<string, { rotulo: string; formatar: (valor: number) => str
   basket: { rotulo: "Arraste", formatar: (v) => `${formatQuantity(v)} outras un` },
 };
 
-function ComponenteDaNota({ componente }: { componente: PromotionScoreComponentDto }) {
+function ComponenteDaNota({
+  componente,
+  pesoEfetivo,
+}: {
+  componente: PromotionScoreComponentDto;
+  /**
+   * O peso que de fato produziu a nota.
+   *
+   * Não é sempre o `weight` que a API manda: com menos de três vendas, ticket e
+   * arraste saem da conta e os dois que sobram são renormalizados (58,3% e 41,7%).
+   * Imprimir os pesos nominais ali fazia a conta aberta ao lado do velocímetro
+   * **não fechar** com o número dentro dele — 85,71 × 35% + 25 × 25% dá 36, e o
+   * ponteiro marcava 60. Era o oposto do motivo de o painel existir.
+   */
+  pesoEfetivo: number;
+}) {
   const formato = FORMATO[componente.key] ?? {
     rotulo: componente.key,
     formatar: (v: number) => formatQuantity(v),
@@ -47,7 +62,9 @@ function ComponenteDaNota({ componente }: { componente: PromotionScoreComponentD
     <div className={`space-y-1 rounded-lg border p-3 ${componente.excluded ? "opacity-60" : ""}`}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-sm font-semibold">{formato.rotulo}</span>
-        <span className="text-xs text-muted-foreground">peso {Math.round(componente.weight * 100)}%</span>
+        <span className="text-xs text-muted-foreground">
+          {componente.excluded ? "fora da conta" : `peso ${Math.round(pesoEfetivo * 100)}%`}
+        </span>
       </div>
 
       <div className="flex items-baseline gap-2">
@@ -85,19 +102,44 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
   const semVenda = faixa === PROMOTION_PERFORMANCE_CLASS.NoSales;
   const rotulo = PROMOTION_PERFORMANCE_CLASS_LABEL[faixa ?? 0] ?? "";
 
+  // Só os componentes que entraram na conta dividem os 100%.
+  const somaAtiva = score.components
+    .filter((componente) => !componente.excluded)
+    .reduce((total, componente) => total + componente.weight, 0);
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-[auto_1fr] lg:items-center">
         <div className="flex justify-center">
-          {/* Zero casa decimal: a decimal do produto existe para desempatar dois
-              rankings de 888 itens, e algumas dezenas de promoções por ano não
-              são ordenadas por nota. */}
-          <ScoreGauge score={score.score} rotulo={rotulo} casasDecimais={0} tamanho={230} />
+          {/* Sem venda NÃO desenha o velocímetro.
+              O degradê dele é contínuo e começa em vermelho, então "Sem venda"
+              saía como um zero grande e VERMELHO — que lê como fracasso. É
+              ausência de medida, e a cor dela é cinza: a promoção pode ter
+              começado há dez minutos. A aba gêmea do produto já resolvia assim,
+              e o próprio backend escreve "cinza, não vermelho" ao lado da faixa.
+
+              Zero casa decimal no velocímetro: a decimal do produto existe para
+              desempatar dois rankings de 888 itens, e algumas dezenas de
+              promoções por ano não são ordenadas por nota. */}
+          {semVenda ? (
+            <div className="flex w-[230px] flex-col items-center justify-center gap-1 rounded-lg border border-dashed bg-muted/20 px-4 py-10 text-center">
+              <span className="text-2xl font-bold text-muted-foreground">Sem venda</span>
+              <span className="text-xs text-muted-foreground">
+                Nenhuma unidade saiu com esta promoção — não há nota, e sim ausência de medida.
+              </span>
+            </div>
+          ) : (
+            <ScoreGauge score={score.score} rotulo={rotulo} casasDecimais={0} tamanho={230} />
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {score.components.map((componente) => (
-            <ComponenteDaNota key={componente.key} componente={componente} />
+            <ComponenteDaNota
+              key={componente.key}
+              componente={componente}
+              pesoEfetivo={somaAtiva <= 0 ? 0 : componente.weight / somaAtiva}
+            />
           ))}
         </div>
       </div>
@@ -115,7 +157,7 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
                   : "dias"
                 : `${score.weekdayName.toLowerCase()}${score.rulerOccurrences === 1 ? "" : "s"}`}
             </strong>{" "}
-            anteriores.{" "}
+            {score.rulerOccurrences === 1 ? "anterior" : "anteriores"}.{" "}
             {score.rulerFellBackToAllDays && (
               <>
                 Como não há {score.weekdayName.toLowerCase()}s suficientes no histórico, a régua usou{" "}
@@ -145,8 +187,9 @@ export function PromotionScorePanel({ score }: { score: PromotionScoreDto }) {
 
         {score.salesOverLimit > 0 && (
           <p className="text-muted-foreground">
-            <strong>{score.salesOverLimit}</strong> venda(s) passaram do limite por venda — o operador liberou
-            no balcão.
+            <strong>{score.salesOverLimit}</strong>{" "}
+            {score.salesOverLimit === 1 ? "venda passou" : "vendas passaram"} do limite por venda — o operador
+            liberou no balcão.
           </p>
         )}
 

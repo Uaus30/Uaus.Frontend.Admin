@@ -1,6 +1,6 @@
 import { formatCurrency, formatQuantity } from "@workspace/core";
 import type { PromotionInvestmentDto } from "@workspace/api-client-react";
-import { Sparkles } from "lucide-react";
+import { Hourglass, Sparkles } from "lucide-react";
 
 /**
  * A escada de reais: o que a promoção custou, o que rendeu e o que sobrou.
@@ -60,10 +60,13 @@ function Linha({
 export function PromotionInvestmentPanel({
   investment,
   showPerDay,
+  soldUnits,
 }: {
   investment: PromotionInvestmentDto;
   /** Mostra o investimento por dia — "R$ 900 em 90 dias" é ilegível, "R$ 10 por dia" é decisão. */
   showPerDay: boolean;
+  /** Unidades já vendidas com a promoção. Zero troca a escada pela espera. */
+  soldUnits: number;
 }) {
   if (investment.isShowcaseOnly) {
     return (
@@ -74,6 +77,30 @@ export function PromotionInvestmentPanel({
           <p className="text-muted-foreground">
             Esta promoção não corta preço: ela existe para o produto aparecer. Quem responde se funcionou é o
             impulso, não o retorno por real investido.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * Ainda não vendeu nada NÃO é "promoção de destaque".
+   *
+   * Enquanto as duas coisas eram a mesma flag (o investimento chega zerado nos
+   * dois casos), toda relâmpago aberta antes da primeira venda afirmava "esta
+   * promoção não corta preço" sobre um cartaz de 43% de desconto — e, ao fazê-lo,
+   * escondia a escada inteira. Cinza, não verde: é ausência de medida, o mesmo
+   * critério da faixa "Sem venda" da nota.
+   */
+  if (soldUnits <= 0) {
+    return (
+      <div className="flex items-start gap-3 rounded-lg border bg-muted/20 p-4">
+        <Hourglass className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+        <div className="space-y-1 text-sm">
+          <p className="font-semibold">Nenhuma venda com esta promoção ainda.</p>
+          <p className="text-muted-foreground">
+            A escada de reais aparece na primeira venda atribuída. Até lá não há investimento a somar nem
+            arraste a comparar.
           </p>
         </div>
       </div>

@@ -254,8 +254,8 @@ describe("formulário a partir de uma promoção", () => {
 });
 
 describe("repetir promoção", () => {
-  // 19/09/2026 é um sábado; 21/09/2026 é uma segunda.
-  const sabado = new Date(2026, 8, 19);
+  // 19/09/2026 é um sábado; 21/09/2026 é uma segunda. A HORA importa: a promoção
+  // do fixture vai das 14h às 18h, e repetir depois disso não pode cair em hoje.
   const segunda = new Date(2026, 8, 21);
 
   it("propõe a PRÓXIMA ocorrência do mesmo dia da semana", () => {
@@ -273,7 +273,27 @@ describe("repetir promoção", () => {
   it("mantém HOJE quando hoje já é o dia da semana da promoção", () => {
     // A loja cadastra a relâmpago no próprio sábado de manhã; empurrar para o
     // sábado seguinte obrigaria a corrigir a data toda vez.
-    const form = repeatFormFromPromotion(promocao(), sabado);
+    const form = repeatFormFromPromotion(promocao(), new Date(2026, 8, 19, 9, 30));
+
+    expect(form.startDate?.getDate()).toBe(19);
+  });
+
+  it("pula para a semana seguinte quando a janela de hoje já acabou", () => {
+    // REGRESSÃO: `nextWeekdayOccurrence` comparava só o DIA DA SEMANA. Às 19h40
+    // de sábado — que é quando o dono confere o dia, porque é quando a aba
+    // Performance deixa de avisar "os números são parciais" — a cópia de
+    // 14h–18h caía em HOJE. A validação compara datas e o servidor também, então
+    // ninguém barrava: a promoção nascia "Encerrada" e o dono achava que tinha
+    // programado o sábado seguinte.
+    const form = repeatFormFromPromotion(promocao(), new Date(2026, 8, 19, 19, 40));
+
+    expect(form.startDate?.getDate()).toBe(26);
+    expect(form.endDate?.getDate()).toBe(26);
+  });
+
+  it("ainda propõe hoje enquanto a janela de hoje não terminou", () => {
+    // 17h59, com a relâmpago das 14h às 18h: dá para repetir hoje mesmo.
+    const form = repeatFormFromPromotion(promocao(), new Date(2026, 8, 19, 17, 59));
 
     expect(form.startDate?.getDate()).toBe(19);
   });

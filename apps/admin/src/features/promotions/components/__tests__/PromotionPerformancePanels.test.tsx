@@ -114,8 +114,82 @@ describe("PromotionScorePanel", () => {
       />,
     );
 
-    expect(screen.getByLabelText(/Nota 0 de 100 — Sem venda/)).toBeTruthy();
+    expect(screen.getByText("Sem venda")).toBeTruthy();
     expect(screen.queryByText(/ticket e arraste são ruído/)).toBeNull();
+  });
+
+  it("não desenha o velocímetro quando não houve venda", () => {
+    // REGRESSÃO: o degradê do velocímetro começa em VERMELHO, então "Sem venda"
+    // saía como um zero grande e vermelho — que lê como fracasso. É ausência de
+    // medida, e a cor dela é cinza: a promoção pode ter começado há dez minutos.
+    render(<PromotionScorePanel score={nota({ class: "NoSales", score: 0 })} />);
+
+    expect(screen.queryByLabelText(/Nota 0 de 100/)).toBeNull();
+    expect(screen.getByText(/ausência de medida/)).toBeTruthy();
+  });
+
+  it("mostra o peso EFETIVO quando a nota foi renormalizada", () => {
+    // REGRESSÃO: o painel imprimia o peso nominal que a API manda (35/25/20/20)
+    // mesmo com ticket e arraste fora da conta. Quem multiplicasse o que está
+    // escrito chegava a 36 com o ponteiro marcando 60, e o painel existe
+    // justamente para a conta fechar.
+    const renormalizada = nota({
+      score: 60,
+      renormalizedWithoutTicketAndBasket: true,
+      components: [
+        {
+          key: "volume",
+          weight: 0.35,
+          score: 85.71,
+          measured: 12,
+          target: 14,
+          targetSource: "meta",
+          excluded: false,
+        },
+        {
+          key: "dayShare",
+          weight: 0.25,
+          score: 25,
+          measured: 10,
+          target: 40,
+          targetSource: "p75",
+          excluded: false,
+        },
+        {
+          key: "ticket",
+          weight: 0.2,
+          score: 0,
+          measured: 0,
+          target: 41.63,
+          targetSource: "1,5×",
+          excluded: true,
+        },
+        {
+          key: "basket",
+          weight: 0.2,
+          score: 0,
+          measured: 0,
+          target: 4.23,
+          targetSource: "1,5×",
+          excluded: true,
+        },
+      ],
+    });
+
+    render(<PromotionScorePanel score={renormalizada} />);
+
+    // 0,35 ÷ 0,60 e 0,25 ÷ 0,60 — os 58,3% / 41,7% que o plano nomeia.
+    expect(screen.getByText("peso 58%")).toBeTruthy();
+    expect(screen.getByText("peso 42%")).toBeTruthy();
+    expect(screen.queryByText("peso 35%")).toBeNull();
+    expect(screen.getAllByText("fora da conta")).toHaveLength(2);
+  });
+
+  it("concorda no singular quando a régua tem uma ocorrência só", () => {
+    render(<PromotionScorePanel score={nota({ rulerOccurrences: 1, rulerFellBackToAllDays: true })} />);
+
+    expect(screen.getByText(/1 dia/)).toBeTruthy();
+    expect(screen.queryByText(/anteriores/)).toBeNull();
   });
 
   it("diz DIAS, e não sábados, quando a régua caiu para todos os dias", () => {
@@ -152,7 +226,7 @@ describe("PromotionScorePanel", () => {
 
 describe("PromotionInvestmentPanel", () => {
   it("separa o exato do estimado", () => {
-    render(<PromotionInvestmentPanel investment={investimento()} showPerDay={false} />);
+    render(<PromotionInvestmentPanel investment={investimento()} showPerDay={false} soldUnits={40} />);
 
     expect(screen.getByText("Investimento")).toBeTruthy();
     expect(screen.getByText("Arraste")).toBeTruthy();
@@ -163,7 +237,7 @@ describe("PromotionInvestmentPanel", () => {
   it("esconde o por dia na relâmpago", () => {
     // "R$ 10 por dia" é decisão numa promoção de 90 dias; numa de quatro horas é
     // o mesmo número do total, escrito duas vezes.
-    render(<PromotionInvestmentPanel investment={investimento()} showPerDay={false} />);
+    render(<PromotionInvestmentPanel investment={investimento()} showPerDay={false} soldUnits={40} />);
 
     expect(screen.queryByText("Por dia")).toBeNull();
   });
@@ -175,6 +249,7 @@ describe("PromotionInvestmentPanel", () => {
       <PromotionInvestmentPanel
         investment={investimento({ amount: 0, isShowcaseOnly: true, returnPerInvestedReal: null })}
         showPerDay={false}
+        soldUnits={40}
       />,
     );
 
@@ -182,11 +257,35 @@ describe("PromotionInvestmentPanel", () => {
     expect(screen.queryByText("Arraste")).toBeNull();
   });
 
+  it("não chama de destaque a promoção que apenas ainda não vendeu", () => {
+    // REGRESSÃO: enquanto "destaque" era "investimento igual a zero", toda
+    // relâmpago aberta antes da primeira venda afirmava "esta promoção não corta
+    // preço" sobre um cartaz de 43% de desconto — e escondia a escada inteira ao
+    // fazê-lo. Quem distingue as duas é a contagem de unidades.
+    render(
+      <PromotionInvestmentPanel
+        investment={investimento({
+          amount: 0,
+          itemProfit: 0,
+          dragProfit: 0,
+          returnPerInvestedReal: null,
+          isShowcaseOnly: false,
+        })}
+        showPerDay={false}
+        soldUnits={0}
+      />,
+    );
+
+    expect(screen.getByText(/Nenhuma venda com esta promoção ainda/)).toBeTruthy();
+    expect(screen.queryByText(/não corta preço/)).toBeNull();
+  });
+
   it("omite o retorno por real quando não houve investimento a dividir", () => {
     render(
       <PromotionInvestmentPanel
         investment={investimento({ returnPerInvestedReal: null })}
         showPerDay={false}
+        soldUnits={40}
       />,
     );
 

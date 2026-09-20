@@ -168,7 +168,9 @@ export function repeatFormFromPromotion(origem: PromotionDto, hoje: Date): Promo
   const base = formFromPromotion(origem);
   const relampago = enumCode(origem.type, PROMOTION_TYPE) === PROMOTION_TYPE.Flash;
 
-  const inicio = relampago ? nextWeekdayOccurrence(base.startDate ?? hoje, hoje) : startOfDay(hoje);
+  const inicio = relampago
+    ? nextWeekdayOccurrence(base.startDate ?? hoje, hoje, base.endTime)
+    : startOfDay(hoje);
 
   return {
     ...base,
@@ -186,16 +188,33 @@ function startOfDay(date: Date): Date {
 }
 
 /**
- * A próxima data, de hoje em diante, que cai no mesmo dia da semana da original.
+ * A próxima data, de hoje em diante, em que a janela copiada ainda cabe — no mesmo
+ * dia da semana da original.
  *
- * Devolve HOJE quando hoje já é esse dia: a loja cadastra a relâmpago no próprio
- * sábado de manhã, e empurrar para o sábado seguinte obrigaria a corrigir a data
- * toda vez.
+ * Devolve HOJE quando hoje já é esse dia e o horário ainda não passou: a loja
+ * cadastra a relâmpago no próprio sábado de manhã, e empurrar para o sábado
+ * seguinte obrigaria a corrigir a data toda vez.
+ *
+ * **A hora entra na conta**, e não só o dia da semana. O dono confere a relâmpago
+ * DEPOIS que ela acaba — é quando a aba Performance tem número, e a própria tela o
+ * avisa de que "os números são parciais" enquanto ela está no ar. Às 19h40 de
+ * sábado, uma cópia de 14h–18h caía em HOJE, passava na validação (que compara
+ * datas) e no servidor (que compara datas), e a promoção nascia **Encerrada** — o
+ * dono achando que tinha programado o sábado seguinte.
+ *
+ * @param original Dia da promoção copiada, de onde sai o dia da semana.
+ * @param hoje Instante de referência, injetado para o teste não depender do relógio.
+ * @param endTime Hora de fim copiada, `"HH:mm"` — é ela que diz se hoje ainda serve.
  */
-function nextWeekdayOccurrence(original: Date, hoje: Date): Date {
+function nextWeekdayOccurrence(original: Date, hoje: Date, endTime: string): Date {
   const alvo = startOfDay(hoje);
   const distancia = (original.getDay() - alvo.getDay() + 7) % 7;
   alvo.setDate(alvo.getDate() + distancia);
+
+  if (distancia === 0 && toEndInstant(alvo, endTime) <= nowInstant(hoje)) {
+    alvo.setDate(alvo.getDate() + 7);
+  }
+
   return alvo;
 }
 
