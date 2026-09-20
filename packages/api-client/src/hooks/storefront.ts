@@ -14,7 +14,7 @@ import {
   type InfiniteData,
   type UseInfiniteQueryResult,
 } from "@tanstack/react-query";
-import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
+import { apiGet, apiGetOrThrow, ApiError, mapPagedResult } from "../client";
 import { STALE_TIME } from "../query-client";
 import type {
   BackendPagedResult,
@@ -194,12 +194,17 @@ export const getGetStorefrontFlashPromotionQueryKey = (): QueryKey => ["storefro
 /**
  * A relâmpago do banner, ou `null` — que é o caso da maior parte da semana.
  *
- * O endpoint devolve 200 com corpo nulo em vez de 404: "não há banner hoje" é
- * resposta normal, e um 404 no console em toda visita à home ensinaria a ignorar
- * 404.
+ * `apiGet`, e **não** `apiGetOrThrow`: sem promoção no ar o endpoint devolve
+ * **204**, e o `apiGetOrThrow` trata corpo vazio como falha do servidor. Com ele
+ * aqui, toda visita à home de um dia sem relâmpago — a maioria — gastaria quatro
+ * requisições (a original e as três tentativas do React Query) e encheria o
+ * console do site público de erro. "Não há banner hoje" é resposta, não falha.
+ *
+ * Medido contra a API de dev em 19/09/2026: `GET /Storefront/flash-promotion`
+ * sem promoção vigente responde `204 No Content`.
  */
 export function getStorefrontFlashPromotion(): Promise<StorefrontFlashPromotionDto | null> {
-  return apiGetOrThrow<StorefrontFlashPromotionDto | null>("/Storefront/flash-promotion", undefined, {
+  return apiGet<StorefrontFlashPromotionDto>("/Storefront/flash-promotion", undefined, {
     auth: false,
   });
 }
