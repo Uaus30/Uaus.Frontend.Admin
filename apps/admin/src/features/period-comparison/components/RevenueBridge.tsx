@@ -1,6 +1,7 @@
 import { Card, cn } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { RevenueFactorDto } from "@workspace/api-client-react";
+import { BiCardHelp, BiCardHelpExample } from "@/components/bi-card-help";
 import { BI_TONE_FILL, BI_TONE_TEXT } from "@/lib/bi-tone";
 import { formatSignedPercent } from "@/features/dashboard/utils";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
@@ -52,7 +53,10 @@ export function RevenueBridge({ bridge, total }: RevenueBridgeProps) {
   return (
     <Card className="border-border/60 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-semibold">De onde veio a diferença</h2>
+        <div className="flex items-center gap-1">
+          <h2 className="text-[15px] font-semibold">De onde veio a diferença</h2>
+          <BridgeHelp temParcelaSemItem={temParcelaSemItem} />
+        </div>
         <p className="text-[11.5px] text-muted-foreground">
           faturamento = dias abertos × cupons por dia × peças por cupom × valor por peça
           {temParcelaSemItem && " + venda sem item"}
@@ -124,6 +128,58 @@ export function RevenueBridge({ bridge, total }: RevenueBridgeProps) {
         )}
       </div>
     </Card>
+  );
+}
+
+/** O manual deste cartão. */
+function BridgeHelp({ temParcelaSemItem }: { temParcelaSemItem: boolean }) {
+  return (
+    <BiCardHelp titulo="De onde veio a diferença">
+      <p>
+        Estes quatro números, multiplicados, <strong className="text-foreground/85">são</strong> o faturamento
+        — não é um modelo, é uma identidade: cada divisor é o de cima do fator anterior. Se o faturamento
+        mudou, pelo menos um deles mudou.
+      </p>
+
+      <BiCardHelpExample>
+        <p>
+          <strong className="text-foreground/85">26 dias</strong> abertos ×{" "}
+          <strong className="text-foreground/85">12,8 cupons</strong> por dia ×{" "}
+          <strong className="text-foreground/85">3,7 peças</strong> por cupom ×{" "}
+          <strong className="text-foreground/85">R$ 5,99</strong> por peça ={" "}
+          <strong className="text-foreground/85">R$ 7.421</strong> no mês
+        </p>
+      </BiCardHelpExample>
+
+      <p>
+        A barra em reais é <em>quanto daquela diferença aquele fator responde</em>. Ela sai de uma média de
+        todas as ordens possíveis de troca entre os quatro, o que a torna exata mas impossível de refazer na
+        calculadora — por isso{" "}
+        <strong className="text-foreground/85">o valor cru de cada fator fica ao lado</strong> (26 → 20 dias).
+        É esse número que se confere.
+      </p>
+
+      <p>
+        <strong className="text-foreground/85">Dias abertos</strong> é o dia em que a loja vendeu alguma
+        coisa; não existe registro de expediente no sistema.
+      </p>
+
+      {temParcelaSemItem && (
+        <p>
+          <strong className="text-foreground/85">Venda sem item</strong> é faturamento cobrado sem nenhum
+          produto por trás — <strong className="text-foreground/85">defeito de dado</strong>, não venda de
+          verdade. São sete cupons do Mais PDV, entre março e junho de 2026, em que o sistema antigo cobrou
+          mais que a soma dos próprios itens (quatro deles não tinham item nenhum). Aparece aqui porque o
+          faturamento do topo é o mesmo do painel e inclui esse dinheiro: escondê-lo faria as outras barras
+          não somarem a diferença. Nenhuma venda do PDV novo tem esse problema.
+        </p>
+      )}
+
+      <p>
+        A <strong className="text-foreground/85">soma das causas</strong>, no rodapé, é a soma das barras
+        desenhadas. Se ela discordar da diferença do topo, o cartão avisa em vermelho.
+      </p>
+    </BiCardHelp>
   );
 }
 

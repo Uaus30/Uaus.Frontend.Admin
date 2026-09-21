@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { RevenueFactorDto } from "@workspace/api-client-react";
 import { RevenueBridge } from "../RevenueBridge";
@@ -350,6 +350,103 @@ describe("MixPricePanel — o restante", () => {
   });
 });
 
+describe("MixPricePanel — o veredito", () => {
+  function comEfeitos(mix: number, preco: number, change: number) {
+    return {
+      measuredBy: "Category" as const,
+      previousRevenuePerUnit: 10,
+      currentRevenuePerUnit: 10 + change,
+      change,
+      mixEffect: mix,
+      priceEffect: preco,
+      mixAmount: mix * 100,
+      priceAmount: preco * 100,
+      contributions: [],
+    };
+  }
+
+  it("aponta PREÇO quando ele domina, e diz o que olhar", () => {
+    // Os dois números sozinhos não dizem o que fazer, e a leitura mais natural
+    // deles está errada: "mix de −R$ 0,65" soa como "o preço médio caiu R$ 0,65",
+    // que é a definição do OUTRO efeito.
+    render(<MixPricePanel mixPrice={comEfeitos(-0.65, -1.27, -1.92)} />);
+
+    const veredito = screen.getByText(/da queda veio de PREÇO/);
+    expect(veredito.textContent).toContain("66%");
+    expect(veredito.textContent).toContain("precificação");
+  });
+
+  it("aponta MIX quando ele domina, e manda olhar a compra", () => {
+    render(<MixPricePanel mixPrice={comEfeitos(-1.5, -0.5, -2)} />);
+
+    const veredito = screen.getByText(/da queda veio de MIX/);
+    expect(veredito.textContent).toContain("75%");
+    expect(veredito.textContent).toContain("comprando");
+  });
+
+  it("fala de alta quando o valor da peça sobe", () => {
+    render(<MixPricePanel mixPrice={comEfeitos(0.5, 1.5, 2)} />);
+
+    expect(screen.getByText(/da alta veio de PREÇO/)).toBeTruthy();
+  });
+
+  it("não inventa causa quando nada mudou", () => {
+    render(<MixPricePanel mixPrice={comEfeitos(0, 0, 0)} />);
+
+    expect(screen.getByText(/praticamente não mudou/)).toBeTruthy();
+  });
+
+  it("o botão de ajuda abre o exemplo que separa mix de preço", async () => {
+    render(<MixPricePanel mixPrice={comEfeitos(-0.65, -1.27, -1.92)} />);
+
+    fireEvent.click(screen.getByLabelText("O que é Mix ou preço"));
+
+    const balao = await screen.findByText(/Imagine que a loja venda/);
+    expect(balao).toBeTruthy();
+    // O exemplo precisa deixar claro que no caso do mix NENHUM preço mudou.
+    expect(screen.getByText(/nenhum preço mudou/)).toBeTruthy();
+  });
+});
+
+describe("RevenueBridge — a ajuda do cartão", () => {
+  it("explica a venda sem item quando a barra aparece", async () => {
+    render(
+      <RevenueBridge
+        bridge={[
+          ...PONTE,
+          {
+            factor: "Unattributed" as const,
+            previousValue: 30.22,
+            currentValue: 0,
+            changePercentage: -100,
+            amount: -30.22,
+            shareOfMovement: 0.4,
+          },
+        ]}
+        total={-2852.91}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText("O que é De onde veio a diferença"));
+
+    // Foi a primeira dúvida do dono ao ver a tela: "não é possível ter uma venda
+    // sem nenhum item". O balão precisa dizer que ele está certo, e de onde vem.
+    // A busca é por um trecho que SÓ existe no balão: "defeito de dado" também
+    // está na legenda da própria barra.
+    expect(await screen.findByText(/sete cupons do Mais PDV/)).toBeTruthy();
+    expect(screen.getByText(/quatro deles não tinham item nenhum/)).toBeTruthy();
+  });
+
+  it("não fala de venda sem item quando a barra não existe", async () => {
+    render(<RevenueBridge bridge={PONTE} total={-2822.69} />);
+
+    fireEvent.click(screen.getByLabelText("O que é De onde veio a diferença"));
+
+    await screen.findByText(/identidade/);
+    expect(screen.queryByText(/defeito de dado/)).toBeNull();
+  });
+});
+
 describe("EventItems", () => {
   it("nomeia o item que carregava o período e mostra o estoque que sobrou", () => {
     render(
@@ -384,6 +481,40 @@ describe("EventItems", () => {
     // e o numero — sem isso a comparacao falha por um caractere invisivel.
     const sobra = screen.getByText(/sobraram/).textContent!.replace(/\s/g, " ");
     expect(sobra).toContain("sobraram 24 em estoque, R$ 328,08 de custo parado");
+  });
+
+  it("o ? ensina os DOIS limiares que o backend usa", async () => {
+    render(
+      <EventItems
+        items={[
+          {
+            productId: 1,
+            productName: "CAMISETA DO BRASIL",
+            barcode: "1",
+            categoryName: "Vestuário e Calçados",
+            previousRevenue: 2092,
+            currentRevenue: 22,
+            revenueDelta: -2070,
+            previousShare: 20.42,
+            currentShare: 0.3,
+            previousUnits: 85,
+            currentUnits: 1,
+            stock: 24,
+            stockCost: 328.08,
+            kind: "Vanished",
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText("O que é Itens que sozinhos moveram o período"));
+
+    // `EventItemDto.MinimumShare = 5` e `ResidualShare = 2`. O manual já ensinou
+    // "menos da metade disso" (2,5%), que não é regra nenhuma do código.
+    // Os dois limiares estão em <strong> separados; a frase inteira é o pai.
+    const frase = (await screen.findByText(/passou de 5%/)).closest("p")!;
+    expect(frase.textContent).toContain("passou de 5%");
+    expect(frase.textContent).toContain("abaixo de 2%");
   });
 
   it("some inteiro quando não há item-evento", () => {

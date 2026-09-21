@@ -2,6 +2,7 @@ import { PackageX, Sparkles } from "lucide-react";
 import { Badge, Card, cn } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { EventItemDto } from "@workspace/api-client-react";
+import { BiCardHelp } from "@/components/bi-card-help";
 import { BI_TONE_PILL, BI_TONE_TEXT } from "@/lib/bi-tone";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
 import { EVENT_LABELS, deltaTone } from "../lib/comparison";
@@ -9,6 +10,40 @@ import { EVENT_LABELS, deltaTone } from "../lib/comparison";
 type EventItemsProps = {
   items: EventItemDto[];
 };
+
+/** O manual deste cartão. */
+function EventsHelp() {
+  return (
+    <BiCardHelp titulo="Itens que sozinhos moveram o período">
+      <p>
+        Um produto que <strong className="text-foreground/85">passou de 5%</strong> do faturamento de um dos
+        períodos e <strong className="text-foreground/85">ficou abaixo de 2%</strong> no outro. Não é "vendeu
+        menos" — é <em>parou de existir</em> no resultado, ou apareceu do nada.
+      </p>
+
+      <p>
+        O que só acelerou ou só desacelerou não entra aqui; esse já aparece na tabela "Quem mudou" como
+        qualquer linha.
+      </p>
+
+      <p>
+        O cartão nasceu de um caso real: a camiseta da Copa fez R$ 2.092 em junho de 2026 — 20% do mês — e R$
+        47 em agosto. O painel mostrou o mês caindo, e nenhuma tela dizia que a queda tinha nome.
+      </p>
+
+      <p>
+        <strong className="text-foreground/85">O estoque que sobrou aparece junto</strong> porque é a única
+        parte do evento sobre a qual ainda dá para agir: o faturamento que não veio já passou, mas o dinheiro
+        parado continua parado.
+      </p>
+
+      <p>
+        Este bloco só aparece quando existe um item assim no recorte. Na maioria dos períodos, não existe — e
+        isso é notícia boa.
+      </p>
+    </BiCardHelp>
+  );
+}
 
 /**
  * Bloco 4 — o item que sozinho moveu o período.
@@ -26,9 +61,12 @@ export function EventItems({ items }: EventItemsProps) {
 
   return (
     <Card className="border-border/60 p-5">
-      <h2 className="text-[15px] font-semibold">Itens que sozinhos moveram o período</h2>
+      <div className="flex items-center gap-1">
+        <h2 className="text-[15px] font-semibold">Itens que sozinhos moveram o período</h2>
+        <EventsHelp />
+      </div>
       <p className="mt-0.5 text-[11.5px] text-muted-foreground">
-        passaram de 5% do faturamento de um dos lados e não se repetiram no outro
+        passaram de 5% do faturamento de um dos lados e ficaram abaixo de 2% no outro
       </p>
 
       <div className="mt-4 flex flex-col gap-2.5">

@@ -15,6 +15,7 @@ import {
 import { formatCurrency } from "@workspace/core";
 import type { ComparisonDimension, DimensionChangeDto } from "@workspace/api-client-react";
 import { BiColumnHeader } from "@/components/bi-column-header";
+import { BiCardHelp, BiCardHelpExample } from "@/components/bi-card-help";
 import { BI_TONE_PILL, BI_TONE_TEXT } from "@/lib/bi-tone";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
 import { DIMENSION_LABELS, STATUS_LABELS, deltaTone, statusTone } from "../lib/comparison";
@@ -27,6 +28,52 @@ import type { ChangeSort } from "../hooks/usePeriodComparison";
  * existe para caber na tela, não para segurar volume.
  */
 const PAGINA = 40;
+
+/** O manual deste cartão. */
+function ChangesHelp({ rotulo }: { rotulo: string }) {
+  return (
+    <BiCardHelp titulo="Quem mudou">
+      <p>
+        A mesma diferença do topo da tela, agora repartida entre as {rotulo}s.{" "}
+        <strong className="text-foreground/85">A coluna Δ soma exatamente essa diferença</strong> — é isso que
+        separa esta tabela de um ranking: um ranking mostra os maiores, esta mostra todos os reais, até o
+        último centavo.
+      </p>
+
+      <p>
+        A ordem padrão é <strong className="text-foreground/85">da maior perda para o maior ganho</strong>, ao
+        contrário de todo ranking do sistema. A pergunta que traz alguém aqui quase sempre é sobre o que
+        faltou. Clique em qualquer cabeçalho para reordenar.
+      </p>
+
+      <BiCardHelpExample>
+        <p>
+          Uma {rotulo} que caiu de R$ 2.234 para R$ 351 aparece com{" "}
+          <strong className="text-foreground/85">Δ −R$ 1.883</strong>. A coluna{" "}
+          <strong className="text-foreground/85">valor por peça</strong> ao lado é o que separa duas situações
+          muito diferentes: vender menos peças, ou vender as mesmas mais barato.
+        </p>
+      </BiCardHelpExample>
+
+      <p>
+        <strong className="text-foreground/85">Situação</strong> fala de sortimento, não de resultado: "Saiu"
+        é a linha que parou de vender; "Entrou", a que começou. As duas merecem uma olhada mesmo quando o
+        valor é pequeno — não aparecem em nenhum ranking por dinheiro.
+      </p>
+
+      <p>
+        Linhas em <em>itálico</em> são agrupamentos, não {rotulo}s: "Outras N linhas" é o que não coube nas 60
+        maiores variações, e "Sem item identificado" é faturamento cobrado sem produto por trás (defeito de
+        dado das vendas migradas do Mais PDV). Ficam visíveis para a coluna continuar fechando.
+      </p>
+
+      <p>
+        <strong className="text-foreground/85">Com a busca ativa a soma deixa de valer</strong> — o cabeçalho
+        avisa. Filtrada, a coluna soma só o que está na tela.
+      </p>
+    </BiCardHelp>
+  );
+}
 
 type ChangeTableProps = {
   changes: DimensionChangeDto[];
@@ -80,7 +127,10 @@ export function ChangeTable({
     <Card className="border-border/60">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 p-4">
         <div>
-          <h2 className="text-[15px] font-semibold">Quem mudou</h2>
+          <div className="flex items-center gap-1">
+            <h2 className="text-[15px] font-semibold">Quem mudou</h2>
+            <ChangesHelp rotulo={rotulo.toLowerCase()} />
+          </div>
           {/* A promessa da soma vale para a lista INTEIRA. Repeti-la com a busca
               ativa era afirmar o contrário do que a tela mostra: filtrada, a
               coluna soma um subconjunto — e é justamente aí que alguém confere. */}

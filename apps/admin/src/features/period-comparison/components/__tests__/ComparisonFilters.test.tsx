@@ -182,17 +182,21 @@ describe("ChangeTable", () => {
 });
 
 describe("ComparisonHelp", () => {
-  it("ensina os dois limiares que o backend usa de verdade", () => {
+  it("fala da TELA, e deixa os números para o ? de cada cartão", () => {
     render(<ComparisonHelp report={RELATORIO_DE_TESTE} />);
 
     fireEvent.click(screen.getByText("Como ler esta tela"));
 
     const dialogo = screen.getByRole("dialog");
 
-    // `EventItemDto.MinimumShare = 5` e `ResidualShare = 2`. O manual já ensinou
-    // "menos da metade disso" (2,5%), que não é regra nenhuma do código.
-    expect(within(dialogo).getByText(/5%/)).toBeTruthy();
-    expect(within(dialogo).getByText(/abaixo de 2%/)).toBeTruthy();
+    // O que só o manual da tela pode dizer.
+    expect(within(dialogo).getByText(/05\/03\/2026/)).toBeTruthy();
+    expect(within(dialogo).getByText(/queda sazonal aparece aqui igual/)).toBeTruthy();
+
+    // O detalhe de cada cartão vive no "?" dele. Repetir aqui criaria duas
+    // versões da mesma explicação, e a segunda envelhece sem ninguém perceber.
+    expect(within(dialogo).queryByText(/média de todas as ordens/)).toBeNull();
+    expect(within(dialogo).queryByText(/Imagine que a loja venda/)).toBeNull();
   });
 
   it("sobrevive a um fator que o front ainda não conhece", () => {
