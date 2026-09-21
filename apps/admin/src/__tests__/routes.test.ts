@@ -122,8 +122,18 @@ describe("podeAcessar", () => {
     const bi = buildMenu(USER_ROLE.Admin).find((item) => item.name === "BI");
     const nomes = bi?.items?.map((s) => s.name) ?? [];
 
-    expect(nomes).toEqual(["Curva ABC de Produtos", "Desempenho de Fornecedores", "Desempenho de Produtos"]);
-    expect(bi?.items?.map((s) => s.href)).toEqual(["/bi/curva-abc", "/bi/fornecedores", "/bi/produtos"]);
+    expect(nomes).toEqual([
+      "Curva ABC de Produtos",
+      "Desempenho de Fornecedores",
+      "Desempenho de Produtos",
+      "O que mudou",
+    ]);
+    expect(bi?.items?.map((s) => s.href)).toEqual([
+      "/bi/curva-abc",
+      "/bi/fornecedores",
+      "/bi/produtos",
+      "/bi/o-que-mudou",
+    ]);
 
     const alfabetica = [...nomes].sort((a, b) =>
       a.localeCompare(b, "pt-BR", { sensitivity: "base", numeric: true }),
@@ -134,6 +144,15 @@ describe("podeAcessar", () => {
   it("o desempenho de produtos é só de Admin", () => {
     // A resposta traz custo, lucro e margem item a item.
     const tela = ROUTES.find((r) => r.path === "/bi/produtos")!;
+
+    expect(tela.roles).toBeDefined();
+    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
+  });
+
+  it("o que mudou também é só de Admin", () => {
+    // A resposta traz lucro e margem por linha, como as outras três do BI.
+    const tela = ROUTES.find((r) => r.path === "/bi/o-que-mudou")!;
 
     expect(tela.roles).toBeDefined();
     expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
