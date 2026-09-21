@@ -45,7 +45,7 @@ reimpressão.
 - O mesmo produto pode entrar duas vezes com **tipos diferentes** (preço
   normal + oferta); repetir o mesmo tipo é bloqueado — para mais cópias existe
   a quantidade.
-- Produto **sem código de barras** imprime a etiqueta sem as barras.
+- Produto **sem código de barras** imprime a etiqueta sem as barras. Depois de 21/09/2026 isso só acontece com lote congelado antigo: o cadastro não deixa mais um produto ficar sem código.
 
 ## Impressão
 
@@ -59,12 +59,17 @@ reimpressão.
   jeito — sobrava rebarba de fora da linha. A prévia em tela
   (`LabelPreviewCard`) usa o mesmo contorno, senão ela deixa de valer como
   prévia.
-- As barras saem do `buildBarcodeSvg` de `features/products/lib/barcode.ts`:
-  **jsbarcode local** (sem CDN, funciona offline), EAN-13/EAN-8 quando o dígito
-  verificador fecha e CODE128 no resto. O módulo era daqui e mudou de casa em
-  07/09/2026, quando a prévia e a etiqueta de 80mm do cadastro passaram a
-  precisar da mesma regra (item 4.4 do README de produtos) — duas cópias já
-  tinham divergido, e a de lá era a errada.
+- As barras saem do `buildBarcodeSvg` de `@/lib/barcode-svg`: **jsbarcode
+  local** (sem CDN, funciona offline), com a simbologia escolhida pelo
+  `resolveBarcodeFormat` do `@workspace/core`. O módulo era daqui, foi para
+  `features/products` em 07/09/2026 e subiu para o `lib` do app em 21/09/2026 —
+  feature importando de feature é o que o CLAUDE.md proíbe, e eram duas
+  consumindo o mesmo desenho.
+- **Desde 21/09/2026 todo produto do catálogo é EAN-13 válido** (item 4.5 do
+  README de produtos), então a etiqueta nova sempre sai com barras. O CODE128
+  continua no caminho porque o lote **congela** o código impresso: reimprimir um
+  lote anterior à padronização ainda desenha o código velho, às vezes com
+  verificador torto.
 
 ## Arquitetura
 

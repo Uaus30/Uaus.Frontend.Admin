@@ -5,14 +5,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { HelpCircle, Plus, Printer } from "lucide-react";
 import Barcode from "react-barcode";
-import { resolveBarcodeFormat } from "../../lib/barcode";
+import { resolveBarcodeFormat, type BarcodeInputResolution } from "@workspace/core";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 
 type ProductBasicInfoProps = {
   editor: ReturnType<typeof useProductEditor>;
   validationErrors: Record<string, boolean>;
   setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  displayBarcode: string;
+  /** O que a API vai gravar a partir do campo — ou a razão da recusa. */
+  barcodeInput: BarcodeInputResolution;
   currentBarcode: string;
   flashSuccess: boolean;
   onPrintBarcode: () => void;
@@ -30,7 +31,7 @@ export function ProductBasicInfo({
   editor,
   validationErrors,
   setValidationErrors,
-  displayBarcode,
+  barcodeInput,
   currentBarcode,
   flashSuccess,
   onPrintBarcode,
@@ -48,8 +49,11 @@ export function ProductBasicInfo({
               <TooltipTrigger type="button" tabIndex={-1}>
                 <HelpCircle className="h-4 w-4 text-muted-foreground" />
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Deixe vazio para geração automática do código de barras caso deseje.</p>
+              <TooltipContent className="max-w-xs">
+                <p>
+                  Informe os 13 dígitos impressos na embalagem, até 11 dígitos para gerar um código interno
+                  com esse número dentro, ou deixe vazio para a loja gerar um código.
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -65,25 +69,37 @@ export function ProductBasicInfo({
               // o produto que já existe. Só vale para cadastro novo.
               lookupBarcode(value);
             }}
-            className={`bg-background flex-1 font-mono transition-all duration-300 ${flashSuccess ? "animate-border-flash" : ""}`}
+            inputMode="numeric"
+            aria-invalid={barcodeInput.kind === "invalid"}
+            className={`bg-background flex-1 font-mono transition-all duration-300 ${flashSuccess ? "animate-border-flash" : ""} ${
+              barcodeInput.kind === "invalid"
+                ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500"
+                : ""
+            }`}
             placeholder="Ex: 7891234567890"
           />
           <div
             data-testid="barcode-preview"
-            className={`flex items-center bg-white px-2 py-1 rounded border transition-all duration-300 ${currentBarcode.length === 0 ? "opacity-40 grayscale" : "opacity-100"}`}
+            className={`flex min-h-[46px] min-w-[120px] items-center justify-center rounded border bg-white px-2 py-1 text-center transition-all duration-300 ${barcodeInput.code ? "opacity-100" : "opacity-40 grayscale"}`}
           >
-            <Barcode
-              value={displayBarcode}
-              // O formato sai do dígito verificador, não do comprimento: com
-              // EAN13 fixo, um código de 13 dígitos com verificador errado faz
-              // a jsbarcode lançar, e a prévia vira um retângulo branco vazio.
-              format={resolveBarcodeFormat(displayBarcode)}
-              height={30}
-              width={1.5}
-              fontSize={12}
-              margin={0}
-              background="transparent"
-            />
+            {barcodeInput.code ? (
+              <Barcode
+                value={barcodeInput.code}
+                // Sempre EAN-13 desde a padronização de 21/09/2026; a chamada
+                // continua derivando o formato para a prévia nunca depender de
+                // uma premissa que o `core` possa mudar sem avisar aqui.
+                format={resolveBarcodeFormat(barcodeInput.code)}
+                height={30}
+                width={1.5}
+                fontSize={12}
+                margin={0}
+                background="transparent"
+              />
+            ) : (
+              <span className="text-muted-foreground text-xs">
+                {barcodeInput.kind === "generated" ? "Gerado ao salvar" : "Sem prévia"}
+              </span>
+            )}
           </div>
           <Button
             type="button"
@@ -92,11 +108,35 @@ export function ProductBasicInfo({
             className="shrink-0"
             onClick={onPrintBarcode}
             title="Imprimir etiqueta (80mm)"
-            disabled={currentBarcode.length === 0}
+            disabled={!barcodeInput.code}
           >
             <Printer className="h-4 w-4" />
           </Button>
         </div>
+        {barcodeInput.error && <p className="text-xs font-medium text-red-500">{barcodeInput.error}</p>}
+        {barcodeInput.kind === "internal" && (
+          // Dizer o número que será gravado evita a surpresa de salvar "20" e
+          // encontrar "2000000000206" no cadastro depois.
+          <p className="text-muted-foreground text-xs">
+            Será gravado como <span className="font-mono">{barcodeInput.code}</span>, da faixa interna da
+            loja.
+          </p>
+        )}
+        {barcodeInput.kind === "generated" &&
+          currentBarcode.length === 0 &&
+          (productEditor.id ? (
+            // Produto JÁ GRAVADO com o campo apagado: salvar assim descarta o
+            // código atual e emite outro da sequence, e toda etiqueta colada
+            // naquela mercadoria para de achar o produto. O aviso existe porque
+            // o texto de cadastro novo, logo abaixo, convidava a isso sem dizer
+            // que havia um código para perder.
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+              Atenção: este produto já tem código. Salvando com o campo vazio, a loja gera um código NOVO e as
+              etiquetas já impressas deixam de encontrá-lo.
+            </p>
+          ) : (
+            <p className="text-muted-foreground text-xs">Sem código informado, a loja gera um ao salvar.</p>
+          ))}
       </div>
 
       <div className="space-y-2 sm:col-span-2">

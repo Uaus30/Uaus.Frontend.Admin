@@ -13,6 +13,7 @@
  */
 
 export * from "./api-error";
+export * from "./barcode";
 export * from "./discount";
 export * from "./format";
 export * from "./formula";

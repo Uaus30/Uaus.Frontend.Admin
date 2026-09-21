@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 import type { ProductGrade, VariationDraft } from "../../types";
-import { buildDisplayBarcode, isFactoryEan } from "../../lib/barcode";
+import { resolveBarcodeInput } from "@workspace/core";
 import { printBarcodeLabel } from "../../lib/barcodeLabel";
 import { nomeExibidoDaVariacao, opcoesDeVariacao } from "../../lib/variationNames";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
@@ -140,7 +140,11 @@ export function ProductDetailScreen({
   );
 
   const currentBarcode = productEditor.barcode || "";
-  const displayBarcode = buildDisplayBarcode(currentBarcode, productEditor.id);
+  // O que a API vai GRAVAR a partir do que está no campo — é isso que a prévia
+  // desenha e a etiqueta imprime. Até 21/09/2026 a tela sintetizava um código só
+  // para exibir, e o cadastro guardava outro: a etiqueta de 80mm saía com
+  // `2000000000206` enquanto o banco tinha `0020`, e o PDV não achava o produto.
+  const barcodeInput = useMemo(() => resolveBarcodeInput(currentBarcode), [currentBarcode]);
 
   /** Variações JÁ GRAVADAS: só elas têm id, e só id tem entrada de estoque. */
   const variationOptions = useMemo(
@@ -170,8 +174,16 @@ export function ProductDetailScreen({
     : productEditor.name || form.productGroupName;
   const stockProductBarcode = (stockVariation?.barcode ?? productEditor.barcode) || null;
 
-  /** Pisca a borda do campo enquanto o código bipado for EAN de fábrica. */
-  const flashSuccess = isFactoryEan(currentBarcode) && flashedBarcode !== currentBarcode;
+  // Pisca a borda do campo enquanto o código bipado for EAN-13 de FÁBRICA. A
+  // faixa que começa em 2 é a interna da loja: piscar "achou o código da
+  // embalagem" nela seria mentira.
+  //
+  // O teste é no código RESOLVIDO, não no texto cru: com espaço à esquerda, o
+  // `startsWith` do cru não reconhecia a faixa interna e piscava à toa.
+  const flashSuccess =
+    barcodeInput.kind === "factory" &&
+    !barcodeInput.code.startsWith("2") &&
+    flashedBarcode !== currentBarcode;
 
   useEffect(() => {
     if (!flashSuccess) return;
@@ -345,12 +357,13 @@ export function ProductDetailScreen({
               editor={editor}
               validationErrors={validationErrors}
               setValidationErrors={setValidationErrors}
-              displayBarcode={displayBarcode}
+              barcodeInput={barcodeInput}
               currentBarcode={currentBarcode}
               flashSuccess={flashSuccess}
               onPrintBarcode={() =>
+                barcodeInput.code &&
                 printBarcodeLabel({
-                  barcode: displayBarcode,
+                  barcode: barcodeInput.code,
                   name: form.productGroupName,
                   price: productEditor.price,
                 })

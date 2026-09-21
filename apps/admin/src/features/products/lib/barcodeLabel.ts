@@ -1,5 +1,5 @@
 import { escapeHtml, formatCurrency } from "@workspace/core";
-import { buildBarcodeSvg } from "./barcode";
+import { buildBarcodeSvg } from "@/lib/barcode-svg";
 
 /**
  * Etiqueta de 80mm x 40mm do cadastro do produto: nome, barras e preço.
@@ -10,7 +10,7 @@ import { buildBarcodeSvg } from "./barcode";
  */
 
 type BarcodeLabelParams = {
-  /** Código já resolvido — use `buildDisplayBarcode` antes de chamar. */
+  /** Código JÁ GRAVADO do produto: desde 21/09/2026 ele é sempre um EAN-13 válido. */
   barcode: string;
   /** Nome impresso acima do código. */
   name: string;

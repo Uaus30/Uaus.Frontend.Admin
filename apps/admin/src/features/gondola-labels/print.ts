@@ -1,6 +1,6 @@
 import { escapeHtml } from "@workspace/core";
 import { printReceiptHtml } from "@workspace/receipt";
-import { buildBarcodeSvg } from "@/features/products/lib/barcode";
+import { buildBarcodeSvg } from "@/lib/barcode-svg";
 import { getLabelTypeInfo, type PrintableLabel } from "./types";
 
 /**

@@ -1,6 +1,6 @@
 import { render, cleanup, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildDisplayBarcode } from "../../../lib/barcode";
+import { resolveBarcodeInput } from "@workspace/core";
 
 /**
  * A `react-barcode` desenha via jsbarcode, que mede o texto num canvas — e o
@@ -35,7 +35,7 @@ function renderBasicInfo(barcode: string) {
       editor={fakeEditor(barcode)}
       validationErrors={{}}
       setValidationErrors={vi.fn()}
-      displayBarcode={buildDisplayBarcode(barcode, 883)}
+      barcodeInput={resolveBarcodeInput(barcode)}
       currentBarcode={barcode}
       flashSuccess={false}
       onPrintBarcode={vi.fn()}
@@ -56,18 +56,48 @@ describe("ProductBasicInfo — prévia do código de barras", () => {
     });
   });
 
-  it("cai no CODE128 quando o verificador do código não fecha", () => {
-    // Regressão: o produto #883 tem `7896665551252`, cujo verificador deveria
-    // ser 3. Com `format="EAN13"` fixo a jsbarcode lançava, o SVG ficava vazio
-    // e a tela mostrava um retângulo branco de 300x150 no lugar da prévia.
-    // O NÚMERO tem que continuar o mesmo: é ele que o PDV procura ao bipar.
-    expect(renderBasicInfo("7896665551252")).toEqual({
-      format: "CODE128",
-      value: "7896665551252",
-    });
+  it("desenha o código INTERNO que será gravado, não o que foi digitado", () => {
+    // Quem digita 0020 salva 2000000000206; mostrar 0020 na prévia prometeria
+    // uma etiqueta que o cadastro não vai guardar.
+    expect(renderBasicInfo("0020")).toEqual({ format: "EAN13", value: "2000000000206" });
+    expect(screen.getByText(/Será gravado como/)).toBeTruthy();
+    expect(screen.getByText("2000000000206")).toBeTruthy();
   });
 
-  it("desenha o código interno gerado para produto sem EAN", () => {
-    expect(renderBasicInfo("")).toEqual({ format: "EAN13", value: "2000000008837" });
+  it("não desenha nada e explica quando o verificador não fecha", () => {
+    // Regressão de 07/09/2026: com `format="EAN13"` fixo a jsbarcode lançava, o
+    // SVG ficava vazio e a tela mostrava um retângulo branco de 300x150. Desde
+    // 21/09/2026 o código nem chega a ser desenhado — ele é RECUSADO, porque
+    // gravá-lo produziria etiqueta que nenhum leitor lê.
+    expect(renderBasicInfo("7896665551252")).toEqual({ format: undefined, value: undefined });
+    expect(screen.getByText(/o último dígito deveria ser 3/)).toBeTruthy();
+  });
+
+  it("recusa código com letra dizendo o motivo", () => {
+    expect(renderBasicInfo("13-00001-01-WD")).toEqual({ format: undefined, value: undefined });
+    expect(screen.getByText(/apenas números/)).toBeTruthy();
+  });
+
+  it("campo vazio não inventa código: quem gera é a API, ao salvar", () => {
+    // A sequence vive no banco. Desenhar aqui um código derivado do id, como a
+    // tela fazia até 21/09/2026, mostrava um número que o cadastro não guardava.
+    expect(renderBasicInfo("")).toEqual({ format: undefined, value: undefined });
+    expect(screen.getByText("Gerado ao salvar")).toBeTruthy();
+  });
+
+  it("desabilita a impressão da etiqueta quando não há código para imprimir", () => {
+    render(
+      <ProductBasicInfo
+        editor={fakeEditor("")}
+        validationErrors={{}}
+        setValidationErrors={vi.fn()}
+        barcodeInput={resolveBarcodeInput("")}
+        currentBarcode=""
+        flashSuccess={false}
+        onPrintBarcode={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTitle("Imprimir etiqueta (80mm)").hasAttribute("disabled")).toBe(true);
   });
 });

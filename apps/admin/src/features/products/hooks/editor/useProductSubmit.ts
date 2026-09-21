@@ -208,11 +208,17 @@ export function useProductSubmit({
       const normalizedImages = await persistGroupImages(saved.group.id, images);
       setImages(normalizedImages);
 
+      // O CÓDIGO DE BARRAS volta da resposta, e não do rascunho: quem deixou o
+      // campo vazio recebe o código que a sequence do banco emitiu, e quem
+      // digitou um número curto recebe o EAN-13 montado em cima dele. Sem
+      // copiar de volta, a tela seguia com o rascunho — o botão de imprimir
+      // ficava desabilitado no produto recém-criado, e a etiqueta da variação
+      // saía com o número digitado em vez do gravado.
       if (!form.hasVariations) {
         const product = saved.products[0];
         await persistProductTags(product.id, productEditor.tagIds);
 
-        setProductEditor((current) => ({ ...current, id: product.id }));
+        setProductEditor((current) => ({ ...current, id: product.id, barcode: product.barcode }));
       } else {
         const nextDrafts: VariationDraft[] = [];
         for (let index = 0; index < variationDrafts.length; index++) {
@@ -224,6 +230,7 @@ export function useProductSubmit({
           nextDrafts.push({
             ...draft,
             id: product.id,
+            barcode: product.barcode,
             canDelete: product.canDelete,
             key: draft.id ? draft.key : `product-${product.id}`,
           });

@@ -2,7 +2,7 @@ import React from "react";
 import { Loader2, Printer, Trash2 } from "lucide-react";
 import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
-import { formatQuantity } from "@workspace/core";
+import { formatQuantity, resolveBarcodeInput } from "@workspace/core";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { CurrencyInput } from "./CurrencyInput";
 import { VariationGradeHeader } from "./VariationGradeHeader";
@@ -142,155 +142,175 @@ export function ProductVariationsSection({
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {variationDrafts.map((variation) => (
-              <tr key={variation.key} className="hover:bg-muted/10 transition-colors">
-                <td className="px-4 py-2 text-center">
-                  <div className="flex items-center gap-1 justify-center">
-                    <Input
-                      value={variation.barcode || ""}
-                      onChange={(e) =>
-                        updateVariationDraft(variation.key, (draft) => ({
-                          ...draft,
-                          barcode: e.target.value,
-                        }))
-                      }
-                      placeholder="Auto"
-                      className="h-8 bg-transparent border-transparent hover:border-border focus:bg-background font-mono text-xs text-center"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary"
-                      onClick={() =>
-                        handlePrintBarcode(
-                          variation.barcode || "",
-                          nomeExibidoDaVariacao(productGroupName, variation.values),
-                          variation.price,
-                        )
-                      }
-                      disabled={!(variation.barcode && variation.barcode.trim().length > 0)}
-                      title="Imprimir etiqueta"
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </td>
+            {variationDrafts.map((variation) => {
+              // A MESMA regra do campo do produto simples. Sem ela, a linha da
+              // grade imprimia o rascunho digitado (`0020`) enquanto a API
+              // gravava `2000000000206` — etiqueta colada na mercadoria que o
+              // PDV não acha ao bipar, que é justamente o defeito que a
+              // padronização de 21/09/2026 veio fechar.
+              const barcodeInput = resolveBarcodeInput(variation.barcode || "");
 
-                {selectedGrades.map((grade) => (
-                  <td key={grade.type} className="px-2 py-2 border-l border-border/30 bg-muted/5">
-                    <Input
-                      id={`input-grade-${grade.type}-${variation.key}`}
-                      value={valorDaGrade(variation, grade.type)}
-                      onChange={(e) => definirValor(variation, grade.type, e.target.value)}
-                      placeholder="-"
-                      className={`h-8 text-xs bg-transparent border-transparent hover:border-border focus:bg-background uppercase ${
-                        validationErrors[`grade-${grade.type}-${variation.key}`]
-                          ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
-                          : ""
-                      }`}
-                    />
+              return (
+                <tr key={variation.key} className="hover:bg-muted/10 transition-colors">
+                  <td className="px-4 py-2 text-center">
+                    <div className="flex items-center gap-1 justify-center">
+                      <Input
+                        value={variation.barcode || ""}
+                        onChange={(e) =>
+                          updateVariationDraft(variation.key, (draft) => ({
+                            ...draft,
+                            barcode: e.target.value,
+                          }))
+                        }
+                        placeholder="Auto"
+                        inputMode="numeric"
+                        aria-invalid={barcodeInput.kind === "invalid"}
+                        title={barcodeInput.error ?? undefined}
+                        className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background font-mono text-xs text-center ${
+                          barcodeInput.kind === "invalid" ? "border-red-500 text-red-600" : ""
+                        }`}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary"
+                        onClick={() =>
+                          barcodeInput.code &&
+                          handlePrintBarcode(
+                            barcodeInput.code,
+                            nomeExibidoDaVariacao(productGroupName, variation.values),
+                            variation.price,
+                          )
+                        }
+                        disabled={!barcodeInput.code}
+                        title="Imprimir etiqueta"
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {barcodeInput.kind === "invalid" && (
+                      <p className="mt-1 text-[10px] font-medium text-red-500">
+                        Código inválido — passe o mouse para ver o motivo.
+                      </p>
+                    )}
                   </td>
-                ))}
 
-                {/*
+                  {selectedGrades.map((grade) => (
+                    <td key={grade.type} className="px-2 py-2 border-l border-border/30 bg-muted/5">
+                      <Input
+                        id={`input-grade-${grade.type}-${variation.key}`}
+                        value={valorDaGrade(variation, grade.type)}
+                        onChange={(e) => definirValor(variation, grade.type, e.target.value)}
+                        placeholder="-"
+                        className={`h-8 text-xs bg-transparent border-transparent hover:border-border focus:bg-background uppercase ${
+                          validationErrors[`grade-${grade.type}-${variation.key}`]
+                            ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                            : ""
+                        }`}
+                      />
+                    </td>
+                  ))}
+
+                  {/*
                   Somente leitura de propósito: o nome é derivado do grupo mais os
                   valores de grade. Editável, ele voltaria a divergir da estrutura
                   — que é exatamente o problema que esta tela veio resolver.
                 */}
-                <td className="px-4 py-2">
-                  <span className="block truncate text-xs font-medium text-foreground">
-                    {nomeExibidoDaVariacao(productGroupName, variation.values)}
-                  </span>
-                </td>
+                  <td className="px-4 py-2">
+                    <span className="block truncate text-xs font-medium text-foreground">
+                      {nomeExibidoDaVariacao(productGroupName, variation.values)}
+                    </span>
+                  </td>
 
-                <td className="px-4 py-2 text-center">
-                  <CurrencyInput
-                    id={`input-price-${variation.key}`}
-                    value={variation.price}
-                    onChange={(val) =>
-                      updateVariationDraft(variation.key, (draft) => ({ ...draft, price: val }))
-                    }
-                    className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background cursor-pointer focus:cursor-text text-center ${
-                      validationErrors[`price-${variation.key}`]
-                        ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
-                        : ""
-                    }`}
-                  />
-                  {validationErrors[`price-${variation.key}`] && (
-                    <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
-                      Preenchimento obrigatório
-                    </p>
-                  )}
-                </td>
+                  <td className="px-4 py-2 text-center">
+                    <CurrencyInput
+                      id={`input-price-${variation.key}`}
+                      value={variation.price}
+                      onChange={(val) =>
+                        updateVariationDraft(variation.key, (draft) => ({ ...draft, price: val }))
+                      }
+                      className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background cursor-pointer focus:cursor-text text-center ${
+                        validationErrors[`price-${variation.key}`]
+                          ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                          : ""
+                      }`}
+                    />
+                    {validationErrors[`price-${variation.key}`] && (
+                      <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
+                        Preenchimento obrigatório
+                      </p>
+                    )}
+                  </td>
 
-                {/*
+                  {/*
                   Linha ainda não salva mostra travessão, não "0 un": ela não
                   existe no banco, então não tem saldo — zero ali seria um dado
                   inventado. O estoque entra pela aba Estoque, depois de salvar.
                 */}
-                <td className="px-4 py-2 text-center text-xs">
-                  {variation.id ? (
-                    <span className="font-medium text-foreground">
-                      {formatQuantity(variation.stock ?? 0)} un
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </td>
+                  <td className="px-4 py-2 text-center text-xs">
+                    {variation.id ? (
+                      <span className="font-medium text-foreground">
+                        {formatQuantity(variation.stock ?? 0)} un
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
 
-                <td className="px-4 py-2 text-center">
-                  <Select
-                    value={variation.status}
-                    onValueChange={(value) =>
-                      updateVariationDraft(variation.key, (draft) => ({ ...draft, status: value }))
-                    }
-                  >
-                    <SelectTrigger
-                      id={`select-status-${variation.key}`}
-                      className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background justify-center text-center ${
-                        validationErrors[`status-${variation.key}`]
-                          ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
-                          : ""
-                      }`}
-                    >
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectableStatusOptions.map((status) => (
-                        <SelectItem key={status.id} value={status.id.toString()}>
-                          {status.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {validationErrors[`status-${variation.key}`] && (
-                    <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
-                      Preenchimento obrigatório
-                    </p>
-                  )}
-                </td>
-
-                <td className="px-4 py-2 text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={variation.id != null && variation.canDelete === false}
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      if (variation.id != null) {
-                        setVariationToDelete(variation);
-                      } else {
-                        handleDeleteVariation(variation);
+                  <td className="px-4 py-2 text-center">
+                    <Select
+                      value={variation.status}
+                      onValueChange={(value) =>
+                        updateVariationDraft(variation.key, (draft) => ({ ...draft, status: value }))
                       }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
+                    >
+                      <SelectTrigger
+                        id={`select-status-${variation.key}`}
+                        className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background justify-center text-center ${
+                          validationErrors[`status-${variation.key}`]
+                            ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                            : ""
+                        }`}
+                      >
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectableStatusOptions.map((status) => (
+                          <SelectItem key={status.id} value={status.id.toString()}>
+                            {status.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {validationErrors[`status-${variation.key}`] && (
+                      <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
+                        Preenchimento obrigatório
+                      </p>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-2 text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={variation.id != null && variation.canDelete === false}
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        if (variation.id != null) {
+                          setVariationToDelete(variation);
+                        } else {
+                          handleDeleteVariation(variation);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

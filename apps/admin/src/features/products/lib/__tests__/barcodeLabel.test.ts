@@ -4,8 +4,8 @@ const mocks = vi.hoisted(() => ({ buildBarcodeSvg: vi.fn(() => `<svg data-local=
 
 // Só o desenho é dublado: a jsbarcode mede texto num canvas, que o jsdom não
 // tem, e sem o dublê ela devolveria null para qualquer código.
-vi.mock("../barcode", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../barcode")>()),
+vi.mock("@/lib/barcode-svg", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/barcode-svg")>()),
   buildBarcodeSvg: mocks.buildBarcodeSvg,
 }));
 

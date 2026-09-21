@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { buildBarcodeSvg } from "@/features/products/lib/barcode";
+import { buildBarcodeSvg } from "@/lib/barcode-svg";
 import { formatLabelPrice, getProductNameFontSizePt } from "../print";
 import { getLabelTypeInfo, type PrintableLabel } from "../types";
 

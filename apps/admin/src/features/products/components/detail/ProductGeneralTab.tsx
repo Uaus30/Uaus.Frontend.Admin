@@ -5,13 +5,14 @@ import { ProductPricing } from "../editor/ProductPricing";
 import { ProductImageGallery } from "../editor/ProductImageGallery";
 import { ProductVariationsManager } from "../editor/ProductVariationsManager";
 import type { useProductEditor } from "../../hooks/useProductEditor";
+import type { BarcodeInputResolution } from "@workspace/core";
 import type { VariationDraft } from "../../types";
 
 type ProductGeneralTabProps = {
   editor: ReturnType<typeof useProductEditor>;
   validationErrors: Record<string, boolean>;
   setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  displayBarcode: string;
+  barcodeInput: BarcodeInputResolution;
   currentBarcode: string;
   flashSuccess: boolean;
   onPrintBarcode: () => void;
@@ -33,7 +34,7 @@ export function ProductGeneralTab({
   editor,
   validationErrors,
   setValidationErrors,
-  displayBarcode,
+  barcodeInput,
   currentBarcode,
   flashSuccess,
   onPrintBarcode,
@@ -52,7 +53,7 @@ export function ProductGeneralTab({
             editor={editor}
             validationErrors={validationErrors}
             setValidationErrors={setValidationErrors}
-            displayBarcode={displayBarcode}
+            barcodeInput={barcodeInput}
             currentBarcode={currentBarcode}
             flashSuccess={flashSuccess}
             onPrintBarcode={onPrintBarcode}

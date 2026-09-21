@@ -15,7 +15,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
 - `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
-- `lib/barcode.ts`: Validação de EAN, dígito verificador, simbologia (item 4.4), código de prévia e desenho das barras (SVG).
+- A regra do código de barras mora em `@workspace/core` (`packages/core/src/barcode.ts`) e o desenho das barras em `@/lib/barcode-svg` — ver itens 4.4 e 4.5.
 - `lib/barcodeLabel.ts`: Documento e impressão da etiqueta de 80mm × 40mm.
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `hooks/editor/usePurchaseProductConflict.ts` e `components/detail/PurchaseProductConflictDialog.tsx`: o mesmo achado num cadastro vindo de compra, onde ele PARA o cadastro e leva de volta à tela de Compras. Ver seção 4.2.
@@ -526,7 +526,7 @@ variações, a entrada vai para a variação escolhida na aba Estoque.
 
 ### 4.4. A prévia e a etiqueta escolhem o formato pelo dígito verificador (07/09/2026)
 
-A simbologia sai de `resolveBarcodeFormat` (`lib/barcode.ts`): **EAN-13 ou
+A simbologia sai de `resolveBarcodeFormat` (hoje em `@workspace/core`): **EAN-13 ou
 EAN-8 quando o dígito verificador fecha, CODE128 em todo o resto** — inclusive
 para código de 13 dígitos com verificador errado.
 
@@ -542,19 +542,49 @@ Não é caso de laboratório: a importação do sistema antigo trouxe 28 código
 assim só no banco de dev, quase todos da faixa interna `2…`, e o operador
 sempre pode digitar um dígito errado.
 
-Duas decisões que andam juntas:
+Duas decisões que andavam juntas, e que **foram invertidas em 21/09/2026**
+(ver 4.5): naquela época a tela só mudava a EXIBIÇÃO, então sintetizar um código
+interno imprimiria uma etiqueta com um número que o PDV não encontraria ao bipar.
+Hoje o código é **gravado**, e por isso o cadastro pode — e deve — recusar o que
+não é EAN-13.
 
-- **A simbologia se adapta ao código; o código NÃO se adapta à simbologia.**
-  `buildDisplayBarcode` continua devolvendo os 13 dígitos cadastrados. Gerar um
-  código interno no lugar imprimiria uma etiqueta com um número que o PDV não
-  encontra ao bipar.
-- **`isEanValid` confere só o FORMATO** (8 ou 13 dígitos); quem confere o
-  verificador é `hasValidEanCheckDigit`. Endurecer o `isEanValid` faria o
-  cadastro reescrever silenciosamente o código de fábrica de quem digitou
-  errado — que é exatamente o efeito do item acima.
+O `resolveBarcodeFormat` sobreviveu à inversão porque
+`product_label_batch_items` **congela** o código impresso: reimprimir um lote de
+antes da padronização ainda desenha códigos com verificador torto, e sem o
+CODE128 a folha inteira sairia sem barras.
 
-As etiquetas de gôndola já faziam isso — eram a única tela do admin que imprimia
-esses produtos com barras — e hoje consomem o mesmo `lib/barcode.ts`.
+### 4.5. O catálogo inteiro é EAN-13 — e o cadastro recusa o que não for (21/09/2026)
+
+Todo produto é gravado com 13 dígitos cujo verificador fecha. A regra mora em
+`@workspace/core` (`packages/core/src/barcode.ts`), espelhada no backend por
+`Uaus.Domain/Common/Helpers/Ean13.cs`; as duas precisam concordar dígito a
+dígito, senão a prévia promete um código que a API não grava.
+
+| Digitado                         | Resultado                                                 |
+| -------------------------------- | --------------------------------------------------------- |
+| vazio                            | `22` + sequence do banco + verificador                    |
+| 13 dígitos, verificador fecha    | gravado como veio (código da embalagem)                   |
+| 1 a 11 dígitos                   | `2` + zeros + número + verificador                        |
+| 13 dígitos com verificador torto | **recusado**, dizendo qual seria o dígito certo           |
+| 12 dígitos                       | **recusado** — quase sempre é EAN-13 que perdeu um dígito |
+| 14+ dígitos, ou qualquer letra   | **recusado**                                              |
+
+**O que mudou na tela:** a prévia desenha o código que **vai ser gravado**, não
+o rascunho digitado. Campo vazio não desenha nada — a sequence vive no banco, e
+inventar um número aqui mostraria um código diferente do que a API guardaria,
+que era o defeito do `buildDisplayBarcode`: a etiqueta de 80mm saía com
+`2000000000206` enquanto o banco tinha `0020`, e **o PDV não achava o produto**
+(a busca é `Barcode.Contains(termo)` contra o valor gravado). Eram 71 produtos
+nessa situação.
+
+**Por que 12 dígitos é recusado em vez de virar código interno:** o miolo tem 11
+posições, então 12 dígitos não cabem. A versão anterior truncava em silêncio e
+gerava um código sem relação com o que a pessoa digitou.
+
+**Onde cada coisa mora agora:** a regra é de domínio e foi para `packages/core`;
+o desenho do SVG toca o DOM e foi para `@/lib/barcode-svg`, que `products` e
+`gondola-labels` consomem sem uma feature importar da outra. O
+`lib/barcode.ts` desta feature deixou de existir.
 
 #### A etiqueta de 80mm desenha as barras aqui, não no documento de impressão (07/09/2026)
 
