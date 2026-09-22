@@ -99,6 +99,20 @@ describe("resolveBarcodeInput", () => {
     });
   });
 
+  it.each(["0101", "14090", "0020", "077", "1", "12345678901"])(
+    "o número %s continua legível DENTRO do código gerado",
+    (typed) => {
+      // Requisito de operação, não estética: o caixa digita o código curto para
+      // achar o produto, e a busca do PDV é `contains`. Quebrar esta propriedade
+      // faz o operador deixar de encontrar produtos que ele acha hoje —
+      // 0101 é o VAZINHO SUCULENTAS, 14090 é o VASO CUIA.
+      const code = resolveBarcodeInput(typed).code as string;
+
+      expect(code).toContain(typed);
+      expect(hasValidEan13CheckDigit(code)).toBe(true);
+    },
+  );
+
   it.each(["1", "77", "0019", "12345678901"])("o código interno de %s é legível por leitor", (typed) => {
     const resolution = resolveBarcodeInput(typed);
 

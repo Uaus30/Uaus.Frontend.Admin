@@ -287,4 +287,64 @@ describe("useProductSearch", () => {
 
     expect(result.current.results).toEqual([]);
   });
+
+  describe("codigo curto digitado", () => {
+    // A loja procura o produto pelo numero antigo (0101, 14090). A padronizacao
+    // de 21/09/2026 preservou esse numero DENTRO do EAN-13, entao o termo casa
+    // por `contains` mas nunca por igualdade.
+    const VASINHO = {
+      id: 3,
+      name: "VAZINHO SUCULENTAS 6CM",
+      barcode: "2000000001012",
+      price: 9,
+      stock: 4,
+    };
+    /** Nome com numero, codigo que NAO contem o termo: o caminho perigoso. */
+    const VASO_210 = { id: 4, name: "VASO PRETO 210MM", barcode: "7891000100127", price: 12, stock: 2 };
+
+    it("adiciona sozinho quando o unico resultado casou pelo codigo", async () => {
+      searchProducts.mockResolvedValue([VASINHO]);
+      const onExactBarcodeMatch = vi.fn();
+
+      const { result } = renderHook(() => useProductSearch({ online: true, onExactBarcodeMatch }));
+      await type(result.current.setQuery, "0101");
+
+      expect(onExactBarcodeMatch).toHaveBeenCalledWith(VASINHO);
+      expect(result.current.query).toBe("");
+    });
+
+    it("NAO adiciona quando o unico resultado casou pelo nome", async () => {
+      // "210" aparece em "VASO PRETO 210MM" e nao no codigo. Adicionar aqui
+      // poria no carrinho um produto que o operador nao procurou por codigo.
+      searchProducts.mockResolvedValue([VASO_210]);
+      const onExactBarcodeMatch = vi.fn();
+
+      const { result } = renderHook(() => useProductSearch({ online: true, onExactBarcodeMatch }));
+      await type(result.current.setQuery, "210");
+
+      expect(onExactBarcodeMatch).not.toHaveBeenCalled();
+      expect(result.current.results).toEqual([VASO_210]);
+    });
+
+    it("NAO adiciona quando o termo tem letra", async () => {
+      searchProducts.mockResolvedValue([VASINHO]);
+      const onExactBarcodeMatch = vi.fn();
+
+      const { result } = renderHook(() => useProductSearch({ online: true, onExactBarcodeMatch }));
+      await type(result.current.setQuery, "vaz");
+
+      expect(onExactBarcodeMatch).not.toHaveBeenCalled();
+    });
+
+    it("NAO adiciona com mais de um resultado — a escolha e do operador", async () => {
+      searchProducts.mockResolvedValue([VASINHO, COCA]);
+      const onExactBarcodeMatch = vi.fn();
+
+      const { result } = renderHook(() => useProductSearch({ online: true, onExactBarcodeMatch }));
+      await type(result.current.setQuery, "0101");
+
+      expect(onExactBarcodeMatch).not.toHaveBeenCalled();
+      expect(result.current.results).toHaveLength(2);
+    });
+  });
 });

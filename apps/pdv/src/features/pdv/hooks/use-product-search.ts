@@ -161,6 +161,25 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
         if (exact.length === 1) {
           optionsRef.current.onExactBarcodeMatch?.(exact[0]);
           clear();
+          return;
+        }
+
+        // Código CURTO digitado: a loja procura o produto pelo número antigo
+        // (0101, 14090), que a padronização de 21/09/2026 preservou dentro do
+        // EAN-13 — 0101 virou 2000000001012. O termo não é o código inteiro,
+        // então o match exato acima não pega, e obrigar um clique a mais no
+        // balcão era o que o operador reclamava.
+        //
+        // Duas travas, e as duas importam: só termo de dígitos, e o resultado
+        // único precisa ter casado PELO CÓDIGO. Sem a segunda, um produto com
+        // número no nome ("VASO 21CM" achado por "21") entraria sozinho no
+        // carrinho por um caminho que não é o de código.
+        if (/^\d+$/.test(trimmed) && found.length === 1) {
+          const digitosDoCodigo = (found[0].barcode ?? "").replace(/\D/g, "");
+          if (digitosDoCodigo.includes(trimmed)) {
+            optionsRef.current.onExactBarcodeMatch?.(found[0]);
+            clear();
+          }
         }
       } catch (error) {
         if (busca !== buscaAtualRef.current) return;
