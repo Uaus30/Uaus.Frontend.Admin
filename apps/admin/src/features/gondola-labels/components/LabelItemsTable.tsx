@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@work
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { LABEL_TYPE_INFOS, type LabelDraftItem, type LabelTypeCode } from "../types";
+import { LABEL_NAME_MAX_LENGTH, LABEL_TYPE_INFOS, type LabelDraftItem, type LabelTypeCode } from "../types";
 
 interface LabelItemsTableProps {
   items: LabelDraftItem[];
@@ -30,7 +30,7 @@ function TypeDot({ background }: { background: string }) {
   );
 }
 
-/** Lista editável das etiquetas do lote: tipo, preço e cópias por produto. */
+/** Lista editável das etiquetas do lote: nome impresso, tipo, preço e cópias por produto. */
 export function LabelItemsTable({
   items,
   description,
@@ -48,7 +48,9 @@ export function LabelItemsTable({
     <Card className="border-border/50 shadow-lg shadow-black/5">
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Etiquetas do Lote</CardTitle>
-        <CardDescription>Defina o tipo, o preço impresso e as cópias de cada etiqueta.</CardDescription>
+        <CardDescription>
+          Defina o nome, o tipo, o preço impresso e as cópias de cada etiqueta.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Input
@@ -68,7 +70,7 @@ export function LabelItemsTable({
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium">Produto</th>
+                  <th className="px-3 py-2 text-left font-medium">Nome impresso</th>
                   <th className="px-3 py-2 text-left font-medium">Tipo</th>
                   <th className="px-3 py-2 text-right font-medium">Preço (R$)</th>
                   <th className="px-3 py-2 text-center font-medium">Cópias</th>
@@ -78,9 +80,19 @@ export function LabelItemsTable({
               <tbody className="divide-y divide-border/50">
                 {items.map((item, index) => (
                   <tr key={`${item.productId}-${item.labelType}`}>
-                    <td className="max-w-56 px-3 py-2">
-                      <p className="truncate font-medium text-foreground">{item.productName}</p>
-                      <p className="truncate text-xs text-muted-foreground">
+                    <td className="w-72 px-3 py-2">
+                      {/* Editável: o nome do cadastro nem sempre cabe na gôndola —
+                          "COPO AMERICANO [ORIGINAL]" vira "COPO AMERICANO". Vazio
+                          volta para o nome do cadastro, que é o placeholder. */}
+                      <Input
+                        value={item.productName}
+                        maxLength={LABEL_NAME_MAX_LENGTH}
+                        placeholder={item.catalogName}
+                        title="Nome que sai impresso na etiqueta"
+                        onChange={(event) => onUpdate(index, { productName: event.target.value })}
+                        className="h-8 w-full bg-background font-medium"
+                      />
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
                         {item.barcode ?? "Sem código de barras"}
                       </p>
                     </td>
@@ -146,10 +158,12 @@ export function LabelItemsTable({
             {totalProducts} produto(s) · {totalLabels} etiqueta(s)
           </p>
           <div className="flex gap-2">
+            {/* Limpar zera lote e identificação: depois de imprimir, é o único
+                caminho para recomeçar — a tela não se esvazia sozinha. */}
             <Button
               type="button"
               variant="outline"
-              disabled={items.length === 0 || printing}
+              disabled={(items.length === 0 && !description.trim()) || printing}
               onClick={onClear}
             >
               <Eraser className="mr-2 h-4 w-4" /> Limpar

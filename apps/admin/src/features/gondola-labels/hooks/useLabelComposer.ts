@@ -11,21 +11,28 @@ import { useLabelProductSearch } from "./useLabelProductSearch";
 import { describeApiError } from "@workspace/core";
 import { printLabelSheet } from "../print";
 import {
+  customNameForPayload,
   draftToPrintable,
   formatPriceInput,
   labelTypeFromEnum,
   parsePriceInput,
   parseQuantityInput,
+  printedNameOf,
   type LabelDraftItem,
   type PrintableLabel,
 } from "../types";
 
 /**
  * Orquestra a aba de geração de etiquetas: busca de produtos, montagem da
- * lista (tipo, preço e quantidade por item) e o fluxo gravar → imprimir.
+ * lista (nome, tipo, preço e quantidade por item) e o fluxo gravar → imprimir.
  *
- * O preço de cada item nasce do cadastro mas é editável — é assim que a
- * etiqueta de promoção sai com o valor da oferta sem mexer no produto.
+ * Preço e nome de cada item nascem do cadastro mas são editáveis — é assim que
+ * a etiqueta de promoção sai com o valor da oferta sem mexer no produto, e que
+ * "COPO AMERICANO [ORIGINAL]" vira "COPO AMERICANO" na gôndola.
+ *
+ * **Imprimir não esvazia a tela.** O lote fica montado até alguém clicar em
+ * Limpar (ou recarregar): quem imprime costuma reimprimir na hora — papel
+ * torto, etiqueta faltando — e remontar a seleção era o pedágio disso.
  *
  * A busca de produtos é do {@link useLabelProductSearch}: a tela abre com a
  * lista vazia e consulta o balcão, com os mesmos gatilhos do PDV.
@@ -68,6 +75,7 @@ export function useLabelComposer() {
         {
           productId: product.id,
           productName: product.name,
+          catalogName: product.name,
           barcode: product.barcode?.trim() ? product.barcode.trim() : null,
           priceInput: formatPriceInput(product.price),
           labelType: PRODUCT_LABEL_TYPE.Normal,
@@ -109,7 +117,11 @@ export function useLabelComposer() {
 
   const removeItem = (index: number) => setItems((current) => current.filter((_, i) => i !== index));
 
-  const clearItems = () => setItems([]);
+  /** Recomeça o lote do zero — é a única coisa que esvazia a tela, inclusive depois de imprimir. */
+  const clearBatch = () => {
+    setItems([]);
+    setDescription("");
+  };
 
   const canGenerate = items.length > 0 && !printing;
 
@@ -123,7 +135,7 @@ export function useLabelComposer() {
     if (invalid) {
       toast({
         title: "Revise os itens do lote",
-        description: `"${invalid.productName}" precisa de preço e quantidade maiores que zero.`,
+        description: `"${printedNameOf(invalid)}" precisa de preço e quantidade maiores que zero.`,
         variant: "destructive",
       });
       return;
@@ -138,6 +150,7 @@ export function useLabelComposer() {
           labelType: item.labelType,
           price: parsePriceInput(item.priceInput),
           quantity: parseQuantityInput(item.quantityInput),
+          productName: customNameForPayload(item),
         })),
       });
 
@@ -155,12 +168,14 @@ export function useLabelComposer() {
       await queryClient.invalidateQueries({ queryKey: getGetProductLabelBatchesQueryKey() });
       await printLabelSheet(labels);
 
+      // A lista fica na tela de propósito: a impressora engasga, o papel sai
+      // torto, a pessoa quer conferir uma etiqueta antes de recortar — e
+      // remontar a seleção do zero por causa disso era o que mais custava.
+      // Limpar é escolha de quem opera, no botão Limpar.
       toast({
         title: "Lote de etiquetas gerado!",
-        description: `${totalLabels} etiqueta(s) no lote. Ele ficou no histórico para reimpressão.`,
+        description: `${totalLabels} etiqueta(s) no lote, salvo no histórico. A lista continua aqui até você clicar em Limpar.`,
       });
-      setItems([]);
-      setDescription("");
     } catch (error) {
       console.error("Erro ao gerar lote de etiquetas:", error);
       toast({
@@ -189,7 +204,7 @@ export function useLabelComposer() {
     addProduct,
     updateItem,
     removeItem,
-    clearItems,
+    clearBatch,
     totalLabels,
     totalProducts,
     printing,

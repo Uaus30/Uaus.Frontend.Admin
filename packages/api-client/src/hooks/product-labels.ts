@@ -74,6 +74,12 @@ export interface CreateProductLabelBatchItemPayload {
   price: number;
   /** Cópias da etiqueta (mínimo 1). */
   quantity: number;
+  /**
+   * Nome impresso quando o operador encurta o do cadastro para caber na
+   * etiqueta. Ausente ou em branco, o backend congela o nome do cadastro.
+   * Máximo de 150 caracteres, como a coluna congelada.
+   */
+  productName?: string | null;
 }
 
 /** Dados enviados ao gerar um lote de etiquetas. */
@@ -130,9 +136,9 @@ export async function getProductLabelBatchById(id: number): Promise<ProductLabel
 }
 
 /**
- * Gera um lote de etiquetas. O backend congela nome e código de barras a
- * partir do cadastro; o preço vai no payload porque a oferta pode sair com
- * valor diferente do preço de venda.
+ * Gera um lote de etiquetas. O backend congela o código de barras a partir do
+ * cadastro; preço e nome vão no payload porque a oferta pode sair com valor
+ * diferente do preço de venda e o nome do cadastro nem sempre cabe na etiqueta.
  *
  * @returns O lote criado, já com os itens congelados.
  */

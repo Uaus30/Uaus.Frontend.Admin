@@ -54,7 +54,7 @@ export default function GondolaLabels() {
                 canGenerate={composer.canGenerate}
                 onUpdate={composer.updateItem}
                 onRemove={composer.removeItem}
-                onClear={composer.clearItems}
+                onClear={composer.clearBatch}
                 onGenerate={composer.handleGenerate}
               />
             </div>

@@ -52,7 +52,10 @@ export function labelTypeFromEnum(value: EnumValue): LabelTypeCode {
  */
 export interface LabelDraftItem {
   productId: number;
+  /** Nome que vai para o papel. Nasce do cadastro e é editável na lista. */
   productName: string;
+  /** Nome como veio da busca, para saber se o operador renomeou a etiqueta. */
+  catalogName: string;
   barcode: string | null;
   /** Preço digitado (ex.: "12,50"). Na promoção, o valor da oferta. */
   priceInput: string;
@@ -93,10 +96,34 @@ export function formatPriceInput(value: number): string {
   return value.toFixed(2).replace(".", ",");
 }
 
+/** Tamanho máximo do nome impresso, espelhando a coluna congelada no backend. */
+export const LABEL_NAME_MAX_LENGTH = 150;
+
+/**
+ * Nome que sai no papel: o digitado, ou o do cadastro quando o campo fica
+ * vazio. O vazio cai para o cadastro porque é o que o backend congela quando o
+ * pedido não traz nome — sem isso a prévia mostraria etiqueta sem nome e a
+ * impressa sairia com o nome do produto.
+ */
+export function printedNameOf(item: LabelDraftItem): string {
+  return item.productName.trim() || item.catalogName;
+}
+
+/**
+ * Nome a enviar na geração do lote: **só** quando o operador renomeou a
+ * etiqueta. Mandar sempre o texto da tela congelaria o nome que veio da busca
+ * do balcão, e para variação o backend monta um nome composto que a busca não
+ * devolve — o silêncio aqui é o que preserva esse nome.
+ */
+export function customNameForPayload(item: LabelDraftItem): string | null {
+  const typed = item.productName.trim();
+  return !typed || typed === item.catalogName.trim() ? null : typed;
+}
+
 /** Materializa um item do rascunho na etiqueta de preview/impressão. */
 export function draftToPrintable(item: LabelDraftItem): PrintableLabel {
   return {
-    productName: item.productName,
+    productName: printedNameOf(item),
     barcode: item.barcode,
     price: parsePriceInput(item.priceInput),
     labelType: item.labelType,

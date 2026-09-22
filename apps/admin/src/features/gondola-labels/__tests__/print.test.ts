@@ -1,6 +1,26 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PRODUCT_LABEL_TYPE } from "@workspace/api-client-react";
-import { buildLabelSheetHtml, escapeHtml, formatLabelPrice, getProductNameFontSizePt } from "../print";
+import { DEFAULT_BARCODE_MODULE_WIDTH } from "@/lib/barcode-svg";
+
+const mocks = vi.hoisted(() => ({ buildBarcodeSvg: vi.fn() }));
+
+// A jsbarcode desenha no DOM e não roda no jsdom; só ela é dublada, para o
+// teste ver com que largura a folha pede as barras.
+vi.mock("@/lib/barcode-svg", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/barcode-svg")>()),
+  buildBarcodeSvg: mocks.buildBarcodeSvg,
+}));
+
+import {
+  LABEL_BARCODE_BAR_HEIGHT,
+  LABEL_BARCODE_BOTTOM_MARGIN,
+  LABEL_BARCODE_FONT_SIZE,
+  LABEL_BARCODE_MODULE_WIDTH,
+  buildLabelSheetHtml,
+  escapeHtml,
+  formatLabelPrice,
+  getProductNameFontSizePt,
+} from "../print";
 import type { PrintableLabel } from "../types";
 
 /** Etiqueta de exemplo; os testes ajustam só o que interessa. */
@@ -105,5 +125,60 @@ describe("buildLabelSheetHtml", () => {
 
     expect(html).toContain("border: 0.35mm solid #9a9a9a;");
     expect(html).not.toContain("border-radius");
+  });
+
+  it("alinha preço e barras pelo centro, e não pela base", () => {
+    const html = buildLabelSheetHtml([label()], stubBarcode);
+    const bottomRule = html.match(/\.label-bottom \{[^}]*\}/)?.[0] ?? "";
+
+    expect(bottomRule).toContain("align-items: center;");
+    expect(bottomRule).not.toContain("flex-end");
+  });
+
+  it("faz as barras cederem espaço ao preço, e não o contrário", () => {
+    const html = buildLabelSheetHtml([label()], stubBarcode);
+    const barcodeRule = html.match(/\.label-barcode \{[^}]*\}/)?.[0] ?? "";
+    const priceRule = html.match(/\.label-price \{[^}]*\}/)?.[0] ?? "";
+
+    expect(barcodeRule).toContain("flex: 0 1 auto;");
+    expect(barcodeRule).toContain("min-width: 0;");
+    expect(priceRule).toContain("flex: 0 0 auto;");
+  });
+
+  it("limita as barras a metade da etiqueta, para o preço ficar com a outra", () => {
+    const html = buildLabelSheetHtml([label()], stubBarcode);
+    const barcodeRule = html.match(/\.label-barcode \{[^}]*\}/)?.[0] ?? "";
+
+    expect(barcodeRule).toContain("max-width: 50%;");
+  });
+
+  it("fixa a altura do código em mm, para a folha inteira sair com a mesma", () => {
+    const html = buildLabelSheetHtml([label()], stubBarcode);
+    const svgRule = html.match(/\.label-barcode svg \{[^}]*\}/)?.[0] ?? "";
+
+    // Altura em mm + `stretch` no desenho: é o par que impede o código apertado
+    // pela largura de encolher na vertical junto.
+    expect(svgRule).toMatch(/height: [\d.]+mm;/);
+  });
+
+  it("pede as barras no desenho reto, mais largas e com número maior", () => {
+    mocks.buildBarcodeSvg.mockReturnValue("<svg></svg>");
+
+    // Sem o segundo argumento: é o caminho que a impressão de verdade usa.
+    buildLabelSheetHtml([label()]);
+
+    expect(mocks.buildBarcodeSvg).toHaveBeenCalledWith("7891234567895", {
+      width: LABEL_BARCODE_MODULE_WIDTH,
+      height: LABEL_BARCODE_BAR_HEIGHT,
+      fontSize: LABEL_BARCODE_FONT_SIZE,
+      marginBottom: LABEL_BARCODE_BOTTOM_MARGIN,
+      flat: true,
+      stretch: true,
+    });
+
+    // O EAN-13 guardado tem barra de guarda comprida e o primeiro dígito de
+    // fora; na gôndola o padrão é reto, com o número inteiro embaixo.
+    expect(LABEL_BARCODE_MODULE_WIDTH).toBeGreaterThan(DEFAULT_BARCODE_MODULE_WIDTH);
+    expect(LABEL_BARCODE_FONT_SIZE).toBeGreaterThan(14);
   });
 });

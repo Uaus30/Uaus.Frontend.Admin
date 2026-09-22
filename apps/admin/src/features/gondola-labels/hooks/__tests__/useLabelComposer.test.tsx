@@ -153,7 +153,7 @@ describe("useLabelComposer", () => {
 
     expect(mocks.createProductLabelBatch).toHaveBeenCalledWith({
       description: "Promoção da semana",
-      items: [{ productId: 5, labelType: 2, price: 9.99, quantity: 2 }],
+      items: [{ productId: 5, labelType: 2, price: 9.99, quantity: 2, productName: null }],
     });
 
     expect(mocks.printLabelSheet).toHaveBeenCalledWith([
@@ -165,8 +165,61 @@ describe("useLabelComposer", () => {
         quantity: 2,
       },
     ]);
+  });
 
-    await waitFor(() => expect(result.current.items).toHaveLength(0));
+  it("mantém o lote na tela depois de imprimir, para reimprimir sem remontar", async () => {
+    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+
+    act(() => result.current.addProduct(product(5)));
+    act(() => result.current.setDescription("Promoção da semana"));
+
+    await act(async () => result.current.handleGenerate());
+
+    await waitFor(() => expect(mocks.printLabelSheet).toHaveBeenCalled());
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.description).toBe("Promoção da semana");
+
+    // Esvaziar é decisão de quem opera — e leva a identificação junto.
+    act(() => result.current.clearBatch());
+
+    expect(result.current.items).toHaveLength(0);
     expect(result.current.description).toBe("");
+  });
+
+  it("manda o nome encurtado quando o operador renomeia a etiqueta", async () => {
+    const { result } = renderHook(() => useLabelComposer(), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => result.current.addProduct(product(5, { name: "COPO AMERICANO [ORIGINAL]" })));
+    act(() => result.current.updateItem(0, { productName: "COPO AMERICANO" }));
+
+    expect(result.current.previewLabels[0].productName).toBe("COPO AMERICANO");
+
+    await act(async () => result.current.handleGenerate());
+
+    expect(mocks.createProductLabelBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [expect.objectContaining({ productName: "COPO AMERICANO" })],
+      }),
+    );
+  });
+
+  it("nome apagado volta para o do cadastro, na prévia e no envio", async () => {
+    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+
+    act(() => result.current.addProduct(product(5, { name: "COPO AMERICANO [ORIGINAL]" })));
+    act(() => result.current.updateItem(0, { productName: "   " }));
+
+    expect(result.current.previewLabels[0].productName).toBe("COPO AMERICANO [ORIGINAL]");
+
+    await act(async () => result.current.handleGenerate());
+
+    // Nulo, e não o texto da busca: para variação, o nome composto é do backend.
+    expect(mocks.createProductLabelBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [expect.objectContaining({ productName: null })],
+      }),
+    );
   });
 });

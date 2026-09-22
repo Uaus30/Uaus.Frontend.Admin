@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { buildBarcodeSvg } from "@/lib/barcode-svg";
-import { formatLabelPrice, getProductNameFontSizePt } from "../print";
+import { buildLabelBarcodeSvg, formatLabelPrice, getProductNameFontSizePt } from "../print";
 import { getLabelTypeInfo, type PrintableLabel } from "../types";
 
 /**
@@ -10,12 +9,14 @@ import { getLabelTypeInfo, type PrintableLabel } from "../types";
  *
  * O contorno é retângulo de canto vivo igual ao do papel (ver `print.ts`): a
  * borda é a linha de corte, e a prévia só serve se mostrar o que vai sair na
- * impressora.
+ * impressora. Pelo mesmo motivo, largura das barras e alinhamento pelo centro
+ * saem das mesmas constantes e regras do documento impresso.
  */
 export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
   const info = getLabelTypeInfo(label.labelType);
+  // Mesmo desenho do papel (largura, corpo do número e formato reto).
   const barcodeSvg = useMemo(() => {
-    return label.barcode ? buildBarcodeSvg(label.barcode) : null;
+    return label.barcode ? buildLabelBarcodeSvg(label.barcode) : null;
   }, [label.barcode]);
 
   const fontSizePt = getProductNameFontSizePt(label.productName);
@@ -45,18 +46,18 @@ export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
         {label.productName}
       </div>
 
-      <div className={`flex items-end gap-[2mm] ${hasBarcode ? "justify-between" : "justify-center"}`}>
+      <div className={`flex items-center gap-[2mm] ${hasBarcode ? "justify-between" : "justify-center"}`}>
         {hasBarcode && (
-          <div className="flex items-end overflow-hidden max-w-[55%]">
+          <div className="flex min-w-0 max-w-[50%] shrink items-center overflow-hidden">
             <div
-              className="flex items-end [&>svg]:h-[13.5mm] [&>svg]:w-auto [&>svg]:max-w-[50mm]"
+              className="flex min-w-0 items-center [&>svg]:h-[12.6mm] [&>svg]:w-auto [&>svg]:max-w-full"
               dangerouslySetInnerHTML={{ __html: barcodeSvg! }}
             />
           </div>
         )}
 
         <div
-          className="flex items-baseline gap-[0.8mm] whitespace-nowrap"
+          className="flex shrink-0 items-baseline gap-[0.8mm] whitespace-nowrap"
           style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900 }}
         >
           <span style={{ fontSize: "13pt", fontWeight: 900, lineHeight: 1 }}>R$</span>
