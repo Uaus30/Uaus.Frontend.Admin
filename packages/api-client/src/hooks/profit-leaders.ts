@@ -70,7 +70,14 @@ export interface ProfitBucketDto {
 
 /** O que a loja fez no período, e o que o corte representa dentro disso. */
 export interface ProfitLeadersSummaryDto {
+  /** Lucro LÍQUIDO do período — prejuízo descontado. O que a loja ganhou. */
   profit: number;
+  /**
+   * Lucro só de quem lucrou, prejuízo truncado em zero. É a BASE de todas as
+   * fatias percentuais: numerador e denominador têm de vir do mesmo conjunto, e
+   * dividir pelo líquido dava fatia acima de 100%.
+   */
+  generatedProfit: number;
   revenue: number;
   marginPercentage: number;
 

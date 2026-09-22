@@ -161,6 +161,17 @@ describe("podeAcessar", () => {
     expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
   });
 
+  it("o que trouxe lucro também é só de Admin", () => {
+    // A tela expõe custo, lucro e margem item a item. Sem este teste, apagar o
+    // `roles` da rota não deixa nenhum teste vermelho — o único que a citava roda
+    // `buildMenu(Admin)`, e o Admin vê tudo.
+    const tela = ROUTES.find((r) => r.path === "/bi/o-que-trouxe-lucro")!;
+
+    expect(tela.roles).toBeDefined();
+    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
+  });
+
   it("a curva ABC também é só de Admin", () => {
     // A resposta traz lucro e margem item a item.
     const curva = ROUTES.find((r) => r.path === "/bi/curva-abc")!;

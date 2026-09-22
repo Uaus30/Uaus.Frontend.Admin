@@ -31,21 +31,38 @@ const MARGEM = 3;
 export function ProfitSparkline({ history, buckets, label, className }: ProfitSparklineProps) {
   if (history.length < 2 || history.length !== buckets.length) return null;
 
-  const maximo = Math.max(...history, 0);
   const alturaUtil = ALTURA - MARGEM * 2;
+
+  // A escala inclui o PISO, e não só o teto. Com `Math.max` sozinho, um intervalo
+  // de prejuízo — uma liquidação abaixo do custo, que o banco produz — recebia y
+  // maior que a altura da caixa e era desenhado POR CIMA da linha seguinte do
+  // ranking, com o `overflow-visible` deixando escapar. O zero entra sempre nas
+  // duas pontas para que a linha de base signifique a mesma coisa em todo
+  // gráfico da tela.
+  const minimo = Math.min(...history, 0);
+  const maximo = Math.max(...history, 0);
+  const amplitude = maximo - minimo;
+
+  const escala = (valor: number) =>
+    // Sem amplitude (todos os intervalos em zero) a linha fica rente à base em vez
+    // de dividir por zero — e continua dizendo a verdade: não houve lucro.
+    amplitude > 0 ? MARGEM + alturaUtil - ((valor - minimo) / amplitude) * alturaUtil : ALTURA - MARGEM;
 
   const pontos = history.map((valor, i) => ({
     x: (i / (history.length - 1)) * (LARGURA - MARGEM * 2) + MARGEM,
-    // Sem venda em nenhum intervalo, a linha fica rente à base em vez de dividir
-    // por zero — e continua dizendo a verdade: não houve lucro.
-    y: MARGEM + alturaUtil - (maximo > 0 ? (valor / maximo) * alturaUtil : 0),
+    y: escala(valor),
     parcial: buckets[i]!.isPartial,
   }));
 
+  // O preenchimento desce até a linha do ZERO, não até o fundo da caixa: com
+  // prejuízo no período, o fundo deixa de ser o zero, e pintar até lá afirmaria
+  // lucro onde houve perda.
+  const baseDoZero = escala(0);
+
   const area = [
-    `M ${pontos[0]!.x} ${ALTURA - MARGEM}`,
+    `M ${pontos[0]!.x} ${baseDoZero}`,
     ...pontos.map((p) => `L ${p.x} ${p.y}`),
-    `L ${pontos[pontos.length - 1]!.x} ${ALTURA - MARGEM}`,
+    `L ${pontos[pontos.length - 1]!.x} ${baseDoZero}`,
     "Z",
   ].join(" ");
 

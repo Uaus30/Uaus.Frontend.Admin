@@ -65,6 +65,26 @@ export const ALERT_ICONS: Record<ProfitAlertName, LucideIcon> = {
   LowCoverage: Timer,
 };
 
+/**
+ * O ícone de quando o mapa não conhece o valor, e os acessos guardados aos
+ * rótulos.
+ *
+ * <b>Um membro novo no enum do backend não pode derrubar a rota.</b> Buscar o
+ * ícone direto no mapa devolve `undefined`, e `<Icon />` com `undefined` estoura
+ * em tempo de render: o `ErrorBoundary` da rota troca a TELA INTEIRA pela tela de
+ * recuperação — não é uma linha quebrada, é a tela sumindo. A tela irmã já
+ * carrega a mesma guarda (ver `ComparisonHeadline`), e o dia em que alguém
+ * acrescentar um arquétipo no C# não pode ser o dia em que esta tela apaga.
+ */
+export const FALLBACK_ICON: LucideIcon = Minus;
+
+export const archetypeLabel = (nome: ProfitArchetypeName): string =>
+  ARCHETYPE_LABELS[nome] ?? "Sem classificação";
+
+export const archetypeAction = (nome: ProfitArchetypeName): string => ARCHETYPE_ACTION[nome] ?? "";
+
+export const alertLabel = (nome: ProfitAlertName): string => ALERT_LABELS[nome] ?? "Ponto de atenção";
+
 /** Queda de ritmo, em pontos percentuais, a partir da qual o alerta escala. */
 export const HEAVY_DROP = -50;
 
@@ -80,17 +100,40 @@ export const HEAVY_PARKED_COST = 300;
  * vermelho, nada é. O texto da pílula sempre diz o que é, porque cor sozinha não
  * informa quem não a distingue nem sobrevive à impressão em preto e branco.
  */
-export function leaderTone(leader: ProfitLeaderDto): BiTone {
-  if (leader.alert === "ParkedStock") {
-    const quedaForte = (leader.trendPercentage ?? 0) <= HEAVY_DROP;
-    const dinheiroParado = leader.stockCost >= HEAVY_PARKED_COST;
-    return quedaForte && dinheiroParado ? "ruim" : "atencao";
-  }
+export function isEscalated(leader: ProfitLeaderDto): boolean {
+  return (
+    leader.alert === "ParkedStock" &&
+    (leader.trendPercentage ?? 0) <= HEAVY_DROP &&
+    leader.stockCost >= HEAVY_PARKED_COST
+  );
+}
 
+export function leaderTone(leader: ProfitLeaderDto): BiTone {
+  if (leader.alert === "ParkedStock") return isEscalated(leader) ? "ruim" : "atencao";
   if (leader.alert !== "None") return "atencao";
 
-  if (leader.archetype === "Steady") return "neutro";
-  return "bom";
+  // Positivo por lista, e não por exclusão: um arquétipo que o front ainda não
+  // conhece cairia em "bom" e nasceria pintado de verde, ainda que o backend o
+  // tenha criado justamente para sinalizar algo ruim.
+  if (leader.archetype === "Newcomer" || leader.archetype === "Rising" || leader.archetype === "Workhorse")
+    return "bom";
+
+  return "neutro";
+}
+
+/**
+ * O texto da pílula de alerta, com a escalada <b>escrita</b>.
+ *
+ * Sem a palavra, a diferença entre âmbar e vermelho é só o matiz: as duas linhas
+ * trazem as mesmas pílulas, os mesmos ícones e a mesma frase. Impressa em preto e
+ * branco — e esta é uma tela que se imprime para levar ao balcão — ou lida por
+ * quem não distingue os dois, a escalada simplesmente não existiria. É a regra
+ * "cor nunca sozinha" de `bi-tone.ts`, e aqui ela vale para o segundo passo da
+ * escala, não só para o primeiro.
+ */
+export function alertBadgeLabel(leader: ProfitLeaderDto): string {
+  const base = alertLabel(leader.alert);
+  return isEscalated(leader) ? `${base} · urgente` : base;
 }
 
 /**
@@ -105,7 +148,16 @@ export function highlightLevel(leader: ProfitLeaderDto): "forte" | "medio" | nul
   if (leaderTone(leader) !== "bom") return null;
 
   if (leader.archetype === "Newcomer") return "forte";
-  if (leader.archetype === "Rising") return (leader.trendPercentage ?? 0) >= 100 ? "forte" : "medio";
+
+  if (leader.archetype === "Rising") {
+    // `trendPercentage` AUSENTE não é 0%: a API omite o campo quando não havia
+    // ritmo anterior, ou seja, quando o produto saiu do zero. Tratá-lo como zero
+    // rebaixava justamente o maior salto possível — um item que foi de R$ 0 a
+    // R$ 310 em três semanas saltava MENOS que um que só dobrou.
+    if (leader.trendPercentage == null) return "forte";
+    return leader.trendPercentage >= 100 ? "forte" : "medio";
+  }
+
   if (leader.archetype === "Workhorse") return "medio";
 
   return null;
@@ -165,17 +217,32 @@ export function readArchetype(leader: ProfitLeaderDto): string {
         : "Entrou no corte estreando neste período.";
 
     case "Rising":
-      return `O ritmo subiu: de ${antes} para ${agora} nos últimos ${leader.recentDays} dias.`;
+      return `O ritmo subiu: de ${antes} para ${agora} ${janelaRecente(leader.recentDays)}.`;
 
     case "Workhorse":
       return `Vendeu em ${leader.weeksWithSales} das ${leader.periodWeeks} semanas do período.`;
 
     case "Declining":
-      return `O ritmo caiu: de ${antes} para ${agora} nos últimos ${leader.recentDays} dias.`;
+      return `O ritmo caiu: de ${antes} para ${agora} ${janelaRecente(leader.recentDays)}.`;
 
     default:
-      return `Sem tendência clara: ${antes} antes, ${agora} nos últimos ${leader.recentDays} dias.`;
+      // Sem janela recente não há tendência a relatar, e a frase genérica anunciava
+      // "— nos últimos 0 dias": um período de um dia (o dia 1º em "Mês atual") não
+      // sobra base de comparação nenhuma.
+      return leader.recentDays > 0
+        ? `Sem tendência clara: ${antes} antes, ${agora} ${janelaRecente(leader.recentDays)}.`
+        : "Período curto demais para comparar ritmo.";
   }
+}
+
+/** "nos últimos N dias", com o singular resolvido. */
+function janelaRecente(dias: number): string {
+  return dias === 1 ? "no último dia" : `nos últimos ${dias} dias`;
+}
+
+/** "N dias" do período, com o singular resolvido. */
+export function describeDays(dias: number): string {
+  return dias === 1 ? "1 dia" : `${dias} dias`;
 }
 
 /**

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   HEAVY_DROP,
   HEAVY_PARKED_COST,
+  alertBadgeLabel,
+  archetypeAction,
+  archetypeLabel,
+  describeDays,
   formatDay,
+  isEscalated,
   highlightLevel,
   leaderTone,
   readAlert,
@@ -56,6 +61,67 @@ describe("leaderTone", () => {
   });
 });
 
+describe("um valor de enum que o front ainda nao conhece", () => {
+  // O backend pode acrescentar um arquetipo ou um alerta a qualquer momento. Sem
+  // guarda, o icone vem `undefined` e `<Icon />` estoura em tempo de render: o
+  // ErrorBoundary da rota troca a TELA INTEIRA pela tela de recuperacao.
+  const desconhecido = liderDeTeste({
+    archetype: "Bundle" as never,
+    alert: "Seasonal" as never,
+  });
+
+  it("nao devolve rotulo vazio", () => {
+    expect(archetypeLabel(desconhecido.archetype)).toBeTruthy();
+    expect(alertBadgeLabel(desconhecido)).toBeTruthy();
+    expect(archetypeAction(desconhecido.archetype)).toBe("");
+  });
+
+  it("nao pinta de verde um arquetipo que ninguem sabe o que e", () => {
+    // O caminho positivo do tom era por EXCLUSAO: tudo que nao fosse "Steady"
+    // caia em "bom". Um arquetipo novo e negativo nasceria pintado de positivo.
+    expect(leaderTone(liderDeTeste({ archetype: "Bundle" as never, alert: "None" }))).toBe("neutro");
+    expect(leaderTone(liderDeTeste({ archetype: "Declining", alert: "None" }))).toBe("neutro");
+  });
+});
+
+describe("alertBadgeLabel", () => {
+  it("escreve a escalada em PALAVRAS, e nao so no matiz", () => {
+    // Duas linhas com as mesmas pilulas, os mesmos icones e a mesma frase: a
+    // unica diferenca era a cor. Impressa em preto e branco — e esta e' uma tela
+    // que se imprime para levar ao balcao — a escalada sumia por completo.
+    const leve = liderDeTeste({
+      alert: "ParkedStock",
+      archetype: "Declining",
+      trendPercentage: -20,
+      stockCost: 100,
+    });
+    const grave = liderDeTeste({
+      alert: "ParkedStock",
+      archetype: "Declining",
+      trendPercentage: -60,
+      stockCost: 500,
+    });
+
+    expect(alertBadgeLabel(leve)).toBe("Estoque parado");
+    expect(alertBadgeLabel(grave)).toBe("Estoque parado · urgente");
+    expect(alertBadgeLabel(leve)).not.toBe(alertBadgeLabel(grave));
+  });
+
+  it("a escalada exige os DOIS gatilhos, exatamente nos numeros do manual", () => {
+    const base = { alert: "ParkedStock" as const, archetype: "Declining" as const };
+
+    expect(
+      isEscalated(liderDeTeste({ ...base, trendPercentage: HEAVY_DROP, stockCost: HEAVY_PARKED_COST })),
+    ).toBe(true);
+    expect(
+      isEscalated(liderDeTeste({ ...base, trendPercentage: HEAVY_DROP + 1, stockCost: HEAVY_PARKED_COST })),
+    ).toBe(false);
+    expect(
+      isEscalated(liderDeTeste({ ...base, trendPercentage: HEAVY_DROP, stockCost: HEAVY_PARKED_COST - 1 })),
+    ).toBe(false);
+  });
+});
+
 describe("highlightLevel", () => {
   it("o estreante e o que mais salta, e o alerta apaga o destaque", () => {
     // A intensidade segue a FORCA DO SINAL de ascensao, e nao a qualidade geral:
@@ -69,6 +135,26 @@ describe("highlightLevel", () => {
     );
     expect(highlightLevel(liderDeTeste({ archetype: "Steady", alert: "None" }))).toBeNull();
     expect(highlightLevel(liderDeTeste({ archetype: "Newcomer", alert: "LowCoverage" }))).toBeNull();
+  });
+});
+
+describe("highlightLevel com tendencia AUSENTE", () => {
+  it("quem saiu do zero e' o maior salto, nao o menor", () => {
+    // A API OMITE `trendPercentage` quando nao havia ritmo anterior — ou seja,
+    // quando o produto saiu do zero. Tratar a ausencia como 0% rebaixava
+    // justamente o maior salto possivel: um item que foi de R$ 0 a R$ 310 em tres
+    // semanas saltava MENOS que um que so dobrou.
+    const doZero = liderDeTeste({ archetype: "Rising", alert: "None", earlierProfit: 0 });
+    delete (doZero as { trendPercentage?: number | null }).trendPercentage;
+
+    expect(highlightLevel(doZero)).toBe("forte");
+  });
+});
+
+describe("describeDays", () => {
+  it("concorda o singular", () => {
+    expect(describeDays(1)).toBe("1 dia");
+    expect(describeDays(90)).toBe("90 dias");
   });
 });
 
@@ -127,6 +213,20 @@ describe("readArchetype", () => {
     );
 
     expect(frase).toContain("28/08/26");
+  });
+
+  it("periodo de um dia nao anuncia tendencia de ZERO dias", () => {
+    // "Mes atual" no dia 1o, ou um Personalizado de um dia: o backend devolve
+    // `recentDays: 0`, e a frase generica saia como "— nos ultimos 0 dias".
+    const umDia = liderDeTeste({
+      archetype: "Steady",
+      earlierProfit: 250,
+      earlierDays: 1,
+      recentProfit: 0,
+      recentDays: 0,
+    });
+
+    expect(readArchetype(umDia)).toBe("Período curto demais para comparar ritmo.");
   });
 
   it("o cavalo de batalha se apresenta pelas semanas", () => {

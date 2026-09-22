@@ -80,7 +80,20 @@ export function useProfitLeaders() {
     resetToken,
     handleSelectPeriod: (value: ProfitLeadersPeriod) => {
       setPeriod(value);
-      if (value !== PROFIT_LEADERS_PERIOD.Custom) setCustom(null);
+
+      if (value !== PROFIT_LEADERS_PERIOD.Custom) {
+        setCustom(null);
+      } else if (!custom && report) {
+        // Escolher "Personalizado" SEMEIA o intervalo com o que está na tela.
+        //
+        // Sem isso a consulta sai com `period=Custom` e sem datas, o servidor
+        // devolve o intervalo padrão, e a tela troca de conteúdo no instante em
+        // que o usuário abriu o seletor — antes de ele escolher coisa alguma. É
+        // uma ida ao servidor jogada fora e um susto de graça; semeando, o
+        // calendário abre já preenchido com o período que ele estava vendo.
+        setCustom({ startDate: report.startDate.slice(0, 10), endDate: report.endDate.slice(0, 10) });
+      }
+
       setResetToken((atual) => atual + 1);
     },
     handleApplyCustom: (proximo: CustomRange) => {

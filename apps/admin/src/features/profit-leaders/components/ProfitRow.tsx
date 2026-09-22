@@ -5,7 +5,7 @@ import { BI_TONE_FILL, BI_TONE_TEXT } from "@/lib/bi-tone";
 import { ArchetypeBadge, AlertBadge } from "./ProfitBadges";
 import { ProfitSparkline } from "./ProfitSparkline";
 import {
-  ARCHETYPE_ACTION,
+  archetypeAction,
   highlightLevel,
   leaderTone,
   readAlert,
@@ -93,7 +93,7 @@ export function ProfitRow({ leader, buckets, median }: ProfitRowProps) {
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <ArchetypeBadge leader={leader} />
           <AlertBadge leader={leader} />
-          <span className="text-[11.5px] text-muted-foreground">{ARCHETYPE_ACTION[leader.archetype]}</span>
+          <span className="text-[11.5px] text-muted-foreground">{archetypeAction(leader.archetype)}</span>
         </div>
 
         <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">

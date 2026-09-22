@@ -7,12 +7,18 @@ import type { ProfitBucketDto, ProfitLeaderDto, ProfitLeadersReportDto } from "@
  * `WhenWritingNull` e o campo simplesmente não vem. Mock que escreve `null`
  * testa um formato que a API não produz.
  */
-export const BUCKETS_DE_TESTE: ProfitBucketDto[] = Array.from({ length: 13 }, (_, i) => ({
-  startDate: `2026-06-${String(24 + i).padStart(2, "0")}`,
-  endDate: `2026-06-${String(30 + i).padStart(2, "0")}`,
-  label: `S${i + 1}`,
-  isPartial: i === 12,
-}));
+export const BUCKETS_DE_TESTE: ProfitBucketDto[] = Array.from({ length: 13 }, (_, i) => {
+  const inicio = new Date(Date.UTC(2026, 5, 24 + i * 7));
+  const fim = new Date(Date.UTC(2026, 5, 24 + i * 7 + 6));
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  return {
+    startDate: iso(inicio),
+    endDate: iso(fim),
+    label: `S${i + 1}`,
+    isPartial: i === 12,
+  };
+});
 
 export function liderDeTeste(overrides: Partial<ProfitLeaderDto> = {}): ProfitLeaderDto {
   return {
@@ -63,6 +69,7 @@ export const RELATORIO_DE_TESTE: ProfitLeadersReportDto = {
   period: "Last90Days",
   summary: {
     profit: 8775.65,
+    generatedProfit: 8776.12,
     revenue: 21400.12,
     marginPercentage: 41,
     productsWithProfit: 513,

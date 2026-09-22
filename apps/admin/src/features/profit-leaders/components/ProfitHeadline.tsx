@@ -4,7 +4,7 @@ import type { ProfitLeadersReportDto } from "@workspace/api-client-react";
 import { BiCardHelp, BiCardHelpExample } from "@/components/bi-card-help";
 import { BI_TONE_PILL } from "@/lib/bi-tone";
 import { formatInteger } from "@/features/supplier-performance/lib/format";
-import { ATTENTION_ICON, describePeriod } from "../lib/profit-leaders";
+import { ATTENTION_ICON, describeDays, describePeriod } from "../lib/profit-leaders";
 
 /**
  * A manchete: quantos produtos fazem metade do lucro.
@@ -98,7 +98,7 @@ export function ProfitHeadline({ report }: { report: ProfitLeadersReportDto }) {
             a régua do corte — metade dos campeões lucra mais que isso em cada peça
           </Numero>
           <Numero titulo="Período medido" valor={describePeriod(report.startDate, report.endDate)}>
-            {formatInteger(report.periodDays)} dias
+            {describeDays(report.periodDays)}
           </Numero>
         </div>
       </div>

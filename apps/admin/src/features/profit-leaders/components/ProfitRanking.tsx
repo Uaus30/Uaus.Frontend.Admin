@@ -5,7 +5,7 @@ import type { ProfitArchetypeName, ProfitBucketDto, ProfitLeaderDto } from "@wor
 import { BiCardHelp, BiCardHelpExample } from "@/components/bi-card-help";
 import { BI_TONE_PILL } from "@/lib/bi-tone";
 import { ProfitRow } from "./ProfitRow";
-import { ARCHETYPE_ICONS, ARCHETYPE_LABELS } from "../lib/profit-leaders";
+import { ARCHETYPE_ICONS, FALLBACK_ICON, archetypeLabel } from "../lib/profit-leaders";
 
 /** Quantas linhas aparecem antes do "mostrar mais". */
 const PAGINA = 20;
@@ -110,7 +110,7 @@ export function ProfitRanking({
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {ORDEM_DOS_FILTROS.filter((valor) => (counts.get(valor) ?? 0) > 0).map((valor) => {
-          const Icon = ARCHETYPE_ICONS[valor];
+          const Icon = ARCHETYPE_ICONS[valor] ?? FALLBACK_ICON;
           const ativo = archetype === valor;
 
           return (
@@ -127,7 +127,7 @@ export function ProfitRanking({
               )}
             >
               <Icon className="h-3 w-3" />
-              {ARCHETYPE_LABELS[valor]}
+              {archetypeLabel(valor)}
               <span className="text-muted-foreground">{counts.get(valor)}</span>
             </button>
           );

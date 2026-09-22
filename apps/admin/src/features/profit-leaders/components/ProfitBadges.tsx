@@ -3,9 +3,10 @@ import type { ProfitLeaderDto } from "@workspace/api-client-react";
 import { BI_TONE_PILL } from "@/lib/bi-tone";
 import {
   ALERT_ICONS,
-  ALERT_LABELS,
   ARCHETYPE_ICONS,
-  ARCHETYPE_LABELS,
+  FALLBACK_ICON,
+  alertBadgeLabel,
+  archetypeLabel,
   leaderTone,
 } from "../lib/profit-leaders";
 
@@ -18,7 +19,7 @@ import {
  * ao balcão na hora de comprar.
  */
 export function ArchetypeBadge({ leader, className }: { leader: ProfitLeaderDto; className?: string }) {
-  const Icon = ARCHETYPE_ICONS[leader.archetype];
+  const Icon = ARCHETYPE_ICONS[leader.archetype] ?? FALLBACK_ICON;
 
   return (
     <span
@@ -29,7 +30,7 @@ export function ArchetypeBadge({ leader, className }: { leader: ProfitLeaderDto;
       )}
     >
       <Icon className="h-3 w-3 shrink-0" />
-      {ARCHETYPE_LABELS[leader.archetype]}
+      {archetypeLabel(leader.archetype)}
     </span>
   );
 }
@@ -43,7 +44,7 @@ export function ArchetypeBadge({ leader, className }: { leader: ProfitLeaderDto;
 export function AlertBadge({ leader, className }: { leader: ProfitLeaderDto; className?: string }) {
   if (leader.alert === "None") return null;
 
-  const Icon = ALERT_ICONS[leader.alert];
+  const Icon = ALERT_ICONS[leader.alert] ?? FALLBACK_ICON;
 
   return (
     <span
@@ -54,7 +55,7 @@ export function AlertBadge({ leader, className }: { leader: ProfitLeaderDto; cla
       )}
     >
       <Icon className="h-3 w-3 shrink-0" />
-      {ALERT_LABELS[leader.alert]}
+      {alertBadgeLabel(leader)}
     </span>
   );
 }

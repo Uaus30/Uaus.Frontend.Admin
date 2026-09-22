@@ -27,6 +27,43 @@ describe("ProfitSparkline", () => {
     expect(segmentos[segmentos.length - 1]!.getAttribute("stroke-dasharray")).toBeTruthy();
   });
 
+  it("traceja tambem o PRIMEIRO intervalo quando e' ele o recortado", () => {
+    // Em "Desde a inauguracao" o primeiro balde tambem e' parcial: a loja abriu em
+    // 05/03 e o mes de marco comeca no dia 1o. Com o fixture marcando so o ultimo,
+    // trocar `ponto.parcial || proximo.parcial` por `proximo.parcial` passava
+    // despercebido — e todo grafico do preset perdia o tracejado de abertura.
+    const comAberturaParcial = BUCKETS_DE_TESTE.map((b, i) => ({ ...b, isPartial: i === 0 }));
+
+    const { container } = render(
+      <ProfitSparkline history={historico} buckets={comAberturaParcial} label="Evolução" />,
+    );
+
+    const segmentos = [...container.querySelectorAll("line")];
+    expect(segmentos[0]!.getAttribute("stroke-dasharray")).toBeTruthy();
+    expect(segmentos[1]!.getAttribute("stroke-dasharray")).toBeNull();
+  });
+
+  it("mantem o prejuizo DENTRO da caixa do desenho", () => {
+    // `Math.max(...history, 0)` limitava so o teto. Um intervalo negativo — uma
+    // liquidacao abaixo do custo, que o banco produz — recebia y maior que a
+    // altura e era pintado POR CIMA da linha seguinte do ranking, com o
+    // `overflow-visible` deixando escapar.
+    const comPrejuizo = [-40, 100, 50, 60, 20, 10, 5, 30, 40, 50, 60, 70, 10];
+
+    const { container } = render(
+      <ProfitSparkline history={comPrejuizo} buckets={BUCKETS_DE_TESTE} label="Evolução" />,
+    );
+
+    const altura = Number(container.querySelector("svg")!.getAttribute("height"));
+    const ys = [...container.querySelectorAll("line")].flatMap((l) => [
+      Number(l.getAttribute("y1")),
+      Number(l.getAttribute("y2")),
+    ]);
+
+    expect(Math.max(...ys)).toBeLessThanOrEqual(altura);
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(0);
+  });
+
   it("nao traceja nada quando todos os intervalos fecharam", () => {
     const fechados = BUCKETS_DE_TESTE.map((b) => ({ ...b, isPartial: false }));
 
@@ -177,6 +214,16 @@ describe("ProfitRow", () => {
     expect(screen.getByText(/275 peças × R\$\s*0,81 de lucro cada/)).toBeTruthy();
     expect(screen.getByText("Perdendo ritmo")).toBeTruthy();
     expect(screen.getByText(/24 peças em casa/)).toBeTruthy();
+  });
+
+  it("sobrevive a um arquetipo e a um alerta que o front ainda nao conhece", () => {
+    // O backend pode acrescentar um membro ao enum a qualquer momento. Sem guarda,
+    // o icone vem `undefined`, `<Icon />` estoura em tempo de render, e o
+    // ErrorBoundary da rota troca a TELA INTEIRA pela tela de recuperacao — nao e'
+    // uma linha quebrada, e' a tela sumindo.
+    const acao = () => renderRow(liderDeTeste({ archetype: "Bundle" as never, alert: "Seasonal" as never }));
+
+    expect(acao).not.toThrow();
   });
 
   it("situa a linha contra a regua de lucro por peca do corte", () => {
