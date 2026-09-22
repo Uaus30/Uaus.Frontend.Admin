@@ -8,10 +8,14 @@ type ProfitSparklineProps = {
   /** Descrição para quem não enxerga o desenho. */
   label: string;
   className?: string;
+  /** Largura do desenho. Padrão: o compacto de uma linha de tabela. */
+  width?: number;
+  /** Altura do desenho. Padrão: o compacto de uma linha de tabela. */
+  height?: number;
 };
 
-const LARGURA = 132;
-const ALTURA = 30;
+const LARGURA_PADRAO = 132;
+const ALTURA_PADRAO = 30;
 const MARGEM = 3;
 
 /**
@@ -28,10 +32,17 @@ const MARGEM = 3;
  *
  * A cor vem do `currentColor` do pai, que é quem sabe o tom da linha.
  */
-export function ProfitSparkline({ history, buckets, label, className }: ProfitSparklineProps) {
+export function ProfitSparkline({
+  history,
+  buckets,
+  label,
+  className,
+  width = LARGURA_PADRAO,
+  height = ALTURA_PADRAO,
+}: ProfitSparklineProps) {
   if (history.length < 2 || history.length !== buckets.length) return null;
 
-  const alturaUtil = ALTURA - MARGEM * 2;
+  const alturaUtil = height - MARGEM * 2;
 
   // A escala inclui o PISO, e não só o teto. Com `Math.max` sozinho, um intervalo
   // de prejuízo — uma liquidação abaixo do custo, que o banco produz — recebia y
@@ -46,10 +57,10 @@ export function ProfitSparkline({ history, buckets, label, className }: ProfitSp
   const escala = (valor: number) =>
     // Sem amplitude (todos os intervalos em zero) a linha fica rente à base em vez
     // de dividir por zero — e continua dizendo a verdade: não houve lucro.
-    amplitude > 0 ? MARGEM + alturaUtil - ((valor - minimo) / amplitude) * alturaUtil : ALTURA - MARGEM;
+    amplitude > 0 ? MARGEM + alturaUtil - ((valor - minimo) / amplitude) * alturaUtil : height - MARGEM;
 
   const pontos = history.map((valor, i) => ({
-    x: (i / (history.length - 1)) * (LARGURA - MARGEM * 2) + MARGEM,
+    x: (i / (history.length - 1)) * (width - MARGEM * 2) + MARGEM,
     y: escala(valor),
     parcial: buckets[i]!.isPartial,
   }));
@@ -68,9 +79,14 @@ export function ProfitSparkline({ history, buckets, label, className }: ProfitSp
 
   return (
     <svg
-      viewBox={`0 0 ${LARGURA} ${ALTURA}`}
-      width={LARGURA}
-      height={ALTURA}
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      // "none": o desenho do pódio passa `className="w-full"` para esticar até
+      // a largura do cartão sem manter a proporção do viewBox — é o
+      // comportamento esperado de um sparkline (preencher o espaço), e sem
+      // isto o SVG "letterboxa" (sobra vazio nas laterais) em vez de esticar.
+      preserveAspectRatio="none"
       role="img"
       aria-label={label}
       className={cn("overflow-visible", className)}
@@ -98,12 +114,16 @@ export function ProfitSparkline({ history, buckets, label, className }: ProfitSp
       })}
 
       {/* O último ponto é o que se olha para decidir "ainda vende?" — marcado
-          sempre, e vazado quando o intervalo dele ainda não fechou. */}
+          sempre, e vazado quando o intervalo dele ainda não fechou.
+          `hsl(var(--card))`, e não `var(--background)`: as duas variáveis
+          guardam só os TRÊS componentes do HSL (sem a função), e todo lugar
+          que desenha este gráfico é uma superfície `bg-card` — a linha do
+          ranking e o cartão do pódio —, não o fundo da página. */}
       <circle
         cx={pontos[pontos.length - 1]!.x}
         cy={pontos[pontos.length - 1]!.y}
         r={2.2}
-        fill={pontos[pontos.length - 1]!.parcial ? "var(--background)" : "currentColor"}
+        fill={pontos[pontos.length - 1]!.parcial ? "hsl(var(--card))" : "currentColor"}
         stroke="currentColor"
         strokeWidth={1.2}
       />

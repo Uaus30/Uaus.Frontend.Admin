@@ -5,6 +5,7 @@ import { ProfitPodium } from "../ProfitPodium";
 import { ProfitRanking } from "../ProfitRanking";
 import { ProfitHeadline } from "../ProfitHeadline";
 import { ProfitRow } from "../ProfitRow";
+import { productDetailPathname } from "@/features/products/product-detail-route";
 import { BUCKETS_DE_TESTE, RELATORIO_DE_TESTE, liderDeTeste } from "../../__tests__/fixtures";
 
 describe("ProfitSparkline", () => {
@@ -93,15 +94,81 @@ describe("ProfitSparkline", () => {
 
     expect(container.querySelector("svg")).toBeNull();
   });
+
+  it("aceita largura e altura maiores, para caber no cartao do podio", () => {
+    // Sem isso o podio herdaria o tamanho compacto pensado para uma linha de
+    // tabela — 132px num cartao de ~260px de largura fica minusculo.
+    const { container } = render(
+      <ProfitSparkline
+        history={historico}
+        buckets={BUCKETS_DE_TESTE}
+        label="Evolução"
+        width={240}
+        height={44}
+      />,
+    );
+
+    const svg = container.querySelector("svg")!;
+    expect(svg.getAttribute("viewBox")).toBe("0 0 240 44");
+    expect(svg.getAttribute("width")).toBe("240");
+    expect(svg.getAttribute("height")).toBe("44");
+  });
+
+  it("sem largura/altura, continua no tamanho compacto de sempre", () => {
+    // Trava de regressao: a linha do ranking nao passa essas props, e nao pode
+    // herdar um tamanho pensado para o podio.
+    const { container } = render(
+      <ProfitSparkline history={historico} buckets={BUCKETS_DE_TESTE} label="Evolução" />,
+    );
+
+    expect(container.querySelector("svg")!.getAttribute("viewBox")).toBe("0 0 132 30");
+  });
+
+  it("o ponto vazado usa uma cor de CSS valida", () => {
+    // `var(--background)` sozinho, sem `hsl(...)`, não é uma cor CSS válida —
+    // a variável guarda só os três componentes do HSL. O `fill` resultante
+    // ficava com o valor inicial (preto), em vez de vazar para a cor do
+    // cartão. A asserção prova a FORMA da cor, não o pixel renderizado, que o
+    // jsdom não calcula.
+    const comAberturaParcial = BUCKETS_DE_TESTE.map((b, i) => ({
+      ...b,
+      isPartial: i === BUCKETS_DE_TESTE.length - 1,
+    }));
+    const { container } = render(
+      <ProfitSparkline history={historico} buckets={comAberturaParcial} label="Evolução" />,
+    );
+
+    const ponto = container.querySelector("circle")!;
+    expect(ponto.getAttribute("fill")).toBe("hsl(var(--card))");
+  });
 });
 
 describe("ProfitPodium", () => {
-  it("desenha prata, ouro e bronze nessa ordem visual", () => {
+  it("o DOM segue a ordem do rank, nao a ordem visual do desktop", () => {
+    // A ordem visual (prata-ouro-bronze) e' so' CSS (`order`), que o jsdom nao
+    // computa — testar por texto na tela testaria layout que esta ferramenta
+    // nao enxerga. O que importa aqui e' o que QUALQUER leitor de tela ou tela
+    // empilhada no celular segue: a ordem do RANK, ouro primeiro.
     render(<ProfitPodium podium={RELATORIO_DE_TESTE.leaders} buckets={BUCKETS_DE_TESTE} />);
 
     const medalhas = screen.getAllByText(/^(Ouro|Prata|Bronze)$/).map((n) => n.textContent);
 
-    expect(medalhas).toEqual(["Prata", "Ouro", "Bronze"]);
+    expect(medalhas).toEqual(["Ouro", "Prata", "Bronze"]);
+  });
+
+  it("cada cartao carrega a classe que o reordena no desktop: prata a esquerda, bronze a direita", () => {
+    const { container } = render(
+      <ProfitPodium podium={RELATORIO_DE_TESTE.leaders} buckets={BUCKETS_DE_TESTE} />,
+    );
+
+    // `.rounded-2xl` sozinho, e não `.rounded-2xl.border`: o ouro carrega
+    // `border-2`, não `border` — um TOKEN de classe diferente, que o seletor
+    // CSS de classe não casa por prefixo.
+    const [ouro, prata, bronze] = container.querySelectorAll(".rounded-2xl");
+
+    expect(ouro?.className).toContain("md:order-2");
+    expect(prata?.className).toContain("md:order-1");
+    expect(bronze?.className).toContain("md:order-3");
   });
 
   it("o selo de situacao sobe ao podio junto com a medalha", () => {
@@ -126,6 +193,44 @@ describe("ProfitPodium", () => {
       render(<ProfitPodium podium={RELATORIO_DE_TESTE.leaders.slice(0, 1)} buckets={BUCKETS_DE_TESTE} />);
 
     expect(acao).not.toThrow();
+  });
+
+  it("so o 1o lugar carrega a moldura dupla e o brilho", () => {
+    // O destaque do ouro agora vem do proprio cartao (borda + brilho), nao de
+    // uma barra crescendo embaixo dele — a barra sumiu junto com a ideia de
+    // que este podio fosse sobre magnitude.
+    const { container } = render(
+      <ProfitPodium podium={RELATORIO_DE_TESTE.leaders} buckets={BUCKETS_DE_TESTE} />,
+    );
+
+    const cartoes = [...container.querySelectorAll(".rounded-2xl")];
+
+    expect(cartoes).toHaveLength(3);
+    expect(cartoes.filter((c) => c.className.includes("border-2"))).toHaveLength(1);
+  });
+
+  it("sobrevive a um arquetipo que o front ainda nao conhece", () => {
+    // O icone de tendencia do cartao busca direto no mapa de arquetipos; sem
+    // fallback, um valor novo do backend devolveria `undefined` e `<Icone />`
+    // estouraria em render — a mesma classe de defeito corrigida na linha do
+    // ranking.
+    const podioComDesconhecido = [
+      liderDeTeste({ archetype: "Bundle" as never, alert: "None" }),
+      ...RELATORIO_DE_TESTE.leaders.slice(1),
+    ];
+
+    const acao = () => render(<ProfitPodium podium={podioComDesconhecido} buckets={BUCKETS_DE_TESTE} />);
+
+    expect(acao).not.toThrow();
+  });
+
+  it("o grafico do cartao usa o tamanho largo do cartao, nao o compacto da linha", () => {
+    const { container } = render(
+      <ProfitPodium podium={RELATORIO_DE_TESTE.leaders} buckets={BUCKETS_DE_TESTE} />,
+    );
+
+    const svg = container.querySelector("svg[role='img']");
+    expect(svg?.getAttribute("viewBox")).toBe("0 0 240 44");
   });
 });
 
@@ -244,6 +349,36 @@ describe("ProfitRow", () => {
     renderRow();
 
     expect(screen.getByLabelText(/Evolução do lucro de POTE OVAL/)).toBeTruthy();
+  });
+
+  it("o icone ao lado do nome abre o cadastro do GRUPO em nova aba", () => {
+    // productGroupId, e nao productId: a rota de detalhe edita o grupo, e um
+    // id de variacao no link abriria (ou erraria) o produto errado.
+    renderRow(liderDeTeste({ productGroupId: 42, productName: "POTE OVAL COM TAMPA 1 LITRO" }));
+
+    const link = screen.getByRole("link", { name: /Abrir POTE OVAL COM TAMPA 1 LITRO no cadastro/ });
+
+    expect(link.getAttribute("href")).toBe(productDetailPathname(42));
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noreferrer");
+  });
+
+  it("o estoque fica visivel em qualquer tela, nao so a partir do breakpoint sm", () => {
+    // RTL/jsdom não aplicam CSS: um `hidden sm:block` esquecido aqui passaria
+    // pelo `getByText` do mesmo jeito, porque a arvore continua tendo o nó. A
+    // asserção precisa olhar a CLASSE — é exatamente o defeito que a coluna
+    // inteira tinha antes: no celular ela sumia junto com peças e vendas.
+    renderRow(liderDeTeste({ stock: 24 }));
+
+    const estoque = screen.getByText(/24 em casa/);
+    expect(estoque.className.split(/\s+/)).not.toContain("hidden");
+  });
+
+  it("sem estoque tambem fica visivel em qualquer tela", () => {
+    renderRow(liderDeTeste({ stock: 0 }));
+
+    const estoque = screen.getByText("sem estoque");
+    expect(estoque.className.split(/\s+/)).not.toContain("hidden");
   });
 });
 
