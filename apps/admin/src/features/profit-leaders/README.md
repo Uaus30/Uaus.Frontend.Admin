@@ -88,6 +88,18 @@ Todo item chegou ao corte. Os selos não julgam o produto — apontam o que olha
 Vocabulário em `@/lib/bi-tone`. **Cor nunca sozinha**: toda pílula sai com ícone
 e texto — esta é uma tela que se imprime para levar ao balcão.
 
+**E isso vale para o SEGUNDO passo da escala também.** Duas linhas, uma com −20%
+e R$ 100 parados e outra com −60% e R$ 500, renderizavam as mesmas pílulas, os
+mesmos ícones e a mesma frase: a única diferença era o matiz. Impressa em preto e
+branco, a reserva mais importante da tela desaparecia. Por isso `alertBadgeLabel`
+escreve **"· urgente"** quando `isEscalated`.
+
+**Todo acesso a mapa de enum passa por `??`.** Um membro novo no enum do backend
+devolvia `undefined`, e `<Icon />` com `undefined` estoura em tempo de render: o
+`ErrorBoundary` da rota troca a **tela inteira** pela de recuperação. Pelo mesmo
+motivo, `leaderTone` decide o positivo por **lista** e não por exclusão — senão um
+arquétipo novo e negativo nasceria pintado de verde.
+
 ---
 
 ## O que é do servidor e o que é local
@@ -114,7 +126,30 @@ O intervalo do eixo X é escolhido pelo backend — a maior granularidade que re
 **Intervalo parcial sai tracejado e com o ponto vazado.** O último quase sempre
 é: em 30 dias a quinta semana cobre dois dias. Sem a marca, o gráfico de _todo_
 produto da tela termina num mergulho que não aconteceu — e é o fim da linha que
-se olha para decidir se o produto ainda vende.
+se olha para decidir se o produto ainda vende. O **primeiro** também é parcial em
+"desde a inauguração" (a loja abriu em 05/03 e março começa no dia 1º), e por isso
+o trecho é tracejado quando **qualquer uma** das duas pontas é parcial.
+
+**A escala inclui o piso, não só o teto.** Com `Math.max` sozinho, um intervalo de
+prejuízo — uma liquidação abaixo do custo, que o banco produz — era desenhado
+_fora_ do `viewBox`, por cima da linha seguinte do ranking. E o preenchimento
+desce até a linha do **zero**, não até o fundo: com prejuízo, o fundo deixa de ser
+o zero, e pintar até lá afirmaria lucro onde houve perda.
+
+---
+
+## Fatia é sobre o lucro GERADO, não sobre o líquido
+
+`summary.profit` é o líquido (prejuízo descontado) — o que a loja ganhou.
+`summary.generatedProfit` trunca o prejuízo em zero, e **é a base de todas as
+fatias**.
+
+Os dois precisam existir porque numerador e denominador têm de vir do mesmo
+conjunto: só produto com lucro positivo entra no ranking. Dividindo pelo líquido,
+um período com +R$ 100 num produto e −R$ 90 em outro imprimia **"1000% do lucro
+do período"**, e o número tende ao infinito conforme o prejuízo se aproxima do
+lucro. Na prática os dois quase coincidem — em 90 dias na dev, R$ 8.776,12 contra
+R$ 8.775,65.
 
 ---
 
