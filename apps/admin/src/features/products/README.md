@@ -13,7 +13,8 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductStockTab.tsx`: Aba **Estoque** (histórico de entradas do produto e lançamento simplificado).
 - `components/detail/ProductEditorDialogs.tsx`: Confirmação de exclusão de variação, fora do formulário.
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
-- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**), `ProductImageGallery` e `ProductVariationsManager`.
+- `components/detail/ProductNotesAlert.tsx`: Card âmbar no topo da aba **Dados**, visível só quando o grupo tem Observações preenchida. Ver seção 4.6.
+- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**, com Observações — seção 4.6), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
 - A regra do código de barras mora em `@workspace/core` (`packages/core/src/barcode.ts`) e o desenho das barras em `@/lib/barcode-svg` — ver itens 4.4 e 4.5.
 - `lib/barcodeLabel.ts`: Documento e impressão da etiqueta de 80mm × 40mm.
@@ -326,11 +327,11 @@ o que chegou dele:
 
 As abas separam por **frequência de uso**, não por assunto:
 
-| Aba           | O que tem                                                                                |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| **Dados**     | Código de barras, nome, departamento, categoria, preço, status, imagens e variações.     |
-| **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                |
-| **Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura) e visibilidade no site. |
+| Aba           | O que tem                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Dados**     | Código de barras, nome, departamento, categoria, preço, status, imagens e variações.                                            |
+| **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                                                       |
+| **Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura), visibilidade no site e Observações (uso interno — seção 4.6). |
 
 Regras que valem a pena conhecer antes de mexer:
 
@@ -602,6 +603,39 @@ A montagem do HTML está separada da impressão (`buildBarcodeLabelHtml` recebe 
 gerador de barras por parâmetro) porque `window.print()` não tem teste — o que
 dá para asseverar é o papel: que o SVG entrou, que não há `<script src=`, e que
 sem barras ainda sai nome e preço.
+
+### 4.6. Observações: campo de uso interno, com alerta na aba Dados (21/09/2026)
+
+Campo de texto livre do **grupo** (`ProductGroupForm.notes`), na aba
+**Opcionais**, para o que a equipe precisa anotar e não tem outro lugar para
+ir — por que o preço está diferente do padrão, um combinado com o fornecedor,
+uma pendência de troca.
+
+**Por que não é a Descrição.** Description já existe e é **pública**: compõe o
+`SearchText` (o que a busca do admin, do PDV e da vitrine acham) e aparece na
+vitrine quando o grupo tem `showOnSite`. Um campo de uso interno precisava
+nascer separado — Notes não entra na busca e **não existe** nos DTOs de
+storefront nem do PDV, então a garantia de "nunca aparece lá" não depende de
+nenhum filtro que alguém possa esquecer: o campo simplesmente não está no
+contrato que alimenta essas duas telas.
+
+**Preenchida, ela aparece duas vezes — de propósito.** Uma vez no formulário
+(`ProductOptionalFields`, aba Opcionais, onde se digita) e outra num card
+âmbar no topo da aba **Dados** (`ProductNotesAlert`), acima de todos os
+campos. Uma observação que só aparece para quem pensa em abrir Opcionais é
+uma observação que ninguém lê no dia a dia — o alerta existe para aparecer
+onde o olho já está assim que o cadastro abre. Vazia, nenhum dos dois lugares
+mostra nada: um card permanente em 90% dos cadastros sem observação vira
+ruído.
+
+**Âmbar mais forte, e não uma quinta cor.** O vocabulário deste repositório é
+fixo — verde/âmbar/vermelho/cinza, `Uaus.Docs/dominio/convencoes-de-
+interface.md` — e "observação interna" não é negativo nem bloqueado, então
+não é vermelho. É "atenção, tem algo para saber antes de mexer": o mesmo
+âmbar do resto do sistema (`ProductConferenceBanner` usa o mesmo par
+borda/fundo), só que mais saturado que o de costume — pedido explícito do
+dono, para separar "existe uma observação" de "existe uma observação que
+muda a decisão".
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
