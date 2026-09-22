@@ -192,6 +192,7 @@ export function useProductSubmit({
         description: form.description,
         hasVariations: form.hasVariations,
         showOnSite: form.isPublic,
+        notes: form.notes,
         products: produtos,
       });
 

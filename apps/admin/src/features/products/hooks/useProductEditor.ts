@@ -64,6 +64,7 @@ export function useProductEditor() {
     description: "",
     hasVariations: false,
     isPublic: true,
+    notes: "",
   });
   const [productEditor, setProductEditor] = useState<ProductEditorForm>(createEmptyProductEditor());
   const [variationDrafts, setVariationDrafts] = useState<VariationDraft[]>([]);
@@ -291,6 +292,7 @@ export function useProductEditor() {
         description: product.productGroup?.description || "",
         hasVariations: product.productGroup?.hasVariations ?? false,
         isPublic: product.productGroup?.showOnSite ?? true,
+        notes: product.productGroup?.notes || "",
       });
 
       /*
@@ -368,6 +370,7 @@ export function useProductEditor() {
       description: purchase.details ?? "",
       hasVariations: false,
       isPublic: true,
+      notes: "",
     });
     setProductEditor({
       ...createEmptyProductEditor(productForm.defaultStatus),

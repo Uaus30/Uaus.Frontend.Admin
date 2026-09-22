@@ -11,6 +11,7 @@ import { nomeExibidoDaVariacao, opcoesDeVariacao } from "../../lib/variationName
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
 import { ProductOptionalFields } from "../editor/ProductOptionalFields";
+import { ProductNotesAlert } from "./ProductNotesAlert";
 import { ProductDetailActions } from "./ProductDetailActions";
 import { ProductEditorDialogs } from "./ProductEditorDialogs";
 import { VariationGradesModal } from "./VariationGradesModal";
@@ -353,6 +354,7 @@ export function ProductDetailScreen({
           </div>
 
           <TabsContent value="dados" className="mt-4">
+            <ProductNotesAlert editor={editor} />
             <ProductGeneralTab
               editor={editor}
               validationErrors={validationErrors}

@@ -78,6 +78,8 @@ export type ProductTableRow = {
     description: string | null;
     hasVariations: boolean;
     showOnSite: boolean;
+    /** Observação de uso interno — nunca aparece no site nem no PDV. */
+    notes: string | null;
   };
   category: { id: number; name: string };
   department: { id: number; name: string };
@@ -137,6 +139,8 @@ export type ProductGroupForm = {
   hasVariations: boolean;
   /** Visibility status: true to display publically on the site */
   isPublic: boolean;
+  /** Internal-use note. Never shown on the storefront or the PDV. */
+  notes: string;
 };
 
 /**

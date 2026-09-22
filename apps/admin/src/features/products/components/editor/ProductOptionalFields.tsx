@@ -1,5 +1,6 @@
 import { Input } from "@workspace/ui";
 import { Switch } from "@workspace/ui";
+import { Textarea } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { HelpCircle } from "lucide-react";
 import { TagMultiSelect } from "@/components/tag-multi-select";
@@ -11,17 +12,23 @@ type ProductOptionalFieldsProps = {
 
 /**
  * Campos que o cadastro do dia a dia não preenche: descrição, etiquetas,
- * estoque mínimo, estoque atual e visibilidade no site.
+ * estoque mínimo, estoque atual, visibilidade no site e observações internas.
  *
  * Ficavam escondidos atrás do botão de olho da modal, e hoje são a aba
  * **Opcionais** da tela de detalhe. O olho tinha um problema
- * que a aba resolve: nada na tela dizia que existiam cinco campos ali dentro —
+ * que a aba resolve: nada na tela dizia que existiam vários campos ali dentro —
  * quem não conhecia o ícone nunca marcava "exibir no site", e o produto não
  * aparecia na loja sem ninguém entender por quê.
  *
  * Estoque mínimo e visibilidade são do PRODUTO representante e do GRUPO,
  * respectivamente. Num grupo com variações o estoque mínimo daqui não é usado:
  * cada variação tem o seu, salvo pela tabela de variações.
+ *
+ * <b>Observações é o único campo de USO INTERNO.</b> Todos os outros — mesmo
+ * "escondidos" nesta aba — acabam visíveis em algum lugar público (descrição
+ * compõe a busca e a vitrine, etiqueta aparece no card do site). Observações
+ * não sai daqui nem entra na busca: quando preenchida, o único outro lugar
+ * onde ela aparece é o alerta no topo da aba Dados (`ProductNotesAlert`).
  */
 export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
   const { form, setForm, productEditor, setProductEditor, tags, registerTag } = editor;
@@ -109,6 +116,29 @@ export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
               />
             </label>
           </div>
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <div className="flex items-center gap-1">
+            <label className="text-sm font-medium">Observações</label>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger type="button" tabIndex={-1}>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Uso interno da equipe. Nunca aparece no site nem no PDV.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Textarea
+            value={form.notes}
+            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            placeholder="Ex.: fornecedor demora para repor, combinar troca por WhatsApp..."
+            rows={3}
+            className="bg-background"
+          />
         </div>
       </div>
     </div>

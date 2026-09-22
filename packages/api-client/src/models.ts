@@ -330,6 +330,8 @@ export interface ProductGroupDto {
   hasVariations: boolean;
   /** Visibilidade pública do grupo (campo ShowOnSite do backend). */
   showOnSite: boolean;
+  /** Observação de uso interno — nunca aparece no site nem no PDV. */
+  notes?: string | null;
   canDelete: boolean;
   productHistories?: ProductHistoryDto[];
 }
@@ -601,6 +603,8 @@ export interface ProductTableRowDto {
   productGroupDescription?: string | null;
   hasVariations: boolean;
   showOnSite: boolean;
+  /** Observação de uso interno do grupo — nunca aparece no site nem no PDV. */
+  productGroupNotes?: string | null;
   /** Datas do GRUPO — é o grupo que a linha representa. */
   createdAt: string;
   updatedAt?: string | null;

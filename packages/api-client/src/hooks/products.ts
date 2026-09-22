@@ -103,6 +103,8 @@ export interface SaveProductGroupWithProductsPayload {
   description?: string | null;
   hasVariations: boolean;
   showOnSite: boolean;
+  /** Observação de uso interno — nunca aparece no site nem no PDV. */
+  notes?: string | null;
   products: SaveProductGroupProductPayload[];
 }
 

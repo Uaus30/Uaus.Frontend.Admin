@@ -25,6 +25,7 @@ const FORM: ProductGroupForm = {
   description: "",
   hasVariations: true,
   isPublic: true,
+  notes: "",
 };
 
 const PRODUTO: ProductEditorForm = {

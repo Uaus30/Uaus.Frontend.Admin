@@ -125,6 +125,7 @@ export function useProductForm({
       description: "",
       hasVariations: false,
       isPublic: true,
+      notes: "",
     });
     setProductEditor(createEmptyProductEditor(defaultStatus));
     setVariationDrafts([]);

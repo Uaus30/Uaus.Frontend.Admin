@@ -32,7 +32,7 @@ const { ProductDetailScreen } = await import("../ProductDetailScreen");
 function fakeEditor() {
   return {
     isDirty: true,
-    form: { productGroupName: "CANECA", hasVariations: false, images: [] },
+    form: { productGroupName: "CANECA", hasVariations: false, images: [], notes: "" },
     productEditor: { id: 7, name: "CANECA", barcode: "7891234567890" },
     variationDrafts: [],
     editingGroupId: 7,
