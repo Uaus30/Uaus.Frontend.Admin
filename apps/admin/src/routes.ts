@@ -103,6 +103,7 @@ const SupplierPerformanceDetail = lazy(() => import("@/pages/supplier-performanc
 const ProductAbc = lazy(() => import("@/pages/product-abc"));
 const ProductPerformance = lazy(() => import("@/pages/product-performance"));
 const PeriodComparison = lazy(() => import("@/pages/period-comparison"));
+const ProfitLeaders = lazy(() => import("@/pages/profit-leaders"));
 
 /**
  * Ícone de cada grupo do menu. A ORDEM de exibição não sai daqui — ver `MENU_ORDER`.
@@ -308,6 +309,13 @@ export const ROUTES: AppRoute[] = [
     label: "O que mudou",
     group: "BI",
     component: PeriodComparison,
+    roles: SO_ADMIN,
+  },
+  {
+    path: "/bi/o-que-trouxe-lucro",
+    label: "O que trouxe lucro",
+    group: "BI",
+    component: ProfitLeaders,
     roles: SO_ADMIN,
   },
 

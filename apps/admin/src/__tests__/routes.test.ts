@@ -127,12 +127,14 @@ describe("podeAcessar", () => {
       "Desempenho de Fornecedores",
       "Desempenho de Produtos",
       "O que mudou",
+      "O que trouxe lucro",
     ]);
     expect(bi?.items?.map((s) => s.href)).toEqual([
       "/bi/curva-abc",
       "/bi/fornecedores",
       "/bi/produtos",
       "/bi/o-que-mudou",
+      "/bi/o-que-trouxe-lucro",
     ]);
 
     const alfabetica = [...nomes].sort((a, b) =>
