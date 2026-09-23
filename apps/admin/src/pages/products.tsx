@@ -55,10 +55,9 @@ export default function Products() {
   // Saída suspensa esperando a confirmação de descartar alterações. `"history"`
   // é o voltar do navegador; `"ui"`, os botões da própria tela.
   const [pendingClose, setPendingClose] = useState<null | "ui" | "history">(null);
-  // Aba em que o detalhe abre. O menu "Estoque" da listagem cai direto na aba
-  // de lançamento; todos os outros caminhos continuam abrindo em Dados.
-  // Quem chega por `?aba=estoque` (o recebimento de uma compra) abre direto
-  // nas entradas; os demais caminhos continuam em Dados.
+  // Aba em que o detalhe abre. Quem chega por `?aba=estoque` (o recebimento de
+  // uma compra) abre direto nas entradas; os demais caminhos abrem em Dados. O
+  // menu "Estoque" da listagem, que também caía ali, saiu em 23/09/2026.
   const [detailInitialTab, setDetailInitialTab] = useState<"dados" | "estoque">(detailTabFromUrl);
   // Variação que a aba de Estoque abre, quando a URL diz qual.
   const [detailStockProductId, setDetailStockProductId] = useState<number | null>(stockProductIdFromUrl);
@@ -127,7 +126,6 @@ export default function Products() {
           initialTab={detailInitialTab}
           initialStockProductId={detailStockProductId}
           onRequestClose={pedirParaFechar}
-          onSaved={fecharDetalhe}
         />
         <ProductDetailDiscardDialog
           open={pendingClose !== null}
@@ -179,7 +177,6 @@ export default function Products() {
           productPageTotal={table.productPage?.total || 0}
           enrichedProducts={table.enrichedProducts}
           onEdit={(product) => abrirDetalhe(product)}
-          onOpenStock={(product) => abrirDetalhe(product, "estoque")}
           onDelete={(product) => {
             void editor.handleDeleteProductGroup(product.productGroupId);
           }}

@@ -75,7 +75,6 @@ function renderTable(overrides: Partial<React.ComponentProps<typeof ProductTable
       productPageTotal={1}
       enrichedProducts={[row()]}
       onEdit={onEdit}
-      onOpenStock={vi.fn()}
       onDelete={vi.fn()}
       {...overrides}
     />,
@@ -211,7 +210,7 @@ describe("ProductTable — variações aninhadas", () => {
   });
 });
 
-describe("ProductTable — Contagem de estoque no menu da linha", () => {
+describe("ProductTable — Corrigir estoque no menu da linha", () => {
   afterEach(cleanup);
 
   /** O menu de contexto (clique direito) tem os mesmos itens do menu de três pontos. */
@@ -224,7 +223,16 @@ describe("ProductTable — Contagem de estoque no menu da linha", () => {
     abrirMenuDaLinha();
 
     expect(screen.getByRole("menuitem", { name: /editar/i })).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: /contagem de estoque/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /corrigir estoque/i })).toBeNull();
+  });
+
+  it("não oferece mais o item Estoque — a entrada é pela aba Estoque do detalhe (23/09/2026)", () => {
+    renderTable({ onStockCount: vi.fn() });
+    abrirMenuDaLinha();
+
+    const itens = screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
+    expect(itens).toContain("Corrigir estoque");
+    expect(itens).not.toContain("Estoque");
   });
 
   it("abre a contagem da linha clicada", () => {
@@ -232,7 +240,7 @@ describe("ProductTable — Contagem de estoque no menu da linha", () => {
     renderTable({ onStockCount });
     abrirMenuDaLinha();
 
-    fireEvent.click(screen.getByRole("menuitem", { name: /contagem de estoque/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /corrigir estoque/i }));
 
     expect(onStockCount).toHaveBeenCalledWith(expect.objectContaining({ productGroupId: 825 }));
   });
@@ -241,6 +249,6 @@ describe("ProductTable — Contagem de estoque no menu da linha", () => {
     renderTable({ onStockCount: vi.fn(), enrichedProducts: [row({ id: 0, variations: [] })] });
     abrirMenuDaLinha();
 
-    expect(screen.queryByRole("menuitem", { name: /contagem de estoque/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /corrigir estoque/i })).toBeNull();
   });
 });

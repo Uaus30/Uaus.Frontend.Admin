@@ -21,6 +21,7 @@ import { ProductGeneralTab } from "./ProductGeneralTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductWebImageSearch } from "./ProductWebImageSearch";
 import { ProductPerformanceTab } from "../performance/ProductPerformanceTab";
+import { ProductHistoryTimeline } from "../ProductHistoryTimeline";
 import { ProductConferenceBanner } from "@/features/inventory-count/components/ProductConferenceBanner";
 
 type ProductDetailScreenProps = {
@@ -35,16 +36,6 @@ type ProductDetailScreenProps = {
   initialStockProductId?: number | null;
   /** Pediu para sair (voltar, cancelar) — a página decide se confirma antes. */
   onRequestClose: () => void;
-  /**
-   * Gravou com sucesso pelo **Salvar** — a tela deve fechar e voltar à
-   * listagem.
-   *
-   * É um caminho separado do `onRequestClose` de propósito: logo depois de
-   * gravar o formulário ainda está marcado como alterado, e passar pelo pedido
-   * de saída faria a tela perguntar se quer descartar o que acabou de ser
-   * salvo.
-   */
-  onSaved: () => void;
 };
 
 /**
@@ -59,6 +50,7 @@ const PROXIMA_ABA: Record<string, "dados" | "estoque"> = {
   estoque: "dados",
   opcionais: "dados",
   desempenho: "dados",
+  historico: "dados",
 };
 
 const ROTULO_DA_ABA: Record<string, string> = {
@@ -66,6 +58,7 @@ const ROTULO_DA_ABA: Record<string, string> = {
   estoque: "Estoque",
   opcionais: "Opcionais",
   desempenho: "Desempenho",
+  historico: "Histórico",
 };
 
 /**
@@ -104,7 +97,6 @@ export function ProductDetailScreen({
   initialTab,
   initialStockProductId,
   onRequestClose,
-  onSaved,
 }: ProductDetailScreenProps) {
   const { toast } = useToast();
   // Só para o cadastro novo vindo de compra — ver `salvar`.
@@ -284,9 +276,10 @@ export function ProductDetailScreen({
     if (e.target !== e.currentTarget) return;
 
     e.preventDefault();
-    // Salvar termina o trabalho: gravou, volta para a listagem. Continuar na
-    // tela é o que o Avançar faz.
-    if (await salvar()) onSaved();
+    // Salvar grava e CONTINUA na tela (decisão do dono, 23/09/2026): quem salva
+    // quase sempre segue no mesmo cadastro — uma entrada, a foto, o histórico.
+    // Voltar para a listagem é o botão de voltar.
+    await salvar();
   }
 
   /** Salva e, dando certo, vai para a próxima aba (ver `PROXIMA_ABA`). */
@@ -371,6 +364,9 @@ export function ProductDetailScreen({
               <TabsTrigger value="desempenho" disabled={cadastroNovo}>
                 Desempenho
               </TabsTrigger>
+              <TabsTrigger value="historico" disabled={cadastroNovo}>
+                Histórico
+              </TabsTrigger>
             </TabsList>
             {cadastroNovo && (
               <p className="text-xs text-muted-foreground">
@@ -437,6 +433,14 @@ export function ProductDetailScreen({
           <TabsContent value="desempenho" className="mt-4">
             {activeTab === "desempenho" && stockProductId !== null && (
               <ProductPerformanceTab productId={stockProductId} />
+            )}
+          </TabsContent>
+
+          {/* O mesmo histórico do menu da listagem, sem sair do cadastro. Refeito a
+              cada vez que a aba abre: o que acabou de ser salvo aparece nele. */}
+          <TabsContent value="historico" className="mt-4 space-y-4">
+            {activeTab === "historico" && editingGroupId !== null && (
+              <ProductHistoryTimeline productGroupId={editingGroupId} active />
             )}
           </TabsContent>
         </Tabs>

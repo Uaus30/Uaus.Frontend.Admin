@@ -5,7 +5,6 @@ const mocks = vi.hoisted(() => ({
   handleSubmit: vi.fn(),
   validateProductForm: vi.fn(),
   onRequestClose: vi.fn(),
-  onSaved: vi.fn(),
   salesPaused: false,
 }));
 
@@ -23,6 +22,12 @@ vi.mock("../ProductEditorDialogs", () => ({ ProductEditorDialogs: () => null }))
 vi.mock("../VariationGradesModal", () => ({ VariationGradesModal: () => null }));
 vi.mock("../ProductWebImageSearch", () => ({ ProductWebImageSearch: () => null }));
 vi.mock("../../editor/ProductOptionalFields", () => ({ ProductOptionalFields: () => <div /> }));
+// O histórico consulta o servidor; aqui importa só que a aba o monte.
+vi.mock("../../ProductHistoryTimeline", () => ({
+  ProductHistoryTimeline: ({ productGroupId }: { productGroupId: number }) => (
+    <p>histórico do grupo {productGroupId}</p>
+  ),
+}));
 // A tarja da conferência consulta o servidor; aqui ela não decide nada.
 vi.mock("@/features/inventory-count/components/ProductConferenceBanner", () => ({
   ProductConferenceBanner: () => null,
@@ -60,13 +65,7 @@ function fakeEditor(extras: Record<string, unknown> = {}) {
 }
 
 function renderScreen(extras: Record<string, unknown> = {}) {
-  return render(
-    <ProductDetailScreen
-      editor={fakeEditor(extras)}
-      onRequestClose={mocks.onRequestClose}
-      onSaved={mocks.onSaved}
-    />,
-  );
+  return render(<ProductDetailScreen editor={fakeEditor(extras)} onRequestClose={mocks.onRequestClose} />);
 }
 
 /** O cadastro NOVO que veio do "Lançar recebimento" de uma compra. */
@@ -121,17 +120,29 @@ describe("ProductDetailScreen — o que cada botão faz", () => {
     mocks.handleSubmit.mockResolvedValue(true);
   });
 
-  it("Salvar grava e volta para a listagem", async () => {
+  it("Salvar grava e CONTINUA na tela (decisão do dono, 23/09/2026)", async () => {
     renderScreen();
 
     fireEvent.click(screen.getAllByRole("button", { name: /salvar/i })[0]);
 
     await waitFor(() => expect(mocks.handleSubmit).toHaveBeenCalled());
-    await waitFor(() => expect(mocks.onSaved).toHaveBeenCalled());
-    // NÃO pelo caminho de "pedir para fechar": ali a tela pergunta se quer
-    // descartar, e logo depois de gravar o formulário ainda está marcado como
-    // alterado — perguntaria sobre o que acabou de ser salvo.
+    // Voltar para a listagem é o botão de voltar, e só ele.
     expect(mocks.onRequestClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /dados/i }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("a aba Histórico mostra o histórico do grupo sem sair do cadastro", async () => {
+    renderScreen();
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /histórico/i }));
+
+    expect(await screen.findByText("histórico do grupo 7")).toBeTruthy();
+  });
+
+  it("cadastro novo não tem histórico ainda: a aba fica travada", () => {
+    renderScreen({ editingGroupId: null });
+
+    expect(screen.getByRole("tab", { name: /histórico/i }).hasAttribute("disabled")).toBe(true);
   });
 
   it("Salvar que o servidor recusou mantém a pessoa na tela", async () => {
@@ -141,7 +152,7 @@ describe("ProductDetailScreen — o que cada botão faz", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /salvar/i })[0]);
 
     await waitFor(() => expect(mocks.handleSubmit).toHaveBeenCalled());
-    expect(mocks.onSaved).not.toHaveBeenCalled();
+    expect(mocks.onRequestClose).not.toHaveBeenCalled();
   });
 
   it("Salvar barrado pela validação nem chega a gravar", async () => {
@@ -151,7 +162,7 @@ describe("ProductDetailScreen — o que cada botão faz", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /salvar/i })[0]);
 
     expect(mocks.handleSubmit).not.toHaveBeenCalled();
-    expect(mocks.onSaved).not.toHaveBeenCalled();
+    expect(mocks.onRequestClose).not.toHaveBeenCalled();
   });
 
   it("Avançar grava e CONTINUA na tela, na aba seguinte", async () => {
@@ -161,7 +172,7 @@ describe("ProductDetailScreen — o que cada botão faz", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /avançar/i })[0]);
 
     await waitFor(() => expect(mocks.handleSubmit).toHaveBeenCalled());
-    expect(mocks.onSaved).not.toHaveBeenCalled();
+    expect(mocks.onRequestClose).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: /estoque/i }).getAttribute("aria-selected")).toBe("true"),
     );

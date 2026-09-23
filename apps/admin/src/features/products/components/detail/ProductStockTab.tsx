@@ -1,4 +1,4 @@
-import { Calendar, ClipboardList, Eye, Package, Plus, Receipt } from "lucide-react";
+import { Calendar, Eye, Package, Plus, Receipt } from "lucide-react";
 import { Badge, Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
@@ -10,8 +10,6 @@ import { useProductStockEntries } from "@/features/stock-entries/hooks/useProduc
 import { useEntryCostCorrection } from "@/features/stock-entries/hooks/useEntryCostCorrection";
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
 import { SimpleStockEntryModal } from "@/features/stock-entries/components/SimpleStockEntryModal";
-import { StockCountModal } from "@/features/inventory-count/components/StockCountModal";
-import { useStockCount } from "@/features/inventory-count/hooks/useStockCount";
 import type { StockEntryPrefill } from "@/features/stock-entries/types";
 
 /** Uma variação já gravada, para o seletor de qual SKU a aba está mostrando. */
@@ -71,9 +69,6 @@ export function ProductStockTab({
   // O custo da última entrada se corrige no espelho da nota (decisão do dono, 23/09/2026).
   const custo = useEntryCostCorrection();
   const entries = stock.entriesData?.data ?? [];
-  // A contagem física é da VARIAÇÃO aberta na aba, e não do grupo: estoque é do
-  // SKU. É ela que fecha o "estoque físico × estoque virtual" da conferência.
-  const count = useStockCount(productId, stock.product?.stock ?? null);
   /**
    * Preço de venda vigente — a base da margem de cada entrada.
    *
@@ -171,22 +166,9 @@ export function ProductStockTab({
           )}
 
           {/*
-            Desabilitada até o produto chegar: sem o saldo do sistema não há
-            diferença a calcular, e a prévia da contagem mentiria.
-
-            O fornecedor e o custo sugeridos saem da entrada mais recente e do
-            cadastro — a sobra vira lote, e lote sem custo envenena o FIFO.
+            A contagem física saiu daqui em 23/09/2026 (pedido do dono): ela é o
+            "Corrigir estoque" do menu da linha na listagem de produtos.
           */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => count.openCount(entries[0]?.supplierId ?? null, stock.product?.costPrice ?? null)}
-            disabled={!stock.product}
-            className="hover-elevate gap-2"
-          >
-            <ClipboardList className="h-4 w-4" /> Contagem Física
-          </Button>
-
           {/*
             Desabilitado até o produto chegar: abrir antes preencheria custo e
             preço com 0 — e o preço lançado passa a valer no cadastro.
@@ -336,14 +318,6 @@ export function ProductStockTab({
         onDelete={stock.deleteEntry}
         onCorrectUnitCost={custo.correctUnitCost}
         isCorrectingCost={custo.isCorrectingCost}
-      />
-
-      <StockCountModal
-        count={count}
-        productName={productName}
-        barcode={barcode}
-        currentStock={stock.product?.stock ?? null}
-        suppliers={stock.suppliers}
       />
 
       <SimpleStockEntryModal

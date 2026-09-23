@@ -329,9 +329,10 @@ As abas separam por **frequência de uso**, não por assunto:
 
 | Aba           | O que tem                                                                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Dados**     | Código de barras, nome, departamento, categoria, preço, status, imagens e variações.                                            |
+| **Dados**     | Código de barras, nome, departamento, categoria, último custo e estoque atual (só leitura), preço, status, imagens e variações. |
 | **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                                                       |
 | **Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura), visibilidade no site e Observações (uso interno — seção 4.6). |
+| **Histórico** | O histórico completo do grupo — o mesmo da modal do menu da listagem (`ProductHistoryTimeline`).                                |
 
 Regras que valem a pena conhecer antes de mexer:
 
@@ -347,25 +348,34 @@ Regras que valem a pena conhecer antes de mexer:
   `<form>` próprio, e aninhar os dois seria HTML inválido.
 - **Salvar e Avançar, no topo e no rodapé.** São duas intenções diferentes:
   terminar o cadastro e continuar nele.
-  - `Salvar` grava e **volta para a listagem** (06/09/2026). Ficar na tela
-    obrigava um Cancelar depois do Salvar para quem só veio corrigir um preço.
-  - `Avançar` grava e troca de aba — de Dados para Estoque, e de Estoque ou
-    Opcionais de volta para Dados (`PROXIMA_ABA` em `ProductDetailScreen`). É
-    ele, e só ele, que mantém a pessoa na tela: o par "cadastrar o item e
-    lançar o que chegou dele" continua sem passar pela listagem.
+  - `Salvar` grava e **continua na tela** (decisão do dono, 23/09/2026 — de
+    06/09 até ali, voltava para a listagem). Quem salva quase sempre segue no
+    mesmo cadastro: uma entrada, a foto, o histórico. Voltar é o botão de
+    voltar.
+  - `Avançar` grava e troca de aba — de Dados para Estoque, e das outras de
+    volta para Dados (`PROXIMA_ABA` em `ProductDetailScreen`): o par
+    "cadastrar o item e lançar o que chegou dele".
   - Os botões se repetem no rodapé (`ProductDetailActions`) porque a aba Dados
     de um produto com variações é longa. Os dois "Salvar" são `type="submit"`
-    do mesmo form, então o Enter num campo também grava e volta.
-  - O fechamento do Salvar vai por `onSaved`, e **não** pelo `onRequestClose`
-    do Cancelar: logo depois de gravar o formulário ainda está marcado como
-    alterado, e o caminho do Cancelar perguntaria se quer descartar justamente
-    o que acabou de ser salvo.
+    do mesmo form, então o Enter num campo também grava.
+- **O salvar só manda o "Exibir no site" e a galeria quando a pessoa mexeu
+  neles NESTA tela** (23/09/2026). A lupa da listagem, ou outra aba, pode ter
+  ligado o site ou posto uma foto depois que este cadastro abriu; mandados com o
+  valor antigo, os dois desfaziam a mudança em silêncio. O ponto de partida
+  (`savedBaseline`, em `useProductEditor`) é o que o servidor tinha na abertura
+  e é refeito a cada salvar. Omitido, o servidor mantém o interruptor; sem a
+  chamada, a galeria fica como está. Mexer na galeria numa tela velha ainda
+  grava a lista dela inteira: é a última gravação que vale.
+- **"Último custo" e "Estoque atual" ficam acima de preço e status** no produto
+  simples, só para leitura (`ProductCostAndStock`). Vêm do servidor, e não do
+  formulário: a aba Estoque e a contagem mudam os dois com a tela aberta. Sem
+  entrada de estoque, os dois mostram "-", e não zero.
 - **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem id
   não há lote para lançar nem etiqueta para associar; a aba Estoque abriria só
   para dizer "salve primeiro". O `Avançar` da aba Dados salva e já cai em
   Estoque, que é o fluxo de quem acabou de receber mercadoria nova. O
-  `handleSubmit` devolve `boolean` para o Avançar só trocar de aba — e o Salvar
-  só fechar — depois de o servidor confirmar.
+  `handleSubmit` devolve `boolean` para o Avançar só trocar de aba depois de o
+  servidor confirmar.
 - **Validação reprovada traz a aba Dados para a frente.** Todo campo obrigatório
   mora lá; focar um elemento de aba fechada não faz nada, e o salvar pareceria
   simplesmente não responder.
@@ -405,10 +415,11 @@ fiados entre `pages/products.tsx` e dois hooks:
   listagem `/estoque/entradas` e o item de menu "Entradas" saíram. A entrada é de
   UM produto desde 31/08/2026, e a listagem geral cobrava uma busca por produto
   para chegar no que interessa. Ver `features/stock-entries/README.md`.
-- O menu **Estoque** da listagem de produtos (dropdown e menu de contexto) abre
-  a tela de detalhe **já nesta aba** (`initialTab` do `ProductDetailScreen`).
-  A linha da listagem é um GRUPO, e é a aba que resolve qual variação recebe o
-  lançamento.
+- O item **Estoque** do menu da listagem, que abria o detalhe já nesta aba,
+  saiu em 23/09/2026 (pedido do dono). A aba continua abrindo direto pelo link
+  do recebimento de compra (`?aba=estoque`).
+- A **contagem física** também saiu daqui em 23/09/2026: é o "Corrigir estoque"
+  do menu da linha na listagem (seção 7).
 - Lista as **notas** que trouxeram o produto (`GET /PurchaseEntries?productId=`),
   da mais recente para a mais antiga. A ordenação é do backend (data de entrada
   decrescente e, no empate, id decrescente) — a tela não reordena nada.
@@ -416,7 +427,7 @@ fiados entre `pages/products.tsx` e dois hooks:
   listagem de notas não quebra por item. Quantidade e custo deste produto saem
   nos detalhes, pelo **olho** da linha — que abre o espelho da nota e, com o lote
   ainda intacto, o botão de **cancelar a entrada**. Consumido o lote, o botão dá
-  lugar à explicação de por que não dá mais e aponta a Contagem Física.
+  lugar à explicação de por que não dá mais e aponta o "Corrigir estoque".
 - **Produto novo não tem aba de estoque útil**: sem id gravado não há lote para
   lançar, e a aba explica isso em vez de abrir um formulário que falharia.
 - **Grupo com variações ganha um seletor de variação**, porque estoque é do SKU,
@@ -709,13 +720,19 @@ Regras que valem a pena conhecer antes de mexer:
 - **Pela Listagem**: Um ícone de lupa na imagem do produto abre o modal de pesquisa. Ao escolher uma imagem da internet, ela é baixada via proxy autenticado, otimizada localmente no frontend pelo motor de compressão e definida como a foto principal (índice 0) do produto, sem deletar as imagens existentes.
 - **Pela Tela de Detalhe**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.
 
-### 7. Contagem de estoque pelo menu da linha (23/09/2026)
+### 7. "Corrigir estoque" pelo menu da linha (23/09/2026)
 
-Pedido do dono para a **correção pontual**: o item "Contagem de estoque" do menu
-da linha (três pontos e clique direito) abre a contagem física sem abrir o
-cadastro. É a mesma contagem da aba Estoque — mesmo endpoint
-(`POST /InventoryCounts/products/{id}/stock-count`), mesmo `useStockCount`,
-mesma `StockCountModal` —, e o estado mora em `hooks/useProductListStockCount.ts`.
+Pedido do dono para a **correção pontual**: o item "Corrigir estoque" do menu da
+linha (três pontos e clique direito) abre a contagem física sem abrir o
+cadastro. Chamou-se "Contagem de estoque" até o mesmo dia, e é desde então o
+ÚNICO lugar da contagem — o botão "Contagem Física" da aba Estoque saiu. Usa o
+endpoint `POST /InventoryCounts/products/{id}/stock-count`, o `useStockCount` e
+a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
+
+- **A contagem manda o saldo que a modal mostrou** (`expectedStock`), e o
+  servidor recusa se o de agora for outro: duas contagens do mesmo SKU, ou o
+  reenvio de uma resposta perdida, lançavam a diferença duas vezes. Recusada, a
+  modal relê o produto e mostra o saldo novo.
 
 - **Só Administrador.** A página passa o `onStockCount` à tabela apenas para ele
   (`useIsAdmin`, em `src/hooks/use-sessao.ts`); sem a prop, o item não aparece.
@@ -739,4 +756,6 @@ mesma `StockCountModal` —, e o estado mora em `hooks/useProductListStockCount.
 - **A observação em branco diz de onde veio**: "Contagem de estoque pela
   listagem de produtos." Sem ela, o servidor grava "da conferência de
   produtos".
+- O menu não tem mais o item **Estoque** (23/09/2026): a entrada é pela aba
+  Estoque do detalhe.
 - Grupo sem produto nenhum (linha com id 0) não oferece o item: não há SKU.

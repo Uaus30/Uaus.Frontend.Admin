@@ -175,11 +175,11 @@ describe("ProductStockTab — conferência de estoque aberta", () => {
     mocks.useGetStockFreezeStatus.mockReturnValue({ data: { salesPaused: false }, isPending: false });
   });
 
-  it("trava a entrada e deixa a contagem física, que é a ferramenta da conferência", () => {
+  it("trava a entrada; a contagem física não mora mais na aba (é o Corrigir estoque da listagem)", () => {
     renderTab(vi.fn());
 
     expect(screen.getByRole("button", { name: /Registrar Entrada/i }).hasAttribute("disabled")).toBe(true);
-    expect(screen.getByRole("button", { name: /Contagem Física/i }).hasAttribute("disabled")).toBe(false);
+    expect(screen.queryByRole("button", { name: /Contagem Física/i })).toBeNull();
   });
 
   it("a entrada da compra espera o encerramento para abrir sozinha", () => {

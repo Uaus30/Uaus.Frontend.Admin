@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@workspace/ui";
 import { ProductBasicInfo } from "../editor/ProductBasicInfo";
 import { ProductPricing } from "../editor/ProductPricing";
+import { ProductCostAndStock } from "../editor/ProductCostAndStock";
 import { ProductImageGallery } from "../editor/ProductImageGallery";
 import { ProductVariationsManager } from "../editor/ProductVariationsManager";
 import type { useProductEditor } from "../../hooks/useProductEditor";
@@ -58,6 +59,9 @@ export function ProductGeneralTab({
             flashSuccess={flashSuccess}
             onPrintBarcode={onPrintBarcode}
           />
+
+          {/* Só leitura, acima de preço e status: é com eles na vista que se decide o preço. */}
+          <ProductCostAndStock editor={editor} />
 
           <ProductPricing
             editor={editor}

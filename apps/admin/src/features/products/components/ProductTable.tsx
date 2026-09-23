@@ -23,7 +23,6 @@ import {
   Trash2,
   AlertTriangle,
   MoreVertical,
-  Package,
   History,
   ChevronDown,
   ChevronRight,
@@ -63,13 +62,11 @@ type ProductTableProps = {
   productPageTotal: number;
   enrichedProducts: ProductTableRow[];
   onEdit: (product: ProductTableRow) => void;
-  /** Abre o detalhe do produto direto na aba Estoque, com o lançamento a um clique. */
-  onOpenStock: (product: ProductTableRow) => void;
   onDelete: (product: ProductTableRow) => void;
   onViewHistory?: (product: ProductTableRow) => void;
   /**
-   * "Contagem de estoque" direto da linha. Ausente, o item não aparece — é como
-   * a página o esconde de quem não é Administrador.
+   * "Corrigir estoque" direto da linha — a contagem física. Ausente, o item não
+   * aparece — é como a página o esconde de quem não é Administrador.
    */
   onStockCount?: (product: ProductTableRow) => void;
   onUpdatePrice?: (product: ProductTableRow, newPrice: number) => Promise<void>;
@@ -195,7 +192,6 @@ export function ProductTable({
   productPageTotal,
   enrichedProducts,
   onEdit,
-  onOpenStock,
   onDelete,
   onViewHistory,
   onStockCount,
@@ -358,9 +354,10 @@ export function ProductTable({
                         </td>
                         {/*
                           Somente leitura desde 31/08/2026: estoque nasce de
-                          lote, e o lançamento (com custo e fornecedor) está a um
-                          clique no menu Estoque. A célula editável gravava um
-                          ajuste herdando o custo do último lote sem avisar.
+                          lote — a entrada é pela aba Estoque do detalhe, e o
+                          acerto pela contagem, em "Corrigir estoque". A célula
+                          editável gravava um ajuste herdando o custo do último
+                          lote sem avisar.
                         */}
                         <td className="px-6 py-4">
                           <div className="flex flex-col">
@@ -429,25 +426,13 @@ export function ProductTable({
                                   <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                                   Editar
                                 </DropdownMenuItem>
-                                {/*
-                                  Abre a aba Estoque do detalhe, não a página de
-                                  entradas: a linha é um GRUPO, e é a aba que
-                                  resolve qual variação recebe o lançamento.
-                                */}
-                                <DropdownMenuItem
-                                  onClick={() => onOpenStock(product)}
-                                  className="cursor-pointer gap-2"
-                                >
-                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                                  Estoque
-                                </DropdownMenuItem>
                                 {onStockCount && canCountStock(product) && (
                                   <DropdownMenuItem
                                     onClick={() => onStockCount(product)}
                                     className="cursor-pointer gap-2"
                                   >
                                     <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Contagem de estoque
+                                    Corrigir estoque
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem
@@ -475,17 +460,13 @@ export function ProductTable({
                         <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                         Editar
                       </ContextMenuItem>
-                      <ContextMenuItem onClick={() => onOpenStock(product)} className="cursor-pointer gap-2">
-                        <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                        Estoque
-                      </ContextMenuItem>
                       {onStockCount && canCountStock(product) && (
                         <ContextMenuItem
                           onClick={() => onStockCount(product)}
                           className="cursor-pointer gap-2"
                         >
                           <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
-                          Contagem de estoque
+                          Corrigir estoque
                         </ContextMenuItem>
                       )}
                       {onViewHistory && (

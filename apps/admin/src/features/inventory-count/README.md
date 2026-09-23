@@ -20,9 +20,9 @@ O desenho do servidor está em `docs/conferencia-de-produtos.md`, no repositóri
 - `hooks/useInventoryCount.ts`: o estado da aba — conferência aberta, filtros,
   paginação, as três mutações (iniciar, encerrar, marcar) e a navegação para o
   produto.
-- `hooks/useStockCount.ts`: a contagem física de uma variação, usada dentro da
-  aba **Estoque** do produto e pelo item **Contagem de estoque** do menu da
-  listagem de produtos.
+- `hooks/useStockCount.ts`: a contagem física de uma variação, usada pelo item
+  **Corrigir estoque** do menu da listagem de produtos — desde 23/09/2026, o
+  único lugar dela (o botão da aba Estoque do produto saiu).
 - `components/InventoryCountPanel.tsx`: a aba inteira; escolhe entre o convite a
   começar e a conferência em andamento.
 - `components/InventoryCountStart.tsx`: o convite, com o que a conferência faz e
@@ -98,8 +98,13 @@ vira lote — e lote sem custo envenena o FIFO e a valorização do inventário.
 dois chegam sugeridos (fornecedor da última entrada, custo atual do produto) e
 podem ser trocados.
 
-A contagem é da **variação** aberta na aba Estoque, não do grupo: estoque é do
-SKU. O grupo é a unidade da conferência; o SKU é a unidade do estoque.
+A contagem é da **variação**, não do grupo: estoque é do SKU. O grupo é a
+unidade da conferência; o SKU é a unidade do estoque.
+
+**A contagem manda o saldo que a modal mostrou** (`expectedStock`, 23/09/2026).
+O servidor trava o estoque do produto, relê o saldo e recusa se ele mudou:
+duas contagens do mesmo SKU, ou o reenvio de uma resposta perdida, lançavam a
+diferença duas vezes. Recusada, a modal relê o produto e mostra o saldo novo.
 
 **A mesma modal abre pela listagem de produtos** (23/09/2026), no menu da linha,
 só para Administrador. Ali a linha é um GRUPO, então a modal ganha por cima a
