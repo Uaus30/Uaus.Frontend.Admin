@@ -377,6 +377,12 @@ Regras que valem a pena conhecer antes de mexer:
   simples, só para leitura (`ProductCostAndStock`). Vêm do servidor, e não do
   formulário: a aba Estoque e a contagem mudam os dois com a tela aberta. Sem
   entrada de estoque, os dois mostram "-", e não zero.
+- **Abaixo do preço, a margem sobre o último custo** (23/09/2026,
+  `ProductMarginHint`). Recalcula a cada tecla: o `CurrencyInput` só entrega o
+  valor no blur, e o `onDraftChange` dele informa o que está sendo digitado.
+  Faixa e cor são as de toda tela que mostra margem (`marginBand` do core e
+  `marginToneClass`). Sem custo maior que zero, não aparece. O custo vem da
+  mesma consulta do "Último custo" (`useProductForEntry`), numa requisição só.
 - **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem id
   não há lote para lançar nem etiqueta para associar; a aba Estoque abriria só
   para dizer "salve primeiro". O `Avançar` da aba Dados salva e já cai em

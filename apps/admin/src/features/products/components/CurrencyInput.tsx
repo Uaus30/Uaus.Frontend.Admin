@@ -29,6 +29,13 @@ type CurrencyInputProps = {
    * digitar algo que o campo não entenda.
    */
   allowFormula?: boolean;
+  /**
+   * O valor A CADA TECLA, para quem precisa acompanhar a digitação — a margem
+   * abaixo do preço de venda. O `onChange` continua só no blur; aqui chega o
+   * que ele entregaria se o campo perdesse o foco agora, e `null` quando a
+   * edição termina (o valor final vem pelo `onChange`, no mesmo evento).
+   */
+  onDraftChange?: (value: number | null) => void;
 };
 
 /**
@@ -48,6 +55,19 @@ function sanitizeInput(raw: string, allowFormula: boolean): string {
 }
 
 /**
+ * O número que o campo entrega ao perder o foco, a partir do que está digitado.
+ *
+ * `null` só para a conta que não fecha — e aí o campo volta ao valor anterior
+ * em vez de zerar (ver o `onBlur`).
+ */
+function parseTyped(raw: string, allowFormula: boolean): number | null {
+  if (allowFormula && isAmountFormula(raw)) return evaluateAmountFormula(raw);
+
+  const numericValue = Number(raw.replace(",", "."));
+  return isNaN(numericValue) ? 0 : numericValue;
+}
+
+/**
  * CurrencyInput
  *
  * A controlled input component specialized in formatting numbers as Brazilian Real currency (R$).
@@ -62,6 +82,7 @@ export function CurrencyInput({
   className,
   readOnly,
   allowFormula = false,
+  onDraftChange,
 }: CurrencyInputProps) {
   const [focused, setFocused] = useState(false);
   const [localValue, setLocalValue] = useState(value.toString().replace(".", ","));
@@ -96,7 +117,13 @@ export function CurrencyInput({
       type="text"
       inputMode="decimal"
       value={localValue}
-      onChange={(e) => setLocalValue(sanitizeInput(e.target.value, allowFormula))}
+      onChange={(e) => {
+        const next = sanitizeInput(e.target.value, allowFormula);
+        setLocalValue(next);
+        // Conta pela metade ("=17,99*") ainda não tem valor: vale o anterior,
+        // que é o que o campo guardaria se perdesse o foco agora.
+        onDraftChange?.(parseTyped(next, allowFormula) ?? value);
+      }}
       onKeyDown={(event) => {
         if (event.key !== "Enter" || !allowFormula || !isAmountFormula(localValue)) return;
 
@@ -108,18 +135,13 @@ export function CurrencyInput({
       }}
       onBlur={() => {
         setFocused(false);
+        onDraftChange?.(null);
 
-        if (allowFormula && isAmountFormula(localValue)) {
-          const result = evaluateAmountFormula(localValue);
-          // Conta que não fecha não zera o campo: o valor anterior volta (o
-          // efeito acima reescreve `localValue` a partir de `value`). Zerar
-          // apagaria em silêncio um total que já estava certo.
-          if (result !== null) onChange(result);
-          return;
-        }
-
-        const numericValue = Number(localValue.replace(",", "."));
-        onChange(isNaN(numericValue) ? 0 : numericValue);
+        // Conta que não fecha não zera o campo: o valor anterior volta (o
+        // efeito acima reescreve `localValue` a partir de `value`). Zerar
+        // apagaria em silêncio um total que já estava certo.
+        const result = parseTyped(localValue, allowFormula);
+        if (result !== null) onChange(result);
       }}
       className={`${className} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
     />

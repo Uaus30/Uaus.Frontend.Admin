@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { CurrencyInput } from "../CurrencyInput";
 import type { useProductEditor } from "../../hooks/useProductEditor";
+import { useProductForEntry } from "../../hooks/useProductForEntry";
+import { ProductMarginHint } from "./ProductMarginHint";
 
 type ProductPricingProps = {
   editor: ReturnType<typeof useProductEditor>;
@@ -18,9 +20,16 @@ type ProductPricingProps = {
  *
  * Estoque mínimo, estoque atual e visibilidade moravam aqui atrás do botão de
  * olho; foram para a aba **Opcionais** da tela de detalhe.
+ *
+ * Abaixo do preço, a margem sobre o último custo — ver `ProductMarginHint`.
  */
 export function ProductPricing({ editor, validationErrors, setValidationErrors }: ProductPricingProps) {
   const { form, productEditor, setProductEditor, selectableStatusOptions } = editor;
+  // O custo é o do campo "Último custo", da mesma consulta — uma requisição só.
+  const { data: product } = useProductForEntry(form.hasVariations ? null : productEditor.id);
+  // O preço ENQUANTO se digita: o campo só entrega o valor no blur, e a margem
+  // acompanha a digitação. `null` fora da edição — aí vale o do formulário.
+  const [typedPrice, setTypedPrice] = useState<number | null>(null);
 
   if (form.hasVariations) return null;
 
@@ -37,11 +46,13 @@ export function ProductPricing({ editor, validationErrors, setValidationErrors }
             setProductEditor((current) => ({ ...current, price: val }));
             if (validationErrors.price) setValidationErrors((prev) => ({ ...prev, price: false }));
           }}
+          onDraftChange={setTypedPrice}
           className={`bg-background w-full ${validationErrors.price ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500" : ""}`}
         />
         {validationErrors.price && (
           <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
         )}
+        <ProductMarginHint cost={product?.costPrice} price={typedPrice ?? productEditor.price} />
       </div>
 
       <div className="space-y-2">

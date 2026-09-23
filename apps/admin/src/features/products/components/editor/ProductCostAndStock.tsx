@@ -1,7 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { Input } from "@workspace/ui";
-import { getProductById } from "@/services/products.service";
 import type { useProductEditor } from "../../hooks/useProductEditor";
+import { useProductForEntry } from "../../hooks/useProductForEntry";
 import { describeCostAndStock } from "../../lib/costAndStock";
 
 type ProductCostAndStockProps = {
@@ -24,11 +23,7 @@ export function ProductCostAndStock({ editor }: ProductCostAndStockProps) {
   const { form, productEditor } = editor;
   const productId = form.hasVariations ? null : productEditor.id;
 
-  const { data: product, isLoading } = useQuery({
-    queryKey: ["product-for-entry", productId],
-    enabled: productId !== null,
-    queryFn: () => getProductById(productId as number),
-  });
+  const { data: product, isLoading } = useProductForEntry(productId);
 
   if (form.hasVariations) return null;
 
