@@ -245,7 +245,16 @@ function Linha({
             </span>
           </span>
         ) : (
-          <span className="text-sm text-muted-foreground">A conferir</span>
+          <span className="flex flex-col">
+            <span className="text-sm text-muted-foreground">A conferir</span>
+            {/* A última vez numa rodada anterior: ao recomeçar do zero, é o que
+                separa o conferido ontem do esquecido há meses. */}
+            <span className="text-2xs text-muted-foreground">
+              {item.lastReviewedAt
+                ? `Última conferência: ${formatDate(item.lastReviewedAt)}`
+                : "Nunca conferido"}
+            </span>
+          </span>
         )}
       </TableCell>
 

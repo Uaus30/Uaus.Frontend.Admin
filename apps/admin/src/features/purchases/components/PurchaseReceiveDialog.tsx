@@ -21,6 +21,11 @@ type PurchaseReceiveDialogProps = {
   /** Leva ao formulário da compra — o caminho quando ela foi anotada sem custo. */
   onEditPurchase: (purchase: PurchaseDto) => void;
   isSaving: boolean;
+  /**
+   * Conferência de estoque aberta: o servidor recusaria a entrada. O diálogo
+   * avisa e trava o confirmar, em vez de o operador descobrir pela recusa.
+   */
+  stockFrozen?: boolean;
 };
 
 /**
@@ -59,6 +64,7 @@ export function PurchaseReceiveDialog({
   onConfirm,
   onEditPurchase,
   isSaving,
+  stockFrozen = false,
 }: PurchaseReceiveDialogProps) {
   const missingCost = purchase !== null && purchase.finalTotal <= 0;
   // Com uma variação só não há conferência a fazer: o que foi pedido é o que
@@ -196,6 +202,12 @@ export function PurchaseReceiveDialog({
               />
             </div>
 
+            {stockFrozen && (
+              <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                Há uma conferência de estoque em andamento: o recebimento fica pausado até ela ser encerrada.
+              </p>
+            )}
+
             <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancelar
@@ -208,7 +220,7 @@ export function PurchaseReceiveDialog({
                 <Button
                   type="submit"
                   className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  disabled={isSaving || !gradeFecha}
+                  disabled={isSaving || !gradeFecha || stockFrozen}
                 >
                   {isSaving ? "Lançando..." : "Confirmar recebimento"}
                 </Button>

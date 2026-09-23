@@ -26,6 +26,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@workspace/
 import { Spinner } from "@workspace/ui";
 import { ROLE_LABELS, buildMenu, type RoleCode } from "@/routes";
 import { pdvHomeUrl } from "@/lib/pdv-links";
+import { StockFreezeBanner } from "@/components/stock-freeze-banner";
 import { enumCode, USER_ROLE } from "@workspace/api-client-react";
 import { formatUpdatedAt, formatVersion } from "@workspace/core";
 
@@ -250,6 +251,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Button>
             )}
           </header>
+          {/* Toda tela, logo abaixo do cabeçalho: a conferência aberta para a loja. */}
+          <StockFreezeBanner />
           <main className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-7xl mx-auto">{children}</div>
           </main>

@@ -1,12 +1,13 @@
 import React from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   useGetPurchases: vi.fn(),
   receivePurchase: vi.fn(),
   navigate: vi.fn(),
+  useGetStockFreezeStatus: vi.fn(() => ({ data: { salesPaused: false } })),
 }));
 
 vi.mock("wouter", async (importOriginal) => ({
@@ -18,6 +19,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetPurchases: mocks.useGetPurchases,
   receivePurchase: mocks.receivePurchase,
+  useGetStockFreezeStatus: mocks.useGetStockFreezeStatus,
 }));
 
 vi.mock("@/hooks/use-catalog", async (importOriginal) => ({
@@ -143,6 +145,37 @@ describe("usePurchases — o caminho do 'Lançar recebimento'", () => {
 
     expect(mocks.navigate).not.toHaveBeenCalled();
     expect(result.current.receiving).not.toBeNull();
+  });
+});
+
+describe("usePurchases — conferência de estoque aberta", () => {
+  beforeEach(() => {
+    mocks.navigate.mockClear();
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+    mocks.useGetStockFreezeStatus.mockReturnValue({ data: { salesPaused: true } });
+  });
+
+  afterEach(() => {
+    mocks.useGetStockFreezeStatus.mockReturnValue({ data: { salesPaused: false } });
+  });
+
+  it("não abre o recebimento de produto que já existe", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(compra({ productId: 963, productGroupId: 805 })));
+
+    expect(result.current.stockFrozen).toBe(true);
+    expect(result.current.receiving).toBeNull();
+  });
+
+  it("não cria o cadastro do produto novo — a entrada seria recusada e a compra ficaria sem vínculo", () => {
+    // Depois do encerramento, a compra ainda sem produto mandaria criar o
+    // cadastro DE NOVO: dois produtos iguais.
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(compra({ productId: null, productGroupId: null })));
+
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 });
 

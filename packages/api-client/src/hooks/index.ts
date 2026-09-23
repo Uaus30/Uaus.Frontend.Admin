@@ -15,6 +15,7 @@ export * from "./categories";
 export * from "./tags";
 export * from "./suppliers";
 export * from "./purchases";
+export * from "./stock-freeze";
 export * from "./purchase-entry-cost";
 export * from "./logs";
 export * from "./health";

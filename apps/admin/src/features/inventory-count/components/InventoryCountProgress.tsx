@@ -1,4 +1,4 @@
-import { CalendarClock, CheckCircle2, CircleDashed, Flag } from "lucide-react";
+import { CalendarClock, CheckCircle2, CircleDashed, Flag, Snowflake } from "lucide-react";
 import { Button, Card, CardContent } from "@workspace/ui";
 import { formatDate } from "@workspace/core";
 import type { InventoryCountDto } from "@workspace/api-client-react";
@@ -54,6 +54,11 @@ export function InventoryCountProgress({ count, onFinish, isFinishing }: Invento
               Iniciada em {formatDate(count.startedAt)}
               {count.userName ? ` por ${count.userName}` : ""}
             </p>
+            {/* Lembrete do custo de deixar aberta: a loja parada. Âmbar, com ícone. */}
+            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+              <Snowflake className="h-3.5 w-3.5" />
+              Estoque congelado: o PDV não vende até você encerrar
+            </p>
           </div>
 
           <Button
@@ -63,7 +68,7 @@ export function InventoryCountProgress({ count, onFinish, isFinishing }: Invento
             disabled={isFinishing}
             className="hover-elevate gap-2 self-start lg:self-center"
           >
-            <Flag className="h-4 w-4" /> Encerrar conferência
+            <Flag className="h-4 w-4" /> Encerrar rodada
           </Button>
         </div>
 

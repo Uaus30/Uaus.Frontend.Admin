@@ -7,6 +7,7 @@ import { describeApiError, formatDate } from "@workspace/core";
 import {
   enumCode,
   getGetInventoryCountsQueryKey,
+  getGetStockFreezeStatusQueryKey,
   INVENTORY_COUNT_STATUS,
   reviewInventoryCountProduct,
   useGetInventoryCountProductState,
@@ -52,7 +53,12 @@ export function ProductConferenceBanner({ productGroupId }: ProductConferenceBan
   const mutation = useMutation({
     mutationFn: (reviewed: boolean) => reviewInventoryCountProduct(productGroupId!, reviewed),
     onSuccess: async (count, reviewed) => {
-      await queryClient.invalidateQueries({ queryKey: getGetInventoryCountsQueryKey() });
+      // O congelamento junto: o último conferido ENCERRA a rodada, e a faixa do
+      // topo e os botões de entrada precisam soltar na hora.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetInventoryCountsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetStockFreezeStatusQueryKey() }),
+      ]);
       avisar(count, reviewed);
       if (reviewed && voltarParaConferencia) navigate(inventoryCountTabPathname());
     },
@@ -74,7 +80,7 @@ export function ProductConferenceBanner({ productGroupId }: ProductConferenceBan
     if (enumCode(count.status, INVENTORY_COUNT_STATUS) === INVENTORY_COUNT_STATUS.Finished) {
       toast({
         title: "Conferência concluída!",
-        description: `Este era o último dos ${count.totalItems} cadastros. A conferência foi encerrada.`,
+        description: `Este era o último dos ${count.totalItems} cadastros. A conferência foi encerrada e as vendas estão liberadas.`,
       });
       return;
     }
@@ -114,7 +120,12 @@ export function ProductConferenceBanner({ productGroupId }: ProductConferenceBan
         ) : (
           <span>
             Este produto está na <strong>conferência em andamento</strong>. Acerte foto, dados, variações e
-            estoque e marque como conferido.
+            estoque e marque como conferido.{" "}
+            <span className="text-xs font-normal opacity-80">
+              {state.lastReviewedAt
+                ? `Última conferência: ${formatDate(state.lastReviewedAt)}.`
+                : "Nunca foi conferido."}
+            </span>
           </span>
         )}
       </p>

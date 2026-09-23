@@ -11,6 +11,7 @@ import {
   receivePurchase,
   updatePurchaseStatus,
   useGetPurchases,
+  useGetStockFreezeStatus,
   type PurchaseDto,
   type PurchasesParams,
 } from "@workspace/api-client-react";
@@ -137,6 +138,8 @@ export function usePurchases() {
   useApiErrorToast(list.isError, list.error);
 
   const { data: suppliers = [] } = useAllSuppliers();
+  // O recebimento grava entrada: com a conferência de estoque aberta, fica pausado.
+  const stockFrozen = useGetStockFreezeStatus().data?.salesPaused === true;
   // Departamento e categoria saíram do cadastro de produto para a compra
   // (13/09/2026): o recebimento de produto novo gera o cadastro com os dois
   // preenchidos. O departamento não é gravado — ele filtra as categorias.
@@ -261,10 +264,25 @@ export function usePurchases() {
    * que o custo pode não existir. Receber dali pularia a etapa que diz que a
    * compra saiu: o caminho é marcar como a caminho primeiro, o que já exige o
    * custo de que a entrada precisa.
+   *
+   * **Nem começa com a conferência de estoque aberta** (23/09/2026): a entrada
+   * seria recusada (423). Pelo caminho do produto novo seria pior do que a
+   * recusa — o cadastro nasceria, a entrada não, e a compra, ainda sem produto
+   * vinculado, mandaria criar o cadastro DE NOVO depois do encerramento.
    */
   function startReceive(purchase: PurchaseDto) {
     const status = enumCode(purchase.status, PURCHASE_STATUS);
     if (status === PURCHASE_STATUS.Received || status === PURCHASE_STATUS.Pending) return;
+
+    if (stockFrozen) {
+      toast({
+        title: "Recebimento pausado",
+        description:
+          "Há uma conferência de estoque em andamento. Lance o recebimento depois que ela for encerrada.",
+        variant: "warning",
+      });
+      return;
+    }
 
     if (!purchaseHasProduct(purchase)) {
       navigate(productFromPurchasePath(purchase.id));
@@ -356,5 +374,6 @@ export function usePurchases() {
     editReceiving,
     confirmReceive,
     isReceiving: receiveMutation.isPending,
+    stockFrozen,
   };
 }

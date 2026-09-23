@@ -20,6 +20,13 @@ export const INVENTORY_COUNT_STATUS = {
   Finished: 2,
 } as const;
 
+/**
+ * Como uma conferência nova começa (23/09/2026). Com ela aberta o estoque fica
+ * congelado e a loja não vende, então a varredura é feita em RODADAS curtas:
+ * `Continue` parte do que a última rodada deixou pendente.
+ */
+export type InventoryCountStartMode = "Restart" | "Continue";
+
 /** A conferência e o quanto dela já foi feito. */
 export interface InventoryCountDto {
   id: number;
@@ -75,6 +82,11 @@ export interface InventoryCountItemDto {
   reviewed: boolean;
   reviewedAt?: string | null;
   reviewedByUserName?: string | null;
+  /**
+   * A última vez que o cadastro foi conferido numa rodada ANTERIOR. Ausente
+   * quando nunca foi — é o que diz, ao recomeçar do zero, quem está esquecido.
+   */
+  lastReviewedAt?: string;
   stockAtReview?: number | null;
   notes?: string | null;
 }
@@ -86,6 +98,8 @@ export interface InventoryCountProductStateDto {
   inCount: boolean;
   reviewed: boolean;
   reviewedAt?: string | null;
+  /** A última conferência numa rodada anterior. Ausente quando nunca houve. */
+  lastReviewedAt?: string;
 }
 
 /** O que a contagem física lançou para o saldo virar o número contado. */
@@ -133,6 +147,9 @@ export const getGetCurrentInventoryCountQueryKey = (): QueryKey => [
   "current",
 ];
 
+/** Chave da última rodada encerrada — a de onde se continua. */
+export const getGetLastInventoryCountQueryKey = (): QueryKey => [...getGetInventoryCountsQueryKey(), "last"];
+
 /** Chave da lista de itens. Quem consulta acrescenta os parâmetros ao prefixo. */
 export const getGetInventoryCountItemsQueryKey = (): QueryKey => [
   ...getGetInventoryCountsQueryKey(),
@@ -160,6 +177,23 @@ export function useGetCurrentInventoryCount(options?: {
   return useQuery<InventoryCountDto | null, ApiError, InventoryCountDto | null, QueryKey>({
     queryKey: getGetCurrentInventoryCountQueryKey(),
     queryFn: () => apiGet<InventoryCountDto>("/InventoryCounts/current"),
+    ...options?.query,
+  });
+}
+
+/**
+ * A última rodada ENCERRADA, com o que ela deixou pendente — é o que a tela
+ * oferece para "continuar de onde parou". `null` quando nunca houve (204).
+ */
+export function useGetLastInventoryCount(options?: {
+  query?: Omit<
+    UseQueryOptions<InventoryCountDto | null, ApiError, InventoryCountDto | null, QueryKey>,
+    "queryKey" | "queryFn"
+  >;
+}) {
+  return useQuery<InventoryCountDto | null, ApiError, InventoryCountDto | null, QueryKey>({
+    queryKey: getGetLastInventoryCountQueryKey(),
+    queryFn: () => apiGet<InventoryCountDto>("/InventoryCounts/last"),
     ...options?.query,
   });
 }
@@ -230,9 +264,15 @@ export function useGetInventoryCountProductState(
   });
 }
 
-/** Abre uma conferência e tira o snapshot do catálogo. */
-export async function startInventoryCount(notes?: string): Promise<InventoryCountDto> {
-  const response = await apiPost<InventoryCountDto>("/InventoryCounts", { notes: notes ?? null });
+/**
+ * Abre uma conferência: do zero (snapshot do catálogo inteiro) ou continuando
+ * os pendentes da última rodada. Com ela aberta, o estoque fica congelado.
+ */
+export async function startInventoryCount(
+  mode: InventoryCountStartMode = "Restart",
+  notes?: string,
+): Promise<InventoryCountDto> {
+  const response = await apiPost<InventoryCountDto>("/InventoryCounts", { notes: notes ?? null, mode });
   if (!response.data) throw new Error("Não foi possível abrir a conferência.");
   return response.data;
 }

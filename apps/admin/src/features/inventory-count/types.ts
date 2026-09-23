@@ -1,4 +1,8 @@
-import type { InventoryCountDto, InventoryCountItemDto } from "@workspace/api-client-react";
+import type {
+  InventoryCountDto,
+  InventoryCountItemDto,
+  InventoryCountStartMode,
+} from "@workspace/api-client-react";
 
 /** Filtro de situação da lista. O padrão da tela é `pending`. */
 export type InventoryCountStatusFilter = "pending" | "reviewed" | "all";
@@ -41,9 +45,12 @@ export interface InventoryCountState {
 
   categories: { id: number; name: string }[];
 
-  /** Abre a conferência e tira o snapshot do catálogo. */
-  start: () => void;
-  isStarting: boolean;
+  /** A última rodada encerrada — é dela que se continua. `null` sem conferência anterior. */
+  lastCount: InventoryCountDto | null;
+  /** Abre a conferência: do zero ou continuando os pendentes da última rodada. */
+  start: (mode: InventoryCountStartMode) => void;
+  /** A rodada sendo aberta — é o botão dela que mostra o andamento. `null` fora da abertura. */
+  startingMode: InventoryCountStartMode | null;
 
   /** Encerra antes de conferir tudo. Passa pela confirmação da tela. */
   askFinish: () => void;

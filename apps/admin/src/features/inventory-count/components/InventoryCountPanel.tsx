@@ -18,8 +18,9 @@ export function InventoryCountPanel() {
     return (
       <InventoryCountStart
         isLoading={state.isLoadingCount}
+        lastCount={state.lastCount}
         onStart={state.start}
-        isStarting={state.isStarting}
+        startingMode={state.startingMode}
       />
     );
   }
@@ -39,12 +40,12 @@ export function InventoryCountPanel() {
         onOpenChange={(open) => {
           if (!open) state.cancelFinish();
         }}
-        title="Encerrar a conferência agora?"
+        title="Encerrar esta rodada da conferência?"
         description={
           <>
             Ainda faltam <strong>{state.count.pendingItems}</strong> de {state.count.totalItems} cadastros.
-            Eles <strong>não</strong> serão marcados como conferidos — a conferência fecha do jeito que está e
-            o que sobrou volta na próxima, que você pode iniciar quando quiser.
+            Eles <strong>não</strong> serão marcados como conferidos: ficam para a próxima rodada, em
+            &ldquo;Continuar de onde parou&rdquo;. Encerrar libera o estoque — o PDV volta a vender.
           </>
         }
         confirmLabel="Encerrar"

@@ -62,6 +62,7 @@ export default function Purchases() {
         onConfirm={purchases.confirmReceive}
         onEditPurchase={purchases.editReceiving}
         isSaving={purchases.isReceiving}
+        stockFrozen={purchases.stockFrozen}
       />
 
       <ProductImageSearchModal

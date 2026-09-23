@@ -5,7 +5,7 @@ import { Spinner } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatPercentage, formatQuantity, marginBand, marginPercent } from "@workspace/core";
 import { marginToneClass } from "@/features/stock-entries/lib/margin-tone";
-import { PURCHASE_ENTRY_TYPE, enumCode } from "@workspace/api-client-react";
+import { PURCHASE_ENTRY_TYPE, enumCode, useGetStockFreezeStatus } from "@workspace/api-client-react";
 import { useProductStockEntries } from "@/features/stock-entries/hooks/useProductStockEntries";
 import { useEntryCostCorrection } from "@/features/stock-entries/hooks/useEntryCostCorrection";
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
@@ -59,7 +59,15 @@ export function ProductStockTab({
   entryPrefill = null,
   onEntrySaved,
 }: ProductStockTabProps) {
-  const stock = useProductStockEntries(productId, { prefill: entryPrefill, onEntrySaved });
+  // Conferência de estoque aberta: a entrada seria recusada. A contagem física
+  // continua liberada — ela é a ferramenta da própria conferência.
+  const freeze = useGetStockFreezeStatus();
+  const stockFrozen = freeze.data?.salesPaused === true;
+  // A entrada da compra só abre sozinha com o congelamento RESPONDIDO e solto:
+  // aberta antes, ela seria recusada ao salvar. Encerrada a conferência, a
+  // consulta muda e a abertura acontece nessa hora.
+  const prefillNow = freeze.isPending || stockFrozen ? null : entryPrefill;
+  const stock = useProductStockEntries(productId, { prefill: prefillNow, onEntrySaved });
   // O custo da última entrada se corrige no espelho da nota (decisão do dono, 23/09/2026).
   const custo = useEntryCostCorrection();
   const entries = stock.entriesData?.data ?? [];
@@ -96,8 +104,10 @@ export function ProductStockTab({
           className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300"
         >
           Recebimento da compra: {formatQuantity(entryPrefill.quantity)} un. a{" "}
-          {formatCurrency(entryPrefill.unitCost)} cada. A entrada abre preenchida — confira e salve para
-          lançar a compra.
+          {formatCurrency(entryPrefill.unitCost)} cada.{" "}
+          {stockFrozen
+            ? "A entrada abre preenchida quando a conferência de estoque for encerrada."
+            : "A entrada abre preenchida — confira e salve para lançar a compra."}
         </p>
       )}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -184,7 +194,8 @@ export function ProductStockTab({
           <Button
             type="button"
             onClick={stock.openNewEntry}
-            disabled={!stock.product}
+            disabled={!stock.product || stockFrozen}
+            title={stockFrozen ? "Pausado: há conferência de estoque em andamento" : undefined}
             className="gap-2 bg-primary text-primary-foreground hover-elevate"
           >
             <Plus className="h-4 w-4" /> Registrar Entrada

@@ -117,6 +117,37 @@ contagem traz a lista, e o `useStockCount` a entrega ao aviso global
 resposta perdida, volta com diferença zero e sem a lista; aí o aviso sai da
 comparação do produto antes e depois (`reactivationBetween`).
 
+### 5.1. Rodadas, e o estoque congelado enquanto a rodada está aberta (23/09/2026)
+
+Decisão do dono: **com a conferência aberta, nenhuma venda, cancelamento de venda,
+entrada ou baixa**. A contagem compara a prateleira com o saldo, e um saldo que
+anda enquanto alguém conta produz a diferença errada. Quem garante é o servidor
+(ele recusa com a mensagem pronta). A tela avisa antes:
+
+- a tela de abertura diz, em âmbar e antes do botão, que o estoque vai congelar;
+- o cabeçalho da conferência aberta repete "Estoque congelado: o PDV não vende até
+  você encerrar";
+- a faixa global do admin (`src/components/stock-freeze-banner.tsx`) aparece em
+  toda tela e leva de volta à conferência;
+- "Registrar Entrada" (aba Estoque) e "Confirmar recebimento" (compras) ficam
+  travados. Nas demais telas, a recusa do servidor chega no aviso de erro.
+
+A contagem física segue liberada: é a ferramenta da própria conferência.
+
+Como a loja não vende com a conferência aberta, ela é feita em **rodadas curtas**.
+Sem conferência aberta, a tela lê a última rodada encerrada
+(`GET /InventoryCounts/last`) e, se ela deixou pendentes, oferece **Continuar de
+onde parou (N)** — só os que faltam — ou **Recomeçar do zero**. "Encerrar rodada"
+é o fim normal de uma sessão; o que faltou continua na próxima.
+
+Cada linha pendente mostra a **última conferência** do cadastro numa rodada
+anterior ("Nunca conferido" quando não houve), e a tarja da tela do produto
+também. Ao recomeçar do zero, é o que separa o conferido ontem do esquecido há
+meses.
+
+Abrir e encerrar invalidam o status do congelamento (`getGetStockFreezeStatusQueryKey`):
+a faixa e os botões mudam na hora, sem esperar a consulta seguinte de 30 s.
+
 ### 6. Cor é leitura, e o vocabulário é o do repositório
 
 Segue `Uaus.Docs/dominio/convencoes-de-interface.md`, sempre com ícone e rótulo

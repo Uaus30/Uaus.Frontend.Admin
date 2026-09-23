@@ -6,12 +6,15 @@ import {
   enumCode,
   finishInventoryCount,
   getGetInventoryCountsQueryKey,
+  getGetStockFreezeStatusQueryKey,
   INVENTORY_COUNT_STATUS,
   reviewInventoryCountProduct,
   startInventoryCount,
   useGetCurrentInventoryCount,
   useGetInventoryCountItems,
+  useGetLastInventoryCount,
   type InventoryCountDto,
+  type InventoryCountStartMode,
 } from "@workspace/api-client-react";
 import { describeApiError } from "@workspace/core";
 
@@ -64,6 +67,14 @@ export function useInventoryCount(): InventoryCountState {
 
   const count = currentQuery.data ?? null;
 
+  // Só sem conferência aberta: é o que a tela de abertura oferece para
+  // "continuar de onde parou". Sem reconsulta ao voltar à aba — só muda quando
+  // uma rodada se encerra, e quem encerra invalida.
+  const lastQuery = useGetLastInventoryCount({
+    query: { enabled: currentQuery.isSuccess && !count, refetchOnWindowFocus: false },
+  });
+  useApiErrorToast(lastQuery.isError, lastQuery.error);
+
   const itemsQuery = useGetInventoryCountItems(count?.id, {
     search: debouncedSearch || undefined,
     categoryId: categoryId !== "all" ? Number(categoryId) : undefined,
@@ -82,7 +93,12 @@ export function useInventoryCount(): InventoryCountState {
    * o contador do cabeçalho — e a tarja da tela de produto — no número velho.
    */
   function invalidate() {
-    return queryClient.invalidateQueries({ queryKey: getGetInventoryCountsQueryKey() });
+    // O congelamento do estoque junto: abrir e encerrar a conferência muda a
+    // faixa do topo e o que os botões de entrada deixam fazer, na hora.
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: getGetInventoryCountsQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetStockFreezeStatusQueryKey() }),
+    ]);
   }
 
   function reportarErro(title: string, error: unknown) {
@@ -90,14 +106,14 @@ export function useInventoryCount(): InventoryCountState {
   }
 
   const startMutation = useMutation({
-    mutationFn: () => startInventoryCount(),
+    mutationFn: (mode: InventoryCountStartMode) => startInventoryCount(mode),
     onSuccess: async (nova) => {
       await invalidate();
       setStatusFilterState("pending");
       setPage(1);
       toast({
-        title: "Conferência iniciada",
-        description: `${nova.totalItems} cadastros entraram na lista. Marque cada um como conferido depois de acertar foto, dados e estoque.`,
+        title: "Conferência iniciada — estoque congelado",
+        description: `${nova.totalItems} cadastros entraram na lista. Até você encerrar, o PDV não vende e entradas, baixas e cancelamentos ficam pausados.`,
       });
     },
     onError: (error: unknown) => reportarErro("Não foi possível iniciar a conferência", error),
@@ -109,8 +125,8 @@ export function useInventoryCount(): InventoryCountState {
       await invalidate();
       setFinishAsked(false);
       toast({
-        title: "Conferência encerrada",
-        description: `${encerrada.reviewedItems} de ${encerrada.totalItems} cadastros foram conferidos. Você já pode iniciar outra quando quiser.`,
+        title: "Conferência encerrada — vendas liberadas",
+        description: `${encerrada.reviewedItems} de ${encerrada.totalItems} cadastros foram conferidos. O que faltou continua na próxima rodada.`,
       });
     },
     onError: (error: unknown) => reportarErro("Não foi possível encerrar a conferência", error),
@@ -143,7 +159,7 @@ export function useInventoryCount(): InventoryCountState {
     if (enumCode(atualizada.status, INVENTORY_COUNT_STATUS) === INVENTORY_COUNT_STATUS.Finished) {
       toast({
         title: "Conferência concluída!",
-        description: `Todos os ${atualizada.totalItems} cadastros foram conferidos. A conferência foi encerrada — quando precisar, inicie outra.`,
+        description: `Todos os ${atualizada.totalItems} cadastros foram conferidos. A conferência foi encerrada e as vendas estão liberadas.`,
       });
       return;
     }
@@ -207,7 +223,11 @@ export function useInventoryCount(): InventoryCountState {
 
   return {
     count,
-    isLoadingCount: currentQuery.isLoading,
+    // A tela de abertura espera a última rodada: antes dela, o "Continuar de
+    // onde parou" ainda não existe, e um clique rápido recomeçaria do zero. O
+    // `isFetching` cobre também o fim de uma rodada, quando o cache ainda traz
+    // a anterior à recém-encerrada.
+    isLoadingCount: currentQuery.isLoading || (count === null && lastQuery.isFetching),
     items: itemsQuery.data?.data ?? [],
     total: itemsQuery.data?.total ?? 0,
     isLoadingItems: itemsQuery.isLoading,
@@ -225,8 +245,9 @@ export function useInventoryCount(): InventoryCountState {
     pageSize,
     setPageSize,
     categories,
-    start: () => startMutation.mutate(),
-    isStarting: startMutation.isPending,
+    lastCount: lastQuery.data ?? null,
+    start: (mode: InventoryCountStartMode) => startMutation.mutate(mode),
+    startingMode: startMutation.isPending ? (startMutation.variables ?? null) : null,
     askFinish: () => setFinishAsked(true),
     finishAsked,
     cancelFinish: () => setFinishAsked(false),

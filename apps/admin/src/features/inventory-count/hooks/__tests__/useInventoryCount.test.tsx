@@ -2,10 +2,15 @@ import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { InventoryCountDto, InventoryCountItemDto } from "@workspace/api-client-react";
+import {
+  getGetStockFreezeStatusQueryKey,
+  type InventoryCountDto,
+  type InventoryCountItemDto,
+} from "@workspace/api-client-react";
 
 const mocks = vi.hoisted(() => ({
   useGetCurrentInventoryCount: vi.fn(),
+  useGetLastInventoryCount: vi.fn(),
   useGetInventoryCountItems: vi.fn(),
   startInventoryCount: vi.fn(),
   finishInventoryCount: vi.fn(),
@@ -19,6 +24,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetCurrentInventoryCount: mocks.useGetCurrentInventoryCount,
+  useGetLastInventoryCount: mocks.useGetLastInventoryCount,
   useGetInventoryCountItems: mocks.useGetInventoryCountItems,
   startInventoryCount: mocks.startInventoryCount,
   finishInventoryCount: mocks.finishInventoryCount,
@@ -78,9 +84,10 @@ const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  return Object.assign(wrapper, { queryClient });
 };
 
 /** Parâmetros da última consulta da lista — é por eles que o filtro se prova. */
@@ -93,6 +100,7 @@ function givenConferencia(count: InventoryCountDto | null) {
   mocks.useGetCurrentInventoryCount.mockReturnValue({
     data: count,
     isLoading: false,
+    isSuccess: true,
     isError: false,
     error: null,
   });
@@ -112,6 +120,7 @@ describe("useInventoryCount", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.useAllCategories.mockReturnValue({ data: [] });
+    mocks.useGetLastInventoryCount.mockReturnValue({ data: null });
     givenConferencia(conferenciaAberta);
     givenItens([bacia]);
   });
@@ -223,5 +232,110 @@ describe("useInventoryCount", () => {
     act(() => result.current.confirmFinish());
 
     await waitFor(() => expect(mocks.finishInventoryCount).toHaveBeenCalledWith(7));
+  });
+});
+
+describe("useInventoryCount — rodadas e estoque congelado (23/09/2026)", () => {
+  const rodadaEncerrada: InventoryCountDto = {
+    ...conferenciaAberta,
+    id: 6,
+    status: "Finished",
+    statusName: "Encerrada",
+    finishedAt: "2026-09-22T18:00:00",
+    reviewedItems: 18,
+    totalItems: 933,
+    pendingItems: 915,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useAllCategories.mockReturnValue({ data: [] });
+    givenItens([]);
+  });
+
+  it("sem conferência aberta, oferece a última rodada para continuar", () => {
+    givenConferencia(null);
+    mocks.useGetLastInventoryCount.mockReturnValue({ data: rodadaEncerrada });
+
+    const { result } = renderHook(() => useInventoryCount(), { wrapper: createWrapper() });
+
+    expect(result.current.lastCount).toEqual(rodadaEncerrada);
+    // Só pergunta pela última com a resposta da atual em mãos, e sem aberta.
+    expect(mocks.useGetLastInventoryCount.mock.calls.at(-1)?.[0]).toMatchObject({ query: { enabled: true } });
+  });
+
+  it("a tela de abertura espera a última rodada — antes dela, o Continuar não existe", () => {
+    // Um clique rápido em "Nova conferência" recomeçaria do zero quem queria
+    // continuar. Depois de encerrar, o cache ainda traz a rodada anterior à
+    // recém-encerrada: o isFetching segura a tela também nesse caso.
+    givenConferencia(null);
+    mocks.useGetLastInventoryCount.mockReturnValue({ data: rodadaEncerrada, isFetching: true });
+
+    const { result } = renderHook(() => useInventoryCount(), { wrapper: createWrapper() });
+
+    expect(result.current.isLoadingCount).toBe(true);
+  });
+
+  it("com conferência aberta, a última rodada em voo não segura a lista", () => {
+    givenConferencia(conferenciaAberta);
+    mocks.useGetLastInventoryCount.mockReturnValue({ data: null, isFetching: true });
+
+    const { result } = renderHook(() => useInventoryCount(), { wrapper: createWrapper() });
+
+    expect(result.current.isLoadingCount).toBe(false);
+  });
+
+  it("o modo em abertura é o do botão clicado", async () => {
+    givenConferencia(null);
+    mocks.useGetLastInventoryCount.mockReturnValue({ data: rodadaEncerrada });
+    mocks.startInventoryCount.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useInventoryCount(), { wrapper: createWrapper() });
+
+    expect(result.current.startingMode).toBeNull();
+    act(() => result.current.start("Restart"));
+
+    await waitFor(() => expect(result.current.startingMode).toBe("Restart"));
+  });
+
+  it("com conferência aberta, nem pergunta pela última rodada", () => {
+    givenConferencia(conferenciaAberta);
+    mocks.useGetLastInventoryCount.mockReturnValue({ data: null });
+
+    renderHook(() => useInventoryCount(), { wrapper: createWrapper() });
+
+    expect(mocks.useGetLastInventoryCount.mock.calls.at(-1)?.[0]).toMatchObject({
+      query: { enabled: false },
+    });
+  });
+
+  it("continuar abre a rodada no modo Continue e avisa que o estoque congelou", async () => {
+    givenConferencia(null);
+    mocks.useGetLastInventoryCount.mockReturnValue({ data: rodadaEncerrada });
+    mocks.startInventoryCount.mockResolvedValue({ ...conferenciaAberta, id: 8, totalItems: 915 });
+    const wrapper = createWrapper();
+    const invalidate = vi.spyOn(wrapper.queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useInventoryCount(), { wrapper });
+
+    act(() => result.current.start("Continue"));
+
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
+    expect(mocks.startInventoryCount).toHaveBeenCalledWith("Continue");
+    expect(mocks.toast.mock.calls[0][0].title).toContain("estoque congelado");
+    // A faixa do topo e os botões de entrada mudam na hora, sem esperar a próxima consulta.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: getGetStockFreezeStatusQueryKey() });
+  });
+
+  it("encerrar a rodada também libera o estoque na hora", async () => {
+    givenConferencia(conferenciaAberta);
+    mocks.finishInventoryCount.mockResolvedValue({ ...conferenciaAberta, status: "Finished" });
+    const wrapper = createWrapper();
+    const invalidate = vi.spyOn(wrapper.queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useInventoryCount(), { wrapper });
+
+    act(() => result.current.confirmFinish());
+
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: getGetStockFreezeStatusQueryKey() });
+    expect(mocks.toast.mock.calls[0][0].title).toContain("vendas liberadas");
   });
 });
