@@ -2,7 +2,7 @@ import React, { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { COUPON_DISCOUNT_TYPE } from "@workspace/api-client-react";
+import { ApiError, COUPON_DISCOUNT_TYPE, getGetStockFreezeStatusQueryKey } from "@workspace/api-client-react";
 
 const registerSale = vi.fn();
 const updateSale = vi.fn();
@@ -81,15 +81,14 @@ const onSaleRecorded = vi.fn();
 const onSaleFinished = vi.fn();
 const focusSearch = vi.fn();
 
-function createWrapper() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function createWrapper(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
 }
 
 /** Renderiza o hook com o cenário padrão: loja com caixa aberto e online. */
-function render(overrides: Partial<Parameters<typeof useSaleCheckout>[0]> = {}) {
+function render(overrides: Partial<Parameters<typeof useSaleCheckout>[0]> = {}, client?: QueryClient) {
   return renderHook(
     (props: Partial<Parameters<typeof useSaleCheckout>[0]>) =>
       useSaleCheckout({
@@ -109,7 +108,7 @@ function render(overrides: Partial<Parameters<typeof useSaleCheckout>[0]> = {}) 
         ...overrides,
         ...props,
       }),
-    { wrapper: createWrapper(), initialProps: {} },
+    { wrapper: createWrapper(client), initialProps: {} },
   );
 }
 
@@ -235,6 +234,34 @@ describe("useSaleCheckout", () => {
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Caixa fechado" }));
     // O carrinho continua de pé para o operador abrir o caixa e confirmar de novo.
     expect(usePdvStore.getState().items).toHaveLength(1);
+  });
+
+  it("deve recusar a venda com a conferência de estoque em andamento, mantendo o carrinho", async () => {
+    // O FINALIZAR já vem travado; esta é a guarda de quem chega pelo atalho.
+    const { result } = render({ salesPaused: true });
+
+    await act(() => result.current.confirmPayment());
+
+    expect(registerSale).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Vendas pausadas" }));
+    expect(usePdvStore.getState().items).toHaveLength(1);
+  });
+
+  it("deve reconsultar a conferência quando o servidor recusa a venda com 423", async () => {
+    // O balcão ainda não sabia (a consulta é a cada 30 s). Reconsultada na hora,
+    // a faixa aparece e o FINALIZAR trava já para a próxima tentativa.
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    registerSale.mockRejectedValue(new ApiError("Conferência de estoque em andamento", 423, null));
+    const { result } = render({}, client);
+
+    await act(() => result.current.confirmPayment());
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: getGetStockFreezeStatusQueryKey() });
+    expect(usePdvStore.getState().items).toHaveLength(1);
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Não foi possível registrar a venda" }),
+    );
   });
 
   it("deve recusar a reedição sem conexão", async () => {

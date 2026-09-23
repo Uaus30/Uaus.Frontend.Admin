@@ -5,6 +5,8 @@ import { useCashRegister } from "@/hooks/use-cash-register";
 import { useCheckout } from "@/hooks/use-checkout";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
+import { useStockFreeze } from "@/hooks/use-stock-freeze";
+import { StockFreezeBanner } from "@/features/pdv/components/stock-freeze-banner";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { PdvCartPanel } from "@/features/pdv/components/pdv-cart-panel";
 import { PdvDialogs } from "@/features/pdv/components/pdv-dialogs";
@@ -103,6 +105,9 @@ export default function Pdv() {
   /** O balcão: busca, entrada no carrinho, foco do leitor, pausar e retomar. */
   const counter = usePdvCounter({ online, sessionId, checkout });
 
+  // Conferência de estoque aberta: o balcão fica impedido de vender (23/09/2026).
+  const { salesPaused } = useStockFreeze();
+
   /**
    * Gravação da venda. O hook cuida da inicialização do checkout, das validações
    * de caixa/conexão, do payload, do cupom e da fila offline.
@@ -121,6 +126,7 @@ export default function Pdv() {
     onSaleRecorded: refreshSales,
     onSaleFinished: counter.search.clear,
     focusSearch: counter.focusSearch,
+    salesPaused,
   });
 
   /** Cancelar, reimprimir e reabrir para edição uma venda já registrada. */
@@ -198,6 +204,7 @@ export default function Pdv() {
 
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden selection:bg-primary/30">
+      <StockFreezeBanner salesPaused={salesPaused} />
       <PdvHeader
         session={session}
         isSessionFromCache={isSessionFromCache}
@@ -208,6 +215,7 @@ export default function Pdv() {
           <PdvMainMenu
             usesCashRegister={mode.requiresOpenSession}
             sessionId={sessionId}
+            stockFrozen={salesPaused}
             onCloseRegister={() => void requestCloseRegister()}
             onStockWriteOff={dialogs.stockWriteOff.show}
             onSalesHistory={dialogs.salesHistory.show}
@@ -230,7 +238,7 @@ export default function Pdv() {
         <PdvCartPanel
           subtotal={subtotal}
           total={total}
-          blockedWithoutSession={mode.saleRequiresSession && !sessionId}
+          checkoutBlocked={(mode.saleRequiresSession && !sessionId) || salesPaused}
           onApplyGlobalDiscount={dialogs.discount.show}
           onHoldSale={counter.holdSale}
         />

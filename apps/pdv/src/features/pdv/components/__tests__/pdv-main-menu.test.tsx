@@ -52,6 +52,18 @@ describe("PdvMainMenu", () => {
     expect(screen.queryByRole("button", { name: /Relatório/i })).toBeNull();
   });
 
+  it("pausa a Baixa de Estoque com a conferência de estoque aberta", () => {
+    // Como a venda (23/09/2026): o servidor recusaria, e a baixa feita offline
+    // esperaria na fila até o encerramento.
+    render(<PdvMainMenu {...defaultProps} stockFrozen />);
+    fireEvent.click(screen.getByRole("button"));
+
+    const baixa = screen.getByRole("button", { name: /Baixa de Estoque/i });
+    expect(baixa.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(baixa);
+    expect(defaultProps.onStockWriteOff).not.toHaveBeenCalled();
+  });
+
   it("mantém Fechar Caixa no topo na loja com controle de caixa", () => {
     render(<PdvMainMenu {...defaultProps} />);
     fireEvent.click(screen.getByRole("button"));

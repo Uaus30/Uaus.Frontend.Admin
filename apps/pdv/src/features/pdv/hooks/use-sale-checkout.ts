@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { CompanySettingsDto, PaymentMethodDto } from "@workspace/api-client-react";
+import {
+  ApiError,
+  getGetStockFreezeStatusQueryKey,
+  type CompanySettingsDto,
+  type PaymentMethodDto,
+} from "@workspace/api-client-react";
 import { describeApiError, formatCurrency, round2 } from "@workspace/core";
 import { useToast } from "@workspace/ui";
 import { usePdvStore } from "@/stores/use-pdv-store";
@@ -37,6 +42,8 @@ export interface UseSaleCheckoutParams {
   onSaleFinished: () => void;
   /** Devolve o cursor à busca, depois que a impressão sai do caminho. */
   focusSearch: () => void;
+  /** Conferência de estoque em andamento: o servidor recusaria a venda (23/09/2026). */
+  salesPaused?: boolean;
 }
 
 /**
@@ -72,6 +79,7 @@ export function useSaleCheckout({
   onSaleRecorded,
   onSaleFinished,
   focusSearch,
+  salesPaused = false,
 }: UseSaleCheckoutParams) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -144,6 +152,15 @@ export function useSaleCheckout({
       toast({
         title: "Caixa fechado",
         description: "Abra o caixa para registrar vendas.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (salesPaused) {
+      toast({
+        title: "Vendas pausadas",
+        description:
+          "Há uma conferência de estoque em andamento. A venda volta a ser possível quando ela for encerrada.",
         variant: "destructive",
       });
       return;
@@ -278,6 +295,13 @@ export function useSaleCheckout({
         return;
       }
 
+      // O servidor recusou pela conferência de estoque aberta (423): o balcão
+      // ainda não sabia — a consulta é a cada 30 segundos. Reconsultada agora,
+      // a faixa aparece e o FINALIZAR trava já para a próxima tentativa.
+      if (error instanceof ApiError && error.status === 423) {
+        void queryClient.invalidateQueries({ queryKey: getGetStockFreezeStatusQueryKey() });
+      }
+
       toast({
         title: "Não foi possível registrar a venda",
         description: describeApiError(error),
@@ -308,6 +332,7 @@ export function useSaleCheckout({
     paymentMethodNameById,
     paymentMethods,
     queryClient,
+    salesPaused,
     sendReceiptToPrinter,
     sessionId,
     setAmountReceived,

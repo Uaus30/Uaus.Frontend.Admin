@@ -7,7 +7,7 @@ function props(overrides: Partial<Parameters<typeof PdvCartActionsCompact>[0]> =
   return {
     hasItems: true,
     editingSaleId: null,
-    blockedWithoutSession: false,
+    checkoutBlocked: false,
     onCheckout: vi.fn(),
     onDiscount: vi.fn(),
     onCoupon: vi.fn(),

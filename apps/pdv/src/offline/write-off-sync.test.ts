@@ -87,6 +87,12 @@ describe("classifyWriteOffFailure", () => {
     },
   );
 
+  it("deve tratar 423 (conferência de estoque em andamento) como espera, e não como recusa", () => {
+    // O servidor avaliou e disse "agora não" (23/09/2026). Marcada como Recusada,
+    // a baixa travaria o fechamento do caixa esperando alguém reenfileirá-la.
+    expect(classifyWriteOffFailure(new ApiError("Conferência de estoque em andamento", 423))).toBe("retry");
+  });
+
   it("deve tratar falha de rede como reenviável", () => {
     expect(classifyWriteOffFailure(new TypeError("Failed to fetch"))).toBe("retry");
   });

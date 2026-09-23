@@ -11,10 +11,11 @@ export type PdvCartActionsProps = {
   /** ID da venda sendo reeditada, ou null numa venda nova. */
   editingSaleId: number | null;
   /**
-   * A loja usa controle de caixa e não há sessão aberta — o servidor recusaria
-   * a venda, então o botão de finalizar não pode nem ser oferecido.
+   * O servidor recusaria a venda, então o finalizar não pode nem ser oferecido:
+   * a loja usa controle de caixa e não há sessão aberta, ou há conferência de
+   * estoque em andamento (23/09/2026).
    */
-  blockedWithoutSession: boolean;
+  checkoutBlocked: boolean;
   /** Abre o checkout. */
   onCheckout: () => void;
   /** Abre o diálogo de desconto sobre o total da venda. */
@@ -54,7 +55,7 @@ const keepFocusOnSearch = (event: { preventDefault: () => void }) => event.preve
 export function PdvCartActionsExtended({
   hasItems,
   editingSaleId,
-  blockedWithoutSession,
+  checkoutBlocked,
   onCheckout,
   onDiscount,
   onCoupon,
@@ -87,7 +88,7 @@ export function PdvCartActionsExtended({
 
       <Button
         className="w-full h-12 font-bold text-sm tracking-widest bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-primary/20"
-        disabled={!hasItems || blockedWithoutSession}
+        disabled={!hasItems || checkoutBlocked}
         onClick={onCheckout}
       >
         FINALIZAR
@@ -134,7 +135,7 @@ export function PdvCartActionsExtended({
 export function PdvCartActionsCompact({
   hasItems,
   editingSaleId,
-  blockedWithoutSession,
+  checkoutBlocked,
   onCheckout,
   onDiscount,
   onCoupon,
@@ -182,7 +183,7 @@ export function PdvCartActionsCompact({
       <div className="flex gap-2">
         <Button
           className="flex-1 h-12 font-bold text-sm tracking-widest bg-gradient-to-br from-primary to-orange-600 shadow-lg shadow-primary/20"
-          disabled={!hasItems || blockedWithoutSession}
+          disabled={!hasItems || checkoutBlocked}
           onClick={onCheckout}
         >
           FINALIZAR

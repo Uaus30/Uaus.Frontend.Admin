@@ -69,6 +69,24 @@ Descartar um movimento recusado **não devolve estoque local**: a recusa já dev
 
 `resolveCashRegisterMode` (em `lib/cash-register-mode.ts`) traduz a configuração da empresa nas perguntas que a tela faz. Com controle de caixa, a tela fica bloqueada pelo diálogo de abertura e a venda exige `cashRegisterSessionId`. A **baixa de estoque nunca exige sessão**: é movimento de estoque, não de dinheiro — quem resolve o turno dela é o servidor.
 
+### 6.1. Conferência de estoque aberta, balcão pausado (23/09/2026)
+
+Decisão do dono: enquanto houver conferência de estoque aberta, o PDV fica
+**impedido de vender**. A contagem compara a prateleira com o saldo, e venda no
+meio dela dá a diferença errada. O servidor recusa a venda de qualquer jeito; o PDV
+avisa antes:
+
+- `useStockFreeze` consulta `GET /Pdv/status` a cada 30 s. A rota é liberada para
+  Vendedor, porque a da conferência é só de Administrador.
+- Com as vendas pausadas, aparece a faixa âmbar `StockFreezeBanner` no topo, e o
+  FINALIZAR fica travado (`checkoutBlocked`, que junta este motivo ao do caixa
+  fechado).
+- O `confirmPayment` recusa com "Vendas pausadas", para quem chega pelo atalho.
+- **Sem conexão, vale o último estado conhecido.** Quem viu a conferência abrir e
+  caiu da rede continua impedido. Quem nunca soube vende offline, e a sincronização
+  é recusada em lote — as vendas ficam pendentes e sobem depois do encerramento
+  (ver `docs/offline.md`).
+
 ### 7. O cursor pertence ao campo de busca
 
 O caixa é operado com leitor de código de barras, que digita no campo focado. Todo caminho que encerra uma venda devolve o cursor para a busca; nenhum caminho o refoca no meio de uma venda, porque isso roubava o cursor de quem estava editando a quantidade ou o preço de um item. Uma leitura de código de barras (termo que casa exatamente com **um** produto) não passa pela lista de resultados: o produto vai direto ao destino e o campo é limpo.

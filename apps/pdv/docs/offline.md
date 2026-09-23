@@ -301,6 +301,19 @@ Cada venda tem o seu próprio desfecho:
 A devolução de estoque na recusa é importante: aquela venda não existe, então o
 saldo local estava mentindo para baixo.
 
+**Com a conferência de estoque aberta, o lote inteiro é recusado** (423, antes
+de o servidor começar; 23/09/2026). O PDV trata como uma falha de rede: as vendas
+continuam **pendentes**, com `attempts` somado — nenhuma vira "Recusada" à espera
+do operador. A baixa offline, que sobe uma a uma, tem o mesmo desfecho: o 423 é
+transiente para `classifyWriteOffFailure`. Quando a consulta de status
+(`useStockFreeze`) vê a conferência encerrar, o PDV sincroniza a fila na hora.
+
+Com a conferência aberta, o balcão fica pausado — FINALIZAR e "Baixa de Estoque"
+travados — enquanto o PDV souber dela. As duas situações acima só acontecem com
+o que foi feito offline sem o PDV ter visto a conferência abrir: ela abriu com ele
+sem rede, ou a página foi recarregada sem rede (o estado conhecido vive na
+memória).
+
 Uma venda recusada **não** é retentada automaticamente. Repetir uma recusa
 determinística (produto excluído, estoque insuficiente) só geraria ruído a cada
 rodada; ela espera decisão do operador, que pode reenfileirar ou descartar pelo

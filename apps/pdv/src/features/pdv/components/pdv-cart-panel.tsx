@@ -17,10 +17,11 @@ type PdvCartPanelProps = {
   /** Subtotal menos o desconto da venda. É o que o checkout cobra. */
   total: number;
   /**
-   * A loja usa controle de caixa e não há sessão aberta — o servidor recusaria
-   * a venda, então o botão de finalizar não pode nem ser oferecido.
+   * O servidor recusaria a venda, então o finalizar não pode nem ser oferecido:
+   * caixa fechado numa loja com controle de caixa, ou conferência de estoque em
+   * andamento (23/09/2026).
    */
-  blockedWithoutSession: boolean;
+  checkoutBlocked: boolean;
   /** Abre o diálogo de desconto sobre o total da venda. */
   onApplyGlobalDiscount: () => void;
   /** Guarda a venda em espera e libera o caixa. */
@@ -41,7 +42,7 @@ type PdvCartPanelProps = {
 export function PdvCartPanel({
   subtotal,
   total,
-  blockedWithoutSession,
+  checkoutBlocked,
   onApplyGlobalDiscount,
   onHoldSale,
 }: PdvCartPanelProps) {
@@ -86,7 +87,7 @@ export function PdvCartPanel({
   const actions = {
     hasItems: items.length > 0,
     editingSaleId,
-    blockedWithoutSession,
+    checkoutBlocked,
     onCheckout: setCheckout,
     onDiscount: onApplyGlobalDiscount,
     onCoupon: showCouponDialog,

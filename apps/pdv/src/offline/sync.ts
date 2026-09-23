@@ -12,8 +12,10 @@ import type { PendingSale, SaleSyncResult, SyncOutcome, SyncSalesResponse } from
 /**
  * Sincronização das vendas offline.
  *
- * A fila é enviada em lotes; cada venda tem o seu próprio desfecho e o backend
- * nunca reprova o lote inteiro. Ver `Uaus.Backend.Api/docs/pdv-offline.md`.
+ * A fila é enviada em lotes; cada venda tem o seu próprio desfecho. O backend
+ * só reprova o lote inteiro com a conferência de estoque aberta (423,
+ * 23/09/2026), e esse lote volta como a falha de rede: as vendas continuam
+ * pendentes para depois do encerramento. Ver `Uaus.Backend.Api/docs/pdv-offline.md`.
  *
  * **Cupom estourado não é recusa.** Este endpoint grava em modo tolerante: uso
  * acima do limite entra carimbado como `over_limit`, e definição que mudou depois
@@ -230,8 +232,9 @@ export function postSyncBatch(batch: PendingSale[]): Promise<SyncSalesResponse> 
  * foram enviadas continuam na fila para a próxima rodada.
  *
  * @returns O resumo da rodada, incluindo quantas vendas continuam pendentes.
- * @throws Nunca — falha de rede vira "sobrou na fila". Erros de negócio já vêm
- *   como recusa no corpo da resposta.
+ * @throws Nunca — falha de rede vira "sobrou na fila", e o lote recusado inteiro
+ *   pela conferência de estoque (423) também. Erros de negócio de cada venda já
+ *   vêm como recusa no corpo da resposta.
  */
 export async function syncPendingSales(): Promise<SyncOutcome> {
   const queue = await listSalesToSync();
@@ -246,8 +249,9 @@ export async function syncPendingSales(): Promise<SyncOutcome> {
     try {
       response = await postSyncBatch(batch);
     } catch {
-      // A conexão caiu no meio da sincronização. Registra a tentativa e para: o
-      // que sobrou na fila entra na próxima rodada.
+      // A conexão caiu no meio da sincronização — ou a conferência de estoque
+      // recusou o lote inteiro (423). Registra a tentativa e para: o que sobrou
+      // na fila entra na próxima rodada.
       for (const sale of batch) await markPendingSaleAttempted(sale);
       break;
     }

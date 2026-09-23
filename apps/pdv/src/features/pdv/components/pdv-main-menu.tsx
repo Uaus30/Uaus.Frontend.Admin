@@ -22,6 +22,8 @@ type PdvMainMenuProps = {
   usesCashRegister: boolean;
   /** Sessão de caixa aberta, ou `null`. */
   sessionId: number | null;
+  /** Conferência de estoque em andamento: a baixa fica pausada, como a venda. */
+  stockFrozen?: boolean;
   onCloseRegister: () => void;
   onStockWriteOff: () => void;
   onSalesHistory: () => void;
@@ -71,6 +73,7 @@ const ITEM_CLASS =
 export function PdvMainMenu({
   usesCashRegister,
   sessionId,
+  stockFrozen = false,
   onCloseRegister,
   onStockWriteOff,
   onSalesHistory,
@@ -183,8 +186,14 @@ export function PdvMainMenu({
             {/* A baixa de estoque entra aqui, e não no checkout: a tela de
                   finalização não pode ganhar mais nada, e baixa não tem relação
                   com pagamento. Também não exige caixa aberto — quem resolve a
-                  sessão dela é o servidor. */}
-            <button onClick={run(onStockWriteOff)} className={ITEM_CLASS}>
+                  sessão dela é o servidor. Com a conferência de estoque aberta
+                  ela fica pausada, como a venda (23/09/2026). */}
+            <button
+              onClick={run(onStockWriteOff)}
+              disabled={stockFrozen}
+              title={stockFrozen ? "Pausada: há conferência de estoque em andamento" : undefined}
+              className={ITEM_CLASS}
+            >
               <PackageMinus className="w-4 h-4 text-primary" />
               Baixa de Estoque
             </button>
