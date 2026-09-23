@@ -45,6 +45,31 @@ function resultado(extras: Record<string, unknown> = {}) {
   };
 }
 
+describe("useStockCount — o saldo que a modal mostrou", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("vai junto com a contagem, e a recusa relê o produto para a modal mostrar o saldo novo", async () => {
+    // O servidor recusa quando o saldo mudou (outra contagem do mesmo SKU, ou o
+    // reenvio desta); relido, a prévia da diferença se refaz antes de registrar.
+    mocks.registerStockCount.mockRejectedValue(new Error("O estoque do sistema mudou de 10 para 7"));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useStockCount(20, 10), { wrapper });
+
+    act(() => result.current.updateForm({ counted: "7" }));
+    act(() => result.current.submit());
+
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
+    expect(mocks.registerStockCount).toHaveBeenCalledWith(20, expect.objectContaining({ expectedStock: 10 }));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["product-for-entry", 20] });
+  });
+});
+
 describe("useStockCount — a sobra que reativa o produto", () => {
   beforeEach(() => {
     vi.clearAllMocks();

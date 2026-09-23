@@ -66,6 +66,8 @@ export function useStockCount(
         supplierId: form.supplierId ? Number(form.supplierId) : null,
         unitCost: form.unitCost.trim() !== "" ? Number(form.unitCost) : null,
         notes: form.notes.trim() || options.defaultNotes || null,
+        // O saldo que a modal MOSTROU: o servidor recusa se o de agora for outro.
+        expectedStock: currentStock,
       }),
     onSuccess: async (result) => {
       // O produto como estava ANTES: o reenvio da mesma contagem volta com
@@ -78,13 +80,17 @@ export function useStockCount(
       toast(descreverResultado(result));
       announceReactivatedProducts(result.reactivatedProducts ?? reactivationBetween(before, after));
     },
-    onError: (error: unknown) =>
+    onError: (error: unknown) => {
+      // Recusada porque o saldo mudou, a modal precisa mostrar o novo: relido,
+      // a prévia da diferença se refaz, e a pessoa confere antes de registrar.
+      void queryClient.invalidateQueries({ queryKey: ["product-for-entry", productId] });
       toast({
         title: "Não foi possível registrar a contagem",
         description: describeApiError(error, "Confira os dados e tente novamente."),
         error,
         variant: "destructive",
-      }),
+      });
+    },
   });
 
   /**

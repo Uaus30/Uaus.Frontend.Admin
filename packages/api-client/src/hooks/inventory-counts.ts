@@ -321,6 +321,12 @@ export async function registerStockCount(
     supplierId?: number | null;
     unitCost?: number | null;
     notes?: string | null;
+    /**
+     * O saldo do sistema que a tela MOSTROU. O servidor recusa quando o de agora
+     * é outro — duas contagens do mesmo SKU, ou o reenvio de uma resposta
+     * perdida, lançariam a diferença duas vezes.
+     */
+    expectedStock?: number | null;
   },
 ): Promise<StockCountResultDto> {
   const response = await apiPost<StockCountResultDto>(`/InventoryCounts/products/${productId}/stock-count`, {
@@ -328,6 +334,7 @@ export async function registerStockCount(
     supplierId: input.supplierId ?? null,
     unitCost: input.unitCost ?? null,
     notes: input.notes ?? null,
+    expectedStock: input.expectedStock ?? null,
   });
   if (!response.data) throw new Error("Não foi possível registrar a contagem.");
   return response.data;
