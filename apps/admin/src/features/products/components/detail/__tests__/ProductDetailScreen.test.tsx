@@ -15,9 +15,24 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
 }));
 
 // As abas e as modais não participam da decisão em teste — o que importa é o
-// que o submit do formulário faz depois de gravar.
-vi.mock("../ProductGeneralTab", () => ({ ProductGeneralTab: () => <div /> }));
-vi.mock("../ProductStockTab", () => ({ ProductStockTab: () => <div /> }));
+// que o submit do formulário faz depois de gravar. Cada uma deixa só um campo:
+// o do código de barras DENTRO do form, e o da modal de entrada, que é portal
+// com `<form>` próprio — os dois lados do Enter do leitor.
+vi.mock("../ProductGeneralTab", () => ({
+  ProductGeneralTab: () => <input aria-label="Código de barras" />,
+}));
+vi.mock("../ProductStockTab", async () => {
+  const { createPortal } = await import("react-dom");
+  return {
+    ProductStockTab: () =>
+      createPortal(
+        <form>
+          <input aria-label="Quantidade da entrada" />
+        </form>,
+        document.body,
+      ),
+  };
+});
 vi.mock("../ProductEditorDialogs", () => ({ ProductEditorDialogs: () => null }));
 vi.mock("../VariationGradesModal", () => ({ VariationGradesModal: () => null }));
 vi.mock("../ProductWebImageSearch", () => ({ ProductWebImageSearch: () => null }));
@@ -176,5 +191,36 @@ describe("ProductDetailScreen — o que cada botão faz", () => {
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: /estoque/i }).getAttribute("aria-selected")).toBe("true"),
     );
+  });
+});
+
+// `fireEvent` devolve `false` quando alguém cancelou o evento. No navegador,
+// cancelar o keydown do Enter é o que impede o envio implícito do formulário —
+// o jsdom não o simula, então é o cancelamento que se afirma aqui.
+describe("ProductDetailScreen — o Enter do leitor de código de barras", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("o bip no campo do código não salva: o Enter do fim é cancelado", () => {
+    // Relato do dono (23/09/2026): no cadastro vindo da compra, o bip salvava
+    // o produto sozinho e a entrada de estoque não era lançada.
+    renderScreen(vindoDaCompra);
+    const campo = screen.getByLabelText("Código de barras");
+
+    expect(fireEvent.keyDown(campo, { key: "Enter" })).toBe(false);
+    // As outras teclas seguem normais — o código continua sendo digitado.
+    expect(fireEvent.keyDown(campo, { key: "7" })).toBe(true);
+    expect(mocks.handleSubmit).not.toHaveBeenCalled();
+  });
+
+  it("o Enter da modal de entrada (portal, form próprio) continua enviando a entrada", () => {
+    render(
+      <ProductDetailScreen
+        editor={fakeEditor()}
+        initialTab="estoque"
+        onRequestClose={mocks.onRequestClose}
+      />,
+    );
+
+    expect(fireEvent.keyDown(screen.getByLabelText("Quantidade da entrada"), { key: "Enter" })).toBe(true);
   });
 });

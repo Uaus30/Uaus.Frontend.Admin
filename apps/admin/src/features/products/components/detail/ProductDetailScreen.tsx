@@ -62,6 +62,29 @@ const ROTULO_DA_ABA: Record<string, string> = {
 };
 
 /**
+ * Enter num campo NÃO salva o cadastro: salvar é só o clique em Salvar ou
+ * Avançar.
+ *
+ * O leitor de código de barras digita o código e termina com um Enter, e Enter
+ * num campo de formulário envia o formulário — é o envio implícito do navegador.
+ * O bip no campo do código salvava o produto sozinho; no cadastro que veio de
+ * uma compra, salvava SEM a entrada de estoque, que só se lança pelo Avançar
+ * (relato do dono, 23/09/2026). Barrar só o campo do código não bastava: o bip
+ * cai no campo que estiver com o foco, e no Nome gravaria o código colado ao
+ * nome.
+ *
+ * Só vale para o que está DENTRO deste form no DOM. A modal de entrada da aba
+ * Estoque é portal, tem `<form>` próprio e o Enter dela continua enviando — o
+ * evento chega aqui pela árvore do React, como o submit (ver `handleLocalSubmit`).
+ */
+function impedirEnvioPeloEnter(event: React.KeyboardEvent<HTMLFormElement>) {
+  if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;
+  if (!event.currentTarget.contains(event.target)) return;
+
+  event.preventDefault();
+}
+
+/**
  * Tela de detalhe do produto, em três abas.
  *
  * Substituiu a modal de edição em 30/08/2026. A modal empilhava tudo numa
@@ -311,7 +334,12 @@ export function ProductDetailScreen({
 
   return (
     <>
-      <form onSubmit={handleLocalSubmit} onPaste={handlePaste} className="flex flex-col gap-6">
+      <form
+        onSubmit={handleLocalSubmit}
+        onKeyDown={impedirEnvioPeloEnter}
+        onPaste={handlePaste}
+        className="flex flex-col gap-6"
+      >
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 items-center gap-4">
             <Button

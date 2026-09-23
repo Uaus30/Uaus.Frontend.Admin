@@ -17,7 +17,9 @@ type ProductDetailActionsProps = {
  * Aparecem DUAS vezes — no cabeçalho e no rodapé do formulário — porque a aba
  * Dados de um produto com variações é longa, e voltar ao topo para salvar era
  * uma rolagem a cada cadastro. Os dois "Salvar" são `type="submit"` do mesmo
- * `<form>`: o Enter no campo dispara o primeiro, e os dois fazem a mesma coisa.
+ * `<form>` e fazem a mesma coisa. O Enter num campo NÃO os aciona: é o Enter
+ * com que o leitor de código de barras termina o bip — ver
+ * `impedirEnvioPeloEnter` na `ProductDetailScreen`.
  *
  * **Salvar** grava e volta para a listagem: é o fim do trabalho. **Avançar**
  * grava e vai para a próxima aba — de Dados para Estoque, que é o par que o

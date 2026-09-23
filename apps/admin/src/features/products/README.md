@@ -357,7 +357,14 @@ Regras que valem a pena conhecer antes de mexer:
     "cadastrar o item e lançar o que chegou dele".
   - Os botões se repetem no rodapé (`ProductDetailActions`) porque a aba Dados
     de um produto com variações é longa. Os dois "Salvar" são `type="submit"`
-    do mesmo form, então o Enter num campo também grava.
+    do mesmo form.
+- **Enter num campo NÃO grava** (23/09/2026, `impedirEnvioPeloEnter` em
+  `ProductDetailScreen`). O leitor de código de barras termina o bip com um
+  Enter, e o envio implícito do navegador transformava o bip em Salvar. No
+  cadastro vindo de compra, o produto nascia sem a entrada de estoque, que só se
+  lança pelo Avançar. O bloqueio vale para todo campo do form, porque o bip cai
+  onde estiver o foco. Não vale para a modal de entrada da aba Estoque: ela é
+  portal, tem `<form>` próprio e o Enter dela continua enviando.
 - **O salvar só manda o "Exibir no site" e a galeria quando a pessoa mexeu
   neles NESTA tela** (23/09/2026). A lupa da listagem, ou outra aba, pode ter
   ligado o site ou posto uma foto depois que este cadastro abriu; mandados com o
