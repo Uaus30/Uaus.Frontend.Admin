@@ -1,5 +1,12 @@
 <!doctype html>
-<html lang="pt-BR" translate="no">
+<!--
+  class="dark": o admin é SEMPRE escuro (o :root do index.css já traz o tema
+  escuro), mas a variante dark: do Tailwind só vale dentro de um .dark
+  (@custom-variant dark em src/index.css). Sem a classe, as cores escritas para
+  o tema escuro nunca eram aplicadas e as do claro apareciam sobre o fundo
+  escuro — avisos âmbar ilegíveis, o toast de aviso claro (23/09/2026).
+-->
+<html lang="pt-BR" translate="no" class="dark">
   <head>
     <meta charset="UTF-8" />
     <!--

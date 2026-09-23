@@ -24,10 +24,9 @@ type ProductNotesAlertProps = {
  * Só renderiza com o campo preenchido — sem isso, todo cadastro sem observação
  * ganharia uma faixa vazia acima dos campos, virando ruído em 90% das aberturas.
  *
- * <b>Texto claro, sem `dark:`.</b> O admin é sempre escuro (`:root` já traz o
- * tema escuro) e a classe `.dark` nunca é aplicada, então a variante `dark:`
- * não vale aqui: o `text-amber-800` do tema claro ficava marrom sobre o fundo
- * âmbar escuro, quase da cor do cartão (23/09/2026).
+ * <b>Texto branco.</b> O admin é sempre escuro, e até 23/09/2026 a classe
+ * `.dark` não era aplicada: o `text-amber-800` do tema claro ficava marrom
+ * sobre o fundo âmbar, quase da cor do cartão. O branco foi o pedido do dono.
  */
 export function ProductNotesAlert({ editor }: ProductNotesAlertProps) {
   const notes = editor.form.notes.trim();

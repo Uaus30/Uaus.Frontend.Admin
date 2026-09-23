@@ -40,6 +40,13 @@ describe("index.html do Admin", () => {
     expect(html).not.toMatch(/<html[^>]*\blang="en"/);
   });
 
+  it("liga o tema escuro para o Tailwind: sem .dark, as cores dark: nunca valem", () => {
+    // O admin é sempre escuro pelo :root, mas a variante dark: procura um .dark
+    // acima dela. Sem a classe, os avisos saíam com a cor do tema claro sobre o
+    // fundo escuro — a observação interna do produto ficava da cor do cartão.
+    expect(html).toMatch(/<html[^>]*\bclass="dark"/);
+  });
+
   it("recusa tradução automática, inclusive para quem já marcou 'traduzir sempre'", () => {
     expect(html).toMatch(/<html[^>]*\btranslate="no"/);
     expect(html).toMatch(/<meta\s+name="google"\s+content="notranslate"/);
