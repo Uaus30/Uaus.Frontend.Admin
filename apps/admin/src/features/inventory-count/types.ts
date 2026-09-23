@@ -23,6 +23,9 @@ export interface InventoryCountState {
   /** Conferência em andamento, ou `null` quando não há nenhuma. */
   count: InventoryCountDto | null;
   isLoadingCount: boolean;
+  /** A atual ou a última rodada falhou — a abertura não é oferecida no escuro. */
+  loadFailed: boolean;
+  retryLoad: () => void;
 
   items: InventoryCountItemDto[];
   total: number;

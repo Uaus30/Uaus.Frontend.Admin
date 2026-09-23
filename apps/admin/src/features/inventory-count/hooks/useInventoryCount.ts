@@ -228,6 +228,14 @@ export function useInventoryCount(): InventoryCountState {
     // `isFetching` cobre também o fim de uma rodada, quando o cache ainda traz
     // a anterior à recém-encerrada.
     isLoadingCount: currentQuery.isLoading || (count === null && lastQuery.isFetching),
+    // O mesmo raciocínio pelo caminho do erro: sem a atual não se sabe se há
+    // rodada aberta, e sem a última o "Continuar" some. A tela pede nova
+    // tentativa em vez de oferecer só o recomeço.
+    loadFailed: currentQuery.isError || (count === null && lastQuery.isError),
+    retryLoad: () => {
+      void currentQuery.refetch();
+      void lastQuery.refetch();
+    },
     items: itemsQuery.data?.data ?? [],
     total: itemsQuery.data?.total ?? 0,
     isLoadingItems: itemsQuery.isLoading,

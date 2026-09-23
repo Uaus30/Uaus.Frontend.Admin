@@ -1,9 +1,10 @@
 import React from "react";
+import { useSearch } from "wouter";
 import { ClipboardCheck, FileSpreadsheet, List } from "lucide-react";
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { useInventory } from "@/features/inventory/hooks/useInventory";
 import {
-  inventoryTabFromUrl,
+  inventoryTabFromSearch,
   syncInventoryTabToUrl,
   type InventoryTab,
 } from "@/features/inventory/inventory-tabs";
@@ -50,8 +51,16 @@ export default function Inventory() {
     handleExportExcel,
   } = useInventory();
 
-  // Só na montagem: a aba vira estado, e a URL passa a ser o espelho dele.
-  const [activeTab, setActiveTab] = React.useState<InventoryTab>(inventoryTabFromUrl);
+  // A aba é estado, e a URL o espelho dele — mas a URL também manda: o "Ver
+  // conferência" da faixa do estoque congelado aponta para esta mesma página, e
+  // o wouter não a remonta. Ajuste durante o render, como no resto do admin.
+  const abaDaUrl = inventoryTabFromSearch(useSearch());
+  const [activeTab, setActiveTab] = React.useState<InventoryTab>(abaDaUrl);
+  const [abaVista, setAbaVista] = React.useState<InventoryTab>(abaDaUrl);
+  if (abaDaUrl !== abaVista) {
+    setAbaVista(abaDaUrl);
+    setActiveTab(abaDaUrl);
+  }
 
   function trocarAba(value: string) {
     const aba: InventoryTab = value === "conferencia" ? "conferencia" : "listagem";

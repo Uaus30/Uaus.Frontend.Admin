@@ -21,6 +21,8 @@ export function InventoryCountPanel() {
         lastCount={state.lastCount}
         onStart={state.start}
         startingMode={state.startingMode}
+        loadFailed={state.loadFailed}
+        onRetry={state.retryLoad}
       />
     );
   }

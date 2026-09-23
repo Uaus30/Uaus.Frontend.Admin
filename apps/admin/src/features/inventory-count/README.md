@@ -140,6 +140,14 @@ Sem conferência aberta, a tela lê a última rodada encerrada
 onde parou (N)** — só os que faltam — ou **Recomeçar do zero**. "Encerrar rodada"
 é o fim normal de uma sessão; o que faltou continua na próxima.
 
+- Com pendentes para continuar, **Recomeçar do zero pede confirmação**: o botão
+  fica ao lado do "Continuar", e um clique nele apagaria o ponto de partida da
+  próxima rodada, que passaria a ser o catálogo inteiro.
+- A tela **espera a última rodada** antes de oferecer os botões (`isLoadingCount`),
+  e com a atual ou a última em erro mostra "Tentar de novo" em vez deles
+  (`loadFailed`): sem a resposta, o "Continuar" some e um clique recomeçaria do
+  zero quem queria continuar.
+
 Cada linha pendente mostra a **última conferência** do cadastro numa rodada
 anterior ("Nunca conferido" quando não houve), e a tarja da tela do produto
 também. Ao recomeçar do zero, é o que separa o conferido ontem do esquecido há

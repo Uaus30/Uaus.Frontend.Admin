@@ -6,6 +6,13 @@ const mocks = vi.hoisted(() => ({
   validateProductForm: vi.fn(),
   onRequestClose: vi.fn(),
   onSaved: vi.fn(),
+  salesPaused: false,
+}));
+
+// O congelamento do estoque é a única consulta da própria tela.
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
+  useGetStockFreezeStatus: () => ({ data: { salesPaused: mocks.salesPaused } }),
 }));
 
 // As abas e as modais não participam da decisão em teste — o que importa é o
@@ -29,7 +36,7 @@ vi.mock("../../../lib/validateProductForm", () => ({
 const { ProductDetailScreen } = await import("../ProductDetailScreen");
 
 /** O mínimo do `useProductEditor` que a tela lê. */
-function fakeEditor() {
+function fakeEditor(extras: Record<string, unknown> = {}) {
   return {
     isDirty: true,
     form: { productGroupName: "CANECA", hasVariations: false, images: [], notes: "" },
@@ -48,18 +55,64 @@ function fakeEditor() {
     applyGrades: vi.fn(),
     purchaseContext: null,
     completePurchaseReceipt: vi.fn(),
+    ...extras,
   } as unknown as Parameters<typeof ProductDetailScreen>[0]["editor"];
 }
 
-function renderScreen() {
+function renderScreen(extras: Record<string, unknown> = {}) {
   return render(
     <ProductDetailScreen
-      editor={fakeEditor()}
+      editor={fakeEditor(extras)}
       onRequestClose={mocks.onRequestClose}
       onSaved={mocks.onSaved}
     />,
   );
 }
+
+/** O cadastro NOVO que veio do "Lançar recebimento" de uma compra. */
+const vindoDaCompra = {
+  editingGroupId: null,
+  purchaseContext: { purchaseId: 7, supplierId: 1, quantity: 20, unitCost: 4.5, productName: "SACOLA" },
+};
+
+describe("ProductDetailScreen — cadastro da compra com o estoque congelado", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.validateProductForm.mockReturnValue({ errors: {}, firstErrorElementId: null });
+    mocks.handleSubmit.mockResolvedValue(true);
+  });
+
+  it("não cria o produto: a entrada seria recusada e a compra ficaria sem vínculo", async () => {
+    // Depois do encerramento, a compra ainda sem produto mandaria criar o
+    // cadastro DE NOVO — dois produtos iguais.
+    mocks.salesPaused = true;
+    renderScreen(vindoDaCompra);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /salvar/i })[0]);
+
+    await waitFor(() => expect(mocks.validateProductForm).toHaveBeenCalled());
+    expect(mocks.handleSubmit).not.toHaveBeenCalled();
+    mocks.salesPaused = false;
+  });
+
+  it("com o estoque solto, o cadastro da compra salva normalmente", async () => {
+    renderScreen(vindoDaCompra);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /salvar/i })[0]);
+
+    await waitFor(() => expect(mocks.handleSubmit).toHaveBeenCalled());
+  });
+
+  it("editar um produto que já existe segue liberado com o estoque congelado", async () => {
+    mocks.salesPaused = true;
+    renderScreen();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /salvar/i })[0]);
+
+    await waitFor(() => expect(mocks.handleSubmit).toHaveBeenCalled());
+    mocks.salesPaused = false;
+  });
+});
 
 describe("ProductDetailScreen — o que cada botão faz", () => {
   beforeEach(() => {

@@ -27,9 +27,12 @@ export function inventoryCountTabPathname(): string {
 export function inventoryTabFromUrl(): InventoryTab {
   if (typeof window === "undefined") return "listagem";
 
-  return new URLSearchParams(window.location.search).get(INVENTORY_TAB_PARAM) === "conferencia"
-    ? "conferencia"
-    : "listagem";
+  return inventoryTabFromSearch(window.location.search);
+}
+
+/** A aba que a query string pede (`?aba=conferencia`), ou a Listagem Geral. */
+export function inventoryTabFromSearch(search: string): InventoryTab {
+  return new URLSearchParams(search).get(INVENTORY_TAB_PARAM) === "conferencia" ? "conferencia" : "listagem";
 }
 
 /**

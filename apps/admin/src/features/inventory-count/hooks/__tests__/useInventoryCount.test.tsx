@@ -276,6 +276,34 @@ describe("useInventoryCount — rodadas e estoque congelado (23/09/2026)", () =>
     expect(result.current.isLoadingCount).toBe(true);
   });
 
+  it("com a última rodada em erro, a abertura não é oferecida no escuro", () => {
+    // Sem ela o Continuar some, e um clique recomeçaria do zero quem queria continuar.
+    givenConferencia(null);
+    mocks.useGetLastInventoryCount.mockReturnValue({
+      data: undefined,
+      isError: true,
+      error: new Error("500"),
+    });
+
+    const { result } = renderHook(() => useInventoryCount(), { wrapper: createWrapper() });
+
+    expect(result.current.loadFailed).toBe(true);
+  });
+
+  it("com a conferência atual em erro também não", () => {
+    mocks.useGetCurrentInventoryCount.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isSuccess: false,
+      isError: true,
+      error: new Error("500"),
+    });
+
+    const { result } = renderHook(() => useInventoryCount(), { wrapper: createWrapper() });
+
+    expect(result.current.loadFailed).toBe(true);
+  });
+
   it("com conferência aberta, a última rodada em voo não segura a lista", () => {
     givenConferencia(conferenciaAberta);
     mocks.useGetLastInventoryCount.mockReturnValue({ data: null, isFetching: true });

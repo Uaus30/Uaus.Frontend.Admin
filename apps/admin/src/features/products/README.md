@@ -664,6 +664,11 @@ histórico. O `PUT /ProductGroups` regravaria o grupo inteiro com a cópia que a
 linha tem na memória. A regra — cadastro sem foto e fora do site — mora em
 `hooks/useListFirstPhotoSitePrompt.ts`.
 
+**O cadastro novo que veio de uma compra não salva com o estoque congelado**
+(`ProductDetailScreen.salvar`). Ele só termina com a entrada, que a conferência
+recusa: salvo agora, o produto nasceria sem estoque e a compra, ainda sem
+vínculo, mandaria criar o cadastro de novo depois do encerramento.
+
 O ajuste é feito durante a renderização, comparando com a anterior, e não num
 efeito: `setState` síncrono em efeito é a cascata que o lint recusa.
 

@@ -1,5 +1,15 @@
-import { ClipboardCheck, Camera, Layers, PackageSearch, Play, RotateCcw, Snowflake } from "lucide-react";
-import { Button, Card, CardContent, Spinner } from "@workspace/ui";
+import { useState } from "react";
+import {
+  AlertTriangle,
+  ClipboardCheck,
+  Camera,
+  Layers,
+  PackageSearch,
+  Play,
+  RotateCcw,
+  Snowflake,
+} from "lucide-react";
+import { Button, Card, CardContent, ConfirmDialog, Spinner } from "@workspace/ui";
 import { formatDate } from "@workspace/core";
 import type { InventoryCountDto, InventoryCountStartMode } from "@workspace/api-client-react";
 
@@ -11,6 +21,9 @@ type InventoryCountStartProps = {
   onStart: (mode: InventoryCountStartMode) => void;
   /** A rodada sendo aberta; `null` fora da abertura. */
   startingMode: InventoryCountStartMode | null;
+  /** A conferência atual ou a última rodada não responderam: sem elas, não se oferece abrir. */
+  loadFailed: boolean;
+  onRetry: () => void;
 };
 
 /**
@@ -31,7 +44,11 @@ export function InventoryCountStart({
   lastCount,
   onStart,
   startingMode,
+  loadFailed,
+  onRetry,
 }: InventoryCountStartProps) {
+  const [confirmarRecomeco, setConfirmarRecomeco] = useState(false);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -40,10 +57,41 @@ export function InventoryCountStart({
     );
   }
 
+  // Sem saber se há rodada aberta, nem de onde a última parou, a tela não
+  // oferece abrir: o "Continuar" sumiria, e um clique recomeçaria do zero quem
+  // queria continuar. Vermelho com ícone: é falha, e o texto diz o que fazer.
+  if (loadFailed) {
+    return (
+      <Card className="border-destructive/40 bg-card/50">
+        <CardContent className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <div className="max-w-xl space-y-1">
+            <p className="font-semibold text-foreground">Não foi possível carregar a conferência.</p>
+            <p className="text-sm text-muted-foreground">
+              Sem saber de onde a última rodada parou, abrir agora poderia recomeçar do zero quem queria
+              continuar.
+            </p>
+          </div>
+          <Button type="button" variant="outline" onClick={onRetry} className="hover-elevate gap-2">
+            <RotateCcw className="h-4 w-4" /> Tentar de novo
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const pendentes = lastCount?.pendingItems ?? 0;
   const podeContinuar = lastCount !== null && pendentes > 0;
   // Os dois travam, mas só o clicado mostra o andamento.
   const isStarting = startingMode !== null;
+
+  // Com pendentes para continuar, recomeçar pede confirmação: sem ela, um
+  // clique no botão ao lado do "Continuar" apagaria o ponto de partida da
+  // próxima rodada — que passaria a ser o catálogo inteiro.
+  function recomecar() {
+    if (podeContinuar) setConfirmarRecomeco(true);
+    else onStart("Restart");
+  }
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -113,7 +161,7 @@ export function InventoryCountStart({
               </Button>
             )}
             <Button
-              onClick={() => onStart("Restart")}
+              onClick={recomecar}
               disabled={isStarting}
               variant={podeContinuar ? "outline" : "default"}
               className="hover-elevate gap-2"
@@ -137,6 +185,24 @@ export function InventoryCountStart({
             Só pode haver uma conferência por vez. Produtos cadastrados depois do início não entram nesta.
           </p>
         </div>
+
+        <ConfirmDialog
+          open={confirmarRecomeco}
+          onOpenChange={setConfirmarRecomeco}
+          title="Recomeçar a conferência do zero?"
+          description={
+            <>
+              A rodada nova confere o catálogo inteiro. Os <strong>{pendentes}</strong> cadastros que a última
+              rodada deixou pendentes deixam de ser o ponto de partida: o próximo &ldquo;Continuar&rdquo;
+              parte desta rodada.
+            </>
+          }
+          confirmLabel="Recomeçar do zero"
+          onConfirm={() => {
+            setConfirmarRecomeco(false);
+            onStart("Restart");
+          }}
+        />
       </CardContent>
     </Card>
   );

@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
+import { useGetStockFreezeStatus } from "@workspace/api-client-react";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 import type { ProductGrade, VariationDraft } from "../../types";
 import { resolveBarcodeInput } from "@workspace/core";
@@ -106,6 +107,8 @@ export function ProductDetailScreen({
   onSaved,
 }: ProductDetailScreenProps) {
   const { toast } = useToast();
+  // Só para o cadastro novo vindo de compra — ver `salvar`.
+  const stockFrozen = useGetStockFreezeStatus().data?.salesPaused === true;
   const {
     isDirty,
     form,
@@ -250,6 +253,21 @@ export function ProductDetailScreen({
     }
 
     setValidationErrors({});
+
+    // O cadastro novo que veio de uma compra só termina com a entrada, que o
+    // estoque congelado recusa. Salvo agora, o produto nasceria sem estoque e a
+    // compra, ainda sem vínculo, mandaria criar o cadastro DE NOVO depois do
+    // encerramento.
+    if (purchaseContext && !editingGroupId && stockFrozen) {
+      toast({
+        title: "Recebimento pausado",
+        description:
+          "Há uma conferência de estoque em andamento. Cadastre este produto pela compra depois que ela for encerrada.",
+        variant: "warning",
+      });
+      return false;
+    }
+
     return handleSubmit();
   }
 
