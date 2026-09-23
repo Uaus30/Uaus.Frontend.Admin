@@ -104,6 +104,7 @@ const ProductAbc = lazy(() => import("@/pages/product-abc"));
 const ProductPerformance = lazy(() => import("@/pages/product-performance"));
 const PeriodComparison = lazy(() => import("@/pages/period-comparison"));
 const ProfitLeaders = lazy(() => import("@/pages/profit-leaders"));
+const ProductAnomalies = lazy(() => import("@/pages/product-anomalies"));
 
 /**
  * Ícone de cada grupo do menu. A ORDEM de exibição não sai daqui — ver `MENU_ORDER`.
@@ -275,6 +276,14 @@ export const ROUTES: AppRoute[] = [
   // depois da outra, como Entradas é depois de Compras —, então a única ordem
   // que alguém consegue prever é a do alfabeto. Tela nova entra na posição
   // alfabética, não no fim.
+  {
+    // Mostra custo e margem item a item, como as outras telas do grupo.
+    path: "/bi/anomalias",
+    label: "Anomalias",
+    group: "BI",
+    component: ProductAnomalies,
+    roles: SO_ADMIN,
+  },
   {
     path: "/bi/curva-abc",
     label: "Curva ABC de Produtos",

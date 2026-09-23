@@ -123,6 +123,7 @@ describe("podeAcessar", () => {
     const nomes = bi?.items?.map((s) => s.name) ?? [];
 
     expect(nomes).toEqual([
+      "Anomalias",
       "Curva ABC de Produtos",
       "Desempenho de Fornecedores",
       "Desempenho de Produtos",
@@ -130,6 +131,7 @@ describe("podeAcessar", () => {
       "O que trouxe lucro",
     ]);
     expect(bi?.items?.map((s) => s.href)).toEqual([
+      "/bi/anomalias",
       "/bi/curva-abc",
       "/bi/fornecedores",
       "/bi/produtos",
@@ -166,6 +168,17 @@ describe("podeAcessar", () => {
     // `roles` da rota não deixa nenhum teste vermelho — o único que a citava roda
     // `buildMenu(Admin)`, e o Admin vê tudo.
     const tela = ROUTES.find((r) => r.path === "/bi/o-que-trouxe-lucro")!;
+
+    expect(tela.roles).toBeDefined();
+    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
+  });
+
+  it("as anomalias também são só de Admin", () => {
+    // A lista traz custo, preço e margem item a item ("preço abaixo do custo",
+    // "custo zerado"). Sem este teste, apagar o `roles` da rota não deixaria
+    // nenhum teste vermelho — o de ordem roda `buildMenu(Admin)`, e o Admin vê tudo.
+    const tela = ROUTES.find((r) => r.path === "/bi/anomalias")!;
 
     expect(tela.roles).toBeDefined();
     expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);

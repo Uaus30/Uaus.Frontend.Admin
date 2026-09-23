@@ -35,3 +35,4 @@ export * from "./product-abc";
 export * from "./product-performance";
 export * from "./period-comparison";
 export * from "./profit-leaders";
+export * from "./product-anomalies";
