@@ -127,11 +127,6 @@
       "count": 1
     }
   },
-  "apps/admin/src/features/products/components/ProductHistoryModal.tsx": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
   "apps/admin/src/features/products/components/ProductImageSearchModal.tsx": {
     "react-hooks/set-state-in-effect": {
       "count": 1
