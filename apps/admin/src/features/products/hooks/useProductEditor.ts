@@ -21,6 +21,7 @@ import type {
   ProductEditorForm,
   ProductGrade,
   PurchaseContext,
+  SavedBaseline,
   VariationDraft,
 } from "../types";
 import { createEmptyProductEditor } from "./editor/utils";
@@ -58,6 +59,14 @@ export function useProductEditor() {
   const detailOpenRef = useRef(false);
 
   const [images, setImages] = useState<LocalImage[]>([]);
+  /**
+   * O "Exibir no site" e a galeria como o servidor os tinha quando o cadastro
+   * abriu, ou no último salvar. O salvar só manda os dois quando a pessoa mexeu
+   * neles NESTA tela: a lupa da listagem, ou outra aba, pode tê-los mudado no
+   * meio tempo, e mandados com o valor antigo eles desfaziam a mudança em
+   * silêncio (23/09/2026). `null` no cadastro novo — aí tudo vai.
+   */
+  const [savedBaseline, setSavedBaseline] = useState<SavedBaseline | null>(null);
   const [form, setForm] = useState<ProductGroupForm>({
     departmentId: "",
     categoryId: "",
@@ -261,6 +270,9 @@ export function useProductEditor() {
     productTags: productForm.productTags,
     getStatusNumber: productForm.getStatusNumber,
     markClean,
+    savedBaseline,
+    setSavedBaseline,
+    setForm,
   });
 
   function toVariationDraft(product: any): VariationDraft {
@@ -312,7 +324,12 @@ export function useProductEditor() {
         `PUT /ProductGroupImages/{id}` manda a lista inteira, então lista vazia
         apaga as fotos do grupo, sem erro e sem aviso.
       */
-      setImages(productImagesHook.toLocalImages(product.images));
+      const galeria = productImagesHook.toLocalImages(product.images);
+      setImages(galeria);
+      setSavedBaseline({
+        showOnSite: product.productGroup?.showOnSite ?? true,
+        imageIds: galeria.flatMap((image) => (image.imageId ? [image.imageId] : [])),
+      });
 
       if (product.productGroup?.hasVariations) {
         const draft = toVariationDraft(product);
@@ -336,6 +353,7 @@ export function useProductEditor() {
       }
     } else {
       productForm.resetForm();
+      setSavedBaseline(null);
     }
     setDetailOpen(true);
   }

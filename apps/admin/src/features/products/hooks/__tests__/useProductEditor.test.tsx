@@ -18,6 +18,11 @@ const mocks = vi.hoisted(() => ({
   ),
 }));
 
+/** O corpo do último salvamento, como o hook o montou. */
+function ultimoPayload() {
+  return (mocks.saveProductGroupWithProducts.mock.lastCall as unknown as [{ showOnSite?: boolean }])[0];
+}
+
 // Dubla só o que fala com a rede; o resto do api-client continua o de verdade.
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
@@ -259,10 +264,79 @@ describe("useProductEditor Hook", () => {
         name: "COPO",
         description: "Descrição original",
         hasVariations: false,
-        showOnSite: false,
         products: [expect.objectContaining({ id: 10, name: "COPO VERDE" })],
       }),
     );
+    // O "Exibir no site" que ninguém mexeu nesta tela não vai: omitido, o
+    // servidor mantém o gravado — a lupa, ou outra aba, pode tê-lo ligado.
+    expect(ultimoPayload().showOnSite).toBeUndefined();
+  });
+
+  it("depois de salvar a galeria mexida, o próximo salvar sem mexer não a manda de novo", async () => {
+    // O ponto de partida passa a ser o que foi gravado: sem isso, a tela que
+    // continua aberta depois do Salvar reenviaria a galeria a cada gravação.
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail({
+        id: 10,
+        name: "COPO VERDE",
+        description: "",
+        price: 15.5,
+        stock: 2,
+        minStock: 0,
+        status: 2,
+        barcode: "123456",
+        department: { id: 2 },
+        category: { id: 5 },
+        productGroup: { id: 1, name: "COPO", description: "", hasVariations: false, showOnSite: true },
+        tags: [],
+        images: [],
+      });
+    });
+    act(() => {
+      result.current.setImages([
+        { name: "C", url: "blob:c", file: new File(["c"], "c.png", { type: "image/png" }) },
+      ]);
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(syncProductGroupImages).toHaveBeenCalledTimes(1);
+  });
+
+  it("manda o Exibir no site quando a pessoa mexeu nele nesta tela", async () => {
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail({
+        id: 10,
+        name: "COPO VERDE",
+        description: "",
+        price: 15.5,
+        stock: 2,
+        minStock: 0,
+        status: 2,
+        barcode: "123456",
+        department: { id: 2 },
+        category: { id: 5 },
+        productGroup: { id: 1, name: "COPO", description: "", hasVariations: false, showOnSite: false },
+        tags: [],
+        images: [],
+      });
+    });
+    act(() => result.current.setForm((current) => ({ ...current, isPublic: true })));
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(ultimoPayload().showOnSite).toBe(true);
   });
 
   it("deve preservar a posição escolhida para imagens novas ao salvar", async () => {
@@ -381,8 +455,10 @@ describe("useProductEditor Hook", () => {
       await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
     });
 
-    // A foto que já estava lá é regravada como está — e NÃO some.
-    expect(syncProductGroupImages).toHaveBeenCalledWith({ productGroupId: 1, imageIds: [483] });
+    // A galeria que ninguém mexeu nesta tela nem vai: sem o PUT que troca a
+    // lista inteira, a foto fica — e a que a lupa pôs em outra aba também.
+    expect(syncProductGroupImages).not.toHaveBeenCalled();
+    expect(result.current.galleryImages.map((image) => image.imageId)).toEqual([483]);
   });
 
   it("deve gravar a imagem anexada em grupo COM variações, na galeria do GRUPO", async () => {

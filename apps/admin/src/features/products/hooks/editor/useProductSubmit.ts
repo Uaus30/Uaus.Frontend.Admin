@@ -7,7 +7,13 @@ import { buildPublicImageUrl } from "@/services/core";
 import { syncProductTags, syncProductGroupImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
 import { chaveDaCombinacao } from "../../lib/variationNames";
-import type { LocalImage, ProductGroupForm, ProductEditorForm, VariationDraft } from "../../types";
+import type {
+  LocalImage,
+  ProductGroupForm,
+  ProductEditorForm,
+  SavedBaseline,
+  VariationDraft,
+} from "../../types";
 import { describeApiError } from "@workspace/core";
 
 export interface UseProductSubmitProps {
@@ -27,6 +33,17 @@ export interface UseProductSubmitProps {
   productTags: any[];
   getStatusNumber: (statusVal: any) => number;
   markClean: () => void;
+  /** O site e a galeria como o servidor os tinha — ver `useProductEditor.savedBaseline`. */
+  savedBaseline: SavedBaseline | null;
+  setSavedBaseline: React.Dispatch<React.SetStateAction<SavedBaseline | null>>;
+  setForm: React.Dispatch<React.SetStateAction<ProductGroupForm>>;
+}
+
+/** A galeria da tela é a mesma que abriu: mesmas fotos, na mesma ordem, nenhuma nova. */
+function mesmaGaleria(images: LocalImage[], imageIds: number[]): boolean {
+  return (
+    images.length === imageIds.length && images.every((image, index) => image.imageId === imageIds[index])
+  );
 }
 
 export function useProductSubmit({
@@ -46,6 +63,9 @@ export function useProductSubmit({
   productTags,
   getStatusNumber,
   markClean,
+  savedBaseline,
+  setSavedBaseline,
+  setForm,
 }: UseProductSubmitProps) {
   const { toast } = useToast();
 
@@ -181,6 +201,13 @@ export function useProductSubmit({
         }));
       }
 
+      // Na edição, "Exibir no site" e galeria só vão quando a pessoa mexeu neles
+      // NESTA tela. Omitido, o servidor mantém o interruptor; sem a chamada, a
+      // galeria fica como está — a foto que a lupa pôs em outra aba sobrevive.
+      const baseline = editingGroupId ? savedBaseline : null;
+      const siteMudou = !baseline || form.isPublic !== baseline.showOnSite;
+      const galeriaMudou = !baseline || !mesmaGaleria(images, baseline.imageIds);
+
       // UMA requisição, uma transação: ou o cadastro inteiro grava, ou nada
       // muda. Antes eram N upserts em série — um código de barras duplicado na
       // terceira variação deixava grupo e duas variações salvos, e o toast só
@@ -191,7 +218,7 @@ export function useProductSubmit({
         name: form.productGroupName,
         description: form.description,
         hasVariations: form.hasVariations,
-        showOnSite: form.isPublic,
+        showOnSite: siteMudou ? form.isPublic : undefined,
         notes: form.notes,
         products: produtos,
       });
@@ -206,7 +233,7 @@ export function useProductSubmit({
       //
       // A galeria é do GRUPO: uma chamada só, fora do laço das variações. Antes
       // era uma por variação, e cada uma com o seu conjunto de fotos.
-      const normalizedImages = await persistGroupImages(saved.group.id, images);
+      const normalizedImages = galeriaMudou ? await persistGroupImages(saved.group.id, images) : images;
       setImages(normalizedImages);
 
       // O CÓDIGO DE BARRAS volta da resposta, e não do rascunho: quem deixou o
@@ -258,6 +285,17 @@ export function useProductSubmit({
           : editingGroupId
             ? "Produto atualizado."
             : "Produto criado.",
+      });
+
+      // O novo ponto de partida é o que o servidor tem agora. O interruptor vem
+      // da resposta: omitido, ele pode ter sido ligado por outra tela — e a tela
+      // passa a mostrá-lo como está.
+      const siteGravado =
+        typeof saved.group.showOnSite === "boolean" ? saved.group.showOnSite : form.isPublic;
+      if (siteGravado !== form.isPublic) setForm((current) => ({ ...current, isPublic: siteGravado }));
+      setSavedBaseline({
+        showOnSite: siteGravado,
+        imageIds: normalizedImages.flatMap((image) => (image.imageId ? [image.imageId] : [])),
       });
 
       // O que está na tela agora é o que o servidor gravou: a tela continua

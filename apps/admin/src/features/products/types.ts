@@ -185,6 +185,16 @@ export type LocalImage = {
 };
 
 /**
+ * O "Exibir no site" e a galeria como o servidor os tinha quando o cadastro
+ * abriu, ou no último salvar — ver `useProductEditor.savedBaseline`.
+ */
+export type SavedBaseline = {
+  showOnSite: boolean;
+  /** Ids do catálogo de imagens, na ordem da galeria. */
+  imageIds: number[];
+};
+
+/**
  * Estrutura de dynamic variation draft row in the editor table.
  */
 export type VariationDraft = ProductEditorForm & {

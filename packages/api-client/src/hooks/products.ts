@@ -102,7 +102,11 @@ export interface SaveProductGroupWithProductsPayload {
   name: string;
   description?: string | null;
   hasVariations: boolean;
-  showOnSite: boolean;
+  /**
+   * Omitido na edição, o servidor mantém o que está gravado: o editor só o
+   * manda quando a pessoa mexeu no interruptor NESTA tela (23/09/2026).
+   */
+  showOnSite?: boolean;
   /** Observação de uso interno — nunca aparece no site nem no PDV. */
   notes?: string | null;
   products: SaveProductGroupProductPayload[];
