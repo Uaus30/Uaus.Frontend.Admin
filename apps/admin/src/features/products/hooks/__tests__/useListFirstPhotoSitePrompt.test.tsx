@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PRODUCT_STATUS } from "@workspace/api-client-react";
-import { RESOURCE_KEYS } from "@/hooks/use-catalog";
+import { CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
 import type { ProductTableRow } from "../../types";
 
 const mocks = vi.hoisted(() => ({ setProductGroupShowOnSite: vi.fn(), toast: vi.fn() }));
@@ -82,6 +82,51 @@ describe("useListFirstPhotoSitePrompt — a primeira foto pela lupa da listagem"
     act(() => result.current.offerFor(linha({}, true)));
 
     expect(result.current.open).toBe(false);
+  });
+
+  it("não pergunta por produto sem variação Ativa — a vitrine não o mostraria", () => {
+    // O aviso "publicado no site" mentiria: a loja só exibe grupo com produto Ativo.
+    const { result } = renderHook(() => useListFirstPhotoSitePrompt(), { wrapper: createWrapper() });
+
+    act(() => result.current.offerFor(linha({ status: PRODUCT_STATUS.Inactive })));
+    act(() => result.current.offerFor(linha({ status: PRODUCT_STATUS.Draft })));
+
+    expect(result.current.open).toBe(false);
+  });
+
+  it("pergunta pelo grupo cuja linha está inativa mas tem uma variação Ativa", () => {
+    const { result } = renderHook(() => useListFirstPhotoSitePrompt(), { wrapper: createWrapper() });
+
+    act(() =>
+      result.current.offerFor(
+        linha({
+          status: PRODUCT_STATUS.Inactive,
+          variations: [
+            { id: 1, name: "COPO [AZUL]", price: 9.9, stock: 0, status: PRODUCT_STATUS.Inactive },
+            { id: 2, name: "COPO [VERDE]", price: 9.9, stock: 3, status: PRODUCT_STATUS.Active },
+          ],
+        }),
+      ),
+    );
+
+    expect(result.current.open).toBe(true);
+  });
+
+  it("o sim invalida o catálogo de grupos, de onde o detalhe aberto por link lê o Exibir no site", async () => {
+    // Velho, o catálogo abriria o editor com o interruptor desligado, e o
+    // próximo Salvar tiraria o produto do site sem ninguém perceber.
+    mocks.setProductGroupShowOnSite.mockResolvedValue(undefined);
+    const wrapper = createWrapper();
+    wrapper.queryClient.setQueryData(CATALOG_KEYS.productGroups, [
+      { id: 825, name: "COPO", showOnSite: false },
+    ]);
+    const { result } = renderHook(() => useListFirstPhotoSitePrompt(), { wrapper });
+
+    act(() => result.current.offerFor(linha()));
+    act(() => result.current.publish());
+
+    await waitFor(() => expect(result.current.open).toBe(false));
+    expect(wrapper.queryClient.getQueryState(CATALOG_KEYS.productGroups)?.isInvalidated).toBe(true);
   });
 
   it("o sim liga só o Exibir no site, na hora, e recarrega a listagem", async () => {

@@ -2,13 +2,25 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
-import { setProductGroupShowOnSite } from "@workspace/api-client-react";
-import { RESOURCE_KEYS } from "@/hooks/use-catalog";
+import { enumCode, PRODUCT_STATUS, setProductGroupShowOnSite } from "@workspace/api-client-react";
+import { CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
 import type { ProductTableRow } from "../types";
 
-/** A primeira foto pela lupa só pergunta quando o cadastro não tinha foto E está fora do site. */
+/** Alguma variação Ativa — sem ela, a vitrine não mostra o grupo (`StorefrontService`). */
+function hasActiveVariation(row: ProductTableRow): boolean {
+  const ativo = (status: ProductTableRow["status"]) =>
+    enumCode(status, PRODUCT_STATUS) === PRODUCT_STATUS.Active;
+  return ativo(row.status) || row.variations.some((variation) => ativo(variation.status));
+}
+
+/**
+ * A primeira foto pela lupa só pergunta quando o cadastro não tinha foto, está
+ * fora do site E tem variação Ativa. Sem esta última, o "sim" ligaria o
+ * interruptor de um produto que a vitrine não mostra, e o aviso "publicado no
+ * site" mentiria.
+ */
 export function shouldAskSiteAfterListPhoto(row: ProductTableRow): boolean {
-  return row.images.length === 0 && !row.productGroup.showOnSite;
+  return row.images.length === 0 && !row.productGroup.showOnSite && hasActiveVariation(row);
 }
 
 /**
@@ -33,10 +45,16 @@ export function useListFirstPhotoSitePrompt() {
     mutationFn: (target: ProductTableRow) => setProductGroupShowOnSite(target.productGroupId, true),
     onSuccess: async (_, target) => {
       setRow(null);
-      await queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products });
+      // O catálogo de grupos junto: é dele que o detalhe aberto por link lê o
+      // "Exibir no site". Velho, ele mostraria o interruptor desligado, e o
+      // próximo Salvar tiraria o produto do site sem ninguém perceber.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products }),
+        queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.productGroups }),
+      ]);
       toast({
         title: "Produto publicado no site",
-        description: `${target.name} passa a aparecer na vitrine — desde que tenha variação ativa.`,
+        description: `${target.name} passa a aparecer na vitrine.`,
       });
     },
     onError: (error: unknown) =>

@@ -661,8 +661,12 @@ com a foto. A regra está em `hooks/editor/useFirstPhotoSitePrompt.ts`:
 Lá a foto é gravada direto no servidor, então o "sim" também vai direto: liga só o
 "Exibir no site" pela rota própria (`setProductGroupShowOnSite`), com linha no
 histórico. O `PUT /ProductGroups` regravaria o grupo inteiro com a cópia que a
-linha tem na memória. A regra — cadastro sem foto e fora do site — mora em
-`hooks/useListFirstPhotoSitePrompt.ts`.
+linha tem na memória. A regra — cadastro sem foto, fora do site e com alguma
+variação Ativa (sem ela a vitrine não mostra o grupo, e o aviso "publicado no
+site" mentiria) — mora em `hooks/useListFirstPhotoSitePrompt.ts`. O "sim" invalida
+também o catálogo de grupos (`CATALOG_KEYS.productGroups`): é dele que o detalhe
+aberto por link lê o interruptor, e velho ele faria o próximo Salvar tirar o
+produto do site.
 
 **O cadastro novo que veio de uma compra não salva com o estoque congelado**
 (`ProductDetailScreen.salvar`). Ele só termina com a entrada, que a conferência
