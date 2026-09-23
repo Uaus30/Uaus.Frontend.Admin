@@ -1,4 +1,4 @@
-import { apiPost } from "@workspace/api-client-react";
+import { ApiError, apiPost } from "@workspace/api-client-react";
 import {
   listSalesToSync,
   markPendingSaleAttempted,
@@ -242,16 +242,18 @@ export async function syncPendingSales(): Promise<SyncOutcome> {
   let created = 0;
   let duplicated = 0;
   let rejected = 0;
+  let blockedByStockFreeze = false;
 
   for (const batch of chunk(queue, SYNC_BATCH_SIZE)) {
     let response: SyncSalesResponse;
 
     try {
       response = await postSyncBatch(batch);
-    } catch {
+    } catch (error) {
       // A conexão caiu no meio da sincronização — ou a conferência de estoque
       // recusou o lote inteiro (423). Registra a tentativa e para: o que sobrou
       // na fila entra na próxima rodada.
+      blockedByStockFreeze = error instanceof ApiError && error.status === 423;
       for (const sale of batch) await markPendingSaleAttempted(sale);
       break;
     }
@@ -264,5 +266,5 @@ export async function syncPendingSales(): Promise<SyncOutcome> {
 
   const tally = await tallyPendingSales();
 
-  return { created, duplicated, rejected, remaining: tally.pending + tally.failed };
+  return { created, duplicated, rejected, remaining: tally.pending + tally.failed, blockedByStockFreeze };
 }

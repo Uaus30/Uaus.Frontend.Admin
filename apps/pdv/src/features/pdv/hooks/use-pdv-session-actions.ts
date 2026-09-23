@@ -80,8 +80,10 @@ export function usePdvSessionActions({
    * na maioria das vezes a fila sobe e o operador segue direto.
    */
   const requestCloseRegister = useCallback(async () => {
+    let esperaConferencia = false;
     if (queuedCount > 0 && online) {
-      await syncPendingQueues();
+      const outcome = await syncPendingQueues();
+      esperaConferencia = Boolean(outcome?.blockedByStockFreeze);
     }
 
     // Reconsulta o store: a sincronização acima pode ter esvaziado a fila. As
@@ -95,9 +97,12 @@ export function usePdvSessionActions({
       toast({
         title: check.reason === "fila-pendente" ? "Há movimentos não sincronizados" : "Nenhum caixa aberto",
         description:
-          check.reason === "fila-pendente"
-            ? `${pendentes} movimento(s) ainda não subiram para o servidor. O fechamento contaria uma gaveta que o servidor não conhece — resolva a fila em "Operação offline" primeiro.`
-            : "Não há sessão de caixa aberta para fechar.",
+          check.reason !== "fila-pendente"
+            ? "Não há sessão de caixa aberta para fechar."
+            : esperaConferencia
+              ? // Não há o que resolver na fila: ela sobe sozinha no encerramento.
+                `${pendentes} movimento(s) esperam a conferência de estoque ser encerrada no admin para subir. Feche o caixa depois do encerramento.`
+              : `${pendentes} movimento(s) ainda não subiram para o servidor. O fechamento contaria uma gaveta que o servidor não conhece — resolva a fila em "Operação offline" primeiro.`,
         variant: "destructive",
         duration: 8000,
       });

@@ -131,7 +131,12 @@ describe("syncPendingWriteOffs", () => {
   it("deve devolver zeros com a fila vazia", async () => {
     listWriteOffsToSync.mockResolvedValue([]);
 
-    expect(await syncPendingWriteOffs()).toEqual({ sent: 0, rejected: 0, remaining: 0 });
+    expect(await syncPendingWriteOffs()).toEqual({
+      sent: 0,
+      rejected: 0,
+      remaining: 0,
+      blockedByStockFreeze: false,
+    });
     expect(registerStockWriteOff).not.toHaveBeenCalled();
   });
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useGetStockFreezeStatus } from "@workspace/api-client-react";
 import { useOfflineStore } from "@/stores/use-offline-store";
 
@@ -21,9 +22,14 @@ import { useOfflineStore } from "@/stores/use-offline-store";
  *
  * **Encerrada a conferência, a fila sobe na hora.** As vendas e baixas que o
  * servidor recusou com 423 esperavam exatamente isso; sem o gatilho, ficariam
- * até a próxima reconexão ou o fechamento do caixa.
+ * até a próxima reconexão ou o fechamento do caixa. São DUAS rodadas: se uma
+ * sincronização já estava em voo quando a conferência encerrou, ela voltou 423
+ * — e o `syncNow` devolveria a mesma promessa. Sem nada pendente, a segunda
+ * sai cedo. Como na reconexão (`useConnectivity`), o cache só é invalidado se
+ * algo mudou no servidor.
  */
 export function useStockFreeze(): { salesPaused: boolean; pausedSince?: string } {
+  const queryClient = useQueryClient();
   const online = useOfflineStore((state) => state.online);
   const syncNow = useOfflineStore((state) => state.syncNow);
   const { data } = useGetStockFreezeStatus({ query: { enabled: online, retry: false } });
@@ -31,9 +37,17 @@ export function useStockFreeze(): { salesPaused: boolean; pausedSince?: string }
 
   const wasPaused = useRef(salesPaused);
   useEffect(() => {
-    if (wasPaused.current && !salesPaused) void syncNow();
+    if (wasPaused.current && !salesPaused) {
+      void (async () => {
+        const rodadas = [await syncNow(), await syncNow()];
+        const mudou = rodadas.some(
+          (outcome) => outcome && outcome.sales.created + outcome.writeOffs.sent > 0,
+        );
+        if (mudou) void queryClient.invalidateQueries();
+      })();
+    }
     wasPaused.current = salesPaused;
-  }, [salesPaused, syncNow]);
+  }, [queryClient, salesPaused, syncNow]);
 
   return { salesPaused, pausedSince: data?.pausedSince };
 }

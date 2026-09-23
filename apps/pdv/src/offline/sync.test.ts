@@ -208,7 +208,13 @@ describe("syncPendingSales", () => {
 
     const outcome = await syncPendingSales();
 
-    expect(outcome).toEqual({ created: 0, duplicated: 0, rejected: 0, remaining: 0 });
+    expect(outcome).toEqual({
+      created: 0,
+      duplicated: 0,
+      rejected: 0,
+      remaining: 0,
+      blockedByStockFreeze: false,
+    });
     expect(apiPost).not.toHaveBeenCalled();
   });
 

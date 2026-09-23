@@ -86,6 +86,8 @@ avisa antes:
   caiu da rede continua impedido. Quem nunca soube vende offline, e a sincronização
   é recusada em lote — as vendas ficam pendentes e sobem depois do encerramento
   (ver `docs/offline.md`).
+- A "Baixa de Estoque" do menu também fica travada, e uma venda recusada com 423
+  (o balcão ainda não sabia) reconsulta o status na hora.
 
 ### 7. O cursor pertence ao campo de busca
 

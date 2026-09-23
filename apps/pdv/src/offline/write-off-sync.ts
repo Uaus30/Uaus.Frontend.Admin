@@ -97,6 +97,7 @@ export async function syncPendingWriteOffs(): Promise<WriteOffSyncOutcome> {
 
   let sent = 0;
   let rejected = 0;
+  let blockedByStockFreeze = false;
 
   for (const writeOff of queue) {
     const movements = toStockMovements(writeOff);
@@ -105,7 +106,9 @@ export async function syncPendingWriteOffs(): Promise<WriteOffSyncOutcome> {
       await registerStockWriteOff(buildWriteOffRequestBody(writeOff));
     } catch (error) {
       if (classifyWriteOffFailure(error) === "retry") {
-        // A conexão caiu no meio da drenagem. Registra a tentativa e para.
+        // A conexão caiu no meio da drenagem — ou a conferência de estoque
+        // recusou (423). Registra a tentativa e para.
+        blockedByStockFreeze = error instanceof ApiError && error.status === 423;
         await markPendingWriteOffAttempted(writeOff);
         break;
       }
@@ -133,5 +136,5 @@ export async function syncPendingWriteOffs(): Promise<WriteOffSyncOutcome> {
 
   const tally = await tallyPendingWriteOffs();
 
-  return { sent, rejected, remaining: tally.pending + tally.failed };
+  return { sent, rejected, remaining: tally.pending + tally.failed, blockedByStockFreeze };
 }

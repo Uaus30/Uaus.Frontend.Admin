@@ -306,7 +306,14 @@ de o servidor começar; 23/09/2026). O PDV trata como uma falha de rede: as vend
 continuam **pendentes**, com `attempts` somado — nenhuma vira "Recusada" à espera
 do operador. A baixa offline, que sobe uma a uma, tem o mesmo desfecho: o 423 é
 transiente para `classifyWriteOffFailure`. Quando a consulta de status
-(`useStockFreeze`) vê a conferência encerrar, o PDV sincroniza a fila na hora.
+(`useStockFreeze`) vê a conferência encerrar, o PDV sincroniza a fila na hora —
+em duas rodadas, porque uma sincronização que já estava em voo voltou 423 e o
+`syncNow` devolveria a mesma promessa.
+
+O desfecho carrega `blockedByStockFreeze`: é o que faz o "Sincronizar" avisar em
+âmbar que a fila **espera a conferência** (e não "Fila sincronizada", em verde), e
+o pedido de fechamento de caixa dizer que os movimentos sobem no encerramento, em
+vez de mandar o operador resolver uma fila que não tem o que resolver.
 
 Com a conferência aberta, o balcão fica pausado — FINALIZAR e "Baixa de Estoque"
 travados — enquanto o PDV souber dela. As duas situações acima só acontecem com

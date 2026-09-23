@@ -75,7 +75,31 @@ export function useOfflineQueue({ sessionId, onSynced }: UseOfflineQueueParams) 
     // em nenhum dos dois.
     if (outcome.sales.created > 0) await onSynced?.();
 
+    // Âmbar, e não o verde de "sincronizada": a fila não subiu, e o texto diz
+    // se é para esperar a conferência ou a conexão.
+    if (outcome.blockedByStockFreeze) {
+      toast({
+        title: "Fila aguardando a conferência de estoque",
+        description:
+          "Há uma conferência de estoque em andamento. As vendas e baixas pendentes sobem sozinhas quando ela for encerrada no admin.",
+        variant: "warning",
+        duration: 8000,
+      });
+      return;
+    }
+
     const rejected = outcome.sales.rejected + outcome.writeOffs.rejected;
+    const subiu = outcome.sales.created + outcome.sales.duplicated + outcome.writeOffs.sent;
+    if (subiu === 0 && rejected === 0 && outcome.remaining > 0) {
+      toast({
+        title: "A fila não subiu",
+        description:
+          "A conexão caiu no meio da sincronização. As pendências continuam na fila e sobem na próxima tentativa.",
+        variant: "warning",
+        duration: 6000,
+      });
+      return;
+    }
 
     toast({
       title: rejected > 0 ? "Sincronização com pendências" : "Fila sincronizada",

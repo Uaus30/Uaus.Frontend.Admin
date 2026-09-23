@@ -25,6 +25,21 @@ function openDrawer() {
   return gear;
 }
 
+describe("FINALIZAR travado", () => {
+  it.each([
+    ["PdvCartActionsExtended", PdvCartActionsExtended],
+    ["PdvCartActionsCompact", PdvCartActionsCompact],
+  ])("%s trava o FINALIZAR com a venda bloqueada (caixa fechado ou conferência de estoque)", (_, Actions) => {
+    const onCheckout = vi.fn();
+    renderWithHints(<Actions {...props({ checkoutBlocked: true, onCheckout })} />);
+
+    const finalizar = screen.getByRole("button", { name: /FINALIZAR/ });
+    expect(finalizar).toHaveProperty("disabled", true);
+    fireEvent.click(finalizar);
+    expect(onCheckout).not.toHaveBeenCalled();
+  });
+});
+
 describe("PdvCartActionsExtended", () => {
   it("deve mostrar os quatro botões secundários sem nenhum clique", () => {
     renderWithHints(<PdvCartActionsExtended {...props()} />);

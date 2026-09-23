@@ -445,6 +445,12 @@ export interface WriteOffSyncOutcome {
   rejected: number;
   /** Baixas que continuam na fila (recusadas + as que nem chegaram a ser enviadas). */
   remaining: number;
+  /**
+   * O servidor recusou com 423: há conferência de estoque em andamento. O que
+   * não subiu continua na fila e sobe depois do encerramento — o operador não
+   * tem o que resolver, e a tela precisa dizer isso em vez de "sincronizada".
+   */
+  blockedByStockFreeze?: boolean;
 }
 
 /** Resumo de uma rodada que drena as duas filas locais. */
@@ -458,6 +464,12 @@ export interface QueueSyncOutcome {
    * servidor ainda não conhece impede o fechamento.
    */
   remaining: number;
+  /**
+   * O servidor recusou com 423: há conferência de estoque em andamento. O que
+   * não subiu continua na fila e sobe depois do encerramento — o operador não
+   * tem o que resolver, e a tela precisa dizer isso em vez de "sincronizada".
+   */
+  blockedByStockFreeze?: boolean;
 }
 
 /** Configurações da empresa guardadas na base local. */
@@ -519,4 +531,10 @@ export interface SyncOutcome {
   rejected: number;
   /** Vendas que continuam na fila (recusadas + lotes que nem chegaram a ser enviados). */
   remaining: number;
+  /**
+   * O servidor recusou com 423: há conferência de estoque em andamento. O que
+   * não subiu continua na fila e sobe depois do encerramento — o operador não
+   * tem o que resolver, e a tela precisa dizer isso em vez de "sincronizada".
+   */
+  blockedByStockFreeze?: boolean;
 }

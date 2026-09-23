@@ -42,5 +42,10 @@ export async function syncPendingQueues(): Promise<QueueSyncOutcome> {
   const sales = await syncPendingSales();
   const writeOffs = await syncPendingWriteOffs();
 
-  return { sales, writeOffs, remaining: sales.remaining + writeOffs.remaining };
+  return {
+    sales,
+    writeOffs,
+    remaining: sales.remaining + writeOffs.remaining,
+    blockedByStockFreeze: Boolean(sales.blockedByStockFreeze || writeOffs.blockedByStockFreeze),
+  };
 }
