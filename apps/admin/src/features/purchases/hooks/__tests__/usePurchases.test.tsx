@@ -1,10 +1,11 @@
 import React from "react";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   useGetPurchases: vi.fn(),
+  receivePurchase: vi.fn(),
   navigate: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("wouter", async (importOriginal) => ({
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetPurchases: mocks.useGetPurchases,
+  receivePurchase: mocks.receivePurchase,
 }));
 
 vi.mock("@/hooks/use-catalog", async (importOriginal) => ({
@@ -30,6 +32,8 @@ vi.mock("@/services/images.service", () => ({
 
 const { usePurchases, purchasesStatusParams, STATUS_FILTER_ALL, STATUS_FILTER_OPEN } =
   await import("../usePurchases");
+const { dismissReactivatedProducts, subscribeToReactivations } = await import("@/lib/product-reactivation");
+const { productStockTabPathname } = await import("@/features/products/product-detail-route");
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -139,6 +143,31 @@ describe("usePurchases — o caminho do 'Lançar recebimento'", () => {
 
     expect(mocks.navigate).not.toHaveBeenCalled();
     expect(result.current.receiving).not.toBeNull();
+  });
+});
+
+describe("usePurchases — recebimento que reativa o produto", () => {
+  beforeEach(() => {
+    mocks.navigate.mockClear();
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+    dismissReactivatedProducts();
+  });
+
+  it("anuncia quem voltou a Ativo e leva à tela do produto", async () => {
+    const reativados = [{ productId: 963, productName: "SACOLA [CACHORRO]", previousStatus: "Inactive" }];
+    mocks.receivePurchase.mockResolvedValue(
+      compra({ productId: 963, productGroupId: 805, status: "Received", reactivatedProducts: reativados }),
+    );
+    const ouvinte = vi.fn();
+    const cancelar = subscribeToReactivations(ouvinte);
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(compra({ productId: 963, productGroupId: 805 })));
+    act(() => result.current.confirmReceive());
+
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith(productStockTabPathname(805, 963)));
+    cancelar();
+    expect(ouvinte).toHaveBeenCalledWith(reativados);
   });
 });
 

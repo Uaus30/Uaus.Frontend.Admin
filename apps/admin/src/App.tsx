@@ -12,6 +12,7 @@ import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
 import { AuthGate, RequireRole } from "@/components/route-guards";
 import { AppLayout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ProductReactivationDialog } from "@/components/product-reactivation-dialog";
 
 const queryClient = createQueryClient();
 
@@ -274,6 +275,9 @@ function App() {
         {/* A versão entra no relatório que o clique no toast copia: separa "já
             corrigi" de "a loja está num build antigo". */}
         <Toaster appVersion={import.meta.env.VITE_APP_VERSION} />
+        {/* Fora das rotas: o recebimento de compra navega logo depois de gravar,
+            e o aviso de reativação tem que sobreviver à troca de tela. */}
+        <ProductReactivationDialog />
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -73,6 +73,20 @@ export interface ReceivedPurchaseEntryItemDto {
   canEditUnitCost: boolean;
 }
 
+/**
+ * Produto que uma entrada de estoque REATIVOU (23/09/2026): estava Inativo ou
+ * "Sem estoque" e voltou a Ativo. Volta ao site, com o cadastro publicado, e —
+ * se estava Inativo — ao PDV, que já vendia "Sem estoque".
+ * Rascunho não entra: publicá-lo é decisão de quem cadastra.
+ */
+export interface ReactivatedProductDto {
+  productId: number;
+  /** Nome composto da variação ("BALDE 5L [PRETO]"). */
+  productName: string;
+  /** Nome do enum: `"Inactive"` ou `"OutOfStock"`. */
+  previousStatus: string;
+}
+
 export interface ReceivedPurchaseEntryDto {
   id: number;
   createdAt: string;
@@ -97,6 +111,11 @@ export interface ReceivedPurchaseEntryDto {
   canEdit: boolean;
   canDelete: boolean;
   items: ReceivedPurchaseEntryItemDto[];
+  /**
+   * Só na resposta do `receive`, e só quando a entrada reativou alguém; em
+   * qualquer outra leitura a API omite o campo.
+   */
+  reactivatedProducts?: ReactivatedProductDto[];
 }
 
 export interface ReceivePurchaseEntryItemRequest {

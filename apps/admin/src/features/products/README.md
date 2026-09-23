@@ -637,6 +637,20 @@ borda/fundo), só que mais saturado que o de costume — pedido explícito do
 dono, para separar "existe uma observação" de "existe uma observação que
 muda a decisão".
 
+### 4.8. A entrada que reativa não pode ser desfeita pelo Salvar (23/09/2026)
+
+Entrada de estoque em produto Inativo ou "Sem estoque" o devolve a Ativo no
+servidor (regra de `Uaus.Docs/dominio/estoque-e-compras.md`). O editor carrega o
+status na abertura, e sem cuidado o próximo Salvar gravaria o status velho por
+cima da reativação — em silêncio, com linha no histórico.
+
+`useReactivatedStatusSync` escuta o aviso global de reativação
+(`src/lib/product-reactivation.ts`) e troca para Ativo o status da variação
+aberta **que ainda espelha o de antes da entrada**. Se a pessoa mudou o status à
+mão e não salvou, a escolha dela fica. A troca usa os setters crus: o servidor
+já está assim, e a tela não pode perguntar "descartar alterações?" por causa
+dela.
+
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
 O botão de lápis do balcão do PDV abre esta tela em outra aba já na edição do produto. São dois parâmetros porque a tela faz duas coisas distintas:

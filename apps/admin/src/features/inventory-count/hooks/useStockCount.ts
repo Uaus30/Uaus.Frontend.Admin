@@ -6,10 +6,12 @@ import {
   getGetPurchaseEntriesQueryKey,
   getGetStockWriteOffsQueryKey,
   registerStockCount,
+  type ProductDto,
   type StockCountResultDto,
 } from "@workspace/api-client-react";
 
 import { RESOURCE_KEYS } from "@/hooks/use-catalog";
+import { announceReactivatedProducts, reactivationBetween } from "@/lib/product-reactivation";
 
 /** O rascunho da contagem. Tudo texto: são campos de formulário. */
 export type StockCountForm = {
@@ -57,10 +59,15 @@ export function useStockCount(productId: number | null, currentStock: number | n
         notes: form.notes.trim() || null,
       }),
     onSuccess: async (result) => {
+      // O produto como estava ANTES: o reenvio da mesma contagem volta com
+      // diferença zero e sem a lista, e só a comparação revela a reativação.
+      const before = queryClient.getQueryData<ProductDto>(["product-for-entry", productId]);
       await invalidate();
+      const after = queryClient.getQueryData<ProductDto>(["product-for-entry", productId]);
       setOpen(false);
       setForm(emptyForm());
       toast(descreverResultado(result));
+      announceReactivatedProducts(result.reactivatedProducts ?? reactivationBetween(before, after));
     },
     onError: (error: unknown) =>
       toast({

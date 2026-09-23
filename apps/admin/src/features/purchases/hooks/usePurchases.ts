@@ -16,6 +16,7 @@ import {
 } from "@workspace/api-client-react";
 import { RESOURCE_KEYS, useAllCategories, useAllDepartments, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
+import { announceReactivatedProducts } from "@/lib/product-reactivation";
 import { productStockTabPathname } from "@/features/products/product-detail-route";
 import { productFromPurchasePath } from "../purchases-route";
 import type { PurchaseFormItem, ReceiveForm } from "../types";
@@ -228,6 +229,7 @@ export function usePurchases() {
         title: "Compra lançada no estoque",
         description: `${purchase.quantity} un. de ${purchase.productName} entraram no estoque.`,
       });
+      announceReactivatedProducts(purchase.reactivatedProducts);
       // Na aba de Estoque: a entrada que este recebimento acabou de gravar e o
       // que a pessoa veio conferir.
       if (purchase.productGroupId)

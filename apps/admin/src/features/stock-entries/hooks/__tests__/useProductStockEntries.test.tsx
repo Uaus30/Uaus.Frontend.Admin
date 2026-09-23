@@ -4,6 +4,7 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getGetPurchaseEntriesQueryKey } from "@workspace/api-client-react";
 import { RESOURCE_KEYS } from "@/hooks/use-catalog";
+import { dismissReactivatedProducts, subscribeToReactivations } from "@/lib/product-reactivation";
 
 const mocks = vi.hoisted(() => ({
   receiveEntry: vi.fn(),
@@ -250,7 +251,7 @@ describe("useProductStockEntries", () => {
     const { result } = renderHook(() => useProductStockEntries(201), { wrapper });
 
     act(() => result.current.setPage(2));
-    await act(async () => receiveOptions().mutation.onSuccess());
+    await act(async () => receiveOptions().mutation.onSuccess({ id: 77 }));
 
     expect(result.current.page).toBe(1);
     expect(result.current.newEntryModalOpen).toBe(false);
@@ -258,6 +259,48 @@ describe("useProductStockEntries", () => {
     // Receber mercadoria grava custo, preço e saldo no PRODUTO: sem esta, a
     // listagem atrás da tela continuaria com o estoque de antes.
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: RESOURCE_KEYS.products });
+  });
+
+  it("anuncia quem a entrada reativou — o aviso e o formulário do produto escutam", async () => {
+    dismissReactivatedProducts();
+    const reativados = [{ productId: 201, productName: "BALDE [PRETO]", previousStatus: "OutOfStock" }];
+    const ouvinte = vi.fn();
+    const cancelar = subscribeToReactivations(ouvinte);
+    renderHook(() => useProductStockEntries(201), { wrapper: createWrapper() });
+
+    await act(async () => receiveOptions().mutation.onSuccess({ id: 77, reactivatedProducts: reativados }));
+    // Entrada sem reativação: a API omite o campo, e nada é anunciado.
+    await act(async () => receiveOptions().mutation.onSuccess({ id: 78 }));
+    cancelar();
+
+    expect(ouvinte.mock.calls).toEqual([[reativados]]);
+  });
+
+  it("o retry que volta sem a lista ainda avisa — pela diferença antes e depois", async () => {
+    // A resposta se perdeu depois de o servidor gravar e reativar; o reenvio com a
+    // mesma chave devolve a nota já gravada, SEM a lista. Sem o aviso, o editor
+    // aberto ficaria com "Sem estoque" e o Salvar seguinte desfaria a reativação.
+    dismissReactivatedProducts();
+    mocks.getProductById
+      .mockResolvedValueOnce({
+        id: 201,
+        name: "COPO",
+        displayName: "COPO [AZUL]",
+        status: "OutOfStock",
+        stock: 0,
+      })
+      .mockResolvedValue({ id: 201, name: "COPO", displayName: "COPO [AZUL]", status: "Active", stock: 4 });
+    const ouvinte = vi.fn();
+    const cancelar = subscribeToReactivations(ouvinte);
+    const { result } = renderHook(() => useProductStockEntries(201), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.product).toBeTruthy());
+
+    await act(async () => receiveOptions().mutation.onSuccess({ id: 77 }));
+    cancelar();
+
+    expect(ouvinte).toHaveBeenCalledWith([
+      { productId: 201, productName: "COPO [AZUL]", previousStatus: "OutOfStock" },
+    ]);
   });
 
   it("recarrega entradas e produtos depois de cancelar uma entrada", async () => {

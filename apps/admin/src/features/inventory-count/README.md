@@ -100,6 +100,13 @@ podem ser trocados.
 A contagem é da **variação** aberta na aba Estoque, não do grupo: estoque é do
 SKU. O grupo é a unidade da conferência; o SKU é a unidade do estoque.
 
+**Sobra que reativa o produto é anunciada.** A sobra é uma entrada, e entrada em
+produto Inativo ou "Sem estoque" o devolve a Ativo (23/09/2026). O resultado da
+contagem traz a lista, e o `useStockCount` a entrega ao aviso global
+(`src/lib/product-reactivation.ts`). O reenvio da mesma contagem, depois de uma
+resposta perdida, volta com diferença zero e sem a lista; aí o aviso sai da
+comparação do produto antes e depois (`reactivationBetween`).
+
 ### 6. Cor é leitura, e o vocabulário é o do repositório
 
 Segue `Uaus.Docs/dominio/convencoes-de-interface.md`, sempre com ícone e rótulo

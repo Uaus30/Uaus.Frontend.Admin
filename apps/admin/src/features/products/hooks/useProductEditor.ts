@@ -32,6 +32,7 @@ import { useProductForm } from "./editor/useProductForm";
 import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
 import { useProductSubmit } from "./editor/useProductSubmit";
+import { useReactivatedStatusSync } from "./editor/useReactivatedStatusSync";
 import { CATALOG_KEYS, RESOURCE_KEYS, useAllImages, useAllProductGroupImages } from "@/hooks/use-catalog";
 
 export function useProductEditor() {
@@ -77,6 +78,9 @@ export function useProductEditor() {
    * grade só depois de um render a mais.
    */
   const selectedGrades = useMemo(() => gradesDasVariacoes(variationDrafts), [variationDrafts]);
+
+  // Entrada que reativa a variação aberta não pode ser desfeita pelo próximo Salvar.
+  useReactivatedStatusSync(setProductEditor, setVariationDrafts);
 
   useEffect(() => {
     detailOpenRef.current = detailOpen;

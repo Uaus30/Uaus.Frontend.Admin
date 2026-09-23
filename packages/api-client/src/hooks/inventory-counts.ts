@@ -11,6 +11,7 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGet, apiGetOrThrow, apiPost, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
+import type { ReactivatedProductDto } from "./purchases";
 
 /** Em que ponto está uma conferência. Chega como NOME (`"Open"`), não como número. */
 export const INVENTORY_COUNT_STATUS = {
@@ -99,6 +100,11 @@ export interface StockCountResultDto {
   purchaseEntryId?: number | null;
   /** Baixa de inventário gerada pela falta. Ausente quando não houve falta. */
   stockWriteOffId?: number | null;
+  /**
+   * O produto, quando a SOBRA o reativou — a sobra é uma entrada, e entrada em
+   * produto Inativo ou "Sem estoque" o devolve a Ativo. Ausente quando não.
+   */
+  reactivatedProducts?: ReactivatedProductDto[];
 }
 
 /** Filtros da lista de conferência. */

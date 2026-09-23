@@ -5,6 +5,7 @@ import { useToast } from "@workspace/ui";
 import { describeApiError, formatCurrency, formatShortDate } from "@workspace/core";
 import {
   getGetPurchaseEntriesQueryKey,
+  type ProductDto,
   useDeletePurchaseEntry,
   useGetPurchaseEntries,
   useGetPurchaseEntryDetails,
@@ -14,6 +15,7 @@ import {
 import { getProductById } from "@/services/products.service";
 import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
+import { announceReactivatedProducts, reactivationBetween } from "@/lib/product-reactivation";
 import type { StockEntryPrefill } from "../types";
 
 export type UseProductStockEntriesOptions = {
@@ -140,9 +142,13 @@ export function useProductStockEntries(
     mutation: {
       onSuccess: async (entry) => {
         toast({ title: "Sucesso", description: "Entrada de estoque registrada com sucesso!" });
+        // O produto como estava ANTES: é com ele que o retry sem lista se descobre.
+        const before = queryClient.getQueryData<ProductDto>(["product-for-entry", productId]);
         setNewEntryModalOpen(false);
         setPage(1);
         await invalidateAfterEntry();
+        const after = queryClient.getQueryData<ProductDto>(["product-for-entry", productId]);
+        announceReactivatedProducts(entry.reactivatedProducts ?? reactivationBetween(before, after));
         onEntrySaved?.(entry.id);
       },
       onError: (err: unknown) => {

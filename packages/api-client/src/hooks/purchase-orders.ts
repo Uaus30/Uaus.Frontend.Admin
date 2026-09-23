@@ -9,6 +9,7 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiDelete, apiGetOrThrow, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
+import type { ReactivatedProductDto } from "./purchases";
 
 /** Foto da compra, já com a URL para a tela (passe por `buildPublicImageUrl`). */
 export interface PurchaseImageDto {
@@ -47,6 +48,11 @@ export interface PurchaseDto {
   categoryId?: number | null;
   productName: string;
   productBarcode?: string | null;
+  /**
+   * Produtos que o RECEBIMENTO desta compra reativou. Só vem na resposta do
+   * `receive`; em qualquer outra leitura a API omite o campo.
+   */
+  reactivatedProducts?: ReactivatedProductDto[];
   /**
    * Preço de venda vigente do produto vinculado. Ausente em produto novo e em
    * compra com VARIAÇÕES, onde o cabeçalho não aponta para nenhuma delas.
