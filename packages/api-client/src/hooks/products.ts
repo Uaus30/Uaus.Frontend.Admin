@@ -7,7 +7,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiPost, apiGetOrThrow, ApiError, mapPagedResult } from "../client";
+import { apiPost, apiPut, apiGetOrThrow, ApiError, mapPagedResult } from "../client";
 import type {
   BackendPagedResult,
   ProductDto,
@@ -112,6 +112,18 @@ export interface SaveProductGroupWithProductsPayload {
 export interface SavedProductGroupWithProductsDto {
   group: ProductGroupDto;
   products: ProductDto[];
+}
+
+/**
+ * Liga ou desliga só o "Exibir no site" do grupo (23/09/2026).
+ *
+ * É a resposta da pergunta da primeira foto na LISTAGEM de produtos, onde a
+ * lupa grava a foto direto. O `PUT /ProductGroups` regravaria o grupo inteiro
+ * com a cópia que a linha tem na memória — nome, descrição e observações
+ * editados por outra pessoa no meio tempo voltariam ao que eram.
+ */
+export async function setProductGroupShowOnSite(productGroupId: number, showOnSite: boolean): Promise<void> {
+  await apiPut(`/ProductGroups/${productGroupId}/show-on-site`, { showOnSite });
 }
 
 /**

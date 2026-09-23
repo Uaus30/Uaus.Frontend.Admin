@@ -12,6 +12,13 @@ import {
 
 type FirstPhotoSiteDialogProps = {
   open: boolean;
+  /**
+   * O "sim" vale na hora — a lupa da listagem grava a foto direto no servidor.
+   * Sem ele (o editor), o interruptor liga no formulário e vai ao ar no Salvar.
+   */
+  immediate?: boolean;
+  /** Travado enquanto o "sim" imediato está indo ao servidor. */
+  busy?: boolean;
   /** "Exibir no site": liga o interruptor do formulário. */
   onPublish: () => void;
   /** "Agora não": fecha sem mexer em nada. */
@@ -25,7 +32,13 @@ type FirstPhotoSiteDialogProps = {
  * Sem cor de estado: é uma pergunta, não um alerta nem um sucesso. Verde diria
  * "já está no ar", e o produto só vai ao ar quando a pessoa salvar.
  */
-export function FirstPhotoSiteDialog({ open, onPublish, onDismiss }: FirstPhotoSiteDialogProps) {
+export function FirstPhotoSiteDialog({
+  open,
+  immediate = false,
+  busy = false,
+  onPublish,
+  onDismiss,
+}: FirstPhotoSiteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={(aberto) => !aberto && onDismiss()}>
       <AlertDialogContent>
@@ -40,14 +53,24 @@ export function FirstPhotoSiteDialog({ open, onPublish, onDismiss }: FirstPhotoS
         </AlertDialogHeader>
 
         <p className="rounded-lg border border-border/60 bg-muted/40 px-3.5 py-3 text-sm leading-relaxed text-muted-foreground">
-          Ligando agora, o produto vai ao ar quando você{" "}
-          <span className="font-medium text-foreground">salvar</span>, desde que tenha variação ativa. Dá para
-          mudar depois na aba Opcionais, em Visibilidade.
+          {immediate ? (
+            <>
+              Ligando agora, o produto vai ao ar{" "}
+              <span className="font-medium text-foreground">em seguida</span>, desde que tenha variação ativa.
+              Dá para mudar depois no cadastro, na aba Opcionais.
+            </>
+          ) : (
+            <>
+              Ligando agora, o produto vai ao ar quando você{" "}
+              <span className="font-medium text-foreground">salvar</span>, desde que tenha variação ativa. Dá
+              para mudar depois na aba Opcionais, em Visibilidade.
+            </>
+          )}
         </p>
 
         <AlertDialogFooter>
           <AlertDialogCancel type="button">Agora não</AlertDialogCancel>
-          <AlertDialogAction type="button" onClick={onPublish}>
+          <AlertDialogAction type="button" onClick={onPublish} disabled={busy}>
             Exibir no site
           </AlertDialogAction>
         </AlertDialogFooter>

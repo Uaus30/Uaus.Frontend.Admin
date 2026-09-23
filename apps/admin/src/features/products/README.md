@@ -655,9 +655,14 @@ com a foto. A regra está em `hooks/editor/useFirstPhotoSitePrompt.ts`:
   e pôr outra passa por zero, mas não é a primeira);
 - não pergunta quando alguém desliga o interruptor depois de pôr a foto, nem se
   depois tira e repõe a foto: ali a escolha já foi feita;
-- cadastro novo não pergunta, porque já nasce com o interruptor ligado;
-- a lupa da listagem (seção 6) também põe foto e **não** pergunta — levado ao
-  dono em 23/09/2026.
+- cadastro novo não pergunta, porque já nasce com o interruptor ligado.
+
+**A lupa da listagem também pergunta** (seção 6; decisão do dono, 23/09/2026).
+Lá a foto é gravada direto no servidor, então o "sim" também vai direto: liga só o
+"Exibir no site" pela rota própria (`setProductGroupShowOnSite`), com linha no
+histórico. O `PUT /ProductGroups` regravaria o grupo inteiro com a cópia que a
+linha tem na memória. A regra — cadastro sem foto e fora do site — mora em
+`hooks/useListFirstPhotoSitePrompt.ts`.
 
 O ajuste é feito durante a renderização, comparando com a anterior, e não num
 efeito: `setState` síncrono em efeito é a cascata que o lint recusa.

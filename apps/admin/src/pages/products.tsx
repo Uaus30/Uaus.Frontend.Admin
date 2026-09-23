@@ -14,6 +14,8 @@ import { ProductHistoryModal } from "@/features/products/components/ProductHisto
 import { ProductImageSearchModal } from "@/features/products/components/ProductImageSearchModal";
 import { ProductListStockCount } from "@/features/products/components/ProductListStockCount";
 import { useProductListStockCount } from "@/features/products/hooks/useProductListStockCount";
+import { useListFirstPhotoSitePrompt } from "@/features/products/hooks/useListFirstPhotoSitePrompt";
+import { FirstPhotoSiteDialog } from "@/features/products/components/detail/FirstPhotoSiteDialog";
 import { useIsAdmin } from "@/hooks/use-sessao";
 import type { ProductTableRow } from "@/features/products/types";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
@@ -43,6 +45,8 @@ export default function Products() {
   // Contagem de estoque pela linha: só Administrador (pedido do dono, 23/09/2026).
   const isAdmin = useIsAdmin();
   const stockCount = useProductListStockCount();
+  // A primeira foto pela lupa também pergunta pelo site (pedido do dono, 23/09/2026).
+  const sitePrompt = useListFirstPhotoSitePrompt();
   const editor = useProductEditor();
   const [historyProductGroupId, setHistoryProductGroupId] = useState<number | null>(null);
   const [historyProductGroupName, setHistoryProductGroupName] = useState("");
@@ -192,6 +196,13 @@ export default function Products() {
       </div>
 
       {isAdmin && <ProductListStockCount state={stockCount} />}
+      <FirstPhotoSiteDialog
+        open={sitePrompt.open}
+        immediate
+        busy={sitePrompt.isPublishing}
+        onPublish={sitePrompt.publish}
+        onDismiss={sitePrompt.dismiss}
+      />
 
       <ProductHistoryModal
         productGroupId={historyProductGroupId}
@@ -207,6 +218,8 @@ export default function Products() {
         onSelectImage={async (imageUrl) => {
           if (searchImageProduct) {
             await table.saveWebImageAsPrincipal(searchImageProduct, imageUrl);
+            // A linha como estava ANTES da foto: é ela que diz se esta foi a primeira.
+            sitePrompt.offerFor(searchImageProduct);
           }
         }}
       />
