@@ -12,6 +12,7 @@ import {
 import type { VariationDraft } from "../../types";
 import type { PurchaseProductConflict } from "../../hooks/editor/usePurchaseProductConflict";
 import { PurchaseProductConflictDialog } from "./PurchaseProductConflictDialog";
+import { FirstPhotoSiteDialog } from "./FirstPhotoSiteDialog";
 
 type ProductEditorDialogsProps = {
   variationToDelete: VariationDraft | null;
@@ -21,6 +22,8 @@ type ProductEditorDialogsProps = {
   purchaseConflict: PurchaseProductConflict | null | undefined;
   onGoToConflictingPurchase: () => void;
   onDismissPurchaseConflict: () => void;
+  /** A pergunta da primeira foto — ver `useFirstPhotoSitePrompt`. */
+  sitePrompt: { open: boolean; publish: () => void; dismiss: () => void };
 };
 
 /**
@@ -29,13 +32,15 @@ type ProductEditorDialogsProps = {
  * O `<form>` da tela de detalhe envolve as três abas, e um `<form>` aninhado
  * seria HTML inválido — por isso as modais moram aqui, e não no meio dos campos.
  *
- * São dois:
+ * São três:
  *
  * - **exclusão de variação** — o lixo da linha é o ÚNICO caminho que tira uma
  *   variação do cadastro; nem a `VariationGradesModal` nem o salvar excluem
  *   nada, de propósito;
  * - **código já cadastrado num recebimento de compra** — quem se ajusta é a
- *   COMPRA, e a modal leva para lá. Ver `PurchaseProductConflictDialog`.
+ *   COMPRA, e a modal leva para lá. Ver `PurchaseProductConflictDialog`;
+ * - **primeira foto de cadastro fora do site** — pergunta se ele vai ao ar.
+ *   Ver `FirstPhotoSiteDialog`.
  */
 export function ProductEditorDialogs({
   variationToDelete,
@@ -44,9 +49,16 @@ export function ProductEditorDialogs({
   purchaseConflict,
   onGoToConflictingPurchase,
   onDismissPurchaseConflict,
+  sitePrompt,
 }: ProductEditorDialogsProps) {
   return (
     <>
+      <FirstPhotoSiteDialog
+        open={sitePrompt.open}
+        onPublish={sitePrompt.publish}
+        onDismiss={sitePrompt.dismiss}
+      />
+
       <PurchaseProductConflictDialog
         conflict={purchaseConflict}
         onGoToPurchase={onGoToConflictingPurchase}

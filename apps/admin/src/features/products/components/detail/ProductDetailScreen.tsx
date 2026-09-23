@@ -10,6 +10,7 @@ import { printBarcodeLabel } from "../../lib/barcodeLabel";
 import { nomeExibidoDaVariacao, opcoesDeVariacao } from "../../lib/variationNames";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
+import { useFirstPhotoSitePrompt } from "../../hooks/editor/useFirstPhotoSitePrompt";
 import { ProductOptionalFields } from "../editor/ProductOptionalFields";
 import { ProductNotesAlert } from "./ProductNotesAlert";
 import { ProductDetailActions } from "./ProductDetailActions";
@@ -174,6 +175,13 @@ export function ProductDetailScreen({
     ? nomeExibidoDaVariacao(form.productGroupName, stockVariation.values)
     : productEditor.name || form.productGroupName;
   const stockProductBarcode = (stockVariation?.barcode ?? productEditor.barcode) || null;
+
+  const sitePrompt = useFirstPhotoSitePrompt({
+    groupId: editingGroupId,
+    imageCount: editor.galleryImages.length,
+    isPublic: form.isPublic,
+    onPublish: () => editor.setForm((current) => ({ ...current, isPublic: true })),
+  });
 
   // Pisca a borda do campo enquanto o código bipado for EAN-13 de FÁBRICA. A
   // faixa que começa em 2 é a interna da loja: piscar "achou o código da
@@ -433,6 +441,7 @@ export function ProductDetailScreen({
         purchaseConflict={editor.purchaseConflict}
         onGoToConflictingPurchase={editor.goToConflictingPurchase}
         onDismissPurchaseConflict={editor.dismissPurchaseConflict}
+        sitePrompt={sitePrompt}
       />
 
       <VariationGradesModal

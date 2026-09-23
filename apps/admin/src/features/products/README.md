@@ -651,6 +651,45 @@ mão e não salvou, a escolha dela fica. A troca usa os setters crus: o servidor
 já está assim, e a tela não pode perguntar "descartar alterações?" por causa
 dela.
 
+### 4.7. A primeira foto pergunta se o produto vai ao site (23/09/2026)
+
+Foto nova não liga o **Exibir no site** sozinha, e o interruptor mora na aba
+Opcionais, longe da galeria. Em 06/09/2026 uma sessão subiu 175 fotos à mão e os
+cadastros ficaram fora do site: dos 128 prontos e ocultos medidos em produção em
+22/09/2026, 126 tinham foto daquela sessão.
+
+Quando a galeria de um cadastro **salvo** passa de zero para uma foto com o
+"Exibir no site" desligado, a tela pergunta (`FirstPhotoSiteDialog`). "Exibir no
+site" liga o interruptor no formulário, e ele vai ao ar no próximo Salvar, junto
+com a foto. A regra está em `hooks/editor/useFirstPhotoSitePrompt.ts`:
+
+- pergunta só na **primeira** foto do cadastro aberto — "Agora não" vale até
+  fechar a tela;
+- não pergunta se o cadastro abriu com foto, nem quando a foto é trocada (tirar
+  e pôr outra passa por zero, mas não é a primeira);
+- não pergunta quando alguém desliga o interruptor depois de pôr a foto, nem se
+  depois tira e repõe a foto: ali a escolha já foi feita;
+- cadastro novo não pergunta, porque já nasce com o interruptor ligado;
+- a lupa da listagem (seção 6) também põe foto e **não** pergunta — levado ao
+  dono em 23/09/2026.
+
+O ajuste é feito durante a renderização, comparando com a anterior, e não num
+efeito: `setState` síncrono em efeito é a cascata que o lint recusa.
+
+### 4.8. A entrada que reativa não pode ser desfeita pelo Salvar (23/09/2026)
+
+Entrada de estoque em produto Inativo ou "Sem estoque" o devolve a Ativo no
+servidor (regra de `Uaus.Docs/dominio/estoque-e-compras.md`). O editor carrega o
+status na abertura, e sem cuidado o próximo Salvar gravaria o status velho por
+cima da reativação — em silêncio, com linha no histórico.
+
+`useReactivatedStatusSync` escuta o aviso global de reativação
+(`src/lib/product-reactivation.ts`) e troca para Ativo o status da variação
+aberta **que ainda espelha o de antes da entrada**. Se a pessoa mudou o status à
+mão e não salvou, a escolha dela fica. A troca usa os setters crus: o servidor
+já está assim, e a tela não pode perguntar "descartar alterações?" por causa
+dela.
+
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
 O botão de lápis do balcão do PDV abre esta tela em outra aba já na edição do produto. São dois parâmetros porque a tela faz duas coisas distintas:

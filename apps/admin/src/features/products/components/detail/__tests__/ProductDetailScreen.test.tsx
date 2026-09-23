@@ -37,6 +37,9 @@ function fakeEditor() {
     variationDrafts: [],
     editingGroupId: 7,
     setImages: vi.fn(),
+    // A galeria alimenta a pergunta da primeira foto (`useFirstPhotoSitePrompt`).
+    galleryImages: [],
+    setForm: vi.fn(),
     saving: false,
     handleSubmit: mocks.handleSubmit,
     handleDeleteVariation: vi.fn(),
