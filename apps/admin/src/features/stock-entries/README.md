@@ -101,6 +101,37 @@ por esta aba, que não veio de compra nenhuma, e o espelho da nota
 sempre é melhor que calar: quem cancela aqui não está olhando para a tela de
 Compras.
 
+### 4.1 Correção do custo da última entrada (23/09/2026)
+
+Decisão do dono: o custo unitário da **última entrada** de uma variação se
+corrige no espelho da nota. O lápis ao lado do custo só aparece no item cujo
+lote é o **mais recente** da variação (`canEditUnitCost`, do backend) — é o custo
+que vale no cadastro. Entrada anterior fica como foi lançada, e quantidade,
+fornecedor, data e preço continuam sem edição.
+
+- **A correção desce a cadeia inteira, no servidor**: lote, custo congelado em
+  cada venda e baixa que já consumiu o lote (o lucro dessas vendas muda), custo
+  do cadastro e o cache do painel. É a mesma cadeia do script que corrigiu a
+  JARRA DE PLÁSTICO 2L em 13/09/2026 — a regra está em
+  `Uaus.Backend.Api/Uaus.Application/Services/PurchaseEntryCostCorrectionService.cs`.
+- **A confirmação diz o que muda junto** antes de gravar: quantas unidades da
+  entrada já saíram (e terão o custo refeito) e que a compra, quando houve, não
+  muda — os totais dela são o que foi pago.
+- **Campo vazio não é zero.** O `parseAmountOrNull` do core trata vazio como
+  zero; aqui isso zeraria o custo do lote e de todas as vendas que o consumiram
+  (`lib/cost-correction.ts`). Zero de verdade (bonificação) se digita.
+- **Fechamento assinado não é reescrito.** Se a correção refez vendas de um
+  período já fechado, um segundo aviso diz qual: o CMV gravado nele continua com
+  o custo antigo, e reabrir é decisão do dono.
+- O hook (`useEntryCostCorrection`) mora à parte do `useProductStockEntries`:
+  é outra operação, e o outro já está no limite de tamanho de arquivo. Ele
+  invalida também a tela de Anomalias, onde o "custo zerado" deve sumir.
+
+A seção dos itens se chama **Recebimento** — a entrada é de um produto só, com
+as variações dele — e ganhou o link para a **compra** que a lançou, quando
+houve (`purchaseId`), aberto em nova aba: é de lá que sai o link do anúncio
+quando a compra foi num marketplace.
+
 ### 5. O que a aba mostra, e o que ela não mostra
 
 - **A lista é de NOTAS filtradas por `productId`**, e a coluna de valor é o total

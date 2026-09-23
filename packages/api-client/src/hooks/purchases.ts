@@ -69,6 +69,8 @@ export interface ReceivedPurchaseEntryItemDto {
   profitMargin: number | null;
   availableQuantity: number;
   hasConsumedStock: boolean;
+  /** Único item do produto na nota, e com o lote mais recente da variação: só aí o custo se corrige. */
+  canEditUnitCost: boolean;
 }
 
 export interface ReceivedPurchaseEntryDto {
@@ -90,6 +92,8 @@ export interface ReceivedPurchaseEntryDto {
    * Nulo na entrada lançada direto pela tela de estoque.
    */
   purchaseLink: string | null;
+  /** A compra que lançou a nota no recebimento. Ausente na entrada avulsa e na importada. */
+  purchaseId?: number | null;
   canEdit: boolean;
   canDelete: boolean;
   items: ReceivedPurchaseEntryItemDto[];
@@ -213,6 +217,9 @@ export function useGetPurchaseEntries(
   });
 }
 
+/** Prefixo do espelho de UMA nota; quem consulta acrescenta o id. */
+export const getGetPurchaseEntryDetailsQueryKey = (): QueryKey => ["purchase-entry-details"];
+
 export function useGetPurchaseEntryDetails(
   id: number,
   options?: {
@@ -223,7 +230,7 @@ export function useGetPurchaseEntryDetails(
   },
 ) {
   return useQuery<ReceivedPurchaseEntryDto, ApiError, ReceivedPurchaseEntryDto, QueryKey>({
-    queryKey: ["purchase-entry-details", id],
+    queryKey: [...getGetPurchaseEntryDetailsQueryKey(), id],
     enabled: !!id,
     queryFn: async () => {
       return apiGetOrThrow<ReceivedPurchaseEntryDto>(`/PurchaseEntries/${id}/details`);

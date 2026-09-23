@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, Lock, Receipt, Trash2, Truck, UserRound } from "lucide-react";
+import { CalendarDays, ExternalLink, Lock, Receipt, Trash2, Truck, UserRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,11 @@ import { Button } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import type { ReceivedPurchaseEntryDto } from "@workspace/api-client-react";
+import type { ReceivedPurchaseEntryDto, ReceivedPurchaseEntryItemDto } from "@workspace/api-client-react";
+import { purchaseDetailPathname } from "@/features/purchases/purchases-route";
+import { EntryItemCostCell } from "./EntryItemCostCell";
+import { describeCostCorrectionImpact } from "../lib/cost-correction";
+import type { CostCorrectionPayload } from "../hooks/useEntryCostCorrection";
 
 type StockEntryDetailsModalProps = {
   /** A modal está aberta. */
@@ -35,6 +39,14 @@ type StockEntryDetailsModalProps = {
    * devolve para "A caminho" a compra que a lançou, quando houve uma.
    */
   onDelete: (payload: { id: number }) => void;
+  /**
+   * Corrige o custo de um item da ÚLTIMA entrada da variação. Rejeita quando o
+   * servidor recusa — é o que mantém a confirmação aberta. Sem ele, o lápis da
+   * correção fica desligado.
+   */
+  onCorrectUnitCost?: (payload: CostCorrectionPayload) => Promise<void>;
+  /** Uma correção de custo está em andamento. */
+  isCorrectingCost?: boolean;
 };
 
 /**
@@ -54,6 +66,14 @@ type StockEntryDetailsModalProps = {
  * Estoque do produto mexe numa compra que não está vendo — e o efeito é bom
  * (antes ela ficava travada em "Lançado" sem saída), mas surpresa em tela de
  * estoque é como se perde a confiança no botão.
+ *
+ * Desde 23/09/2026 **o custo da última entrada se corrige aqui** (decisão do
+ * dono): o lápis ao lado do custo unitário aparece só no item cujo lote é o mais
+ * recente da variação, e a confirmação diz o que muda junto — o lucro das vendas
+ * que já consumiram o lote. Quantidade e o resto da nota continuam sem edição. A
+ * seção dos itens virou **Recebimento** (a entrada é de um produto só, com as
+ * variações dele) e ganhou o link para a compra que a lançou, de onde sai o link
+ * do anúncio quando a compra foi num marketplace.
  */
 export function StockEntryDetailsModal({
   open,
@@ -64,21 +84,39 @@ export function StockEntryDetailsModal({
   formatCurrency,
   formatShortDate,
   onDelete,
+  onCorrectUnitCost,
+  isCorrectingCost = false,
 }: StockEntryDetailsModalProps) {
   // O cancelamento mexe em estoque de verdade — recalcula saldo de produto.
   // A confirmação vira estado para poder ser lida e testada, em vez de um
   // window.confirm que trava a aba enquanto o operador decide.
   const [cancelConfirmOpen, setCancelConfirmOpen] = React.useState(false);
+  // A correção de custo pedida pela célula, esperando a confirmação.
+  const [custoPendente, setCustoPendente] = React.useState<{
+    item: ReceivedPurchaseEntryItemDto;
+    unitCost: number;
+  } | null>(null);
+  // Um custo está sendo digitado: o Esc é da célula ("desisto"), não da nota.
+  const [editandoCusto, setEditandoCusto] = React.useState(false);
+  // A nota fechada com o campo aberto desmonta a célula sem avisar; sem isto, a
+  // próxima abertura seguraria o Esc à toa. Ajustado durante o render, como o
+  // resto do admin faz com estado derivado de prop.
+  if (!open && editandoCusto) setEditandoCusto(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col">
+      <DialogContent
+        className="flex max-h-[90vh] max-w-3xl flex-col"
+        onEscapeKeyDown={(evento) => {
+          if (editandoCusto) evento.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Receipt className="h-5 w-5 text-primary" />
             Detalhes da Entrada #{selectedEntryId}
           </DialogTitle>
-          <DialogDescription>Dados da entrada de mercadoria e lista de itens recebidos.</DialogDescription>
+          <DialogDescription>Dados da entrada de mercadoria e do recebimento.</DialogDescription>
         </DialogHeader>
 
         {isLoadingDetails || !entryDetails ? (
@@ -136,7 +174,22 @@ export function StockEntryDetailsModal({
               )}
 
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Itens Recebidos</h4>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-sm font-semibold text-foreground">Recebimento</h4>
+                  {entryDetails.purchaseId != null && (
+                    <a
+                      href={purchaseDetailPathname(entryDetails.purchaseId)}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Abrir a compra #${entryDetails.purchaseId}, que lançou esta entrada, em nova aba`}
+                      title="Abrir a compra que lançou esta entrada"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      Compra #{entryDetails.purchaseId}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
                 <div className="border border-border/40 rounded-xl overflow-hidden">
                   <Table>
                     <TableHeader className="bg-muted/40">
@@ -160,7 +213,13 @@ export function StockEntryDetailsModal({
                             {item.quantity}
                           </TableCell>
                           <TableCell className="px-4 py-2 text-sm text-right">
-                            {formatCurrency(item.unitCost)}
+                            <EntryItemCostCell
+                              item={item}
+                              formatCurrency={formatCurrency}
+                              disabled={!onCorrectUnitCost || isCorrectingCost}
+                              onEditingChange={setEditandoCusto}
+                              onSubmit={(unitCost) => setCustoPendente({ item, unitCost })}
+                            />
                           </TableCell>
                           <TableCell className="px-4 py-2 text-sm text-right text-emerald-500 font-semibold">
                             {formatCurrency(item.productPrice)}
@@ -217,6 +276,32 @@ export function StockEntryDetailsModal({
               confirmLabel="Sim, cancelar entrada"
               destructive
               onConfirm={() => onDelete({ id: entryDetails.id })}
+            />
+
+            <ConfirmDialog
+              open={custoPendente !== null}
+              onOpenChange={(aberto) => {
+                if (!aberto) setCustoPendente(null);
+              }}
+              title="Corrigir o custo desta entrada?"
+              itemName={
+                custoPendente
+                  ? `${custoPendente.item.productName} — de ${formatCurrency(custoPendente.item.unitCost)} para ${formatCurrency(custoPendente.unitCost)} por unidade`
+                  : undefined
+              }
+              description={
+                custoPendente ? describeCostCorrectionImpact(custoPendente.item, entryDetails.purchaseId) : ""
+              }
+              confirmLabel="Sim, corrigir o custo"
+              loading={isCorrectingCost}
+              onConfirm={async () => {
+                if (!custoPendente || !onCorrectUnitCost) return;
+                await onCorrectUnitCost({
+                  entryId: entryDetails.id,
+                  itemId: custoPendente.item.id,
+                  unitCost: custoPendente.unitCost,
+                });
+              }}
             />
           </>
         )}

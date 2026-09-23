@@ -7,6 +7,7 @@ import { formatCurrency, formatPercentage, formatQuantity, marginBand, marginPer
 import { marginToneClass } from "@/features/stock-entries/lib/margin-tone";
 import { PURCHASE_ENTRY_TYPE, enumCode } from "@workspace/api-client-react";
 import { useProductStockEntries } from "@/features/stock-entries/hooks/useProductStockEntries";
+import { useEntryCostCorrection } from "@/features/stock-entries/hooks/useEntryCostCorrection";
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
 import { SimpleStockEntryModal } from "@/features/stock-entries/components/SimpleStockEntryModal";
 import { StockCountModal } from "@/features/inventory-count/components/StockCountModal";
@@ -59,6 +60,8 @@ export function ProductStockTab({
   onEntrySaved,
 }: ProductStockTabProps) {
   const stock = useProductStockEntries(productId, { prefill: entryPrefill, onEntrySaved });
+  // O custo da última entrada se corrige no espelho da nota (decisão do dono, 23/09/2026).
+  const custo = useEntryCostCorrection();
   const entries = stock.entriesData?.data ?? [];
   // A contagem física é da VARIAÇÃO aberta na aba, e não do grupo: estoque é do
   // SKU. É ela que fecha o "estoque físico × estoque virtual" da conferência.
@@ -320,6 +323,8 @@ export function ProductStockTab({
         formatCurrency={stock.formatCurrency}
         formatShortDate={stock.formatShortDate}
         onDelete={stock.deleteEntry}
+        onCorrectUnitCost={custo.correctUnitCost}
+        isCorrectingCost={custo.isCorrectingCost}
       />
 
       <StockCountModal

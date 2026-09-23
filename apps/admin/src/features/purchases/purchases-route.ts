@@ -46,6 +46,15 @@ export function purchaseDetailPath(purchaseId: number): string {
   return `${PURCHASES_PATH}?${PURCHASE_QUERY_PARAM}=${purchaseId}`;
 }
 
+/**
+ * O mesmo caminho em forma ABSOLUTA, para link que abre em nova aba (`<a
+ * target="_blank">`), que não passa pelo roteador da SPA e precisa da base do
+ * admin — o mesmo motivo de `productDetailPathname`.
+ */
+export function purchaseDetailPathname(purchaseId: number): string {
+  return `${import.meta.env.BASE_URL}${purchaseDetailPath(purchaseId).replace(/^\//, "")}`;
+}
+
 /** Id de compra pedido numa query string, ou `null` — ids são inteiros positivos. */
 export function purchaseIdFromSearch(search: string): number | null {
   const bruto = new URLSearchParams(search).get(PURCHASE_QUERY_PARAM);
