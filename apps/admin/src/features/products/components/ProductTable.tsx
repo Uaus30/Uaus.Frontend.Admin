@@ -27,10 +27,12 @@ import {
   History,
   ChevronDown,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-client-react";
 import type { ProductTableRow } from "../types";
 import { productDetailPathname } from "../product-detail-route";
+import { canCountStock } from "../hooks/useProductListStockCount";
 import { ProductTableFilters } from "./ProductTableFilters";
 import { ProductTableVariations } from "./ProductTableVariations";
 import React, { useState } from "react";
@@ -65,6 +67,11 @@ type ProductTableProps = {
   onOpenStock: (product: ProductTableRow) => void;
   onDelete: (product: ProductTableRow) => void;
   onViewHistory?: (product: ProductTableRow) => void;
+  /**
+   * "Contagem de estoque" direto da linha. Ausente, o item não aparece — é como
+   * a página o esconde de quem não é Administrador.
+   */
+  onStockCount?: (product: ProductTableRow) => void;
   onUpdatePrice?: (product: ProductTableRow, newPrice: number) => Promise<void>;
   updatingPriceId?: number | null;
   onSearchInternetImage?: (product: ProductTableRow) => void;
@@ -191,6 +198,7 @@ export function ProductTable({
   onOpenStock,
   onDelete,
   onViewHistory,
+  onStockCount,
   onUpdatePrice,
   updatingPriceId,
   onSearchInternetImage,
@@ -413,7 +421,7 @@ export function ProductTable({
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-36 border-border/50 bg-card">
+                              <DropdownMenuContent align="end" className="w-48 border-border/50 bg-card">
                                 <DropdownMenuItem
                                   onClick={() => onEdit(product)}
                                   className="cursor-pointer gap-2"
@@ -433,6 +441,15 @@ export function ProductTable({
                                   <Package className="h-3.5 w-3.5 text-muted-foreground" />
                                   Estoque
                                 </DropdownMenuItem>
+                                {onStockCount && canCountStock(product) && (
+                                  <DropdownMenuItem
+                                    onClick={() => onStockCount(product)}
+                                    className="cursor-pointer gap-2"
+                                  >
+                                    <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Contagem de estoque
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                   onClick={() => onViewHistory?.(product)}
                                   className="cursor-pointer gap-2"
@@ -453,7 +470,7 @@ export function ProductTable({
                         </td>
                       </tr>
                     </ContextMenuTrigger>
-                    <ContextMenuContent className="w-36 border-border/50 bg-card">
+                    <ContextMenuContent className="w-48 border-border/50 bg-card">
                       <ContextMenuItem onClick={() => onEdit(product)} className="cursor-pointer gap-2">
                         <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                         Editar
@@ -462,6 +479,15 @@ export function ProductTable({
                         <Package className="h-3.5 w-3.5 text-muted-foreground" />
                         Estoque
                       </ContextMenuItem>
+                      {onStockCount && canCountStock(product) && (
+                        <ContextMenuItem
+                          onClick={() => onStockCount(product)}
+                          className="cursor-pointer gap-2"
+                        >
+                          <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
+                          Contagem de estoque
+                        </ContextMenuItem>
+                      )}
                       {onViewHistory && (
                         <ContextMenuItem
                           onClick={() => onViewHistory(product)}

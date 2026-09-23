@@ -12,6 +12,9 @@ import { ProductDetailScreen } from "@/features/products/components/detail/Produ
 import { ProductDetailDiscardDialog } from "@/features/products/components/detail/ProductDetailDiscardDialog";
 import { ProductHistoryModal } from "@/features/products/components/ProductHistoryModal";
 import { ProductImageSearchModal } from "@/features/products/components/ProductImageSearchModal";
+import { ProductListStockCount } from "@/features/products/components/ProductListStockCount";
+import { useProductListStockCount } from "@/features/products/hooks/useProductListStockCount";
+import { useIsAdmin } from "@/hooks/use-sessao";
 import type { ProductTableRow } from "@/features/products/types";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
 
@@ -37,6 +40,9 @@ import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
  */
 export default function Products() {
   const table = useProductTable();
+  // Contagem de estoque pela linha: só Administrador (pedido do dono, 23/09/2026).
+  const isAdmin = useIsAdmin();
+  const stockCount = useProductListStockCount();
   const editor = useProductEditor();
   const [historyProductGroupId, setHistoryProductGroupId] = useState<number | null>(null);
   const [historyProductGroupName, setHistoryProductGroupName] = useState("");
@@ -181,8 +187,11 @@ export default function Products() {
           onUpdatePrice={table.updateProductPrice}
           updatingPriceId={table.updatingPriceId}
           onSearchInternetImage={setSearchImageProduct}
+          onStockCount={isAdmin ? stockCount.openFor : undefined}
         />
       </div>
+
+      {isAdmin && <ProductListStockCount state={stockCount} />}
 
       <ProductHistoryModal
         productGroupId={historyProductGroupId}

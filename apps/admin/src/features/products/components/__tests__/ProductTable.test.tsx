@@ -210,3 +210,37 @@ describe("ProductTable — variações aninhadas", () => {
     expect(screen.queryByRole("button", { name: /variações/i })).toBeNull();
   });
 });
+
+describe("ProductTable — Contagem de estoque no menu da linha", () => {
+  afterEach(cleanup);
+
+  /** O menu de contexto (clique direito) tem os mesmos itens do menu de três pontos. */
+  function abrirMenuDaLinha() {
+    fireEvent.contextMenu(screen.getByRole("link", { name: "COPO INFANTIL PLÁSTICO COM ESTAMPA" }));
+  }
+
+  it("não aparece sem o onStockCount — é como a página esconde de quem não é Administrador", () => {
+    renderTable();
+    abrirMenuDaLinha();
+
+    expect(screen.getByRole("menuitem", { name: /editar/i })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: /contagem de estoque/i })).toBeNull();
+  });
+
+  it("abre a contagem da linha clicada", () => {
+    const onStockCount = vi.fn();
+    renderTable({ onStockCount });
+    abrirMenuDaLinha();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: /contagem de estoque/i }));
+
+    expect(onStockCount).toHaveBeenCalledWith(expect.objectContaining({ productGroupId: 825 }));
+  });
+
+  it("grupo sem produto nenhum não oferece a contagem — não há SKU para contar", () => {
+    renderTable({ onStockCount: vi.fn(), enrichedProducts: [row({ id: 0, variations: [] })] });
+    abrirMenuDaLinha();
+
+    expect(screen.queryByRole("menuitem", { name: /contagem de estoque/i })).toBeNull();
+  });
+});

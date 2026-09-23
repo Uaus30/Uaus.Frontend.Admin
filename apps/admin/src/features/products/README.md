@@ -637,20 +637,6 @@ borda/fundo), só que mais saturado que o de costume — pedido explícito do
 dono, para separar "existe uma observação" de "existe uma observação que
 muda a decisão".
 
-### 4.8. A entrada que reativa não pode ser desfeita pelo Salvar (23/09/2026)
-
-Entrada de estoque em produto Inativo ou "Sem estoque" o devolve a Ativo no
-servidor (regra de `Uaus.Docs/dominio/estoque-e-compras.md`). O editor carrega o
-status na abertura, e sem cuidado o próximo Salvar gravaria o status velho por
-cima da reativação — em silêncio, com linha no histórico.
-
-`useReactivatedStatusSync` escuta o aviso global de reativação
-(`src/lib/product-reactivation.ts`) e troca para Ativo o status da variação
-aberta **que ainda espelha o de antes da entrada**. Se a pessoa mudou o status à
-mão e não salvou, a escolha dela fica. A troca usa os setters crus: o servidor
-já está assim, e a tela não pode perguntar "descartar alterações?" por causa
-dela.
-
 ### 4.7. A primeira foto pergunta se o produto vai ao site (23/09/2026)
 
 Foto nova não liga o **Exibir no site** sozinha, e o interruptor mora na aba
@@ -708,3 +694,35 @@ Regras que valem a pena conhecer antes de mexer:
 
 - **Pela Listagem**: Um ícone de lupa na imagem do produto abre o modal de pesquisa. Ao escolher uma imagem da internet, ela é baixada via proxy autenticado, otimizada localmente no frontend pelo motor de compressão e definida como a foto principal (índice 0) do produto, sem deletar as imagens existentes.
 - **Pela Tela de Detalhe**: Habilita o botão "Buscar na Web" somente após o nome do produto ser preenchido. A imagem selecionada é baixada via proxy, otimizada e adicionada como uma imagem temporária na galeria do produto.
+
+### 7. Contagem de estoque pelo menu da linha (23/09/2026)
+
+Pedido do dono para a **correção pontual**: o item "Contagem de estoque" do menu
+da linha (três pontos e clique direito) abre a contagem física sem abrir o
+cadastro. É a mesma contagem da aba Estoque — mesmo endpoint
+(`POST /InventoryCounts/products/{id}/stock-count`), mesmo `useStockCount`,
+mesma `StockCountModal` —, e o estado mora em `hooks/useProductListStockCount.ts`.
+
+- **Só Administrador.** A página passa o `onStockCount` à tabela apenas para ele
+  (`useIsAdmin`, em `src/hooks/use-sessao.ts`); sem a prop, o item não aparece.
+  A API já recusa o resto com 403 — esconder é não oferecer o que vai falhar.
+- **A contagem é do SKU, e a linha é um GRUPO.** Produto simples conta a própria
+  linha; grupo com uma variação vai direto para ela; com duas ou mais, a modal
+  pede a variação e fica travada até a escolha. Não há padrão de propósito:
+  contar na variação errada lança sobra numa e falta noutra, e o erro só aparece
+  na próxima contagem das duas. Trocar de variação apaga o número digitado.
+- **O saldo é o do servidor, relido a cada abertura** (`product-for-entry`, a
+  mesma consulta da aba Estoque), e não o da linha nem o do cache. A prévia é a
+  promessa do documento: com um saldo velho ela diria "falta" e o servidor
+  gravaria uma sobra — reativando um produto Inativo. Abrir e trocar de
+  variação invalidam a consulta, e a modal só libera quando a leitura termina.
+  Leitura que falha mostra o motivo e "Tentar de novo". A lista de variações
+  mostra só o nome, para a modal não exibir dois saldos do mesmo SKU.
+- **Trocar de variação apaga o número contado, o fornecedor e o custo** — são
+  de outro lote. A observação fica.
+- **A listagem continua abrindo com uma requisição** (seção 0): os fornecedores,
+  que só servem à sobra, são pedidos quando a modal abre.
+- **A observação em branco diz de onde veio**: "Contagem de estoque pela
+  listagem de produtos." Sem ela, o servidor grava "da conferência de
+  produtos".
+- Grupo sem produto nenhum (linha com id 0) não oferece o item: não há SKU.

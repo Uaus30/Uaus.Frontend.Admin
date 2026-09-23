@@ -37,8 +37,17 @@ function emptyForm(): StockCountForm {
  * Fornecedor e custo só aparecem no formulário quando SOBRA, porque só a sobra
  * vira lote. Deixados em branco, o servidor herda o fornecedor do lote mais
  * recente e o custo atual do produto.
+ *
+ * `defaultNotes` é a observação gravada quando a pessoa não escreve nenhuma. Sem
+ * ela, o servidor grava "Contagem física da conferência de produtos." — e quem
+ * investigar depois uma contagem feita pela listagem de produtos procuraria uma
+ * conferência que não existiu.
  */
-export function useStockCount(productId: number | null, currentStock: number | null) {
+export function useStockCount(
+  productId: number | null,
+  currentStock: number | null,
+  options: { defaultNotes?: string } = {},
+) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -56,7 +65,7 @@ export function useStockCount(productId: number | null, currentStock: number | n
         countedQuantity: counted!,
         supplierId: form.supplierId ? Number(form.supplierId) : null,
         unitCost: form.unitCost.trim() !== "" ? Number(form.unitCost) : null,
-        notes: form.notes.trim() || null,
+        notes: form.notes.trim() || options.defaultNotes || null,
       }),
     onSuccess: async (result) => {
       // O produto como estava ANTES: o reenvio da mesma contagem volta com

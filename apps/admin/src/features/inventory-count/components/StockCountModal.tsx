@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ArrowDown, ArrowUp, CheckCircle2, ClipboardList } from "lucide-react";
 import {
   Button,
@@ -30,6 +30,18 @@ type StockCountModalProps = {
   /** Saldo do sistema. `null` enquanto o produto carrega. */
   currentStock: number | null;
   suppliers: SupplierDto[];
+  /**
+   * O que vem acima do produto: a escolha da variação e o aviso de leitura que
+   * falhou. A listagem de produtos abre a contagem pelo GRUPO, e a contagem é do
+   * SKU — a aba Estoque não precisa, porque já tem o seletor dela.
+   */
+  header?: React.ReactNode;
+  /**
+   * Há um SKU escolhido e o saldo dele já chegou. Enquanto não, o campo e o
+   * Registrar ficam travados: sem saldo não há diferença a mostrar, e sem SKU
+   * não há o que contar. Padrão `true`, que é o caso da aba Estoque.
+   */
+  ready?: boolean;
 };
 
 /**
@@ -53,18 +65,36 @@ export function StockCountModal({
   barcode,
   currentStock,
   suppliers,
+  header,
+  ready = true,
 }: StockCountModalProps) {
   const { difference } = count;
   const sobra = difference !== null && difference > 0;
+  const countInputRef = useRef<HTMLInputElement>(null);
+
+  // O campo da contagem é o destino do foco — inclusive quando ele só é
+  // liberado depois de abrir (a listagem espera o saldo chegar). Foco é efeito
+  // no DOM, não estado.
+  useEffect(() => {
+    if (count.open && ready) countInputRef.current?.focus();
+  }, [count.open, ready]);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (count.countedIsValid && !count.isSaving) count.submit();
+    if (ready && count.countedIsValid && !count.isSaving) count.submit();
   }
 
   return (
     <Dialog open={count.open} onOpenChange={count.setOpen}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent
+        className="max-h-[90vh] max-w-lg overflow-y-auto"
+        // Travado e sem nada acima, o primeiro campo focável seria a Observação,
+        // e os dígitos digitados logo depois de abrir cairiam nela. O foco espera
+        // o campo da contagem ser liberado (o efeito acima).
+        onOpenAutoFocus={(event) => {
+          if (!ready && !header) event.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <ClipboardList className="h-5 w-5 text-primary" />
@@ -76,6 +106,8 @@ export function StockCountModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {header}
+
           <div className="rounded-xl border border-border/40 bg-background/40 p-4">
             <p className="truncate text-sm font-semibold text-foreground" title={productName}>
               {productName}
@@ -96,7 +128,8 @@ export function StockCountModal({
               min={0}
               step={1}
               inputMode="numeric"
-              autoFocus
+              ref={countInputRef}
+              disabled={!ready}
               placeholder="Quantas unidades você contou?"
               value={count.form.counted}
               onChange={(event) => count.updateForm({ counted: event.target.value })}
@@ -164,7 +197,7 @@ export function StockCountModal({
             </Button>
             <Button
               type="submit"
-              disabled={!count.countedIsValid || count.isSaving}
+              disabled={!ready || !count.countedIsValid || count.isSaving}
               className="hover-elevate gap-2"
             >
               {count.isSaving && <Spinner className="h-4 w-4" />}

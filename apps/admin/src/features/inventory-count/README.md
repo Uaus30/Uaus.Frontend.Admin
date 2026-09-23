@@ -21,7 +21,8 @@ O desenho do servidor está em `docs/conferencia-de-produtos.md`, no repositóri
   paginação, as três mutações (iniciar, encerrar, marcar) e a navegação para o
   produto.
 - `hooks/useStockCount.ts`: a contagem física de uma variação, usada dentro da
-  aba **Estoque** do produto.
+  aba **Estoque** do produto e pelo item **Contagem de estoque** do menu da
+  listagem de produtos.
 - `components/InventoryCountPanel.tsx`: a aba inteira; escolhe entre o convite a
   começar e a conferência em andamento.
 - `components/InventoryCountStart.tsx`: o convite, com o que a conferência faz e
@@ -99,6 +100,15 @@ podem ser trocados.
 
 A contagem é da **variação** aberta na aba Estoque, não do grupo: estoque é do
 SKU. O grupo é a unidade da conferência; o SKU é a unidade do estoque.
+
+**A mesma modal abre pela listagem de produtos** (23/09/2026), no menu da linha,
+só para Administrador. Ali a linha é um GRUPO, então a modal ganha por cima a
+escolha da variação (`picker`) e fica travada (`ready = false`) até haver um SKU
+escolhido e o saldo dele chegar do servidor. A observação em branco vira
+"Contagem de estoque pela listagem de produtos." (`defaultNotes`): sem ela, o
+servidor grava "da conferência de produtos", e quem investigar o documento depois
+procuraria uma conferência que não existiu. O desenho está em
+`features/products/README.md`, seção 7.
 
 **Sobra que reativa o produto é anunciada.** A sobra é uma entrada, e entrada em
 produto Inativo ou "Sem estoque" o devolve a Ativo (23/09/2026). O resultado da
