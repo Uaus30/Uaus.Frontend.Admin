@@ -40,6 +40,12 @@ export interface ConfirmDialogProps {
    * clique no ícone errado é o engano mais comum.
    */
   itemName?: string;
+  /**
+   * O efeito que ajuda a decidir, abaixo do item em destaque — ex.: a margem que
+   * uma correção de custo produz. Não cabe na `description`: ela é um `<p>`, e a
+   * ordem de leitura é o que muda (o item) e depois o efeito (o detalhe).
+   */
+  details?: React.ReactNode;
   /** O que se perde ao confirmar. Obrigatória; ver o JSDoc do tipo. */
   description: React.ReactNode;
   /** Texto do botão de confirmação. Prefira o verbo da ação a "OK". */
@@ -81,6 +87,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   itemName,
+  details,
   description,
   confirmLabel = "Confirmar",
   cancelLabel = "Cancelar",
@@ -150,6 +157,8 @@ export function ConfirmDialog({
             {itemName}
           </p>
         )}
+
+        {details ? <div>{details}</div> : null}
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>

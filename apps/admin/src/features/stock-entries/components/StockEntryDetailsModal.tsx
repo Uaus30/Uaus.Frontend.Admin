@@ -15,6 +15,7 @@ import { Spinner } from "@workspace/ui";
 import type { ReceivedPurchaseEntryDto, ReceivedPurchaseEntryItemDto } from "@workspace/api-client-react";
 import { purchaseDetailPathname } from "@/features/purchases/purchases-route";
 import { EntryItemCostCell } from "./EntryItemCostCell";
+import { CostCorrectionMargin } from "./CostCorrectionMargin";
 import { describeCostCorrectionImpact } from "../lib/cost-correction";
 import type { CostCorrectionPayload } from "../hooks/useEntryCostCorrection";
 
@@ -288,6 +289,15 @@ export function StockEntryDetailsModal({
                 custoPendente
                   ? `${custoPendente.item.productName} — de ${formatCurrency(custoPendente.item.unitCost)} para ${formatCurrency(custoPendente.unitCost)} por unidade`
                   : undefined
+              }
+              details={
+                custoPendente && (
+                  <CostCorrectionMargin
+                    item={custoPendente.item}
+                    unitCost={custoPendente.unitCost}
+                    formatCurrency={formatCurrency}
+                  />
+                )
               }
               description={
                 custoPendente ? describeCostCorrectionImpact(custoPendente.item, entryDetails.purchaseId) : ""

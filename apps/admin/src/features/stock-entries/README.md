@@ -117,6 +117,15 @@ fornecedor, data e preço continuam sem edição.
 - **A confirmação diz o que muda junto** antes de gravar: quantas unidades da
   entrada já saíram (e terão o custo refeito) e que a compra, quando houve, não
   muda — os totais dela são o que foi pago.
+- **E mostra a margem de antes e a de depois** (pedido do dono, 23/09/2026),
+  abaixo do item: "Margem sobre o preço de venda (R$ 9,90): de 58,38% para
+  49,49%", cada número na cor da faixa (`CostCorrectionMargin`). O preço é o
+  ATUAL do cadastro (`productPrice` vem do produto, não da nota). Com o custo de
+  agora zerado, que é a anomalia que se corrige, só a margem nova aparece, e não
+  "de 100%". Com o custo corrigido para zero (bonificação) ou sem preço, a linha
+  não aparece (`describeCostCorrectionMargin`). A linha entra pelo `details` do
+  `ConfirmDialog`, abaixo do item: a `description` é um `<p>`, e a ordem de
+  leitura é o que muda e depois o efeito.
 - **Campo vazio não é zero.** O `parseAmountOrNull` do core trata vazio como
   zero; aqui isso zeraria o custo do lote e de todas as vendas que o consumiram
   (`lib/cost-correction.ts`). Zero de verdade (bonificação) se digita.

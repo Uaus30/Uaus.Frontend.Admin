@@ -40,6 +40,14 @@ describe("ConfirmDialog", () => {
     expect(screen.getByText("Bebidas geladas")).toBeTruthy();
   });
 
+  it("mostra o detalhe abaixo do item em destaque — o efeito vem depois do que muda", () => {
+    renderDialog({ itemName: "Bebidas geladas", details: <p>Margem: de 58% para 49%</p> });
+
+    const item = screen.getByText("Bebidas geladas");
+    const detalhe = screen.getByText("Margem: de 58% para 49%");
+    expect(item.compareDocumentPosition(detalhe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("executa a ação e fecha o diálogo ao confirmar", async () => {
     const { onConfirm, onOpenChange } = renderDialog();
 

@@ -116,6 +116,11 @@ describe("StockEntryDetailsModal", () => {
       expect(onCorrectUnitCost).not.toHaveBeenCalled();
       expect(screen.getByText(/As 5 unidades que já saíram desta entrada/)).toBeTruthy();
       expect(screen.getByText(/A compra #26 também não muda/)).toBeTruthy();
+      // E o efeito no lucro: (19,90 − 3,13) / 19,90 = 84,27% → (19,90 − 1,34) / 19,90 = 93,27%.
+      expect(screen.getByText(/Margem sobre o preço de venda/).textContent).toBe(
+        "Margem sobre o preço de venda (R$ 19,90): de 84,27% para 93,27%",
+      );
+      expect(screen.getByText("93,27%").className).toContain("text-emerald-600");
 
       fireEvent.click(screen.getByRole("button", { name: "Sim, corrigir o custo" }));
 

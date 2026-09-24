@@ -1,4 +1,4 @@
-import { formatCurrency, formatShortDate, parseAmount, round2 } from "@workspace/core";
+import { formatCurrency, formatShortDate, marginPercent, parseAmount, round2 } from "@workspace/core";
 import type {
   PurchaseEntryCostCorrectionDto,
   ReceivedPurchaseEntryItemDto,
@@ -49,6 +49,40 @@ export function describeCostCorrectionImpact(
     purchaseId != null ? ` A compra #${purchaseId} também não muda: os totais dela são o que foi pago.` : "";
 
   return `O custo do lote e o do cadastro passam a ser este. ${consumo} A quantidade, o preço e o valor das vendas não mudam.${compra}`;
+}
+
+/** A margem antes e depois da correção, sobre o preço de venda do cadastro. */
+export type CostCorrectionMargin = {
+  /** Preço de venda ATUAL do cadastro — a base das duas margens. */
+  price: number;
+  /** Margem com o custo de agora; `null` quando o custo de agora é zero. */
+  before: number | null;
+  /** Margem com o custo corrigido. */
+  after: number;
+};
+
+/**
+ * A margem que a correção produz, para a confirmação mostrar o efeito no preço
+ * (pedido do dono, 23/09/2026): quem corrige o custo quer saber se o preço ainda
+ * dá lucro.
+ *
+ * O preço é o de AGORA: `productPrice` vem do cadastro do produto, não da nota.
+ * Sem preço, ou com o custo corrigido zerado (bonificação), não há margem que
+ * ajude, e volta `null` — "100%" de um brinde seria enganoso, a mesma razão da
+ * prévia da entrada. O custo de agora zerado é a anomalia que a correção existe
+ * para desfazer: ele não entra como "de 100%", só a margem nova aparece.
+ */
+export function describeCostCorrectionMargin(
+  item: Pick<ReceivedPurchaseEntryItemDto, "unitCost" | "productPrice">,
+  unitCost: number,
+): CostCorrectionMargin | null {
+  if (!(unitCost > 0)) return null;
+
+  const after = marginPercent(unitCost, item.productPrice);
+  if (after === null) return null;
+
+  const before = item.unitCost > 0 ? marginPercent(item.unitCost, item.productPrice) : null;
+  return { price: item.productPrice, before, after };
 }
 
 /** O resultado, para o toast: quanto foi refeito, e não só "salvo". */

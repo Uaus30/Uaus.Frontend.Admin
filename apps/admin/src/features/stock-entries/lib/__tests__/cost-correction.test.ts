@@ -6,6 +6,7 @@ import type {
 import {
   describeAffectedClosings,
   describeCostCorrectionImpact,
+  describeCostCorrectionMargin,
   describeCostCorrectionResult,
   parseCorrectedCost,
 } from "../cost-correction";
@@ -124,5 +125,31 @@ describe("describeAffectedClosings", () => {
     expect(texto).toBe(
       "O fechamento assinado de 01/08/2026 a 31/08/2026 continua com o custo antigo no CMV. Reabrir é decisão sua.",
     );
+  });
+});
+
+describe("describeCostCorrectionMargin", () => {
+  const pandeiro = { unitCost: 4.12, productPrice: 9.9 };
+
+  it("a margem de agora e a corrigida, sobre o preço de venda do cadastro", () => {
+    // (9,90 − 4,12) / 9,90 = 58,38% → (9,90 − 5,00) / 9,90 = 49,49%.
+    expect(describeCostCorrectionMargin(pandeiro, 5)).toEqual({ price: 9.9, before: 58.38, after: 49.49 });
+  });
+
+  it("custo de agora zerado (a anomalia que se corrige) não vira 'de 100%': só a margem nova", () => {
+    expect(describeCostCorrectionMargin({ ...pandeiro, unitCost: 0 }, 5)).toEqual({
+      price: 9.9,
+      before: null,
+      after: 49.49,
+    });
+  });
+
+  it("custo corrigido para zero (bonificação) ou produto sem preço: sem margem a mostrar", () => {
+    expect(describeCostCorrectionMargin(pandeiro, 0)).toBeNull();
+    expect(describeCostCorrectionMargin({ ...pandeiro, productPrice: 0 }, 5)).toBeNull();
+  });
+
+  it("custo acima do preço é prejuízo: margem negativa", () => {
+    expect(describeCostCorrectionMargin(pandeiro, 12)?.after).toBe(-21.21);
   });
 });
