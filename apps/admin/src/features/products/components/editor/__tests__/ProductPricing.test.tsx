@@ -13,16 +13,22 @@ vi.mock("@/services/products.service", async (importOriginal) => ({
 const { ProductPricing } = await import("../ProductPricing");
 const { ProductMarginHint } = await import("../ProductMarginHint");
 
-type HarnessProps = { id?: number | null; price?: number; hasVariations?: boolean };
+type HarnessProps = {
+  id?: number | null;
+  price?: number;
+  hasVariations?: boolean;
+  purchaseContext?: { purchaseId: number; unitCost: number } | null;
+};
 
 /** Preço com estado de verdade: o blur do campo tem que chegar ao formulário. */
-function Harness({ id = 12, price = 9.9, hasVariations = false }: HarnessProps) {
+function Harness({ id = 12, price = 9.9, hasVariations = false, purchaseContext = null }: HarnessProps) {
   const [productEditor, setProductEditor] = useState({ id, price, status: "1" });
   const editor = {
     form: { hasVariations },
     productEditor,
     setProductEditor,
     selectableStatusOptions: [{ id: 1, name: "Ativo" }],
+    purchaseContext,
   } as unknown as Parameters<typeof ProductPricing>[0]["editor"];
 
   return <ProductPricing editor={editor} validationErrors={{}} setValidationErrors={vi.fn()} />;
@@ -83,6 +89,18 @@ describe("ProductPricing — margem abaixo do preço de venda", () => {
     expect(mocks.getProductById).not.toHaveBeenCalled();
   });
 
+  it("cadastro novo vindo de compra: a margem usa o custo da compra, e diz que é dele", () => {
+    // O "Último custo" mostra "-" até a entrada existir; sem a compra, a margem
+    // sumia justo onde o preço está sendo decidido.
+    renderPricing({ id: null, price: 7.5, purchaseContext: { purchaseId: 37, unitCost: 4.5 } });
+
+    // (7,50 − 4,50) / 7,50 = 40,00% → verde.
+    expect(margem().textContent).toBe("40,00%");
+    expect(margem().className).toContain("text-emerald-600");
+    expect(screen.getByText(/^Margem:/).textContent).toContain("sobre o custo da compra #37 (R$");
+    expect(mocks.getProductById).not.toHaveBeenCalled();
+  });
+
   it("some no grupo com variações, como preço e status", () => {
     renderPricing({ hasVariations: true });
 
@@ -93,24 +111,23 @@ describe("ProductPricing — margem abaixo do preço de venda", () => {
 
 describe("ProductMarginHint", () => {
   it("sem custo não mostra nada: margem sem custo seria um 100% enganoso", () => {
-    const { container, rerender } = render(<ProductMarginHint cost={0} price={10} />);
-    expect(container.textContent).toBe("");
-
-    rerender(<ProductMarginHint cost={undefined} price={10} />);
+    const { container } = render(<ProductMarginHint base={null} price={10} />);
     expect(container.textContent).toBe("");
   });
 
   it("com custo e sem preço, '—' apagado — e não uma margem inventada", () => {
-    render(<ProductMarginHint cost={4.12} price={0} />);
+    render(<ProductMarginHint base={{ cost: 4.12, purchaseId: null }} price={0} />);
 
     expect(margem().textContent).toBe("—");
     expect(margem().className).toContain("text-muted-foreground");
   });
 
   it("preço abaixo do custo é prejuízo: margem negativa, em vermelho", () => {
-    render(<ProductMarginHint cost={4} price={3} />);
+    render(<ProductMarginHint base={{ cost: 4, purchaseId: null }} price={3} />);
 
     expect(margem().textContent).toBe("-33,33%");
     expect(margem().className).toContain("text-red-600");
+    // Custo da última entrada não precisa dizer de onde veio: o campo está logo acima.
+    expect(screen.getByText(/^Margem:/).textContent).toBe("Margem: -33,33%");
   });
 });

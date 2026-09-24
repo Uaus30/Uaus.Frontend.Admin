@@ -381,8 +381,12 @@ Regras que valem a pena conhecer antes de mexer:
   `ProductMarginHint`). Recalcula a cada tecla: o `CurrencyInput` só entrega o
   valor no blur, e o `onDraftChange` dele informa o que está sendo digitado.
   Faixa e cor são as de toda tela que mostra margem (`marginBand` do core e
-  `marginToneClass`). Sem custo maior que zero, não aparece. O custo vem da
-  mesma consulta do "Último custo" (`useProductForEntry`), numa requisição só.
+  `marginToneClass`). O custo vem da mesma consulta do "Último custo"
+  (`useProductForEntry`), numa requisição só. **No cadastro novo vindo de uma
+  compra**, enquanto a entrada não é lançada, a base é o custo unitário da
+  compra (o mesmo com que a entrada vem preenchida), e o rótulo diz "sobre o
+  custo da compra #N", porque o "Último custo" logo acima ainda mostra "-"
+  (`resolveMarginBase`). Sem custo nenhum maior que zero, não aparece.
 - **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem id
   não há lote para lançar nem etiqueta para associar; a aba Estoque abriria só
   para dizer "salve primeiro". O `Avançar` da aba Dados salva e já cai em

@@ -12,7 +12,7 @@ vi.mock("@/services/products.service", async (importOriginal) => ({
 }));
 
 const { ProductCostAndStock } = await import("../ProductCostAndStock");
-const { describeCostAndStock } = await import("../../../lib/costAndStock");
+const { describeCostAndStock, resolveMarginBase } = await import("../../../lib/costAndStock");
 
 /** O mínimo do editor que o bloco lê. */
 function editor(extras: { id?: number | null; hasVariations?: boolean } = {}) {
@@ -79,5 +79,25 @@ describe("ProductCostAndStock", () => {
     renderBlock({ hasVariations: true });
 
     expect(screen.queryByLabelText("Último custo")).toBeNull();
+  });
+});
+
+describe("resolveMarginBase — sobre qual custo a margem do detalhe é calculada", () => {
+  const compra = { purchaseId: 37, unitCost: 4.5 };
+
+  it("o custo da última entrada, quando há um", () => {
+    expect(resolveMarginBase(4.12, null)).toEqual({ cost: 4.12, purchaseId: null });
+    // Lançada a entrada da compra, o custo dela assume — mesmo com a compra ainda no contexto.
+    expect(resolveMarginBase(4.12, compra)).toEqual({ cost: 4.12, purchaseId: null });
+  });
+
+  it("sem entrada ainda (cadastro novo, ou salvo sem entrada), o custo da compra que o abriu", () => {
+    expect(resolveMarginBase(undefined, compra)).toEqual({ cost: 4.5, purchaseId: 37 });
+    expect(resolveMarginBase(0, compra)).toEqual({ cost: 4.5, purchaseId: 37 });
+  });
+
+  it("sem custo nenhum maior que zero, não há base — e a margem não aparece", () => {
+    expect(resolveMarginBase(0, null)).toBeNull();
+    expect(resolveMarginBase(undefined, { purchaseId: 37, unitCost: 0 })).toBeNull();
   });
 });

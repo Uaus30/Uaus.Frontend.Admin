@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput } from "../CurrencyInput";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 import { useProductForEntry } from "../../hooks/useProductForEntry";
+import { resolveMarginBase } from "../../lib/costAndStock";
 import { ProductMarginHint } from "./ProductMarginHint";
 
 type ProductPricingProps = {
@@ -21,10 +22,11 @@ type ProductPricingProps = {
  * Estoque mínimo, estoque atual e visibilidade moravam aqui atrás do botão de
  * olho; foram para a aba **Opcionais** da tela de detalhe.
  *
- * Abaixo do preço, a margem sobre o último custo — ver `ProductMarginHint`.
+ * Abaixo do preço, a margem sobre o último custo — ou sobre o da compra, no
+ * cadastro que veio dela — ver `ProductMarginHint`.
  */
 export function ProductPricing({ editor, validationErrors, setValidationErrors }: ProductPricingProps) {
-  const { form, productEditor, setProductEditor, selectableStatusOptions } = editor;
+  const { form, productEditor, setProductEditor, selectableStatusOptions, purchaseContext } = editor;
   // O custo é o do campo "Último custo", da mesma consulta — uma requisição só.
   const { data: product } = useProductForEntry(form.hasVariations ? null : productEditor.id);
   // O preço ENQUANTO se digita: o campo só entrega o valor no blur, e a margem
@@ -52,7 +54,10 @@ export function ProductPricing({ editor, validationErrors, setValidationErrors }
         {validationErrors.price && (
           <p className="text-xs text-red-500 font-medium">Preenchimento obrigatório</p>
         )}
-        <ProductMarginHint cost={product?.costPrice} price={typedPrice ?? productEditor.price} />
+        <ProductMarginHint
+          base={resolveMarginBase(product?.costPrice, purchaseContext)}
+          price={typedPrice ?? productEditor.price}
+        />
       </div>
 
       <div className="space-y-2">
