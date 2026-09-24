@@ -103,12 +103,12 @@ function impedirEnvioPeloEnter(event: React.KeyboardEvent<HTMLFormElement>) {
  * O `<form>` envolve as três: o salvar do cabeçalho vale de qualquer aba, e
  * quem troca de aba com alterações pendentes não as perde.
  *
- * **Salvar grava e volta para a listagem; Avançar grava e troca de aba.** Os
- * dois botões existem porque são duas intenções diferentes: terminar o cadastro
- * e continuar nele. Antes, Salvar ficava na tela — e quem só queria corrigir um
- * preço precisava de um Cancelar depois de salvar para sair. As modais são
- * portais do Radix, então ficam FORA do form — o formulário simplificado de
- * entrada tem `<form>` próprio e aninhar os dois seria HTML inválido.
+ * **Salvar grava e continua na tela; Avançar grava e troca de aba.** De
+ * 06/09/2026 até 23/09/2026 o Salvar voltava para a listagem; o dono voltou
+ * atrás porque quem salva quase sempre segue no mesmo cadastro (uma entrada, a
+ * foto, o histórico), e sair é o botão de voltar. As modais são portais do
+ * Radix, então ficam FORA do form — o formulário simplificado de entrada tem
+ * `<form>` próprio e aninhar os dois seria HTML inválido.
  *
  * **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem
  * id não há lote para lançar nem etiqueta para associar, e a aba Estoque

@@ -137,8 +137,11 @@ describe("ProductDetailScreen — o que cada botão faz", () => {
 
   it("Salvar grava e CONTINUA na tela (decisão do dono, 23/09/2026)", async () => {
     renderScreen();
+    const salvar = screen.getAllByRole("button", { name: /salvar/i })[0];
+    // A dica diz o que o botão faz: até 23/09/2026 ela prometia voltar para a listagem.
+    expect(salvar.getAttribute("title")).toBe("Salvar e continuar neste cadastro");
 
-    fireEvent.click(screen.getAllByRole("button", { name: /salvar/i })[0]);
+    fireEvent.click(salvar);
 
     await waitFor(() => expect(mocks.handleSubmit).toHaveBeenCalled());
     // Voltar para a listagem é o botão de voltar, e só ele.

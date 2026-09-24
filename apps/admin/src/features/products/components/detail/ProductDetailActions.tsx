@@ -21,10 +21,11 @@ type ProductDetailActionsProps = {
  * com que o leitor de código de barras termina o bip — ver
  * `impedirEnvioPeloEnter` na `ProductDetailScreen`.
  *
- * **Salvar** grava e volta para a listagem: é o fim do trabalho. **Avançar**
- * grava e vai para a próxima aba — de Dados para Estoque, que é o par que o
- * cadastro de mercadoria nova percorre: cadastrar o item e lançar o que chegou
- * dele, sem sair da tela.
+ * **Salvar** grava e continua na tela (decisão do dono, 23/09/2026): quem salva
+ * quase sempre segue no mesmo cadastro, e voltar para a listagem é o botão de
+ * voltar. **Avançar** grava e vai para a próxima aba — de Dados para Estoque,
+ * que é o par que o cadastro de mercadoria nova percorre: cadastrar o item e
+ * lançar o que chegou dele, sem sair da tela.
  */
 export function ProductDetailActions({
   saving,
@@ -41,7 +42,7 @@ export function ProductDetailActions({
         type="submit"
         variant="secondary"
         disabled={saving}
-        title="Salvar e voltar para a listagem"
+        title="Salvar e continuar neste cadastro"
         className="hover-elevate"
       >
         {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
