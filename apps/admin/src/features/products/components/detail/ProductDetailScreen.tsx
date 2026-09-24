@@ -441,6 +441,7 @@ export function ProductDetailScreen({
                       supplierId: purchaseContext.supplierId,
                       quantity: purchaseContext.quantity,
                       unitCost: purchaseContext.unitCost,
+                      invoiceNumber: purchaseContext.invoiceNumber ?? undefined,
                       notes: `Recebimento da compra #${purchaseContext.purchaseId}`,
                     }
                   : null

@@ -146,6 +146,18 @@ describe("usePurchases — o caminho do 'Lançar recebimento'", () => {
     expect(mocks.navigate).not.toHaveBeenCalled();
     expect(result.current.receiving).not.toBeNull();
   });
+
+  it("o diálogo já vem com o nº da nota digitado na compra", () => {
+    // É a mesma nota (24/09/2026): pedir de novo no recebimento seria digitar
+    // duas vezes o que a compra já sabe. Continua editável.
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.startReceive(compra({ productId: 963, productGroupId: 805, invoiceNumber: "NF 4521" }));
+    });
+
+    expect(result.current.receiveForm.invoiceNumber).toBe("NF 4521");
+  });
 });
 
 describe("usePurchases — conferência de estoque aberta", () => {

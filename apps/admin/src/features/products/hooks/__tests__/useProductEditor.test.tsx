@@ -681,6 +681,36 @@ describe("cadastro a partir de uma compra", () => {
     expect(result.current.productEditor.price).toBe(49.9);
   });
 
+  it("o código e a nota digitados na compra chegam prontos, e o código é conferido no catálogo", async () => {
+    // O código veio sem ninguém digitar — e é a digitação que dispara a consulta.
+    // Entre a compra e o recebimento outro cadastro pode ter ficado com ele, e o
+    // achado tem que chegar à modal de conflito ANTES do salvar.
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.openDetailFromPurchase({
+          ...compra,
+          productBarcode: "7891234567895",
+          invoiceNumber: "NF 4521",
+        });
+      });
+
+      expect(result.current.productEditor.barcode).toBe("7891234567895");
+      expect(result.current.purchaseContext).toMatchObject({ invoiceNumber: "NF 4521" });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      expect(mocks.getProductsPage).toHaveBeenCalledWith(
+        expect.objectContaining({ search: "7891234567895" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("fechar a tela descarta o contexto da compra", () => {
     // Um cadastro aberto depois pela lista não pode herdar a entrada de um
     // pedido que não é dele.

@@ -84,8 +84,18 @@ export type PurchaseForm = {
    */
   costSplitManual: boolean;
   productName: string;
-  /** Código de barras do produto vinculado, só para conferência na tela. */
+  /**
+   * Código de barras. Com produto vinculado é o DELE, só para conferência na
+   * tela. Sem produto é o campo "Código de barras" da compra (24/09/2026): o que
+   * o operador digitou ou bipou, que vira o código do cadastro no recebimento —
+   * e, se já for de um produto, vincula a compra a ele.
+   */
   productBarcode: string | null;
+  /**
+   * Nº da nota (24/09/2026). Opcional; vai para a entrada de estoque no
+   * recebimento, e a compra nova nasce com o da última registrada.
+   */
+  invoiceNumber: string;
   details: string;
   purchaseLink: string;
   /** Dia da compra, `yyyy-MM-dd`. Nasce hoje. */

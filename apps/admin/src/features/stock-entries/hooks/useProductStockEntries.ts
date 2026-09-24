@@ -216,6 +216,7 @@ export function useProductStockEntries(
             supplierId: String(prefill.supplierId),
             quantity: prefill.quantity,
             unitCost: prefill.unitCost,
+            invoiceNumber: prefill.invoiceNumber ?? "",
             notes: prefill.notes ?? "",
           }
         : {}),

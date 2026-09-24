@@ -67,11 +67,14 @@ export function purchasesStatusParams(filter: string): Pick<PurchasesParams, "st
  * quem comprou, olhando para o custo, e obrigar a redigitar no recebimento é
  * pedir a mesma decisão duas vezes — com o risco de a segunda sair diferente.
  * Sem preço sugerido, zero mantém o preço atual do cadastro, como antes.
+ *
+ * O nº da nota também já vem, quando a compra o tem (24/09/2026): ele foi
+ * digitado no registro da compra, e é a mesma nota.
  */
 function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
   return {
     entryDate: todayDateKey(),
-    invoiceNumber: "",
+    invoiceNumber: purchase?.invoiceNumber ?? "",
     notes: "",
     price: purchase?.suggestedPrice ?? 0,
     // A grade vem com o que foi PEDIDO; conferir é ajustar o que veio.

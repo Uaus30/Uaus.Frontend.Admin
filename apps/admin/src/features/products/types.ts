@@ -120,6 +120,8 @@ export type PurchaseContext = {
   /** Custo unitário FINAL da compra — o que a entrada grava. */
   unitCost: number;
   productName: string;
+  /** Nº da nota digitado na compra (24/09/2026), que a entrada recebe pronto. */
+  invoiceNumber: string | null;
 };
 
 /**

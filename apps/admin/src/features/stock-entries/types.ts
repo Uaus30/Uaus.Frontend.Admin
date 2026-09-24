@@ -25,5 +25,7 @@ export type StockEntryPrefill = {
   supplierId: number;
   quantity: number;
   unitCost: number;
+  /** Nº da nota digitado na compra (24/09/2026). */
+  invoiceNumber?: string;
   notes?: string;
 };

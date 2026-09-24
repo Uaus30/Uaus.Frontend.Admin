@@ -14,6 +14,11 @@ import type { ProductSearchOption } from "@/components/product-search-picker";
 type PurchaseProductLinkDialogProps = {
   /** O produto escolhido, à espera da resposta. Ausente ou nulo fecha a modal. */
   product: ProductSearchOption | null | undefined;
+  /**
+   * O código que achou o produto, quando a pergunta nasceu do campo de código
+   * (24/09/2026) e não da busca. "Não vincular" o apaga da compra — a modal diz.
+   */
+  barcode?: string | null;
   /** O nome digitado nesta compra, antes do vínculo. */
   purchaseName: string;
   /** Quantas fotos o formulário tem agora. Zero tira a escolha da tela. */
@@ -56,6 +61,7 @@ type PurchaseProductLinkDialogProps = {
  */
 export function PurchaseProductLinkDialog({
   product,
+  barcode,
   purchaseName,
   imageCount,
   onUseProductGallery,
@@ -77,8 +83,11 @@ export function PurchaseProductLinkDialog({
             Vincular ao produto já cadastrado
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {product?.name} já está no catálogo. Parte do que você preencheu nesta compra passa a vir do
-            cadastro dele.
+            {barcode ? `O código ${barcode} é de ${product?.name}, que` : product?.name} já está no catálogo.
+            Parte do que você preencheu nesta compra passa a vir do cadastro dele.
+            {/* Sem vincular, o código não pode ficar: ele já tem dono, e a compra
+                de produto novo com ele seria recusada no salvar. */}
+            {barcode && " Sem vincular, o código sai desta compra."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 

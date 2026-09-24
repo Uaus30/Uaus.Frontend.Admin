@@ -90,13 +90,29 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
     );
   }
 
-  /** Só tem efeito em modo manual — em rateio a fatia é derivada. */
-  function setItemTotal(productId: number, campo: "grossTotal" | "finalTotal", valor: number) {
+  /**
+   * O custo de UMA variação, digitado em modo manual — em rateio a fatia é
+   * derivada, e isto não tem efeito.
+   *
+   * O bruto da variação vai junto quando ela não tem desconto declarado — bruto
+   * zerado, ou igual ao custo que está sendo trocado. É a regra do cabeçalho (o
+   * final nasce igual ao bruto, 24/09/2026) aplicada à fatia. Sem isso, quem
+   * passasse ao custo por variação antes de digitar os totais — ou reabrisse uma
+   * compra de antes da regra, com o bruto zerado — ficava com o bruto do pedido
+   * em zero sem ter como digitá-lo: em modo manual ele é a SOMA das variações,
+   * sem campo, justamente quando passou a ser obrigatório fora de Pendente. A
+   * fatia com desconto (bruto diferente do custo) mantém o bruto dela.
+   */
+  function setItemCost(productId: number, valor: number) {
     onEdit();
     setForm((atual) =>
       recompute({
         ...atual,
-        items: atual.items.map((item) => (item.productId === productId ? { ...item, [campo]: valor } : item)),
+        items: atual.items.map((item) => {
+          if (item.productId !== productId) return item;
+          const semDesconto = item.grossTotal <= 0 || item.grossTotal === item.finalTotal;
+          return { ...item, finalTotal: valor, ...(semDesconto ? { grossTotal: valor } : {}) };
+        }),
       }),
     );
   }
@@ -129,7 +145,7 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
     hasGrid,
     isLoadingVariations: isFetching,
     setItemQuantity,
-    setItemTotal,
+    setItemCost,
     setCostSplitManual,
     refreshSplit,
   };

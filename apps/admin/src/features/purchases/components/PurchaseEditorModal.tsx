@@ -10,7 +10,9 @@ import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { ProductSearchPicker } from "@/components/product-search-picker";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import { PURCHASE_INVOICE_NUMBER_MAX_LENGTH } from "../lib/purchase-memory";
 import { purchaseHasProduct } from "../hooks/usePurchaseForm";
+import { PurchaseBarcodeField } from "./PurchaseBarcodeField";
 import { PurchaseDerivedTotals } from "./PurchaseDerivedTotals";
 import { PurchaseVariationsGrid } from "./PurchaseVariationsGrid";
 import { PurchaseImagesField } from "./PurchaseImagesField";
@@ -23,6 +25,26 @@ type PurchaseEditorModalProps = {
   suppliers: SupplierDto[];
   departments: DepartmentDto[];
 };
+
+/**
+ * Enter num campo NÃO grava a compra: gravar é só o clique no botão.
+ *
+ * O campo de código (24/09/2026) trouxe o leitor de código de barras para esta
+ * modal, e o leitor termina o bipe com um Enter — que num formulário é o envio
+ * implícito do navegador. Sem isto, o bipe gravava a compra ANTES da consulta ao
+ * catálogo: como produto novo, com o código de um produto que já existe. É a
+ * regra do cadastro de produto (23/09/2026, `impedirEnvioPeloEnter`), e vale para
+ * o formulário inteiro porque o bipe cai no campo que estiver com o foco.
+ *
+ * Só para o que está DENTRO do form no DOM: a busca de produto e os diálogos são
+ * portais, e o evento deles também chega aqui, pela árvore do React.
+ */
+function blockImplicitSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
+  if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;
+  if (!event.currentTarget.contains(event.target)) return;
+
+  event.preventDefault();
+}
 
 /**
  * Formulário da compra.
@@ -54,6 +76,10 @@ type PurchaseEditorModalProps = {
  * área de arrastar: o atalho existe para poupar o clique, e obrigar a acertar
  * um alvo antes de colar devolveria o clique que ele economiza. Quem cola
  * dentro de um campo de texto continua colando texto — o handler se afasta.
+ *
+ * **A compra nova nasce com fornecedor, data, nº da nota e situação da última
+ * registrada** (24/09/2026, `lib/purchase-memory.ts`), e o **código de barras**
+ * de um produto já cadastrado vincula a compra a ele — ver `PurchaseBarcodeField`.
  *
  * **Fechar com algo digitado pergunta antes** (15/09/2026), como a tela de
  * produto. O clique no fundo fechava a modal e levava o formulário inteiro
@@ -101,8 +127,8 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
           </div>
         )}
 
-        <form onSubmit={form.submit} className="mt-2 flex flex-col gap-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <form onSubmit={form.submit} onKeyDown={blockImplicitSubmit} className="mt-2 flex flex-col gap-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Fornecedor <span className="text-red-500">*</span>
@@ -140,6 +166,32 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
                 disabled={readOnly}
                 className="h-10"
               />
+              {/* A memória da última compra atravessa dias, e a data dela pode não
+                  ser a desta. Some quando a pessoa troca a data. */}
+              {form.dateFromMemory && !readOnly && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Repetida da última compra — confira se é a desta.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              {/* Opcional, e vai para a entrada de estoque no recebimento. O rótulo
+                  é o mesmo do diálogo de recebimento e das modais de entrada. */}
+              <label
+                htmlFor="purchase-invoice-number"
+                className="text-xs font-semibold uppercase text-muted-foreground"
+              >
+                Nº da Nota Fiscal
+              </label>
+              <Input
+                id="purchase-invoice-number"
+                value={values.invoiceNumber}
+                onChange={(event) => update("invoiceNumber", event.target.value)}
+                placeholder="Opcional"
+                maxLength={PURCHASE_INVOICE_NUMBER_MAX_LENGTH}
+                className="h-10 bg-background"
+                readOnly={readOnly}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Situação</label>
@@ -157,7 +209,7 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Pendente pode ficar sem custo; ele é exigido ao marcar como a caminho.
+                Fora de Pendente, total bruto e total final são obrigatórios.
               </p>
             </div>
           </div>
@@ -205,6 +257,19 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               </div>
             )}
           </div>
+
+          {/* O código de barras do produto NOVO, acima do nome. Código que já é de
+              um produto cadastrado vincula a compra a ele — o campo some junto com
+              o nome, porque com produto vinculado os dois são os do cadastro. */}
+          {!temProduto && (
+            <PurchaseBarcodeField
+              value={values.productBarcode ?? ""}
+              readOnly={readOnly}
+              searching={form.searchingBarcode}
+              onChange={form.setProductBarcode}
+              onCommit={form.commitProductBarcode}
+            />
+          )}
 
           {!temProduto && (
             <div className="space-y-2">
@@ -293,7 +358,7 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               readOnly={readOnly}
               loading={form.isLoadingVariations}
               onQuantityChange={form.setItemQuantity}
-              onTotalChange={(productId, valor) => form.setItemTotal(productId, "finalTotal", valor)}
+              onTotalChange={form.setVariationCost}
               onToggleManual={form.setCostSplitManual}
             />
           )}
@@ -323,15 +388,16 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               {form.hasGrid && <p className="text-xs text-muted-foreground">Soma da grade.</p>}
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Total bruto</label>
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
+                Total bruto {costRequired && <span className="text-red-500">*</span>}
+              </label>
               {/* `allowFormula`: a nota do fornecedor vem em "12 a 17,99", e a conta
-                  digitada no campo deixa o total conferível. Ver `evaluateAmountFormula`. */}
+                  digitada no campo deixa o total conferível. Ver `evaluateAmountFormula`.
+                  Obrigatório fora de Pendente desde 24/09/2026, e é ele que se
+                  digita primeiro: o final nasce igual. */}
               <CurrencyInput
                 value={values.grossTotal}
-                onChange={(value) => {
-                  update("grossTotal", value);
-                  if (form.hasGrid) form.refreshSplit(value, values.finalTotal);
-                }}
+                onChange={form.setGrossTotal}
                 className="h-10 bg-background"
                 readOnly={readOnly || values.costSplitManual}
                 allowFormula
@@ -350,19 +416,19 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Total final {costRequired && <span className="text-red-500">*</span>}
               </label>
+              {/* Nasce igual ao bruto e o acompanha até alguém mexer nele — aí o
+                  número é de quem digitou, e corrigir o bruto não o apaga. */}
               <CurrencyInput
                 value={values.finalTotal}
-                onChange={(value) => {
-                  update("finalTotal", value);
-                  if (form.hasGrid) form.refreshSplit(values.grossTotal, value);
-                }}
+                onChange={form.setFinalTotal}
                 className="h-10 bg-background"
                 readOnly={readOnly || values.costSplitManual}
                 allowFormula
               />
               <p className="text-xs text-muted-foreground">
-                {values.costSplitManual ? "Soma das variações." : "Já com desconto ou acréscimo (frete)."}
-                {costRequired && " Obrigatório fora de Pendente."}
+                {values.costSplitManual
+                  ? "Soma das variações."
+                  : "Igual ao bruto, a menos que haja desconto ou acréscimo (frete)."}
               </p>
             </div>
           </div>
@@ -466,6 +532,7 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
             anexada pergunta antes de substituir. Ver `PurchaseProductLinkDialog`. */}
         <PurchaseProductLinkDialog
           product={form.pendingProduct}
+          barcode={form.pendingBarcode}
           purchaseName={values.productName}
           imageCount={values.images.length}
           onUseProductGallery={form.confirmProductWithGallery}

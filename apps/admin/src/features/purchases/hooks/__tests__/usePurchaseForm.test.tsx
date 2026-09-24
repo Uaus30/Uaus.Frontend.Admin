@@ -37,6 +37,8 @@ vi.mock("@/services/products.service", () => ({
   getProductGroupImages: mocks.getProductGroupImages,
 }));
 
+const { getProductsPage } = await import("@/services/products.service");
+
 const {
   usePurchaseForm,
   purchaseToForm,
@@ -126,17 +128,38 @@ describe("validatePurchaseForm", () => {
     expect(validatePurchaseForm({ ...base, finalTotal: -1 })).toMatch(/negativos/);
   });
 
-  it("custo: pendente pode ficar sem, a caminho não", () => {
+  it("totais: pendente pode ficar sem, a caminho exige o bruto E o final", () => {
     const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X", categoryId: "7" };
 
     // Pendente é a anotação de "preciso comprar isto" — antes de saber o preço.
-    expect(validatePurchaseForm({ ...base, finalTotal: 0 })).toBeNull();
-    expect(validatePurchaseForm({ ...base, status: "2", finalTotal: 0 })).toMatch(/total final/i);
-    expect(validatePurchaseForm({ ...base, status: "2", finalTotal: 35.9 })).toBeNull();
-    // Só o bruto não basta: é do FINAL que sai o custo da entrada.
+    expect(validatePurchaseForm({ ...base, grossTotal: 0, finalTotal: 0 })).toBeNull();
+    // O bruto é pedido primeiro: o final nasce igual a ele (24/09/2026).
+    expect(validatePurchaseForm({ ...base, status: "2", grossTotal: 0, finalTotal: 0 })).toMatch(
+      /total bruto/i,
+    );
+    // Só o final já não basta: até 24/09/2026 bastava, e o bruto era opcional.
+    expect(validatePurchaseForm({ ...base, status: "2", grossTotal: 0, finalTotal: 35.9 })).toMatch(
+      /total bruto/i,
+    );
+    // Só o bruto também não: é do FINAL que sai o custo da entrada.
     expect(validatePurchaseForm({ ...base, status: "2", grossTotal: 40, finalTotal: 0 })).toMatch(
       /total final/i,
     );
+    expect(validatePurchaseForm({ ...base, status: "2", grossTotal: 40, finalTotal: 35.9 })).toBeNull();
+  });
+
+  it("código de barras inválido não passa, com a mesma mensagem do cadastro de produto", () => {
+    const base = { ...emptyPurchaseForm(), supplierId: "1", productName: "X", categoryId: "7" };
+
+    // Verificador errado: o último dígito de 789123456789? é 5.
+    expect(validatePurchaseForm({ ...base, productBarcode: "7891234567890" })).toMatch(
+      /não é um EAN-13 válido/,
+    );
+    expect(validatePurchaseForm({ ...base, productBarcode: "7891234567895" })).toBeNull();
+    // Até 11 dígitos vira código interno: é válido.
+    expect(validatePurchaseForm({ ...base, productBarcode: "20" })).toBeNull();
+    // Com produto vinculado o código é o do cadastro, e não é conferido aqui.
+    expect(validatePurchaseForm({ ...base, productId: 3, productBarcode: "ABC" })).toBeNull();
   });
 
   it("exige data da compra e recusa data futura", () => {
@@ -416,6 +439,9 @@ const PRODUTO_ESCOLHIDO = {
 describe("usePurchaseForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Registrar uma compra grava a memória da próxima (24/09/2026): sem limpar,
+    // um teste preencheria o formulário do seguinte.
+    window.localStorage.clear();
     mocks.createPurchase.mockResolvedValue(compra);
     mocks.updatePurchase.mockResolvedValue(compra);
   });
@@ -813,14 +839,15 @@ describe("usePurchaseForm", () => {
     await act(async () => result.current.submit());
     expect(mocks.createPurchase).not.toHaveBeenCalled();
     expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "warning", description: expect.stringContaining("total final") }),
+      expect.objectContaining({ variant: "warning", description: expect.stringContaining("total bruto") }),
     );
 
-    act(() => result.current.update("finalTotal", 50));
+    // O bruto resolve os dois: o final nasce igual a ele.
+    act(() => result.current.update("grossTotal", 50));
     await act(async () => result.current.submit());
     await waitFor(() =>
       expect(mocks.createPurchase).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 2, finalTotal: 50 }),
+        expect.objectContaining({ status: 2, grossTotal: 50, finalTotal: 50 }),
       ),
     );
   });
@@ -839,8 +866,9 @@ describe("usePurchaseForm", () => {
       result.current.update("categoryId", "7");
       result.current.update("productName", "CANECA");
       result.current.update("quantity", 1);
-      // Com custo: o que está em teste aqui é o link, não a regra do custo.
-      result.current.update("finalTotal", 30);
+      // Com custo: o que está em teste aqui é o link, não a regra do custo. O
+      // final acompanha o bruto.
+      result.current.update("grossTotal", 30);
     });
 
     // Pendente é onde se anota a intenção de comprar, antes de escolher o anúncio.
@@ -878,7 +906,7 @@ describe("usePurchaseForm", () => {
       result.current.update("categoryId", "7");
       result.current.update("productName", "CANECA");
       result.current.update("quantity", 1);
-      result.current.update("finalTotal", 30);
+      result.current.update("grossTotal", 30);
       result.current.update("status", "2");
     });
 
@@ -997,5 +1025,398 @@ describe("usePurchaseForm", () => {
 
     expect(result.current.open).toBe(false);
     expect(result.current.discardOpen).toBe(false);
+  });
+});
+
+describe("usePurchaseForm — compra em sequência (24/09/2026)", () => {
+  const EAN = "7891234567895";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    mocks.createPurchase.mockResolvedValue(compra);
+    mocks.updatePurchase.mockResolvedValue(compra);
+    mocks.getProductGroupById.mockResolvedValue({ id: 5, categoryId: 7 });
+    mocks.getProductGroupImages.mockResolvedValue([]);
+    vi.mocked(getProductsPage).mockImplementation(
+      (params) =>
+        Promise.resolve(
+          params?.search === EAN
+            ? {
+                data: [
+                  {
+                    id: 42,
+                    productGroupId: 5,
+                    name: "COPO TERMICO",
+                    displayName: "COPO TERMICO",
+                    barcode: EAN,
+                    price: 39.9,
+                    costPrice: 18.4,
+                    stock: 7,
+                  },
+                ],
+                total: 1,
+              }
+            : { data: [], total: 0 },
+        ) as unknown as ReturnType<typeof getProductsPage>,
+    );
+  });
+
+  function renderForm() {
+    return renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
+  }
+
+  /** Preenche o essencial de uma compra de produto novo, pronta para gravar. */
+  function preencher(result: { current: ReturnType<typeof usePurchaseForm> }) {
+    act(() => {
+      result.current.update("supplierId", "1");
+      result.current.update("categoryId", "7");
+      result.current.update("productName", "CANECA");
+      result.current.update("purchaseDate", "2026-09-20");
+      result.current.update("status", "2");
+      result.current.update("invoiceNumber", " NF 4521 ");
+      result.current.update("grossTotal", 30);
+    });
+  }
+
+  it("registrar lembra fornecedor, data, nota e situação, e a compra nova seguinte nasce com eles", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    preencher(result);
+    await act(async () => result.current.submit());
+    await waitFor(() => expect(result.current.open).toBe(false));
+
+    act(() => result.current.openNew());
+    expect(result.current.form).toMatchObject({
+      supplierId: "1",
+      purchaseDate: "2026-09-20",
+      status: "2",
+      // Aparada: é o que o servidor recebeu.
+      invoiceNumber: "NF 4521",
+    });
+    // O resto é de uma compra nova.
+    expect(result.current.form.productName).toBe("");
+    expect(result.current.form.grossTotal).toBe(0);
+    // A data não é de hoje: a tela pede para conferir.
+    expect(result.current.dateFromMemory).toBe(true);
+
+    // Trocou a data, o aviso some.
+    act(() => result.current.update("purchaseDate", todayDateKey()));
+    expect(result.current.dateFromMemory).toBe(false);
+  });
+
+  it("nota apagada na compra nova vira o novo padrão: a seguinte nasce sem nota", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    preencher(result);
+    await act(async () => result.current.submit());
+    await waitFor(() => expect(result.current.open).toBe(false));
+
+    act(() => result.current.openNew());
+    preencher(result);
+    act(() => result.current.update("invoiceNumber", ""));
+    await act(async () => result.current.submit());
+    await waitFor(() => expect(result.current.open).toBe(false));
+
+    act(() => result.current.openNew());
+    expect(result.current.form.invoiceNumber).toBe("");
+  });
+
+  it("editar uma compra antiga não mexe na memória da próxima", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openEdit(compra));
+    await act(async () => result.current.submit());
+    await waitFor(() => expect(mocks.updatePurchase).toHaveBeenCalled());
+
+    act(() => result.current.openNew());
+    expect(result.current.form.supplierId).toBe("");
+    expect(result.current.form.status).toBe("1");
+    expect(result.current.dateFromMemory).toBe(false);
+  });
+
+  it("a nota vai no corpo da compra", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    preencher(result);
+    await act(async () => result.current.submit());
+
+    await waitFor(() =>
+      expect(mocks.createPurchase).toHaveBeenCalledWith(
+        expect.objectContaining({ invoiceNumber: "NF 4521" }),
+      ),
+    );
+  });
+
+  it("o final acompanha o bruto até alguém editá-lo; depois, corrigir o bruto não o apaga", () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    act(() => result.current.setGrossTotal(100));
+    expect(result.current.form.finalTotal).toBe(100);
+
+    // Desconto negociado: o final passa a ser de quem digitou.
+    act(() => result.current.setFinalTotal(90));
+    act(() => result.current.setGrossTotal(120));
+    expect(result.current.form).toMatchObject({ grossTotal: 120, finalTotal: 90 });
+  });
+
+  it("compra reaberta com desconto registrado não perde o final ao corrigir o bruto", () => {
+    const { result } = renderForm();
+
+    // Bruto 120, final 100: o desconto já está gravado.
+    act(() => result.current.openEdit(compra));
+    act(() => result.current.setGrossTotal(130));
+    expect(result.current.form.finalTotal).toBe(100);
+
+    // Reaberta com final igual ao bruto, ele volta a acompanhar.
+    act(() => result.current.openEdit({ ...compra, grossTotal: 100, finalTotal: 100 }));
+    act(() => result.current.setGrossTotal(110));
+    expect(result.current.form.finalTotal).toBe(110);
+  });
+
+  it("o código de um produto já cadastrado vincula a compra a ele, e avisa", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    act(() => result.current.setProductBarcode(EAN));
+    await act(async () => result.current.commitProductBarcode(EAN));
+
+    await waitFor(() => expect(result.current.form.productId).toBe(42));
+    expect(result.current.form).toMatchObject({
+      productGroupId: 5,
+      productName: "COPO TERMICO",
+      productBarcode: EAN,
+    });
+    expect(result.current.pendingProduct).toBeNull();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Produto já cadastrado", description: expect.stringContaining(EAN) }),
+    );
+  });
+
+  it("com nome digitado, o código pergunta antes; 'Não vincular' tira o código da compra", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    act(() => result.current.update("productName", "CANECA AZUL"));
+    act(() => result.current.setProductBarcode(EAN));
+    await act(async () => result.current.commitProductBarcode(EAN));
+
+    await waitFor(() => expect(result.current.pendingProduct).not.toBeNull());
+    expect(result.current.pendingBarcode).toBe(EAN);
+    expect(result.current.form.productId).toBeNull();
+
+    // O código já tem dono: deixá-lo ali só adiaria a recusa para o salvar.
+    act(() => result.current.cancelProductSelection());
+    expect(result.current.form).toMatchObject({
+      productId: null,
+      productName: "CANECA AZUL",
+      productBarcode: null,
+    });
+    expect(result.current.pendingProduct).toBeNull();
+  });
+
+  it("código que não é de ninguém fica na compra e vai no corpo, como foi digitado", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    preencher(result);
+    act(() => result.current.setProductBarcode("20"));
+    await act(async () => result.current.commitProductBarcode("20"));
+    await act(async () => result.current.submit());
+
+    // O backend converte "20" pela mesma regra do cadastro de produto.
+    await waitFor(() =>
+      expect(mocks.createPurchase).toHaveBeenCalledWith(
+        expect.objectContaining({ productId: null, productBarcode: "20" }),
+      ),
+    );
+  });
+
+  it("custo por variação sem desconto declarado: o bruto de cada variação acompanha o custo dela", async () => {
+    // Em modo manual o bruto do pedido é a SOMA das variações, sem campo para
+    // digitá-lo — e ele passou a ser obrigatório fora de Pendente. Sem o bruto
+    // acompanhar, quem passasse ao custo por variação antes de digitar os totais
+    // não conseguia mais marcar a compra como a caminho.
+    vi.mocked(getProductsPage).mockImplementation(
+      (params) =>
+        Promise.resolve(
+          params?.productGroupId === 5
+            ? {
+                data: [
+                  {
+                    id: 41,
+                    productGroupId: 5,
+                    name: "CAMISETA",
+                    displayName: "CAMISETA [P]",
+                    barcode: null,
+                    stock: 0,
+                  },
+                  {
+                    id: 42,
+                    productGroupId: 5,
+                    name: "CAMISETA",
+                    displayName: "CAMISETA [G]",
+                    barcode: null,
+                    stock: 0,
+                  },
+                ],
+                total: 2,
+              }
+            : { data: [], total: 0 },
+        ) as unknown as ReturnType<typeof getProductsPage>,
+    );
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    act(() =>
+      result.current.selectProduct({
+        id: 41,
+        productGroupId: 5,
+        name: "CAMISETA [P]",
+        barcode: null,
+        stock: 0,
+        price: 0,
+        costPrice: 0,
+      }),
+    );
+    await waitFor(() => expect(result.current.hasGrid).toBe(true));
+    await waitFor(() => expect(result.current.form.items).toHaveLength(2));
+
+    act(() => result.current.setCostSplitManual(true));
+    act(() => result.current.setVariationCost(41, 45));
+    act(() => result.current.setItemQuantity(42, 1));
+    act(() => result.current.setVariationCost(42, 60));
+
+    expect(result.current.form).toMatchObject({ grossTotal: 105, finalTotal: 105 });
+  });
+
+  it("passar pelo total final sem mudar o valor não o tira de acompanhar o bruto", () => {
+    // O campo de moeda devolve o valor em TODO blur. Um Tab pelo final não é
+    // decidir desconto: sem a comparação, corrigir o bruto depois deixava o final
+    // para trás e a compra gravava 120 de bruto com 100 pagos — um desconto que
+    // ninguém deu, e o custo do lote saindo dele.
+    const { result } = renderForm();
+
+    act(() => result.current.openNew());
+    act(() => result.current.setGrossTotal(100));
+    act(() => result.current.setFinalTotal(100));
+    act(() => result.current.setGrossTotal(120));
+
+    expect(result.current.form).toMatchObject({ grossTotal: 120, finalTotal: 120 });
+  });
+
+  /** Grupo 5 com duas variações, e a compra reaberta com a grade gravada. */
+  function comGrade(itens: Array<{ grossTotal: number; finalTotal: number }>) {
+    vi.mocked(getProductsPage).mockImplementation(
+      (params) =>
+        Promise.resolve(
+          params?.productGroupId === 5
+            ? {
+                data: [
+                  {
+                    id: 41,
+                    productGroupId: 5,
+                    name: "CAMISETA",
+                    displayName: "CAMISETA [P]",
+                    barcode: null,
+                    stock: 0,
+                  },
+                  {
+                    id: 42,
+                    productGroupId: 5,
+                    name: "CAMISETA",
+                    displayName: "CAMISETA [G]",
+                    barcode: null,
+                    stock: 0,
+                  },
+                ],
+                total: 2,
+              }
+            : { data: [], total: 0 },
+        ) as unknown as ReturnType<typeof getProductsPage>,
+    );
+    return {
+      ...compra,
+      productId: null,
+      productGroupId: 5,
+      costSplitManual: true,
+      status: "Pending",
+      quantity: 2,
+      grossTotal: itens[0].grossTotal + itens[1].grossTotal,
+      finalTotal: itens[0].finalTotal + itens[1].finalTotal,
+      items: [41, 42].map((productId, i) => ({
+        id: i + 1,
+        productId,
+        productName: productId === 41 ? "CAMISETA [P]" : "CAMISETA [G]",
+        quantity: 1,
+        stock: 0,
+        unitFinal: itens[i].finalTotal,
+        ...itens[i],
+      })),
+    };
+  }
+
+  it("compra de antes da regra, com bruto zerado, não fica presa no custo por variação", async () => {
+    // Final 100 e bruto 0: o final conta como decidido. Sem o bruto da fatia
+    // acompanhar o custo quando ela não tem bruto, o bruto do pedido — soma das
+    // variações, sem campo em modo manual — ficava em zero, e sair de Pendente
+    // passou a exigi-lo.
+    const { result } = renderForm();
+
+    act(() =>
+      result.current.openEdit(
+        comGrade([
+          { grossTotal: 0, finalTotal: 50 },
+          { grossTotal: 0, finalTotal: 50 },
+        ]),
+      ),
+    );
+    await waitFor(() => expect(result.current.hasGrid).toBe(true));
+
+    act(() => result.current.setVariationCost(41, 60));
+    act(() => result.current.setVariationCost(42, 50));
+
+    expect(result.current.form).toMatchObject({ grossTotal: 110, finalTotal: 110 });
+  });
+
+  it("fatia com desconto declarado mantém o bruto dela ao trocar o custo", async () => {
+    const { result } = renderForm();
+
+    act(() =>
+      result.current.openEdit(
+        comGrade([
+          { grossTotal: 50, finalTotal: 45 },
+          { grossTotal: 50, finalTotal: 45 },
+        ]),
+      ),
+    );
+    await waitFor(() => expect(result.current.hasGrid).toBe(true));
+
+    act(() => result.current.setVariationCost(42, 60));
+
+    expect(result.current.form.items.find((item) => item.productId === 42)).toMatchObject({
+      grossTotal: 50,
+      finalTotal: 60,
+    });
+  });
+
+  it("com produto vinculado, o código não vai no corpo: o do cadastro é que vale", async () => {
+    const { result } = renderForm();
+
+    act(() => result.current.openEdit({ ...compra, productId: 42, productGroupId: 5, productBarcode: EAN }));
+    await act(async () => result.current.submit());
+
+    await waitFor(() =>
+      expect(mocks.updatePurchase).toHaveBeenCalledWith(5, expect.objectContaining({ productBarcode: null })),
+    );
   });
 });

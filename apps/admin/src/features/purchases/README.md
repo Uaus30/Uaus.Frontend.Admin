@@ -42,19 +42,59 @@ recebimento dela é o que gera a entrada.
   saber o frete. Custo, link, preço sugerido e fotos entram quando existirem.
   Uma compra sem custo aparece na listagem com **traço** no total e no unitário,
   não com R$ 0,00 — zero leria como "de graça".
-- **O total final (o custo) é exigido ao sair de Pendente.** "A caminho" já é
-  compra feita, e é do total final que sai o custo unitário da entrada; exigir
-  o custo em Pendente obrigaria a inventar um número, e número inventado vira
-  custo de lote. A regra vale no formulário (`purchaseCostIsRequired`, com o
-  asterisco acompanhando a situação), no menu "Marcar como a caminho" e no
-  recebimento — o backend é a fonte de verdade (`PurchaseRules`). O **bruto
-  continua opcional** em qualquer situação: zero é "não houve desconto a
-  registrar", e o recebimento grava o bruto igual ao custo.
+- **Bruto e final são exigidos ao sair de Pendente** (o final desde 09/09/2026,
+  o bruto desde 24/09/2026). "A caminho" já é compra feita, e é do total final
+  que sai o custo unitário da entrada; exigir o custo em Pendente obrigaria a
+  inventar um número, e número inventado vira custo de lote. A regra vale no
+  formulário (`purchaseCostIsRequired`, com o asterisco nos dois campos
+  acompanhando a situação) e no menu "Marcar como a caminho" — o backend é a
+  fonte de verdade (`PurchaseRules.EnsureTotalsInformed`). O **recebimento exige
+  só o final**: compra "A caminho" de antes de 24/09/2026 pode estar sem bruto, e
+  o recebimento grava o bruto igual ao custo nesse caso.
+- **O final nasce igual ao bruto e o acompanha até alguém editá-lo** (24/09/2026).
+  O bruto passou a ser o número que se digita primeiro; na compra sem desconto
+  nem frete — a maioria — o final é o mesmo número, e digitá-lo duas vezes era
+  repetir a nota. Editou o final, ele é de quem digitou: corrigir o bruto depois
+  não apaga o desconto negociado, e compra reaberta com final diferente do bruto
+  nasce assim. Em **custo por variação** (modo manual) vale o mesmo na fatia:
+  sem desconto declarado, o bruto de cada variação acompanha o custo dela —
+  senão o bruto do pedido, que ali é soma e não tem campo, ficaria em zero.
 - **Recebimento de compra sem custo não acontece.** O diálogo de recebimento
   diz que a compra está sem custo e troca "Confirmar recebimento" por "Editar
   compra", que abre o formulário da mesma compra. No caminho de produto novo o
   custo é digitado na entrada, e o `mark-received` copia o total da entrada
   para a compra, que fecha com o valor real em vez de "Lançada, R$ 0".
+- **A compra nova nasce com fornecedor, data, nº da nota e situação da última
+  registrada** (24/09/2026, `lib/purchase-memory.ts`). Quem lança a nota de um
+  fornecedor com dez itens registra dez compras, e digitava os quatro campos dez
+  vezes. A memória mora no `localStorage`, **por usuário** (o computador do
+  balcão é compartilhado), e é gravada a cada compra NOVA registrada — editar
+  uma compra antiga não diz nada sobre a próxima. Nota apagada também é lembrada:
+  o novo padrão passa a ser "sem nota". Limpar os dados do navegador volta ao
+  padrão (fornecedor em branco, hoje, sem nota, Pendente). Ela atravessa dias
+  de propósito, então a data lembrada pode não ser a de hoje: nesse caso a tela
+  avisa, em âmbar, até alguém trocar a data. A reposição vinda do estoque baixo
+  (`openForRestock`) continua com o preenchimento dela.
+- **Nº da nota** (24/09/2026): opcional, texto livre, na primeira linha entre a
+  data e a situação. Vai para a entrada de estoque no recebimento — o diálogo de
+  recebimento e a entrada do cadastro de produto novo já abrem com ele, e o
+  backend o usa quando o recebimento chega sem nota. O rótulo é "Nº da Nota
+  Fiscal", o mesmo do diálogo de recebimento e das modais de entrada.
+- **Código de barras do produto novo** (24/09/2026), opcional, acima do nome.
+  Segue o campo do cadastro de produto: 13 dígitos da embalagem, ou até 11 para
+  o código interno com o número dentro, e a prévia do que vai ser gravado. Código
+  que **já é de um produto** vincula a compra a ele pelo mesmo caminho do campo
+  "Produto já cadastrado" (`usePurchaseBarcodeLookup` → `selectProduct`), com a
+  mesma pergunta quando o vínculo substituiria nome digitado ou foto; "Não
+  vincular" tira o código da compra, porque ele já tem dono. Código novo fica
+  gravado na compra (`purchases.product_barcode`) e é com ele que o cadastro do
+  recebimento nasce. O EAN inteiro é consultado depois da pausa do bipe; o número
+  curto, só ao encerrar o campo (Enter ou saída), porque "1" é também o começo de
+  "123". O backend recusa compra de produto novo com código que já tem dono.
+- **Enter num campo não grava a compra** (24/09/2026): o leitor termina o bipe
+  com Enter, e o envio implícito do formulário gravaria a compra como produto
+  novo antes de a consulta do código responder. É a regra do cadastro de produto
+  (`dominio/convencoes-de-interface.md`); gravar é só o clique no botão.
 - **Nome de produto é sempre em caixa alta** (09/09/2026), inclusive o nome
   livre da compra de produto novo: o campo converte ao digitar, como o editor
   de produto, e o backend grava em maiúsculas de qualquer jeito
@@ -216,7 +256,8 @@ ainda não foi fechado, e é ali que o custo pode nem existir. O caminho é marc
 como a caminho primeiro, o que já exige o custo de que a entrada precisa.
 
 1. **Produto já cadastrado (reposição).** `PurchaseReceiveDialog` pede só o
-   que a compra não sabe — data da entrada e número da nota. O preço de venda
+   que a compra não sabe — data da entrada e número da nota, que já vem com o da
+   compra quando ela tem (24/09/2026). O preço de venda
    já vem do preço sugerido da compra (zero mantém o atual) e continua
    editável. Chama `POST /Purchases/{id}/receive`; o backend grava a entrada com
    a quantidade e o custo da compra, reconcilia as fotos da compra com a galeria
@@ -231,7 +272,9 @@ como a caminho primeiro, o que já exige o custo de que a entrada precisa.
    (`productFromPurchasePath`). `useProductDetailFromUrl` lê o parâmetro,
    busca a compra e abre o cadastro **preenchido** — nome, descrição, fotos,
    preço sugerido (sem ele, 40% sobre o custo unitário) e, desde 13/09/2026,
-   **departamento e categoria**. Sobra o código de barras e as variações. A aba
+   **departamento e categoria** — e, desde 24/09/2026, o **código de barras** e o
+   **nº da nota** digitados na compra (o código é conferido no catálogo ao abrir,
+   como se fosse bipado). Sobram as variações. A aba
    Estoque então abre com a entrada da compra já pronta (fornecedor, quantidade,
    custo); ao gravar a entrada, `mark-received` fecha a compra vinculando
    produto e entrada. Ver `features/products/README.md`, seção "Cadastro a

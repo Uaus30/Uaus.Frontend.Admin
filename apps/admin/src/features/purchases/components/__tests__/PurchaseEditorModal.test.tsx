@@ -97,3 +97,51 @@ describe("PurchaseEditorModal — sair sem salvar", () => {
     expect(screen.queryByText("Descartar alterações?")).toBeNull();
   });
 });
+
+describe("PurchaseEditorModal — nota fiscal e leitor de código (24/09/2026)", () => {
+  afterEach(() => {
+    cleanup();
+    window.localStorage.clear();
+  });
+
+  it("o Nº da Nota Fiscal fica entre a data da compra e a situação, na primeira linha", () => {
+    renderModal();
+    const rotulos = Array.from(document.querySelectorAll('[role="dialog"] label')).map(
+      (rotulo) => rotulo.textContent ?? "",
+    );
+    const posicao = (texto: string) => rotulos.findIndex((rotulo) => rotulo.startsWith(texto));
+
+    expect(posicao("Data da compra")).toBeGreaterThan(posicao("Fornecedor"));
+    expect(posicao("Nº da Nota Fiscal")).toBe(posicao("Data da compra") + 1);
+    expect(posicao("Situação")).toBe(posicao("Nº da Nota Fiscal") + 1);
+  });
+
+  it("o código de barras fica acima do nome do produto", () => {
+    renderModal();
+    const codigo = screen.getByLabelText("Código de barras");
+    const nome = screen.getByPlaceholderText("COMO VAI SE CHAMAR NO CADASTRO");
+
+    expect(codigo.compareDocumentPosition(nome) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("o Enter do fim do bipe não grava a compra, em campo nenhum", () => {
+    renderModal();
+
+    // `fireEvent` devolve false quando o evento foi cancelado: sem o cancelamento,
+    // o navegador faria o envio implícito do formulário — a compra gravada como
+    // produto novo antes de a consulta ao catálogo responder.
+    expect(fireEvent.keyDown(screen.getByLabelText("Código de barras"), { key: "Enter" })).toBe(false);
+    expect(fireEvent.keyDown(screen.getByLabelText("Nº da Nota Fiscal"), { key: "Enter" })).toBe(false);
+    expect(fireEvent.keyDown(screen.getByLabelText("Quantidade comprada"), { key: "Enter" })).toBe(false);
+    // O resto do teclado segue normal.
+    expect(fireEvent.keyDown(screen.getByLabelText("Código de barras"), { key: "7" })).toBe(true);
+  });
+
+  it("código que vira código interno mostra o que vai ser gravado", () => {
+    renderModal();
+
+    fireEvent.change(screen.getByLabelText("Código de barras"), { target: { value: "20" } });
+
+    expect(screen.getByText("2000000000206")).toBeTruthy();
+  });
+});

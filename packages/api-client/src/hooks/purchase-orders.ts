@@ -47,7 +47,17 @@ export interface PurchaseDto {
    */
   categoryId?: number | null;
   productName: string;
+  /**
+   * Código de barras: o do produto vinculado ou, em compra de produto ainda não
+   * cadastrado, o digitado na compra (24/09/2026) — é com ele que o cadastro do
+   * recebimento nasce. Ausente quando não há nenhum dos dois.
+   */
   productBarcode?: string | null;
+  /**
+   * Nº da nota da compra (24/09/2026). Vai para a entrada de estoque no
+   * recebimento. Ausente quando não foi informado.
+   */
+  invoiceNumber?: string | null;
   /**
    * Produtos que o RECEBIMENTO desta compra reativou. Só vem na resposta do
    * `receive`; em qualquer outra leitura a API omite o campo.
@@ -149,12 +159,25 @@ export interface SavePurchasePayload {
   categoryId: number | null;
   /** Obrigatório sem `productId`; com produto vinculado o backend usa o nome do cadastro. */
   productName: string;
+  /**
+   * Código de barras do produto a comprar, como foi DIGITADO — o backend o
+   * converte pela mesma regra do cadastro de produto (EAN-13 inteiro ou até 11
+   * dígitos para código interno). Só vale sem produto vinculado; com produto,
+   * o código é o do cadastro e este campo é ignorado. Nulo é "sem código".
+   */
+  productBarcode: string | null;
+  /** Nº da nota. Opcional; vai para a entrada de estoque no recebimento. */
+  invoiceNumber: string | null;
   details: string | null;
   purchaseLink: string | null;
   /** `yyyy-MM-ddT00:00:00`, sem fuso. Nulo é hoje. */
   purchaseDate: string | null;
   quantity: number;
-  /** Total sem desconto nem acréscimo. Opcional em qualquer situação: zero é "não informei". */
+  /**
+   * Total sem desconto nem acréscimo. Obrigatório (> 0) fora de Pendente desde
+   * 24/09/2026 — é o número que o operador digita primeiro, e o final nasce igual
+   * a ele. Em Pendente, zero é "não informei".
+   */
   grossTotal: number;
   /**
    * Total pago — o custo. Obrigatório (> 0) fora de Pendente; o backend recusa

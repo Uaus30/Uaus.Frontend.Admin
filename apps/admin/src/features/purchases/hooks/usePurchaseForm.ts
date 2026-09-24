@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { describeApiError, suggestedPrice, toDateKey } from "@workspace/core";
+import { describeApiError, resolveBarcodeInput, suggestedPrice, toDateKey } from "@workspace/core";
 import {
   PURCHASE_STATUS,
   buildPublicImageUrl,
@@ -15,9 +15,17 @@ import {
 } from "@workspace/api-client-react";
 import { getProductGroupById, getProductGroupImages } from "@/services/products.service";
 import type { ProductSearchOption } from "@/components/product-search-picker";
+import { useSessao } from "@/hooks/use-sessao";
 import { syncPurchaseDetailParam } from "../purchases-route";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import {
+  applyPurchaseDefaults,
+  purchaseDefaultsFromPayload,
+  readPurchaseDefaults,
+  rememberPurchaseDefaults,
+} from "../lib/purchase-memory";
 import type { PurchaseForm, PurchaseFormItem } from "../types";
+import { usePurchaseBarcodeLookup } from "./usePurchaseBarcodeLookup";
 import { usePurchaseImages } from "./usePurchaseImages";
 import { usePurchaseVariations } from "./usePurchaseVariations";
 
@@ -43,6 +51,7 @@ export function emptyPurchaseForm(): PurchaseForm {
     costSplitManual: false,
     productName: "",
     productBarcode: null,
+    invoiceNumber: "",
     details: "",
     purchaseLink: "",
     purchaseDate: todayDateKey(),
@@ -123,6 +132,7 @@ export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] 
     costSplitManual: purchase.costSplitManual ?? false,
     productName: purchase.productName,
     productBarcode: purchase.productBarcode ?? null,
+    invoiceNumber: purchase.invoiceNumber ?? "",
     details: purchase.details ?? "",
     purchaseLink: purchase.purchaseLink ?? "",
     purchaseDate: dateKeyFromApi(purchase.purchaseDate),
@@ -179,19 +189,24 @@ export function purchaseLinkIsRequired(form: PurchaseForm, supplier: SupplierDto
 }
 
 /**
- * O custo (total final) é exigido nesta compra?
+ * Os totais (bruto e final) são exigidos nesta compra?
  *
  * Pendente é a anotação de "preciso comprar isto" — nasce do relatório de
  * estoque baixo ou de uma ideia no balcão, antes de escolher o anúncio, negociar
  * o preço ou saber o frete. Exigir o custo ali obrigaria a inventar um número, e
  * número inventado vira custo de lote no recebimento. A partir de "A caminho" a
  * compra já foi feita e o valor pago existe: é dele que sai o custo unitário da
- * entrada. O bruto continua opcional em qualquer situação — zero é "não houve
- * desconto a registrar".
+ * entrada.
  *
- * A mesma regra existe no backend (`PurchaseRules.EnsureCostInformed`), inclusive
- * para o menu "Marcar como a caminho" e para o recebimento. Aqui é conveniência:
- * avisa antes do envio.
+ * **O bruto também, desde 24/09/2026.** Ele passou a ser o número que se digita
+ * primeiro — o final nasce igual a ele e só muda quando há desconto ou frete —,
+ * e sem ele a compra não registra o desconto negociado. Até ali o bruto era
+ * opcional em qualquer situação.
+ *
+ * A mesma regra existe no backend (`PurchaseRules.EnsureTotalsInformed`), também
+ * para o menu "Marcar como a caminho". O recebimento continua exigindo só o final:
+ * compra "A caminho" de antes desta data pode estar sem bruto, e a entrada grava o
+ * bruto igual ao custo nesse caso. Aqui é conveniência: avisa antes do envio.
  */
 export function purchaseCostIsRequired(form: PurchaseForm): boolean {
   return Number(form.status) !== PURCHASE_STATUS.Pending;
@@ -255,8 +270,18 @@ export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto)
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
   if (form.suggestedPrice < 0) return "O preço sugerido de venda não pode ser negativo.";
+  // O bruto primeiro: o final nasce igual a ele, e digitá-lo resolve os dois.
+  if (purchaseCostIsRequired(form) && form.grossTotal <= 0)
+    return "Informe o total bruto da compra: só compra pendente pode ficar sem ele.";
   if (purchaseCostIsRequired(form) && form.finalTotal <= 0)
     return "Informe o total final da compra (o custo): só compra pendente pode ficar sem ele.";
+  // O código só é da compra sem produto vinculado; com produto, é o do cadastro.
+  // A regra é a do cadastro de produto, e a mensagem também — é lá que ele vai
+  // parar no recebimento.
+  if (!purchaseHasProduct(form) && form.productBarcode) {
+    const codigo = resolveBarcodeInput(form.productBarcode);
+    if (codigo.kind === "invalid") return codigo.error;
+  }
   if (purchaseLinkIsRequired(form, supplier) && !form.purchaseLink.trim())
     return `Informe o link da compra: ${supplier?.name ?? "este fornecedor"} é um marketplace, e sem o link não há como reencontrar o anúncio depois.`;
   return null;
@@ -297,6 +322,10 @@ type UsePurchaseFormParams = {
  */
 export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseFormParams) {
   const { toast } = useToast();
+  // A memória da última compra é por usuário. Sem custo de rede: o `useGetMe`
+  // lê a sessão guardada no navegador.
+  const { data: usuario } = useSessao();
+  const userId = usuario?.id ?? null;
 
   const [open, setOpenState] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -317,6 +346,28 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    * pedir. Compra aberta com preço já gravado nasce "mexida" pelo mesmo motivo.
    */
   const [precoTocado, setPrecoTocado] = useState(false);
+  /**
+   * O operador já mexeu no total final nesta compra?
+   *
+   * Enquanto não mexeu, o final ACOMPANHA o bruto (24/09/2026): digitar o bruto
+   * preenche o final com o mesmo valor, que é o caso de toda compra sem desconto
+   * nem frete. Mexeu, o número é dele — o desconto negociado não pode sumir porque
+   * alguém corrigiu o bruto depois. Compra aberta com final diferente do bruto
+   * nasce "mexida" pelo mesmo motivo.
+   *
+   * Ref, e não estado: nada na tela depende dele para desenhar, e o `update` o lê
+   * dentro do `setForm` — com estado, dois campos mexidos no mesmo evento leriam
+   * o valor do render anterior.
+   */
+  const finalTocadoRef = useRef(false);
+  /**
+   * A data que veio da memória da última compra, quando ela NÃO é hoje.
+   *
+   * A memória atravessa dias de propósito — é o que o dono pediu —, e por isso
+   * pode trazer a data de uma compra de ontem para a de hoje. Enquanto o campo
+   * estiver com ela, a tela avisa para conferir.
+   */
+  const [dataLembrada, setDataLembrada] = useState<string | null>(null);
 
   /**
    * Fechar a modal tira a compra da URL. O link só vale enquanto ela está
@@ -330,6 +381,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       setDirty(false);
       setDiscardOpen(false);
       setPendingProduct(null);
+      setPendingBarcode(null);
     }
   }
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
@@ -355,6 +407,13 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    * porque não há duas respostas possíveis e a pergunta seria ruído.
    */
   const [pendingProduct, setPendingProduct] = useState<ProductSearchOption | null>(null);
+  /**
+   * O código que ACHOU o `pendingProduct`, quando a pergunta nasceu do campo de
+   * código e não da busca. "Não vincular" apaga esse código: ele já é do produto,
+   * e deixá-lo ali só adiaria a recusa para o salvar — além de o leitor ACRESCENTAR
+   * ao que está no campo, e o bipe seguinte virar dois códigos emendados.
+   */
+  const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
 
   function markDirty() {
     setDirty(true);
@@ -379,6 +438,13 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   const [readOnly, setReadOnly] = useState(false);
 
   const supplier = suppliers.find((item) => String(item.id) === form.supplierId);
+
+  // O campo de código só existe na compra de produto novo, e é só ali que um
+  // código já cadastrado tem o que vincular.
+  const barcodeLookup = usePurchaseBarcodeLookup({
+    enabled: open && !readOnly && !purchaseHasProduct(form),
+    onFound: selectProductByBarcode,
+  });
 
   /**
    * Traz do servidor a categoria e a GALERIA do grupo escolhido.
@@ -435,12 +501,21 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     }
   }
 
+  /**
+   * Compra nova: nasce com fornecedor, data, nº da nota e situação da última
+   * compra registrada por este usuário neste navegador (24/09/2026). Sem memória
+   * — primeiro uso, ou dados do navegador apagados —, nasce com o padrão.
+   */
   function openNew() {
     setDirty(false);
     setEditingId(null);
-    setForm(emptyPurchaseForm());
+    const vazio = emptyPurchaseForm();
+    const lembrado = readPurchaseDefaults(userId);
+    setForm(lembrado ? applyPurchaseDefaults(vazio, lembrado, suppliers) : vazio);
+    setDataLembrada(lembrado && lembrado.purchaseDate !== vazio.purchaseDate ? lembrado.purchaseDate : null);
     setReadOnly(false);
     setPrecoTocado(false);
+    finalTocadoRef.current = false;
     setOpen(true);
   }
 
@@ -451,6 +526,10 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setReadOnly(enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received);
     // Preço já decidido é decisão tomada: o cálculo de margem não a substitui.
     setPrecoTocado((purchase.suggestedPrice ?? 0) > 0);
+    // Final diferente do bruto é desconto ou frete já registrado: corrigir o
+    // bruto não pode apagá-lo.
+    finalTocadoRef.current = purchase.finalTotal > 0 && purchase.finalTotal !== purchase.grossTotal;
+    setDataLembrada(null);
     setOpen(true);
     // A URL passa a dizer qual compra está aberta (`/estoque/compras?compra=12`):
     // é o link que se copia para mandar a compra a alguém, e `usePurchaseFromUrl`
@@ -478,6 +557,8 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setEditingId(null);
     setReadOnly(false);
     setPrecoTocado(false);
+    finalTocadoRef.current = false;
+    setDataLembrada(null);
     setForm({
       ...emptyPurchaseForm(),
       productId: dados.productId,
@@ -499,7 +580,50 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     // Mexeu no preço, o número passa a ser dele: o cálculo de margem para de
     // repô-lo a cada mudança de custo.
     if (field === "suggestedPrice") setPrecoTocado(true);
-    setForm((current) => ({ ...current, [field]: value }));
+    // O mesmo vale para o final, que até aqui acompanhava o bruto — mas só com
+    // valor NOVO. O campo de moeda devolve o valor em todo blur, e passar por ele
+    // com Tab não é decidir desconto: sem a comparação, corrigir o bruto depois
+    // deixaria o final para trás e a compra gravaria um desconto que ninguém deu.
+    if (field === "finalTotal" && value !== form.finalTotal) finalTocadoRef.current = true;
+    const finalAcompanha = !finalTocadoRef.current;
+    setForm((current) => {
+      const next: PurchaseForm = { ...current, [field]: value };
+      // O final nasce igual ao bruto e o acompanha até alguém editá-lo.
+      if (field === "grossTotal" && finalAcompanha) next.finalTotal = next.grossTotal;
+      return next;
+    });
+  }
+
+  /**
+   * O total bruto digitado. Com grade em rateio, as fatias das variações são
+   * refeitas com os totais novos — o final incluído, quando ele acompanha o bruto.
+   */
+  function setGrossTotal(value: number) {
+    update("grossTotal", value);
+    if (variations.hasGrid) variations.refreshSplit(value, finalTocadoRef.current ? form.finalTotal : value);
+  }
+
+  /** O total final digitado: a partir daqui ele não acompanha mais o bruto. */
+  function setFinalTotal(value: number) {
+    update("finalTotal", value);
+    if (variations.hasGrid) variations.refreshSplit(form.grossTotal, value);
+  }
+
+  /**
+   * O custo de uma variação, em modo manual. Sem desconto declarado na variação,
+   * o bruto dela vai junto — ver `usePurchaseVariations.setItemCost`.
+   */
+  function setVariationCost(productId: number, value: number) {
+    variations.setItemCost(productId, value);
+  }
+
+  /**
+   * O campo de código mudou. Só existe sem produto vinculado, e a consulta ao
+   * catálogo acontece depois da pausa do bipe.
+   */
+  function setProductBarcode(value: string) {
+    update("productBarcode", value.trim() ? value : null);
+    barcodeLookup.onBarcodeChange(value);
   }
 
   /**
@@ -567,11 +691,33 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     if (!mesmoGrupo) void loadProductGroup(product.productGroupId, manterFotos);
   }
 
+  /**
+   * O código digitado já é de um produto cadastrado: a compra passa a ser dele,
+   * pelo mesmo caminho do campo "Produto já cadastrado" (24/09/2026).
+   *
+   * Havendo o que perder — nome digitado ou foto anexada —, a mesma pergunta da
+   * busca. Sem nada a perder, vincula direto e AVISA: a tela trocou de assunto
+   * sozinha, e quem bipou precisa saber por quê.
+   */
+  function selectProductByBarcode(product: ProductSearchOption, code: string) {
+    if (purchaseDataWouldBeReplaced(form, product.name)) {
+      setPendingBarcode(code);
+      setPendingProduct(product);
+      return;
+    }
+    applyProduct(product, false);
+    toast({
+      title: "Produto já cadastrado",
+      description: `O código ${code} é de ${product.name}. A compra foi vinculada a ele.`,
+    });
+  }
+
   /** "Usar os dados do produto": o caminho de sempre. */
   function confirmProductWithGallery() {
     if (!pendingProduct) return;
     applyProduct(pendingProduct, false);
     setPendingProduct(null);
+    setPendingBarcode(null);
   }
 
   /** "Manter as fotos desta compra": elas passam a valer no produto ao salvar. */
@@ -579,11 +725,25 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     if (!pendingProduct) return;
     applyProduct(pendingProduct, true);
     setPendingProduct(null);
+    setPendingBarcode(null);
   }
 
-  /** Fecha a pergunta sem vincular nada — o formulário fica como estava. */
+  /**
+   * Fecha a pergunta sem vincular nada — o formulário fica como estava, menos o
+   * código que disparou a pergunta, quando foi ele: esse código já é do produto
+   * recusado e não pode ser o de um cadastro novo.
+   */
   function cancelProductSelection() {
+    if (pendingBarcode !== null) {
+      const codigo = pendingBarcode;
+      setForm((current) =>
+        current.productBarcode !== null && resolveBarcodeInput(current.productBarcode).code === codigo
+          ? { ...current, productBarcode: null }
+          : current,
+      );
+    }
     setPendingProduct(null);
+    setPendingBarcode(null);
   }
 
   /**
@@ -638,7 +798,11 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   const saveMutation = useMutation({
     mutationFn: (payload: SavePurchasePayload) =>
       editingId ? updatePurchase(editingId, payload) : createPurchase(payload),
-    onSuccess: async () => {
+    onSuccess: async (_compra, payload) => {
+      // Só a compra NOVA vira memória: editar uma compra antiga não diz nada
+      // sobre a próxima que vai ser lançada. Nota apagada também é lembrada —
+      // o novo padrão é "sem nota".
+      if (!editingId) rememberPurchaseDefaults(userId, purchaseDefaultsFromPayload(payload));
       await onSaved();
       setOpen(false);
       toast({ title: editingId ? "Compra atualizada" : "Compra registrada" });
@@ -699,6 +863,9 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       // Com produto vinculado o backend usa a do grupo e ignora esta.
       categoryId: form.categoryId ? Number(form.categoryId) : null,
       productName: form.productName.trim(),
+      // Com produto vinculado o código é o do cadastro, e o backend ignora este.
+      productBarcode: purchaseHasProduct(form) ? null : form.productBarcode?.trim() || null,
+      invoiceNumber: form.invoiceNumber.trim() || null,
       details: form.details.trim() || null,
       purchaseLink: form.purchaseLink.trim() || null,
       // Instante LOCAL sem fuso, como a entrada de estoque: a coluna é
@@ -749,6 +916,18 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       : categories,
     loadingGroup,
     update,
+    setGrossTotal,
+    setFinalTotal,
+    setVariationCost,
+    setProductBarcode,
+    /** Enter ou saída do campo de código: procura na hora. */
+    commitProductBarcode: barcodeLookup.onBarcodeCommit,
+    searchingBarcode: barcodeLookup.searchingBarcode,
+    /**
+     * A data do formulário veio da memória e não é hoje — a tela pede para
+     * conferir. Some quando a pessoa troca a data.
+     */
+    dateFromMemory: dataLembrada !== null && form.purchaseDate === dataLembrada,
     setDepartment,
     openNew,
     openEdit,
@@ -760,6 +939,8 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
      * Ver `purchaseDataWouldBeReplaced`.
      */
     pendingProduct,
+    /** O código que achou o `pendingProduct`, quando a pergunta nasceu do campo de código. */
+    pendingBarcode,
     confirmProductWithGallery,
     confirmProductKeepingImages,
     cancelProductSelection,

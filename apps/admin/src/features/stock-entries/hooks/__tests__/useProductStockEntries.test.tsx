@@ -326,10 +326,12 @@ describe("entrada pré-preenchida por uma compra", () => {
     supplierId: 10,
     quantity: 3,
     unitCost: 33.33,
+    // O nº da nota digitado na compra (24/09/2026).
+    invoiceNumber: "NF 4521",
     notes: "Recebimento da compra #5",
   };
 
-  it("abre a modal sozinha com fornecedor, quantidade e custo da compra — uma vez só", async () => {
+  it("abre a modal sozinha com fornecedor, quantidade, custo e nota da compra — uma vez só", async () => {
     // É o "avançar para a entrada" do recebimento de produto novo: o operador
     // acabou de salvar o cadastro e a modal já vem com o que a compra sabe. O
     // preço de venda NÃO vem da compra — é o do cadastro recém-salvo.
@@ -342,6 +344,7 @@ describe("entrada pré-preenchida por uma compra", () => {
       supplierId: "10",
       quantity: 3,
       unitCost: 33.33,
+      invoiceNumber: "NF 4521",
       notes: "Recebimento da compra #5",
     });
     expect(result.current.form.price).toBe(result.current.product?.price);

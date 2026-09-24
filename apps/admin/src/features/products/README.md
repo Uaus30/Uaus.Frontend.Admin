@@ -527,8 +527,12 @@ parâmetro, busca a compra e chama `openDetailFromPurchase`, que abre o cadastro
 **em branco e preenchido**: nome e descrição da compra, as fotos dela (as
 mesmas imagens do catálogo, sem novo upload — o salvar só cria a associação), o
 preço sugerido a 40% sobre o custo unitário FINAL (`suggestedPrice`, a mesma
-regra da entrada) e, desde 13/09/2026, **departamento e categoria**. Sobra o
-código de barras e as variações.
+regra da entrada) e, desde 13/09/2026, **departamento e categoria**. Desde
+24/09/2026 vem também o **código de barras** digitado na compra — e, como ele
+chega sem ninguém digitar, `openDetailFromPurchase` dispara a mesma consulta do
+bipe: se outro cadastro ficou com o código entre a compra e o recebimento, o
+achado cai na modal de conflito da seção 4.2 antes do salvar, e não na recusa
+genérica do backend. Sobram as variações.
 
 A categoria vem de `purchase.categoryId`, que virou campo obrigatório da compra
 de produto novo justamente para isto: quem escolhe está olhando para o anúncio do
@@ -540,7 +544,8 @@ O que a compra sabe fica no `purchaseContext` do editor enquanto a tela está
 aberta, e é ele que fecha o ciclo:
 
 1. salvo o produto (Salvar ou Avançar), a aba Estoque recebe `entryPrefill` —
-   fornecedor, quantidade e custo unitário da compra — e a modal de lançamento
+   fornecedor, quantidade, custo unitário e, desde 24/09/2026, o nº da nota da
+   compra — e a modal de lançamento
    **abre sozinha** assim que o produto carrega (`useProductStockEntries`,
    ajuste durante o render, uma vez por compra);
 2. gravada a entrada, `onEntrySaved` chama `completePurchaseReceipt`, que faz o

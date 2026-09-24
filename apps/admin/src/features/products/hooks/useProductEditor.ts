@@ -398,6 +398,8 @@ export function useProductEditor() {
       ...createEmptyProductEditor(productForm.defaultStatus),
       name: purchase.productName,
       price: purchase.suggestedPrice || suggestedPrice(purchase.unitFinal) || 0,
+      // O código digitado na compra (24/09/2026): é com ele que o produto nasce.
+      barcode: purchase.productBarcode ?? "",
     });
     setImages(
       purchase.images.map((image) => ({
@@ -412,8 +414,13 @@ export function useProductEditor() {
       quantity: purchase.quantity,
       unitCost: purchase.unitFinal,
       productName: purchase.productName,
+      invoiceNumber: purchase.invoiceNumber ?? null,
     });
     setDetailOpen(true);
+    // O código veio pronto, sem ninguém digitar — e é a digitação que dispara a
+    // consulta. Entre a compra e o recebimento outro cadastro pode ter ficado com
+    // ele; consultar aqui leva o achado à mesma modal do bipe, antes do salvar.
+    if (purchase.productBarcode) lookupBarcode(purchase.productBarcode);
   }
 
   /**

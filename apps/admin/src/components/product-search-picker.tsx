@@ -7,30 +7,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
 import { formatQuantity } from "@workspace/core";
 import { getProductsPage } from "@/services/products.service";
+import { toProductSearchOption, type ProductSearchOption } from "./product-search-option";
 
-/**
- * Produto devolvido pela busca.
- *
- * `price` e `costPrice` viajam junto porque a entrada de estoque sugere os dois
- * ao escolher o produto; a baixa de estoque simplesmente os ignora. Trazê-los
- * aqui evita uma segunda consulta só para preencher dois campos que a listagem
- * já devolveu.
- */
-export type ProductSearchOption = {
-  id: number;
-  /**
-   * Grupo do produto. A compra precisa dele para carregar as VARIAÇÕES irmãs:
-   * escolher uma cor no seletor abre a grade do produto inteiro.
-   */
-  productGroupId: number;
-  name: string;
-  barcode: string | null;
-  stock: number;
-  /** Preço de venda vigente do cadastro. */
-  price: number;
-  /** Último custo apurado pelo backend a partir dos lotes. */
-  costPrice: number;
-};
+export type { ProductSearchOption };
 
 /** Quantos produtos a busca traz por vez. */
 const SEARCH_LIMIT = 20;
@@ -72,15 +51,7 @@ export function ProductSearchPicker({
     queryFn: () => getProductsPage({ search: debouncedSearch.trim() || undefined, limit: SEARCH_LIMIT }),
   });
 
-  const options: ProductSearchOption[] = (productsPage?.data ?? []).map((product) => ({
-    id: product.id,
-    productGroupId: product.productGroupId,
-    name: product.displayName || product.name,
-    barcode: product.barcode || null,
-    stock: product.stock,
-    price: product.price,
-    costPrice: product.costPrice,
-  }));
+  const options: ProductSearchOption[] = (productsPage?.data ?? []).map(toProductSearchOption);
 
   function handleSelect(product: ProductSearchOption) {
     onSelect(product);
