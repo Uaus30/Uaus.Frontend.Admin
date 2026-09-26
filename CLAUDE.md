@@ -13,25 +13,46 @@ ponteiro que ninguém segue não é regra.
 > resumo ou memória, vale esta.
 
 **Fluxo padrão, sem pedir permissão:** `git pull` antes de começar, `git commit`
-e `git push` quando o trabalho estiver concluído e verificado. Direto na `main`,
-que é o que o histórico dos dois repositórios da Uaus já faz — sem branch, sem
-PR. Outros comandos de git entram quando forem necessários.
+e `git push` quando o trabalho estiver concluído e verificado, na branch
+**`dev`** — o push publica os ambientes de dev na Vercel (`admin-dev`,
+`pdv-dev` e a loja de dev). Sem PR. Outros comandos de git entram quando forem
+necessários.
+
+A **`main` é produção** e só anda quando o dono pede a promoção:
+`git push origin dev:main`, fast-forward direto no remoto e sem `git checkout`
+(o working tree é compartilhado com outras conversas). Antes, confira que é
+fast-forward com `git merge-base --is-ancestor origin/main origin/dev`; se não
+for, pare e pergunte. O CI do GitHub (`ci.yml`, `contrato.yml`) só roda na
+`main` — por isso os gates locais da seção 9 valem antes de cada push na `dev`.
+
+> Até 25/09/2026 este trecho dizia "direto na `main`, sem branch". O trabalho já
+> vivia na `dev`; seguir o texto velho ao pé da letra publicaria em produção.
 
 Vale o mesmo no repositório vizinho `Uaus.Backend.Api`, que tem cópia desta
 seção no CLAUDE.md dele.
 
+### Antes do commit de código: revisão adversarial rápida
+
+Toda entrega que altera código passa por **uma** revisão adversarial
+independente rápida antes do commit, salvo quando o dono pedir explicitamente
+para pular (política de 25/09/2026). O procedimento, o agente revisor e o hook
+que bloqueia commit sem revisão estão no `CLAUDE.md` da pasta
+`C:\Projects\Uaus`, que carrega sozinho nas sessões abertas ali.
+
 ### Os três freios — pare e mostre antes de commitar
 
-1. **Gate vermelho.** Teste, `typecheck` ou `lint` falhando. Conserte primeiro;
-   nunca suba quebrado. Os comandos e o smoke test obrigatório estão na seção 9.
-2. **Migração de banco ou de esquema.** Migration do EF no backend, script de
-   esquema, e `DATABASE_VERSION` do IndexedDB do PDV (ver armadilha 4).
+1. **Gate vermelho.** Teste, `typecheck`, `lint` ou `format:check` falhando.
+   Conserte primeiro; nunca suba quebrado. Os comandos estão na seção 9.
+2. **Migração de banco ou de esquema.** Migration do EF no backend, script que
+   altera ou apaga dado existente, e `DATABASE_VERSION` do IndexedDB do PDV (ver
+   armadilha 4). Script SQL aditivo e idempotente do backend segue a regra do
+   CLAUDE.md de lá: commit normal na `dev`, listado no resumo.
 3. **Configuração de deploy e segredo.** `vercel.json`, `railway.json`,
    `Dockerfile`, `appsettings*.json`, variável de ambiente, workflow de CI.
 
-Push na `main` do front **dispara deploy na Vercel**. É por isso que os freios
-existem: o custo de um commit errado aqui não é um rebase, é a loja com a tela
-quebrada.
+Push na `main` do front **dispara o deploy de produção na Vercel**, e na `dev`,
+o de dev. É por isso que os freios existem: o custo de um commit errado aqui não
+é um rebase, é a loja com a tela quebrada.
 
 ### Em dúvida ou em conflito, pergunte
 
@@ -333,21 +354,26 @@ npx prettier --write <arquivos que você mexeu>
 working tree compartilhado, isso varre o trabalho de outro chat exatamente como
 o `git add -A` da seção 1.
 
-### Gate de regressão antes de produção
+### Gate de regressão antes de publicar
 
-Push na `main` publica o Admin. Portanto, **build verde sozinho não autoriza
-push** quando houve alteração de comportamento, tela ou integração:
+Push na `dev` publica os ambientes de dev, e na `main`, produção. Portanto,
+**build verde sozinho não autoriza push** quando houve alteração de
+comportamento, tela ou integração:
 
 1. Reproduza a falha antes de corrigir e adicione um teste de regressão com o
    mesmo formato de dado ou sequência que a provocou.
-2. Depois da correção, execute os testes, `typecheck`, `lint` e build aplicáveis.
+2. Depois da correção, execute os testes, `typecheck`, `lint`, `format:check` e
+   build aplicáveis. No workspace local, `harness/gates.sh completo` (na pasta
+   `C:\Projects\Uaus`) roda todos num comando só, com o contrato front × back.
 3. Faça um smoke test do fluxo afetado, localmente ou em preview: a tela deve
    renderizar, a ação principal deve funcionar, o console não pode ter exceções
    e as requisições essenciais não podem falhar.
-4. Registre no handoff quais comandos e qual cenário foram verificados. Se
-   autenticação, ambiente ou dependência externa impedir o smoke test, **pare
-   antes do commit/push** e informe o bloqueio; não presuma que compilação prova
-   que a implementação funciona.
+4. Registre no handoff quais comandos e qual cenário foram verificados. Se o
+   smoke precisar de login, peça ao dono **no começo** do trabalho — ele loga
+   enquanto você implementa. Se ainda assim autenticação, ambiente ou
+   dependência externa impedirem o smoke, siga com testes e build verdes (o
+   dono autorizou em 22/08/2026 que a suíte verde basta) e diga no handoff que
+   o smoke ficou pendente e por quê: compilação não prova que a tela funciona.
 
 ### Antes de mexer em código compartilhado, veja quem consome
 

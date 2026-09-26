@@ -64,19 +64,24 @@ entrada: histórico para isso é ruído que afoga o resto.
   o `memo`, e import de biblioteca inteira por uma função. Meça antes de
   otimizar e diga o número no handoff.
 
-## Git automático na main
+## Git automático na dev
 
 Há autorização permanente para agentes de IA executarem o fluxo Git completo
-sem pedir confirmação: atualizar a `main` antes de iniciar e, ao concluir o
-trabalho, criar commit e fazer push diretamente para `origin/main`.
+sem pedir confirmação na branch `dev`: atualizá-la antes de iniciar e, ao
+concluir o trabalho, criar commit e fazer push para `origin/dev`. A `main` é
+produção e só recebe a `dev` quando o dono pede a promoção
+(`git push origin dev:main`, fast-forward, sem checkout).
 
-O commit e o push só estão autorizados depois que os testes e builds aplicáveis
-forem executados com sucesso. No frontend, confira também os `typecheck`, o lint
-e o smoke test do fluxo alterado conforme definido no `CLAUDE.md`.
+O commit e o push só estão autorizados depois que os testes, os `typecheck`, o
+lint, o `format:check` e os builds aplicáveis passarem e — em entrega que altera
+código — depois de uma revisão adversarial independente rápida, salvo quando o
+dono pedir explicitamente para pular. Faça o smoke test do fluxo alterado
+conforme o `CLAUDE.md`; se login ou ambiente o impedirem, a suíte verde basta
+(autorização do dono em 22/08/2026) e o handoff diz que o smoke ficou pendente.
 
 Pare antes do commit/push e informe o responsável quando houver:
 
-- teste, typecheck, lint, build ou smoke test falhando;
+- teste, typecheck, lint, format:check, build ou smoke test que rodou e falhou;
 - migração de banco/esquema ou mudança de versão do IndexedDB do PDV;
 - alteração de configuração de deploy, segredo ou variável de ambiente;
 - conflito, divergência inesperada ou necessidade de reescrever histórico.
