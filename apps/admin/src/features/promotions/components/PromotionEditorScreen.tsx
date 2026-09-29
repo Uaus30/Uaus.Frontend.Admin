@@ -20,12 +20,13 @@ import {
   SELECTABLE_PROMOTION_TYPES,
 } from "@workspace/api-client-react";
 import { ConfirmDialog } from "@workspace/ui";
-import { ArrowLeft, Loader2, Save, Tag, Zap } from "lucide-react";
+import { ArrowLeft, Layers, Loader2, Save, Tag, Zap } from "lucide-react";
 import { formatCurrency } from "@workspace/core";
-import { DEFAULT_END_TIME, DEFAULT_START_TIME } from "../hooks/promotionRules";
+import { switchPromotionType } from "../hooks/promotionRules";
 import { usePromotionEditor } from "../hooks/usePromotionEditor";
 import { ProductGroupPicker } from "./ProductGroupPicker";
 import { PromotionArtworkPanel } from "./PromotionArtworkPanel";
+import { ComboDiscountFields, ComboModeField, ComboProductsField } from "./PromotionComboFields";
 import { PromotionPerformanceTab } from "./PromotionPerformanceTab";
 import { PromotionPricePanel } from "./PromotionPricePanel";
 import type { PromotionDiscountTypeCode, PromotionTypeCode } from "../types";
@@ -67,6 +68,7 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
     handleSubmit,
     isSaving,
     isFlash,
+    isCombo,
     belowCost,
     confirmingBelowCost,
     dismissBelowCost,
@@ -145,7 +147,9 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
       <div className={`grid gap-6 xl:grid-cols-5 ${aba === "cadastro" ? "" : "hidden"}`}>
         {/* ---------------------------------------------------------- formulário */}
         <div className="min-w-0 space-y-4 rounded-lg border bg-card p-4 xl:col-span-2">
-          <div className="space-y-2">
+          {isCombo && <ComboProductsField form={form} setForm={setForm} />}
+
+          <div className={`space-y-2 ${isCombo ? "hidden" : ""}`}>
             <Label>Produto</Label>
             <ProductGroupPicker
               value={form.productGroupId}
@@ -162,28 +166,13 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Tipo</Label>
+              {/* O que cada tipo deixa de usar é limpo na troca — banner, horário,
+                  artes, limite, meta e o preço do kit. A regra, com o porquê de
+                  cada campo, está em `switchPromotionType`. */}
               <Select
                 value={String(form.type)}
                 onValueChange={(valor) =>
-                  setForm((atual) => ({
-                    ...atual,
-                    type: Number(valor) as PromotionTypeCode,
-                    // Banner é coisa de relâmpago; trocar para Dia a Dia com a
-                    // caixa marcada devolveria um 400 que ninguém relaciona com ela.
-                    showOnSite: Number(valor) === PROMOTION_TYPE.Flash ? atual.showOnSite : false,
-                    // O horário só existe na relâmpago. Sair dela com "das 14h
-                    // às 18h" preenchido faria um PATAMAR de preço começar às
-                    // 14h de um dia qualquer — e o campo nem estaria na tela
-                    // para a pessoa desfazer.
-                    startTime: Number(valor) === PROMOTION_TYPE.Flash ? atual.startTime : DEFAULT_START_TIME,
-                    endTime: Number(valor) === PROMOTION_TYPE.Flash ? atual.endTime : DEFAULT_END_TIME,
-                    // As artes também são da relâmpago. Sair dela com uma
-                    // escolhida gravaria a arte num patamar de preço — com os
-                    // slots já fora da tela para a pessoa desfazer, que é o
-                    // mesmo erro do horário logo acima.
-                    feedImage: Number(valor) === PROMOTION_TYPE.Flash ? atual.feedImage : null,
-                    storyImage: Number(valor) === PROMOTION_TYPE.Flash ? atual.storyImage : null,
-                  }))
+                  setForm((atual) => switchPromotionType(atual, Number(valor) as PromotionTypeCode))
                 }
               >
                 <SelectTrigger>
@@ -195,6 +184,8 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
                       <span className="inline-flex items-center gap-2">
                         {tipo === PROMOTION_TYPE.Flash ? (
                           <Zap className="h-3.5 w-3.5" />
+                        ) : tipo === PROMOTION_TYPE.Combo ? (
+                          <Layers className="h-3.5 w-3.5" />
                         ) : (
                           <Tag className="h-3.5 w-3.5" />
                         )}
@@ -206,7 +197,9 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
               </Select>
             </div>
 
-            <div className="space-y-2">
+            {isCombo && <ComboModeField form={form} setForm={setForm} />}
+
+            <div className={`space-y-2 ${isCombo ? "hidden" : ""}`}>
               <Label>Desconto em</Label>
               <Select
                 value={String(form.discountType)}
@@ -228,7 +221,9 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
             </div>
           </div>
 
-          <div className="space-y-2">
+          {isCombo && <ComboDiscountFields form={form} setForm={setForm} />}
+
+          <div className={`space-y-2 ${isCombo ? "hidden" : ""}`}>
             <Label>{percentual ? "Percentual de desconto" : "Preço promocional"}</Label>
             <Input
               inputMode="decimal"
@@ -310,8 +305,10 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
             )}
           </div>
 
-          {/* --------------------------------------------------- limite e meta */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* --------------------------------------------------- limite e meta
+              Fora do combo: o limite de 6 seria de kits ou de esmaltes? O
+              servidor recusa os dois ali. */}
+          <div className={`grid gap-4 sm:grid-cols-2 ${isCombo ? "hidden" : ""}`}>
             <div className="space-y-2">
               <Label>Limite por venda</Label>
               <Input
@@ -374,6 +371,8 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
               preview={preview}
               isLoading={isPreviewing}
               targetQuantity={form.targetQuantity}
+              comboQuantity={isCombo ? form.comboQuantity : undefined}
+              kitPrice={isCombo && form.discountType === PROMOTION_DISCOUNT_TYPE.KitPrice}
             />
           </div>
 
@@ -400,7 +399,7 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
       <ConfirmDialog
         open={confirmingBelowCost}
         title="Vender abaixo do custo?"
-        itemName={form.productGroupName}
+        itemName={isCombo ? preview?.productGroupName : form.productGroupName}
         description={
           <span>
             {belowCost.length === 1

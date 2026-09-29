@@ -1857,6 +1857,12 @@ export const PROMOTION_TYPE = {
   Everyday: 1,
   /** Evento de preço num dia só, no máximo 24 horas. Exige desconto maior que zero. */
   Flash: 2,
+  /**
+   * Preço por QUANTIDADE, somando unidades de vários grupos ("3 esmaltes Risqué ou
+   * Impala por R$ 20"). A relâmpago vence o combo; combo e Dia a Dia não convivem
+   * no mesmo grupo (o servidor recusa).
+   */
+  Combo: 3,
 } as const;
 
 export type PromotionTypeCode = (typeof PROMOTION_TYPE)[keyof typeof PROMOTION_TYPE];
@@ -1865,10 +1871,15 @@ export type PromotionTypeCode = (typeof PROMOTION_TYPE)[keyof typeof PROMOTION_T
 export const PROMOTION_TYPE_LABEL: Record<number, string> = {
   [PROMOTION_TYPE.Everyday]: "Dia a Dia",
   [PROMOTION_TYPE.Flash]: "Relâmpago",
+  [PROMOTION_TYPE.Combo]: "Combo",
 };
 
 /** Espécies que o administrador pode escolher. `None` existe só para o zero do banco. */
-export const SELECTABLE_PROMOTION_TYPES = [PROMOTION_TYPE.Everyday, PROMOTION_TYPE.Flash] as const;
+export const SELECTABLE_PROMOTION_TYPES = [
+  PROMOTION_TYPE.Everyday,
+  PROMOTION_TYPE.Flash,
+  PROMOTION_TYPE.Combo,
+] as const;
 
 /**
  * Como a promoção derruba o preço de cada variação do grupo.
@@ -1883,6 +1894,12 @@ export const PROMOTION_DISCOUNT_TYPE = {
   Percentage: 1,
   /** Preço final em reais, o MESMO para todas as variações. É o formato do cartaz. */
   FinalPrice: 2,
+  /**
+   * Preço de um KIT de `comboQuantity` unidades ("3 por R$ 20"). Só no Combo, e é o
+   * que faz ele valer "a cada N itens". Com percentual ou preço final, o combo vale
+   * "a partir de N itens".
+   */
+  KitPrice: 3,
 } as const;
 
 export type PromotionDiscountTypeCode =
@@ -1891,8 +1908,14 @@ export type PromotionDiscountTypeCode =
 export const PROMOTION_DISCOUNT_TYPE_LABEL: Record<number, string> = {
   [PROMOTION_DISCOUNT_TYPE.Percentage]: "Percentual",
   [PROMOTION_DISCOUNT_TYPE.FinalPrice]: "Preço final",
+  [PROMOTION_DISCOUNT_TYPE.KitPrice]: "Preço do kit",
 };
 
+/**
+ * Os tipos de desconto POR UNIDADE — os do Dia a Dia, da Relâmpago e do combo "a
+ * partir de N". O preço do kit fica fora: ele só existe no combo "a cada N", que o
+ * formulário oferece como modo, não como tipo de desconto.
+ */
 export const SELECTABLE_PROMOTION_DISCOUNT_TYPES = [
   PROMOTION_DISCOUNT_TYPE.Percentage,
   PROMOTION_DISCOUNT_TYPE.FinalPrice,
@@ -1914,10 +1937,17 @@ export interface PromotionDto {
   createdAt: string;
   updatedAt?: string | null;
   productGroupId: number;
-  /** Nome do grupo promovido, já resolvido para a linha da tabela. */
+  /** Nome do grupo promovido, já resolvido para a linha da tabela. No combo, todos, com " + ". */
   productGroupName: string;
   /** Capa do grupo. Ausente quando o produto não tem foto. */
   productGroupImageUrl?: string | null;
+  /** Unidades que formam o combo (o "3" de "3 por R$ 20"). Ausente fora do combo. */
+  comboQuantity?: number | null;
+  /**
+   * Os grupos do combo, com o da capa primeiro. Vazia nas outras espécies, cujo
+   * grupo é `productGroupId`.
+   */
+  comboGroups?: PromotionComboGroupDto[];
   /** Enum PromotionType — pode vir como número ou nome; use `enumCode`. */
   type: EnumValue;
   /** Enum PromotionDiscountType — idem. */
@@ -1978,6 +2008,12 @@ export interface PromotionDto {
   investment: number;
 }
 
+/** Um grupo que soma unidades num combo. */
+export interface PromotionComboGroupDto {
+  productGroupId: number;
+  name: string;
+}
+
 /** Uma variação do grupo com a conta do preço promocional feita. */
 export interface PromotionVariationDto {
   productId: number;
@@ -1986,6 +2022,11 @@ export interface PromotionVariationDto {
   price: number;
   /** Custo da variação. Zero em produto que nunca teve entrada de estoque. */
   costPrice: number;
+  /**
+   * Preço de uma unidade na promoção. No combo "a cada N", é o kit dividido pela
+   * quantidade — referência: no caixa o kit fecha no centavo (R$ 6,67, R$ 6,67 e
+   * R$ 6,66 num "3 por R$ 20").
+   */
   promotionalPrice: number;
   /** Ausente = desconhecida. Negativa quando a promoção vende abaixo do custo. */
   marginPercent?: number | null;
@@ -2210,7 +2251,12 @@ export interface PromotionPreviewDto {
 
 /** Criação e edição de promoção. */
 export interface SavePromotionPayload {
+  /** O grupo promovido. No combo o servidor usa o primeiro de `productGroupIds`. */
   productGroupId: number;
+  /** Os grupos do combo, na ordem escolhida. Vazio fora do combo. */
+  productGroupIds?: number[];
+  /** Unidades que formam o combo, de 2 a 99. Null fora do combo — o servidor recusa. */
+  comboQuantity?: number | null;
   /** Nunca envie `None` (0): o backend recusa com 400. */
   type: PromotionTypeCode;
   /** Nunca envie `None` (0). */

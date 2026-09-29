@@ -4,6 +4,8 @@ import { PdvCartItem } from "../pdv-cart-item";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { renderWithHints } from "@/test/render-with-hints";
 import type { PdvItem } from "../../types";
+import { PROMOTION_DISCOUNT_TYPE, PROMOTION_TYPE } from "@workspace/api-client-react";
+import { describePromotions } from "@/lib/promotions";
 
 // A conta da rolagem tem teste próprio em `lib/scroll-into-view.test.ts`; aqui
 // o que importa é QUANDO a linha pede para ficar à vista.
@@ -172,5 +174,34 @@ describe("PdvCartItem", () => {
 
       expect(screen.queryByRole("button", { name: /^acréscimo$/i })).toBeNull();
     });
+  });
+  it('mostra o total do kit no centavo: três esmaltes de R$ 7,00 no "3 por R$ 20" dão R$ 20,00, não R$ 20,01', () => {
+    // O kit reparte o R$ 1,00 em 0,33 + 0,33 + 0,34. Multiplicar o desconto por
+    // unidade pela quantidade perdia o centavo, e a linha discordava do rodapé.
+    const esmalte: PdvItem = { ...ITEM, id: "risque", productGroupId: 846, price: 7, quantity: 3 };
+    const info = describePromotions(
+      [esmalte],
+      [
+        {
+          id: 40,
+          productGroupId: 846,
+          productGroupIds: [846],
+          comboQuantity: 3,
+          type: PROMOTION_TYPE.Combo,
+          discountType: PROMOTION_DISCOUNT_TYPE.KitPrice,
+          discountValue: 20,
+          validFrom: "2026-09-01T00:00:00",
+          validUntil: null,
+          maxQuantityPerSale: null,
+        },
+      ],
+      "2026-09-29T10:00:00",
+    ).get(esmalte.id);
+
+    usePdvStore.setState({ items: [esmalte] });
+    renderWithHints(<PdvCartItem item={esmalte} promotion={info} />);
+
+    expect(document.body.textContent?.replace(/\s/g, " ")).toContain("R$ 20,00");
+    expect(document.body.textContent?.replace(/\s/g, " ")).not.toContain("R$ 20,01");
   });
 });

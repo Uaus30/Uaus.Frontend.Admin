@@ -190,6 +190,6 @@ export function usePromotions() {
     encerrar: (id: number) => endMutation.mutateAsync(id),
     excluir: (id: number) => deleteMutation.mutateAsync(id),
     isBusy: endMutation.isPending || deleteMutation.isPending,
-    tipos: [PROMOTION_TYPE.Everyday, PROMOTION_TYPE.Flash] as const,
+    tipos: [PROMOTION_TYPE.Everyday, PROMOTION_TYPE.Flash, PROMOTION_TYPE.Combo] as const,
   };
 }

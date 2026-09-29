@@ -41,6 +41,11 @@ export function toLocalPromotion(promotion: PdvSnapshotPromotion): LocalPromotio
   return {
     id: promotion.id,
     productGroupId: promotion.productGroupId,
+    productGroupIds:
+      promotion.productGroupIds && promotion.productGroupIds.length > 0
+        ? promotion.productGroupIds
+        : [promotion.productGroupId],
+    comboQuantity: promotion.comboQuantity ?? null,
     type: enumCode(promotion.type, PROMOTION_TYPE) ?? PROMOTION_TYPE.None,
     discountType: enumCode(promotion.discountType, PROMOTION_DISCOUNT_TYPE) ?? PROMOTION_DISCOUNT_TYPE.None,
     discountValue: promotion.discountValue ?? 0,

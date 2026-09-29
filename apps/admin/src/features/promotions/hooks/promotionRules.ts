@@ -126,6 +126,61 @@ export function emptyPromotionForm(today: Date = new Date()): PromotionForm {
     showOnSite: false,
     feedImage: null,
     storyImage: null,
+    comboGroups: [],
+    comboQuantity: DEFAULT_COMBO_QUANTITY,
+  };
+}
+
+/** Quantidade proposta ao escolher Combo: o "3 por" do cartaz da loja. */
+export const DEFAULT_COMBO_QUANTITY = "3";
+
+/**
+ * Troca o tipo da promoção, limpando o que o tipo novo não usa.
+ *
+ * Campo sem sentido que fica preenchido é campo que alguém grava sem querer — e
+ * sai da tela antes que a pessoa possa desfazê-lo:
+ *
+ * - **Banner, horário e artes** são da relâmpago. Um patamar começando às 14h, ou
+ *   um cartaz de "SOMENTE NESTE SÁBADO" num preço que vale há meses.
+ * - **Limite e meta** não existem no combo (o servidor recusa): o limite de 6
+ *   seria de kits ou de esmaltes?
+ * - **Preço do kit** só existe no combo. Entrar nele propõe o kit, que é o cartaz
+ *   da loja ("3 por R$ 20"); sair dele volta ao percentual.
+ * - **O produto** atravessa: o escolhido vira o primeiro do combo, e o primeiro do
+ *   combo vira o produto — a pessoa não redigita o que já escolheu.
+ */
+export function switchPromotionType(form: PromotionForm, type: PromotionForm["type"]): PromotionForm {
+  const flash = type === PROMOTION_TYPE.Flash;
+  const combo = type === PROMOTION_TYPE.Combo;
+  const eraCombo = form.type === PROMOTION_TYPE.Combo;
+
+  const comboGroups =
+    combo && !eraCombo && form.productGroupId
+      ? [{ id: form.productGroupId, name: form.productGroupName }]
+      : form.comboGroups;
+
+  const primeiro = !combo && eraCombo ? form.comboGroups[0] : undefined;
+
+  return {
+    ...form,
+    type,
+    showOnSite: flash ? form.showOnSite : false,
+    startTime: flash ? form.startTime : DEFAULT_START_TIME,
+    endTime: flash ? form.endTime : DEFAULT_END_TIME,
+    feedImage: flash ? form.feedImage : null,
+    storyImage: flash ? form.storyImage : null,
+    maxQuantityPerSale: combo ? "" : form.maxQuantityPerSale,
+    targetQuantity: combo ? "" : form.targetQuantity,
+    discountType: combo
+      ? eraCombo
+        ? form.discountType
+        : PROMOTION_DISCOUNT_TYPE.KitPrice
+      : form.discountType === PROMOTION_DISCOUNT_TYPE.KitPrice
+        ? PROMOTION_DISCOUNT_TYPE.Percentage
+        : form.discountType,
+    comboGroups: combo ? comboGroups : [],
+    productGroupId: primeiro ? primeiro.id : form.productGroupId,
+    productGroupName: primeiro ? primeiro.name : form.productGroupName,
   };
 }
 
@@ -149,6 +204,11 @@ export function formFromPromotion(promotion: PromotionDto): PromotionForm {
     showOnSite: promotion.showOnSite,
     feedImage: artworkFromPromotion(promotion.feedImageId, promotion.feedImageUrl),
     storyImage: artworkFromPromotion(promotion.storyImageId, promotion.storyImageUrl),
+    comboGroups: (promotion.comboGroups ?? []).map((group) => ({
+      id: group.productGroupId,
+      name: group.name,
+    })),
+    comboQuantity: promotion.comboQuantity == null ? DEFAULT_COMBO_QUANTITY : String(promotion.comboQuantity),
   };
 }
 
@@ -271,7 +331,17 @@ export function describeFormProblem(
    */
   options: { isNew: boolean; now?: Date },
 ): string | null {
-  if (!form.productGroupId) return "Escolha o produto da promoção.";
+  const combo = form.type === PROMOTION_TYPE.Combo;
+
+  if (combo) {
+    if (form.comboGroups.length === 0) return "Escolha pelo menos um produto para o combo.";
+
+    const quantidade = parsePositiveIntegerOrNaN(form.comboQuantity);
+    if (quantidade == null || Number.isNaN(quantidade) || quantidade < 2 || quantidade > 99)
+      return "A quantidade do combo tem que ficar entre 2 e 99 itens.";
+  } else if (!form.productGroupId) {
+    return "Escolha o produto da promoção.";
+  }
 
   // Campo VAZIO é cobrado antes de parsear: `parseAmountOrNull("")` devolve 0, e
   // como zero é um desconto legítimo no Dia a Dia (a isca), sem esta linha quem
@@ -288,6 +358,10 @@ export function describeFormProblem(
 
   if (form.type === PROMOTION_TYPE.Flash && value <= 0)
     return "Uma promoção relâmpago precisa de um desconto maior que zero.";
+
+  // O combo é cartaz, como a relâmpago: "3 por R$ 0,00" ou "a partir de 3, 0%"
+  // é cadastro errado. O destaque sem corte de preço é coisa do Dia a Dia.
+  if (combo && value <= 0) return "Um combo precisa de um desconto maior que zero.";
 
   // Percentual zero é destaque sem corte de preço (a isca da porta); PREÇO final
   // zero é outra coisa, e gravaria o produto a R$ 0,00 no balcão.
@@ -373,15 +447,22 @@ export function buildPromotionPayload(
       ? null
       : toEndInstant(form.endDate ?? startDate, endTime);
 
+  // No combo o produto é a lista, e o primeiro dela é a capa. Limite e meta não
+  // existem ali — o servidor recusa, e o formulário já os limpou ao trocar o tipo.
+  const combo = form.type === PROMOTION_TYPE.Combo;
+  const comboIds = form.comboGroups.map((group) => group.id);
+
   return {
-    productGroupId: form.productGroupId ?? 0,
+    productGroupId: combo ? (comboIds[0] ?? 0) : (form.productGroupId ?? 0),
+    productGroupIds: combo ? comboIds : [],
+    comboQuantity: combo ? normalizeCount(form.comboQuantity) : null,
     type: form.type,
     discountType: form.discountType,
     discountValue: parseAmountOrNull(form.discountValue) ?? 0,
     validFrom: toStartInstant(startDate, startTime),
     validUntil,
-    maxQuantityPerSale: normalizeCount(form.maxQuantityPerSale),
-    targetQuantity: normalizeCount(form.targetQuantity),
+    maxQuantityPerSale: combo ? null : normalizeCount(form.maxQuantityPerSale),
+    targetQuantity: combo ? null : normalizeCount(form.targetQuantity),
     isActive: form.isActive,
     // Banner é coisa de relâmpago, e o servidor recusa fora dela. Zerar aqui
     // evita que trocar o tipo com a caixa marcada devolva um 400 que a pessoa

@@ -94,8 +94,14 @@ export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
    * cartaz e quatro no preço normal. É a mesma conta que `computeCartTotals` faz
    * sobre as linhas já divididas — é o que mantém a soma das linhas igual ao
    * total grande do rodapé.
+   *
+   * No combo vale o desconto da LINHA: o kit reparte o centavo (R$ 0,33, R$ 0,33
+   * e R$ 0,34 num "3 por R$ 20"), e `unitDiscount × quantidade` daria R$ 0,99 —
+   * a linha mostrando R$ 20,01 com o rodapé e o cupom em R$ 20,00.
    */
-  const promotionSavings = round2((promotion?.unitDiscount ?? 0) * (promotion?.promotionalQuantity ?? 0));
+  const promotionSavings =
+    promotion?.combo?.lineDiscount ??
+    round2((promotion?.unitDiscount ?? 0) * (promotion?.promotionalQuantity ?? 0));
 
   /** O que a linha custa: preço praticado vezes quantidade, menos a promoção. */
   const lineTotal = round2(effectiveUnitPrice * item.quantity - promotionSavings);

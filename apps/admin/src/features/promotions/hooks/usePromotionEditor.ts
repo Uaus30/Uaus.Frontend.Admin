@@ -84,10 +84,19 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
   // dispararia uma requisição por tecla — "1000" na meta seriam quatro.
   const discountValue = useDebounce(form.discountValue, 300);
   const targetQuantity = useDebounce(form.targetQuantity, 300);
+  const comboQuantity = useDebounce(form.comboQuantity, 300);
+
+  const isCombo = form.type === PROMOTION_TYPE.Combo;
+  const comboGroupIds = useMemo(() => form.comboGroups.map((group) => group.id), [form.comboGroups]);
 
   const { data: preview, isFetching: isPreviewing } = useGetPromotionPreview({
-    productGroupId: form.productGroupId ?? undefined,
-    discountType: form.discountType,
+    // No combo, a capa é o primeiro produto escolhido, e a prévia soma as
+    // variações de todos. Sem quantidade válida o servidor faria a prévia de
+    // UNIDADE — e o preço do kit apareceria como preço de cada esmalte.
+    productGroupId: (isCombo ? comboGroupIds[0] : form.productGroupId) ?? undefined,
+    productGroupIds: isCombo ? comboGroupIds : undefined,
+    comboQuantity: isCombo ? comboQuantityForPreview(comboQuantity) : undefined,
+    discountType: isCombo && comboQuantityForPreview(comboQuantity) == null ? undefined : form.discountType,
     discountValue: parseAmountOrNull(discountValue) ?? 0,
     // `Number("1.000")` é 1 em JavaScript, e a meta viraria um investimento mil
     // vezes menor na tela. O parser do core entende o formato pt-BR; `NaN` vira
@@ -231,6 +240,7 @@ export function usePromotionEditor(promotionId: number | undefined, onSaved: () 
     handleSubmit,
     isSaving: saveMutation.isPending,
     isFlash: form.type === PROMOTION_TYPE.Flash,
+    isCombo,
     /** Variações abaixo do custo à espera de confirmação. Vazio quando não há. */
     belowCost,
     confirmingBelowCost,
@@ -268,6 +278,12 @@ function coverDoProdutoEscolhido(
 ): string | null {
   const fonte = [preview, promotion].find((candidato) => candidato?.productGroupId === productGroupId);
   return fonte?.productGroupImageUrl ? buildPublicImageUrl(fonte.productGroupImageUrl) : null;
+}
+
+/** Quantidade do combo que a prévia aceita: de 2 a 99, ou nada (a prévia espera). */
+function comboQuantityForPreview(value: string): number | null {
+  const parsed = normalizeTargetForPreview(value);
+  return parsed != null && parsed >= 2 && parsed <= 99 ? parsed : null;
 }
 
 /** Meta que a prévia aceita: inteiro positivo, ou nada. */

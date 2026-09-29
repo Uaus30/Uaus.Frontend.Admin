@@ -17,7 +17,7 @@ import {
   enumCode,
 } from "@workspace/api-client-react";
 import { formatCurrency } from "@workspace/core";
-import { CopyPlus, PowerOff, Tag, Trash2, Zap } from "lucide-react";
+import { CopyPlus, Layers, PowerOff, Tag, Trash2, Zap } from "lucide-react";
 import { useState } from "react";
 import { PromotionSituationBadge } from "./PromotionSituationBadge";
 import type { PromotionDto, PromotionRow } from "../types";
@@ -25,10 +25,19 @@ import type { PromotionDto, PromotionRow } from "../types";
 /** Desconto no formato que o cartaz promete: "30%" ou "R$ 0,99". */
 function formatDiscount(promotion: PromotionDto): string {
   const type = enumCode(promotion.discountType, PROMOTION_DISCOUNT_TYPE);
+  const valor =
+    type === PROMOTION_DISCOUNT_TYPE.Percentage
+      ? `${promotion.discountValue.toLocaleString("pt-BR")}%`
+      : formatCurrency(promotion.discountValue);
 
-  return type === PROMOTION_DISCOUNT_TYPE.Percentage
-    ? `${promotion.discountValue.toLocaleString("pt-BR")}%`
-    : formatCurrency(promotion.discountValue);
+  // O combo fala a língua do cartaz: "3 por R$ 20,00", "a partir de 3: 10%".
+  if (promotion.comboQuantity != null) {
+    return type === PROMOTION_DISCOUNT_TYPE.KitPrice
+      ? `${promotion.comboQuantity} por ${valor}`
+      : `a partir de ${promotion.comboQuantity}: ${valor}`;
+  }
+
+  return valor;
 }
 
 /**
@@ -137,6 +146,7 @@ export function PromotionsTable({
           <TableBody>
             {items.map((item) => {
               const isFlash = enumCode(item.type, PROMOTION_TYPE) === PROMOTION_TYPE.Flash;
+              const isCombo = enumCode(item.type, PROMOTION_TYPE) === PROMOTION_TYPE.Combo;
               const podeEncerrar = item.situation === "no-ar" || item.situation === "programada";
 
               return (
@@ -162,6 +172,8 @@ export function PromotionsTable({
                     <span className="inline-flex items-center gap-1">
                       {isFlash ? (
                         <Zap className="h-3.5 w-3.5 text-amber-500" />
+                      ) : isCombo ? (
+                        <Layers className="h-3.5 w-3.5" />
                       ) : (
                         <Tag className="h-3.5 w-3.5" />
                       )}

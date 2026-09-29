@@ -38,6 +38,10 @@ interface PromotionPricePanelProps {
   isLoading: boolean;
   /** Meta digitada, só para a frase do investimento fazer sentido. */
   targetQuantity: string;
+  /** Quantidade do combo, como foi digitada. Ausente fora do combo. */
+  comboQuantity?: string;
+  /** Combo "a cada N": o promocional da tabela é o kit dividido, e a tela diz isso. */
+  kitPrice?: boolean;
 }
 
 /**
@@ -48,7 +52,15 @@ interface PromotionPricePanelProps {
  * criaria a divergência clássica — a tela prometendo um número que o balcão não
  * pratica.
  */
-export function PromotionPricePanel({ preview, isLoading, targetQuantity }: PromotionPricePanelProps) {
+export function PromotionPricePanel({
+  preview,
+  isLoading,
+  targetQuantity,
+  comboQuantity,
+  kitPrice,
+}: PromotionPricePanelProps) {
+  const combo = comboQuantity != null;
+
   if (isLoading && !preview) {
     return <p className="text-sm text-muted-foreground">Calculando o efeito da promoção...</p>;
   }
@@ -77,10 +89,20 @@ export function PromotionPricePanel({ preview, isLoading, targetQuantity }: Prom
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            As variações custam de {formatCurrency(preview.referencePriceMin)} a{" "}
-            {formatCurrency(preview.referencePriceMax)}. Com preço final, todas passam a custar o mesmo.
+            {combo ? "Os produtos do combo custam" : "As variações custam"} de{" "}
+            {formatCurrency(preview.referencePriceMin)} a {formatCurrency(preview.referencePriceMax)}.{" "}
+            {kitPrice
+              ? "No kit, as unidades mais caras entram primeiro, e o desconto se reparte pelo preço de cada uma."
+              : "Com preço final, todas passam a custar o mesmo."}
           </AlertDescription>
         </Alert>
+      )}
+
+      {kitPrice && (
+        <p className="text-xs text-muted-foreground">
+          O promocional da tabela é o preço de uma unidade num kit de {comboQuantity} iguais. No caixa o kit
+          fecha no centavo: num "3 por R$ 20,00", duas unidades saem a R$ 6,67 e uma a R$ 6,66.
+        </p>
       )}
 
       {preview.hasPriceBelowCost && (

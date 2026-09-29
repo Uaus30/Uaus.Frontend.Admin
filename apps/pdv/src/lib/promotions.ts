@@ -2,6 +2,14 @@ import { round2 } from "@workspace/core";
 import { PROMOTION_DISCOUNT_TYPE, PROMOTION_TYPE } from "@workspace/api-client-react";
 import type { LocalPromotion } from "@/offline";
 import type { PdvItem } from "@/stores/pdv-cart";
+import {
+  allocateCombo,
+  isCombo,
+  isInWindow,
+  missingForCombo,
+  resolveCombo,
+  type ComboLineInput,
+} from "./combo-promotions";
 
 /**
  * A promoção aplicada ao carrinho: qual vale, quanto ela abate e como o limite
@@ -28,7 +36,9 @@ export interface AppliedPromotion {
 }
 
 /**
- * A promoção que vale para um grupo neste instante.
+ * A promoção DE UNIDADE que vale para um grupo neste instante — relâmpago ou Dia
+ * a Dia. O combo tem resolução própria (`resolveCombo`), porque o preço dele não é
+ * de uma unidade.
  *
  * **Relâmpago vence Dia a Dia** — a única precedência do domínio. Duas do mesmo
  * tipo não coexistem (o banco recusa), então a escolha nunca tem três
@@ -44,9 +54,7 @@ export function resolvePromotion(
 ): LocalPromotion | null {
   const vigentes = promotions.filter(
     (promotion) =>
-      promotion.productGroupId === productGroupId &&
-      promotion.validFrom <= instant &&
-      (promotion.validUntil == null || promotion.validUntil >= instant),
+      !isCombo(promotion) && promotion.productGroupId === productGroupId && isInWindow(promotion, instant),
   );
 
   if (vigentes.length === 0) return null;
@@ -101,12 +109,24 @@ export interface PromotionAllocationResult {
   unitDiscount: number;
   /** Unidades que entram no preço promocional. */
   promotionalQuantity: number;
-  /** Unidades que sobram a preço normal — o excedente do limite. */
+  /** Unidades que sobram a preço normal — o excedente do limite, ou a sobra do kit. */
   regularQuantity: number;
+  /** Combo: unidades que levam um centavo a mais de desconto (ver `ComboLineAllocation`). */
+  extraCentUnits?: number;
+  /** Combo que alcança a linha, mesmo quando ela ainda não completou o kit. */
+  comboId?: number;
 }
 
 /**
- * Distribui o limite por venda entre as linhas do carrinho.
+ * Distribui as promoções entre as linhas do carrinho: primeiro as de unidade,
+ * linha a linha, e depois os combos, sobre o carrinho inteiro.
+ *
+ * ## A precedência é Relâmpago, Combo, Dia a Dia
+ *
+ * A relâmpago é evento e vence tudo enquanto dura: a unidade em relâmpago não
+ * conta para o kit. Combo e Dia a Dia no mesmo grupo o servidor recusa; se os
+ * dois chegassem mesmo assim, o combo venceria — é a promoção mais recente de um
+ * cartaz, não o patamar.
  *
  * ## O limite é do GRUPO e da VENDA
  *
@@ -115,12 +135,17 @@ export interface PromotionAllocationResult {
  * cartaz é lido ("limite de 6 copos por cliente"). O cartaz diz "por cliente" e o
  * sistema conta por venda — os dois estão certos, e a loja fala com o cliente.
  *
- * ## A ordem é a de ENTRADA no carrinho
+ * ## No limite, a ordem é a de ENTRADA no carrinho
  *
  * Previsível para quem opera e para quem confere o cupom. Dar a promoção às
  * unidades mais caras primeiro renderia mais ao cliente, mas tornaria o cupom
  * impossível de explicar no balcão — e com preço final, que é o formato do
  * cartaz, as variações custam o mesmo de qualquer jeito.
+ *
+ * O KIT do combo é o contrário, e de propósito: as mais caras formam o kit (ver
+ * `allocateCombo`). Ali a escolha muda quanto o cliente paga, e o servidor confere
+ * o total do kit reordenando as unidades — outra ordem aqui daria kits diferentes
+ * dos dele, e um alerta em `logs` a cada venda.
  *
  * @param lines Linhas do carrinho, na ordem em que foram bipadas.
  * @param promotions Promoções da base local.
@@ -133,9 +158,22 @@ export function allocatePromotions(
   released: readonly number[] = [],
 ): PromotionAllocationResult[] {
   const consumidoPorPromocao = new Map<number, number>();
+  const combos = new Map<number, { combo: LocalPromotion; linhas: ComboLineInput[] }>();
 
-  return lines.map((line) => {
-    const promocao = resolvePromotion(promotions, line.productGroupId, instant);
+  const resultado = lines.map((line, index): PromotionAllocationResult => {
+    const unitaria = resolvePromotion(promotions, line.productGroupId, instant);
+    const combo =
+      unitaria?.type === PROMOTION_TYPE.Flash ? null : resolveCombo(promotions, line.productGroupId, instant);
+
+    // O combo não se decide linha a linha: guarda e resolve depois, com o
+    // carrinho inteiro na mão.
+    if (combo) {
+      const grupo = combos.get(combo.id) ?? { combo, linhas: [] };
+      grupo.linhas.push({ index, listPrice: line.listPrice, quantity: line.quantity });
+      combos.set(combo.id, grupo);
+    }
+
+    const promocao = combo ? null : unitaria;
 
     if (!promocao) {
       return {
@@ -177,6 +215,28 @@ export function allocatePromotions(
       regularQuantity: line.quantity - promotionalQuantity,
     };
   });
+
+  for (const { combo, linhas } of combos.values()) {
+    const alocacoes = allocateCombo(linhas, combo, (listPrice) =>
+      round2(Math.max(0, listPrice - promotionalPrice(listPrice, combo))),
+    );
+
+    for (const linha of linhas) {
+      const alocacao = alocacoes.get(linha.index);
+      if (!alocacao) continue;
+
+      resultado[linha.index] = {
+        promotionId: alocacao.promotionalQuantity > 0 ? combo.id : null,
+        unitDiscount: round2(alocacao.unitDiscount),
+        promotionalQuantity: alocacao.promotionalQuantity,
+        regularQuantity: linha.quantity - alocacao.promotionalQuantity,
+        extraCentUnits: alocacao.extraCentUnits,
+        comboId: combo.id,
+      };
+    }
+  }
+
+  return resultado;
 }
 
 /**
@@ -214,13 +274,33 @@ export function applyPromotionsToCart(
       return;
     }
 
-    resultado.push({
-      ...item,
-      quantity: alocacao.promotionalQuantity,
-      discount: round2(manual + alocacao.unitDiscount),
-      promotionId: alocacao.promotionId,
-      promotionDiscount: alocacao.unitDiscount,
-    });
+    // O centavo do kit: "3 por R$ 20" em esmaltes de R$ 7,00 sai em duas linhas,
+    // duas unidades a R$ 6,67 e uma a R$ 6,66. O servidor aceita o mesmo produto
+    // com o mesmo combo em duas linhas porque o desconto por unidade difere.
+    const comCentavo = alocacao.extraCentUnits ?? 0;
+    const semCentavo = alocacao.promotionalQuantity - comCentavo;
+
+    if (semCentavo > 0) {
+      resultado.push({
+        ...item,
+        quantity: semCentavo,
+        discount: round2(manual + alocacao.unitDiscount),
+        promotionId: alocacao.promotionId,
+        promotionDiscount: alocacao.unitDiscount,
+      });
+    }
+
+    if (comCentavo > 0) {
+      const promotionDiscount = round2(alocacao.unitDiscount + 0.01);
+      resultado.push({
+        ...item,
+        id: semCentavo > 0 ? `${item.id}-centavo` : item.id,
+        quantity: comCentavo,
+        discount: round2(manual + promotionDiscount),
+        promotionId: alocacao.promotionId,
+        promotionDiscount,
+      });
+    }
 
     if (alocacao.regularQuantity > 0) {
       resultado.push({
@@ -271,6 +351,22 @@ export interface PromotionLineInfo {
   maxQuantityPerSale: number | null;
   /** O operador liberou o limite desta promoção nesta venda. */
   released: boolean;
+  /** Só no combo: o que o selo precisa para falar a língua do cartaz. */
+  combo?: PromotionComboInfo;
+}
+
+/** O combo que alcança a linha, como o selo o descreve. */
+export interface PromotionComboInfo {
+  /** Unidades do kit, ou o "a partir de". */
+  quantity: number;
+  /** Código de `PromotionDiscountType`: o preço do kit é "a cada N", os outros "a partir de N". */
+  discountType: number;
+  /** Preço do kit, percentual ou preço por unidade, conforme o tipo. */
+  discountValue: number;
+  /** Desconto da LINHA inteira, em R$ — no kit, os centavos não são iguais por unidade. */
+  lineDiscount: number;
+  /** Unidades que faltam no carrinho para o próximo kit, ou para o combo valer. */
+  missing: number;
 }
 
 /**
@@ -295,14 +391,45 @@ export function describePromotions(
   const info = new Map<string, PromotionLineInfo>();
   if (promotions.length === 0) return info;
 
-  const alocacoes = allocatePromotions(toAllocationInput(items), promotions, instant, released);
+  const entradas = toAllocationInput(items);
+  const alocacoes = allocatePromotions(entradas, promotions, instant, released);
 
   items.forEach((item, indice) => {
     const alocacao = alocacoes[indice];
-    if (alocacao.promotionId == null) return;
+    const promotionId = alocacao.promotionId ?? alocacao.comboId;
+    if (promotionId == null) return;
 
-    const promocao = promotions.find((candidate) => candidate.id === alocacao.promotionId);
+    const promocao = promotions.find((candidate) => candidate.id === promotionId);
     if (!promocao) return;
+
+    if (alocacao.comboId != null) {
+      // O combo aparece MESMO antes de fechar o kit: é o que o operador diz ao
+      // cliente que pegou dois esmaltes — "leve mais um e sai por R$ 20".
+      const unidadesNoCombo = alocacoes.reduce(
+        (soma, outra, posicao) => (outra.comboId === promocao.id ? soma + entradas[posicao].quantity : soma),
+        0,
+      );
+
+      info.set(item.id, {
+        promotionId: promocao.id,
+        type: promocao.type,
+        promotionalQuantity: alocacao.promotionalQuantity,
+        regularQuantity: alocacao.regularQuantity,
+        unitDiscount: alocacao.unitDiscount,
+        maxQuantityPerSale: null,
+        released: false,
+        combo: {
+          quantity: promocao.comboQuantity ?? 0,
+          discountType: promocao.discountType,
+          discountValue: promocao.discountValue,
+          lineDiscount: round2(
+            alocacao.unitDiscount * alocacao.promotionalQuantity + 0.01 * (alocacao.extraCentUnits ?? 0),
+          ),
+          missing: missingForCombo(promocao, unidadesNoCombo),
+        },
+      });
+      return;
+    }
 
     info.set(item.id, {
       promotionId: promocao.id,

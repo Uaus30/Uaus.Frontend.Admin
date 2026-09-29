@@ -169,6 +169,13 @@ export interface PdvSnapshotPromotion {
   id: number;
   productGroupId: number;
   /**
+   * Os grupos que a promoção alcança: os do combo, ou o grupo único das outras
+   * espécies. Ausente em backend anterior ao combo.
+   */
+  productGroupIds?: number[] | null;
+  /** Unidades que formam o combo. A API omite o campo fora do combo. */
+  comboQuantity?: number | null;
+  /**
    * Enum `PromotionType` da API. Aceita nulo pelo mesmo motivo que `EnumValue`
    * do `api-client` aceita: a API **omite o campo nulo** do JSON, e o tipo que
    * recusasse a ausência mentiria sobre o que chega pela rede. `toLocalPromotion`
@@ -193,11 +200,24 @@ export interface PdvSnapshotPromotion {
  */
 export interface LocalPromotion {
   id: number;
-  /** Grupo promovido. A promoção vale para todas as variações ativas dele. */
+  /** Grupo promovido. A promoção vale para todas as variações ativas dele. No combo, a capa. */
   productGroupId: number;
-  /** Código do enum `PromotionType`: 1 = Dia a Dia, 2 = Relâmpago. */
+  /**
+   * Os grupos que a promoção alcança — no combo, TODOS os que somam unidades.
+   *
+   * Opcional porque a base local gravada antes do combo volta sem o campo (a
+   * lista mora numa chave da `meta`, e só é trocada na próxima carga). Leia por
+   * `coveredGroupIds`, que cai no `productGroupId` quando ele falta.
+   */
+  productGroupIds?: number[];
+  /** Unidades que formam o combo (o "3" de "3 por R$ 20"). Nulo ou ausente fora dele. */
+  comboQuantity?: number | null;
+  /** Código do enum `PromotionType`: 1 = Dia a Dia, 2 = Relâmpago, 3 = Combo. */
   type: number;
-  /** Código do enum `PromotionDiscountType`: 1 = percentual, 2 = preço final. */
+  /**
+   * Código do enum `PromotionDiscountType`: 1 = percentual, 2 = preço final,
+   * 3 = preço do kit (só no combo).
+   */
   discountType: number;
   discountValue: number;
   /** Início da vigência, inclusivo, no formato local `"yyyy-MM-ddTHH:mm:ss"`. */

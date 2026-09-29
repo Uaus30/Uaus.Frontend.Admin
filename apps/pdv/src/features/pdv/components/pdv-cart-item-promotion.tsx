@@ -6,6 +6,7 @@ import { PROMOTION_TYPE } from "@workspace/api-client-react";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import type { PromotionLineInfo } from "@/lib/promotions";
 import { ConfirmActionDialog } from "./confirm-action-dialog";
+import { PdvCartItemComboChip } from "./pdv-cart-item-combo";
 
 /**
  * O selo da promoção na linha do carrinho.
@@ -44,6 +45,18 @@ export function PdvCartItemPromotionChip({ info, productName }: PdvCartItemPromo
   const [confirmarLiberacao, setConfirmarLiberacao] = useState(false);
 
   if (!info) return null;
+
+  // O combo fala outra língua — "3 por R$ 20", "falta 1" — e não tem limite para
+  // liberar.
+  if (info.combo) {
+    return (
+      <PdvCartItemComboChip
+        combo={info.combo}
+        promotionalQuantity={info.promotionalQuantity}
+        regularQuantity={info.regularQuantity}
+      />
+    );
+  }
 
   const relampago = info.type === PROMOTION_TYPE.Flash;
   const parcial = info.regularQuantity > 0;

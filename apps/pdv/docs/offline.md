@@ -543,6 +543,7 @@ Para inspecionar: DevTools → Application → IndexedDB → `uaus-pdv-offline`.
 | Mudar a relevância da busca local        | `offline/catalog.ts` → `filterProducts` (tem teste)                                                       |
 | Mudar a regra do cupom offline           | `offline/coupons.ts` → `resolveLocalCoupon` (tem teste) — leia "Estourar o limite offline é ACEITO" antes |
 | Mudar como a promoção abate no carrinho  | `lib/promotions.ts` → `allocatePromotions` (tem teste) — o limite por venda divide a linha ali            |
+| Mudar a conta do combo/kit               | `lib/combo-promotions.ts` → `allocateCombo` (tem teste), espelhando `PromotionRules.ComboDiscount` da API |
 | Mudar o que a venda envia de cupom       | `offline/sync.ts` → `toCouponBody` (tem teste)                                                            |
 | Mudar o fallback da busca de produtos    | `lib/product-search.ts` → `searchProducts` (tem teste)                                                    |
 | Mudar a regra de estoque offline         | `offline/stock.ts` → `findStockShortages` (tem teste)                                                     |

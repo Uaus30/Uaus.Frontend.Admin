@@ -204,6 +204,25 @@ parágrafo que alguém reescreve à mão toda semana.
 O preço do prompt vem da **prévia**, não do percentual digitado: é a mesma conta
 que vale no balcão, e montá-la aqui seria a segunda implementação do preço.
 
+### 17. O combo: o preço é da quantidade, e o modo é o tipo de desconto
+
+"3 esmaltes Risqué ou Impala por R$ 20" (29/09/2026). O combo escolhe **vários
+produtos**, e as unidades de todos somam. "A cada N itens" é o **preço do kit**
+— a sobra sai a preço normal —; "a partir de N itens" é **percentual ou preço por
+unidade**, e vale para todas quando a soma chega a N. Não há campo de modo: o
+modo é o tipo de desconto, e o seletor "Como vale" só troca um pelo outro
+(limpando o valor, que muda de natureza — "20" não pode virar 20%).
+
+`switchPromotionType` centraliza o que cada troca de tipo limpa: banner, horário e
+artes fora da relâmpago; limite e meta ao entrar no combo (o servidor recusa os
+dois ali); o preço do kit ao sair dele. O produto atravessa a troca — o escolhido
+vira o primeiro do combo, e o primeiro do combo vira o produto.
+
+Na prévia, o "promocional" do kit é o kit dividido pela quantidade (R$ 6,67), e a
+tela avisa que é referência: no caixa o kit fecha no centavo, em R$ 6,67, R$ 6,67
+e R$ 6,66. A regra do domínio — precedência, centavo, o que fica fora do combo —
+está em `Uaus.Docs/dominio/promocoes.md`.
+
 ## Estrutura
 
 - `promotion-route.ts`: os três caminhos numa entrada de rota só (`matchPath`),
@@ -216,6 +235,8 @@ que vale no balcão, e montá-la aqui seria a segunda implementação do preço.
 - `components/PromotionEditorScreen.tsx`: cadastro/detalhe em TELA (não modal) —
   a URL é compartilhável e a aba Performance da fase 2 precisa do espaço.
 - `components/PromotionPricePanel.tsx`: o efeito no preço, ao lado do formulário.
+- `components/PromotionComboFields.tsx`: os produtos, o modo, a quantidade e o valor
+  do combo.
 - `components/ProductGroupPicker.tsx`: busca do produto, reusando `useGetProductTable`.
 - `components/PromotionSituationBadge.tsx`: cor **com** ícone e palavra, nunca só cor.
 - `components/PromotionPerformanceTab.tsx`: a aba Performance — nota (relâmpago)

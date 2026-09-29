@@ -51,6 +51,19 @@ export interface PromotionForm {
   feedImage: PromotionArtwork | null;
   /** Arte 9:16 para os Stories. */
   storyImage: PromotionArtwork | null;
+  /**
+   * Os produtos do combo, na ordem escolhida — o primeiro é a capa. Vazia fora do
+   * combo, cujo produto é `productGroupId`.
+   */
+  comboGroups: PromotionComboGroup[];
+  /** Unidades que formam o combo (o "3" de "3 por R$ 20"), como foi digitado. */
+  comboQuantity: string;
+}
+
+/** Um produto escolhido para o combo. */
+export interface PromotionComboGroup {
+  id: number;
+  name: string;
 }
 
 /**

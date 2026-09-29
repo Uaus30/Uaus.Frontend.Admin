@@ -158,7 +158,12 @@ export const getGetPromotionPreviewQueryKey = (): QueryKey => ["PromotionPreview
 
 /** Parâmetros da prévia: o que o formulário está compondo neste momento. */
 export interface PromotionPreviewParams {
+  /** O grupo da capa — no combo, o primeiro escolhido. */
   productGroupId?: number;
+  /** No combo, todos os grupos que somam unidades. */
+  productGroupIds?: number[];
+  /** No combo, as unidades do kit. É ela que diz ao servidor que a prévia é de combo. */
+  comboQuantity?: number | null;
   discountType?: PromotionDiscountTypeCode;
   discountValue?: number;
   /** Meta de unidades, para projetar o investimento. Opcional. */
@@ -191,14 +196,28 @@ export function useGetPromotionPreview(
     queryKey: [...getGetPromotionPreviewQueryKey(), params],
     enabled,
     queryFn: () =>
-      apiGetOrThrow<PromotionPreviewDto>("/Promotions/preview", {
+      apiGetOrThrow<PromotionPreviewDto>(`/Promotions/preview${comboGroupsQuery(params.productGroupIds)}`, {
         productGroupId: params.productGroupId,
         discountType: params.discountType,
         discountValue: params.discountValue ?? 0,
         targetQuantity: params.targetQuantity ?? undefined,
+        comboQuantity: params.comboQuantity ?? undefined,
       }),
     ...options?.query,
   });
+}
+
+/**
+ * Os grupos do combo como chave REPETIDA (`?productGroupIds=1&productGroupIds=2`),
+ * que é o que o ASP.NET lê como `long[]`.
+ *
+ * Montada aqui, e não pelo `buildUrl`: ele serializa array como "1,2" de
+ * propósito (ver o teste dele), e o endpoint que precisa da chave repetida monta a
+ * query por fora.
+ */
+function comboGroupsQuery(productGroupIds?: number[]): string {
+  const ids = (productGroupIds ?? []).filter((id) => id > 0);
+  return ids.length === 0 ? "" : `?${ids.map((id) => `productGroupIds=${id}`).join("&")}`;
 }
 
 /**
