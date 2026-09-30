@@ -64,9 +64,12 @@ não são erro de cadastro, são mercadoria que não sai. "Parou de vender" é c
 (`neutro`): é para olhar, não para consertar.
 
 **"Ignorar parado com saldo menor que 2"** (`ignoreSingleUnits`, ligado por
-padrão) esconde essas duas etiquetas em variação com uma unidade só — livro de
-título único, peça única, que fica meses na prateleira por natureza — e some com
-a linha que ficar sem etiqueta. É local, como o filtro: o servidor manda tudo, e
+padrão) esconde essas duas etiquetas no cadastro com uma unidade só **no total**
+(`row.stock`, somado das variações) — livro de título único, peça única, que
+fica meses na prateleira por natureza — e some com a linha que ficar sem
+etiqueta. É o saldo do cadastro, e não da variação (decisão do dono,
+30/09/2026): uma camiseta com P, M e G de uma unidade cada tem três peças
+paradas, e aparece. É local, como o filtro: o servidor manda tudo, e
 as pastilhas e o total se recontam sobre o que sobrou (`IDLE_TYPES`,
 `IDLE_MIN_STOCK`, `isSingleUnitIdle` em `lib/anomalies.ts`). Nas outras
 etiquetas o saldo não importa: uma unidade com preço errado continua errada.

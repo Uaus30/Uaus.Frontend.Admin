@@ -165,12 +165,15 @@ function dias(valor: number | null | undefined): string {
 }
 
 /**
- * O produto parado que o interruptor esconde: uma unidade só (título único,
- * peça única). Vale só para as etiquetas de produto parado — nas outras, uma
- * unidade com preço errado continua errada.
+ * O produto parado que o interruptor esconde: cadastro com uma unidade só
+ * (título único, peça única). O saldo é o do CADASTRO, somado das variações
+ * (decisão do dono, 30/09/2026): uma camiseta com P, M e G de uma unidade cada
+ * tem três peças paradas, e é capital parado que ele quer ver. Vale só para as
+ * etiquetas de produto parado — nas outras, uma unidade com preço errado
+ * continua errada.
  */
-export function isSingleUnitIdle(anomaly: ProductAnomalyDto): boolean {
-  return IDLE_TYPES.has(anomaly.type) && (anomaly.stock ?? 0) < IDLE_MIN_STOCK;
+export function isSingleUnitIdle(anomaly: ProductAnomalyDto, row: ProductAnomalyRowDto): boolean {
+  return IDLE_TYPES.has(anomaly.type) && row.stock < IDLE_MIN_STOCK;
 }
 
 /** "1 a cada 10" — a fatia do produto nas vendas da loja, em linguagem de balcão. */
