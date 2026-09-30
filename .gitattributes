@@ -15,6 +15,7 @@
 # Binário: nunca normalizar, ou o arquivo corrompe.
 *.png binary
 *.jpg binary
+*.webp binary
 *.jpeg binary
 *.gif binary
 *.ico binary
