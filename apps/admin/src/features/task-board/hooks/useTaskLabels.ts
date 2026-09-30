@@ -16,7 +16,9 @@ import { priorityCode } from "../board";
 import type { TaskLabelForm } from "../types";
 
 function emptyForm(): TaskLabelForm {
-  return { name: "", color: "blue", priority: TASK_LABEL_PRIORITY.Normal };
+  // Sem prioridade por padrão: etiqueta que só classifica ("Cadastro", "Pedido
+  // de cliente") não tem urgência, e fica abaixo das que têm.
+  return { name: "", color: "blue", priority: TASK_LABEL_PRIORITY.None };
 }
 
 /**

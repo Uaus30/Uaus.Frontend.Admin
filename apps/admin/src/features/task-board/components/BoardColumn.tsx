@@ -45,12 +45,13 @@ export function BoardColumn({
     <section
       aria-label={column.title}
       className={cn(
-        "flex max-h-full w-[85vw] shrink-0 snap-center flex-col rounded-xl border border-t-4 border-border/50 bg-background/75 shadow-lg backdrop-blur-md sm:w-72",
-        column.ring,
+        // `overflow-hidden` recorta o cabeçalho na curva do canto: sem isso a
+        // tinta dele vazava por cima da borda e da sombra da coluna.
+        "flex max-h-full w-[85vw] shrink-0 snap-center flex-col overflow-hidden rounded-xl border border-border/50 bg-background/75 shadow-lg backdrop-blur-md sm:w-72",
         isOver && "ring-2 ring-primary/50",
       )}
     >
-      <header className={cn("flex items-center gap-2 rounded-t-lg px-3 py-2.5", column.header)}>
+      <header className={cn("flex items-center gap-2 border-t-4 px-3 py-2.5", column.ring, column.header)}>
         <span className={cn("h-2.5 w-2.5 rounded-full", column.dot)} />
         <h2 className="text-sm font-semibold text-foreground">{column.title}</h2>
         <span className="ml-auto rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
