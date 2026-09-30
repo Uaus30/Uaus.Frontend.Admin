@@ -1,5 +1,5 @@
 /**
- * BI › Site (`/SiteMetrics`) — as métricas de acesso da loja online.
+ * BI › Analytics (`/SiteMetrics`) — as métricas de acesso da loja online.
  *
  * Um endpoint só: hoje ao vivo, o período pedido, a série diária e as listas
  * saem do mesmo varrimento. Campo anulável é declarado opcional: com
@@ -141,7 +141,7 @@ export interface ApiAccessIpDto {
 
 /**
  * Quem bateu na API sem token — robô, scanner e quem chama direto, que o
- * coletor do site não vê. É a aba "Acessos à API" de BI › Site.
+ * coletor do site não vê. É a aba "Acessos à API" de BI › Analytics.
  */
 export interface ApiAccessOverviewDto {
   startDate: string;

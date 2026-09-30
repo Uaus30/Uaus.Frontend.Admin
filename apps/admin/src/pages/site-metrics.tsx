@@ -23,7 +23,7 @@ import { SiteApiAccess } from "@/features/site-metrics/components/SiteApiAccess"
 import { formatFullDate, SITE_PERIODS, type SitePeriodDays } from "@/features/site-metrics/lib/site-metrics";
 
 /**
- * BI › Site.
+ * BI › Analytics.
  *
  * Responde, nesta ordem, as perguntas do dono: tem alguém no site agora? Como
  * foi hoje? Quantos vieram no período, de quantos IPs, por quanto tempo, o que
@@ -38,7 +38,7 @@ export default function SiteMetricsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[27px] font-semibold tracking-tight">Site</h1>
+          <h1 className="text-[27px] font-semibold tracking-tight">Analytics</h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
             <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
               {tela.periodLabel}

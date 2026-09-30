@@ -11,7 +11,7 @@ import {
 export const SITE_METRICS_REFRESH_MS = 60_000;
 
 /**
- * Estado da tela BI › Site.
+ * Estado da tela BI › Analytics.
  *
  * O período vai ao SERVIDOR e é sempre "os últimos N dias contando hoje": a
  * pergunta do dono é "como está agora e como estava", não um recorte

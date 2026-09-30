@@ -286,6 +286,15 @@ export const ROUTES: AppRoute[] = [
   // que alguém consegue prever é a do alfabeto. Tela nova entra na posição
   // alfabética, não no fim.
   {
+    // As métricas de acesso da loja online. Lista IPs de visitantes: só Admin,
+    // como o resto do grupo. "Analytics" é o nome que o dono usa (30/09/2026).
+    path: "/bi/analytics",
+    label: "Analytics",
+    group: "BI",
+    component: SiteMetrics,
+    roles: SO_ADMIN,
+  },
+  {
     // Mostra custo e margem item a item, como as outras telas do grupo.
     path: "/bi/anomalias",
     label: "Anomalias",
@@ -334,14 +343,6 @@ export const ROUTES: AppRoute[] = [
     label: "O que trouxe lucro",
     group: "BI",
     component: ProfitLeaders,
-    roles: SO_ADMIN,
-  },
-  {
-    // Lista IPs de visitantes: só Admin, como o resto do grupo.
-    path: "/bi/site",
-    label: "Site",
-    group: "BI",
-    component: SiteMetrics,
     roles: SO_ADMIN,
   },
 

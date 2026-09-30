@@ -1,4 +1,4 @@
-# Site (`/bi/site`)
+# Analytics (`/bi/analytics`)
 
 As métricas de acesso da loja online (uaus.com.br): quem está no site agora,
 como foi hoje, quantos vieram no período, de quantos IPs, por quanto tempo, o

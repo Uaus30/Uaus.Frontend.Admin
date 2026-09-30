@@ -31,8 +31,8 @@ const RESTRITAS = [
   "/marketing/campanhas/comparativo",
   // Promoções expõe custo e margem item a item, como as telas de BI.
   "/marketing/promocoes",
-  // BI › Site lista IPs de visitantes.
-  "/bi/site",
+  // BI › Analytics lista IPs de visitantes.
+  "/bi/analytics",
 ];
 
 describe("declaração das rotas", () => {
@@ -125,22 +125,22 @@ describe("podeAcessar", () => {
     const nomes = bi?.items?.map((s) => s.name) ?? [];
 
     expect(nomes).toEqual([
+      "Analytics",
       "Anomalias",
       "Curva ABC de Produtos",
       "Desempenho de Fornecedores",
       "Desempenho de Produtos",
       "O que mudou",
       "O que trouxe lucro",
-      "Site",
     ]);
     expect(bi?.items?.map((s) => s.href)).toEqual([
+      "/bi/analytics",
       "/bi/anomalias",
       "/bi/curva-abc",
       "/bi/fornecedores",
       "/bi/produtos",
       "/bi/o-que-mudou",
       "/bi/o-que-trouxe-lucro",
-      "/bi/site",
     ]);
 
     const alfabetica = [...nomes].sort((a, b) =>
