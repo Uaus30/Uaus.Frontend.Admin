@@ -44,7 +44,7 @@ export function LabelsPicker({ labels, selectedIds, onToggle, onManage, disabled
                   <button
                     type="button"
                     onClick={() => onToggle(label.id)}
-                    className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-accent"
+                    className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-foreground/10"
                   >
                     <span
                       className={cn(
@@ -118,7 +118,7 @@ export function MembersPicker({ users, selectedIds, onToggle, disabled }: Member
                 <button
                   type="button"
                   onClick={() => onToggle(user.userId)}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/10"
                 >
                   <span className="flex-1 truncate">
                     {user.firstName}{" "}

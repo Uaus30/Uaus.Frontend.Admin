@@ -325,12 +325,20 @@
  * A barra horizontal do quadro de tarefas. A barra global acima tem 6px com o
  * trilho na cor do fundo — sobre a imagem do quadro ela some, e o dono só
  * conseguia ir para o lado arrastando com o botão do meio. Aqui ela é mais
- * alta e clara sobre o fundo escuro. (Sem `scrollbar-gutter`: ele só reserva
- * a calha da barra VERTICAL, e aqui viraria uma faixa morta à direita.)
+ * alta e clara sobre o fundo escuro.
+ *
+ * SÓ as regras `::-webkit-scrollbar` no Chrome/Edge: quando `scrollbar-color`
+ * ou `scrollbar-width` (padrão CSS) estão presentes, o Chrome ignora as
+ * pseudo-classes webkit e desenha a barra nativa do sistema — que no Windows
+ * 11 é sobreposta e invisível até passar o mouse. Foi assim que a primeira
+ * versão continuou sem barra. O padrão CSS fica só para quem não tem webkit
+ * (Firefox). Sem `scrollbar-gutter`: ele só reserva a calha VERTICAL.
  */
-.board-scroll {
-  scrollbar-width: auto;
-  scrollbar-color: hsl(var(--foreground) / 0.45) hsl(var(--background) / 0.35);
+@supports not selector(::-webkit-scrollbar) {
+  .board-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: hsl(var(--foreground) / 0.45) hsl(var(--background) / 0.35);
+  }
 }
 .board-scroll::-webkit-scrollbar {
   height: 12px;

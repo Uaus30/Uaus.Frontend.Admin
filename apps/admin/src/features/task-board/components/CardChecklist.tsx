@@ -130,7 +130,7 @@ function ChecklistRow({ item, onToggle, onRename, onDelete }: ChecklistRowProps)
   }
 
   return (
-    <li className="group/item flex items-start gap-2 rounded-md px-1 py-1 hover:bg-accent/50">
+    <li className="group/item flex items-start gap-2 rounded-md px-1 py-1 hover:bg-foreground/[0.06]">
       <Checkbox
         checked={item.isDone}
         onCheckedChange={() => onToggle(item)}
