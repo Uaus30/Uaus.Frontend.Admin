@@ -12,7 +12,9 @@ interface QuickAddCardProps {
 /**
  * O "+ Adicionar um cartão" do rodapé da coluna, como no Trello: vira uma caixa
  * de texto, Enter cria e mantém a caixa aberta para o próximo (registrar várias
- * demandas em sequência é o caso comum), Esc fecha.
+ * demandas em sequência é o caso comum), Esc ou clicar fora fecha. O texto
+ * digitado fica guardado: reabrir mostra o rascunho, em vez de perdê-lo por um
+ * clique fora sem querer.
  */
 export function QuickAddCard({ columnTitle, onAdd, isAdding }: QuickAddCardProps) {
   const [open, setOpen] = useState(false);
@@ -36,6 +38,11 @@ export function QuickAddCard({ columnTitle, onAdd, isAdding }: QuickAddCardProps
     setTitle("");
   }
 
+  /** Clicou fora da caixa (o foco saiu do formulário): fecha e guarda o rascunho. */
+  function handleBlur(event: React.FocusEvent<HTMLDivElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+  }
+
   if (!open) {
     return (
       <button
@@ -50,7 +57,7 @@ export function QuickAddCard({ columnTitle, onAdd, isAdding }: QuickAddCardProps
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" onBlur={handleBlur}>
       <Textarea
         ref={textareaRef}
         value={title}
@@ -68,7 +75,16 @@ export function QuickAddCard({ columnTitle, onAdd, isAdding }: QuickAddCardProps
         className="resize-none bg-card/95 text-sm"
       />
       <div className="flex items-center gap-1">
-        <Button type="button" size="sm" onClick={() => void submit()} disabled={isAdding || !title.trim()}>
+        {/* onMouseDown com preventDefault: o clique no botão não pode tirar o foco
+            da caixa antes do click — em navegador que não foca botão, o blur
+            fecharia a caixa e o click nunca chegaria. */}
+        <Button
+          type="button"
+          size="sm"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => void submit()}
+          disabled={isAdding || !title.trim()}
+        >
           {isAdding ? "Adicionando…" : "Adicionar"}
         </Button>
         <Button
@@ -76,6 +92,7 @@ export function QuickAddCard({ columnTitle, onAdd, isAdding }: QuickAddCardProps
           size="icon"
           variant="ghost"
           className="h-8 w-8"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={close}
           aria-label="Cancelar"
         >

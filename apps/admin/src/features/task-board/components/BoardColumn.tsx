@@ -51,10 +51,19 @@ export function BoardColumn({
         isOver && "ring-2 ring-primary/50",
       )}
     >
-      <header className={cn("flex items-center gap-2 border-t-4 px-3 py-2.5", column.ring, column.header)}>
-        <span className={cn("h-2.5 w-2.5 rounded-full", column.dot)} />
-        <h2 className="text-sm font-semibold text-foreground">{column.title}</h2>
-        <span className="ml-auto rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+      {/* Fundo OPACO (bg-card) com o tom da coluna numa camada por cima: o
+          corpo da coluna é translúcido e a imagem atravessava o cabeçalho,
+          apagando a cor da etapa. */}
+      <header
+        className={cn(
+          "relative flex items-center gap-2 border-b border-t-4 border-b-border/60 bg-card px-3 py-2.5",
+          column.ring,
+        )}
+      >
+        <span aria-hidden className={cn("pointer-events-none absolute inset-0", column.header)} />
+        <span className={cn("relative h-2.5 w-2.5 rounded-full", column.dot)} />
+        <h2 className="relative text-sm font-semibold text-foreground">{column.title}</h2>
+        <span className="relative ml-auto rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
           {cards.length}
         </span>
       </header>

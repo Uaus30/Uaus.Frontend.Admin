@@ -77,7 +77,7 @@ export function TaskSearchBox({
                     onOpen(card.id);
                     onClear();
                   }}
-                  className="flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                  className="flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left hover:bg-foreground/10 focus-visible:bg-foreground/10 focus-visible:outline-none"
                 >
                   <span className="text-sm font-medium text-foreground">
                     <span className="mr-1.5 font-mono text-xs text-muted-foreground">#{card.number}</span>

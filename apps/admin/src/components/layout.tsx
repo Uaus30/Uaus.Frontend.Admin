@@ -16,6 +16,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   Button,
+  cn,
 } from "@workspace/ui";
 import { ChevronDown, ExternalLink, Loader2, LogOut, Store } from "lucide-react";
 import { STALE_TIME, useGetMe, useLogout } from "@workspace/api-client-react";
@@ -231,7 +232,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 min-w-0">
+        {/* Em rota `fullBleed` a coluna ganha altura FIXA (h-svh): o wrapper do
+            SidebarProvider tem só min-h-svh, e sem o teto a página cresceria com
+            o conteúdo do quadro e a barra horizontal iria parar abaixo da tela. */}
+        <div className={cn("flex flex-col flex-1 min-w-0", fullBleed && "h-svh overflow-hidden")}>
           <header className="h-16 flex items-center px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
             <SidebarTrigger className="hover-elevate mr-4" />
             <div className="flex flex-col justify-center select-none" data-testid="header-version">
