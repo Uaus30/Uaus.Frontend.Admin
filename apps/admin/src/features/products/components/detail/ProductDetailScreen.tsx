@@ -101,8 +101,9 @@ function impedirEnvioPeloEnter(event: React.KeyboardEvent<HTMLFormElement>) {
  *
  * - **Dados** — o que o cadastro do dia a dia preenche e sem o que não salva.
  * - **Estoque** — o histórico de entradas do produto e o lançamento rápido.
- * - **Vendas** — as saídas: cada venda que levou o produto (30/09/2026).
  * - **Opcionais** — o que era o olho fechado.
+ * - **Vendas** — as saídas: cada venda que levou o produto (30/09/2026),
+ *   penúltima, depois de Desempenho.
  *
  * O `<form>` envolve as três: o salvar do cabeçalho vale de qualquer aba, e
  * quem troca de aba com alterações pendentes não as perde.
@@ -390,14 +391,15 @@ export function ProductDetailScreen({
               <TabsTrigger value="estoque" disabled={cadastroNovo}>
                 Estoque
               </TabsTrigger>
-              <TabsTrigger value="vendas" disabled={cadastroNovo}>
-                Vendas
-              </TabsTrigger>
               <TabsTrigger value="opcionais" disabled={cadastroNovo}>
                 Opcionais
               </TabsTrigger>
               <TabsTrigger value="desempenho" disabled={cadastroNovo}>
                 Desempenho
+              </TabsTrigger>
+              {/* Penúltima, depois de Desempenho (pedido do dono, 30/09/2026). */}
+              <TabsTrigger value="vendas" disabled={cadastroNovo}>
+                Vendas
               </TabsTrigger>
               <TabsTrigger value="historico" disabled={cadastroNovo}>
                 Histórico

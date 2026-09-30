@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { buildContactMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
+import { trackContactClick } from "@/lib/metrics";
 
 export interface ContactFormFields {
   name: string;
@@ -71,6 +72,7 @@ export function useContactForm(
 
     if (Object.values(validation).some(Boolean)) return;
 
+    trackContactClick("formulario");
     openUrl(
       buildWhatsAppUrl(
         buildContactMessage({
