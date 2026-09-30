@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { relatorio } from "../../__tests__/fixtures";
+import { livro, relatorio, vaso } from "../../__tests__/fixtures";
 
 const mocks = vi.hoisted(() => ({ useGetProductAnomalies: vi.fn(), refetch: vi.fn() }));
 
@@ -70,6 +70,48 @@ describe("useProductAnomalies", () => {
 
     act(() => result.current.setSearch("a"));
     expect(result.current.items.map((x) => x.productGroupId)).toEqual([22, 851, 1]);
+  });
+
+  it("o interruptor esconde o parado de uma unidade só e reconta as pastilhas; desligado, mostra tudo", () => {
+    mocks.useGetProductAnomalies.mockReturnValue({
+      data: { ...relatorio, items: [...relatorio.items, livro, vaso] },
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: mocks.refetch,
+    });
+    const { result } = renderHook(() => useProductAnomalies());
+
+    // Ligado por padrão: o livro some inteiro; o vaso (7 unidades) fica.
+    expect(result.current.ignoreSingleUnits).toBe(true);
+    expect(result.current.items.map((x) => x.productGroupId)).toEqual([22, 851, 1, 510]);
+    expect(result.current.total).toBe(4);
+    expect(result.current.counts.get("NeverSold")).toBeUndefined();
+    expect(result.current.counts.get("NoRecentSales")).toBe(1);
+    expect(result.current.counts.get("MissingPhoto")).toBe(2);
+
+    act(() => result.current.setIgnoreSingleUnits(false));
+    expect(result.current.items.map((x) => x.productGroupId)).toEqual([22, 851, 1, 402, 510]);
+    expect(result.current.total).toBe(5);
+    expect(result.current.counts.get("NeverSold")).toBe(1);
+  });
+
+  it("linha com o parado de uma unidade E outra etiqueta perde só a etiqueta, não a linha", () => {
+    const livroSemFoto = { ...livro, anomalies: [{ type: "MissingPhoto" as const }, ...livro.anomalies] };
+    mocks.useGetProductAnomalies.mockReturnValue({
+      data: { ...relatorio, items: [livroSemFoto] },
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: mocks.refetch,
+    });
+    const { result } = renderHook(() => useProductAnomalies());
+
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0]!.anomalies.map((a) => a.type)).toEqual(["MissingPhoto"]);
+    expect(result.current.counts.get("NeverSold")).toBeUndefined();
   });
 
   it("sem resposta ainda, lista vazia sem quebrar", () => {

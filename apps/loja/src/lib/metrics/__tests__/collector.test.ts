@@ -181,6 +181,21 @@ describe("MetricsCollector", () => {
     });
   });
 
+  it("aba aberta em segundo plano só começa a contar quando aparece", () => {
+    const t = setup();
+    t.setVisible(false); // "abrir em nova aba": a página nasce oculta
+    const c = new MetricsCollector(t.deps);
+    c.pageView("/produtos/:id", 905);
+
+    t.advance(10 * 60_000); // dez minutos esquecida atrás da aba atual
+    t.setVisible(true);
+    c.visible();
+    t.advance(2_000);
+    c.leave();
+
+    expect(t.events().find((e) => e.type === "page_leave")).toMatchObject({ durationMs: 2_000 });
+  });
+
   it("ficar oculta com a fila vazia ainda marca a sessão como viva", () => {
     const t = setup();
     const c = new MetricsCollector(t.deps);

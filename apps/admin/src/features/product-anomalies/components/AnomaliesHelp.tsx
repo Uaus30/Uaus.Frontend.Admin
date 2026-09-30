@@ -1,7 +1,7 @@
-import { ClipboardCheck, Ghost, HelpCircle, ListChecks } from "lucide-react";
+import { ClipboardCheck, Ghost, HelpCircle, Hourglass, ListChecks } from "lucide-react";
 import type { ProductAnomalyRulesDto } from "@workspace/api-client-react";
 import { BiHelpDialog, BiHelpTerm } from "@/components/bi-help-dialog";
-import { ANOMALY_ORDER, anomalyMeta } from "../lib/anomalies";
+import { ANOMALY_ORDER, IDLE_MIN_STOCK, anomalyMeta } from "../lib/anomalies";
 
 /**
  * O manual da tela. A regra do estoque fantasma é escrita com os números que o
@@ -53,7 +53,8 @@ export function AnomaliesHelp({ rules }: { rules: ProductAnomalyRulesDto }) {
                 </BiHelpTerm>
               ))}
               <p className="mt-1">
-                Vermelho é o que perde dinheiro ou trava a venda agora; âmbar é o que pede atenção.
+                Vermelho é o que perde dinheiro ou trava a venda agora; âmbar é o que pede atenção; cinza é
+                para olhar, não para consertar.
               </p>
             </div>
           ),
@@ -94,6 +95,34 @@ export function AnomaliesHelp({ rules }: { rules: ProductAnomalyRulesDto }) {
                 É suspeita, não certeza — a contagem da prateleira decide. A contagem física não entra na
                 conta: se ela zerar o saldo, o produto sai da lista; se confirmar o saldo, ele fica até vender
                 ou até as unidades serem baixadas.
+              </p>
+            </div>
+          ),
+        },
+        {
+          title: "Produto parado: nunca vendeu, ou parou",
+          icon: Hourglass,
+          body: (
+            <div className="flex flex-col gap-2">
+              <p>
+                As duas últimas etiquetas não são erro de cadastro: são mercadoria que não sai.{" "}
+                <strong className="text-foreground/85">Nunca vendeu</strong> é o produto comprado há mais de{" "}
+                {rules.idleDays} dias, com saldo, sem uma venda sequer — contado da primeira compra, e uma
+                reposição por cima não zera a conta.{" "}
+                <strong className="text-foreground/85">Parou de vender</strong> é o que já vendeu, tem saldo,
+                e está há mais de {rules.idleDays} dias sem venda.
+              </p>
+              <p>
+                Só entra produto que o balcão vende (Ativo ou “Sem estoque”) e com saldo. Rascunho e inativo
+                já têm a própria etiqueta.
+              </p>
+              <p>
+                O interruptor{" "}
+                <strong className="text-foreground/85">
+                  “Ignorar parado com saldo menor que {IDLE_MIN_STOCK}”
+                </strong>{" "}
+                esconde essas duas etiquetas em variação com uma unidade só — livro de título único, peça
+                única — que fica meses na prateleira por natureza. Vem ligado; desligue para ver tudo.
               </p>
             </div>
           ),

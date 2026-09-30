@@ -24,6 +24,8 @@ function tela(overrides: Record<string, unknown> = {}) {
     toggleType: vi.fn(),
     clearType: vi.fn(),
     isFiltered: false,
+    ignoreSingleUnits: true,
+    setIgnoreSingleUnits: vi.fn(),
     isLoading: false,
     isFetching: false,
     isError: false,

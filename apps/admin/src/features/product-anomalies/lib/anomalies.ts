@@ -1,11 +1,13 @@
 import {
   AlertTriangle,
   Archive,
+  CalendarClock,
   CircleDollarSign,
   Copy,
   EyeOff,
   FilePen,
   Ghost,
+  Hourglass,
   ImageOff,
   PackageX,
   TrendingDown,
@@ -47,7 +49,19 @@ export const ANOMALY_ORDER: ProductAnomalyTypeName[] = [
   "MissingPhoto",
   "HiddenFromStorefront",
   "DuplicateName",
+  "NeverSold",
+  "NoRecentSales",
 ];
+
+/**
+ * As etiquetas de produto parado — as que o interruptor "ignorar saldo menor
+ * que 2" esconde. Um livro de título único fica um ano na prateleira sem
+ * vender, e não é anomalia: é o negócio (pedido do dono, 30/09/2026).
+ */
+export const IDLE_TYPES: ReadonlySet<ProductAnomalyTypeName> = new Set(["NeverSold", "NoRecentSales"]);
+
+/** Saldo a partir do qual o produto parado conta, com o interruptor ligado. */
+export const IDLE_MIN_STOCK = 2;
 
 export const ANOMALY_META: Record<ProductAnomalyTypeName, AnomalyMeta> = {
   PriceBelowCost: {
@@ -104,6 +118,18 @@ export const ANOMALY_META: Record<ProductAnomalyTypeName, AnomalyMeta> = {
     tone: "atencao",
     fix: "Diferencie os nomes (referência, volume, cor): no balcão, as duas linhas ficam idênticas.",
   },
+  NeverSold: {
+    label: "Nunca vendeu",
+    icon: Hourglass,
+    tone: "atencao",
+    fix: "Confira se está na gôndola e com preço. Se não vai sair, promova ou dê baixa — capital parado.",
+  },
+  NoRecentSales: {
+    label: "Parou de vender",
+    icon: CalendarClock,
+    tone: "neutro",
+    fix: "Confira a gôndola e o preço; se a procura passou, promova antes de repor.",
+  },
 };
 
 /**
@@ -131,6 +157,20 @@ export function anomalyRank(type: string): number {
 function unidades(valor: number | null | undefined): string {
   const quantidade = valor ?? 0;
   return `${formatQuantity(quantidade)} ${quantidade === 1 ? "unidade" : "unidades"}`;
+}
+
+function dias(valor: number | null | undefined): string {
+  const quantidade = valor ?? 0;
+  return `${formatQuantity(quantidade)} ${quantidade === 1 ? "dia" : "dias"}`;
+}
+
+/**
+ * O produto parado que o interruptor esconde: uma unidade só (título único,
+ * peça única). Vale só para as etiquetas de produto parado — nas outras, uma
+ * unidade com preço errado continua errada.
+ */
+export function isSingleUnitIdle(anomaly: ProductAnomalyDto): boolean {
+  return IDLE_TYPES.has(anomaly.type) && (anomaly.stock ?? 0) < IDLE_MIN_STOCK;
 }
 
 /** "1 a cada 10" — a fatia do produto nas vendas da loja, em linguagem de balcão. */
@@ -198,6 +238,16 @@ export function describeAnomaly(anomaly: ProductAnomalyDto, row: ProductAnomalyR
       return outros === 1
         ? "Outro cadastro tem o mesmo nome."
         : `Outros ${outros} cadastros têm o mesmo nome.`;
+    }
+    case "NeverSold": {
+      const compra = anomaly.firstPurchaseAt
+        ? ` Comprado em ${formatShortDate(anomaly.firstPurchaseAt)}`
+        : "";
+      return `${unidades(anomaly.stock)} na prateleira há ${dias(anomaly.daysWithoutSales)} e nenhuma venda.${compra ? `${compra}.` : ""}`;
+    }
+    case "NoRecentSales": {
+      const venda = anomaly.lastSaleAt ? ` Última venda em ${formatShortDate(anomaly.lastSaleAt)}.` : "";
+      return `${unidades(anomaly.stock)} e ${dias(anomaly.daysWithoutSales)} sem vender.${venda}`;
     }
     default:
       return anomalyMeta(anomaly.type).fix;

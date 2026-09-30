@@ -65,11 +65,19 @@ export interface AppRoute {
   hidden?: boolean;
   /** A rota é pública — não exige sessão. */
   publica?: boolean;
+  /**
+   * A página ocupa o `<main>` inteiro, sem o padding e o `max-w-7xl` do layout,
+   * e com a altura da área útil. É o que o quadro de tarefas precisa: fundo até
+   * as bordas e colunas que rolam por dentro. Fora daqui, toda tela é um
+   * documento centralizado que cresce para baixo.
+   */
+  fullBleed?: boolean;
 }
 
 const Login = lazy(() => import("@/pages/login"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
+const TaskBoard = lazy(() => import("@/pages/task-board"));
 const Products = lazy(() => import("@/pages/products"));
 const Departments = lazy(() => import("@/pages/departments"));
 const Categories = lazy(() => import("@/pages/categories"));
@@ -331,6 +339,12 @@ export const ROUTES: AppRoute[] = [
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },
   { path: "/clientes", label: "Clientes", icon: Users, component: Customers },
 
+  // Em "Sistema" por escolha do dono (30/09/2026), e primeiro do grupo: é a
+  // única tela dele que se abre todo dia. Sem `roles` de propósito — o quadro é
+  // da equipe inteira: o operador de caixa registra o pedido do cliente, o
+  // administrador registra o ajuste do sistema. É o que faz "Sistema" aparecer
+  // para o Vendedor só com este item.
+  { path: "/tarefas", label: "Tarefas", group: "Sistema", component: TaskBoard, fullBleed: true },
   {
     path: "/configuracoes",
     label: "Configurações",

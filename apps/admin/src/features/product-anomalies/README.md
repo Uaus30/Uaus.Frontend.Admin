@@ -53,6 +53,24 @@ etiqueta sem a conta seria uma acusação sem prova.
 novo no backend sem entrada aqui cai no `FALLBACK_META` ("Anomalia", neutra, no
 fim da ordem) em vez de estourar a rota pelo ErrorBoundary.
 
+## Produto parado: as duas etiquetas do fim (30/09/2026)
+
+Pedido do dono. **Nunca vendeu**: comprado há mais de 30 dias (`rules.idleDays`),
+com saldo, sem uma venda sequer — contado da PRIMEIRA compra, e uma reposição
+por cima não zera. **Parou de vender**: já vendeu, tem saldo, e a última venda
+foi há mais de 30 dias. Só produto que o balcão vende (Ativo ou "Sem estoque");
+rascunho e inativo já têm a própria etiqueta. As duas ficam no fim da ordem:
+não são erro de cadastro, são mercadoria que não sai. "Parou de vender" é cinza
+(`neutro`): é para olhar, não para consertar.
+
+**"Ignorar parado com saldo menor que 2"** (`ignoreSingleUnits`, ligado por
+padrão) esconde essas duas etiquetas em variação com uma unidade só — livro de
+título único, peça única, que fica meses na prateleira por natureza — e some com
+a linha que ficar sem etiqueta. É local, como o filtro: o servidor manda tudo, e
+as pastilhas e o total se recontam sobre o que sobrou (`IDLE_TYPES`,
+`IDLE_MIN_STOCK`, `isSingleUnitIdle` em `lib/anomalies.ts`). Nas outras
+etiquetas o saldo não importa: uma unidade com preço errado continua errada.
+
 ## Filtro e busca são locais
 
 A varredura não tem parâmetro, e a lista inteira vem numa resposta só (cerca de

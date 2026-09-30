@@ -251,6 +251,11 @@ export class MetricsCollector {
     if (!this.enabled) return;
     const now = this.deps.now();
     const away = this.hiddenAt === null ? 0 : now - this.hiddenAt;
+    // Fecha a conta do trecho oculto ANTES de limpar a marca: com `hiddenAt`
+    // marcado, `accrue` só move o ponteiro, sem somar. É o caso da aba aberta
+    // em segundo plano ("abrir em nova aba") e vista dez minutos depois — sem
+    // isto, os dez minutos entrariam como leitura.
+    this.accrue();
     this.hiddenAt = null;
     this.lastActivity = now;
 
@@ -260,9 +265,7 @@ export class MetricsCollector {
       return;
     }
 
-    if (this.page) {
-      this.accrue();
-    } else if (this.lastRoute) {
+    if (!this.page && this.lastRoute) {
       this.openPage(this.lastRoute.path, this.lastRoute.productGroupId, now);
     }
   }
