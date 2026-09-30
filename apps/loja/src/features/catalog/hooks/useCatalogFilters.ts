@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "wouter";
 import { useDebounce } from "@workspace/ui";
 import { CATALOG_PARAMS, catalogSearchParams, type CatalogFilters } from "@/routes";
+import { trackSearch } from "@/lib/metrics";
 
 export interface CatalogFiltersState {
   /** O que vale para a consulta — sempre o que está na URL. */
@@ -79,6 +80,9 @@ export function useCatalogFilters(): CatalogFiltersState {
     if (trimmed !== searchInput.trim()) return;
     if (trimmed === search) return;
 
+    // Só o que chegou à URL conta como busca: é o termo já decantado pelo
+    // debounce, não cada letra digitada.
+    trackSearch(trimmed);
     writeSearch({ departmentId, categoryId, search: trimmed });
   }, [debouncedInput, searchInput, search, departmentId, categoryId, writeSearch]);
 

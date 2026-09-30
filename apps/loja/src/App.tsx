@@ -5,6 +5,7 @@ import { DevEnvironmentBanner, Spinner } from "@workspace/ui";
 import { Redirect, Route, Router as WouterRouter, Switch } from "wouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
+import { SiteMetrics } from "@/components/layout/SiteMetrics";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import {
   LEGACY_REDIRECTS,
@@ -86,6 +87,7 @@ export default function App() {
       <DevEnvironmentBanner />
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <ScrollToTop />
+        <SiteMetrics />
         <ErrorBoundary>
           <SiteLayout>
             <SiteRouter />

@@ -6,6 +6,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { NAV_LINKS } from "@/routes";
 import { SITE_CONTACT, SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { trackContactClick } from "@/lib/metrics";
 import logoUrl from "@/assets/logo.png";
 
 /**
@@ -105,6 +106,7 @@ export function SiteHeader() {
               href={buildWhatsAppUrl(HEADER_WHATSAPP_MESSAGE)}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackContactClick("cabecalho")}
               className={`hidden items-center gap-2 rounded-xl border-2 border-white bg-green-700 px-4 py-2.5 text-sm font-bold text-white transition-colors duration-200 hover:bg-green-600 sm:inline-flex ${FOCUS_RING}`}
             >
               <WhatsAppIcon className="h-4 w-4" />

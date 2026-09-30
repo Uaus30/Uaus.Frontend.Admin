@@ -6,6 +6,7 @@ import { useGetStorefrontCompany } from "@workspace/api-client-react";
 import { NAV_LINKS } from "@/routes";
 import { SITE_CONTACT, SITE_FOOTER_TAGLINE, SITE_NAME, SITE_PHONES, SITE_TAGLINE } from "@/lib/site";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { trackContactClick } from "@/lib/metrics";
 import logoUrl from "@/assets/logo.png";
 
 /** Mensagem que já abre digitada no WhatsApp — diz a quem atende de onde veio o contato. */
@@ -66,6 +67,7 @@ export function SiteFooter() {
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp da Uaus"
+                onClick={() => trackContactClick("rodape")}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors duration-300 hover:bg-primary"
               >
                 <WhatsAppIcon className="h-5 w-5" />
@@ -83,6 +85,7 @@ export function SiteFooter() {
                     href={buildWhatsAppUrl(FOOTER_WHATSAPP_MESSAGE, sitePhone.number)}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={() => trackContactClick("telefone")}
                     className="transition-colors hover:text-white"
                   >
                     {sitePhone.label}: {sitePhone.display}
