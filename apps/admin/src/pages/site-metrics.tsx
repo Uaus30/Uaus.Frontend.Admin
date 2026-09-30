@@ -19,6 +19,7 @@ import {
   SiteProducts,
   SiteSources,
 } from "@/features/site-metrics/components/SiteLists";
+import { SiteApiAccess } from "@/features/site-metrics/components/SiteApiAccess";
 import { formatFullDate, SITE_PERIODS, type SitePeriodDays } from "@/features/site-metrics/lib/site-metrics";
 
 /**
@@ -126,6 +127,11 @@ export default function SiteMetricsPage() {
               </div>
             )}
           </div>
+
+          {tela.apiAccess && <SiteApiAccess access={tela.apiAccess} />}
+          {tela.isApiAccessError && (
+            <p className="text-xs text-destructive">Não foi possível carregar os acessos à API.</p>
+          )}
 
           <p className="mt-2 border-t border-dashed border-border pt-4 text-xs leading-relaxed text-muted-foreground">
             <strong className="text-foreground/80">Visitante</strong> é o navegador (um id anônimo guardado

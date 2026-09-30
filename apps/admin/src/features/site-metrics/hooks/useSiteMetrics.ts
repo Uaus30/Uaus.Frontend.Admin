@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useGetSiteMetricsOverview } from "@workspace/api-client-react";
+import { useGetSiteApiAccess, useGetSiteMetricsOverview } from "@workspace/api-client-react";
 import {
   DEFAULT_SITE_PERIOD,
   resolveSitePeriod,
@@ -28,6 +28,13 @@ export function useSiteMetrics() {
     query: { refetchInterval: SITE_METRICS_REFRESH_MS, refetchOnWindowFocus: true },
   });
 
+  // A segunda pergunta — quem bate na API sem token — vem de outra tabela e
+  // outra rotina (gravada a cada minuto), por isso é outra consulta, com o
+  // mesmo período e o mesmo ritmo de atualização.
+  const apiAccessQuery = useGetSiteApiAccess(range, {
+    query: { refetchInterval: SITE_METRICS_REFRESH_MS, refetchOnWindowFocus: true },
+  });
+
   const overview = query.data;
 
   /** A série diária pronta para o gráfico: rótulo curto e o dia ao vivo marcado. */
@@ -50,10 +57,15 @@ export function useSiteMetrics() {
     periodLabel: SITE_PERIODS.find((p) => p.days === days)?.label ?? "",
     overview,
     series,
+    apiAccess: apiAccessQuery.data,
+    isApiAccessError: apiAccessQuery.isError,
     isLoading: query.isLoading,
-    isFetching: query.isFetching,
+    // "Atualizar agora" e o giro do botão cobrem as DUAS consultas: o dono clica
+    // para conferir se um IP suspeito continua batendo, e dado de 60 s atrás na
+    // seção de acessos com o botão parado leria como "atualizou".
+    isFetching: query.isFetching || apiAccessQuery.isFetching,
     isError: query.isError,
     error: query.error,
-    refetch: query.refetch,
+    refetch: () => Promise.all([query.refetch(), apiAccessQuery.refetch()]),
   };
 }
