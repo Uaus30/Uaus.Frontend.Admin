@@ -1,8 +1,8 @@
 import { RefreshCw, Search } from "lucide-react";
-import { Button, Card, Input, cn } from "@workspace/ui";
+import { Button, Card, Input, Label, Switch, cn } from "@workspace/ui";
 import type { ProductAnomalyTypeName } from "@workspace/api-client-react";
 import { BI_TONE_PILL } from "@/lib/bi-tone";
-import { ANOMALY_ORDER, anomalyMeta } from "../lib/anomalies";
+import { ANOMALY_ORDER, IDLE_MIN_STOCK, anomalyMeta } from "../lib/anomalies";
 
 type AnomalyFiltersProps = {
   counts: Map<ProductAnomalyTypeName, number>;
@@ -15,6 +15,9 @@ type AnomalyFiltersProps = {
   onSearchChange: (value: string) => void;
   isFetching: boolean;
   onRefresh: () => void;
+  /** Esconde "Nunca vendeu" e "Parou de vender" em variação com uma unidade só. */
+  ignoreSingleUnits: boolean;
+  onIgnoreSingleUnitsChange: (value: boolean) => void;
 };
 
 /**
@@ -38,6 +41,8 @@ export function AnomalyFilters({
   onSearchChange,
   isFetching,
   onRefresh,
+  ignoreSingleUnits,
+  onIgnoreSingleUnitsChange,
 }: AnomalyFiltersProps) {
   const tipos = ANOMALY_ORDER.filter((valor) => (counts.get(valor) ?? 0) > 0 || valor === type);
 
@@ -53,6 +58,21 @@ export function AnomalyFilters({
             aria-label="Buscar produto, categoria ou código"
             className="h-10 pl-8 text-[13px]"
           />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Switch
+            id="anomalies-ignore-single-units"
+            checked={ignoreSingleUnits}
+            onCheckedChange={onIgnoreSingleUnitsChange}
+          />
+          <Label
+            htmlFor="anomalies-ignore-single-units"
+            className="text-[12px] font-normal text-muted-foreground"
+            title="Nas etiquetas de produto parado: livro de título único e peça única não são anomalia."
+          >
+            Ignorar parado com saldo menor que {IDLE_MIN_STOCK}
+          </Label>
         </div>
 
         <Button
