@@ -22,6 +22,7 @@ const venda: ProductSaleDto = {
   unitPrice: 20,
   discount: 2,
   subtotal: 20,
+  saleTotal: 20,
   paymentStatus: "Paid",
 };
 

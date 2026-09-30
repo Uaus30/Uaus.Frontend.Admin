@@ -13,14 +13,12 @@ import {
  * rede, para os testes rodarem sem montar nada.
  */
 
-/** Uma coluna do quadro. `dot` e `ring` são classes do tema; a cor é decisão do dono (30/09/2026). */
+/** Uma coluna do quadro. `dot` e `header` são classes do tema; a cor é decisão do dono (30/09/2026). */
 export interface BoardColumnDef {
   status: TaskCardStatusCode;
   title: string;
   /** Bolinha ao lado do título. */
   dot: string;
-  /** Filete no topo da coluna. */
-  ring: string;
   /** Tom da etapa sobre o fundo opaco do cabeçalho. */
   header: string;
 }
@@ -35,35 +33,30 @@ export const BOARD_COLUMNS: readonly BoardColumnDef[] = [
     status: TASK_CARD_STATUS.Backlog,
     title: "Backlog",
     dot: "bg-zinc-400",
-    ring: "border-t-zinc-400",
     header: "bg-zinc-400/20",
   },
   {
     status: TASK_CARD_STATUS.Pending,
     title: "Pendente",
     dot: "bg-red-500",
-    ring: "border-t-red-500",
     header: "bg-red-500/20",
   },
   {
     status: TASK_CARD_STATUS.Doing,
     title: "Fazendo",
     dot: "bg-blue-500",
-    ring: "border-t-blue-500",
     header: "bg-blue-500/20",
   },
   {
     status: TASK_CARD_STATUS.Testing,
     title: "Testes",
     dot: "bg-amber-400",
-    ring: "border-t-amber-400",
     header: "bg-amber-400/20",
   },
   {
     status: TASK_CARD_STATUS.Done,
     title: "Finalizado",
     dot: "bg-emerald-500",
-    ring: "border-t-emerald-500",
     header: "bg-emerald-500/20",
   },
 ];
