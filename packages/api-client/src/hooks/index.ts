@@ -38,4 +38,5 @@ export * from "./product-performance";
 export * from "./period-comparison";
 export * from "./profit-leaders";
 export * from "./product-anomalies";
+export * from "./site-metrics";
 export * from "./task-cards";
