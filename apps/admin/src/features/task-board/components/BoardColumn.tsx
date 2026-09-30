@@ -54,12 +54,7 @@ export function BoardColumn({
       {/* Fundo OPACO (bg-card) com o tom da coluna numa camada por cima: o
           corpo da coluna é translúcido e a imagem atravessava o cabeçalho,
           apagando a cor da etapa. */}
-      <header
-        className={cn(
-          "relative flex items-center gap-2 border-b border-t-4 border-b-border/60 bg-card px-3 py-2.5",
-          column.ring,
-        )}
-      >
+      <header className="relative flex items-center gap-2 border-b border-border/60 bg-card px-3 py-2.5">
         <span aria-hidden className={cn("pointer-events-none absolute inset-0", column.header)} />
         <span className={cn("relative h-2.5 w-2.5 rounded-full", column.dot)} />
         <h2 className="relative text-sm font-semibold text-foreground">{column.title}</h2>

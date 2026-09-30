@@ -103,7 +103,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SidebarProvider style={style as CSSProperties}>
+    // Em rota `fullBleed` o provider segue a altura do PAI (`h-full min-h-0`) em
+    // vez do `min-h-svh` padrão: a raiz do App já é `h-screen` com as faixas do
+    // topo em cima, e 100svh aqui estouraria exatamente pela altura da faixa de
+    // ambiente — foi o que empurrava a barra horizontal do quadro para fora da tela.
+    <SidebarProvider style={style as CSSProperties} className={fullBleed ? "h-full min-h-0" : undefined}>
       <div className="flex h-full w-full bg-background text-foreground overflow-hidden">
         <Sidebar className="border-r border-border/50 bg-card">
           <SidebarHeader className="p-6">
@@ -232,10 +236,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </SidebarFooter>
         </Sidebar>
 
-        {/* Em rota `fullBleed` a coluna ganha altura FIXA (h-svh): o wrapper do
-            SidebarProvider tem só min-h-svh, e sem o teto a página cresceria com
-            o conteúdo do quadro e a barra horizontal iria parar abaixo da tela. */}
-        <div className={cn("flex flex-col flex-1 min-w-0", fullBleed && "h-svh overflow-hidden")}>
+        {/* Em rota `fullBleed` a coluna tem altura DEFINIDA (a do pai): sem o
+            teto a página cresceria com o conteúdo do quadro e a barra horizontal
+            iria parar abaixo da tela. */}
+        <div className={cn("flex flex-col flex-1 min-w-0", fullBleed && "h-full min-h-0 overflow-hidden")}>
           <header className="h-16 flex items-center px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
             <SidebarTrigger className="hover-elevate mr-4" />
             <div className="flex flex-col justify-center select-none" data-testid="header-version">
