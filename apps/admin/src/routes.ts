@@ -109,6 +109,7 @@ const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 const SupplierPerformance = lazy(() => import("@/pages/supplier-performance"));
 const SupplierPerformanceDetail = lazy(() => import("@/pages/supplier-performance-detail"));
 const ProductAbc = lazy(() => import("@/pages/product-abc"));
+const SiteMetrics = lazy(() => import("@/pages/site-metrics"));
 const ProductPerformance = lazy(() => import("@/pages/product-performance"));
 const PeriodComparison = lazy(() => import("@/pages/period-comparison"));
 const ProfitLeaders = lazy(() => import("@/pages/profit-leaders"));
@@ -333,6 +334,14 @@ export const ROUTES: AppRoute[] = [
     label: "O que trouxe lucro",
     group: "BI",
     component: ProfitLeaders,
+    roles: SO_ADMIN,
+  },
+  {
+    // Lista IPs de visitantes: só Admin, como o resto do grupo.
+    path: "/bi/site",
+    label: "Site",
+    group: "BI",
+    component: SiteMetrics,
     roles: SO_ADMIN,
   },
 
