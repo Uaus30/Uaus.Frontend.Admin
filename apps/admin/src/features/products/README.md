@@ -732,9 +732,12 @@ já respondia isso para as entradas; a de Vendas responde para as saídas, no
 mesmo desenho — uma tabela enxuta e um olho por linha.
 
 - **Uma linha por item de venda**, não por venda: é o item que tem quantidade e
-  preço deste produto. Colunas: data e hora **da venda**, quantidade e o preço
+  preço deste produto. Colunas: data e hora **da venda**, quantidade, o preço
   praticado (com o de tabela riscado quando houve desconto no item, como na
-  modal). O número da venda aparece ao lado da data.
+  modal) e o **total da venda inteira** ("Valor venda", laranja e negrito como
+  na tela de Vendas) — é o que mostra se o produto puxa venda grande ou sai
+  sozinho (pedido do dono, 30/09/2026). O número da venda aparece ao lado da
+  data.
 - **Ordem do backend** (`GET /SaleItems/by-product/{productId}`, data da venda
   decrescente e, no empate, id do item decrescente). A venda retroativa ou
   migrada cai no dia em que vendeu, não no topo — é a ordenação funcionando.

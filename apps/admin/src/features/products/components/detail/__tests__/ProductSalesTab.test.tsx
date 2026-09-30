@@ -32,6 +32,7 @@ const vendaPaga: ProductSaleDto = {
   unitPrice: 20,
   discount: 2,
   subtotal: 40,
+  saleTotal: 185.5,
   paymentStatus: "Paid",
 };
 
@@ -43,6 +44,7 @@ const vendaCancelada: ProductSaleDto = {
   unitPrice: 22,
   discount: 0,
   subtotal: 22,
+  saleTotal: 22,
   paymentStatus: "Cancelled",
 };
 
@@ -73,6 +75,17 @@ describe("ProductSalesTab", () => {
     expect(screen.getByText(/^R\$\s20,00$/)).toBeDefined();
     // 20,00 + 2,00 de desconto: o preço de tabela, riscado.
     expect(screen.getByText(/^R\$\s22,00$/).className).toContain("line-through");
+  });
+
+  it("mostra o total da venda inteira, em destaque, ao lado do preço do item", () => {
+    // Um esmalte de R$ 20 numa venda de R$ 185,50: é isso que diz se o produto
+    // puxa venda grande.
+    respondeCom([vendaPaga]);
+    renderTab();
+
+    const total = screen.getByText(/^R\$\s185,50$/);
+    expect(total.closest("td")?.className).toContain("text-primary");
+    expect(total.closest("td")?.className).toContain("font-bold");
   });
 
   it("marca a venda cancelada em vez de escondê-la", () => {

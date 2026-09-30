@@ -814,6 +814,8 @@ export interface ProductSaleDto {
   /** Desconto unitário do item, em reais; o preço de tabela era `unitPrice + discount`. */
   discount: number;
   subtotal: number;
+  /** Total DA VENDA inteira, não deste item: diz se o produto puxa venda grande. */
+  saleTotal: number;
   /** Status da venda (`PAYMENT_STATUS`); `Cancelled` quer dizer que o estoque voltou. */
   paymentStatus: EnumValue;
 }

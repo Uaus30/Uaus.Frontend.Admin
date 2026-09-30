@@ -49,8 +49,25 @@ As decisões que atravessam site, API e admin estão em
 - **A equipe não deve contar.** `?semmetricas` na URL do site desliga o
   coletor naquele navegador; `?commetricas` religa.
 
-## O que a tela NÃO faz (ainda)
+## Acessos à API sem login (fase 3)
 
-- Não mostra acessos de robô ou scanner à API: eles não executam o JavaScript
-  do site. É a fase 3 do plano (contagem por IP nas rotas públicas da API).
+Robô e scanner não executam o JavaScript do site, então nunca aparecem nas
+visitas. A API conta, por IP e dia, toda chamada SEM token
+(`GET /SiteMetrics/api-access`, tabela `api_access_by_ip`, gravada a cada
+minuto a partir de um acumulador em memória). A leitura é por **assinatura**,
+não por volume:
+
+| Coluna | O que denuncia                                                 |
+| ------ | -------------------------------------------------------------- |
+| Site   | chamadas ao `/Storefront` — o que um visitante de verdade gera |
+| 404    | rota inexistente: scanner procurando WordPress, `.env`, etc.   |
+| 401    | tentou rota interna sem token                                  |
+| 429    | estourou o limite por IP do coletor                            |
+
+O ícone de escudo marca IP com qualquer 404/401/429; o de robô, user agent
+que se declara robô. Health check e Swagger não contam.
+
+## O que a tela NÃO faz
+
+- Não bloqueia IP: só mostra. Bloqueio, se vier, é decisão do dono.
 - Não cruza com cupons: melhoria futura, fora do escopo combinado.

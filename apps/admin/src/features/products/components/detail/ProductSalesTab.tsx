@@ -19,9 +19,10 @@ type ProductSalesTabProps = {
 /**
  * Aba **Vendas**: as saídas deste produto, uma linha por item de venda.
  *
- * Responde "quando saiu, quanto saiu e por quanto" — o que a aba Estoque
- * responde para as entradas. A linha é de propósito enxuta (data e hora,
- * quantidade, preço praticado); o resto da venda (cliente, pagamento, demais
+ * Responde "quando saiu, quanto saiu, por quanto e dentro de que venda" — o que
+ * a aba Estoque responde para as entradas. A linha é de propósito enxuta (data e
+ * hora, quantidade, preço praticado e o total da venda inteira, que diz se o
+ * produto puxa venda grande); o resto da venda (cliente, pagamento, demais
  * itens) abre pelo olho, na mesma modal da tela de Vendas.
  *
  * A venda **cancelada** aparece marcada, e não escondida: o estoque dela
@@ -110,6 +111,12 @@ export function ProductSalesTab({ productId, variationOptions, onSelectProduct }
                 >
                   Valor unitário
                 </TableHead>
+                <TableHead
+                  className="px-4 py-3 text-right"
+                  title="Total da venda inteira, não só deste produto"
+                >
+                  Valor venda
+                </TableHead>
                 <TableHead className="w-24 px-4 py-3 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -145,6 +152,11 @@ export function ProductSalesTab({ productId, variationOptions, onSelectProduct }
                           {formatCurrency(sale.unitPrice + sale.discount)}
                         </p>
                       )}
+                    </TableCell>
+                    {/* Total da VENDA, laranja e negrito como o total da tela de Vendas:
+                        é o que mostra se o produto puxa venda grande ou sai sozinho. */}
+                    <TableCell className="px-4 py-3 text-right font-mono text-sm font-bold text-primary">
+                      {formatCurrency(sale.saleTotal)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <Button

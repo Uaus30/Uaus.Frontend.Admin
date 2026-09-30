@@ -108,6 +108,78 @@ export async function getSiteMetricsOverview(params?: SiteMetricsParams) {
   });
 }
 
+/** Um dia de acessos anônimos à API. */
+export interface ApiAccessDayDto {
+  date: string;
+  requests: number;
+  distinctIps: number;
+  notFound: number;
+  unauthorized: number;
+  rateLimited: number;
+  /** IPs cujo user agent se declara robô. */
+  botIps: number;
+}
+
+/** Um IP no período, com o que ele fez na API sem token. */
+export interface ApiAccessIpDto {
+  ip: string;
+  requests: number;
+  storefrontRequests: number;
+  eventBatches: number;
+  notFound: number;
+  unauthorized: number;
+  rateLimited: number;
+  /** `yyyy-MM-ddTHH:mm:ss`, horário da loja. */
+  firstSeen: string;
+  lastSeen: string;
+  lastPath?: string | null;
+  lastUserAgent?: string | null;
+  isBot: boolean;
+  /** Dias distintos em que apareceu no período. */
+  days: number;
+}
+
+/**
+ * Quem bateu na API sem token — robô, scanner e quem chama direto, que o
+ * coletor do site não vê. É a aba "Acessos à API" de BI › Site.
+ */
+export interface ApiAccessOverviewDto {
+  startDate: string;
+  endDate: string;
+  requests: number;
+  distinctIps: number;
+  /** IPs com algum 404/401/429 no período — sobre TODAS as linhas, não só os `topIps`. */
+  suspiciousIps: number;
+  days: ApiAccessDayDto[];
+  topIps: ApiAccessIpDto[];
+}
+
+/** Prefixo da chave; quem consulta acrescenta os parâmetros. */
+export const getSiteApiAccessQueryKey = (): QueryKey => ["site-api-access"];
+
+export async function getSiteApiAccess(params?: SiteMetricsParams) {
+  return apiGetOrThrow<ApiAccessOverviewDto>("/SiteMetrics/api-access", {
+    startDate: params?.startDate,
+    endDate: params?.endDate,
+  });
+}
+
+export function useGetSiteApiAccess(
+  params?: SiteMetricsParams,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<ApiAccessOverviewDto, ApiError, ApiAccessOverviewDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<ApiAccessOverviewDto, ApiError, ApiAccessOverviewDto, QueryKey>({
+    queryKey: [...getSiteApiAccessQueryKey(), params ?? {}],
+    queryFn: () => getSiteApiAccess(params),
+    ...options?.query,
+  });
+}
+
 export function useGetSiteMetricsOverview(
   params?: SiteMetricsParams,
   options?: {
