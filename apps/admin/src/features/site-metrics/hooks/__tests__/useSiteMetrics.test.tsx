@@ -2,11 +2,12 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SiteMetricsOverviewDto } from "@workspace/api-client-react";
 
-const mocks = vi.hoisted(() => ({ useGetSiteMetricsOverview: vi.fn() }));
+const mocks = vi.hoisted(() => ({ useGetSiteMetricsOverview: vi.fn(), useGetSiteApiAccess: vi.fn() }));
 
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetSiteMetricsOverview: mocks.useGetSiteMetricsOverview,
+  useGetSiteApiAccess: mocks.useGetSiteApiAccess,
 }));
 
 const { useSiteMetrics, SITE_METRICS_REFRESH_MS } = await import("../useSiteMetrics");
@@ -64,6 +65,21 @@ const OVERVIEW: SiteMetricsOverviewDto = {
 
 describe("useSiteMetrics", () => {
   beforeEach(() => {
+    mocks.useGetSiteApiAccess.mockReset();
+    mocks.useGetSiteApiAccess.mockReturnValue({
+      data: {
+        startDate: "2026-09-29",
+        endDate: "2026-09-30",
+        requests: 12,
+        distinctIps: 2,
+        suspiciousIps: 1,
+        days: [],
+        topIps: [],
+      },
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn().mockResolvedValue(undefined),
+    });
     mocks.useGetSiteMetricsOverview.mockReset();
     mocks.useGetSiteMetricsOverview.mockReturnValue({
       data: OVERVIEW,
@@ -104,5 +120,26 @@ describe("useSiteMetrics", () => {
     expect(result.current.series).toHaveLength(2);
     expect(result.current.series[1]).toMatchObject({ date: "2026-09-30", visitors: 1, isLive: true });
     expect(result.current.overview?.activeVisitors).toBe(1);
+  });
+
+  it("pede os acessos à API com o mesmo período e o mesmo ritmo", () => {
+    const { result } = renderHook(() => useSiteMetrics());
+
+    const [overviewParams] = mocks.useGetSiteMetricsOverview.mock.calls[0]!;
+    const [accessParams, accessOptions] = mocks.useGetSiteApiAccess.mock.calls[0]!;
+    expect(accessParams).toEqual(overviewParams);
+    expect(accessOptions.query.refetchInterval).toBe(SITE_METRICS_REFRESH_MS);
+    expect(result.current.apiAccess?.requests).toBe(12);
+  });
+
+  it("atualizar agora recarrega as duas consultas", async () => {
+    const { result } = renderHook(() => useSiteMetrics());
+
+    await act(() => result.current.refetch());
+
+    const overviewRefetch = mocks.useGetSiteMetricsOverview.mock.results[0]!.value.refetch;
+    const accessRefetch = mocks.useGetSiteApiAccess.mock.results[0]!.value.refetch;
+    expect(overviewRefetch).toHaveBeenCalledTimes(1);
+    expect(accessRefetch).toHaveBeenCalledTimes(1);
   });
 });
