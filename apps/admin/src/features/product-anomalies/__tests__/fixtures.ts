@@ -76,6 +76,46 @@ export const bexiga: ProductAnomalyRowDto = {
   ],
 };
 
+/** Livro de título único: uma unidade, parada há meses. O interruptor esconde. */
+export const livro: ProductAnomalyRowDto = {
+  productGroupId: 402,
+  name: "LIVRO O CORTIÇO",
+  imageUrl: "/img/livro.jpg",
+  categoryName: "Livros",
+  hasVariations: false,
+  stock: 1,
+  anomalies: [
+    {
+      type: "NeverSold",
+      productId: 4020,
+      productName: "LIVRO O CORTIÇO",
+      stock: 1,
+      firstPurchaseAt: "2026-05-10T00:00:00",
+      daysWithoutSales: 136,
+    },
+  ],
+};
+
+/** Parou de vender com 7 em estoque; a linha também está sem foto. */
+export const vaso: ProductAnomalyRowDto = {
+  productGroupId: 510,
+  name: "VASO DE CERÂMICA",
+  categoryName: "Decoração",
+  hasVariations: false,
+  stock: 7,
+  anomalies: [
+    { type: "MissingPhoto" },
+    {
+      type: "NoRecentSales",
+      productId: 5100,
+      productName: "VASO DE CERÂMICA",
+      stock: 7,
+      lastSaleAt: "2026-08-12T15:20:00",
+      daysWithoutSales: 42,
+    },
+  ],
+};
+
 export const relatorio: ProductAnomaliesReportDto = {
   generatedAt: "2026-09-23T18:42:10.123",
   rules: {
@@ -84,6 +124,7 @@ export const relatorio: ProductAnomaliesReportDto = {
     phantomMinWindowSales: 3,
     phantomMinExpectedSales: 3,
     phantomWindowDays: 90,
+    idleDays: 30,
   },
   counts: [
     { type: "PriceBelowCost", groups: 1 },

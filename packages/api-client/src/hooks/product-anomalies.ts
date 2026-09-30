@@ -27,7 +27,9 @@ export type ProductAnomalyTypeName =
   | "InactiveWithStock"
   | "MissingPhoto"
   | "HiddenFromStorefront"
-  | "DuplicateName";
+  | "DuplicateName"
+  | "NeverSold"
+  | "NoRecentSales";
 
 /** Os números da regra do estoque fantasma — o manual da tela fala com eles. */
 export interface ProductAnomalyRulesDto {
@@ -41,6 +43,8 @@ export interface ProductAnomalyRulesDto {
   phantomMinExpectedSales: number;
   /** Janela máxima do ritmo, em dias. */
   phantomWindowDays: number;
+  /** Dias sem venda a partir dos quais o produto parado acende (nunca vendeu, ou parou de vender). */
+  idleDays: number;
 }
 
 export interface ProductAnomalyCountDto {
@@ -93,6 +97,12 @@ export interface ProductAnomalyDto {
   zeroCostEntryId?: number | null;
   zeroCostEntryDate?: string | null;
   phantom?: PhantomStockEvidenceDto | null;
+  /** Em `NeverSold`, a PRIMEIRA entrada de compra da variação: desde quando ela está na loja sem sair. */
+  firstPurchaseAt?: string | null;
+  /** Em `NoRecentSales`, a última venda (cupom não cancelado) da variação. */
+  lastSaleAt?: string | null;
+  /** Dias inteiros sem venda, desde a primeira compra ou desde a última venda, até a varredura. */
+  daysWithoutSales?: number | null;
   /** Os outros cadastros com o mesmo nome. */
   duplicateGroupIds?: number[] | null;
 }

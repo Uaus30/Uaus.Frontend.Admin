@@ -7,10 +7,11 @@ import {
   anomalyMeta,
   anomalyRank,
   describeAnomaly,
+  isSingleUnitIdle,
   variationLabel,
   zeroCostIsCorrectable,
 } from "../anomalies";
-import { bexiga, cumbuca, jarra } from "../../__tests__/fixtures";
+import { bexiga, cumbuca, jarra, livro, vaso } from "../../__tests__/fixtures";
 
 describe("catálogo das etiquetas", () => {
   it("todo tipo tem rótulo, ícone, cor e o que fazer — e aparece na ordem", () => {
@@ -99,11 +100,30 @@ describe("describeAnomaly", () => {
     );
   });
 
+  it("produto parado diz há quantos dias e desde quando", () => {
+    expect(describeAnomaly(livro.anomalies[0]!, livro)).toBe(
+      "1 unidade na prateleira há 136 dias e nenhuma venda. Comprado em 10/05/2026.",
+    );
+    expect(describeAnomaly(vaso.anomalies[1]!, vaso)).toBe(
+      "7 unidades e 42 dias sem vender. Última venda em 12/08/2026.",
+    );
+  });
+
   it("as do cadastro inteiro usam o saldo da linha", () => {
     expect(describeAnomaly({ type: "MissingPhoto" }, cumbuca)).toBe("3 unidades na prateleira sem foto.");
     expect(
       describeAnomaly({ type: "HiddenFromStorefront" }, { ...cumbuca, stock: 1 } as ProductAnomalyRowDto),
     ).toBe("Tem foto e 1 unidade, e “Exibir no site” está desligado.");
+  });
+});
+
+describe("isSingleUnitIdle", () => {
+  it("só o produto parado com menos de 2 unidades — uma unidade com preço errado continua errada", () => {
+    expect(isSingleUnitIdle(livro.anomalies[0]!)).toBe(true);
+    expect(isSingleUnitIdle(vaso.anomalies[1]!)).toBe(false);
+    expect(isSingleUnitIdle({ type: "NoRecentSales", stock: 1 })).toBe(true);
+    expect(isSingleUnitIdle({ type: "PriceBelowCost", stock: 1 })).toBe(false);
+    expect(isSingleUnitIdle({ type: "MissingPhoto" })).toBe(false);
   });
 });
 

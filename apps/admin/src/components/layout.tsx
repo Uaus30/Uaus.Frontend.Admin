@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, type CSSProperties } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, matchRoute, useLocation, useRouter } from "wouter";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -24,7 +24,7 @@ import { getGetMeQueryKey } from "@workspace/api-client-react";
 import { getDisplayName } from "@/services/mappers";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { ROLE_LABELS, buildMenu, type RoleCode } from "@/routes";
+import { ROLE_LABELS, ROUTES, buildMenu, type RoleCode } from "@/routes";
 import { pdvHomeUrl } from "@/lib/pdv-links";
 import { StockFreezeBanner } from "@/components/stock-freeze-banner";
 import { enumCode, USER_ROLE } from "@workspace/api-client-react";
@@ -42,7 +42,14 @@ import { formatUpdatedAt, formatVersion } from "@workspace/core";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
+  const router = useRouter();
   const queryClient = useQueryClient();
+
+  // O matcher do próprio wouter, como no App.tsx: um segundo escrito à mão é a
+  // porta para rota e layout divergirem.
+  const fullBleed = ROUTES.some(
+    (route) => route.fullBleed && matchRoute(router.parser, route.matchPath ?? route.path, location)[0],
+  );
 
   const { data: user, isLoading } = useGetMe({
     query: {
@@ -253,9 +260,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </header>
           {/* Toda tela, logo abaixo do cabeçalho: a conferência aberta para a loja. */}
           <StockFreezeBanner />
-          <main className="flex-1 overflow-y-auto p-6 md:p-8">
-            <div className="max-w-7xl mx-auto">{children}</div>
-          </main>
+          {fullBleed ? (
+            // Sem padding, sem largura máxima e com altura definida: a página
+            // preenche a área útil e cuida da própria rolagem (ver `AppRoute.fullBleed`).
+            <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
+          ) : (
+            <main className="flex-1 overflow-y-auto p-6 md:p-8">
+              <div className="max-w-7xl mx-auto">{children}</div>
+            </main>
+          )}
         </div>
       </div>
     </SidebarProvider>

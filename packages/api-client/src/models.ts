@@ -2336,3 +2336,176 @@ export interface SavePromotionPayload {
   /** Arte 9:16, mesma regra. */
   storyImageId?: number | null;
 }
+
+// ---------------------------------------------------------------------------
+// Quadro de tarefas (TaskCards / TaskLabels)
+//
+// Contrato do backend em Uaus.Backend.Api/Uaus.Application/DTOs/TaskCards/.
+// ---------------------------------------------------------------------------
+
+/**
+ * A coluna do quadro (enum `TaskCardStatus` do backend). As colunas são FIXAS e
+ * nesta ordem — o quadro é um fluxo de trabalho, não listas livres.
+ */
+export const TASK_CARD_STATUS = {
+  None: 0,
+  Backlog: 1,
+  Pending: 2,
+  Doing: 3,
+  Testing: 4,
+  Done: 5,
+} as const;
+
+/** Código da coluna no que é ENVIADO ao servidor. Nas respostas o campo é `EnumValue`. */
+export type TaskCardStatusCode = (typeof TASK_CARD_STATUS)[keyof typeof TASK_CARD_STATUS];
+
+/** Prioridade de uma etiqueta (enum `TaskLabelPriority`). É da ETIQUETA, não do cartão. */
+export const TASK_LABEL_PRIORITY = {
+  None: 0,
+  Low: 1,
+  Normal: 2,
+  High: 3,
+  Urgent: 4,
+} as const;
+
+export type TaskLabelPriorityCode = (typeof TASK_LABEL_PRIORITY)[keyof typeof TASK_LABEL_PRIORITY];
+
+/**
+ * A paleta das etiquetas. O backend grava a CHAVE e recusa qualquer outra; quem
+ * traduz para classes do tema é o admin.
+ */
+export const TASK_LABEL_COLORS = [
+  "green",
+  "yellow",
+  "orange",
+  "red",
+  "purple",
+  "blue",
+  "sky",
+  "lime",
+  "pink",
+  "gray",
+] as const;
+
+export type TaskLabelColor = (typeof TASK_LABEL_COLORS)[number];
+
+export interface TaskLabelDto {
+  id: number;
+  name: string;
+  /** Chave da paleta (`TASK_LABEL_COLORS`). */
+  color: string;
+  /** Enum TaskLabelPriority — chega como NOME; leia com `enumCode` e `TASK_LABEL_PRIORITY`. */
+  priority: EnumValue;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+/** Usuário vinculado a um cartão. O quadro mostra só o primeiro nome. */
+export interface TaskCardMemberDto {
+  userId: number;
+  firstName: string;
+  fullName: string;
+}
+
+export interface TaskCardChecklistItemDto {
+  id: number;
+  text: string;
+  isDone: boolean;
+  position: number;
+}
+
+export interface TaskCardAttachmentDto {
+  id: number;
+  fileName: string;
+  contentType: string;
+  /** Bytes. */
+  size: number;
+  url: string;
+  createdAt: string;
+  createdBy?: string | null;
+}
+
+/**
+ * O cartão como o QUADRO o desenha: sem descrição, checklist ou anexos — só as
+ * contagens. O completo é o `TaskCardDto`, buscado ao abrir o cartão.
+ */
+export interface TaskCardSummaryDto {
+  id: number;
+  /** Sequencial legível ("#37"), nunca reaproveitado. */
+  number: number;
+  title: string;
+  /** Enum TaskCardStatus — chega como NOME; leia com `enumCode` e `TASK_CARD_STATUS`. */
+  status: EnumValue;
+  /** Ordem dentro da coluna, crescente. */
+  position: number;
+  isArchived: boolean;
+  /** Quando entrou em Finalizado. Omitido fora dessa coluna. */
+  finishedAt?: string | null;
+  hasDescription: boolean;
+  checklistTotal: number;
+  checklistDone: number;
+  attachmentsCount: number;
+  /** Da mais urgente para a menos. */
+  labels: TaskLabelDto[];
+  members: TaskCardMemberDto[];
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface TaskCardDto {
+  id: number;
+  number: number;
+  title: string;
+  description?: string | null;
+  /** Enum TaskCardStatus — chega como NOME; leia com `enumCode`. */
+  status: EnumValue;
+  position: number;
+  isArchived: boolean;
+  archivedAt?: string | null;
+  finishedAt?: string | null;
+  labels: TaskLabelDto[];
+  members: TaskCardMemberDto[];
+  /** Na ordem de exibição. */
+  checklistItems: TaskCardChecklistItemDto[];
+  /** Do mais recente para o mais antigo. */
+  attachments: TaskCardAttachmentDto[];
+  createdAt: string;
+  updatedAt?: string | null;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+/** O quadro inteiro numa resposta, mais quantos finalizados antigos ficaram de fora. */
+export interface TaskBoardDto {
+  items: TaskCardSummaryDto[];
+  /** Zero quando o admin pediu todos (`allFinished`). */
+  hiddenFinishedCount: number;
+  /** A janela em dias que o servidor aplicou (30). */
+  finishedWindowDays: number;
+}
+
+export interface SaveTaskCardPayload {
+  title: string;
+  description?: string | null;
+  /** Coluna inicial. Só na criação; no PUT é ignorado (coluna muda pelo `move`). */
+  status?: TaskCardStatusCode;
+  labelIds: number[];
+  memberIds: number[];
+}
+
+export interface MoveTaskCardPayload {
+  status: TaskCardStatusCode;
+  /** Média entre os vizinhos, ou ZERO para "no fim da coluna" (o servidor calcula). */
+  position: number;
+}
+
+export interface SaveTaskLabelPayload {
+  name: string;
+  color: TaskLabelColor;
+  priority: TaskLabelPriorityCode;
+}
+
+export interface SaveTaskChecklistItemPayload {
+  text: string;
+  isDone: boolean;
+}

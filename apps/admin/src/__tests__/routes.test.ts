@@ -231,13 +231,27 @@ describe("buildMenu", () => {
   });
 
   it("some com o grupo cujos itens são todos restritos", () => {
-    // "Sistema" só tem telas de Admin; mostrá-lo vazio ao Vendedor seria pior
+    // "Marketing" só tem telas de Admin; mostrá-lo vazio ao Vendedor seria pior
     // que não mostrar.
     const menu = buildMenu(USER_ROLE.Seller);
 
-    expect(menu.find((item) => item.name === "Sistema")).toBeUndefined();
-    // "Marketing" está na mesma situação: as quatro telas são de Admin.
     expect(menu.find((item) => item.name === "Marketing")).toBeUndefined();
+  });
+
+  it("Sistema aparece ao Vendedor só com Tarefas, que é da equipe inteira", () => {
+    // Desde 30/09/2026 o quadro de tarefas mora em "Sistema" (escolha do dono) e
+    // é aberto a qualquer papel: o operador registra o pedido do cliente. As
+    // outras telas do grupo continuam de Admin, então o Vendedor vê o grupo com
+    // um item só.
+    const sistema = buildMenu(USER_ROLE.Seller).find((item) => item.name === "Sistema");
+
+    expect(sistema?.items?.map((i) => i.name)).toEqual(["Tarefas"]);
+  });
+
+  it("Sistema, para o Admin, abre com Tarefas antes de Configurações e Logs", () => {
+    const sistema = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Sistema");
+
+    expect(sistema?.items?.map((i) => i.name)).toEqual(["Tarefas", "Configurações", "Logs"]);
   });
 
   it("o Admin vê o grupo Marketing com as quatro telas", () => {
@@ -362,7 +376,7 @@ describe("buildMenu", () => {
     const sistema = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Sistema");
 
     expect(usuarios.group).toBeUndefined();
-    expect(sistema?.items?.map((s) => s.href)).toEqual(["/configuracoes", "/sistema/logs"]);
+    expect(sistema?.items?.map((s) => s.href)).toEqual(["/tarefas", "/configuracoes", "/sistema/logs"]);
   });
 
   it("nenhuma rota visível fica de fora do menu", () => {

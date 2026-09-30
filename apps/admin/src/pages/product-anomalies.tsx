@@ -17,7 +17,7 @@ import { AnomaliesHelp } from "@/features/product-anomalies/components/Anomalies
 export default function ProductAnomaliesPage() {
   const tela = useProductAnomalies();
   const relatorio = tela.report;
-  const semAnomalia = relatorio != null && relatorio.items.length === 0;
+  const semAnomalia = relatorio != null && tela.total === 0 && !tela.isFiltered;
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,6 +45,8 @@ export default function ProductAnomaliesPage() {
         onSearchChange={tela.setSearch}
         isFetching={tela.isFetching}
         onRefresh={() => void tela.refetch()}
+        ignoreSingleUnits={tela.ignoreSingleUnits}
+        onIgnoreSingleUnitsChange={tela.setIgnoreSingleUnits}
       />
 
       {tela.isError && (

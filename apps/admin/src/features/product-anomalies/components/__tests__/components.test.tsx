@@ -6,7 +6,7 @@ import { AnomalyTag } from "../AnomalyTag";
 import { AnomalyFilters } from "../AnomalyFilters";
 import { AnomalyList } from "../AnomalyList";
 import { AnomaliesHelp } from "../AnomaliesHelp";
-import { bexiga, cumbuca, jarra, relatorio } from "../../__tests__/fixtures";
+import { bexiga, cumbuca, jarra, relatorio, vaso } from "../../__tests__/fixtures";
 
 afterEach(() => cleanup());
 
@@ -81,6 +81,18 @@ describe("AnomalyRow", () => {
     expect(screen.getByText("BEXIGA [AZUL]")).toBeTruthy();
   });
 
+  it("produto parado sai sem atalho, com os dias e a data", () => {
+    render(
+      <ul>
+        <AnomalyRow row={vaso} />
+      </ul>,
+    );
+
+    expect(screen.getByText("Parou de vender")).toBeTruthy();
+    expect(screen.getByText(/42 dias sem vender/)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Contar|Corrigir custo/ })).toBeNull();
+  });
+
   it("sem foto no cadastro, mostra o marcador em vez de imagem quebrada", () => {
     const { container } = render(
       <ul>
@@ -133,11 +145,23 @@ describe("AnomalyFilters", () => {
       onSearchChange: vi.fn(),
       isFetching: false,
       onRefresh: vi.fn(),
+      ignoreSingleUnits: true,
+      onIgnoreSingleUnitsChange: vi.fn(),
       ...overrides,
     };
     render(<AnomalyFilters {...props} />);
     return props;
   }
+
+  it("o interruptor de saldo menor que 2 avisa o hook", () => {
+    const props = renderFilters();
+
+    const interruptor = screen.getByRole("switch", { name: /Ignorar parado com saldo menor que 2/ });
+    expect(interruptor.getAttribute("aria-checked")).toBe("true");
+
+    fireEvent.click(interruptor);
+    expect(props.onIgnoreSingleUnitsChange).toHaveBeenCalledWith(false);
+  });
 
   it("uma pastilha por tipo com ocorrência, na ordem da gravidade", () => {
     renderFilters();
@@ -222,5 +246,15 @@ describe("AnomaliesHelp", () => {
     expect(within(dialogo).getByText(/menos de 7/)).toBeTruthy();
     expect(within(dialogo).getByText(/ao menos/).textContent).toContain("4");
     expect(within(dialogo).getByText(/Produto inativo com estoque zerado não aparece/)).toBeTruthy();
+  });
+
+  it("o manual explica o produto parado com os dias da regra", () => {
+    render(<AnomaliesHelp rules={{ ...relatorio.rules, idleDays: 45 }} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Como ler esta tela/ }));
+    const dialogo = screen.getByRole("dialog");
+
+    expect(within(dialogo).getAllByText(/mais de 45 dias/).length).toBeGreaterThan(0);
+    expect(within(dialogo).getByText(/Produto parado: nunca vendeu, ou parou/)).toBeTruthy();
   });
 });
