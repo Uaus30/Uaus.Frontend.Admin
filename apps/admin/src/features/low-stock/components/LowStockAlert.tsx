@@ -14,19 +14,14 @@ type LowStockAlertProps = {
 /**
  * Alerta vermelho de reposição, com link para o relatório.
  *
- * ## O que ele conta (12/09/2026)
+ * ## O que ele conta (29/09/2026)
  *
- * Produtos que **venderam nos últimos 30 dias** e estão **esgotados ou acabam em
- * menos de trinta** (`restock`). Não é todo mundo abaixo do mínimo: aquela
- * contagem acendia o vermelho também para item parado há um ano, e um alerta que
- * aponta para o que não precisa de ação ensina a ser ignorado. Quem define o
- * critério é o backend; a tela não repete a regra nem número nenhum.
- *
- * O link abre o relatório **sem filtro**, e isso é deliberado: a contagem é um
- * subconjunto do relatório, que mostra também quem atingiu o estoque mínimo e
- * quem está acabando sem ter vendido no mês. Filtrar a lista para "bater" com o
- * número esconderia o resto do que precisa de compra — e o que o alerta conta
- * aparece no topo de qualquer forma, porque a lista ordena pelo que acaba antes.
+ * O MESMO número do relatório sem filtro (`restock`): produtos controlados que
+ * esgotaram, acabam em menos de 30 dias ou chegaram ao estoque mínimo. Até ali
+ * o alerta era um subconjunto — só quem vendeu no mês —, porque o relatório
+ * trazia também o parado que estava acabando. Com o giro baixo saindo do
+ * controle sozinho, esse ruído não chega mais à lista, e dois números para a
+ * mesma pergunta só confundiam. Quem define o critério é o backend.
  *
  * É um componente com query, e não uma prop da página, de propósito: ele mora
  * em duas telas (painel e produtos) e as duas mostrariam exatamente o mesmo
@@ -38,9 +33,6 @@ export function LowStockAlert({ variant = "banner" }: LowStockAlertProps) {
 
   if (restock <= 0) return null;
 
-  // A frase separa as duas condições em vez de colá-las: "vendeu nos últimos 30
-  // dias" é uma coisa, "está acabando" é outra, e a janela pertence só à
-  // primeira. Grudadas, a leitura sugeria que o estoque também era dos 30 dias.
   const quantos = restock === 1 ? "1 produto" : `${restock} produtos`;
 
   if (variant === "compact") {
@@ -51,7 +43,7 @@ export function LowStockAlert({ variant = "banner" }: LowStockAlertProps) {
         className="inline-flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/20"
       >
         <AlertTriangle className="h-4 w-4 shrink-0" />
-        {quantos} vendendo e acabando
+        {quantos} para repor
         <ArrowRight className="h-3.5 w-3.5 shrink-0" />
       </Link>
     );
@@ -66,8 +58,8 @@ export function LowStockAlert({ variant = "banner" }: LowStockAlertProps) {
       <span className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <span>
-          Existem <strong>{quantos} com venda nos últimos 30 dias</strong> esgotados ou com menos de 30 dias
-          de estoque. Acesse o relatório para visualizar os detalhes.
+          Existem <strong>{quantos} para repor</strong>: esgotados, com menos de 30 dias de estoque ou no
+          estoque mínimo. Acesse o relatório para visualizar os detalhes.
         </span>
       </span>
       <ArrowRight className="h-4 w-4 shrink-0" />

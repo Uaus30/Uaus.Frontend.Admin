@@ -19,15 +19,13 @@ function givenSummary(summary: Partial<LowStockSummaryDto>) {
 describe("LowStockAlert", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("conta quem VENDEU no mes e esta esgotado ou acabando", () => {
-    // A distincao e a razao de ser da contagem: o alerta antigo acendia para
-    // produto parado ha um ano, que nao e urgencia de reposicao.
+  it("conta quem precisa de reposicao, o mesmo numero do relatorio", () => {
+    // Desde 29/09/2026 o parado ja nao chega a lista (giro baixo sai sozinho),
+    // e o alerta conta o mesmo que o relatorio sem filtro.
     givenSummary({ restock: 4 });
     render(<LowStockAlert />);
 
-    expect(screen.getByTestId("low-stock-alert").textContent).toContain(
-      "Existem 4 produtos com venda nos últimos 30 dias esgotados ou com menos de 30 dias de estoque",
-    );
+    expect(screen.getByTestId("low-stock-alert").textContent).toContain("Existem 4 produtos para repor");
   });
 
   it("nao aparece sem produto para repor", () => {
@@ -39,10 +37,7 @@ describe("LowStockAlert", () => {
   });
 
   it("leva ao relatorio SEM filtro", () => {
-    // A contagem e um subconjunto do relatorio: filtrar a lista para "bater"
-    // com o numero esconderia o resto do que precisa de compra, e o que o
-    // alerta conta aparece no topo de qualquer jeito — a lista ordena pelo que
-    // acaba antes.
+    // Desde 29/09/2026 a contagem e o mesmo numero do relatorio sem filtro.
     givenSummary({ restock: 2 });
     render(<LowStockAlert />);
 
@@ -53,17 +48,17 @@ describe("LowStockAlert", () => {
     givenSummary({ restock: 1 });
     render(<LowStockAlert variant="compact" />);
 
-    expect(screen.getByTestId("low-stock-alert").textContent).toContain("1 produto vendendo e acabando");
+    expect(screen.getByTestId("low-stock-alert").textContent).toContain("1 produto para repor");
   });
 
-  it("a janela de 30 dias qualifica a VENDA, nao o estoque", () => {
-    // Grudadas, as duas condicoes liam como se o estoque tambem fosse dos 30
-    // dias. Separadas, cada uma diz o que e.
+  it("diz as tres portas do relatorio", () => {
     givenSummary({ restock: 7 });
     render(<LowStockAlert />);
 
     const texto = screen.getByTestId("low-stock-alert").textContent ?? "";
-    expect(texto).toContain("com venda nos últimos 30 dias esgotados ou com menos de 30 dias de estoque");
+    expect(texto).toContain(
+      "7 produtos para repor: esgotados, com menos de 30 dias de estoque ou no estoque mínimo",
+    );
     expect(texto).toContain("Acesse o relatório para visualizar os detalhes");
   });
 });

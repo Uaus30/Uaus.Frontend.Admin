@@ -1,26 +1,17 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Ban,
-  CheckCircle2,
-  ExternalLink,
-  ImageIcon,
-  MoreVertical,
-  Search,
-  ShoppingCart,
-  SlidersHorizontal,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ImageIcon, Search } from "lucide-react";
 import { Link } from "wouter";
 import { Button, ImageHoverZoom, Input, Spinner } from "@workspace/ui";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { buildPublicImageUrl } from "@workspace/api-client-react";
 import { formatDate, formatShortDate } from "@workspace/core";
-import type { LowStockSort } from "@workspace/api-client-react";
+import type { LowStockScope, LowStockSort } from "@workspace/api-client-react";
+import { outOfControlLabel } from "@/lib/stock-control";
 import type { LowStockItem } from "../types";
+import { LowStockRowActions } from "./LowStockRowActions";
 
 type LowStockTableProps = {
+  /** Qual lista está aberta: muda o botão da linha e o texto do vazio. */
+  scope: LowStockScope;
   items: LowStockItem[];
   isLoading: boolean;
   search: string;
@@ -38,14 +29,20 @@ type LowStockTableProps = {
   /** Botão "Comprar": leva ao pedido de compra do produto, já preenchido. */
   onComprar: (item: LowStockItem) => void;
   onDisableStockControl: (item: LowStockItem) => void;
+  onEnableStockControl: (item: LowStockItem) => void;
   onInactivate: (item: LowStockItem) => void;
   mutatingProductId: number | null;
 };
 
 /** O título do "nada encontrado" cita o filtro que esvaziou a tela, não um genérico. */
-function tituloDoVazio(maxStock: string, minRecentSales: string): string {
+function tituloDoVazio(scope: LowStockScope, maxStock: string, minRecentSales: string): string {
   const teto = maxStock.trim();
   const vendas = minRecentSales.trim();
+
+  if (scope === "OutOfControl")
+    return teto || vendas
+      ? "Nenhum produto fora do controle com esses filtros."
+      : "Todo produto está no controle de estoque.";
 
   if (teto && vendas)
     return `Nenhum produto para repor com estoque menor que ${teto} e ${vendas} ou mais vendas em 30 dias.`;
@@ -76,6 +73,19 @@ function duracaoLegivel(days: number | null | undefined, stock: number): string 
   return `${Math.round(days / 30)} meses`;
 }
 
+/**
+ * O título da coluna "Dura" mostra a conta inteira: "0,13 un./dia" sozinho não
+ * diz de onde saiu, e é esta coluna que decide a ordem da lista.
+ */
+function tituloDaDuracao(item: LowStockItem): string {
+  const porMes = ((item.dailyDemand ?? 0) * 30).toFixed(1).replace(".", ",");
+  const mediana =
+    item.monthlySalesMedian != null
+      ? ` — mediana de ${String(item.monthlySalesMedian).replace(".", ",")}/mês`
+      : "";
+  return `Demanda prevista de ${porMes} un./mês (${item.averageDailySales ?? 0} por dia)${mediana}`;
+}
+
 /** Cor da previsão: vermelho até uma semana, âmbar até três, neutro depois. */
 function duracaoTone(days: number | null | undefined, stock: number): string {
   if (stock <= 0) return "font-semibold text-red-600 dark:text-red-400";
@@ -85,19 +95,27 @@ function duracaoTone(days: number | null | undefined, stock: number): string {
   return "text-foreground";
 }
 
+/** O texto de rodapé do vazio: o que entra em cada lista. */
+function explicacaoDoVazio(scope: LowStockScope, filtrado: boolean): string {
+  if (filtrado) return "Os dois filtros só estreitam a lista; apague-os para ver tudo.";
+  return scope === "OutOfControl"
+    ? "Aqui ficam os produtos com o controle desligado e os que vendem menos de 1 por mês."
+    : "Entram aqui os produtos controlados que esgotaram, acabam em menos de 30 dias ou chegaram ao estoque mínimo.";
+}
+
 /**
  * Tabela do relatório de estoque baixo.
  *
- * O saldo sai ao lado do mínimo ("3 / 5") e em vermelho: a pergunta do
- * relatório é "quão abaixo?", e um número solto obrigaria a abrir o produto
- * para saber. As colunas de giro (última venda e duração prevista) respondem à
- * pergunta seguinte, a que decide se vale repor: um produto parado há um ano
- * com saldo 1 não é urgência.
+ * O saldo sai ao lado do mínimo que VALE para o produto ("3 / 2") — o próprio,
+ * ou o padrão da loja — e em vermelho: a pergunta do relatório é "quão
+ * abaixo?". As colunas de giro (última venda e duração prevista) respondem à
+ * pergunta seguinte, a que decide se vale repor.
  *
- * A linha resolvida fica esmaecida, com quem e quando, em vez de sumir — sumir
- * esconderia justamente a decisão que alguém tomou.
+ * Na aba "Fora do controle" a linha diz por quê — o motivo de quem desligou ou o
+ * giro baixo —, porque é isso que decide se vale religar.
  */
 export function LowStockTable({
+  scope,
   items,
   isLoading,
   search,
@@ -113,6 +131,7 @@ export function LowStockTable({
   setPage,
   onComprar,
   onDisableStockControl,
+  onEnableStockControl,
   onInactivate,
   mutatingProductId,
 }: LowStockTableProps) {
@@ -179,11 +198,9 @@ export function LowStockTable({
       ) : items.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-emerald-500/60" />
-          <p className="font-medium text-foreground">{tituloDoVazio(maxStock, minRecentSales)}</p>
+          <p className="font-medium text-foreground">{tituloDoVazio(scope, maxStock, minRecentSales)}</p>
           <p className="mt-1 text-xs">
-            {maxStock.trim() || minRecentSales.trim()
-              ? "Os dois filtros só estreitam o relatório; apague-os para ver tudo que precisa de compra."
-              : "Entram aqui os esgotados que venderam no mês, quem atingiu o estoque mínimo e quem tem saldo para menos de 30 dias."}
+            {explicacaoDoVazio(scope, Boolean(maxStock.trim() || minRecentSales.trim()))}
           </p>
         </div>
       ) : (
@@ -241,7 +258,7 @@ export function LowStockTable({
                 </TableHead>
                 <TableHead
                   className="px-4 py-3 text-right"
-                  title="Previsão de duração do saldo no ritmo de venda dos últimos 90 dias"
+                  title="Previsão de duração do saldo na demanda prevista — média ponderada dos três últimos meses"
                 >
                   Dura
                 </TableHead>
@@ -282,6 +299,11 @@ export function LowStockTable({
                             {item.productName}
                           </Link>
                           <p className="font-mono text-xs text-muted-foreground">{item.barcode}</p>
+                          {scope === "OutOfControl" && (
+                            <p className="mt-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                              {outOfControlLabel(item)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -290,7 +312,13 @@ export function LowStockTable({
                     </TableCell>
                     <TableCell className="hidden px-4 py-3 text-right font-mono text-sm 2xl:table-cell">
                       <span className="font-semibold text-destructive">{item.stock}</span>
-                      <span className="text-muted-foreground"> / {item.minStock}</span>
+                      <span
+                        className="text-muted-foreground"
+                        title={item.minStock > 0 ? "Mínimo próprio do produto" : "Mínimo padrão da loja"}
+                      >
+                        {" "}
+                        / {item.effectiveMinStock ?? item.minStock}
+                      </span>
                     </TableCell>
                     <TableCell className="hidden px-4 py-3 text-sm 2xl:table-cell">
                       {item.lastSaleAt ? (
@@ -316,77 +344,21 @@ export function LowStockTable({
                         un./dia" sozinho não diz de onde saiu, e é esta coluna
                         que decide a ordem da lista e quem entra nela.
                       */}
-                      <span
-                        title={`${item.coverWindowSales ?? 0} un. vendidas em 90 dias — média de ${item.averageDailySales ?? 0} un./dia`}
-                      >
+                      <span title={tituloDaDuracao(item)}>
                         {duracaoLegivel(item.daysOfCover, item.stock)}
                       </span>
                     </TableCell>
                     <TableCell className="w-px whitespace-nowrap px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {/*
-                          O botão some quando já existe compra em aberto: o
-                          pedido está feito, e não há o que fazer daqui. No
-                          lugar dele fica o aviso do que aconteceu — célula
-                          vazia pareceria linha quebrada.
-                        */}
-                        {item.hasOpenPurchase ? (
-                          <span
-                            className="text-xs text-blue-500"
-                            title="Já existe pedido de compra deste produto"
-                          >
-                            Compra em aberto
-                          </span>
-                        ) : (
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
-                            disabled={mutating}
-                            onClick={() => onComprar(item)}
-                            title="Abre o pedido de compra deste produto"
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            Comprar
-                          </Button>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              aria-label={`Opções de ${item.productName}`}
-                              disabled={mutating}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={productDetailHref(item.productGroupId)}>
-                                <ExternalLink className="mr-2 h-4 w-4" /> Abrir produto
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDisableStockControl(item)}>
-                              <SlidersHorizontal className="mr-2 h-4 w-4" /> Remover controle de estoque
-                            </DropdownMenuItem>
-                            {/*
-                              A saída do que esgotou e não se quer repor: sem ela,
-                              a linha voltaria a cada abertura da tela pedindo uma
-                              decisão que já foi tomada. Fica por último e em
-                              âmbar porque é a única que tira o produto da venda.
-                            */}
-                            <DropdownMenuItem
-                              className="text-amber-600 focus:text-amber-600"
-                              onClick={() => onInactivate(item)}
-                            >
-                              <Ban className="mr-2 h-4 w-4" /> Inativar produto
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <LowStockRowActions
+                        item={item}
+                        scope={scope}
+                        mutating={mutating}
+                        productHref={productDetailHref(item.productGroupId)}
+                        onComprar={onComprar}
+                        onDisableStockControl={onDisableStockControl}
+                        onEnableStockControl={onEnableStockControl}
+                        onInactivate={onInactivate}
+                      />
                     </TableCell>
                   </TableRow>
                 );

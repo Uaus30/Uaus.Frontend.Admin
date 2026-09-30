@@ -50,7 +50,10 @@ export type InventoryCategorySummary = {
  * Indicadores e métricas de estoque consolidadas do inventário.
  */
 export type InventoryMetrics = {
-  /** Total de produtos únicos cadastrados com controle de estoque ativo */
+  /**
+   * Total de produtos com pelo menos 1 unidade em estoque. O nome é legado: não
+   * tem relação com o controle de estoque do produto (29/09/2026).
+   */
   totalProductsWithControl: number;
   /** Total físico de unidades em estoque */
   totalUnits: number;

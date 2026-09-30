@@ -8,7 +8,13 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, ApiError, mapPagedResult } from "../client";
-import type { BackendPagedResult, QueryKey, UiPagedResult } from "../models";
+import type {
+  BackendPagedResult,
+  QueryKey,
+  StockControlDisabledReason,
+  StockForecastStatus,
+  UiPagedResult,
+} from "../models";
 
 /** Uma linha do relatório: o produto, o saldo contra o mínimo e o estado do alerta. */
 export interface LowStockItemDto {
@@ -29,7 +35,21 @@ export interface LowStockItemDto {
   /** Caminho relativo da foto principal; passe por `buildPublicImageUrl`. Ausente sem foto. */
   imageUrl?: string | null;
   stock: number;
+  /** Mínimo PRÓPRIO do produto; zero é "usa o padrão da loja". */
   minStock: number;
+  /**
+   * O mínimo que vale para o produto: o próprio, ou o padrão da loja. É o
+   * número que a tela mostra ao lado do saldo.
+   */
+  effectiveMinStock: number;
+  /** A chave do controle de estoque. */
+  stockControlEnabled: boolean;
+  /** Por que o controle foi desligado. Omitido com o controle ligado. */
+  stockControlDisabledReason?: StockControlDisabledReason | null;
+  /** Classificação da rotina diária. Omitida para quem a rotina ainda não viu. */
+  forecastStatus?: StockForecastStatus | null;
+  /** Mediana das vendas por mês. Omitida no produto novo. */
+  monthlySalesMedian?: number | null;
   price: number;
   costPrice: number;
   /**
@@ -48,18 +68,15 @@ export interface LowStockItemDto {
    */
   recentSales: number;
   /**
-   * Unidades vendidas nos últimos 90 dias, sem as canceladas.
-   *
-   * É a matéria-prima da média e da previsão de duração — e, por isso, de quem
-   * entra no relatório e em que ordem. Vem na resposta porque a tela mostra a
-   * conta inteira no título da coluna "Dura": só a média arredondada não
-   * explica de onde saiu a previsão.
+   * Unidades por dia previstas pela rotina diária (média ponderada 3/2/1 dos
+   * três últimos meses), com a precisão cheia. É o que decide quem entra no
+   * relatório e em que ordem (29/09/2026; antes era a média simples de 90 dias).
    */
-  coverWindowSales: number;
-  /** Média de unidades vendidas por dia nos últimos 90 dias. Zero sem venda no período. */
+  dailyDemand: number;
+  /** A mesma demanda arredondada em duas casas, para mostrar. */
   averageDailySales: number;
   /**
-   * Por quantos dias o saldo deve durar no ritmo da janela. Ausente sem giro:
+   * Por quantos dias o saldo deve durar na demanda prevista. Ausente sem giro:
    * zero diria "acaba hoje" para um produto que não sai.
    */
   daysOfCover?: number | null;
@@ -73,13 +90,9 @@ export interface LowStockItemDto {
 /** A contagem do alerta. */
 export interface LowStockSummaryDto {
   /**
-   * Produtos que **venderam nos últimos 30 dias e estão esgotados ou acabam em
-   * menos de trinta** — o número do alerta (12/09/2026).
-   *
-   * É sempre menor ou igual ao tamanho do relatório, que mostra também quem
-   * atingiu o estoque mínimo e quem está acabando sem ter vendido no mês. Por
-   * isso o alerta abre a lista sem filtro nenhum: o que ele conta está lá, no
-   * topo, porque a lista ordena pelo que acaba antes.
+   * Quantos produtos precisam de reposição — o MESMO número do relatório sem
+   * filtro (29/09/2026). Até ali o alerta era um subconjunto; com o giro baixo
+   * saindo do controle sozinho, dois números para a mesma pergunta só confundiam.
    */
   restock: number;
 }
@@ -103,6 +116,13 @@ export const getGetLowStockSummaryQueryKey = (): QueryKey => [...getGetLowStockQ
  */
 export type LowStockSort = "Default" | "RecentSalesDesc" | "RecentSalesAsc";
 
+/**
+ * Qual lista: o que precisa de reposição (`Restock`, o padrão) ou o que está
+ * fora do controle — desligado à mão ou ignorado por giro baixo — de onde se
+ * religa (`OutOfControl`).
+ */
+export type LowStockScope = "Restock" | "OutOfControl";
+
 export interface LowStockParams {
   /** Mesma busca das demais telas de produto (nome, descrição, código, grade). */
   search?: string;
@@ -119,6 +139,8 @@ export interface LowStockParams {
   minRecentSales?: number;
   /** Ordem da lista. Ausente vale `Default`. */
   sort?: LowStockSort;
+  /** Qual lista. Ausente vale `Restock`. */
+  scope?: LowStockScope;
   page?: number;
   limit?: number;
 }
@@ -141,6 +163,7 @@ export function useGetLowStock(
         maxStock: params?.maxStock,
         minRecentSales: params?.minRecentSales,
         sort: params?.sort,
+        scope: params?.scope,
         page: params?.page ?? 1,
         size: params?.limit ?? 20,
       });
@@ -151,7 +174,7 @@ export function useGetLowStock(
 }
 
 /**
- * Contagem de pendentes e resolvidos. Um minuto de `staleTime`: o alerta é
+ * A contagem do alerta. Um minuto de `staleTime`: o alerta é
  * lido no painel e na listagem de produtos, e o número muda com venda e
  * entrada — não a cada clique.
  */
@@ -170,12 +193,25 @@ export function useGetLowStockSummary(options?: {
 }
 
 /**
- * Zera o estoque mínimo do produto: ele deixa de ser acompanhado e sai do
- * relatório e do alerta, sem sair do catálogo. Fica no histórico do produto.
+ * Desliga o controle de estoque do produto, com motivo opcional: ele sai do
+ * relatório e do alerta sem sair do catálogo, e passa para a lista "Fora do
+ * controle". O estoque mínimo não é tocado. Fica no histórico do produto.
  */
-export async function disableStockControl(productId: number): Promise<LowStockItemDto> {
-  const response = await apiPost<LowStockItemDto>(`/LowStock/${productId}/disable-stock-control`, {});
-  if (!response.data) throw new Error("Não foi possível remover o controle de estoque.");
+export async function disableStockControl(
+  productId: number,
+  reason?: StockControlDisabledReason | null,
+): Promise<LowStockItemDto> {
+  const response = await apiPost<LowStockItemDto>(`/LowStock/${productId}/disable-stock-control`, {
+    reason: reason ?? null,
+  });
+  if (!response.data) throw new Error("Não foi possível desligar o controle de estoque.");
+  return response.data;
+}
+
+/** Religa o controle de estoque do produto. Fica no histórico do produto. */
+export async function enableStockControl(productId: number): Promise<LowStockItemDto> {
+  const response = await apiPost<LowStockItemDto>(`/LowStock/${productId}/enable-stock-control`, {});
+  if (!response.data) throw new Error("Não foi possível religar o controle de estoque.");
   return response.data;
 }
 

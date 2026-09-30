@@ -7,6 +7,7 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
+import { STANDARD_DEFAULT_MIN_STOCK, STOCK_SETTINGS_ANCHOR } from "@/lib/stock-control";
 
 /**
  * Padrão local enquanto a leitura não chega.
@@ -82,6 +83,7 @@ export function useCompanySettings() {
   const [maxSellerDiscountPercentage, setMaxSellerDiscountPercentage] = useState(0);
   const [identity, setIdentity] = useState<StoreIdentityFields>(EMPTY_IDENTITY);
   const [site, setSite] = useState<SiteOptionsFields>(DEFAULT_SITE_OPTIONS);
+  const [defaultMinStock, setDefaultMinStockState] = useState(STANDARD_DEFAULT_MIN_STOCK);
 
   const serverValue = settings?.usesCashRegister;
   const serverMaxSellerDiscount = settings ? (settings.maxSellerDiscountPercentage ?? 0) : undefined;
@@ -101,6 +103,9 @@ export function useCompanySettings() {
     : undefined;
   const serverNewProductsCount = settings
     ? (settings.siteNewProductsCount ?? DEFAULT_SITE_OPTIONS.newProductsCount)
+    : undefined;
+  const serverDefaultMinStock = settings
+    ? (settings.defaultMinStock ?? STANDARD_DEFAULT_MIN_STOCK)
     : undefined;
 
   // A sincronia depende dos valores, não do objeto devolvido pela query: um
@@ -148,6 +153,26 @@ export function useCompanySettings() {
     setSite(fromServer);
   }
 
+  // Mesma sincronia durante o render, para o estoque mínimo padrão.
+  const [minStockSyncedFrom, setMinStockSyncedFrom] = useState<number | null>(null);
+  if (serverDefaultMinStock != null && minStockSyncedFrom !== serverDefaultMinStock) {
+    setMinStockSyncedFrom(serverDefaultMinStock);
+    setDefaultMinStockState(serverDefaultMinStock);
+  }
+
+  // O campo "Estoque mínimo" do produto traz um link para `#estoque`. Numa SPA o
+  // navegador não rola até a âncora sozinho — o cartão só existe depois da
+  // leitura —, então a rolagem acontece aqui, quando ele aparece.
+  useEffect(() => {
+    if (isLoading || window.location.hash !== `#${STOCK_SETTINGS_ANCHOR}`) return;
+    document.getElementById(STOCK_SETTINGS_ANCHOR)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }, [isLoading]);
+
+  /** Altera o estoque mínimo padrão. Campo vazio ou lixo vira zero, e a validação segura no salvar. */
+  function setDefaultMinStock(value: number) {
+    setDefaultMinStockState(Number.isFinite(value) ? value : 0);
+  }
+
   /** Altera um campo da identidade sem tocar nos demais. */
   function setIdentityField(field: keyof StoreIdentityFields, value: string) {
     setIdentity((current) => ({ ...current, [field]: value }));
@@ -174,6 +199,7 @@ export function useCompanySettings() {
     (site.lowStockThreshold !== serverLowStockThreshold || site.newProductsCount !== serverNewProductsCount);
 
   const isDirty =
+    (serverDefaultMinStock != null && serverDefaultMinStock !== defaultMinStock) ||
     (serverValue != null && serverValue !== usesCashRegister) ||
     (serverMaxSellerDiscount != null && serverMaxSellerDiscount !== maxSellerDiscountPercentage) ||
     isIdentityDirty ||
@@ -195,6 +221,7 @@ export function useCompanySettings() {
         receiptFooterMessage: identity.receiptFooterMessage.trim(),
         siteLowStockThreshold: site.lowStockThreshold,
         siteNewProductsCount: site.newProductsCount,
+        defaultMinStock,
       }),
     onSuccess: async () => {
       // O PDV e a reimpressão do painel leem a mesma chave; invalidar é o que
@@ -242,6 +269,15 @@ export function useCompanySettings() {
       return;
     }
 
+    if (!Number.isInteger(defaultMinStock) || defaultMinStock < 0 || defaultMinStock > 1000) {
+      toast({
+        title: "Estoque mínimo padrão inválido",
+        description: "Informe um número inteiro entre 0 (desligado) e 1000 unidades.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     saveMutation.mutate();
   }
 
@@ -254,6 +290,8 @@ export function useCompanySettings() {
     setIdentityField,
     site,
     setSiteField,
+    defaultMinStock,
+    setDefaultMinStock,
     isDirty,
     isLoading,
     isSaving: saveMutation.isPending,

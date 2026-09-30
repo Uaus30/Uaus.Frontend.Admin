@@ -47,6 +47,7 @@ const serverSettings = {
   maxSellerDiscountPercentage: 0,
   siteLowStockThreshold: 0,
   siteNewProductsCount: 20,
+  defaultMinStock: 3,
 };
 
 describe("useCompanySettings", () => {
@@ -190,6 +191,52 @@ describe("useCompanySettings", () => {
 
     expect(mocks.updateCompanySettings).not.toHaveBeenCalled();
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
+  });
+
+  it("deve marcar alteração pendente e gravar o estoque mínimo padrão", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultMinStock).toBe(3));
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => result.current.setDefaultMinStock(5));
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() =>
+      expect(mocks.updateCompanySettings).toHaveBeenCalledWith(
+        expect.objectContaining({ defaultMinStock: 5 }),
+      ),
+    );
+  });
+
+  it("não grava estoque mínimo padrão negativo ou fracionado e avisa", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultMinStock).toBe(3));
+    for (const invalido of [-1, 2.5, 1001]) {
+      act(() => result.current.setDefaultMinStock(invalido));
+      await act(async () => {
+        result.current.handleSubmit(submitEvent);
+      });
+    }
+
+    expect(mocks.updateCompanySettings).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Estoque mínimo padrão inválido", variant: "destructive" }),
+    );
+  });
+
+  it("assume o estoque mínimo padrão de fábrica quando o backend ainda não o devolve", async () => {
+    mocks.useGetCompanySettings.mockReturnValue({ data: { usesCashRegister: false }, isLoading: false });
+
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultMinStock).toBe(2));
+    expect(result.current.isDirty).toBe(false);
   });
 
   it("assume os padrões do site quando o backend ainda não os devolve", async () => {

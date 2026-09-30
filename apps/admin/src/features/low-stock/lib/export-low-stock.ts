@@ -1,4 +1,5 @@
 import { formatShortDate } from "@workspace/core";
+import { forecastStatusLabel, outOfControlLabel } from "@/lib/stock-control";
 import type { LowStockItem } from "../types";
 
 /** Uma coluna da planilha: rótulo, largura e como tirar o valor do item. */
@@ -17,7 +18,7 @@ const COLUNAS: Coluna[] = [
   { header: "Categoria", width: 22, value: (item) => item.categoryName },
   { header: "Fornecedor", width: 22, value: (item) => item.supplierName ?? "" },
   { header: "Estoque", width: 10, value: (item) => item.stock, numFmt: "0" },
-  { header: "Mínimo", width: 10, value: (item) => item.minStock, numFmt: "0" },
+  { header: "Mínimo", width: 10, value: (item) => item.effectiveMinStock ?? item.minStock, numFmt: "0" },
   { header: "Preço", width: 12, value: (item) => item.price, numFmt: '"R$" #,##0.00' },
   { header: "Custo", width: 12, value: (item) => item.costPrice, numFmt: '"R$" #,##0.00' },
   {
@@ -30,10 +31,16 @@ const COLUNAS: Coluna[] = [
   },
   { header: "Vendas 30d", width: 12, value: (item) => item.recentSales ?? 0, numFmt: "0" },
   {
-    header: "Média/dia (90d)",
-    width: 15,
+    header: "Demanda/dia",
+    width: 13,
     value: (item) => item.averageDailySales ?? 0,
     numFmt: "0.00",
+  },
+  {
+    header: "Mediana/mês",
+    width: 13,
+    value: (item) => item.monthlySalesMedian ?? null,
+    numFmt: "0.0",
   },
   {
     header: "Dura (dias)",
@@ -45,6 +52,11 @@ const COLUNAS: Coluna[] = [
     header: "Compra em aberto",
     width: 17,
     value: (item) => (item.hasOpenPurchase ? "Sim" : "Não"),
+  },
+  {
+    header: "Controle",
+    width: 24,
+    value: (item) => outOfControlLabel(item) || forecastStatusLabel(item.forecastStatus) || "Controlado",
   },
 ];
 
@@ -89,9 +101,9 @@ export async function exportLowStockToXlsx(items: LowStockItem[], fileName: stri
       if (coluna.numFmt) row.getCell(index + 1).numFmt = coluna.numFmt;
     });
 
-    // O que já está abaixo do mínimo sai com o saldo em vermelho — a planilha
-    // é lida de cima a baixo, e a cor é o que separa urgência de contexto.
-    if (item.stock <= item.minStock) {
+    // O que já está no mínimo sai com o saldo em vermelho — a planilha é lida de
+    // cima a baixo, e a cor é o que separa urgência de contexto.
+    if (item.stock <= (item.effectiveMinStock ?? item.minStock)) {
       row.getCell(5).font = { color: { argb: "FFB91C1C" }, bold: true };
     }
   }

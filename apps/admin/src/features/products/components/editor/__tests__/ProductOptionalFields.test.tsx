@@ -18,7 +18,14 @@ const FORM_BASE: ProductGroupForm = {
 };
 
 /** O mínimo do `useProductEditor` que esta aba lê. `setForm` aceita o mock OU o `useState` de verdade do harness. */
-function fakeEditor(overrides: Partial<{ form: ProductGroupForm; setForm: unknown }> = {}) {
+function fakeEditor(
+  overrides: Partial<{
+    form: ProductGroupForm;
+    setForm: unknown;
+    productEditor: unknown;
+    stockControl: unknown;
+  }> = {},
+) {
   return {
     form: FORM_BASE,
     setForm: vi.fn(),
@@ -26,6 +33,13 @@ function fakeEditor(overrides: Partial<{ form: ProductGroupForm; setForm: unknow
     setProductEditor: vi.fn(),
     tags: [],
     registerTag: vi.fn(),
+    stockControl: {
+      view: { state: "on", reason: null, disabledCount: 0, total: 1 },
+      choose: vi.fn(),
+      defaultMinStock: 2,
+      forecastStatus: "Controlled",
+      monthlySalesMedian: 3.5,
+    },
     ...overrides,
   } as unknown as ReturnType<typeof useProductEditor>;
 }
@@ -90,5 +104,77 @@ describe("ProductOptionalFields — Observações", () => {
 
     const campo = screen.getByPlaceholderText(/fornecedor demora/i) as HTMLTextAreaElement;
     expect(campo.value).toBe("novo texto");
+  });
+});
+
+describe("ProductOptionalFields — controle de estoque", () => {
+  it("mínimo zero aparece vazio, com o padrão da loja e o caminho até ele", () => {
+    // Mostrar 0 leria como "mínimo zero"; zero é "usa o padrão da loja".
+    renderAba(fakeEditor());
+
+    const campo = screen.getByPlaceholderText("Padrão da loja (2)") as HTMLInputElement;
+    expect(campo.value).toBe("");
+    const link = screen.getByTitle("Abrir as Configurações de estoque");
+    expect(link.getAttribute("href")).toBe("/configuracoes#estoque");
+    // Em nova aba: sair da página perderia o cadastro aberto sem perguntar.
+    expect(link.getAttribute("target")).toBe("_blank");
+  });
+
+  it("mínimo próprio aparece no campo", () => {
+    renderAba(fakeEditor({ productEditor: { ...createEmptyProductEditor(), minStock: 7 } }));
+
+    expect((screen.getByPlaceholderText("Padrão da loja (2)") as HTMLInputElement).value).toBe("7");
+  });
+
+  it("desligar o interruptor registra a escolha, sem motivo", () => {
+    const choose = vi.fn();
+    renderAba(
+      fakeEditor({
+        stockControl: {
+          view: { state: "on", reason: null, disabledCount: 0, total: 1 },
+          choose,
+          defaultMinStock: 2,
+          forecastStatus: null,
+          monthlySalesMedian: null,
+        },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("switch", { name: "Controlar estoque" }));
+
+    expect(choose).toHaveBeenCalledWith({ enabled: false, reason: null });
+  });
+
+  it("conta o que a rotina diária sabe do produto", () => {
+    renderAba(
+      fakeEditor({
+        stockControl: {
+          view: { state: "on", reason: null, disabledCount: 0, total: 1 },
+          choose: vi.fn(),
+          defaultMinStock: 2,
+          forecastStatus: "LowTurnover",
+          monthlySalesMedian: 0.5,
+        },
+      }),
+    );
+
+    expect(screen.getByText(/Giro baixo \(0,5 por mês\)/)).toBeTruthy();
+  });
+
+  it("no grupo com variações desligadas em parte, avisa o estado misto", () => {
+    renderAba(
+      fakeEditor({
+        form: { ...FORM_BASE, hasVariations: true },
+        stockControl: {
+          view: { state: "mixed", reason: null, disabledCount: 1, total: 3 },
+          choose: vi.fn(),
+          defaultMinStock: 2,
+          forecastStatus: null,
+          monthlySalesMedian: null,
+        },
+      }),
+    );
+
+    expect(screen.getByText(/1 de 3 variações estão com o controle desligado/)).toBeTruthy();
   });
 });

@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getProductsPage: vi.fn((): Promise<{ data: unknown[]; total: number }> =>
     Promise.resolve({ data: [], total: 0 }),
   ),
+  getProductById: vi.fn((): Promise<unknown> => Promise.resolve(null)),
 }));
 
 /** O corpo do último salvamento, como o hook o montou. */
@@ -27,6 +28,8 @@ function ultimoPayload() {
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   saveProductGroupWithProducts: mocks.saveProductGroupWithProducts,
+  // O mínimo padrão da loja (controle de estoque) — sem rede no teste.
+  useGetCompanySettings: () => ({ data: { defaultMinStock: 2 } }),
   markPurchaseReceived: mocks.markPurchaseReceived,
 }));
 
@@ -36,6 +39,7 @@ vi.mock("@/services/products.service", () => ({
   getAllProductGroupImages: vi.fn(() => Promise.resolve([])),
   getAllProductTags: vi.fn(() => Promise.resolve([])),
   getProductsPage: mocks.getProductsPage,
+  getProductById: mocks.getProductById,
   syncProductTags: vi.fn(() => Promise.resolve()),
   syncProductGroupImages: vi.fn(() => Promise.resolve([])),
   deleteProduct: vi.fn(() => Promise.resolve()),
@@ -138,6 +142,36 @@ describe("useProductEditor Hook", () => {
     expect(result.current.editingGroupId).toBe(1);
     expect(result.current.productEditor.name).toBe("COPO VERDE");
     expect(result.current.productEditor.price).toBe(15.5);
+  });
+
+  it("produto simples aberto pela LISTAGEM completa o controle de estoque pelo servidor", async () => {
+    // REGRESSÃO (revisão de 29/09/2026): a linha da tabela não traz o controle,
+    // e a aba Opcionais mostrava "ligado" num produto desligado pelo relatório.
+    mocks.getProductById.mockResolvedValueOnce({
+      id: 10,
+      stockControlEnabled: false,
+      stockControlDisabledReason: "EndOfLine",
+      forecastStatus: "Controlled",
+      monthlySalesMedian: 4,
+    });
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail({
+        id: 10,
+        name: "COPO VERDE",
+        price: 15.5,
+        barcode: "123456",
+        productGroup: { id: 1, name: "COPO", hasVariations: false, showOnSite: true },
+        tags: [],
+        images: [],
+      });
+    });
+
+    await waitFor(() => expect(result.current.stockControl.view.state).toBe("off"));
+    expect(mocks.getProductById).toHaveBeenCalledWith(10);
+    expect(result.current.stockControl.view.reason).toBe("EndOfLine");
+    expect(result.current.isDirty).toBe(false);
   });
 
   it("produto simples ganhando variação: a carga do grupo não apaga a linha da modal", async () => {

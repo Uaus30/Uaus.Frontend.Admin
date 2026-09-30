@@ -19,11 +19,15 @@ const esgotado: LowStockItemDto = {
   imageUrl: null,
   stock: 0,
   minStock: 0,
+  effectiveMinStock: 2,
+  stockControlEnabled: true,
+  forecastStatus: "Controlled",
+  monthlySalesMedian: 4,
   price: 10,
   costPrice: 4,
   lastSaleAt: "2026-09-05T10:00:00",
   recentSales: 12,
-  coverWindowSales: 12,
+  dailyDemand: 0.1333,
   averageDailySales: 0.13,
   daysOfCover: 0,
   hasOpenPurchase: false,
@@ -37,12 +41,30 @@ const acabando: LowStockItemDto = {
   stock: 40,
   daysOfCover: 24,
   recentSales: 150,
-  coverWindowSales: 150,
+  dailyDemand: 1.6667,
   averageDailySales: 1.67,
+};
+
+/** Desligado à mão, como fim de linha: a aba "Fora do controle". */
+const desligado: LowStockItemDto = {
+  ...esgotado,
+  productId: 12,
+  productName: "COPO",
+  stockControlEnabled: false,
+  stockControlDisabledReason: "EndOfLine",
+};
+
+/** Ligado, mas de giro baixo: sai sozinho, não se religa. */
+const giroBaixo: LowStockItemDto = {
+  ...esgotado,
+  productId: 13,
+  productName: "PRATO",
+  forecastStatus: "LowTurnover",
 };
 
 function renderTable(overrides: Partial<Parameters<typeof LowStockTable>[0]> = {}) {
   const props = {
+    scope: "Restock" as const,
     items: [esgotado, acabando],
     isLoading: false,
     search: "",
@@ -58,6 +80,7 @@ function renderTable(overrides: Partial<Parameters<typeof LowStockTable>[0]> = {
     setPage: vi.fn(),
     onComprar: vi.fn(),
     onDisableStockControl: vi.fn(),
+    onEnableStockControl: vi.fn(),
     onInactivate: vi.fn(),
     mutatingProductId: null,
     ...overrides,
@@ -115,6 +138,47 @@ describe("LowStockTable", () => {
     renderTable({ items: [] });
 
     expect(screen.getByText("Nenhum produto precisando de reposição.")).toBeTruthy();
-    expect(screen.getByText(/esgotados que venderam no mês, quem atingiu o estoque mínimo/)).toBeTruthy();
+    expect(screen.getByText(/controlados que esgotaram, acabam em menos de 30 dias/)).toBeTruthy();
+  });
+
+  it("mostra o mínimo que VALE para o produto, o próprio ou o da loja", () => {
+    renderTable({ items: [esgotado] });
+
+    // Mínimo próprio zero: vale o padrão da loja, e é ele que aparece.
+    const minimo = screen.getByTitle("Mínimo padrão da loja");
+    expect(minimo.textContent).toContain("/ 2");
+  });
+
+  it("desliga o controle pelo menu da linha", async () => {
+    const { props } = renderTable();
+
+    fireEvent.pointerDown(
+      screen.getByLabelText("Opções de VELA"),
+      new PointerEvent("pointerdown", { ctrlKey: false, button: 0 }),
+    );
+    fireEvent.click(await screen.findByText("Desligar controle de estoque"));
+
+    expect(props.onDisableStockControl).toHaveBeenCalledWith(acabando);
+  });
+
+  it("na aba Fora do controle diz por quê e troca Comprar por Religar", () => {
+    const { props } = renderTable({ scope: "OutOfControl", items: [desligado, giroBaixo] });
+
+    expect(screen.getByText("Desligado · Fim de linha")).toBeTruthy();
+    expect(screen.getByText("Giro baixo")).toBeTruthy();
+    expect(screen.queryByText("Comprar")).toBeNull();
+
+    // Só o desligado à mão tem Religar: o de giro baixo já está com a chave
+    // ligada e volta sozinho quando voltar a vender.
+    const religar = screen.getAllByText("Religar");
+    expect(religar).toHaveLength(1);
+    fireEvent.click(religar[0]);
+    expect(props.onEnableStockControl).toHaveBeenCalledWith(desligado);
+  });
+
+  it("explica a aba Fora do controle vazia", () => {
+    renderTable({ scope: "OutOfControl", items: [] });
+
+    expect(screen.getByText("Todo produto está no controle de estoque.")).toBeTruthy();
   });
 });

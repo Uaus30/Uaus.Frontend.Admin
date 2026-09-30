@@ -431,6 +431,20 @@ export interface UpdatePaymentMethodRequest {
   installments?: UpdatePaymentMethodInstallmentRequest[];
 }
 
+/**
+ * Por que o controle de estoque de um produto foi desligado (29/09/2026). O
+ * backend serializa o enum pelo NOME. `EndOfLine` religa o controle sozinho
+ * quando entra mercadoria do produto.
+ */
+export type StockControlDisabledReason = "EndOfLine" | "InternalUse" | "Seasonal" | "Other";
+
+/**
+ * Como a rotina diária classificou o produto: `Controlled` vende o bastante
+ * para ser acompanhado; `LowTurnover` vende menos de 1 por mês (mediana) e sai
+ * do relatório de estoque baixo sozinho; `New` tem menos de um mês de casa.
+ */
+export type StockForecastStatus = "Controlled" | "LowTurnover" | "New";
+
 export interface ProductDto {
   id: number;
   createdAt: string;
@@ -442,7 +456,21 @@ export interface ProductDto {
   price: number;
   costPrice: number;
   stock: number;
+  /** Mínimo PRÓPRIO; zero é "usa o padrão da loja" (`CompanySettingsDto.defaultMinStock`). */
   minStock: number;
+  /**
+   * A chave do controle de estoque. Ligada por padrão. Opcional por segurança
+   * de versão: ausente, trate como ligada.
+   */
+  stockControlEnabled?: boolean;
+  /** Por que o controle foi desligado. Omitido com o controle ligado. */
+  stockControlDisabledReason?: StockControlDisabledReason | null;
+  /** Classificação da rotina diária. Omitida até a primeira rodada depois do cadastro. */
+  forecastStatus?: StockForecastStatus | null;
+  /** Mediana das vendas por mês. Omitida no produto novo. */
+  monthlySalesMedian?: number | null;
+  /** Unidades por dia previstas pela rotina diária. */
+  dailyDemand?: number | null;
   /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
   status: EnumValue;
   canDelete: boolean;

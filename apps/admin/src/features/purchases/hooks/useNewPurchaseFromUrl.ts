@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@workspace/ui";
 import { getProductById } from "@/services/products.service";
 import { NEW_PURCHASE_PRODUCT_PARAM } from "../purchases-route";
+import { suggestedRestockQuantity } from "@/lib/stock-control";
 
 /** Parâmetro opcional: fornecedor que já vem escolhido no formulário. */
 const PARAM_FORNECEDOR = "fornecedor";
@@ -55,10 +56,11 @@ type UseNewPurchaseFromUrlParams = {
  * o último fornecedor (`/estoque/compras?produto=10&fornecedor=13`), e a tela
  * completa o resto.
  *
- * **A quantidade nasce sugerida como o que recompõe o mínimo**
- * (`minStock - stock`, no mínimo 1). É palpite, não regra: quem compra ajusta.
- * Deixar 1 seria quase sempre errado numa reposição, e deixar vazio jogaria a
- * conta de volta para quem já sabe o que quer.
+ * **A quantidade nasce sugerida** pelo que cobre 60 dias da demanda prevista ou
+ * recompõe o mínimo próprio, o que for maior (`suggestedRestockQuantity`,
+ * 29/09/2026). É palpite, não regra: quem compra ajusta. Deixar 1 seria quase
+ * sempre errado numa reposição, e deixar vazio jogaria a conta de volta para
+ * quem já sabe o que quer.
  *
  * Os parâmetros saem da barra de endereços assim que são consumidos — o link é
  * instrução de uma vez só; sem isso, fechar o formulário e recarregar reabriria
@@ -100,7 +102,7 @@ export function useNewPurchaseFromUrl({ abrirCompra }: UseNewPurchaseFromUrlPara
           productBarcode: produto.barcode || null,
           productPrice: produto.price ?? null,
           supplierId: pedido.supplierId,
-          quantity: Math.max(1, (produto.minStock ?? 0) - (produto.stock ?? 0)),
+          quantity: suggestedRestockQuantity(produto),
         });
       } catch {
         if (cancelado) return;

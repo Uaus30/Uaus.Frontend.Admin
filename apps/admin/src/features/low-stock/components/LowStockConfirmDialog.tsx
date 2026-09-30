@@ -1,4 +1,6 @@
 import { Ban, SlidersHorizontal } from "lucide-react";
+import type { StockControlDisabledReason } from "@workspace/api-client-react";
+import { STOCK_CONTROL_DISABLED_REASONS } from "@/lib/stock-control";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,13 +10,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@workspace/ui";
 import type { LowStockConfirm } from "../hooks/useLowStock";
+
+/** O Radix não aceita item de valor vazio: "sem motivo" precisa de um valor próprio. */
+const SEM_MOTIVO = "none";
 
 type LowStockConfirmDialogProps = {
   confirm: LowStockConfirm | null;
   onCancel: () => void;
   onConfirm: () => void;
+  /** Motivo escolhido ao desligar o controle. */
+  onReasonChange: (reason: StockControlDisabledReason | null) => void;
   isSaving: boolean;
 };
 
@@ -33,9 +45,11 @@ export function LowStockConfirmDialog({
   confirm,
   onCancel,
   onConfirm,
+  onReasonChange,
   isSaving,
 }: LowStockConfirmDialogProps) {
   const inativando = confirm?.action === "inactivate";
+  const motivo = STOCK_CONTROL_DISABLED_REASONS.find((item) => item.value === confirm?.reason);
 
   return (
     <AlertDialog open={confirm !== null} onOpenChange={(aberto) => !aberto && onCancel()}>
@@ -49,7 +63,7 @@ export function LowStockConfirmDialog({
             )}
           </div>
           <AlertDialogTitle>
-            {inativando ? "Inativar o produto?" : "Remover o controle de estoque?"}
+            {inativando ? "Inativar o produto?" : "Desligar o controle de estoque?"}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {confirm === null ? null : inativando ? (
@@ -60,13 +74,40 @@ export function LowStockConfirmDialog({
               </>
             ) : (
               <>
-                <strong>{confirm.item.productName}</strong> deixa de ser cobrado pelo estoque mínimo, que vai
-                a zero. Se ele ainda estiver acabando pelo ritmo de venda, continua no relatório — para o que
-                não se quer repor, a ação é inativar. A mudança fica no histórico do produto.
+                <strong>{confirm.item.productName}</strong> sai deste relatório e do alerta, mas continua à
+                venda. Ele vai para a aba &quot;Fora do controle&quot;, de onde se religa, e a mudança fica no
+                histórico do produto.
               </>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {confirm !== null && !inativando && (
+          <div className="space-y-1.5">
+            <label htmlFor="stock-control-reason" className="text-sm font-medium">
+              Motivo <span className="font-normal text-muted-foreground">(opcional)</span>
+            </label>
+            <Select
+              value={confirm.reason ?? SEM_MOTIVO}
+              onValueChange={(value) =>
+                onReasonChange(value === SEM_MOTIVO ? null : (value as StockControlDisabledReason))
+              }
+              disabled={isSaving}
+            >
+              <SelectTrigger id="stock-control-reason">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_MOTIVO}>Sem motivo</SelectItem>
+                {STOCK_CONTROL_DISABLED_REASONS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {motivo && <p className="text-xs text-muted-foreground">{motivo.hint}</p>}
+          </div>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isSaving}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
@@ -79,7 +120,7 @@ export function LowStockConfirmDialog({
             disabled={isSaving}
             className="bg-amber-600 hover:bg-amber-700"
           >
-            {isSaving ? "Salvando..." : inativando ? "Inativar produto" : "Remover controle"}
+            {isSaving ? "Salvando..." : inativando ? "Inativar produto" : "Desligar controle"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -15,6 +15,7 @@ import type {
   VariationDraft,
 } from "../../types";
 import { describeApiError } from "@workspace/core";
+import { applyStockControlChoice, stockControlPayload } from "../../lib/stockControlChoice";
 
 export interface UseProductSubmitProps {
   form: ProductGroupForm;
@@ -153,6 +154,7 @@ export function useProductSubmit({
             barcode: productEditor.barcode,
             price: productEditor.price,
             minStock: productEditor.minStock,
+            ...stockControlPayload(form.stockControl),
             status: getStatusNumber(productEditor.status),
           },
         ];
@@ -192,6 +194,9 @@ export function useProductSubmit({
           barcode: draft.barcode,
           price: draft.price,
           minStock: draft.minStock,
+          // O interruptor da tela vale para TODAS as variações; sem mexer nele,
+          // nenhuma leva o campo e cada uma mantém o que o relatório decidiu.
+          ...stockControlPayload(form.stockControl),
           status: getStatusNumber(draft.status),
           variationValues: draft.values.map((value, index) => ({
             gradeType: value.gradeType,
@@ -212,6 +217,7 @@ export function useProductSubmit({
       // muda. Antes eram N upserts em série — um código de barras duplicado na
       // terceira variação deixava grupo e duas variações salvos, e o toast só
       // dizia "erro ao salvar".
+      const escolha = form.stockControl ?? null;
       const saved = await saveProductGroupWithProducts({
         groupId: editingGroupId,
         categoryId: Number(form.categoryId),
@@ -246,7 +252,10 @@ export function useProductSubmit({
         const product = saved.products[0];
         await persistProductTags(product.id, productEditor.tagIds);
 
-        setProductEditor((current) => ({ ...current, id: product.id, barcode: product.barcode }));
+        setProductEditor((current) => {
+          const salvo = { ...current, id: product.id, barcode: product.barcode };
+          return escolha ? applyStockControlChoice(salvo, escolha) : salvo;
+        });
       } else {
         const nextDrafts: VariationDraft[] = [];
         for (let index = 0; index < variationDrafts.length; index++) {
@@ -256,7 +265,7 @@ export function useProductSubmit({
           await persistProductTags(product.id, draft.tagIds);
 
           nextDrafts.push({
-            ...draft,
+            ...(escolha ? applyStockControlChoice(draft, escolha) : draft),
             id: product.id,
             barcode: product.barcode,
             canDelete: product.canDelete,
@@ -292,7 +301,10 @@ export function useProductSubmit({
       // passa a mostrá-lo como está.
       const siteGravado =
         typeof saved.group.showOnSite === "boolean" ? saved.group.showOnSite : form.isPublic;
-      if (siteGravado !== form.isPublic) setForm((current) => ({ ...current, isPublic: siteGravado }));
+      // O controle salvo passou para os produtos da tela; a escolha volta a
+      // "não mexida", para o próximo salvar não reenviá-la.
+      if (siteGravado !== form.isPublic || escolha)
+        setForm((current) => ({ ...current, isPublic: siteGravado, stockControl: null }));
       setSavedBaseline({
         showOnSite: siteGravado,
         imageIds: normalizedImages.flatMap((image) => (image.imageId ? [image.imageId] : [])),

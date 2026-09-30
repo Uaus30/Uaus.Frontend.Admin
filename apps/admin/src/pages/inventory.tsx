@@ -78,10 +78,9 @@ export default function Inventory() {
           <h1 className="text-3xl font-display font-bold text-foreground">Inventário de Produtos</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-4xl">
             <strong className="text-primary">Sobre esta tela:</strong> a <strong>Listagem Geral</strong>{" "}
-            mostra apenas produtos com controle de estoque ativado e pelo menos 1 unidade em estoque — os
-            valores de mercadoria, custo e lucro estimado são calculados sobre o estoque atual. A{" "}
-            <strong>Conferência de Produtos</strong> varre o catálogo inteiro, cadastro a cadastro, para
-            acertar foto, dados, variações e o estoque físico.
+            mostra os produtos com pelo menos 1 unidade em estoque — os valores de mercadoria, custo e lucro
+            estimado são calculados sobre o estoque atual. A <strong>Conferência de Produtos</strong> varre o
+            catálogo inteiro, cadastro a cadastro, para acertar foto, dados, variações e o estoque físico.
           </p>
         </div>
         {activeTab === "listagem" && (

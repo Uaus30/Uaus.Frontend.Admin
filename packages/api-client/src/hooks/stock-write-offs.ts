@@ -249,6 +249,13 @@ export interface CompanySettingsDto {
   siteLowStockThreshold?: number;
   /** Quantos produtos a seção "Novidades" da home do site exibe. */
   siteNewProductsCount?: number;
+  /**
+   * Estoque mínimo de todo produto controlado que não tem mínimo próprio: com
+   * saldo igual ou abaixo dele, o produto que vende entra no relatório de
+   * estoque baixo. Zero desliga o piso. Omitido na gravação, o servidor mantém o
+   * valor — o PDV salva sem conhecer o campo.
+   */
+  defaultMinStock?: number;
 }
 
 export const COMPANY_SETTINGS_QUERY_KEY = ["company-settings"] as const;

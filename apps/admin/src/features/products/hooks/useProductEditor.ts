@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProductsPage } from "@/services/products.service";
+import { getProductById, getProductsPage } from "@/services/products.service";
 
 import { buildProductCollections } from "@/services/mappers";
 import {
@@ -34,6 +34,7 @@ import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
 import { useProductSubmit } from "./editor/useProductSubmit";
 import { useReactivatedStatusSync } from "./editor/useReactivatedStatusSync";
+import { useStockControl } from "./editor/useStockControl";
 import { CATALOG_KEYS, RESOURCE_KEYS, useAllImages, useAllProductGroupImages } from "@/hooks/use-catalog";
 
 export function useProductEditor() {
@@ -253,6 +254,8 @@ export function useProductEditor() {
 
   const productImagesHook = useProductImages({ setImages });
 
+  const stockControl = useStockControl({ form, setForm, productEditor, variationDrafts, markDirty });
+
   const productSubmit = useProductSubmit({
     form,
     editingGroupId,
@@ -284,6 +287,10 @@ export function useProductEditor() {
       price: product.price,
       stock: product.stock || 0,
       minStock: product.minStock || 0,
+      stockControlEnabled: product.stockControlEnabled,
+      stockControlDisabledReason: product.stockControlDisabledReason ?? null,
+      forecastStatus: product.forecastStatus ?? null,
+      monthlySalesMedian: product.monthlySalesMedian ?? null,
       status: productForm.getStatusIdAsString(product.status),
       tagIds: product.tags.map((tag: any) => tag.id),
       barcode: product.barcode || "",
@@ -295,6 +302,37 @@ export function useProductEditor() {
       images: productImagesHook.toLocalImages(product.images),
       canDelete: product.canDelete,
     };
+  }
+
+  /**
+   * Completa o controle de estoque do produto simples aberto pela LISTAGEM.
+   *
+   * A linha da tabela (`GET /Products/table`) não traz o controle nem a
+   * classificação da rotina diária, e sem eles a aba Opcionais mostrava
+   * "Controlar estoque" ligado num produto desligado pelo relatório. Uma leitura
+   * de `GET /Products/{id}` completa os quatro campos — pelo setter CRU, porque
+   * carregar não é editar. Só aplica se o produto aberto ainda for o mesmo.
+   */
+  function completarControleDeEstoque(productId: number) {
+    void getProductById(productId)
+      .then((dto) => {
+        if (!dto) return;
+        setProductEditor((atual) =>
+          atual.id === productId
+            ? {
+                ...atual,
+                stockControlEnabled: dto.stockControlEnabled,
+                stockControlDisabledReason: dto.stockControlDisabledReason ?? null,
+                forecastStatus: dto.forecastStatus ?? null,
+                monthlySalesMedian: dto.monthlySalesMedian ?? null,
+              }
+            : atual,
+        );
+      })
+      .catch(() => {
+        // Sem a leitura, a tela fica como a linha trouxe: nada é gravado por
+        // isso, porque o salvar só manda o controle quando a pessoa mexe nele.
+      });
   }
 
   function openDetail(product?: any) {
@@ -344,12 +382,17 @@ export function useProductEditor() {
           price: product.price,
           stock: product.stock || 0,
           minStock: product.minStock || 0,
+          stockControlEnabled: product.stockControlEnabled,
+          stockControlDisabledReason: product.stockControlDisabledReason ?? null,
+          forecastStatus: product.forecastStatus ?? null,
+          monthlySalesMedian: product.monthlySalesMedian ?? null,
           status: productForm.getStatusIdAsString(product.status),
           tagIds: product.tags.map((tag: any) => tag.id),
           barcode: product.barcode || "",
         });
         setVariationDrafts([]);
         setActiveVariationKey(null);
+        if (product.stockControlEnabled === undefined && product.id) completarControleDeEstoque(product.id);
       }
     } else {
       productForm.resetForm();
@@ -572,6 +615,8 @@ export function useProductEditor() {
     },
     registerTag: productForm.registerTag,
     updateVariationDraft,
+    /** O interruptor "Controlar estoque" e o mínimo padrão da loja. */
+    stockControl,
 
     moveProductImage: (index: number, direction: -1 | 1) => {
       markDirty();

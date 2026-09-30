@@ -2,9 +2,11 @@ import { Input } from "@workspace/ui";
 import { Switch } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Settings } from "lucide-react";
 import { TagMultiSelect } from "@/components/tag-multi-select";
+import { STOCK_SETTINGS_PATH } from "@/lib/stock-control";
 import type { useProductEditor } from "../../hooks/useProductEditor";
+import { ProductStockControlField } from "./ProductStockControlField";
 
 type ProductOptionalFieldsProps = {
   editor: ReturnType<typeof useProductEditor>;
@@ -12,7 +14,8 @@ type ProductOptionalFieldsProps = {
 
 /**
  * Campos que o cadastro do dia a dia não preenche: descrição, etiquetas,
- * estoque mínimo, estoque atual, visibilidade no site e observações internas.
+ * estoque mínimo, estoque atual, visibilidade no site, controle de estoque e
+ * observações internas.
  *
  * Ficavam escondidos atrás do botão de olho da modal, e hoje são a aba
  * **Opcionais** da tela de detalhe. O olho tinha um problema
@@ -31,7 +34,7 @@ type ProductOptionalFieldsProps = {
  * onde ela aparece é o alerta no topo da aba Dados (`ProductNotesAlert`).
  */
 export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
-  const { form, setForm, productEditor, setProductEditor, tags, registerTag } = editor;
+  const { form, setForm, productEditor, setProductEditor, tags, registerTag, stockControl } = editor;
 
   return (
     <div className="space-y-6 rounded-2xl border border-border/50 bg-background/40 p-5">
@@ -65,18 +68,43 @@ export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
                   <TooltipTrigger type="button" tabIndex={-1}>
                     <HelpCircle className="h-4 w-4 text-muted-foreground" />
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Defina um valor maior que zero para controlar o estoque deste produto.</p>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      Com o saldo igual ou abaixo deste número, o produto entra no relatório de estoque baixo.
+                      Vazio usa o mínimo padrão da loja ({stockControl.defaultMinStock}), definido em
+                      Configurações. Preencha só para o produto que pede outro número.
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+              {/*
+                O padrão mora nas Configurações, e o caminho até lá fica no próprio
+                campo: quem estranha o número vazio acha onde ele é definido. Em
+                NOVA aba: trocar de página aqui desmontaria o cadastro aberto e
+                perderia o que foi digitado, sem a pergunta de descartar.
+              */}
+              <a
+                href={STOCK_SETTINGS_PATH}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary hover:underline"
+                title="Abrir as Configurações de estoque"
+              >
+                <Settings className="h-3 w-3" />
+                Padrão: {stockControl.defaultMinStock}
+              </a>
             </div>
             <Input
               type="number"
               min="0"
-              value={productEditor.minStock}
+              // Zero é "usa o padrão": mostrar 0 no campo leria como "mínimo zero".
+              value={productEditor.minStock > 0 ? productEditor.minStock : ""}
+              placeholder={`Padrão da loja (${stockControl.defaultMinStock})`}
               onChange={(event) =>
-                setProductEditor((current) => ({ ...current, minStock: Number(event.target.value) }))
+                setProductEditor((current) => ({
+                  ...current,
+                  minStock: Math.max(0, Number(event.target.value) || 0),
+                }))
               }
               className="bg-background"
             />
@@ -117,6 +145,8 @@ export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
             </label>
           </div>
         </div>
+
+        <ProductStockControlField stockControl={stockControl} hasVariations={form.hasVariations} />
 
         <div className="space-y-2 sm:col-span-2">
           <div className="flex items-center gap-1">

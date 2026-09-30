@@ -7,6 +7,7 @@ import type { LowStockItemDto } from "@workspace/api-client-react";
 const mocks = vi.hoisted(() => ({
   useGetLowStock: vi.fn(),
   disableStockControl: vi.fn(),
+  enableStockControl: vi.fn(),
   inactivateProduct: vi.fn(),
   apiGetOrThrow: vi.fn(),
   toast: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetLowStock: mocks.useGetLowStock,
   disableStockControl: mocks.disableStockControl,
+  enableStockControl: mocks.enableStockControl,
   inactivateProduct: mocks.inactivateProduct,
   apiGetOrThrow: mocks.apiGetOrThrow,
 }));
@@ -51,11 +53,13 @@ const bexiga: LowStockItemDto = {
   imageUrl: null,
   stock: 3,
   minStock: 5,
+  effectiveMinStock: 5,
+  stockControlEnabled: true,
   price: 10,
   costPrice: 4,
   lastSaleAt: "2026-09-05T10:00:00",
   recentSales: 12,
-  coverWindowSales: 12,
+  dailyDemand: 0.1333,
   averageDailySales: 0.13,
   daysOfCover: 23.1,
   hasOpenPurchase: false,
@@ -90,7 +94,8 @@ describe("useLowStock", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     givenList([bexiga]);
-    mocks.disableStockControl.mockResolvedValue({ ...bexiga, minStock: 0 });
+    mocks.disableStockControl.mockResolvedValue({ ...bexiga, stockControlEnabled: false });
+    mocks.enableStockControl.mockResolvedValue(bexiga);
     mocks.inactivateProduct.mockResolvedValue(bexiga);
     mocks.apiGetOrThrow.mockResolvedValue({ items: [bexiga] });
     mocks.exportLowStockToXlsx.mockResolvedValue(undefined);
@@ -111,9 +116,12 @@ describe("useLowStock", () => {
       // parâmetro, e mandá-lo criaria uma chave de cache diferente para a mesma
       // consulta.
       sort: undefined,
+      // `Restock` também não vai: é a lista padrão do backend.
+      scope: undefined,
       page: 1,
       limit: PAGE_SIZE,
     });
+    expect(result.current.scope).toBe("Restock");
     expect(result.current.maxStock).toBe("");
     expect(result.current.minRecentSales).toBe("");
     expect(result.current.sort).toBe("Default");
@@ -206,6 +214,19 @@ describe("useLowStock", () => {
     act(() => result.current.setPage(2));
     act(() => result.current.toggleSalesSort());
     expect(result.current.page).toBe(1);
+
+    act(() => result.current.setPage(2));
+    act(() => result.current.setScope("OutOfControl"));
+    expect(result.current.page).toBe(1);
+  });
+
+  it("a aba Fora do controle consulta a outra lista", () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.setScope("OutOfControl"));
+
+    expect(result.current.scope).toBe("OutOfControl");
+    expect(lastListParams()).toMatchObject({ scope: "OutOfControl" });
   });
 
   it("Comprar leva ao pedido de compra, sem confirmação e sem aviso", async () => {
@@ -220,24 +241,42 @@ describe("useLowStock", () => {
     expect(mocks.toast).not.toHaveBeenCalled();
   });
 
-  it("remover o controle de estoque pergunta antes e chama a API", async () => {
+  it("desligar o controle de estoque pergunta antes, leva o motivo e chama a API", async () => {
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
     act(() => result.current.askDisableStockControl(bexiga));
-    expect(result.current.confirm).toEqual({ item: bexiga, action: "disable-control" });
+    expect(result.current.confirm).toEqual({ item: bexiga, action: "disable-control", reason: null });
     expect(mocks.disableStockControl).not.toHaveBeenCalled();
 
+    act(() => result.current.setConfirmReason("EndOfLine"));
     await act(async () => {
       result.current.confirmAction();
     });
 
-    await waitFor(() => expect(mocks.disableStockControl).toHaveBeenCalledWith(10));
+    await waitFor(() => expect(mocks.disableStockControl).toHaveBeenCalledWith(10, "EndOfLine"));
     await waitFor(() =>
       expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Controle de estoque removido" }),
+        expect.objectContaining({ title: "Controle de estoque desligado" }),
       ),
     );
     expect(mocks.inactivateProduct).not.toHaveBeenCalled();
+  });
+
+  it("religar não pergunta: grava na hora", async () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      result.current.enableStockControl(bexiga);
+    });
+
+    await waitFor(() => expect(mocks.enableStockControl).toHaveBeenCalledWith(10));
+    expect(result.current.confirm).toBeNull();
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Controle de estoque religado" }),
+      ),
+    );
+    expect(mocks.disableStockControl).not.toHaveBeenCalled();
   });
 
   it("inativar pergunta antes e chama o OUTRO endpoint", async () => {
@@ -326,7 +365,7 @@ describe("useLowStock", () => {
 
     await waitFor(() =>
       expect(mocks.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Erro ao remover o controle de estoque", variant: "destructive" }),
+        expect.objectContaining({ title: "Erro ao desligar o controle de estoque", variant: "destructive" }),
       ),
     );
   });

@@ -1,4 +1,10 @@
-import type { EnumValue, GradeTypeCode } from "@workspace/api-client-react";
+import type {
+  EnumValue,
+  GradeTypeCode,
+  StockControlDisabledReason,
+  StockForecastStatus,
+} from "@workspace/api-client-react";
+import type { StockControlChoice } from "./lib/stockControlChoice";
 
 /** Imagem já associada ao produto representante da linha. */
 export type ProductTableRowImage = {
@@ -143,6 +149,12 @@ export type ProductGroupForm = {
   isPublic: boolean;
   /** Internal-use note. Never shown on the storefront or the PDV. */
   notes: string;
+  /**
+   * O interruptor "Controlar estoque", quando a pessoa mexeu nele NESTA tela.
+   * Ausente, o salvar não manda o controle e o servidor mantém o gravado
+   * (`lib/stockControlChoice.ts`).
+   */
+  stockControl?: StockControlChoice | null;
 };
 
 /**
@@ -160,8 +172,16 @@ export type ProductEditorForm = {
   price: number;
   /** Current stock quantity (usually read-only or adjusted via entries) */
   stock: number;
-  /** Minimum stock warning threshold */
+  /** Mínimo PRÓPRIO; zero é "usa o padrão da loja". */
   minStock: number;
+  /** Chave do controle de estoque, como o servidor a tem. Ausente vale ligado. */
+  stockControlEnabled?: boolean;
+  /** Por que o controle foi desligado. */
+  stockControlDisabledReason?: StockControlDisabledReason | null;
+  /** Classificação da rotina diária (Controlado, Giro baixo, Novo). */
+  forecastStatus?: StockForecastStatus | null;
+  /** Mediana das vendas por mês nos meses observados. */
+  monthlySalesMedian?: number | null;
   /** Status option ID (e.g. "Ativo", "Inativo") */
   status: string;
   /** Associated tag/label IDs */

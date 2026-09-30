@@ -3,6 +3,7 @@ import { Button } from "@workspace/ui";
 import { useLowStock } from "@/features/low-stock/hooks/useLowStock";
 import { LowStockTable } from "@/features/low-stock/components/LowStockTable";
 import { LowStockConfirmDialog } from "@/features/low-stock/components/LowStockConfirmDialog";
+import { LowStockScopeTabs } from "@/features/low-stock/components/LowStockScopeTabs";
 
 /**
  * Relatório de estoque baixo.
@@ -24,13 +25,12 @@ export default function LowStock() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">Estoque baixo</h1>
             <p className="mt-1 max-w-4xl text-sm text-muted-foreground">
-              O que precisa de compra hoje: produtos <strong>esgotados que venderam no último mês</strong>, os
-              que <strong>atingiram o estoque mínimo</strong> e os com{" "}
-              <strong>saldo para menos de 30 dias</strong> no ritmo dos últimos noventa. Os esgotados vêm
-              primeiro; depois, o que acaba antes. Os dois campos de quantidade apenas estreitam a lista.{" "}
-              <strong>Comprar</strong> abre o pedido de reposição já preenchido; feito o pedido, o botão sai
-              da linha. Uma entrada de estoque tira o produto daqui sozinha — e, para o que não vale repor, o
-              menu da linha inativa o produto.
+              O que precisa de compra hoje, entre os produtos <strong>controlados</strong>: os{" "}
+              <strong>esgotados</strong>, os com <strong>saldo para menos de 30 dias</strong> na demanda
+              prevista e os que <strong>chegaram ao estoque mínimo</strong>. Todo produto é controlado, menos
+              os que vendem menos de 1 por mês e os que alguém desligou — esses ficam em{" "}
+              <strong>Fora do controle</strong>, de onde se religa. <strong>Comprar</strong> abre o pedido de
+              reposição já preenchido; uma entrada de estoque tira o produto daqui sozinha.
             </p>
           </div>
           <Button
@@ -47,7 +47,10 @@ export default function LowStock() {
           </Button>
         </div>
 
+        <LowStockScopeTabs scope={report.scope} onChange={report.setScope} />
+
         <LowStockTable
+          scope={report.scope}
           items={report.items}
           isLoading={report.isLoading}
           search={report.search}
@@ -63,6 +66,7 @@ export default function LowStock() {
           setPage={report.setPage}
           onComprar={report.comprar}
           onDisableStockControl={report.askDisableStockControl}
+          onEnableStockControl={report.enableStockControl}
           onInactivate={report.askInactivate}
           mutatingProductId={report.mutatingProductId}
         />
@@ -72,6 +76,7 @@ export default function LowStock() {
         confirm={report.confirm}
         onCancel={report.cancelConfirm}
         onConfirm={report.confirmAction}
+        onReasonChange={report.setConfirmReason}
         isSaving={report.isConfirming}
       />
     </>

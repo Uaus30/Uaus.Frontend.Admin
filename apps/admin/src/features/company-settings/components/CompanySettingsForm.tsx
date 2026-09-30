@@ -6,6 +6,7 @@ import { Label } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
 import { Switch } from "@workspace/ui";
 import { Textarea } from "@workspace/ui";
+import { STOCK_SETTINGS_ANCHOR } from "@/lib/stock-control";
 import type { SiteOptionsFields, StoreIdentityFields } from "../hooks/useCompanySettings";
 
 type CompanySettingsFormProps = {
@@ -19,6 +20,9 @@ type CompanySettingsFormProps = {
   /** Opções da vitrine pública (uaus.com.br). */
   site: SiteOptionsFields;
   onSiteChange: (field: keyof SiteOptionsFields, value: number) => void;
+  /** Estoque mínimo dos produtos sem mínimo próprio. */
+  defaultMinStock: number;
+  onDefaultMinStockChange: (value: number) => void;
   /** Há alteração pendente de gravação. */
   isDirty: boolean;
   isLoading: boolean;
@@ -74,6 +78,8 @@ export function CompanySettingsForm({
   onIdentityChange,
   site,
   onSiteChange,
+  defaultMinStock,
+  onDefaultMinStockChange,
   isDirty,
   isLoading,
   isSaving,
@@ -174,6 +180,38 @@ export function CompanySettingsForm({
               max={100}
               value={maxSellerDiscountPercentage}
               onChange={(e) => onMaxSellerDiscountPercentageChange(Number(e.target.value))}
+              disabled={isSaving}
+              className="w-24 text-right"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card id={STOCK_SETTINGS_ANCHOR} className="scroll-mt-6 border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Estoque</CardTitle>
+          <CardDescription>Como o relatório de estoque baixo decide o que precisa de compra.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start justify-between gap-6 rounded-xl border border-border/50 bg-background/50 p-4">
+            <div className="space-y-1">
+              <Label htmlFor="default-min-stock" className="text-sm font-medium">
+                Estoque mínimo padrão (unidades)
+              </Label>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Vale para todo produto sem estoque mínimo próprio. Com o saldo igual ou abaixo deste número, o
+                produto que vende entra no relatório de estoque baixo, mesmo que ainda dure mais de 30 dias.
+                Zero desliga o piso: sobra só a previsão de duração.
+              </p>
+            </div>
+            <Input
+              id="default-min-stock"
+              type="number"
+              min={0}
+              max={1000}
+              step={1}
+              value={defaultMinStock}
+              onChange={(e) => onDefaultMinStockChange(Number(e.target.value))}
               disabled={isSaving}
               className="w-24 text-right"
             />

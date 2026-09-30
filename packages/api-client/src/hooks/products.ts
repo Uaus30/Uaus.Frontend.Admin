@@ -14,6 +14,7 @@ import type {
   ProductGroupDto,
   ProductTableRowDto,
   QueryKey,
+  StockControlDisabledReason,
   UiPagedResult,
 } from "../models";
 
@@ -89,6 +90,14 @@ export interface SaveProductGroupProductPayload {
   barcode?: string | null;
   price: number;
   minStock?: number;
+  /**
+   * Liga ou desliga o controle de estoque. OMITIDO, o servidor mantém o que está
+   * gravado — o editor só manda quando a pessoa mexeu no interruptor NESTA tela,
+   * senão desfaria a decisão tomada pelo relatório de estoque baixo.
+   */
+  stockControlEnabled?: boolean;
+  /** Motivo de desligar; ignorado com o controle ligado. */
+  stockControlDisabledReason?: StockControlDisabledReason | null;
   /** Código numérico do status (`getStatusNumber` da tela). */
   status: number;
   variationValues?: Array<{ gradeType: number; value: string; displayOrder: number }>;
