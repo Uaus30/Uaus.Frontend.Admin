@@ -15,7 +15,7 @@ type AnomalyFiltersProps = {
   onSearchChange: (value: string) => void;
   isFetching: boolean;
   onRefresh: () => void;
-  /** Esconde "Nunca vendeu" e "Parou de vender" em variação com uma unidade só. */
+  /** Esconde "Nunca vendeu" e "Parou de vender" em cadastro com uma unidade só no total. */
   ignoreSingleUnits: boolean;
   onIgnoreSingleUnitsChange: (value: boolean) => void;
 };

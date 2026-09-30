@@ -118,12 +118,26 @@ describe("describeAnomaly", () => {
 });
 
 describe("isSingleUnitIdle", () => {
-  it("só o produto parado com menos de 2 unidades — uma unidade com preço errado continua errada", () => {
-    expect(isSingleUnitIdle(livro.anomalies[0]!)).toBe(true);
-    expect(isSingleUnitIdle(vaso.anomalies[1]!)).toBe(false);
-    expect(isSingleUnitIdle({ type: "NoRecentSales", stock: 1 })).toBe(true);
-    expect(isSingleUnitIdle({ type: "PriceBelowCost", stock: 1 })).toBe(false);
-    expect(isSingleUnitIdle({ type: "MissingPhoto" })).toBe(false);
+  it("só o produto parado em cadastro com menos de 2 unidades — uma unidade com preço errado continua errada", () => {
+    expect(isSingleUnitIdle(livro.anomalies[0]!, livro)).toBe(true);
+    expect(isSingleUnitIdle(vaso.anomalies[1]!, vaso)).toBe(false);
+    expect(isSingleUnitIdle({ type: "PriceBelowCost", stock: 1 }, livro)).toBe(false);
+    expect(isSingleUnitIdle({ type: "MissingPhoto" }, livro)).toBe(false);
+  });
+
+  it("o saldo é o do cadastro: três variações de uma unidade cada são três peças paradas, e aparecem", () => {
+    const camiseta: ProductAnomalyRowDto = {
+      ...livro,
+      hasVariations: true,
+      stock: 3,
+      anomalies: [
+        { type: "NeverSold", productId: 1, productName: "CAMISETA [P]", stock: 1, daysWithoutSales: 40 },
+        { type: "NeverSold", productId: 2, productName: "CAMISETA [M]", stock: 1, daysWithoutSales: 40 },
+        { type: "NeverSold", productId: 3, productName: "CAMISETA [G]", stock: 1, daysWithoutSales: 40 },
+      ],
+    };
+
+    expect(camiseta.anomalies.every((a) => !isSingleUnitIdle(a, camiseta))).toBe(true);
   });
 });
 
