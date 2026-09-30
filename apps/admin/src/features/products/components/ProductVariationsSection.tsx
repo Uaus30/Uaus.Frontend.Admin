@@ -106,11 +106,13 @@ export function ProductVariationsSection({
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground border-b border-border/50">
             <tr>
-              <th className="px-4 py-3 font-medium w-48 text-center">CÓDIGO</th>
+              <th className="px-4 py-3 font-medium w-48 min-w-[11rem] whitespace-nowrap text-center">
+                CÓDIGO
+              </th>
               {selectedGrades.map((grade) => (
                 <th
                   key={grade.type}
-                  className="px-2 py-2 font-medium w-32 border-l border-border/30 bg-muted/20 text-foreground"
+                  className="px-2 py-2 font-medium w-32 min-w-[8rem] whitespace-nowrap border-l border-border/30 bg-muted/20 text-foreground"
                 >
                   <div className="flex items-center gap-1">
                     <VariationGradeHeader
@@ -122,8 +124,8 @@ export function ProductVariationsSection({
                   </div>
                 </th>
               ))}
-              <th className="px-4 py-3 font-medium">Variação</th>
-              <th className="px-4 py-3 font-medium w-32 text-center">
+              <th className="px-4 py-3 font-medium whitespace-nowrap">Variação</th>
+              <th className="px-4 py-3 font-medium w-32 min-w-[8rem] whitespace-nowrap text-center">
                 PREÇO <span className="text-red-500">*</span>
               </th>
               {/*
@@ -134,11 +136,13 @@ export function ProductVariationsSection({
                 mais antiga: sem ela, o operador via a tabela nova e concluía
                 que o estoque tinha sumido.
               */}
-              <th className="px-4 py-3 font-medium w-28 text-center">ESTOQUE</th>
-              <th className="px-4 py-3 font-medium w-32 text-center">
+              <th className="px-4 py-3 font-medium w-28 min-w-[6rem] whitespace-nowrap text-center">
+                ESTOQUE
+              </th>
+              <th className="px-4 py-3 font-medium w-32 min-w-[8rem] whitespace-nowrap text-center">
                 Status <span className="text-red-500">*</span>
               </th>
-              <th className="px-4 py-3 font-medium text-right w-16">Ações</th>
+              <th className="px-4 py-3 font-medium text-right w-16 whitespace-nowrap">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -218,7 +222,7 @@ export function ProductVariationsSection({
                   — que é exatamente o problema que esta tela veio resolver.
                 */}
                   <td className="px-4 py-2">
-                    <span className="block truncate text-xs font-medium text-foreground">
+                    <span className="block max-w-[24rem] truncate text-xs font-medium text-foreground">
                       {nomeExibidoDaVariacao(productGroupName, variation.values)}
                     </span>
                   </td>
