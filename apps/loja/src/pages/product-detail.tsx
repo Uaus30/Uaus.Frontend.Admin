@@ -11,6 +11,7 @@ import { StockBadge } from "@/features/catalog/components/StockBadge";
 import { ProductBreadcrumb } from "@/features/catalog/components/ProductBreadcrumb";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { trackReserveClick } from "@/lib/metrics";
 
 function DetailSkeleton() {
   return (
@@ -200,6 +201,7 @@ export default function ProductDetailPage() {
                         href={detail.reservationUrl}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={() => trackReserveClick(productGroupId, detail.selectedVariation)}
                         className="animate-pulse-glow mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 px-6 py-5 text-center font-bold text-white shadow-sm transition-colors duration-200 hover:bg-green-600 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 focus-visible:outline-none"
                       >
                         <WhatsAppIcon className="h-5 w-5" />
