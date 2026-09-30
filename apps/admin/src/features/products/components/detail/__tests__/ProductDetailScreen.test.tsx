@@ -33,6 +33,8 @@ vi.mock("../ProductStockTab", async () => {
       ),
   };
 });
+// A aba Vendas consulta o servidor e só monta quando aberta; aqui não decide nada.
+vi.mock("../ProductSalesTab", () => ({ ProductSalesTab: () => null }));
 vi.mock("../ProductEditorDialogs", () => ({ ProductEditorDialogs: () => null }));
 vi.mock("../VariationGradesModal", () => ({ VariationGradesModal: () => null }));
 vi.mock("../ProductWebImageSearch", () => ({ ProductWebImageSearch: () => null }));

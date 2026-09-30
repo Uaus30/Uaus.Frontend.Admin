@@ -11,6 +11,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductDetailScreen.tsx`: Tela de detalhe do produto, em três abas — orquestra o formulário, as confirmações e o salvar. Substituiu a modal de edição.
 - `components/detail/ProductGeneralTab.tsx`: Aba **Dados** (obrigatórios + código de barras + imagens + variações).
 - `components/detail/ProductStockTab.tsx`: Aba **Estoque** (histórico de entradas do produto e lançamento simplificado).
+- `components/detail/ProductSalesTab.tsx` e `hooks/useProductSales.ts`: Aba **Vendas** (as saídas do produto, uma linha por item de venda, com o olho que abre a venda inteira). Ver seção 4.9.
 - `components/detail/ProductEditorDialogs.tsx`: Confirmação de exclusão de variação, fora do formulário.
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
 - `components/detail/ProductNotesAlert.tsx`: Card âmbar no topo da aba **Dados**, visível só quando o grupo tem Observações preenchida. Ver seção 4.6.
@@ -331,6 +332,7 @@ As abas separam por **frequência de uso**, não por assunto:
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | **Dados**     | Código de barras, nome, departamento, categoria, último custo e estoque atual (só leitura), preço, status, imagens e variações. |
 | **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                                                       |
+| **Vendas**    | As saídas: cada venda que levou o produto, da mais recente para a mais antiga, com o olho que abre a venda inteira. Seção 4.9.  |
 | **Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura), visibilidade no site e Observações (uso interno — seção 4.6). |
 | **Histórico** | O histórico completo do grupo — o mesmo da modal do menu da listagem (`ProductHistoryTimeline`).                                |
 
@@ -722,6 +724,33 @@ aberta **que ainda espelha o de antes da entrada**. Se a pessoa mudou o status �
 mão e não salvou, a escolha dela fica. A troca usa os setters crus: o servidor
 já está assim, e a tela não pode perguntar "descartar alterações?" por causa
 dela.
+
+### 4.9. Aba Vendas: as saídas do produto (30/09/2026)
+
+Pedido do dono: "visualizar as saídas do produto e quanto saiu". A aba Estoque
+já respondia isso para as entradas; a de Vendas responde para as saídas, no
+mesmo desenho — uma tabela enxuta e um olho por linha.
+
+- **Uma linha por item de venda**, não por venda: é o item que tem quantidade e
+  preço deste produto. Colunas: data e hora **da venda**, quantidade e o preço
+  praticado (com o de tabela riscado quando houve desconto no item, como na
+  modal). O número da venda aparece ao lado da data.
+- **Ordem do backend** (`GET /SaleItems/by-product/{productId}`, data da venda
+  decrescente e, no empate, id do item decrescente). A venda retroativa ou
+  migrada cai no dia em que vendeu, não no topo — é a ordenação funcionando.
+- **Venda cancelada aparece marcada, não some.** O estoque dela voltou, então ela
+  não é saída; mas escondê-la faria alguém procurar a venda que "sumiu". Quem
+  soma o que saiu desconta as marcadas.
+- **A variação é a mesma da aba Estoque** (`stockProductId`): é ela que sai na
+  venda. O seletor de variação se repete na aba, e trocar de variação volta para
+  a página 1 — a página 3 de uma variação com trinta vendas não existe na irmã
+  com cinco.
+- **O olho abre a mesma modal da tela de Vendas** (`SaleDetailsModal`, da feature
+  `sales`), agora só com o id: ela busca a venda inteira em `GET /Sales/{id}` e
+  mostra o carregamento até chegar. Sem a cadeia do cupom montada, o botão de
+  reimprimir não aparece aqui.
+- Montada só quando a aba é aberta: é uma consulta a mais por produto, e a
+  maioria das aberturas do cadastro não passa por ela.
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 

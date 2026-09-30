@@ -5,22 +5,6 @@ import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { computeSaleDiscountTotal, formatCurrency, formatDate, round2 } from "@workspace/core";
 import { useGetSaleDetails } from "@workspace/api-client-react";
-import type { EnrichedSale } from "../types";
-
-type SaleDetailsModalProps = {
-  /** Visibility status of the modal */
-  open: boolean;
-  /** Callback triggered when visibility status changes */
-  onOpenChange: (open: boolean) => void;
-  /** The enriched sale object to view, or null */
-  saleToView: EnrichedSale | null;
-  /** Map of payment methods names */
-  paymentMethodById: Record<number, string>;
-  /** Callback to reprint the receipt of the sale being viewed */
-  onPrintReceipt: (id: number) => void;
-  /** Active sale ID having its receipt printed, or null */
-  printingSaleId: number | null;
-};
 
 /**
  * Um item da venda no recorte que o modal lê, seja qual for a origem: o detalhe
@@ -62,6 +46,58 @@ type SaleDetailsPayment = {
 };
 
 /**
+ * A venda no recorte que o modal desenha — o `SaleDto` da API e a
+ * `EnrichedSale` da listagem cabem nele. Estrutural pelo mesmo motivo dos
+ * itens: quem abre o modal a partir de outra tela (a aba Vendas do produto) não
+ * tem a venda enriquecida em mãos, só o id.
+ */
+export type SaleDetailsSale = {
+  id: number;
+  createdAt: string;
+  total: number;
+  discount: number;
+  notes?: string | null;
+  customerName?: string | null;
+  customerDocument?: string | null;
+  customer?: { name?: string | null } | null;
+  userName?: string | null;
+  paymentMethodId?: number | null;
+  paymentMethodName?: string | null;
+  payments?: SaleDetailsPayment[];
+  items?: SaleDetailsItem[];
+};
+
+type SaleDetailsModalProps = {
+  /** Visibility status of the modal */
+  open: boolean;
+  /** Callback triggered when visibility status changes */
+  onOpenChange: (open: boolean) => void;
+  /**
+   * A venda a exibir, quando quem abre já a tem (a listagem de Vendas): o
+   * cabeçalho aparece na hora, e o detalhe da API completa itens e pagamentos.
+   */
+  saleToView?: SaleDetailsSale | null;
+  /**
+   * Só o id, quando quem abre não tem a venda em mãos (a aba Vendas do
+   * produto). O modal busca tudo na API e mostra o carregamento até chegar.
+   * Ignorado quando `saleToView` veio.
+   */
+  saleId?: number | null;
+  /** Map of payment methods names */
+  paymentMethodById?: Record<number, string>;
+  /**
+   * Reimpressão do cupom. Opcional: fora da tela de Vendas ninguém tem a
+   * cadeia do cupom montada, e o botão simplesmente não aparece.
+   */
+  onPrintReceipt?: (id: number) => void;
+  /** Active sale ID having its receipt printed, or null */
+  printingSaleId?: number | null;
+};
+
+/** Sem forma cadastrada em mãos, o nome vem da própria venda. */
+const SEM_FORMAS: Record<number, string> = {};
+
+/**
  * SaleDetailsModal
  *
  * Dialog component showing purchase details and transaction aggregates.
@@ -69,15 +105,18 @@ type SaleDetailsPayment = {
 export function SaleDetailsModal({
   open,
   onOpenChange,
-  saleToView,
-  paymentMethodById,
+  saleToView = null,
+  saleId = null,
+  paymentMethodById = SEM_FORMAS,
   onPrintReceipt,
-  printingSaleId,
+  printingSaleId = null,
 }: SaleDetailsModalProps) {
-  const { data: saleDetails, isLoading: loadingDetails } = useGetSaleDetails(
-    open && saleToView?.id ? saleToView.id : undefined,
-  );
+  const id = saleToView?.id ?? saleId ?? null;
+  const { data: saleDetails, isLoading: loadingDetails } = useGetSaleDetails(open && id ? id : undefined);
 
+  // O detalhe da API é a fonte mais completa; a venda da listagem segura o
+  // cabeçalho enquanto ele não chega.
+  const sale: SaleDetailsSale | null = saleDetails ?? saleToView;
   const items: SaleDetailsItem[] = saleDetails?.items ?? saleToView?.items ?? [];
   const payments: SaleDetailsPayment[] = saleDetails?.payments ?? saleToView?.payments ?? [];
 
@@ -113,44 +152,42 @@ export function SaleDetailsModal({
    * gravado — e o modal dizia "sem desconto" para a venda remarcada só no item.
    * É a mesma conta do histórico e do cupom do PDV.
    */
-  const discountTotal = computeSaleDiscountTotal({ discount: saleToView?.discount ?? 0, items });
+  const discountTotal = computeSaleDiscountTotal({ discount: sale?.discount ?? 0, items });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] flex-col border-border/50 bg-card sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-display">
-            <Receipt className="h-5 w-5 text-primary" /> Detalhes da Venda #
-            {saleToView?.id.toString().padStart(4, "0")}
+            <Receipt className="h-5 w-5 text-primary" /> Detalhes da Venda #{id?.toString().padStart(4, "0")}
           </DialogTitle>
         </DialogHeader>
-        {saleToView && (
+        {/* Só com o id em mãos o cabeçalho ainda não existe: a espera é da venda inteira. */}
+        {!sale && loadingDetails && (
+          <div className="flex items-center justify-center py-12" data-testid="sale-details-loading">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        {sale && (
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto py-4 pr-2">
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div>
                 <p className="text-xs font-semibold uppercase text-muted-foreground">Data</p>
-                <p className="mt-1 font-medium">{formatDate(saleToView.createdAt)}</p>
+                <p className="mt-1 font-medium">{formatDate(sale.createdAt)}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-muted-foreground">Consumidor</p>
                 <p className="mt-1 font-medium">
-                  {saleDetails?.customerName ||
-                    saleToView.customerName ||
-                    saleToView.customer?.name ||
-                    "Consumidor Final"}
+                  {sale.customerName || sale.customer?.name || "Consumidor Final"}
                 </p>
-                {(saleDetails?.customerDocument || saleToView.customerDocument) && (
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {saleDetails?.customerDocument || saleToView.customerDocument}
-                  </p>
+                {sale.customerDocument && (
+                  <p className="font-mono text-xs text-muted-foreground">{sale.customerDocument}</p>
                 )}
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-muted-foreground">Operador</p>
                 <p className="mt-1 font-medium">
-                  {saleDetails?.userName || saleToView.userName || (
-                    <span className="text-muted-foreground">Não informado</span>
-                  )}
+                  {sale.userName || <span className="text-muted-foreground">Não informado</span>}
                 </p>
               </div>
               <div>
@@ -167,17 +204,17 @@ export function SaleDetailsModal({
                     ))
                   ) : (
                     <Badge variant="secondary">
-                      {saleToView.paymentMethodName ||
-                        (saleToView.paymentMethodId ? paymentMethodById[saleToView.paymentMethodId] : null) ||
+                      {sale.paymentMethodName ||
+                        (sale.paymentMethodId ? paymentMethodById[sale.paymentMethodId] : null) ||
                         "Não informado"}
                     </Badge>
                   )}
                 </div>
               </div>
-              {saleToView.notes && (
+              {sale.notes && (
                 <div className="col-span-2 mt-2 rounded-r border-l-2 border-primary/50 bg-primary/5 py-1 pl-3">
                   <p className="text-xs text-muted-foreground">Observação</p>
-                  <p className="italic">{saleToView.notes}</p>
+                  <p className="italic">{sale.notes}</p>
                 </div>
               )}
             </div>
@@ -251,9 +288,7 @@ export function SaleDetailsModal({
                 {/* Sem os itens em mãos (detalhe ainda carregando), o único
                     desconto conhecido é o do cabeçalho — e a conta fecha do
                     mesmo jeito: total + cabeçalho − cabeçalho. */}
-                <span>
-                  {formatCurrency(items.length > 0 ? grossSubtotal : saleToView.total + saleToView.discount)}
-                </span>
+                <span>{formatCurrency(items.length > 0 ? grossSubtotal : sale.total + sale.discount)}</span>
               </div>
               {/* DISCRIMINA, não soma: o acréscimo já está dentro do subtotal
                   logo acima. Por isso "dos quais" e não um "+" — um sinal ali
@@ -284,24 +319,28 @@ export function SaleDetailsModal({
               )}
               <div className="mt-1 flex justify-between border-t border-border/50 pt-2 text-lg font-bold text-primary">
                 <span>Total</span>
-                <span>{formatCurrency(saleToView.total)}</span>
+                <span>{formatCurrency(sale.total)}</span>
               </div>
             </div>
           </div>
         )}
         <DialogFooter className="gap-2 sm:justify-between">
-          <Button
-            variant="outline"
-            disabled={!saleToView || printingSaleId === saleToView.id}
-            onClick={() => saleToView && onPrintReceipt(saleToView.id)}
-          >
-            {saleToView && printingSaleId === saleToView.id ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Printer className="mr-2 h-4 w-4" />
-            )}
-            Imprimir cupom
-          </Button>
+          {onPrintReceipt ? (
+            <Button
+              variant="outline"
+              disabled={!sale || printingSaleId === sale.id}
+              onClick={() => sale && onPrintReceipt(sale.id)}
+            >
+              {sale && printingSaleId === sale.id ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="mr-2 h-4 w-4" />
+              )}
+              Imprimir cupom
+            </Button>
+          ) : (
+            <span />
+          )}
           <Button onClick={() => onOpenChange(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>

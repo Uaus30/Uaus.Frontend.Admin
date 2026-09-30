@@ -19,6 +19,7 @@ import { ProductEditorDialogs } from "./ProductEditorDialogs";
 import { VariationGradesModal } from "./VariationGradesModal";
 import { ProductGeneralTab } from "./ProductGeneralTab";
 import { ProductStockTab } from "./ProductStockTab";
+import { ProductSalesTab } from "./ProductSalesTab";
 import { ProductWebImageSearch } from "./ProductWebImageSearch";
 import { ProductPerformanceTab } from "../performance/ProductPerformanceTab";
 import { ProductHistoryTimeline } from "../ProductHistoryTimeline";
@@ -27,7 +28,7 @@ import { ProductConferenceBanner } from "@/features/inventory-count/components/P
 type ProductDetailScreenProps = {
   editor: ReturnType<typeof useProductEditor>;
   /** Aba aberta na montagem. O menu "Estoque" da listagem cai direto no lançamento. */
-  initialTab?: "dados" | "estoque" | "opcionais";
+  initialTab?: "dados" | "estoque" | "vendas" | "opcionais";
   /**
    * Variação já escolhida na aba de Estoque, quando quem abriu a tela sabe qual
    * é — o recebimento de uma compra. Id que não pertença ao grupo é ignorado
@@ -48,6 +49,7 @@ type ProductDetailScreenProps = {
 const PROXIMA_ABA: Record<string, "dados" | "estoque"> = {
   dados: "estoque",
   estoque: "dados",
+  vendas: "dados",
   opcionais: "dados",
   desempenho: "dados",
   historico: "dados",
@@ -56,6 +58,7 @@ const PROXIMA_ABA: Record<string, "dados" | "estoque"> = {
 const ROTULO_DA_ABA: Record<string, string> = {
   dados: "Dados",
   estoque: "Estoque",
+  vendas: "Vendas",
   opcionais: "Opcionais",
   desempenho: "Desempenho",
   historico: "Histórico",
@@ -98,6 +101,7 @@ function impedirEnvioPeloEnter(event: React.KeyboardEvent<HTMLFormElement>) {
  *
  * - **Dados** — o que o cadastro do dia a dia preenche e sem o que não salva.
  * - **Estoque** — o histórico de entradas do produto e o lançamento rápido.
+ * - **Vendas** — as saídas: cada venda que levou o produto (30/09/2026).
  * - **Opcionais** — o que era o olho fechado.
  *
  * O `<form>` envolve as três: o salvar do cabeçalho vale de qualquer aba, e
@@ -386,6 +390,9 @@ export function ProductDetailScreen({
               <TabsTrigger value="estoque" disabled={cadastroNovo}>
                 Estoque
               </TabsTrigger>
+              <TabsTrigger value="vendas" disabled={cadastroNovo}>
+                Vendas
+              </TabsTrigger>
               <TabsTrigger value="opcionais" disabled={cadastroNovo}>
                 Opcionais
               </TabsTrigger>
@@ -450,6 +457,19 @@ export function ProductDetailScreen({
                 if (stockProductId !== null) void completePurchaseReceipt(stockProductId, entryId);
               }}
             />
+          </TabsContent>
+
+          {/* Montada só quando aberta: é uma consulta a mais por produto, e a
+              maioria das aberturas do cadastro não passa por aqui. A variação é a
+              mesma da aba Estoque — é ela que sai na venda. */}
+          <TabsContent value="vendas" className="mt-4">
+            {activeTab === "vendas" && (
+              <ProductSalesTab
+                productId={stockProductId}
+                variationOptions={variationOptions}
+                onSelectProduct={setPickedStockProductId}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="opcionais" className="mt-4">
