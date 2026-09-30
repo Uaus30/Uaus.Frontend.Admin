@@ -58,7 +58,9 @@ export function BoardColumn({
         <span aria-hidden className={cn("pointer-events-none absolute inset-0", column.header)} />
         <span className={cn("relative h-2.5 w-2.5 rounded-full", column.dot)} />
         <h2 className="relative text-sm font-semibold text-foreground">{column.title}</h2>
-        <span className="relative ml-auto rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+        {/* Chip com fundo claro e texto em `foreground`, como o título: em
+            `text-muted-foreground` sobre a camada colorida ele ficava apagado. */}
+        <span className="relative ml-auto rounded-full bg-foreground/15 px-2 py-0.5 text-xs font-semibold text-foreground">
           {cards.length}
         </span>
       </header>
