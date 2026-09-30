@@ -121,8 +121,10 @@ export function AnomaliesHelp({ rules }: { rules: ProductAnomalyRulesDto }) {
                 <strong className="text-foreground/85">
                   “Ignorar parado com saldo menor que {IDLE_MIN_STOCK}”
                 </strong>{" "}
-                esconde essas duas etiquetas em variação com uma unidade só — livro de título único, peça
-                única — que fica meses na prateleira por natureza. Vem ligado; desligue para ver tudo.
+                esconde essas duas etiquetas no cadastro que tem uma unidade só no total — livro de título
+                único, peça única — que fica meses na prateleira por natureza. Cadastro com variações soma
+                todas: três tamanhos de uma unidade cada são três peças paradas, e aparecem. Vem ligado;
+                desligue para ver tudo.
               </p>
             </div>
           ),

@@ -70,7 +70,7 @@ export default function TaskBoardPage() {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-3 py-3 sm:px-5 sm:py-4">
+      <div className="board-scroll min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-3 py-3 sm:px-5 sm:py-4">
         {board.isLoading ? (
           <div className="flex items-center gap-2 rounded-lg bg-background/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando o quadro…

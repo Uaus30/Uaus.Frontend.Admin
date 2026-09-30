@@ -22,8 +22,8 @@ import { isSingleUnitIdle } from "../lib/anomalies";
  * O botão de recarregar continua para o "agora".
  *
  * <b>"Ignorar saldo menor que 2"</b> (pedido do dono, 30/09/2026) esconde as
- * etiquetas de produto parado em variação com uma unidade só — livro de título
- * único, peça única — e some com a linha que ficar sem etiqueta. É local, como o
+ * etiquetas de produto parado em cadastro com uma unidade só no total — livro
+ * de título único, peça única — e some com a linha que ficar sem etiqueta. É local, como o
  * filtro: o servidor manda tudo, e as pastilhas se recontam aqui sobre o que
  * sobrou. Ligado por padrão: é o caso comum da loja.
  */
@@ -41,7 +41,7 @@ export function useProductAnomalies() {
     if (!ignoreSingleUnits) return linhas;
 
     return linhas.flatMap((linha) => {
-      const anomalies = linha.anomalies.filter((anomalia) => !isSingleUnitIdle(anomalia));
+      const anomalies = linha.anomalies.filter((anomalia) => !isSingleUnitIdle(anomalia, linha));
       if (anomalies.length === 0) return [];
       return anomalies.length === linha.anomalies.length ? [linha] : [{ ...linha, anomalies }];
     });

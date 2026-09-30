@@ -32,6 +32,7 @@ interface TaskLabelsDialogProps {
 }
 
 const PRIORITIES: TaskLabelPriorityCode[] = [
+  TASK_LABEL_PRIORITY.None,
   TASK_LABEL_PRIORITY.Low,
   TASK_LABEL_PRIORITY.Normal,
   TASK_LABEL_PRIORITY.High,
@@ -53,7 +54,8 @@ export function TaskLabelsDialog({ open, onClose }: TaskLabelsDialogProps) {
         <DialogHeader className="border-b px-5 pb-3 pt-5">
           <DialogTitle>Etiquetas</DialogTitle>
           <DialogDescription>
-            Nome, cor e prioridade. A prioridade é da etiqueta: o cartão herda a maior entre as que carrega.
+            Nome, cor e prioridade. A prioridade é da etiqueta e é opcional: o cartão herda a maior entre as
+            que carrega, e as sem prioridade ficam por último.
           </DialogDescription>
         </DialogHeader>
 
@@ -75,7 +77,9 @@ export function TaskLabelsDialog({ open, onClose }: TaskLabelsDialogProps) {
                     {label.name}
                   </span>
                   <span className="w-16 text-xs text-muted-foreground">
-                    {LABEL_PRIORITY_LABEL[priorityCode(label.priority)]}
+                    {priorityCode(label.priority) > 0
+                      ? LABEL_PRIORITY_LABEL[priorityCode(label.priority)]
+                      : ""}
                   </span>
                   <Button
                     type="button"

@@ -55,7 +55,9 @@ export function LabelsPicker({ labels, selectedIds, onToggle, onManage, disabled
                       {label.name}
                     </span>
                     <span className="w-14 text-right text-[11px] text-muted-foreground">
-                      {LABEL_PRIORITY_LABEL[priorityCode(label.priority)]}
+                      {priorityCode(label.priority) > 0
+                        ? LABEL_PRIORITY_LABEL[priorityCode(label.priority)]
+                        : ""}
                     </span>
                     <span className="flex h-5 w-5 items-center justify-center">
                       {selected && <Check className="h-4 w-4 text-primary" />}

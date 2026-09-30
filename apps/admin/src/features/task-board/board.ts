@@ -160,7 +160,7 @@ export function labelClasses(color: string) {
 
 /** Rótulo de cada prioridade de etiqueta. */
 export const LABEL_PRIORITY_LABEL: Record<number, string> = {
-  [TASK_LABEL_PRIORITY.None]: "—",
+  [TASK_LABEL_PRIORITY.None]: "Sem prioridade",
   [TASK_LABEL_PRIORITY.Low]: "Baixa",
   [TASK_LABEL_PRIORITY.Normal]: "Normal",
   [TASK_LABEL_PRIORITY.High]: "Alta",
