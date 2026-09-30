@@ -794,6 +794,30 @@ export interface SalePaymentDto {
   sequence: number;
 }
 
+/**
+ * Uma saída de UM produto por venda — a linha da aba Vendas da tela do produto
+ * (`GET /SaleItems/by-product/{productId}`).
+ *
+ * Recorte do item com o que a linha desenha; o resto da venda vem de
+ * `GET /Sales/{id}` quando o operador abre o olho.
+ */
+export interface ProductSaleDto {
+  /** Venda que contém o item — é o que o olho da linha abre. */
+  saleId: number;
+  /** Item da venda; distingue duas linhas do mesmo produto na mesma venda. */
+  saleItemId: number;
+  /** Data e hora DA VENDA (no item migrado, a do item é a da importação). */
+  createdAt: string;
+  quantity: number;
+  /** Preço unitário praticado, já líquido do desconto do item. */
+  unitPrice: number;
+  /** Desconto unitário do item, em reais; o preço de tabela era `unitPrice + discount`. */
+  discount: number;
+  subtotal: number;
+  /** Status da venda (`PAYMENT_STATUS`); `Cancelled` quer dizer que o estoque voltou. */
+  paymentStatus: EnumValue;
+}
+
 export interface SaleItemDto {
   id: number;
   createdAt: string;

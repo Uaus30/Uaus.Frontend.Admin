@@ -107,6 +107,28 @@ describe("SaleDetailsModal", () => {
     expect(screen.getByText(/^R\$\s66,00$/)).toBeDefined();
   });
 
+  it("só com o id, busca a venda inteira na API e mostra o carregamento até ela chegar", () => {
+    // É como a aba Vendas do produto abre a modal: sem a venda em mãos.
+    mocks.useGetSaleDetails.mockReturnValue({ data: undefined, isLoading: true });
+    const { rerender } = render(<SaleDetailsModal open onOpenChange={vi.fn()} saleId={1945} />);
+
+    expect(mocks.useGetSaleDetails).toHaveBeenLastCalledWith(1945);
+    expect(screen.getByTestId("sale-details-loading")).toBeDefined();
+    // Sem quem imprima, o botão do cupom não aparece.
+    expect(screen.queryByRole("button", { name: /imprimir cupom/i })).toBeNull();
+
+    mocks.useGetSaleDetails.mockReturnValue({
+      data: { ...SALE, customerName: "Maria", payments: [], items: [ITEM] },
+      isLoading: false,
+    });
+    rerender(<SaleDetailsModal open onOpenChange={vi.fn()} saleId={1945} />);
+
+    expect(screen.queryByTestId("sale-details-loading")).toBeNull();
+    expect(screen.getByText("Maria")).toBeDefined();
+    expect(screen.getByText("CARREGADOR CELULAR IPHONE")).toBeDefined();
+    expect(screen.getByText(/^-R\$\s2,00$/)).toBeDefined();
+  });
+
   it("não deve falar em desconto na venda que não teve nenhum", () => {
     renderModal(SALE, [{ ...ITEM, discount: 0 }]);
 

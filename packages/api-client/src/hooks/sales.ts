@@ -7,7 +7,14 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
-import type { BackendPagedResult, QueryKey, SaleDto, SaleItemDto, UiPagedResult } from "../models";
+import type {
+  BackendPagedResult,
+  ProductSaleDto,
+  QueryKey,
+  SaleDto,
+  SaleItemDto,
+  UiPagedResult,
+} from "../models";
 
 export const getGetSalesQueryKey = (): QueryKey => ["sales"];
 
@@ -86,6 +93,41 @@ export function useGetSaleItems(
       return mapPagedResult(result);
     },
     enabled: !!params?.saleId,
+    ...options?.query,
+  });
+}
+
+export const getGetProductSalesQueryKey = (): QueryKey => ["product-sales"];
+
+/**
+ * Saídas de um produto: os itens de venda dele, da venda mais recente para a
+ * mais antiga (ordenação do backend, pela data da VENDA). Alimenta a aba
+ * Vendas da tela do produto.
+ *
+ * Desligado sem produto: o cadastro novo ainda não tem id.
+ */
+export function useGetProductSales(
+  productId: number | null | undefined,
+  params?: { page?: number; limit?: number },
+  options?: {
+    query?: Omit<
+      UseQueryOptions<UiPagedResult<ProductSaleDto>, ApiError, UiPagedResult<ProductSaleDto>, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  const page = params?.page ?? 1;
+  const size = params?.limit ?? 20;
+  return useQuery<UiPagedResult<ProductSaleDto>, ApiError, UiPagedResult<ProductSaleDto>, QueryKey>({
+    queryKey: [...getGetProductSalesQueryKey(), productId ?? 0, { page, size }],
+    queryFn: async () => {
+      const result = await apiGetOrThrow<BackendPagedResult<ProductSaleDto>>(
+        `/SaleItems/by-product/${productId}`,
+        { page, size },
+      );
+      return mapPagedResult(result);
+    },
+    enabled: productId != null && productId > 0,
     ...options?.query,
   });
 }
