@@ -22,6 +22,8 @@ export default function Customers() {
     formData,
     statsByCustomerId,
     isSaving,
+    defaultAreaCode,
+    defaultCity,
     handleOpenModal,
     handleDeleteCustomer,
     isDeleting,
@@ -63,6 +65,8 @@ export default function Customers() {
         onOpenChange={setModalOpen}
         editingId={editingId}
         initialForm={formData}
+        defaultAreaCode={defaultAreaCode}
+        defaultCity={defaultCity}
         isSaving={isSaving}
         onSubmit={handleSaveCustomer}
       />

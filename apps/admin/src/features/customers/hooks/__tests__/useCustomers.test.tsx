@@ -23,8 +23,15 @@ const maria: CustomerSummaryDto = {
   name: "Maria Silva",
   email: "maria@test.com",
   phone: "11999999999",
-  document: "123.456.789-00",
+  document: "52998224725",
   address: "Rua A, 123",
+  gender: "Female",
+  ageRange: "From35To44",
+  acquisitionChannel: "Referral",
+  city: "Tapira",
+  birthDate: "1985-03-01",
+  notes: "Prefere potes de vidro",
+  registrationSource: "Pdv",
   totalPurchased: 200,
   purchaseCount: 2,
   lastPurchaseAt: "2026-08-01T10:00:00",
@@ -59,6 +66,17 @@ const fetchMock = vi.fn(async (url: string | URL) => {
         pagination: { page: 1, size: 15, filteredItems: 2 },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  // Só com a modal aberta: o DDD padrão e a cidade da loja do cadastro.
+  if (href.includes("/CompanySettings")) {
+    return new Response(
+      JSON.stringify({ usesCashRegister: false, defaultAreaCode: 11, cityState: "TAPIRA - PR" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
     );
   }
 
@@ -186,6 +204,41 @@ describe("useCustomers Hook", () => {
     expect(result.current.formData.email).toBe("maria@test.com");
   });
 
+  it("abre a edição com máscaras, nascimento em dd/mm/aaaa e os enums em código", () => {
+    // A API manda o enum pelo nome ("Female"); o formulário trabalha com o código.
+    const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.handleOpenModal(maria);
+    });
+
+    expect(result.current.formData).toMatchObject({
+      phone: "(11) 99999-9999",
+      document: "529.982.247-25",
+      gender: 1,
+      ageRange: 4,
+      acquisitionChannel: 3,
+      city: "Tapira",
+      birthDate: "01/03/1985",
+      notes: "Prefere potes de vidro",
+    });
+  });
+
+  it("busca o DDD e a cidade da loja só quando a modal abre", async () => {
+    const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(caminhosPedidos().some((path) => path.includes("/CompanySettings"))).toBe(false);
+    expect(result.current.defaultAreaCode).toBe(44);
+
+    act(() => {
+      result.current.handleOpenModal();
+    });
+
+    await waitFor(() => expect(result.current.defaultAreaCode).toBe(11));
+    expect(result.current.defaultCity).toBe("Tapira");
+  });
+
   it("deve chamar a mutação correspondente ao salvar um cliente", () => {
     const { result } = renderHook(() => useCustomers(), { wrapper: createWrapper() });
 
@@ -193,8 +246,14 @@ describe("useCustomers Hook", () => {
       name: "João Santos",
       email: "joao@test.com",
       phone: "11988888888",
-      document: "111.222.333-44",
+      document: "52998224725",
       address: "Rua B, 456",
+      gender: 2 as const,
+      ageRange: 0 as const,
+      acquisitionChannel: 4 as const,
+      city: "Tapira",
+      birthDate: null,
+      notes: null,
     };
 
     act(() => {

@@ -11,7 +11,7 @@ import {
 import { buildReceiptFromSale, resolveStoreInfo } from "@workspace/receipt";
 import { describeApiError, round2 } from "@workspace/core";
 import { useToast } from "@workspace/ui";
-import { usePdvStore } from "@/stores/use-pdv-store";
+import { consumerFromSale, usePdvStore } from "@/stores/use-pdv-store";
 import {
   cancelSale as cancelSaleRequest,
   getSaleItems,
@@ -198,7 +198,7 @@ export function useSaleHistoryActions({
           };
         });
 
-        loadSaleForEditing(sale.id, cartItems, sale.discount);
+        loadSaleForEditing(sale.id, cartItems, sale.discount, consumerFromSale(sale));
         onSaleLoadedForEditing();
         toast({
           title: "Venda carregada",

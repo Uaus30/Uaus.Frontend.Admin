@@ -111,6 +111,45 @@ describe("buildSalePayload", () => {
     expect(payload.customerDocument).toBe(CONSUMER.document);
   });
 
+  it("leva o cliente cadastrado sem internet só quando a venda não tem ID de cliente", () => {
+    const newCustomer = {
+      name: "Ana do salão",
+      email: null,
+      phone: "44998764321",
+      document: null,
+      address: null,
+      gender: 1,
+      ageRange: 0,
+      acquisitionChannel: 3,
+      city: "Tapira",
+      birthDate: null,
+      notes: null,
+      registrationSource: 2,
+    } as const;
+    const base = {
+      sessionId: 3,
+      globalDiscount: 0,
+      items: [ITEM],
+      payments: [{ paymentMethodId: 2, amount: 16, installmentNumber: 1 }],
+      paymentMethods: [CARTAO],
+      paymentMethodNameById: {},
+    };
+
+    const semId = buildSalePayload({
+      ...base,
+      consumer: { customerId: null, name: "Ana do salão", document: "", newCustomer },
+    });
+    expect(semId.newCustomer).toEqual(newCustomer);
+
+    // Com o ID, o cadastro já existe: o bloco iria só para o servidor ignorar.
+    const comId = buildSalePayload({
+      ...base,
+      consumer: { customerId: 9, name: "Ana do salão", document: "", newCustomer },
+    });
+    expect(comId.newCustomer).toBeNull();
+    expect(comId.customerId).toBe(9);
+  });
+
   it("deve calcular a taxa pela parcela escolhida", () => {
     const payload = buildSalePayload({
       sessionId: 3,

@@ -37,9 +37,16 @@ Custo medido, contando as requisições de rede no teste do hook:
 
 **Nulo é informação.** `lastPurchaseAt` é nulo para quem nunca comprou, e a tabela mostra `—`. Zerar a data faria a coluna exibir 01/01/0001 com cara de compra real.
 
-### 2. Formato de Dados
+### 2. Cadastro do programa de fidelidade (01/10/2026)
 
-- **Telefone**: É formatado automaticamente ao perder o foco (blur) no formulário, mantendo apenas dígitos limpos na base de dados e máscara legível na UI.
+O cliente é a identidade do programa de fidelidade, e o cadastro é o mesmo do caixa (`apps/pdv`, regra 14 do README do PDV):
+
+- **Obrigatórios: o nome (apelido serve) e o telefone ou o CPF.** É por eles que o caixa acha o cliente.
+- **Telefone e CPF são gravados só com dígitos, e não se repetem.** O telefone sem DDD ganha o DDD padrão da loja (Configurações › Clientes, 44 de fábrica). O servidor normaliza e recusa o repetido com 409, cuja frase já diz de quem é o número; a modal confere antes com `checkCustomerIdentity` (`@workspace/core`), e o erro aparece no campo, não num toast.
+- **Perfil opcional**: sexo, faixa de idade (calculada pelo nascimento quando ele vem), cidade (o cadastro novo já vem com a da loja), como conheceu a loja, nascimento (dd/mm/aaaa, para o brinde do aniversário), observações, e ainda email e endereço, que só o admin pede.
+- **Duas colunas alinhadas, e o preenchido em verde** (`filledFieldClass` e `ChoiceChips`, do `@workspace/ui`): pedido do dono para ver de relance o que falta.
+- O DDD e a cidade da loja só são pedidos com a modal aberta: a listagem continua custando **uma** requisição (o teste do hook trava isso).
+- A busca da tabela é a mesma do caixa: telefone até sem DDD, CPF com ou sem máscara, nome.
 
 ### 3. Ações
 

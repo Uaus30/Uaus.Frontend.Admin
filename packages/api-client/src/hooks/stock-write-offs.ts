@@ -256,6 +256,12 @@ export interface CompanySettingsDto {
    * valor — o PDV salva sem conhecer o campo.
    */
   defaultMinStock?: number;
+  /**
+   * DDD que vale para o telefone de cliente digitado sem ele (44 de fábrica).
+   * O PDV o guarda na cópia local para cadastrar e buscar sem internet. Ausente
+   * num backend anterior a 01/10/2026; omitido na gravação, o servidor mantém.
+   */
+  defaultAreaCode?: number;
 }
 
 export const COMPANY_SETTINGS_QUERY_KEY = ["company-settings"] as const;

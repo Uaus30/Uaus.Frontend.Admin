@@ -1,4 +1,9 @@
-import { normalizeSearchText, tokenizeSearchTerms } from "@workspace/core";
+import {
+  CUSTOMER_SEARCH_MIN_DIGITS,
+  normalizeSearchText,
+  parseCustomerSearch,
+  tokenizeSearchTerms,
+} from "@workspace/core";
 import { STORE, openLocalDatabase } from "./database";
 import { getAll, getByKey } from "./idb";
 import type { LocalCustomer, LocalPaymentMethod, LocalProduct } from "./types";
@@ -149,27 +154,52 @@ export function listLocalPaymentMethods(): Promise<LocalPaymentMethod[]> {
 }
 
 /**
- * Filtra clientes por nome ou documento. Pura, para poder ser testada.
+ * Filtra clientes como o servidor (`CustomerService.ApplySearch`), para a busca
+ * sem internet achar o mesmo cliente que a busca online acharia. Pura, para
+ * poder ser testada.
+ *
+ * Só número (a partir de 4 dígitos): procura no telefone e no CPF, comparando
+ * dígitos — "99876-4321" acha o 44998764321 gravado. O número exato vem
+ * primeiro, depois o telefone que TERMINA com os dígitos (o número dito sem
+ * DDD), e então os demais por nome. Com letra, procura no nome.
  *
  * @param customers Clientes da base local.
  * @param term Termo digitado, ainda não normalizado.
  * @param limit Máximo de resultados.
  */
 export function filterCustomers(customers: LocalCustomer[], term: string, limit = 8): LocalCustomer[] {
-  const raw = term.trim();
-  if (!raw) return [];
+  const search = parseCustomerSearch(term);
+  if (!search.text) return [];
 
-  const needle = normalizeForSearch(raw);
-  // O documento é comparado só por dígitos: o operador digita com ou sem pontuação.
-  const digits = raw.replace(/\D/g, "");
+  const byName = (a: LocalCustomer, b: LocalCustomer) => a.name.localeCompare(b.name, "pt-BR");
+
+  if (!search.isNumeric) {
+    const needle = normalizeForSearch(search.text);
+    return customers
+      .filter((customer) => customer.searchName.includes(needle))
+      .sort(byName)
+      .slice(0, limit);
+  }
+
+  // O banco local guarda o que o snapshot trouxe; um cadastro antigo com máscara
+  // ainda acha pelos dígitos.
+  const phoneOf = (customer: LocalCustomer) => (customer.phone ?? "").replace(/\D/g, "");
+  const documentOf = (customer: LocalCustomer) => (customer.document ?? "").replace(/\D/g, "");
+  const { digits, phoneDigits } = search;
+  const searchPhone = phoneDigits.length >= CUSTOMER_SEARCH_MIN_DIGITS;
+
+  const rank = (customer: LocalCustomer) => {
+    if ((searchPhone && phoneOf(customer) === phoneDigits) || documentOf(customer) === digits) return 0;
+    if (searchPhone && phoneOf(customer).endsWith(phoneDigits)) return 1;
+    return 2;
+  };
 
   return customers
     .filter(
       (customer) =>
-        customer.searchName.includes(needle) ||
-        (digits.length > 0 && (customer.document ?? "").replace(/\D/g, "").includes(digits)),
+        (searchPhone && phoneOf(customer).includes(phoneDigits)) || documentOf(customer).includes(digits),
     )
-    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+    .sort((a, b) => rank(a) - rank(b) || byName(a, b))
     .slice(0, limit);
 }
 

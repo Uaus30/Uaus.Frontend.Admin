@@ -61,6 +61,22 @@ const ITEMS = [
   { productId: 2, quantity: 1, unitPrice: 30, productName: "Caneta" },
 ];
 
+/** Cliente cadastrado no caixa sem internet (01/10/2026). */
+const NEW_CUSTOMER = {
+  name: "Ana do salão",
+  email: null,
+  phone: "44998764321",
+  document: null,
+  address: null,
+  gender: 1,
+  ageRange: 0,
+  acquisitionChannel: 3,
+  city: "Tapira",
+  birthDate: null,
+  notes: null,
+  registrationSource: 2,
+} as const;
+
 /** Payload mínimo de uma venda do PDV. */
 function payload(overrides: Record<string, unknown> = {}) {
   return {
@@ -264,6 +280,14 @@ describe("registerSale online", () => {
     ]);
   });
 
+  it("manda o cliente cadastrado sem internet, e só quando não há ID", async () => {
+    await registerSale(payload({ newCustomer: NEW_CUSTOMER }));
+    await registerSale(payload({ customerId: 9, newCustomer: NEW_CUSTOMER }));
+
+    expect(postBody(0)).toMatchObject({ customerId: null, newCustomer: NEW_CUSTOMER });
+    expect(postBody(1)).toMatchObject({ customerId: 9, newCustomer: null });
+  });
+
   it("deve limpar a observação em branco", async () => {
     await registerSale(payload({ notes: "   " }));
 
@@ -345,6 +369,12 @@ describe("registerSale offline", () => {
     await registerSale(payload(), { offline: true });
 
     expect(apiPost).not.toHaveBeenCalled();
+  });
+
+  it("guarda na fila o cliente cadastrado sem internet", async () => {
+    await registerSale(payload({ newCustomer: NEW_CUSTOMER }), { offline: true });
+
+    expect(queuedSale()).toMatchObject({ customerId: null, newCustomer: NEW_CUSTOMER });
   });
 
   it("deve gravar a venda na fila com o número provisório", async () => {

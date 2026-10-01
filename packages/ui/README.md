@@ -175,6 +175,15 @@ alcançado pelo IP da rede da loja não tem `navigator.clipboard`).
 
 ---
 
+## Campo preenchido em verde e escolha em botões
+
+`filledFieldClass(preenchido)` dá ao campo o fundo verde-claro e o contorno
+verde vivo que o dono pediu para o cadastro de cliente (01/10/2026): com o
+cliente esperando no caixa, o operador vê de relance o que já preencheu. É só a
+classe, para servir igual a input, select, textarea. `ChoiceChips` é a escolha
+única em botões lado a lado, para listas curtas (sexo, faixa de idade): um toque
+em vez de abrir e escolher, e tocar de novo no escolhido volta ao vazio.
+
 ## Padrão de calendário
 
 Documento próprio, em [`src/components/README.md`](src/components/README.md):

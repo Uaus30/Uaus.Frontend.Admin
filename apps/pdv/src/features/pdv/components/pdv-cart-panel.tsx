@@ -6,8 +6,10 @@ import { usePdvStore } from "@/stores/use-pdv-store";
 import { toLocalTimestamp } from "@/services/sales.service";
 import { describePromotions } from "@/lib/promotions";
 import { useCouponDialog } from "../hooks/use-coupon";
+import type { IdentifiedSalesCount } from "../lib/identified-sales";
 import { ConfirmActionDialog } from "./confirm-action-dialog";
 import { PdvCartActionsCompact, PdvCartActionsExtended } from "./pdv-cart-actions";
+import { PdvCartCustomer } from "./pdv-cart-customer";
 import { PdvCartItem } from "./pdv-cart-item";
 import { PdvCartTotals } from "./pdv-cart-totals";
 
@@ -26,6 +28,10 @@ type PdvCartPanelProps = {
   onApplyGlobalDiscount: () => void;
   /** Guarda a venda em espera e libera o caixa. */
   onHoldSale: () => void;
+  /** Vendas com cliente no período, para o contador do balcão. */
+  identifiedSales: IdentifiedSalesCount | null;
+  /** "Neste turno" ou "Hoje", conforme a loja controla caixa. */
+  identifiedPeriodLabel: string;
 };
 
 /**
@@ -45,6 +51,8 @@ export function PdvCartPanel({
   checkoutBlocked,
   onApplyGlobalDiscount,
   onHoldSale,
+  identifiedSales,
+  identifiedPeriodLabel,
 }: PdvCartPanelProps) {
   const items = usePdvStore((state) => state.items);
   const editingSaleId = usePdvStore((state) => state.editingSaleId);
@@ -135,6 +143,8 @@ export function PdvCartPanel({
         ela se posiciona contra este bloco e desliza de fora dele para dentro.
       */}
       <div className="shrink-0 relative overflow-hidden p-3 bg-muted/5 border-t border-border/50 space-y-2">
+        <PdvCartCustomer identifiedSales={identifiedSales} periodLabel={identifiedPeriodLabel} />
+
         <PdvCartTotals subtotal={subtotal} total={total} />
 
         {cartLayout === "compact" ? (

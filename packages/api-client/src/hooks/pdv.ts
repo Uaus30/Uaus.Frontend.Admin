@@ -10,6 +10,7 @@ import { ApiError, apiGet, apiGetOrThrow, apiPost, apiPut, extractCreatedId } fr
 import type {
   CouponDiscountTypeCode,
   CouponLookupDto,
+  CreateCustomerPayload,
   EnumValue,
   QueryKey,
   SaleDto,
@@ -307,6 +308,12 @@ export interface RegisterPdvSalePayload {
   customerName?: string | null;
   /** CPF/CNPJ digitado no balcão. Ignorado quando há `customerId`. */
   customerDocument?: string | null;
+  /**
+   * Cliente cadastrado no caixa SEM internet, que ainda não tem ID (01/10/2026).
+   * O servidor acha quem já tem aquele telefone ou CPF, ou cria o cadastro, e a
+   * venda fica com ele. Ignorado quando há `customerId`.
+   */
+  newCustomer?: CreateCustomerPayload | null;
   /**
    * Total da venda: soma dos itens menos o desconto. O servidor refaz a conta e
    * recusa divergência. Pode ser zero quando o cupom cobre tudo — nunca

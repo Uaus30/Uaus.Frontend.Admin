@@ -7,6 +7,7 @@ import {
   getPdvTodaySales,
   updatePdvSale,
   type CouponDiscountTypeCode,
+  type CreateCustomerPayload,
   type RegisterPdvSalePayload,
   type SaleDto,
   type SaleItemDto,
@@ -137,6 +138,11 @@ export type RegisterSalePayload = {
    * cliente cadastrado, nome e documento saem da ficha dele no backend.
    */
   customerDocument?: string | null;
+  /**
+   * Cliente cadastrado no caixa sem internet (01/10/2026), ainda sem ID. Vai na
+   * venda e na fila; o servidor acha quem tem o telefone ou o CPF, ou cria.
+   */
+  newCustomer?: CreateCustomerPayload | null;
   /**
    * Desconto TOTAL aplicado sobre a venda. Quando há cupom, o abatimento dele
    * **já está incluído aqui**.
@@ -283,6 +289,7 @@ function buildRequestBody(
     cashRegisterSessionId: payload.cashRegisterSessionId,
     customerId: payload.customerId ?? null,
     customerDocument: payload.customerDocument?.trim() || null,
+    newCustomer: payload.customerId ? null : (payload.newCustomer ?? null),
     total,
     discount: payload.discount,
     // `?? null` e não `undefined`: o backend declara `RegisterPdvSaleCouponRequest?
@@ -437,6 +444,7 @@ async function enqueueSale(
     cashRegisterSessionId: payload.cashRegisterSessionId,
     customerId: payload.customerId ?? null,
     customerDocument: payload.customerDocument?.trim() || null,
+    newCustomer: payload.customerId ? null : (payload.newCustomer ?? null),
     total,
     discount: payload.discount,
     // A fila guarda o cupom como ele foi aplicado no balcão: é o número que saiu

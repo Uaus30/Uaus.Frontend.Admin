@@ -131,6 +131,19 @@ O checkout lista as formas por ID crescente. Sem ordenar, a lista herdava a orde
 
 Desde 01/10/2026 o cupom pode ter compra mínima. Abaixo dela o cupom **continua no carrinho e abate zero**, com a linha amarela "faltam R$ X" (`couponShortfall`, em `stores/pdv-cart.ts`). Ele não sai sozinho, para o operador não redigitar o código depois de bipar o resto. Se a venda for finalizada assim, `buildSalePayload` e `buildSaleReceipt` o deixam de fora: mandar o cupom faria o servidor recusar a venda inteira com o cliente no balcão. A base é a mesma do abatimento — subtotal menos o desconto da venda —, e é a que o servidor confere.
 
+### 14. Cliente da venda: botão no carrinho, F2, busca pelo número e cadastro rápido
+
+Desde 01/10/2026 (programa de fidelidade) o cliente se identifica **no carrinho**, pelo botão Cliente ou pelo F2 — não só no checkout, porque o programa precisa dele antes de fechar. O diálogo (`customer-dialog.tsx`) busca pelo número que o cliente disser: telefone até sem DDD, CPF com ou sem máscara, ou o nome. A regra é a do servidor (`parseCustomerSearch` no `@workspace/core`, `CustomerService.ApplySearch` no backend), e a busca sem internet (`filterCustomers`) segue a mesma. Quando o número aponta um cliente só, sem dúvida (telefone ou CPF exatos, ou o telefone que termina com o número dito sem DDD — `isUnambiguousMatch`), o diálogo escolhe sozinho e fecha.
+
+Não achou: o cadastro rápido nasce com o que foi digitado (`prefillFromSearch`). Pede o nome e o telefone ou o CPF; o perfil (sexo, faixa de idade, cidade, como conheceu, nascimento, observações) é opcional, e o que está preenchido fica verde. Confere com as mesmas regras do servidor (`checkCustomerIdentity`) antes de mandar.
+
+- **Com internet**, `POST /Customers` na hora e a venda sai com o ID. Telefone ou CPF que já é de outro cliente volta 409 com quem é, e o diálogo oferece "Usar este cliente".
+- **Sem internet** (ou servidor fora, 5xx), o cadastro vai **junto com a venda** (`newCustomer` no `PdvConsumer`, no payload e na fila). O servidor acha quem tem aquele telefone ou CPF, ou cria, quando a venda sobe. O operador não espera a rede para atender.
+
+A **reedição** de uma venda carrega o cliente DELA (`consumerFromSale`), e nunca o que estava no carrinho: com o botão Cliente funcionando de carrinho vazio, a Maria escolhida antes de abrir a reedição iria parar na venda do João.
+
+O checkout mostra o cliente escolhido (com Trocar e Tirar) ou o mesmo botão; o "CPF na nota" avulso continua lá, e não participa do programa. Embaixo do botão do carrinho, o contador "Neste turno: X de Y vendas com cliente" (ou "Hoje", sem controle de caixa) lembra o operador de perguntar; venda cancelada não conta.
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

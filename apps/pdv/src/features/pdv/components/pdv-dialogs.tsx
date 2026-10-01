@@ -21,6 +21,7 @@ import type { useSaleHistoryActions } from "../hooks/use-sale-history-actions";
 import { ConfirmActionDialog } from "./confirm-action-dialog";
 import { ConfirmDiscardDialog } from "./confirm-discard-dialog";
 import { CouponDialog } from "./coupon-dialog";
+import { CustomerDialog } from "./customer-dialog";
 import { PreferencesDialog } from "./preferences-dialog";
 
 type PdvDialogsProps = {
@@ -128,6 +129,9 @@ export function PdvDialogs({
       />
 
       <CouponDialog open={couponDialogOpen} onOpenChange={setCouponDialogOpen} />
+
+      {/* Cliente da venda (F2, botão do carrinho e checkout). Lê os stores sozinho. */}
+      <CustomerDialog />
 
       <SalesHistoryDialog
         open={dialogs.salesHistory.open}

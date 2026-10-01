@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PROMOTION_DISCOUNT_TYPE, PROMOTION_TYPE } from "@workspace/api-client-react";
 import type { LocalPromotion } from "@/offline";
-import { EMPTY_CONSUMER, FONT_SCALES, usePdvStore, type PdvItem } from "./use-pdv-store";
+import { EMPTY_CONSUMER, FONT_SCALES, consumerFromSale, usePdvStore, type PdvItem } from "./use-pdv-store";
 
 /** Estado inicial de um carrinho vazio, usado entre os testes. */
 const EMPTY = {
@@ -350,6 +350,35 @@ describe("usePdvStore", () => {
     it("não deve pausar com o carrinho vazio", () => {
       expect(usePdvStore.getState().holdSale()).toBeNull();
       expect(usePdvStore.getState().heldSales).toHaveLength(0);
+    });
+
+    it("a reedição traz o cliente DA venda, e não o que estava no carrinho", () => {
+      // O botão Cliente funciona com o carrinho vazio: a Maria escolhida antes de
+      // abrir a reedição não pode ir parar na venda do João.
+      usePdvStore.getState().setConsumer({ customerId: 3, name: "Maria", document: "" });
+      const items: PdvItem[] = [{ ...product(), id: "linha-1" }];
+
+      usePdvStore
+        .getState()
+        .loadSaleForEditing(
+          99,
+          items,
+          0,
+          consumerFromSale({ customerId: 7, customerName: "João", customerDocument: null }),
+        );
+      expect(usePdvStore.getState().consumer).toMatchObject({ customerId: 7, name: "João" });
+
+      // Venda sem cliente reeditada continua sem cliente, com o CPF na nota dela.
+      usePdvStore.getState().setConsumer({ customerId: 3, name: "Maria", document: "" });
+      usePdvStore
+        .getState()
+        .loadSaleForEditing(
+          98,
+          items,
+          0,
+          consumerFromSale({ customerId: null, customerName: null, customerDocument: "111" }),
+        );
+      expect(usePdvStore.getState().consumer).toMatchObject({ customerId: null, name: "", document: "111" });
     });
 
     it("não deve pausar durante a reedição de uma venda já gravada", () => {

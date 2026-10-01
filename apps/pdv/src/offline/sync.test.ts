@@ -238,6 +238,21 @@ describe("syncPendingSales", () => {
     });
   });
 
+  it("sobe o cliente cadastrado sem internet junto com a venda", async () => {
+    const newCustomer = { name: "Ana", phone: "44998764321" } as unknown as PendingSale["newCustomer"];
+    listSalesToSync.mockResolvedValue([{ ...pendingSale("ref-1"), newCustomer }, pendingSale("ref-2", 2)]);
+    apiPost.mockResolvedValue({
+      data: { results: [result("ref-1", "Created"), result("ref-2", "Created")] },
+    });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<Record<string, unknown>> };
+    expect(body.sales[0].newCustomer).toEqual(newCustomer);
+    // A venda enfileirada antes do campo existir sobe com nulo, não sem a chave.
+    expect(body.sales[1].newCustomer).toBeNull();
+  });
+
   it("deve enviar o corpo no formato que a API espera", async () => {
     listSalesToSync.mockResolvedValue([pendingSale("ref-1")]);
     apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });

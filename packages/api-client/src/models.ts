@@ -262,15 +262,95 @@ export function enumCode(value: EnumValue, names: Record<string, number>): numbe
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+/**
+ * Perfil opcional do cliente (01/10/2026), enums do backend. Em todos, o zero é
+ * "não informado" e é resposta válida: o operador nem sempre pergunta.
+ */
+export const CUSTOMER_GENDER = { NotInformed: 0, Female: 1, Male: 2 } as const;
+export type CustomerGenderCode = (typeof CUSTOMER_GENDER)[keyof typeof CUSTOMER_GENDER];
+export const CUSTOMER_GENDER_LABEL: Record<number, string> = {
+  0: "Não informado",
+  1: "Feminino",
+  2: "Masculino",
+};
+
+/** Faixa de idade. Com a data de nascimento, o servidor a calcula dela. */
+export const CUSTOMER_AGE_RANGE = {
+  NotInformed: 0,
+  UpTo17: 1,
+  From18To24: 2,
+  From25To34: 3,
+  From35To44: 4,
+  From45To59: 5,
+  From60: 6,
+} as const;
+export type CustomerAgeRangeCode = (typeof CUSTOMER_AGE_RANGE)[keyof typeof CUSTOMER_AGE_RANGE];
+export const CUSTOMER_AGE_RANGE_LABEL: Record<number, string> = {
+  0: "Não informada",
+  1: "Até 17",
+  2: "18–24",
+  3: "25–34",
+  4: "35–44",
+  5: "45–59",
+  6: "60+",
+};
+
+/** Como o cliente conheceu a loja: a lista que o dono escolheu. */
+export const CUSTOMER_ACQUISITION_CHANNEL = {
+  NotInformed: 0,
+  Instagram: 1,
+  WhatsApp: 2,
+  Referral: 3,
+  WalkIn: 4,
+  Flyer: 5,
+  SoundCar: 6,
+  Website: 7,
+  Other: 8,
+} as const;
+export type CustomerAcquisitionChannelCode =
+  (typeof CUSTOMER_ACQUISITION_CHANNEL)[keyof typeof CUSTOMER_ACQUISITION_CHANNEL];
+export const CUSTOMER_ACQUISITION_CHANNEL_LABEL: Record<number, string> = {
+  0: "Não informado",
+  1: "Instagram",
+  2: "WhatsApp",
+  3: "Indicação",
+  4: "Passando na frente",
+  5: "Panfleto",
+  6: "Carro de som",
+  7: "Site",
+  8: "Outro",
+};
+
+/** Onde o cadastro nasceu. Gravado na criação e nunca alterado. */
+export const CUSTOMER_REGISTRATION_SOURCE = { Unknown: 0, Admin: 1, Pdv: 2 } as const;
+export type CustomerRegistrationSourceCode =
+  (typeof CUSTOMER_REGISTRATION_SOURCE)[keyof typeof CUSTOMER_REGISTRATION_SOURCE];
+
 export interface CustomerDto {
   id: number;
   createdAt: string;
   updatedAt: string | null;
+  /** Livre: apelido ou primeiro nome serve ("Ana do salão"). */
   name: string;
   email: string | null;
+  /** DDD + número, só dígitos (máscara com `formatPhone`). Único entre os clientes. */
   phone: string | null;
+  /** CPF, só os 11 dígitos (máscara com `formatCpf`). Único entre os clientes. */
   document: string | null;
   address: string | null;
+  /**
+   * Os campos de perfil são opcionais aqui por segurança de versão: um backend
+   * anterior a 01/10/2026 responde sem eles. O backend atual omite os nulos
+   * (`WhenWritingNull`), então leia com `?? null` / `enumCode`.
+   */
+  gender?: EnumValue;
+  ageRange?: EnumValue;
+  acquisitionChannel?: EnumValue;
+  city?: string | null;
+  /** `yyyy-MM-dd`. */
+  birthDate?: string | null;
+  notes?: string | null;
+  registrationSource?: EnumValue;
 }
 
 /**
@@ -1686,7 +1766,28 @@ type CamposDoServidor = "id" | "createdAt" | "updatedAt";
 export type CreateCategoryPayload = Omit<CategoryDto, CamposDoServidor | "productCount">;
 export type UpdateCategoryPayload = CreateCategoryPayload;
 
-export type CreateCustomerPayload = Omit<CustomerDto, CamposDoServidor>;
+/**
+ * Cadastro de cliente (01/10/2026). Telefone e CPF vão como o operador digitou:
+ * quem normaliza e confere é o servidor, porque o telefone sem DDD depende do DDD
+ * padrão da loja. O caixa confere antes com as mesmas regras (`normalizePhone`,
+ * `isValidCpf` do `@workspace/core`).
+ */
+export interface CreateCustomerPayload {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  document: string | null;
+  address: string | null;
+  gender: CustomerGenderCode;
+  ageRange: CustomerAgeRangeCode;
+  acquisitionChannel: CustomerAcquisitionChannelCode;
+  city: string | null;
+  /** `yyyy-MM-dd`. */
+  birthDate: string | null;
+  notes: string | null;
+  /** Ausente vale Admin. Ignorado na edição. */
+  registrationSource?: CustomerRegistrationSourceCode;
+}
 export type UpdateCustomerPayload = CreateCustomerPayload;
 
 /**

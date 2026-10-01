@@ -35,6 +35,8 @@ import {
  */
 export {
   EMPTY_CONSUMER,
+  consumerFromSale,
+  hasIdentifiedCustomer,
   computeCartTotals,
   couponDiscountFor,
   couponShortfall,
@@ -237,8 +239,17 @@ interface PdvState {
   stepFontScale: (direction: 1 | -1) => void;
   /** Volta a fonte ao tamanho padrão. */
   resetFontScale: () => void;
-  /** Carrega uma venda já finalizada no carrinho para reedição. */
-  loadSaleForEditing: (saleId: number, items: PdvItem[], globalDiscount: number) => void;
+  /**
+   * Carrega uma venda já finalizada no carrinho para reedição, com o cliente
+   * DELA (`consumerFromSale`). Sem cliente informado, o carrinho fica sem
+   * cliente — nunca com o que estava selecionado antes.
+   */
+  loadSaleForEditing: (
+    saleId: number,
+    items: PdvItem[],
+    globalDiscount: number,
+    consumer?: PdvConsumer,
+  ) => void;
   /** Marca (ou desmarca) qual venda está sendo reeditada. */
   setEditingSaleId: (id: number | null) => void;
   /** Zera o estado do PDV ao sair ou ao fechar o caixa. */
@@ -623,10 +634,11 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   // servidor estorna o resgate e o abatimento fica no cabeçalho como desconto
   // manual, o que pode passar a exigir senha de administrador. Reeditar venda com
   // cupom continua sendo caminho a evitar: cancele e registre de novo.
-  loadSaleForEditing: (saleId, items, globalDiscount) =>
+  loadSaleForEditing: (saleId, items, globalDiscount, consumer = EMPTY_CONSUMER) =>
     set(() => ({
       items,
       globalDiscount,
+      consumer,
       coupon: null,
       // A reedição não realoca promoção (ver `allocatedLines`): a parcela já está
       // dentro do desconto gravado em cada linha.

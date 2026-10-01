@@ -1,4 +1,9 @@
-import { COUPON_DISCOUNT_TYPE, type CouponDiscountTypeCode } from "@workspace/api-client-react";
+import {
+  COUPON_DISCOUNT_TYPE,
+  type CouponDiscountTypeCode,
+  type CreateCustomerPayload,
+  type SaleDto,
+} from "@workspace/api-client-react";
 import {
   computeDiscount,
   computeSaleTotals,
@@ -88,23 +93,69 @@ export interface PdvItem {
 }
 
 /**
- * Consumidor da venda. Ou é um cliente cadastrado (`customerId`), ou é o
- * CPF/CNPJ que o operador digitou no balcão.
+ * Consumidor da venda. É um de três:
+ *
+ * - um cliente cadastrado (`customerId`), achado pela busca ou cadastrado agora;
+ * - um cliente cadastrado no caixa SEM internet (`newCustomer`), que ainda não
+ *   tem ID: o servidor o resolve quando a venda sobe (01/10/2026);
+ * - o CPF/CNPJ que o operador digitou no balcão, sem cadastro.
  */
 export interface PdvConsumer {
   customerId: number | null;
   /**
-   * Nome do cliente cadastrado escolhido na busca, só para o operador conferir
-   * quem selecionou. Fica vazio na venda de balcão — o PDV não coleta nome — e
-   * não é impresso no cupom, que identifica o consumidor pelo documento.
+   * Nome do cliente, só para o operador conferir quem escolheu. Fica vazio na
+   * venda de balcão — o PDV não coleta nome — e não é impresso no cupom, que
+   * identifica o consumidor pelo documento.
    */
   name: string;
   /** CPF/CNPJ do consumidor: do cadastro escolhido, ou digitado no balcão. */
   document: string;
+  /**
+   * Telefone do cliente (DDD + número, só dígitos), para conferir no balcão.
+   * Opcional porque a venda em espera gravada antes de 01/10/2026 volta sem ele.
+   */
+  phone?: string;
+  /**
+   * O cadastro feito sem internet, que vai junto com a venda. Nulo (ou ausente,
+   * na venda em espera antiga) em todo outro caso.
+   */
+  newCustomer?: CreateCustomerPayload | null;
 }
 
 /** Consumidor vazio: venda para consumidor não identificado. */
-export const EMPTY_CONSUMER: PdvConsumer = { customerId: null, name: "", document: "" };
+export const EMPTY_CONSUMER: PdvConsumer = {
+  customerId: null,
+  name: "",
+  document: "",
+  phone: "",
+  newCustomer: null,
+};
+
+/**
+ * O consumidor de uma venda já gravada, para a reedição.
+ *
+ * A reedição regrava a venda inteira, cliente incluído: sem isto ela levaria o
+ * cliente que estivesse no carrinho (o botão Cliente funciona com o carrinho
+ * vazio desde 01/10/2026) e a compra iria para a pessoa errada — ou, sem
+ * ninguém no carrinho, a venda do João perderia o João.
+ */
+export function consumerFromSale(
+  sale: Pick<SaleDto, "customerId" | "customerName" | "customerDocument">,
+): PdvConsumer {
+  if (sale.customerId == null) return { ...EMPTY_CONSUMER, document: sale.customerDocument ?? "" };
+  return {
+    customerId: sale.customerId,
+    name: sale.customerName ?? "",
+    document: sale.customerDocument ?? "",
+    phone: "",
+    newCustomer: null,
+  };
+}
+
+/** A venda tem cliente do programa: cadastrado, ou cadastrado agora sem internet. */
+export function hasIdentifiedCustomer(consumer: PdvConsumer): boolean {
+  return consumer.customerId !== null || Boolean(consumer.newCustomer);
+}
 
 /** Uma resposta do questionário do cupom: a pergunta e a alternativa escolhida. */
 export interface CouponAnswer {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@workspace/ui";
 import { Input } from "@workspace/ui";
-import { formatCurrency, formatShortDate } from "@workspace/core";
+import { formatCpf, formatCurrency, formatPhone, formatShortDate } from "@workspace/core";
 import type { CustomerSummaryDto, UiPagedResult } from "@workspace/api-client-react";
 import { ConfirmDialog } from "@workspace/ui";
 import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
@@ -82,7 +82,7 @@ export function CustomersTable({
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome..."
+              placeholder="Buscar por nome, telefone ou CPF..."
               value={searchVal}
               onChange={(event) => onSearchChange(event.target.value)}
               className="bg-background pl-9"
@@ -129,11 +129,13 @@ export function CustomersTable({
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
                         <div className="flex flex-col">
-                          <span>{customer.email || "-"}</span>
-                          <span className="text-xs">{customer.phone || ""}</span>
+                          <span>{customer.phone ? formatPhone(customer.phone) : "-"}</span>
+                          <span className="text-xs">{customer.email || ""}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground">{customer.document || "-"}</td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        {customer.document ? formatCpf(customer.document) : "-"}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="font-medium text-primary">

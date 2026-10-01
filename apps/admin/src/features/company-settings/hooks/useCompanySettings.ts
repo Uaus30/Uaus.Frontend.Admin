@@ -19,6 +19,9 @@ import { STANDARD_DEFAULT_MIN_STOCK, STOCK_SETTINGS_ANCHOR } from "@/lib/stock-c
  */
 const DEFAULT_USES_CASH_REGISTER = false;
 
+/** DDD de fábrica do telefone de cliente (o de Tapira), o mesmo do backend. */
+const STANDARD_AREA_CODE = 44;
+
 /** Opções da vitrine (site público), como o formulário as edita. */
 export interface SiteOptionsFields {
   /**
@@ -84,6 +87,7 @@ export function useCompanySettings() {
   const [identity, setIdentity] = useState<StoreIdentityFields>(EMPTY_IDENTITY);
   const [site, setSite] = useState<SiteOptionsFields>(DEFAULT_SITE_OPTIONS);
   const [defaultMinStock, setDefaultMinStockState] = useState(STANDARD_DEFAULT_MIN_STOCK);
+  const [defaultAreaCode, setDefaultAreaCode] = useState(STANDARD_AREA_CODE);
 
   const serverValue = settings?.usesCashRegister;
   const serverMaxSellerDiscount = settings ? (settings.maxSellerDiscountPercentage ?? 0) : undefined;
@@ -107,6 +111,7 @@ export function useCompanySettings() {
   const serverDefaultMinStock = settings
     ? (settings.defaultMinStock ?? STANDARD_DEFAULT_MIN_STOCK)
     : undefined;
+  const serverAreaCode = settings ? (settings.defaultAreaCode ?? STANDARD_AREA_CODE) : undefined;
 
   // A sincronia depende dos valores, não do objeto devolvido pela query: um
   // refetch que traz exatamente o mesmo estado não pode apagar o que o usuário
@@ -160,6 +165,13 @@ export function useCompanySettings() {
     setDefaultMinStockState(serverDefaultMinStock);
   }
 
+  // E para o DDD padrão do telefone de cliente (01/10/2026).
+  const [areaCodeSyncedFrom, setAreaCodeSyncedFrom] = useState<number | null>(null);
+  if (serverAreaCode != null && areaCodeSyncedFrom !== serverAreaCode) {
+    setAreaCodeSyncedFrom(serverAreaCode);
+    setDefaultAreaCode(serverAreaCode);
+  }
+
   // O campo "Estoque mínimo" do produto traz um link para `#estoque`. Numa SPA o
   // navegador não rola até a âncora sozinho — o cartão só existe depois da
   // leitura —, então a rolagem acontece aqui, quando ele aparece.
@@ -200,6 +212,7 @@ export function useCompanySettings() {
 
   const isDirty =
     (serverDefaultMinStock != null && serverDefaultMinStock !== defaultMinStock) ||
+    (serverAreaCode != null && serverAreaCode !== defaultAreaCode) ||
     (serverValue != null && serverValue !== usesCashRegister) ||
     (serverMaxSellerDiscount != null && serverMaxSellerDiscount !== maxSellerDiscountPercentage) ||
     isIdentityDirty ||
@@ -222,6 +235,7 @@ export function useCompanySettings() {
         siteLowStockThreshold: site.lowStockThreshold,
         siteNewProductsCount: site.newProductsCount,
         defaultMinStock,
+        defaultAreaCode,
       }),
     onSuccess: async () => {
       // O PDV e a reimpressão do painel leem a mesma chave; invalidar é o que
@@ -278,6 +292,22 @@ export function useCompanySettings() {
       return;
     }
 
+    // Não existe DDD terminado em zero, e o telefone sem DDD ganharia um que
+    // nenhum número tem.
+    if (
+      !Number.isInteger(defaultAreaCode) ||
+      defaultAreaCode < 11 ||
+      defaultAreaCode > 99 ||
+      defaultAreaCode % 10 === 0
+    ) {
+      toast({
+        title: "DDD padrão inválido",
+        description: "Informe os dois dígitos do DDD da loja, de 11 a 99 (ex.: 44).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     saveMutation.mutate();
   }
 
@@ -292,6 +322,8 @@ export function useCompanySettings() {
     setSiteField,
     defaultMinStock,
     setDefaultMinStock,
+    defaultAreaCode,
+    setDefaultAreaCode,
     isDirty,
     isLoading,
     isSaving: saveMutation.isPending,

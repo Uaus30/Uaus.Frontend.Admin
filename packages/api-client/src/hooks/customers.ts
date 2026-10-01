@@ -98,11 +98,12 @@ export function useGetCustomerSummaries(
   });
 }
 
+/** Devolve o cliente criado (o caixa precisa do ID para a venda). */
 export function useCreateCustomer(options?: {
-  mutation?: UseMutationOptions<null, ApiError, { data: CreateCustomerPayload }>;
+  mutation?: UseMutationOptions<CustomerDto | null, ApiError, { data: CreateCustomerPayload }>;
 }) {
   return useCrudMutation(async ({ data }) => {
-    const response = await apiPost<null>("/Customers", data);
+    const response = await apiPost<CustomerDto>("/Customers", data);
     return response.data;
   }, options);
 }

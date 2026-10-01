@@ -48,6 +48,7 @@ const serverSettings = {
   siteLowStockThreshold: 0,
   siteNewProductsCount: 20,
   defaultMinStock: 3,
+  defaultAreaCode: 44,
 };
 
 describe("useCompanySettings", () => {
@@ -230,12 +231,50 @@ describe("useCompanySettings", () => {
     );
   });
 
+  it("deve marcar alteração pendente e gravar o DDD padrão", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultAreaCode).toBe(44));
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => result.current.setDefaultAreaCode(11));
+    expect(result.current.isDirty).toBe(true);
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() =>
+      expect(mocks.updateCompanySettings).toHaveBeenCalledWith(
+        expect.objectContaining({ defaultAreaCode: 11 }),
+      ),
+    );
+  });
+
+  it("não grava DDD que não existe e avisa", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultAreaCode).toBe(44));
+    for (const invalido of [9, 20, 100]) {
+      act(() => result.current.setDefaultAreaCode(invalido));
+      await act(async () => {
+        result.current.handleSubmit(submitEvent);
+      });
+    }
+
+    expect(mocks.updateCompanySettings).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "DDD padrão inválido", variant: "destructive" }),
+    );
+  });
+
   it("assume o estoque mínimo padrão de fábrica quando o backend ainda não o devolve", async () => {
     mocks.useGetCompanySettings.mockReturnValue({ data: { usesCashRegister: false }, isLoading: false });
 
     const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.defaultMinStock).toBe(2));
+    // O DDD também: sem o campo no backend antigo, vale o 44 de fábrica.
+    expect(result.current.defaultAreaCode).toBe(44);
     expect(result.current.isDirty).toBe(false);
   });
 

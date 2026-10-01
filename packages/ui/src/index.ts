@@ -6,6 +6,7 @@ export * from "./components/calendar";
 export * from "./components/card";
 export * from "./components/chart";
 export * from "./components/checkbox";
+export * from "./components/choice-chips";
 export * from "./components/collapsible";
 export * from "./components/command";
 export * from "./components/confirm-dialog";
@@ -44,6 +45,7 @@ export * from "./components/toggle";
 export * from "./components/tooltip";
 export * from "./lib/chunk-reload";
 export * from "./lib/environment";
+export * from "./lib/filled-field";
 export * from "./lib/toast-report";
 export * from "./lib/utils";
 

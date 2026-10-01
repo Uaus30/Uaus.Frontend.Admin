@@ -6,6 +6,8 @@
  * `Uaus.Backend.Api/docs/pdv-offline.md`.
  */
 
+import type { CreateCustomerPayload } from "@workspace/api-client-react";
+
 /** Produto vendável, com o estoque local (que a venda offline vai debitando). */
 export interface LocalProduct {
   id: number;
@@ -366,6 +368,12 @@ export interface PendingSale {
   customerId: number | null;
   /** CPF/CNPJ do consumidor. É a única identificação avulsa que o PDV coleta. */
   customerDocument: string | null;
+  /**
+   * Cliente cadastrado no caixa sem internet, que sobe com a venda (01/10/2026).
+   * Opcional: as vendas enfileiradas antes deste campo não o têm, e acrescentar
+   * campo não muda o esquema do IndexedDB.
+   */
+  newCustomer?: CreateCustomerPayload | null;
   total: number;
   discount: number;
   /**

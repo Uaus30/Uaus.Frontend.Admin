@@ -85,6 +85,16 @@ ApiError` — é o que mantém o helper independente do cliente HTTP e testável
    do ASP.NET, que sem tratamento chega ao usuário como "One or more validation
    errors occurred".
 
+8. **Telefone e CPF do cliente seguem as regras do backend, ao pé da letra**
+   (`customer.ts`, 01/10/2026). O telefone é gravado com DDD e só dígitos:
+   tira o 55 do país só com 12 ou 13 dígitos (com 11, "55" é o DDD de Santa
+   Maria), tira o zero de discagem e prefixa o DDD padrão em número de 8 ou 9
+   dígitos. A busca (`parseCustomerSearch`) lê o termo do mesmo jeito do
+   `CustomerService` — número a partir de 4 dígitos procura no telefone e no
+   CPF, menos que isso cai no nome. Divergir aqui faria o PDV aceitar sem
+   internet um cadastro que o servidor recusaria na sincronização, e o cliente
+   sumiria da venda.
+
 ## Testes
 
 ```bash

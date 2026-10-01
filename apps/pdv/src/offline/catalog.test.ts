@@ -17,8 +17,13 @@ function product(id: number, name: string, barcode: string, stock = 10): LocalPr
 }
 
 /** Monta um cliente da base local com o campo de busca já normalizado. */
-function customer(id: number, name: string, document: string | null): LocalCustomer {
-  return { id, name, document, phone: null, searchName: normalizeForSearch(name) };
+function customer(
+  id: number,
+  name: string,
+  document: string | null,
+  phone: string | null = null,
+): LocalCustomer {
+  return { id, name, document, phone, searchName: normalizeForSearch(name) };
 }
 
 const CATALOG = [
@@ -152,5 +157,35 @@ describe("filterCustomers", () => {
 
   it("deve devolver vazio com o termo em branco", () => {
     expect(filterCustomers(CUSTOMERS, "")).toEqual([]);
+  });
+
+  describe("pelo telefone (01/10/2026), como o servidor", () => {
+    const COM_TELEFONE = [
+      customer(1, "Aaron", null, "44987643219"),
+      customer(2, "Zélia", null, "44998764321"),
+      customer(3, "Bia", "52998224725", null),
+    ];
+
+    it("acha o número dito sem DDD", () => {
+      expect(filterCustomers(COM_TELEFONE, "99876-4321").map((c) => c.id)).toEqual([2]);
+    });
+
+    it("acha o número com DDD, máscara ou +55", () => {
+      expect(filterCustomers(COM_TELEFONE, "(44) 99876-4321").map((c) => c.id)).toEqual([2]);
+      expect(filterCustomers(COM_TELEFONE, "+55 44 99876-4321").map((c) => c.id)).toEqual([2]);
+    });
+
+    it("traz quem termina com os dígitos antes de quem só os contém", () => {
+      // Por nome, Aaron viria antes.
+      expect(filterCustomers(COM_TELEFONE, "8764321").map((c) => c.id)).toEqual([2, 1]);
+    });
+
+    it("com menos de 4 dígitos, busca pelo nome", () => {
+      expect(filterCustomers(COM_TELEFONE, "321")).toEqual([]);
+    });
+
+    it("só zeros não acha todos os telefones", () => {
+      expect(filterCustomers(COM_TELEFONE, "0000")).toEqual([]);
+    });
   });
 });

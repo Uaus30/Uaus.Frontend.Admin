@@ -21,6 +21,9 @@ type CompanySettingsFormProps = {
   /** Estoque mínimo dos produtos sem mínimo próprio. */
   defaultMinStock: number;
   onDefaultMinStockChange: (value: number) => void;
+  /** DDD do telefone de cliente digitado sem ele. */
+  defaultAreaCode: number;
+  onDefaultAreaCodeChange: (value: number) => void;
   /** Há alteração pendente de gravação. */
   isDirty: boolean;
   isLoading: boolean;
@@ -76,6 +79,8 @@ export function CompanySettingsForm({
   onSiteChange,
   defaultMinStock,
   onDefaultMinStockChange,
+  defaultAreaCode,
+  onDefaultAreaCodeChange,
   isDirty,
   isLoading,
   isSaving,
@@ -156,6 +161,37 @@ export function CompanySettingsForm({
               checked={usesCashRegister}
               onCheckedChange={onUsesCashRegisterChange}
               disabled={isSaving}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Clientes</CardTitle>
+          <CardDescription>Como o cadastro e a busca de cliente leem o telefone.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start justify-between gap-6 rounded-xl border border-border/50 bg-background/50 p-4">
+            <div className="space-y-1">
+              <Label htmlFor="default-area-code" className="text-sm font-medium">
+                DDD padrão
+              </Label>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                O telefone digitado sem DDD ganha este, no caixa e no admin: &quot;99876-4321&quot; vira
+                &quot;(44) 99876-4321&quot;. A busca de cliente pelo telefone também o considera.
+              </p>
+            </div>
+            <Input
+              id="default-area-code"
+              type="number"
+              min={11}
+              max={99}
+              step={1}
+              value={defaultAreaCode}
+              onChange={(e) => onDefaultAreaCodeChange(Number(e.target.value))}
+              disabled={isSaving}
+              className="w-24 text-right"
             />
           </div>
         </CardContent>

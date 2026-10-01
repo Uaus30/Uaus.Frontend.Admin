@@ -98,6 +98,8 @@ export function buildSalePayload({
     cashRegisterSessionId: sessionId,
     customerId: consumer.customerId,
     customerDocument: consumer.document,
+    // Só sem ID: com o cliente já cadastrado, o servidor ignoraria o bloco.
+    newCustomer: consumer.customerId === null ? (consumer.newCustomer ?? null) : null,
     discount: round2(totals.globalDiscount + totals.couponDiscount),
     coupon: activeCoupon
       ? {

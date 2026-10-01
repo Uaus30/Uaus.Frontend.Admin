@@ -12,7 +12,12 @@ export interface Customer {
 }
 
 /**
- * Interface que define os campos do formulário de cadastro/edição de Clientes.
+ * Campos do formulário de cadastro/edição de Clientes, como a tela os mostra.
+ *
+ * Telefone e CPF ficam com a máscara enquanto o operador digita; o nascimento,
+ * em "dd/mm/aaaa". Os três são convertidos para o formato da API só no envio
+ * (`checkCustomerIdentity`, do `@workspace/core`). Sexo, faixa e "como
+ * conheceu" são os códigos do enum, com 0 = não informado.
  */
 export interface CustomerForm {
   name: string;
@@ -20,6 +25,12 @@ export interface CustomerForm {
   phone: string;
   document: string;
   address: string;
+  gender: number;
+  ageRange: number;
+  acquisitionChannel: number;
+  city: string;
+  birthDate: string;
+  notes: string;
 }
 
 /**

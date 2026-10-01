@@ -23,6 +23,7 @@ import { usePromotions } from "@/features/pdv/hooks/use-promotions";
 import { useSaleCheckout } from "@/features/pdv/hooks/use-sale-checkout";
 import { useSaleHistoryActions } from "@/features/pdv/hooks/use-sale-history-actions";
 import { useSalesReport } from "@/features/pdv/hooks/use-sales-report";
+import { countIdentifiedSales } from "@/features/pdv/lib/identified-sales";
 
 /**
  * Tela do PDV: busca de produtos, carrinho, checkout com N formas de pagamento,
@@ -94,6 +95,10 @@ export default function Pdv() {
   // seja o valor, e não o carrinho.
   const subtotal = usePdvStore((state) => state.getSubtotal());
   const total = usePdvStore((state) => state.getTotal());
+
+  // Com caixa, o turno de quem está no balcão; sem, o dia da loja.
+  const periodSales = mode.requiresOpenSession ? sessionSales : todaySales;
+  const identifiedSales = loadingTodaySales ? null : countIdentifiedSales(periodSales);
 
   // `total`, não `subtotal`: o checkout cobra o que a venda grava. Enquanto ele
   // recebia o subtotal, qualquer desconto global era exibido no carrinho, ia
@@ -241,6 +246,8 @@ export default function Pdv() {
           checkoutBlocked={(mode.saleRequiresSession && !sessionId) || salesPaused}
           onApplyGlobalDiscount={dialogs.discount.show}
           onHoldSale={counter.holdSale}
+          identifiedSales={identifiedSales}
+          identifiedPeriodLabel={mode.requiresOpenSession ? "Neste turno" : "Hoje"}
         />
       </main>
 

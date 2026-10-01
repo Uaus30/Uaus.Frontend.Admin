@@ -77,6 +77,7 @@ function toRequestBody(sale: PendingSale) {
     cashRegisterSessionId: sale.cashRegisterSessionId,
     customerId: sale.customerId,
     customerDocument: sale.customerDocument,
+    newCustomer: sale.newCustomer ?? null,
     total: sale.total,
     discount: sale.discount,
     coupon: toCouponBody(sale),

@@ -15,6 +15,8 @@ export default function CompanySettings() {
     setSiteField,
     defaultMinStock,
     setDefaultMinStock,
+    defaultAreaCode,
+    setDefaultAreaCode,
     isDirty,
     isLoading,
     isSaving,
@@ -43,6 +45,8 @@ export default function CompanySettings() {
         onSiteChange={setSiteField}
         defaultMinStock={defaultMinStock}
         onDefaultMinStockChange={setDefaultMinStock}
+        defaultAreaCode={defaultAreaCode}
+        onDefaultAreaCodeChange={setDefaultAreaCode}
         isDirty={isDirty}
         isLoading={isLoading}
         isSaving={isSaving}
