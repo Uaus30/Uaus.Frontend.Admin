@@ -22,20 +22,16 @@ export function exactBarcodeMatches(results: ProductPdvSearchDto[], code: string
 }
 
 /**
- * O aviso embaixo do vídeo. Diz o NOME do produto que entrou — é a conferência
- * de que a câmera leu a etiqueta certa da prateleira — e as cópias, porque ler
- * de novo o mesmo produto soma uma etiqueta.
+ * O que a câmera faz com o resultado. Produto encontrado FECHA o diálogo (pedido
+ * do dono em 30/09/2026: a cada produto, toca-se no botão de novo) — o nome e as
+ * cópias vão para o aviso da tela ({@link scanToastOf}). Código de mais de um
+ * produto também fecha: a escolha é na lista da busca, atrás do diálogo. "Não
+ * encontrado" e erro deixam a câmera aberta para tentar de novo.
  */
 export function scanFeedbackOf(outcome: BarcodeScanOutcome): ScanFeedback {
   switch (outcome.kind) {
     case "added":
-      return {
-        tone: "success",
-        message:
-          outcome.copies > 1
-            ? `${outcome.name} — agora com ${outcome.copies} cópias na lista.`
-            : `${outcome.name} adicionado à lista.`,
-      };
+      return { tone: "success", message: scanToastOf(outcome), close: true };
     case "not-found":
       return {
         tone: "warning",
@@ -44,9 +40,21 @@ export function scanFeedbackOf(outcome: BarcodeScanOutcome): ScanFeedback {
     case "ambiguous":
       return {
         tone: "warning",
-        message: `Mais de um produto com o código ${outcome.code}. Feche a câmera e escolha na busca.`,
+        message: `Mais de um produto com o código ${outcome.code}. Escolha na busca.`,
+        close: true,
       };
     case "error":
       return { tone: "error", message: `Não foi possível buscar o código ${outcome.code}. Tente de novo.` };
   }
+}
+
+/**
+ * O aviso depois que a câmera fecha: o NOME do produto que entrou — a conferência
+ * de que a câmera leu a etiqueta certa da prateleira — e as cópias, porque ler de
+ * novo o mesmo produto soma uma etiqueta.
+ */
+export function scanToastOf(outcome: Extract<BarcodeScanOutcome, { kind: "added" }>): string {
+  return outcome.copies > 1
+    ? `${outcome.name} — agora com ${outcome.copies} cópias na lista.`
+    : `${outcome.name} adicionado à lista.`;
 }

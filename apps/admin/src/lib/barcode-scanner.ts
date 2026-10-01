@@ -163,6 +163,11 @@ export interface ScanGate {
   pick(codes: string[], now: number): string | null;
   /** Renova o código ao fim do trabalho que ele disparou (a busca do produto). */
   touch(code: string, now: number): void;
+  /**
+   * Chamado quando a câmera volta a abrir: o último código aceito passa a contar
+   * como "visto agora". Ver {@link createScanGate}.
+   */
+  rearm(now: number): void;
 }
 
 /**
@@ -179,9 +184,16 @@ export interface ScanGate {
  * troca contava como código novo e somava uma cópia. E o `touch` existe porque
  * a leitura pausa enquanto a busca do produto roda: no 4G fraco ela passa dos
  * 2,5 s, e o mesmo código, ainda na frente da câmera, entraria de novo.
+ *
+ * **O filtro sobrevive ao fechamento da câmera** (`rearm`). Desde que a câmera
+ * fecha a cada produto encontrado, a pessoa reabre ao lado da etiqueta que
+ * acabou de ler: com um filtro novo a cada abertura, o código anterior, ainda na
+ * mira enquanto a câmera liga, entrava de novo como segunda cópia — e fechava a
+ * câmera antes de ler o produto que ela queria.
  */
 export function createScanGate(cooldownMs = SCAN_REPEAT_COOLDOWN_MS): ScanGate {
   const lastSeen = new Map<string, number>();
+  let lastPicked: string | null = null;
 
   return {
     pick(codes, now) {
@@ -197,10 +209,14 @@ export function createScanGate(cooldownMs = SCAN_REPEAT_COOLDOWN_MS): ScanGate {
           lastSeen.set(code, now);
         }
       }
+      if (picked !== null) lastPicked = picked;
       return picked;
     },
     touch(code, now) {
       lastSeen.set(code, now);
+    },
+    rearm(now) {
+      if (lastPicked !== null) lastSeen.set(lastPicked, now);
     },
   };
 }

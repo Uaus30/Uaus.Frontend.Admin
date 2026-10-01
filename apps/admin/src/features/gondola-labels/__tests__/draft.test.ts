@@ -119,12 +119,21 @@ describe("exactBarcodeMatches / scanFeedbackOf", () => {
   });
 
   it("o aviso diz o nome e as cópias", () => {
-    expect(scanFeedbackOf({ kind: "added", name: "CANECA", copies: 1 })).toEqual({
+    expect(scanFeedbackOf({ kind: "added", name: "CANECA", copies: 1 })).toMatchObject({
       tone: "success",
       message: "CANECA adicionado à lista.",
     });
     expect(scanFeedbackOf({ kind: "added", name: "CANECA", copies: 3 }).message).toContain("3 cópias");
     expect(scanFeedbackOf({ kind: "not-found", code: "123" }).tone).toBe("warning");
     expect(scanFeedbackOf({ kind: "error", code: "123" }).tone).toBe("error");
+  });
+
+  it("produto encontrado fecha a câmera; não encontrado e erro a deixam aberta", () => {
+    // Pedido do dono depois do primeiro uso na loja: a cada produto, toca-se
+    // no botão de novo. Quem não achou precisa ver o aviso para tentar de novo.
+    expect(scanFeedbackOf({ kind: "added", name: "CANECA", copies: 1 }).close).toBe(true);
+    expect(scanFeedbackOf({ kind: "ambiguous", code: "123" }).close).toBe(true);
+    expect(scanFeedbackOf({ kind: "not-found", code: "123" }).close).toBeFalsy();
+    expect(scanFeedbackOf({ kind: "error", code: "123" }).close).toBeFalsy();
   });
 });

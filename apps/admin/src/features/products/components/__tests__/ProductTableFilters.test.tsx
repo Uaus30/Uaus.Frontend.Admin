@@ -56,7 +56,10 @@ describe("ProductTableFilters — câmera", () => {
     const props = renderFilters();
 
     fireEvent.click(screen.getByRole("button", { name: /código de barras, com a câmera/i }));
-    scanner.onDetected?.("7891234567895");
+    const feedback = scanner.onDetected?.("7891234567895");
+
+    // Fecha a câmera (e vibra) pelo retorno: a cada produto, toca-se no botão de novo.
+    expect(feedback).toMatchObject({ tone: "success", close: true });
 
     expect(props.setSearch).toHaveBeenCalledWith("7891234567895");
     expect(props.setStatus).toHaveBeenCalledWith(undefined);

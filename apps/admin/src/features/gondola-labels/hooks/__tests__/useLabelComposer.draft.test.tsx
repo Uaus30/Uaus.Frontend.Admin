@@ -191,6 +191,10 @@ describe("useLabelComposer — rascunho", () => {
 
     expect(first).toEqual({ kind: "added", name: "CANECA", copies: 1 });
     expect(second).toEqual({ kind: "added", name: "CANECA", copies: 2 });
+    // A câmera fecha a cada produto: o nome e as cópias vão para o aviso da tela.
+    expect(mocks.toast).toHaveBeenLastCalledWith(
+      expect.objectContaining({ description: "CANECA — agora com 2 cópias na lista." }),
+    );
     expect(result.current.items).toHaveLength(1);
     expect(result.current.items[0]).toMatchObject({ productId: 5, quantityInput: "2" });
   });

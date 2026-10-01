@@ -96,13 +96,19 @@ continuar depois até imprimir. Uma lista só por usuário, não N listas.
 ## Leitura pela câmera (30/09/2026)
 
 - O botão ao lado da busca abre `@/components/barcode-scanner-dialog` (o mesmo
-  da listagem de Produtos). A câmera **continua aberta**: cada código lido entra
-  na lista e o aviso embaixo do vídeo diz o nome do produto — a conferência de
-  que leu a etiqueta certa — e as cópias.
+  da listagem de Produtos). **Cada produto encontrado vibra o aparelho e fecha
+  a câmera** — para o próximo, toca-se no botão de novo (pedido do dono depois
+  do primeiro uso na loja; a primeira versão deixava a câmera aberta). O aviso
+  da tela diz o nome do produto — a conferência de que leu a etiqueta certa — e
+  as cópias. "Não encontrado" deixa a câmera aberta, com o aviso, para tentar
+  de novo. O iPhone não vibra: o Safari não implementa a vibração.
 - **Só entra sozinho o produto com o código EXATO** (`barcode-lookup.ts`). Mais
   de um produto com o mesmo código vai para a busca, e a escolha é da pessoa.
 - Ler de novo o mesmo produto soma uma cópia, mas só depois de o código sair de
-  vista por 2,5 s: a câmera vê o mesmo código várias vezes por segundo. O motor
+  vista por 2,5 s: a câmera vê o mesmo código várias vezes por segundo. O
+  filtro **sobrevive ao fechamento**: ao reabrir ao lado da etiqueta que acabou
+  de ser lida, ela não entra de novo como segunda cópia enquanto estiver na
+  mira (achado da revisão depois que a câmera passou a fechar a cada produto). O motor
   (leitor nativo ou ZXing, recorte da mira, foco e zoom) está em
   `@/lib/barcode-scanner.ts`.
 - **Serve para a etiqueta antiga colada na prateleira**: desde a padronização

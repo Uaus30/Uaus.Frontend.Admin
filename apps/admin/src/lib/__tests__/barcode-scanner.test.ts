@@ -39,6 +39,28 @@ describe("createScanGate", () => {
     expect(gate.pick(["A", "B"], 400)).toBeNull();
   });
 
+  it("ao reabrir a câmera, o código lido por último não entra de novo enquanto está na mira", () => {
+    // A câmera fecha a cada produto; reabrir ao lado da etiqueta que acabou de
+    // ser lida não pode somar uma segunda cópia dela — nem fechar a câmera
+    // antes de ler o produto que a pessoa queria.
+    const gate = createScanGate();
+    expect(gate.pick(["A"], 0)).toBe("A");
+
+    // Fechou; a pessoa reabre 5s depois, com A ainda na mira.
+    gate.rearm(5000);
+    expect(gate.pick(["A"], 5200)).toBeNull();
+    expect(gate.pick(["A", "B"], 5400)).toBe("B");
+
+    // A sai de vista por mais de 2,5s e volta: aí vale como nova leitura.
+    expect(gate.pick(["A"], 5400 + SCAN_REPEAT_COOLDOWN_MS + 1)).toBe("A");
+  });
+
+  it("rearmar sem nada lido antes não bloqueia nada", () => {
+    const gate = createScanGate();
+    gate.rearm(0);
+    expect(gate.pick(["A"], 100)).toBe("A");
+  });
+
   it("busca lenta não faz o mesmo código entrar de novo quando a leitura volta", () => {
     const gate = createScanGate();
 

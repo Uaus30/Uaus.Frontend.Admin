@@ -47,9 +47,10 @@ interface LabelProductSearchProps {
  * O lápis abre o produto no cadastro em nova aba — nova, e não navegação, para
  * a pessoa não sair da lista no meio da montagem.
  *
- * A câmera (30/09/2026) adiciona direto pelo código de barras e continua aberta
- * para o próximo: é a lista montada andando pela loja, de prateleira em
- * prateleira. O botão só aparece onde o navegador oferece câmera.
+ * A câmera (30/09/2026) adiciona direto pelo código de barras, vibra e fecha a
+ * cada produto encontrado — para o próximo, toca-se no botão de novo (pedido do
+ * dono depois do primeiro uso na loja). O botão só aparece onde o navegador
+ * oferece câmera.
  */
 export function LabelProductSearch({
   search,
@@ -188,7 +189,7 @@ export function LabelProductSearch({
         open={scannerOpen}
         onOpenChange={setScannerOpen}
         title="Adicionar pelo código"
-        description="Aponte para o código de barras do produto ou da etiqueta da prateleira. A câmera continua aberta para o próximo."
+        description="Aponte para o código de barras do produto ou da etiqueta da prateleira."
         onDetected={async (code) => scanFeedbackOf(await onScanCode(code))}
       />
     </Card>

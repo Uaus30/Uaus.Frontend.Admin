@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import {
   createBarcodeReader,
-  createScanGate,
   describeCameraError,
+  type ScanGate,
   scanRegion,
   tuneCameraTrack,
 } from "@/lib/barcode-scanner";
@@ -26,10 +26,13 @@ export type CameraScannerStatus = "starting" | "scanning" | "error";
  * exemplo): a mesma prateleira não vira três buscas em voo.
  *
  * @param onCode Recebe cada código que passou pelo filtro de repetição.
+ * @param gate O filtro de repetição. Vem de FORA porque precisa sobreviver ao
+ *   fechamento do diálogo — ver `createScanGate`.
  */
 export function useCameraBarcodeScanner(
   videoRef: RefObject<HTMLVideoElement | null>,
   onCode: (code: string) => Promise<void> | void,
+  gate: ScanGate,
 ): { status: CameraScannerStatus; error: string | null } {
   const [status, setStatus] = useState<CameraScannerStatus>("starting");
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +77,7 @@ export function useCameraBarcodeScanner(
         if (stopped) return;
         setStatus("scanning");
 
-        const gate = createScanGate();
+        gate.rearm(performance.now());
         // A leitura é feita num recorte da faixa da mira, desenhado num canvas
         // fora da tela — ver scanRegion.
         const canvas = document.createElement("canvas");
@@ -135,7 +138,7 @@ export function useCameraBarcodeScanner(
       stopStream();
       if (video) video.srcObject = null;
     };
-  }, [videoRef]);
+  }, [videoRef, gate]);
 
   return { status, error };
 }

@@ -10,12 +10,26 @@ import {
   Spinner,
 } from "@workspace/ui";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { createScanGate, type ScanGate } from "@/lib/barcode-scanner";
 
 /** Retorno de quem recebe o código, mostrado embaixo do vídeo. */
 export interface ScanFeedback {
   tone: "success" | "warning" | "error";
   message: string;
+  /**
+   * Fecha o diálogo (e desliga a câmera). É o que acontece quando o produto é
+   * encontrado: pedido do dono no primeiro uso de verdade (30/09/2026), a cada
+   * produto a pessoa toca no botão de novo. "Não encontrado" não fecha — a
+   * pessoa tenta de novo ou desiste, e a mensagem precisa ficar à vista.
+   */
+  close?: boolean;
 }
+
+/**
+ * Duração da vibração do "achei". Os 60ms da primeira versão o dono não sentiu
+ * no aparelho; 150ms é o pulso curto e perceptível do leitor de mão.
+ */
+export const SCAN_SUCCESS_VIBRATION_MS = 150;
 
 interface BarcodeScannerDialogProps {
   open: boolean;
@@ -23,9 +37,8 @@ interface BarcodeScannerDialogProps {
   title: string;
   description: string;
   /**
-   * Recebe cada código lido. Quem chama decide o que fazer: a lista de
-   * etiquetas adiciona e deixa a câmera aberta para o próximo; a listagem de
-   * produtos busca e fecha o diálogo.
+   * Recebe cada código lido e decide pelo retorno: o aviso embaixo do vídeo, e
+   * se o diálogo fecha (`close`). Sucesso vibra o aparelho.
    */
   onDetected: (code: string) => Promise<ScanFeedback | void> | ScanFeedback | void;
 }
@@ -49,6 +62,11 @@ export function BarcodeScannerDialog({
   description,
   onDetected,
 }: BarcodeScannerDialogProps) {
+  // Um filtro por tela, e não por abertura: ele precisa lembrar o último código
+  // lido quando a câmera reabre (ver createScanGate). O useState com função é a
+  // forma de criar uma vez só sem ler ref durante o render.
+  const [gate] = useState<ScanGate>(() => createScanGate());
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[95dvh] flex-col gap-3 p-4 sm:max-w-md">
@@ -58,35 +76,49 @@ export function BarcodeScannerDialog({
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <ScannerBody onDetected={onDetected} onClose={() => onOpenChange(false)} />
+        <ScannerBody gate={gate} onDetected={onDetected} onClose={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );
 }
 
 function ScannerBody({
+  gate,
   onDetected,
   onClose,
 }: {
+  gate: ScanGate;
   onDetected: BarcodeScannerDialogProps["onDetected"];
   onClose: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
+  /**
+   * Fechou: o diálogo ainda fica montado ~200ms, na animação de saída, com a
+   * câmera lendo. Uma etiqueta vizinha na mira nesse meio-tempo entraria na
+   * lista sem o diálogo à vista.
+   */
+  const closedRef = useRef(false);
 
   const handleCode = useCallback(
     async (code: string) => {
+      if (closedRef.current) return;
       const result = await onDetected(code);
-      if (!result) return;
+      if (!result || closedRef.current) return;
+      // Bipar de olho na prateleira: a vibração confirma sem olhar a tela. O
+      // Safari do iPhone não implementa a vibração; lá fica só o aviso.
+      if (result.tone === "success") navigator.vibrate?.(SCAN_SUCCESS_VIBRATION_MS);
+      if (result.close) {
+        closedRef.current = true;
+        onClose();
+        return;
+      }
       setFeedback(result);
-      // Bipar de olho na prateleira: a vibração confirma sem olhar a tela.
-      // O iPhone não vibra pelo navegador, e para ele fica o aviso colorido.
-      if (result.tone === "success") navigator.vibrate?.(60);
     },
-    [onDetected],
+    [onDetected, onClose],
   );
 
-  const { status, error } = useCameraBarcodeScanner(videoRef, handleCode);
+  const { status, error } = useCameraBarcodeScanner(videoRef, handleCode, gate);
 
   return (
     <>

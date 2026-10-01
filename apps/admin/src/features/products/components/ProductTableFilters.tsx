@@ -177,7 +177,7 @@ export function ProductTableFilters({
           setCategoryId(undefined);
           setStatus(undefined);
           setSearch(code);
-          setScannerOpen(false);
+          return { tone: "success", message: code, close: true };
         }}
       />
     </div>

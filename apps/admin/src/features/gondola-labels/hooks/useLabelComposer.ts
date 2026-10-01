@@ -12,7 +12,7 @@ import { useLabelProductSearch } from "./useLabelProductSearch";
 import { useLabelDraft } from "./useLabelDraft";
 import { describeApiError } from "@workspace/core";
 import { printLabelSheet } from "../print";
-import { exactBarcodeMatches, type BarcodeScanOutcome } from "../barcode-lookup";
+import { exactBarcodeMatches, scanToastOf, type BarcodeScanOutcome } from "../barcode-lookup";
 import { toDraftPayload, type LoadedLabelDraft } from "../draft";
 import {
   customNameForPayload,
@@ -144,6 +144,12 @@ export function useLabelComposer() {
       if (matches.length === 0) return { kind: "not-found", code };
       if (matches.length > 1) {
         productSearch.searchNow(code);
+        // A câmera fecha sem vibrar; sem este aviso a pessoa só veria a busca
+        // preenchida, sem saber por quê.
+        toast({
+          title: "Mais de um produto com este código",
+          description: `Escolha na busca o produto do código ${code}.`,
+        });
         return { kind: "ambiguous", code };
       }
 
@@ -152,11 +158,15 @@ export function useLabelComposer() {
         (item) => item.productId === product.id && item.labelType === PRODUCT_LABEL_TYPE.Normal,
       );
       addProduct(product);
-      return {
+      const outcome: BarcodeScanOutcome = {
         kind: "added",
         name: product.name,
         copies: existing ? parseQuantityInput(existing.quantityInput) + 1 : 1,
       };
+      // A câmera fecha a cada produto encontrado; o nome vai para o aviso da
+      // tela, que é a conferência de que ela leu a etiqueta certa.
+      toast({ title: "Adicionado pela câmera", description: scanToastOf(outcome) });
+      return outcome;
     } catch (error) {
       console.error("Erro ao buscar o código lido:", error);
       return { kind: "error", code };
