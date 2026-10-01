@@ -813,3 +813,19 @@ a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
 - O menu não tem mais o item **Estoque** (23/09/2026): a entrada é pela aba
   Estoque do detalhe.
 - Grupo sem produto nenhum (linha com id 0) não oferece o item: não há SKU.
+
+### 8. Busca pela câmera e a listagem no celular (30/09/2026)
+
+- **Câmera ao lado da busca** (`ProductTableFilters`): o código lido vai para a
+  caixa de pesquisa e o diálogo fecha. O diálogo e o motor são os mesmos da
+  tela de Etiquetas (`@/components/barcode-scanner-dialog`,
+  `@/lib/barcode-scanner`). **A leitura limpa os outros filtros**, inclusive o
+  "Ativo" padrão — pedido do dono: com o produto na mão, "nenhum produto"
+  porque ele está inativo ou noutra categoria é a resposta errada.
+- **Celular** (abaixo de `md`): a tabela fica com Imagem, Nome e Ações, e as
+  outras colunas somem — a convenção "esconder coluna, nunca rolar" da base. O
+  essencial delas vem embaixo do nome: preço (só leitura; a edição rápida fica
+  no computador e no detalhe), estoque, situação quando não é Ativo e o botão
+  Variações. Do `md` para cima a tabela é a mesma de antes. O resumo existe no
+  DOM em toda largura (só some por CSS): teste que procura o preço, o estoque
+  ou o botão Variações acha um a mais.

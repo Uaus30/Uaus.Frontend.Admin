@@ -33,7 +33,9 @@ export interface ProductTableFiltersProps {
  *
  * A câmera (30/09/2026) põe o código lido na caixa de pesquisa e fecha: achar o
  * produto que está na mão sem digitar 13 dígitos. A busca da listagem já trata
- * termo só de dígitos como código de barras.
+ * termo só de dígitos como código de barras. A leitura **limpa os outros
+ * filtros**, inclusive o "Ativo" padrão (pedido do dono): com o produto na mão,
+ * "nenhum produto" porque ele está inativo ou noutra categoria é resposta errada.
  */
 export function ProductTableFilters({
   search,
@@ -171,6 +173,9 @@ export function ProductTableFilters({
         title="Buscar pelo código"
         description="Aponte a câmera para o código de barras do produto."
         onDetected={(code) => {
+          setDepartmentId(undefined);
+          setCategoryId(undefined);
+          setStatus(undefined);
           setSearch(code);
           setScannerOpen(false);
         }}

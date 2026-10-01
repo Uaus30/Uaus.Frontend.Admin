@@ -153,9 +153,10 @@ describe("ProductTable — variações aninhadas", () => {
     renderTable({ enrichedProducts: [row({ stock: 15 })] });
 
     // Duas entradas, no preço e no estoque — as duas colunas em que a linha
-    // resume várias variações.
+    // resume várias variações — e a terceira no resumo que o celular mostra
+    // embaixo do nome (30/09/2026), onde essas colunas somem.
     const botoes = screen.getAllByRole("button", { name: /variações/i });
-    expect(botoes.length).toBe(2);
+    expect(botoes.length).toBe(3);
     expect(screen.queryByRole("columnheader", { name: /^variação$/i })).toBeNull();
 
     fireEvent.click(botoes[0]);
@@ -164,7 +165,8 @@ describe("ProductTable — variações aninhadas", () => {
     expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toBeTruthy();
     expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [VERDE]")).toBeTruthy();
     // O estoque da linha é a soma; o de cada variação vai na sublista.
-    expect(screen.getByText("15 un")).toBeTruthy();
+    // Na coluna e no resumo do celular.
+    expect(screen.getAllByText("15 un")).toHaveLength(2);
     expect(screen.getByText("3 un")).toBeTruthy();
     expect(screen.getByText("12 un")).toBeTruthy();
     // Categoria e etiquetas ficaram de fora da sublista a pedido do dono: a

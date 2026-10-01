@@ -239,15 +239,15 @@ export function ProductTable({
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="px-6 py-4 w-16">Imagem</th>
-              <th className="px-6 py-4 min-w-[250px]">Nome</th>
-              <th className="px-6 py-4">Departamento</th>
-              <th className="px-6 py-4">Categoria</th>
-              <th className="px-6 py-4">Preço</th>
-              <th className="px-6 py-4">Estoque</th>
-              <th className="px-6 py-4">Tags</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Ações</th>
+              <th className="px-3 py-3 md:px-6 md:py-4 w-16">Imagem</th>
+              <th className="px-3 py-3 md:px-6 md:py-4 md:min-w-[250px]">Nome</th>
+              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Departamento</th>
+              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Categoria</th>
+              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Preço</th>
+              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Estoque</th>
+              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Tags</th>
+              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Status</th>
+              <th className="px-3 py-3 md:px-6 md:py-4 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -266,7 +266,7 @@ export function ProductTable({
                   <ContextMenu key={`${product.id}-${index}`}>
                     <ContextMenuTrigger asChild>
                       <tr className="border-b border-border/50 transition-colors hover:bg-muted/20">
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-3 md:px-6 md:py-4">
                           <div className="relative h-10 w-10 group/img w-max">
                             {mainImage ? (
                               <ImageHoverZoom
@@ -300,7 +300,7 @@ export function ProductTable({
                             só. O clique simples continua sendo navegação da SPA:
                             o href existe para o navegador, não para recarregar a
                             página. */}
-                        <td className="px-6 py-4 font-medium text-foreground">
+                        <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-foreground">
                           <a
                             href={productDetailPathname(product.productGroupId)}
                             className="cursor-pointer transition-colors hover:text-primary hover:underline"
@@ -322,10 +322,48 @@ export function ProductTable({
                           >
                             {product.name}
                           </a>
+                          {/* Celular: as colunas de preço, estoque e situação
+                              somem (convenção "esconder coluna, nunca rolar"), e
+                              o essencial delas vem aqui, embaixo do nome. O
+                              preço é só leitura — a edição rápida fica no
+                              computador e no detalhe do produto. */}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-normal md:hidden">
+                            <span className="font-semibold text-orange-500">
+                              {formatCurrency(product.price)}
+                            </span>
+                            <span
+                              className={
+                                product.stock < 10
+                                  ? "font-semibold text-destructive"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {product.stock} un
+                            </span>
+                            {enumCode(product.status, PRODUCT_STATUS) !== PRODUCT_STATUS.Active && (
+                              <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                                {statusOptions.find(
+                                  (option) => option.id === enumCode(product.status, PRODUCT_STATUS),
+                                )?.name ?? "—"}
+                              </Badge>
+                            )}
+                            {product.productGroup?.hasVariations && (
+                              <BotaoVariacoes
+                                aberto={aberto}
+                                quantidade={product.variationCount}
+                                onToggle={() => alternarVariacoes(product.productGroupId)}
+                                className="mt-0 text-orange-500"
+                              />
+                            )}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-muted-foreground">{product.department?.name || "-"}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{product.category?.name || "-"}</td>
-                        <td className="px-6 py-4 font-medium text-orange-500">
+                        <td className="hidden px-3 py-3 text-muted-foreground md:table-cell md:px-6 md:py-4">
+                          {product.department?.name || "-"}
+                        </td>
+                        <td className="hidden px-3 py-3 text-muted-foreground md:table-cell md:px-6 md:py-4">
+                          {product.category?.name || "-"}
+                        </td>
+                        <td className="hidden px-3 py-3 font-medium text-orange-500 md:table-cell md:px-6 md:py-4">
                           {product.productGroup?.hasVariations ? (
                             <div className="flex flex-col">
                               <span className="font-medium text-orange-500">
@@ -359,7 +397,7 @@ export function ProductTable({
                           editável gravava um ajuste herdando o custo do último
                           lote sem avisar.
                         */}
-                        <td className="px-6 py-4">
+                        <td className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">
                           <div className="flex flex-col">
                             <span
                               className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold w-max ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}
@@ -376,7 +414,7 @@ export function ProductTable({
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">
                           <div className="flex flex-wrap gap-1">
                             {product.tags.map((tag) => (
                               <span
@@ -393,7 +431,7 @@ export function ProductTable({
                             ))}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">
                           <Badge
                             variant={
                               enumCode(product.status, PRODUCT_STATUS) === PRODUCT_STATUS.Active
@@ -406,7 +444,7 @@ export function ProductTable({
                             )?.name ?? "—"}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-3 py-3 md:px-6 md:py-4 text-right">
                           <div className="flex items-center justify-end">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -506,7 +544,7 @@ export function ProductTable({
         </table>
       </div>
 
-      <div className="flex items-center justify-between border-t border-border/50 p-4 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/50 p-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <span>Itens por página:</span>
           <Select
