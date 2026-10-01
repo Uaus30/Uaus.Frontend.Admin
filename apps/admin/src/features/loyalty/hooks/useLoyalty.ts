@@ -15,6 +15,7 @@ import {
   useGetLoyaltySettings,
   useGetLoyaltySummary,
   type LoyaltyActionList,
+  type LoyaltyRewardStatusFilter,
   type UpdateLoyaltySettingsPayload,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
@@ -37,6 +38,7 @@ export function useLoyalty() {
   const [configOpen, setConfigOpen] = useState(false);
   const [confirmOffOpen, setConfirmOffOpen] = useState(false);
   const [openAction, setOpenAction] = useState<LoyaltyActionList | null>(null);
+  const [rewardStatus, setRewardStatus] = useState<LoyaltyRewardStatusFilter>("available");
 
   const settings = useGetLoyaltySettings();
   const period = periodFor(preset);
@@ -44,7 +46,11 @@ export function useLoyalty() {
   const charts = useGetLoyaltyCharts(period);
   // O "Para agir" é retrato de hoje: não depende do período.
   const actionCounts = useGetLoyaltyActionCounts();
-  const actionRows = useGetLoyaltyActionList(openAction);
+  // O filtro de situação só vale na lista de prêmios esperando troca.
+  const actionRows = useGetLoyaltyActionList(
+    openAction,
+    openAction === "rewards-waiting" ? rewardStatus : undefined,
+  );
   // Os cupons que o modal oferece para os prêmios: só com ele aberto.
   const coupons = useGetCoupons({ onlyActive: true, limit: 200 }, { query: { enabled: configOpen } });
 
@@ -98,16 +104,34 @@ export function useLoyalty() {
   return {
     settings: settings.data,
     isLoadingSettings: settings.isLoading,
+    // Sem a configuração a tela não tem o que mostrar: o erro dela vira o aviso da
+    // página inteira, em vez do carregando para sempre.
+    isSettingsError: settings.isError,
+    retrySettings: () => void settings.refetch(),
     summary: summary.data,
     isLoadingSummary: summary.isLoading,
+    isSummaryError: summary.isError,
+    retrySummary: () => void summary.refetch(),
     charts: charts.data,
     isLoadingCharts: charts.isLoading,
+    isChartsError: charts.isError,
+    retryCharts: () => void charts.refetch(),
     actionCounts: actionCounts.data,
     isLoadingActionCounts: actionCounts.isLoading,
+    isActionCountsError: actionCounts.isError,
+    retryActionCounts: () => void actionCounts.refetch(),
     openAction,
-    setOpenAction,
+    // Cada lista abre nos disponíveis: o número do card conta só eles.
+    setOpenAction: (list: LoyaltyActionList | null) => {
+      setRewardStatus("available");
+      setOpenAction(list);
+    },
+    rewardStatus,
+    setRewardStatus,
     actionRows: actionRows.data,
     isLoadingActionRows: actionRows.isLoading,
+    isActionRowsError: actionRows.isError,
+    retryActionRows: () => void actionRows.refetch(),
     coupons: coupons.data?.data ?? [],
     preset,
     setPreset,

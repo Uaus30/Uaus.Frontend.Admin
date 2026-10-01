@@ -11,6 +11,7 @@ import {
   SERIES_COLORS,
   SeriesLegend,
 } from "@/features/dashboard/components/chart-primitives";
+import { LoadError } from "./LoadError";
 import { LoyaltyProfileCharts } from "./LoyaltyProfileCharts";
 
 const count = (value: number) => value.toLocaleString("pt-BR");
@@ -24,7 +25,19 @@ const weekLabel = (iso: string) => {
  * o programa pegou; os cartões abertos mostram quem está perto do prêmio — em
  * destaque, os que estão a 1 carimbo, que são a próxima volta do cliente.
  */
-export function LoyaltyCharts({ charts, isLoading }: { charts?: LoyaltyChartsDto; isLoading: boolean }) {
+export function LoyaltyCharts({
+  charts,
+  isLoading,
+  isError,
+  onRetry,
+}: {
+  charts?: LoyaltyChartsDto;
+  isLoading: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+}) {
+  // Só sem dado: um refetch em segundo plano que falha não apaga os gráficos.
+  if (isError && onRetry && !charts) return <LoadError onRetry={onRetry} />;
   if (isLoading || !charts) {
     return (
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

@@ -30,14 +30,18 @@ Seis números (prêmios esperando troca, a 1 carimbo de um prêmio, cartões que
 
 O número e a lista saem da **mesma consulta** no servidor (`GET /Loyalty/actions` conta as listas de `GET /Loyalty/actions/{lista}`): o número que diz 3 abre uma lista de 3.
 
+As listas de prêmio (esperando troca e em folga) têm **uma linha por prêmio**, com o prêmio, quando foi liberado, quando vence e a situação. "Esperando troca" vem do liberado mais recente e filtra pela situação — disponíveis (o padrão, que é o que o número conta), trocados, vencidos, cancelados ou todos —; o filtro volta aos disponíveis a cada abertura (pedido do dono, 01/10/2026). "Em folga" vem do que vence antes: é quem mais precisa ouvir. "Sem comprar há 45 dias" vem de quem sumiu há menos tempo, sem limite.
+
+Se uma consulta falha, o lugar dela mostra "Não foi possível carregar" com **Tentar de novo** (`LoadError`), em vez do carregando para sempre; sem a configuração, o aviso ocupa a página. Um refetch em segundo plano que falha não apaga os números que já estão na tela.
+
 ### 6. Os gráficos (entrega 5, 01/10/2026)
 
 Seguem o período, exceto os cartões abertos (hoje):
 
-- **Carimbos por semana**: as 12 semanas (de segunda a domingo) que terminam no fim do período — mostra se o programa pegou.
+- **Carimbos por semana**: as 12 semanas (de segunda a domingo) que terminam no fim do período, ou hoje, se o período vai além — "este mês" não mostra semanas futuras zeradas, que pareceriam queda.
 - **Onde estão os cartões abertos**: quantos cartões com cada número de carimbos; em destaque, os que estão a 1 de um prêmio.
-- **Do cadastro ao cartão completo**, **como conheceram a loja**, **perfil de quem carimbou** (sexo e faixa de idade, recalculada pelo nascimento) e a **tabela por operador**: vendas, vendas com cliente, % e cadastros — é ali que se vê quem pergunta pelo cliente no caixa.
+- **Do cadastro ao cartão completo**, **como conheceram a loja**, **perfil de quem carimbou** (sexo e faixa de idade, recalculada pelo nascimento) e a **tabela por operador**: vendas, vendas com cliente, % e cadastros — é ali que se vê quem pergunta pelo cliente no caixa. Dois usuários com o mesmo nome aparecem com o login entre parênteses; sem nome, o login.
 
 Listas curtas de categorias são barras horizontais com o número escrito ao lado, legíveis no celular sem passar o mouse. Salvar, ligar e desligar invalidam o prefixo `getLoyaltyDashboardQueryKey` junto com o resumo.
 
-O ajuste manual de carimbos fica na tela de clientes (`features/customers`, regra 4).
+O ajuste manual de carimbos fica na tela de clientes (`features/customers`, regra 3), e atualiza na hora os números do topo, o "Para agir" e os gráficos.

@@ -4,6 +4,7 @@ import type { LoyaltySummaryDto } from "@workspace/api-client-react";
 import { Card, CardContent, Skeleton } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { useCountUp } from "../hooks/useCountUp";
+import { LoadError } from "./LoadError";
 
 type KpiCardProps = {
   icon: LucideIcon;
@@ -43,7 +44,19 @@ const decimal = (value: number) =>
  * Os seis números do período (01/10/2026), cada um respondendo a um objetivo
  * do dono: o cliente voltar, saber quem ele é e vender mais por compra.
  */
-export function LoyaltyKpiCards({ summary, isLoading }: { summary?: LoyaltySummaryDto; isLoading: boolean }) {
+export function LoyaltyKpiCards({
+  summary,
+  isLoading,
+  isError,
+  onRetry,
+}: {
+  summary?: LoyaltySummaryDto;
+  isLoading: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+}) {
+  // Só sem dado: um refetch em segundo plano que falha não apaga os números da tela.
+  if (isError && onRetry && !summary) return <LoadError onRetry={onRetry} />;
   if (isLoading || !summary) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

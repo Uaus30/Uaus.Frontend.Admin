@@ -86,11 +86,50 @@ describe("useLoyalty", () => {
 
   it('só busca a lista de um número do "Para agir" quando ela é aberta', () => {
     const { result } = renderHook(() => useLoyalty(), { wrapper });
-    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith(null);
+    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith(null, undefined);
 
     act(() => result.current.setOpenAction("one-away"));
 
-    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith("one-away");
+    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith("one-away", undefined);
+  });
+
+  it("o filtro de situação vale só na lista de prêmios, e cada abertura volta aos disponíveis", () => {
+    const { result } = renderHook(() => useLoyalty(), { wrapper });
+
+    act(() => result.current.setOpenAction("rewards-waiting"));
+    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith("rewards-waiting", "available");
+
+    act(() => result.current.setRewardStatus("redeemed"));
+    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith("rewards-waiting", "redeemed");
+
+    act(() => result.current.setOpenAction(null));
+    act(() => result.current.setOpenAction("rewards-waiting"));
+    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith("rewards-waiting", "available");
+  });
+
+  it("erro na configuração vira o aviso da página, com tentar de novo", () => {
+    const refetch = vi.fn().mockResolvedValue(undefined);
+    mocks.useGetLoyaltySettings.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch,
+    });
+    const { result } = renderHook(() => useLoyalty(), { wrapper });
+
+    expect(result.current.isSettingsError).toBe(true);
+    result.current.retrySettings();
+    expect(refetch).toHaveBeenCalled();
+  });
+
+  it("erro numa consulta do painel aparece e pode ser refeito", () => {
+    const refetch = vi.fn().mockResolvedValue(undefined);
+    mocks.useGetLoyaltyCharts.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch });
+    const { result } = renderHook(() => useLoyalty(), { wrapper });
+
+    expect(result.current.isChartsError).toBe(true);
+    result.current.retryCharts();
+    expect(refetch).toHaveBeenCalled();
   });
 
   it("só busca os cupons do modal com ele aberto", () => {

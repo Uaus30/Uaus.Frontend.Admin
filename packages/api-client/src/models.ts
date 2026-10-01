@@ -1385,11 +1385,18 @@ export interface CouponDto {
   /** Nome da campanha já resolvido, para a coluna da listagem não fazer uma chamada por linha. */
   campaignName?: string | null;
   /**
-   * O cupom é de um prêmio do programa de fidelidade (01/10/2026): a tela mostra
-   * o selo "Gerenciado pelo programa de fidelidade" e não oferece editar,
-   * desativar nem excluir — o servidor recusaria. Ausente num backend anterior.
+   * O cupom está associado ao programa de fidelidade LIGADO (01/10/2026): a tela
+   * mostra o selo "Gerenciado pelo programa de fidelidade" e não oferece editar,
+   * desativar nem excluir — o servidor recusaria. Desligado o programa, a
+   * associação não trava. Ausente num backend anterior.
    */
   managedByLoyalty?: boolean;
+  /**
+   * Algum cliente tem prêmio deste cupom para trocar: edita-se, mas sem mudar
+   * código, tipo, valor e teto, e sem desativar nem excluir — o direito é do
+   * cliente.
+   */
+  hasPendingLoyaltyRewards?: boolean;
 }
 
 /**
@@ -2824,6 +2831,9 @@ export interface LoyaltyChartsDto {
   operators: { name: string; sales: number; salesWithCustomer: number; customersRegistered: number }[];
 }
 
+/** O filtro da lista de prêmios esperando troca; sem ele, os disponíveis. */
+export type LoyaltyRewardStatusFilter = "available" | "redeemed" | "expired" | "cancelled" | "all";
+
 /** As listas do "Para agir", pelo nome que vai na URL. */
 export type LoyaltyActionList =
   "rewards-waiting" | "one-away" | "expiring" | "grace" | "inactive" | "birthdays";
@@ -2848,4 +2858,12 @@ export interface LoyaltyActionRowDto {
   /** A data que importa na lista (vence em, última compra, aniversário). */
   date?: string | null;
   prize?: string | null;
+  /** Nas listas de prêmio: quando foi liberado (a lista vem do mais novo). */
+  unlockedAt?: string | null;
+  /** Nas listas de prêmio: quando foi trocado. */
+  redeemedAt?: string | null;
+  /** Nas listas de prêmio: a situação gravada; o vencido vem em `expired`. */
+  rewardStatus?: EnumValue | null;
+  /** Nas listas de prêmio: disponível, mas passou do prazo de troca. */
+  expired?: boolean | null;
 }

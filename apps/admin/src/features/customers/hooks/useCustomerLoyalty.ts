@@ -5,6 +5,7 @@ import {
   getGetCustomersQueryKey,
   getLoyaltyDashboardQueryKey,
   getLoyaltyStatementQueryKey,
+  getLoyaltySummaryQueryKey,
   useGetCompanySettings,
   useGetLoyaltyStatement,
   type CustomerSummaryDto,
@@ -35,6 +36,8 @@ export function useCustomerLoyalty() {
         queryClient.invalidateQueries({ queryKey: getLoyaltyStatementQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetCustomersQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getLoyaltyDashboardQueryKey() }),
+        // Os números do topo da Fidelidade (carimbos dados, prêmios liberados).
+        queryClient.invalidateQueries({ queryKey: getLoyaltySummaryQueryKey() }),
       ]);
       toast({
         title: "Ajuste gravado",

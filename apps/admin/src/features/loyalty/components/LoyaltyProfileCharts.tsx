@@ -118,8 +118,8 @@ export function LoyaltyProfileCharts({ charts }: { charts: LoyaltyChartsDto }) {
                 </tr>
               </thead>
               <tbody>
-                {charts.operators.map((row) => (
-                  <tr key={row.name} className="border-t border-border/50">
+                {charts.operators.map((row, index) => (
+                  <tr key={index} className="border-t border-border/50">
                     <td className="py-2">{row.name}</td>
                     <td className="py-2 text-right tabular-nums">{row.sales}</td>
                     <td className="py-2 text-right tabular-nums">{row.salesWithCustomer}</td>

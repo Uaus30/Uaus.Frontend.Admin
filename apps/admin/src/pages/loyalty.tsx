@@ -1,6 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { ConfirmDialog } from "@workspace/ui";
-import { LoyaltyActionDialog, LoyaltyActions } from "@/features/loyalty/components/LoyaltyActions";
+import { LoyaltyActionDialog } from "@/features/loyalty/components/LoyaltyActionDialog";
+import { LoyaltyActions } from "@/features/loyalty/components/LoyaltyActions";
+import { LoadError } from "@/features/loyalty/components/LoadError";
 import { LoyaltyCharts } from "@/features/loyalty/components/LoyaltyCharts";
 import { LoyaltyConfigModal } from "@/features/loyalty/components/LoyaltyConfigModal";
 import { LoyaltyHeader } from "@/features/loyalty/components/LoyaltyHeader";
@@ -13,6 +15,10 @@ import { useLoyalty } from "@/features/loyalty/hooks/useLoyalty";
  */
 export default function Loyalty() {
   const loyalty = useLoyalty();
+
+  if (loyalty.isSettingsError && !loyalty.settings) {
+    return <LoadError onRetry={loyalty.retrySettings} className="my-20" />;
+  }
 
   if (loyalty.isLoadingSettings || !loyalty.settings) {
     return (
@@ -34,21 +40,37 @@ export default function Loyalty() {
         isTurningOn={loyalty.isTurningOn}
       />
 
-      <LoyaltyKpiCards summary={loyalty.summary} isLoading={loyalty.isLoadingSummary} />
+      <LoyaltyKpiCards
+        summary={loyalty.summary}
+        isLoading={loyalty.isLoadingSummary}
+        isError={loyalty.isSummaryError}
+        onRetry={loyalty.retrySummary}
+      />
 
       {/* O "Para agir" logo depois dos números: é a parte que pede ação hoje. */}
       <LoyaltyActions
         counts={loyalty.actionCounts}
         isLoading={loyalty.isLoadingActionCounts}
+        isError={loyalty.isActionCountsError}
+        onRetry={loyalty.retryActionCounts}
         onOpen={loyalty.setOpenAction}
       />
 
-      <LoyaltyCharts charts={loyalty.charts} isLoading={loyalty.isLoadingCharts} />
+      <LoyaltyCharts
+        charts={loyalty.charts}
+        isLoading={loyalty.isLoadingCharts}
+        isError={loyalty.isChartsError}
+        onRetry={loyalty.retryCharts}
+      />
 
       <LoyaltyActionDialog
         list={loyalty.openAction}
         rows={loyalty.actionRows}
         isLoading={loyalty.isLoadingActionRows}
+        isError={loyalty.isActionRowsError}
+        onRetry={loyalty.retryActionRows}
+        rewardStatus={loyalty.rewardStatus}
+        onRewardStatusChange={loyalty.setRewardStatus}
         onClose={() => loyalty.setOpenAction(null)}
       />
 

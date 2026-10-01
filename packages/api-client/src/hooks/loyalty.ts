@@ -14,6 +14,7 @@ import type {
   LoyaltyActionList,
   LoyaltyActionRowDto,
   LoyaltyChartsDto,
+  LoyaltyRewardStatusFilter,
   LoyaltySaleOutcomeDto,
   LoyaltySettingsDto,
   LoyaltyStatementDto,
@@ -134,14 +135,19 @@ export function useGetLoyaltyActionCounts(options?: { query?: QueryOptions<Loyal
   });
 }
 
+/**
+ * Os clientes de uma lista do "Para agir". `status` filtra a lista de prêmios
+ * esperando troca (sem ele, os disponíveis); as outras listas o ignoram.
+ */
 export function useGetLoyaltyActionList(
   list: LoyaltyActionList | null,
+  status?: LoyaltyRewardStatusFilter,
   options?: { query?: QueryOptions<LoyaltyActionRowDto[]> },
 ) {
   return useQuery<LoyaltyActionRowDto[], ApiError, LoyaltyActionRowDto[], QueryKey>({
-    queryKey: [...getLoyaltyDashboardQueryKey(), "actions", list ?? ""],
+    queryKey: [...getLoyaltyDashboardQueryKey(), "actions", list ?? "", status ?? ""],
     enabled: list !== null,
-    queryFn: () => apiGetOrThrow<LoyaltyActionRowDto[]>(`/Loyalty/actions/${list}`),
+    queryFn: () => apiGetOrThrow<LoyaltyActionRowDto[]>(`/Loyalty/actions/${list}`, { status }),
     ...options?.query,
   });
 }

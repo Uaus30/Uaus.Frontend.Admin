@@ -1,6 +1,14 @@
 import { CalendarHeart, Clock, Gift, Hourglass, Target, UserX } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { LoyaltyActionCountsDto, LoyaltyActionList } from "@workspace/api-client-react";
+import {
+  LOYALTY_REWARD_STATUS,
+  enumCode,
+  type LoyaltyActionCountsDto,
+  type LoyaltyActionList,
+  type LoyaltyActionRowDto,
+  type LoyaltyRewardStatusFilter,
+} from "@workspace/api-client-react";
+import { formatShortDate } from "@workspace/core";
 
 export type LoyaltyActionDefinition = {
   list: LoyaltyActionList;
@@ -16,7 +24,7 @@ export const LOYALTY_ACTIONS: LoyaltyActionDefinition[] = [
   {
     list: "rewards-waiting",
     label: "Prêmios esperando troca",
-    dateLabel: "Vale até",
+    dateLabel: "Vence em",
     icon: Gift,
     count: (c) => c.rewardsWaiting,
   },
@@ -37,7 +45,7 @@ export const LOYALTY_ACTIONS: LoyaltyActionDefinition[] = [
   {
     list: "grace",
     label: "Em folga: cartão vencido, prêmio ainda vale",
-    dateLabel: "Prêmio vale até",
+    dateLabel: "Vence em",
     icon: Hourglass,
     count: (c) => c.inGrace,
   },
@@ -56,3 +64,34 @@ export const LOYALTY_ACTIONS: LoyaltyActionDefinition[] = [
     count: (c) => c.birthdays,
   },
 ];
+
+/** As listas que mostram prêmios (uma linha por prêmio), e não clientes. */
+export function isRewardList(list: LoyaltyActionList | null): boolean {
+  return list === "rewards-waiting" || list === "grace";
+}
+
+/** O filtro da lista de prêmios: o padrão é o que o número do card conta. */
+export const REWARD_STATUS_FILTERS: { value: LoyaltyRewardStatusFilter; label: string }[] = [
+  { value: "available", label: "Disponíveis" },
+  { value: "redeemed", label: "Trocados" },
+  { value: "expired", label: "Vencidos" },
+  { value: "cancelled", label: "Cancelados" },
+  { value: "all", label: "Todos" },
+];
+
+/**
+ * A situação do prêmio na linha: "Disponível", "Trocado em 21/12/2026",
+ * "Vencido" ou "Cancelado". O vencido é o disponível que passou do prazo — o
+ * servidor avisa em `expired`, porque a situação gravada continua disponível.
+ */
+export function rewardSituation(row: LoyaltyActionRowDto): string {
+  if (row.expired) return "Vencido";
+  switch (enumCode(row.rewardStatus, LOYALTY_REWARD_STATUS)) {
+    case LOYALTY_REWARD_STATUS.Redeemed:
+      return row.redeemedAt ? `Trocado em ${formatShortDate(row.redeemedAt)}` : "Trocado";
+    case LOYALTY_REWARD_STATUS.Cancelled:
+      return "Cancelado";
+    default:
+      return "Disponível";
+  }
+}

@@ -6,6 +6,7 @@ import {
   getGetCustomersQueryKey,
   getLoyaltyDashboardQueryKey,
   getLoyaltyStatementQueryKey,
+  getLoyaltySummaryQueryKey,
   type CustomerSummaryDto,
 } from "@workspace/api-client-react";
 import { useCustomerLoyalty } from "../useCustomerLoyalty";
@@ -101,6 +102,7 @@ describe("useCustomerLoyalty", () => {
         getLoyaltyStatementQueryKey(),
         getGetCustomersQueryKey(),
         getLoyaltyDashboardQueryKey(),
+        getLoyaltySummaryQueryKey(),
       ]),
     );
     expect(mocks.toast).toHaveBeenCalledWith(
