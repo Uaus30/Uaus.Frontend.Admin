@@ -21,8 +21,6 @@ interface UserEditorModalProps {
   form: UserForm;
   /** Callback para atualizar o estado do formulário. */
   onFormChange: React.Dispatch<React.SetStateAction<UserForm>>;
-  /** Lista de opções selecionáveis para papéis de usuários. */
-  selectableRoleOptions: EnumOptionDto[];
   /**
    * Status oferecidos na edição. Já vem sem "Ativo" quando o usuário está
    * Pendente — quem promove é a troca de senha, não esta tela.
@@ -41,6 +39,9 @@ interface UserEditorModalProps {
 /**
  * Modal com formulário para cadastro e edição de dados de usuários administrativos.
  *
+ * **Não pede papel.** Desde 01/10/2026 todo usuário é Administrador (decisão do
+ * dono); o hook manda sempre Admin.
+ *
  * **Não pede senha.** O cadastro nasce com a senha padrão do sistema e status
  * Pendente; quem define a senha de verdade é o próprio usuário, no primeiro
  * acesso. O campo existia e era descartado pelo servidor: o administrador
@@ -52,7 +53,6 @@ export function UserEditorModal({
   editingId,
   form,
   onFormChange,
-  selectableRoleOptions,
   editableStatusOptions,
   pendentePrimeiroAcesso,
   isSaving,
@@ -110,26 +110,8 @@ export function UserEditorModal({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Papel</Label>
-              <Select
-                value={form.role}
-                onValueChange={(value) => onFormChange((current) => ({ ...current, role: value }))}
-              >
-                <SelectTrigger className="bg-background border-input">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectableRoleOptions.map((option) => (
-                    <SelectItem key={option.id} value={String(option.id)}>
-                      {option.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {editingId && (
+          {editingId && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
@@ -148,8 +130,8 @@ export function UserEditorModal({
                   </SelectContent>
                 </Select>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <p className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />

@@ -234,7 +234,7 @@ export function useUsers() {
   function handleSubmitUser(formPayload: UserForm) {
     const { firstName, lastName } = splitFullName(formPayload.fullName);
 
-    if (!firstName || !formPayload.username || !formPayload.email || !formPayload.role) {
+    if (!firstName || !formPayload.username || !formPayload.email) {
       toast({
         title: "Preencha os campos obrigatórios.",
         variant: "destructive",
@@ -247,7 +247,11 @@ export function useUsers() {
       lastName,
       username: formPayload.username.trim(),
       email: formPayload.email.trim(),
-      role: Number(formPayload.role) as UserRoleCode,
+      // Todo usuário é Administrador desde 01/10/2026 (decisão do dono): o perfil
+      // Vendedor foi desativado e o servidor o recusa. A tela não oferece mais a
+      // escolha, e o pedido manda sempre Admin, inclusive na edição de um usuário
+      // que tenha ficado com outro perfil gravado.
+      role: USER_ROLE.Admin as UserRoleCode,
     };
 
     if (editingId) {

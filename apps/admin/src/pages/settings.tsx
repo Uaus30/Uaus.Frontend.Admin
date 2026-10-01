@@ -9,8 +9,6 @@ export default function CompanySettings() {
   const {
     usesCashRegister,
     setUsesCashRegister,
-    maxSellerDiscountPercentage,
-    setMaxSellerDiscountPercentage,
     identity,
     setIdentityField,
     site,
@@ -39,8 +37,6 @@ export default function CompanySettings() {
       <CompanySettingsForm
         usesCashRegister={usesCashRegister}
         onUsesCashRegisterChange={setUsesCashRegister}
-        maxSellerDiscountPercentage={maxSellerDiscountPercentage}
-        onMaxSellerDiscountPercentageChange={setMaxSellerDiscountPercentage}
         identity={identity}
         onIdentityChange={setIdentityField}
         site={site}

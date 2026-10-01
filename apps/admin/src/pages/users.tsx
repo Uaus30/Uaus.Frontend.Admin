@@ -25,7 +25,6 @@ export default function Users() {
     setForm,
     data,
     isLoading,
-    selectableRoleOptions,
     editableStatusOptions,
     pendentePrimeiroAcesso,
     roleLabels,
@@ -72,7 +71,6 @@ export default function Users() {
         editingId={editingId}
         form={form}
         onFormChange={setForm}
-        selectableRoleOptions={selectableRoleOptions}
         editableStatusOptions={editableStatusOptions}
         pendentePrimeiroAcesso={pendentePrimeiroAcesso}
         isSaving={creating || updating}

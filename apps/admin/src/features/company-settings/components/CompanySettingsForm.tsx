@@ -12,8 +12,6 @@ import type { SiteOptionsFields, StoreIdentityFields } from "../hooks/useCompany
 type CompanySettingsFormProps = {
   usesCashRegister: boolean;
   onUsesCashRegisterChange: (value: boolean) => void;
-  maxSellerDiscountPercentage: number;
-  onMaxSellerDiscountPercentageChange: (value: number) => void;
   /** Identidade da loja impressa nos cupons. */
   identity: StoreIdentityFields;
   onIdentityChange: (field: keyof StoreIdentityFields, value: string) => void;
@@ -72,8 +70,6 @@ const IDENTITY_INPUTS: Array<{
 export function CompanySettingsForm({
   usesCashRegister,
   onUsesCashRegisterChange,
-  maxSellerDiscountPercentage,
-  onMaxSellerDiscountPercentageChange,
   identity,
   onIdentityChange,
   site,
@@ -160,28 +156,6 @@ export function CompanySettingsForm({
               checked={usesCashRegister}
               onCheckedChange={onUsesCashRegisterChange}
               disabled={isSaving}
-            />
-          </div>
-
-          <div className="flex items-start justify-between gap-6 rounded-xl border border-border/50 bg-background/50 p-4">
-            <div className="space-y-1">
-              <Label htmlFor="max-seller-discount" className="text-sm font-medium">
-                Limite de desconto para vendedores (%)
-              </Label>
-              <p className="max-w-2xl text-sm text-muted-foreground">
-                Zero para sem limite. Descontos acima desse teto no balcão exigirão a senha de um
-                Administrador.
-              </p>
-            </div>
-            <Input
-              id="max-seller-discount"
-              type="number"
-              min={0}
-              max={100}
-              value={maxSellerDiscountPercentage}
-              onChange={(e) => onMaxSellerDiscountPercentageChange(Number(e.target.value))}
-              disabled={isSaving}
-              className="w-24 text-right"
             />
           </div>
         </CardContent>

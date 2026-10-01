@@ -222,7 +222,9 @@ describe("useUsers Hook", () => {
         lastName: "Souza",
         username: "pedrosouza",
         email: "pedro@test.com",
-        role: 2,
+        // O formulário veio com "2" (Vendedor), e o pedido sai Admin: o perfil
+        // Vendedor foi desativado em 01/10/2026 e o servidor o recusaria.
+        role: 1,
       },
     });
   });

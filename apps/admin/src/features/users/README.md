@@ -57,6 +57,16 @@ O `useChangePassword` regrava a sessão do `localStorage` **dentro do
 quem chama por cima das nossas, e um `onSuccess` do app apagaria a gravação. O
 sintoma seria a tela de troca reaparecendo para sempre.
 
+### 2.1. Todo usuário é Administrador (01/10/2026)
+
+Decisão do dono, para simplificar o uso: o perfil **Vendedor foi desativado**. A
+modal não oferece mais a escolha de papel e `handleSubmitUser` manda sempre
+`USER_ROLE.Admin`, inclusive na edição de um usuário que tenha outro papel gravado.
+O servidor recusa `Seller` no cadastro e na edição, e o enum o marca como não
+selecionável. Na data da decisão não havia nenhum vendedor cadastrado, nem na dev
+nem em produção, então nada precisou ser convertido. Se um controle por perfil
+voltar, ele é desenhado de novo.
+
 ### 3. Papel e Status chegam como TEXTO
 
 A API registra `JsonStringEnumConverter`: `GET /Users` devolve `role: "Seller"`,
