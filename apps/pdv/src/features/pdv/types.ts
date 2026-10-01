@@ -1,3 +1,4 @@
+import type { LoyaltySaleOutcomeDto } from "@workspace/api-client-react";
 import type { AppliedCoupon, CouponAnswer, PdvConsumer, PdvItem } from "@/stores/use-pdv-store";
 import type { CheckoutPayment } from "@/hooks/use-checkout";
 
@@ -27,6 +28,8 @@ export interface SavedSale {
   customerDocument: string | null;
   /** A venda ficou na fila local em vez de ir ao servidor. */
   offline: boolean;
+  /** O que a venda fez no cartão fidelidade; nulo sem cliente ou na fila. */
+  loyalty?: LoyaltySaleOutcomeDto | null;
 }
 
 /** Uma alternativa de resposta, como ela vira botão no balcão. */

@@ -78,6 +78,7 @@ const Login = lazy(() => import("@/pages/login"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const TaskBoard = lazy(() => import("@/pages/task-board"));
+const Loyalty = lazy(() => import("@/pages/loyalty"));
 const Products = lazy(() => import("@/pages/products"));
 const Departments = lazy(() => import("@/pages/departments"));
 const Categories = lazy(() => import("@/pages/categories"));
@@ -240,6 +241,15 @@ export const ROUTES: AppRoute[] = [
   { path: "/formas-pagamento", component: PaymentMethodsPage, hidden: true },
 
   { path: "/marketing/cupons", label: "Cupons", group: "Marketing", component: Coupons, roles: SO_ADMIN },
+  // Programa de fidelidade (01/10/2026): uma tela só, com ligar/desligar, a
+  // configuração num modal e o painel do período.
+  {
+    path: "/marketing/fidelidade",
+    label: "Fidelidade",
+    group: "Marketing",
+    component: Loyalty,
+    roles: SO_ADMIN,
+  },
   {
     path: "/marketing/campanhas",
     label: "Campanhas",

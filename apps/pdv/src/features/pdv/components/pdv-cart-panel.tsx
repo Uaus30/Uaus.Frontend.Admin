@@ -10,6 +10,7 @@ import type { IdentifiedSalesCount } from "../lib/identified-sales";
 import { ConfirmActionDialog } from "./confirm-action-dialog";
 import { PdvCartActionsCompact, PdvCartActionsExtended } from "./pdv-cart-actions";
 import { PdvCartCustomer } from "./pdv-cart-customer";
+import { PdvLoyaltyCard } from "./pdv-loyalty-card";
 import { PdvCartItem } from "./pdv-cart-item";
 import { PdvCartTotals } from "./pdv-cart-totals";
 
@@ -144,6 +145,7 @@ export function PdvCartPanel({
       */}
       <div className="shrink-0 relative overflow-hidden p-3 bg-muted/5 border-t border-border/50 space-y-2">
         <PdvCartCustomer identifiedSales={identifiedSales} periodLabel={identifiedPeriodLabel} />
+        <PdvLoyaltyCard />
 
         <PdvCartTotals subtotal={subtotal} total={total} />
 

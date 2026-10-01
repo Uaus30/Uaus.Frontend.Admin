@@ -144,6 +144,16 @@ A **reedição** de uma venda carrega o cliente DELA (`consumerFromSale`), e nun
 
 O checkout mostra o cliente escolhido (com Trocar e Tirar) ou o mesmo botão; o "CPF na nota" avulso continua lá, e não participa do programa. Embaixo do botão do carrinho, o contador "Neste turno: X de Y vendas com cliente" (ou "Hoje", sem controle de caixa) lembra o operador de perguntar; venda cancelada não conta.
 
+### 15. Cartão fidelidade no balcão (01/10/2026)
+
+Com o cliente identificado, internet e o programa ligado, o PDV busca o cartão dele (`GET /Loyalty/customers/{id}`, `useCustomerLoyaltyQuery`) e mostra o card do programa no carrinho (`pdv-loyalty-card.tsx`): **azul** com "Faltam R$ X para esta compra ganhar um carimbo", **dourado** com "Esta compra vai ganhar 1 carimbo", **verde** com o prêmio aplicado. O mínimo conta a compra antes do prêmio (subtotal menos o desconto manual e menos o cupom pelo código — a mesma base do servidor, total mais o prêmio): a compra que troca os R$ 5 também carimba.
+
+- **O prêmio entra sozinho** (`useLoyaltySync`, montado em `PdvDialogs`): o primeiro trocável (o que vence antes) vira o cupom da venda, com `loyaltyRewardId`, e vai pelo canal "cartão" (`channel: 2`). Abaixo da compra mínima do prêmio, ele fica suspenso como qualquer cupom com mínimo (regra 13). "Guardar para a próxima" tira o prêmio desta venda; "Usar o prêmio" devolve. Cupom pelo código já aplicado fica — um cupom por venda. Trocar ou tirar o cliente tira o prêmio do cliente anterior. A reedição não aplica prêmio.
+- **Sem internet não há cartão**: o card não aparece, e o carimbo entra quando a venda subir. O prêmio aplicado antes de a internet cair vai na fila com o canal e o prêmio; o servidor o reserva ou, se outro caixa já o trocou, grava a divergência sem recusar a venda paga.
+- **Depois da venda com cliente**, o cartão digital (`loyalty-result-dialog.tsx`): as casas do trecho até o próximo prêmio (`cardSlots`), o carimbo novo destacado, o prêmio liberado e o lembrete "Carimbe o cartão de papel do cliente: 8º carimbo" (ou, no cartão completo, "recolha o de papel e entregue um novo com 1 carimbo"). Dali, o comprovante com o saldo (quando o cliente pede) e o extrato.
+- **Extrato** (`loyalty-statement-dialog.tsx`), pelo ícone no cliente do carrinho ou pelo cartão digital: cada carimbo com a data, os prêmios, e a impressão na impressora do caixa (`printLoyaltyStatement`).
+- O cupom do programa digitado pelo código é recusado pelo servidor: ele só vale como prêmio.
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

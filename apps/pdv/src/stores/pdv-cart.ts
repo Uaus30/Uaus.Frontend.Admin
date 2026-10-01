@@ -199,6 +199,17 @@ export interface AppliedCoupon {
   minimumPurchaseAmount?: number | null;
   /** Respostas do questionário da campanha. Vazio é o caso normal. */
   answers: CouponAnswer[];
+  /**
+   * O prêmio do cartão fidelidade que este cupom representa (01/10/2026). Com
+   * ele, a venda manda o canal "cartão" e o servidor confere o prêmio do
+   * cliente, e não a vigência do cupom. Ausente no cupom digitado pelo código.
+   */
+  loyaltyRewardId?: number | null;
+}
+
+/** O cupom aplicado é o prêmio do cartão fidelidade (e não um código digitado). */
+export function isLoyaltyCoupon(coupon: AppliedCoupon | null | undefined): boolean {
+  return Boolean(coupon?.loyaltyRewardId);
 }
 
 /** Uma venda pausada, à espera de ser retomada. */

@@ -40,3 +40,4 @@ export * from "./profit-leaders";
 export * from "./product-anomalies";
 export * from "./site-metrics";
 export * from "./task-cards";
+export * from "./loyalty";

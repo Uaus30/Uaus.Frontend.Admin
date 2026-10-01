@@ -12,6 +12,7 @@ import {
   storeHeader,
   wrapPrintDocument,
 } from "./document";
+import { loyaltyReceiptBlock } from "./loyalty";
 import type { ReceiptData, ReceiptItem } from "./types";
 
 export { formatReceiptCurrency } from "./document";
@@ -252,6 +253,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
 
   ${divider}
   <div class="consumer">CONSUMIDOR: ${consumerLine}</div>
+  ${data.loyalty ? loyaltyReceiptBlock(data.loyalty) : ""}
 
   ${divider}
   <div class="meta-line"><span>Cupom: ${data.saleId}</span><span>${formatReceiptDateTime(data.createdAt)}</span></div>

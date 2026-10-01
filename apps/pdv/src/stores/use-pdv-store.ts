@@ -37,6 +37,7 @@ export {
   EMPTY_CONSUMER,
   consumerFromSale,
   hasIdentifiedCustomer,
+  isLoyaltyCoupon,
   computeCartTotals,
   couponDiscountFor,
   couponShortfall,

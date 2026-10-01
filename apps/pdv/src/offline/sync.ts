@@ -62,6 +62,12 @@ function toCouponBody(sale: PendingSale) {
       questionId: answer.questionId,
       optionId: answer.optionId,
     })),
+    // O prêmio do cartão aplicado antes de a internet cair sobe pelo canal
+    // dele; o servidor reserva o prêmio (ou marca a divergência, se outro caixa
+    // já o trocou) sem recusar a venda paga.
+    ...(coupon.loyaltyRewardId
+      ? { channel: coupon.channel ?? 2, loyaltyRewardId: coupon.loyaltyRewardId }
+      : {}),
   };
 }
 

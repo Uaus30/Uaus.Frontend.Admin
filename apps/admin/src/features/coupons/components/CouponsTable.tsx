@@ -1,7 +1,7 @@
 import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { COUPON_DISCOUNT_TYPE, COUPON_DISCOUNT_TYPE_LABEL, enumCode } from "@workspace/api-client-react";
 import { formatCurrency, formatDate } from "@workspace/core";
-import { Edit2, Megaphone, PowerOff, TicketPercent, Trash2 } from "lucide-react";
+import { Edit2, Lock, Megaphone, PowerOff, TicketPercent, Trash2 } from "lucide-react";
 import { canDeleteCoupon } from "../hooks/useCoupons";
 import type { CouponDto } from "../types";
 
@@ -98,6 +98,11 @@ export function CouponsTable({ items, isLoading, isBusy, onEdit, onDelete }: Cou
                     <TicketPercent className="w-4 h-4 text-primary shrink-0" />
                     <div className="flex flex-col">
                       <span className="font-mono">{item.code}</span>
+                      {item.managedByLoyalty && (
+                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+                          <Lock className="h-3 w-3" /> Gerenciado pelo programa de fidelidade
+                        </span>
+                      )}
                       {item.description && (
                         <span className="text-xs font-normal text-muted-foreground">{item.description}</span>
                       )}
@@ -163,43 +168,55 @@ export function CouponsTable({ items, isLoading, isBusy, onEdit, onDelete }: Cou
                 </TableCell>
 
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(item)}
-                      title="Editar cupom"
-                      className="h-8 w-8"
+                  {item.managedByLoyalty ? (
+                    // Travado enquanto for prêmio do programa (Marketing › Fidelidade):
+                    // editar, desativar ou excluir pararia o programa no meio de uma
+                    // venda, e o servidor recusaria de qualquer jeito.
+                    <span
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                      title="Prêmio do programa de fidelidade: troque o cupom em Marketing › Fidelidade antes de mexer nele."
                     >
-                      <Edit2 className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                    </Button>
-
-                    {podeExcluir ? (
+                      <Lock className="h-3.5 w-3.5" /> Travado
+                    </span>
+                  ) : (
+                    <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDelete(item)}
-                        disabled={isBusy}
-                        title="Excluir cupom"
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => onEdit(item)}
+                        title="Editar cupom"
+                        className="h-8 w-8"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Edit2 className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                       </Button>
-                    ) : (
-                      item.isActive && (
+
+                      {podeExcluir ? (
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => onDelete(item)}
                           disabled={isBusy}
-                          title="Desativar cupom (já tem resgate e por isso não pode ser excluído)"
-                          className="h-8 w-8"
+                          title="Excluir cupom"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
                         >
-                          <PowerOff className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
-                      )
-                    )}
-                  </div>
+                      ) : (
+                        item.isActive && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDelete(item)}
+                            disabled={isBusy}
+                            title="Desativar cupom (já tem resgate e por isso não pode ser excluído)"
+                            className="h-8 w-8"
+                          >
+                            <PowerOff className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             );

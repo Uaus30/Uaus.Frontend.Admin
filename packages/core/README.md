@@ -95,6 +95,12 @@ ApiError` — é o que mantém o helper independente do cliente HTTP e testável
    internet um cadastro que o servidor recusaria na sincronização, e o cliente
    sumiria da venda.
 
+9. **As contas do cartão fidelidade são só de tela** (`loyalty.ts`, 01/10/2026).
+   Quem carimba e libera prêmio é o servidor. Aqui fica o "faltam R$ X para o
+   carimbo" (`stampProgress`, que conta a compra antes do prêmio) e o desenho do
+   cartão digital em trechos até o próximo prêmio (`cardSlots`: com 8 carimbos
+   num cartão de 10, as casas 6 a 10), como o cartão de papel.
+
 ## Testes
 
 ```bash

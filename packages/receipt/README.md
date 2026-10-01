@@ -189,6 +189,16 @@ custasse R$ 20,00. O histórico do PDV tinha o mesmo ponto cego — lia só
 `sales.discount`, que não inclui o desconto de item; ver
 `computeSaleDiscountTotal` no `@workspace/core`.
 
+### Cartão fidelidade: o saldo no comprovante e o extrato (01/10/2026)
+
+`ReceiptData.loyalty` é opcional e existir já é a decisão: presente, o cupom
+ganha o bloco "CARTÃO FIDELIDADE" depois do consumidor (carimbou ou não e por
+quê, o saldo, o que falta para o próximo prêmio, a validade). O PDV o manda só
+quando o cliente pede ("Comprovante com saldo", no cartão digital depois da
+venda). `buildLoyaltyStatementHtml` / `printLoyaltyStatement` imprimem a segunda
+via do cartão: cada carimbo com a data e os prêmios — é o que resolve o cartão
+de papel perdido.
+
 ## Testes
 
 `npm run test --workspace=@workspace/receipt`

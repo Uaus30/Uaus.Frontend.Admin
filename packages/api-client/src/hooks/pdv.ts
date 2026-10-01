@@ -10,6 +10,7 @@ import { ApiError, apiGet, apiGetOrThrow, apiPost, apiPut, extractCreatedId } fr
 import type {
   CouponDiscountTypeCode,
   CouponLookupDto,
+  CouponRedemptionChannelCode,
   CreateCustomerPayload,
   EnumValue,
   QueryKey,
@@ -174,6 +175,14 @@ export interface RegisterPdvSaleCouponPayload {
   discountAmount: number;
   /** Respostas do questionário. Vazio é o caso normal — a maioria dos cupons não tem campanha. */
   answers: RegisterPdvSaleCouponAnswerPayload[];
+  /**
+   * Como o cupom chegou à venda (01/10/2026). Ausente vale código. O prêmio do
+   * cartão fidelidade vai com `loyaltyRewardId` e é conferido pelo prêmio do
+   * cliente; o cupom do programa pelo código é recusado.
+   */
+  channel?: CouponRedemptionChannelCode;
+  /** O prêmio do cartão trocado nesta venda. Só no canal fidelidade. */
+  loyaltyRewardId?: number | null;
 }
 
 /** Um item vendido, no formato que `POST /Pdv/sales` e `PUT /Pdv/sales/{id}` esperam. */

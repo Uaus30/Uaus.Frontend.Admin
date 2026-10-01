@@ -252,6 +252,7 @@ export default function Pdv() {
       </main>
 
       <PdvDialogs
+        onLoyaltyClosed={counter.focusSearch}
         dialogs={dialogs}
         checkout={checkout}
         savingSale={savingSale}

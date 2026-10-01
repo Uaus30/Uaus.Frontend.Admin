@@ -329,6 +329,13 @@ export interface PendingSaleCoupon {
   /** Reais abatidos. Já incluídos em `discount`, e nunca maiores que `baseAmount`. */
   discountAmount: number;
   answers: PendingSaleCouponAnswer[];
+  /**
+   * Canal "cartão" (2) e o prêmio, quando o cupom é o prêmio do cartão
+   * fidelidade (01/10/2026). Ausentes nas vendas enfileiradas antes, que sobem
+   * como cupom pelo código — que é o que elas eram.
+   */
+  channel?: number;
+  loyaltyRewardId?: number | null;
 }
 
 /**

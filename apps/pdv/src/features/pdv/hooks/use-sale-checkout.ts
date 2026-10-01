@@ -14,6 +14,7 @@ import type { CashRegisterMode } from "@/lib/cash-register-mode";
 import { LocalStockError, newClientReference, registerSale, updateSale } from "@/services/sales.service";
 import { buildSalePayload } from "../lib/build-sale-payload";
 import { buildSaleReceipt } from "../lib/build-sale-receipt";
+import { CUSTOMER_LOYALTY_QUERY_KEY, useLoyaltyStore } from "./use-loyalty";
 import type { SavedSale } from "../types";
 import { useReceiptPrinter } from "./use-receipt-printer";
 
@@ -207,6 +208,7 @@ export function useSaleCheckout({
             notes: sale.notes,
             customerDocument: sale.customerDocument ?? null,
             offline: false,
+            loyalty: sale.loyalty ?? null,
           }))
         : await registerSale(payload, {
             offline: !online,
@@ -223,6 +225,7 @@ export function useSaleCheckout({
             notes: sale.notes,
             customerDocument: null as string | null,
             offline: sale.offline,
+            loyalty: sale.loyalty,
           }));
 
       // Uma venda que ficou na fila não mudou nada no servidor; recarregar o
@@ -264,6 +267,19 @@ export function useSaleCheckout({
         isReedition: Boolean(editingSaleId),
         companySettings,
       });
+
+      // O cartão digital da venda com cliente. Antes do `finishSale`, que zera o
+      // cliente do carrinho; e o cartão em cache sai, para a próxima
+      // identificação ler os carimbos de agora.
+      if (saved.loyalty && consumer.customerId !== null) {
+        useLoyaltyStore.getState().setLastResult({
+          outcome: saved.loyalty,
+          customerId: consumer.customerId,
+          customerName: consumer.name,
+          receipt,
+        });
+      }
+      queryClient.removeQueries({ queryKey: [CUSTOMER_LOYALTY_QUERY_KEY] });
 
       finishSale();
       setPayments([]);

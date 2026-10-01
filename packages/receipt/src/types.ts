@@ -1,3 +1,5 @@
+import type { ReceiptLoyalty } from "./loyalty";
+
 /** Dados de identificação da loja impressos no cabeçalho do cupom. */
 export interface ReceiptStore {
   /** Nome fantasia, em destaque logo abaixo da logo. */
@@ -197,6 +199,11 @@ export interface ReceiptData {
    * quem garante isso.
    */
   coupon?: ReceiptCoupon;
+  /**
+   * O saldo do cartão fidelidade, impresso quando o cliente pede (01/10/2026).
+   * Ausente, nada muda no impresso.
+   */
+  loyalty?: ReceiptLoyalty;
   /** Total final da venda. Pode ser zero: o cupom zera a venda, nunca a torna negativa. */
   total: number;
   /** Valor em dinheiro recebido do cliente, quando houver. */

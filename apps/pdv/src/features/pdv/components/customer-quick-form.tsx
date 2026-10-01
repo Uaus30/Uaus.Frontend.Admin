@@ -246,14 +246,18 @@ export function CustomerQuickForm({
               className={cn("h-9 font-mono", filled(form.birthDate))}
             />
           </Field>
-          <Field label="Observações" wide>
+          <Field
+            label="Observações"
+            hint="Não anote saúde, religião, política, senhas nem dados de cartão."
+            wide
+          >
             <Textarea
               aria-label="Observações"
               value={form.notes}
               onChange={(event) => set("notes", event.target.value)}
               maxLength={500}
               rows={2}
-              placeholder="Ex.: prefere potes de vidro; indicada pela Maria; pediu tampa de 500 ml."
+              placeholder="Preferências e pedidos. Ex.: gosta de maquiagem; quer aviso quando chegar o pote grande."
               className={filled(form.notes)}
             />
           </Field>

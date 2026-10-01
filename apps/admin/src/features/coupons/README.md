@@ -188,3 +188,9 @@ alterada" e no log `CouponDefinitionChanged`, como valor e vigência.
 - **Aplicar cupom em venda pelo admin** está fora de escopo na v1 — só o PDV
   aplica (`POST /Sales` aceita totais arbitrários e não tem gate de
   idempotência).
+
+## 10. Cupom do programa de fidelidade: travado (01/10/2026)
+
+O prêmio do programa de fidelidade (Marketing › Fidelidade) é um cupom. Associado ao programa — ou com prêmio dele ainda para trocar —, o cupom vem com `managedByLoyalty`, a tabela mostra o selo "Gerenciado pelo programa de fidelidade" e troca editar/desativar/excluir por "Travado". O servidor recusa as três operações de qualquer jeito: mexer no cupom pararia o programa no meio de uma venda.
+
+Ele também não vale pelo código no balcão: o servidor recusa ("ele entra sozinho no carrinho do cliente que tem o prêmio").

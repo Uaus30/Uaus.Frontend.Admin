@@ -1,9 +1,10 @@
-import { UserCheck, UserRound, X } from "lucide-react";
+import { ScrollText, UserCheck, UserRound, X } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { formatPhone } from "@workspace/core";
 import { Hint } from "@/components/hint";
 import { EMPTY_CONSUMER, hasIdentifiedCustomer, usePdvStore } from "@/stores/use-pdv-store";
 import { CUSTOMER_SHORTCUT_KEY, useCustomerDialog } from "../hooks/use-customer-dialog";
+import { useLoyaltyStore } from "../hooks/use-loyalty";
 import type { IdentifiedSalesCount } from "../lib/identified-sales";
 
 type PdvCartCustomerProps = {
@@ -29,6 +30,7 @@ export function PdvCartCustomer({ identifiedSales, periodLabel }: PdvCartCustome
   const consumer = usePdvStore((state) => state.consumer);
   const setConsumer = usePdvStore((state) => state.setConsumer);
   const show = useCustomerDialog((state) => state.show);
+  const showStatement = useLoyaltyStore((state) => state.showStatement);
   const identified = hasIdentifiedCustomer(consumer);
 
   return (
@@ -51,6 +53,20 @@ export function PdvCartCustomer({ identifiedSales, periodLabel }: PdvCartCustome
                   : consumer.document || "Sem telefone"}
             </span>
           </button>
+          {consumer.customerId !== null && (
+            <Hint label="Extrato do cartão fidelidade">
+              <Button
+                aria-label="Extrato do cartão fidelidade"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground"
+                onMouseDown={keepFocusOnSearch}
+                onClick={() => showStatement(consumer.customerId)}
+              >
+                <ScrollText className="h-4 w-4" />
+              </Button>
+            </Hint>
+          )}
           <Hint label="Tirar o cliente da venda">
             <Button
               aria-label="Tirar o cliente da venda"

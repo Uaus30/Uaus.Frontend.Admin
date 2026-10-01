@@ -14,3 +14,5 @@ export { buildReceiptHtml, computeItemsSubtotal, computePromotionSavings } from 
 export { buildSalesReportHtml, printSalesReport } from "./sales-report";
 export { buildReceiptFromSale } from "./from-sale";
 export { printReceipt, printReceiptHtml } from "./print";
+export type { LoyaltyStatementReceipt, ReceiptLoyalty, StatementStampLine } from "./loyalty";
+export { buildLoyaltyStatementHtml, loyaltyReceiptBlock, printLoyaltyStatement } from "./loyalty";

@@ -253,6 +253,27 @@ describe("syncPendingSales", () => {
     expect(body.sales[1].newCustomer).toBeNull();
   });
 
+  it("o prêmio do cartão aplicado antes de a internet cair sobe pelo canal do cartão", async () => {
+    const coupon = {
+      couponId: 10,
+      code: "FIDELIDADE5",
+      discountType: 2,
+      discountValue: 5,
+      baseAmount: 50,
+      discountAmount: 5,
+      answers: [],
+      channel: 2,
+      loyaltyRewardId: 9,
+    };
+    listSalesToSync.mockResolvedValue([{ ...pendingSale("ref-1"), coupon }]);
+    apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });
+
+    await syncPendingSales();
+
+    const body = apiPost.mock.calls[0][1] as { sales: Array<{ coupon: Record<string, unknown> }> };
+    expect(body.sales[0].coupon).toMatchObject({ channel: 2, loyaltyRewardId: 9 });
+  });
+
   it("deve enviar o corpo no formato que a API espera", async () => {
     listSalesToSync.mockResolvedValue([pendingSale("ref-1")]);
     apiPost.mockResolvedValue({ data: { results: [result("ref-1", "Created")] } });

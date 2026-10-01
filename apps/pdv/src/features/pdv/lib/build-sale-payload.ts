@@ -1,3 +1,4 @@
+import { COUPON_REDEMPTION_CHANNEL } from "@workspace/api-client-react";
 import type { PaymentMethodDto } from "@workspace/api-client-react";
 import { round2 } from "@workspace/core";
 import type { RegisterSalePayload } from "@/services/sales.service";
@@ -113,6 +114,11 @@ export function buildSalePayload({
             questionId: answer.questionId,
             optionId: answer.optionId,
           })),
+          // O prêmio do cartão vai pelo canal "cartão": o servidor confere o
+          // prêmio do cliente, e recusaria o cupom do programa pelo código.
+          ...(activeCoupon.loyaltyRewardId
+            ? { channel: COUPON_REDEMPTION_CHANNEL.Loyalty, loyaltyRewardId: activeCoupon.loyaltyRewardId }
+            : {}),
         }
       : null,
     items: items.map((item) => {

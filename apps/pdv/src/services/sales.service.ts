@@ -7,7 +7,9 @@ import {
   getPdvTodaySales,
   updatePdvSale,
   type CouponDiscountTypeCode,
+  type CouponRedemptionChannelCode,
   type CreateCustomerPayload,
+  type LoyaltySaleOutcomeDto,
   type RegisterPdvSalePayload,
   type SaleDto,
   type SaleItemDto,
@@ -104,6 +106,10 @@ export type SaleCouponInput = {
   /** Reais abatidos. Já incluídos em `discount`, e nunca maiores que `baseAmount`. */
   discountAmount: number;
   answers: { questionId: number; optionId: number }[];
+  /** Canal "cartão" (2) quando o cupom é o prêmio do cartão fidelidade. Ausente vale código. */
+  channel?: CouponRedemptionChannelCode;
+  /** O prêmio do cartão trocado nesta venda. */
+  loyaltyRewardId?: number | null;
 };
 
 export type RegisterSalePayload = {
@@ -242,6 +248,11 @@ export type RegisteredSale = {
   notes: string | null;
   /** Verdadeiro quando a venda foi para a fila em vez de ir ao servidor. */
   offline: boolean;
+  /**
+   * O que a venda fez no cartão fidelidade do cliente (01/10/2026). Nulo na
+   * venda sem cliente e na venda da fila: ali o carimbo entra quando ela subir.
+   */
+  loyalty: LoyaltySaleOutcomeDto | null;
 };
 
 /** Erro de venda offline recusada pela conferência de estoque local. */
@@ -400,6 +411,7 @@ export async function registerSale(
       total: saved.total,
       notes: saved.notes ?? null,
       offline: false,
+      loyalty: saved.loyalty ?? null,
     };
   } catch (error) {
     // O servidor respondeu recusando: é regra de negócio, não falta de conexão.
@@ -497,6 +509,7 @@ async function enqueueSale(
     total,
     notes,
     offline: true,
+    loyalty: null,
   };
 }
 

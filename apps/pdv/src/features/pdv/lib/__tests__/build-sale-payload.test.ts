@@ -150,6 +150,45 @@ describe("buildSalePayload", () => {
     expect(comId.customerId).toBe(9);
   });
 
+  it("manda o prêmio do cartão fidelidade pelo canal do cartão, com o prêmio", () => {
+    const prize: AppliedCoupon = {
+      ...CUPOM_20,
+      couponId: 10,
+      code: "FIDELIDADE5",
+      discountValue: 5,
+      loyaltyRewardId: 9,
+    };
+
+    const payload = buildSalePayload({
+      sessionId: 3,
+      consumer: { customerId: 7, name: "Ana", document: "" },
+      globalDiscount: 0,
+      items: [ITEM],
+      payments: [{ paymentMethodId: 2, amount: 11, installmentNumber: 1 }],
+      paymentMethods: [CARTAO],
+      paymentMethodNameById: {},
+      coupon: prize,
+    });
+
+    expect(payload.coupon).toMatchObject({ couponId: 10, channel: 2, loyaltyRewardId: 9, discountAmount: 5 });
+  });
+
+  it("o cupom pelo código não leva canal nem prêmio", () => {
+    const payload = buildSalePayload({
+      sessionId: 3,
+      consumer: CONSUMER,
+      globalDiscount: 0,
+      items: [ITEM_30],
+      payments: [{ paymentMethodId: 2, amount: 10, installmentNumber: 1 }],
+      paymentMethods: [CARTAO],
+      paymentMethodNameById: {},
+      coupon: CUPOM_20,
+    });
+
+    expect(payload.coupon).not.toHaveProperty("channel");
+    expect(payload.coupon).not.toHaveProperty("loyaltyRewardId");
+  });
+
   it("deve calcular a taxa pela parcela escolhida", () => {
     const payload = buildSalePayload({
       sessionId: 3,

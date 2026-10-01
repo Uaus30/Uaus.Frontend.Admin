@@ -22,9 +22,14 @@ import { ConfirmActionDialog } from "./confirm-action-dialog";
 import { ConfirmDiscardDialog } from "./confirm-discard-dialog";
 import { CouponDialog } from "./coupon-dialog";
 import { CustomerDialog } from "./customer-dialog";
+import { LoyaltyResultDialog } from "./loyalty-result-dialog";
+import { LoyaltyStatementDialog } from "./loyalty-statement-dialog";
+import { useLoyaltySync } from "../hooks/use-loyalty";
 import { PreferencesDialog } from "./preferences-dialog";
 
 type PdvDialogsProps = {
+  /** Devolve o cursor à busca de produto quando o cartão digital fecha. */
+  onLoyaltyClosed?: () => void;
   dialogs: PdvDialogControls;
   checkout: CheckoutState;
   /** Uma venda está sendo gravada — o botão de confirmar trava. */
@@ -73,6 +78,7 @@ type PdvDialogsProps = {
  * mudança de carrinho re-renderiza este bloco, e não a tela inteira.
  */
 export function PdvDialogs({
+  onLoyaltyClosed,
   dialogs,
   checkout,
   savingSale,
@@ -98,6 +104,10 @@ export function PdvDialogs({
 
   // O diálogo do cupom é aberto pelo resumo da venda (componente irmão) e pelo
   // atalho de teclado; o estado vem de um store para não atravessar a página.
+  // O prêmio do cartão fidelidade acompanha o cliente da venda (entra sozinho,
+  // sai com a troca de cliente). Aqui porque este componente vive a tela toda.
+  useLoyaltySync();
+
   const couponDialogOpen = useCouponDialog((state) => state.open);
   const setCouponDialogOpen = useCouponDialog((state) => state.setOpen);
 
@@ -132,6 +142,10 @@ export function PdvDialogs({
 
       {/* Cliente da venda (F2, botão do carrinho e checkout). Lê os stores sozinho. */}
       <CustomerDialog />
+
+      {/* Cartão fidelidade: o cartão digital depois da venda e o extrato. */}
+      <LoyaltyResultDialog onClosed={onLoyaltyClosed} />
+      <LoyaltyStatementDialog />
 
       <SalesHistoryDialog
         open={dialogs.salesHistory.open}

@@ -839,6 +839,11 @@ export interface SaleDto {
    */
   couponDiscountType?: EnumValue;
   /**
+   * O que a venda fez no cartão fidelidade do cliente. Só vem na resposta do
+   * registro e da reedição do PDV (01/10/2026); omitido em toda outra leitura.
+   */
+  loyalty?: LoyaltySaleOutcomeDto | null;
+  /**
    * Percentual ou reais do cupom no momento da venda, para o comprovante
    * escrever "(10%)" ou "(R$ 20,00)". Do snapshot do resgate.
    */
@@ -1373,6 +1378,12 @@ export interface CouponDto {
   campaignId?: number | null;
   /** Nome da campanha já resolvido, para a coluna da listagem não fazer uma chamada por linha. */
   campaignName?: string | null;
+  /**
+   * O cupom é de um prêmio do programa de fidelidade (01/10/2026): a tela mostra
+   * o selo "Gerenciado pelo programa de fidelidade" e não oferece editar,
+   * desativar nem excluir — o servidor recusaria. Ausente num backend anterior.
+   */
+  managedByLoyalty?: boolean;
 }
 
 /**
@@ -2624,4 +2635,164 @@ export interface SaveTaskLabelPayload {
 export interface SaveTaskChecklistItemPayload {
   text: string;
   isDone: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Programa de fidelidade (01/10/2026)
+//
+// O cartão digital é a via oficial; o de papel é espelho, carimbado quando o
+// PDV pede. Regra de fábrica: carimbo a partir de R$ 10 (antes do prêmio),
+// R$ 5 no 5º e no 10º, cartão novo com 1 extra, 12 meses de validade e 30 dias
+// de folga para trocar o prêmio. Os enums chegam pelo nome; leia com `enumCode`.
+// ---------------------------------------------------------------------------
+
+export const LOYALTY_REWARD_STAGE = { None: 0, Middle: 1, Final: 2 } as const;
+export const LOYALTY_REWARD_STATUS = { None: 0, Available: 1, Redeemed: 2, Cancelled: 3 } as const;
+export const LOYALTY_STAMP_KIND = { None: 0, Purchase: 1, Bonus: 2, Adjustment: 3 } as const;
+export const LOYALTY_CARD_STATUS = { None: 0, Open: 1, Completed: 2, Expired: 3, Cancelled: 4 } as const;
+
+/** Como o cupom chegou à venda: pelo código do panfleto ou como prêmio do cartão. */
+export const COUPON_REDEMPTION_CHANNEL = { None: 0, Code: 1, Loyalty: 2 } as const;
+export type CouponRedemptionChannelCode =
+  (typeof COUPON_REDEMPTION_CHANNEL)[keyof typeof COUPON_REDEMPTION_CHANNEL];
+
+/** A configuração do programa, com o que a tela precisa para os botões. */
+export interface LoyaltySettingsDto {
+  isActive: boolean;
+  /** Início do período ligado em curso; ausente quando desligado. */
+  activeSince?: string | null;
+  stampsPerCard: number;
+  /** O carimbo do prêmio do meio; ausente = cartão só com o prêmio final. */
+  middleStamp?: number | null;
+  middleDiscountType: EnumValue;
+  middleDiscountValue: number;
+  middleCouponId?: number | null;
+  middleCouponCode?: string | null;
+  finalDiscountType: EnumValue;
+  finalDiscountValue: number;
+  finalCouponId?: number | null;
+  finalCouponCode?: string | null;
+  minimumPurchaseForStamp: number;
+  /** Compra mínima do prêmio; ausente = a mesma do carimbo. */
+  rewardMinimumPurchase?: number | null;
+  bonusStampsOnNewCard: number;
+  cardValidityMonths: number;
+  rewardGraceDays: number;
+  /** O que impede ligar agora, uma frase por problema. Vazia: pode ligar. */
+  turnOnBlockers: string[];
+}
+
+/** A configuração inteira, como o modal salva. Ligar e desligar são ações à parte. */
+export interface UpdateLoyaltySettingsPayload {
+  stampsPerCard: number;
+  middleStamp: number | null;
+  middleDiscountType: CouponDiscountTypeCode;
+  middleDiscountValue: number;
+  middleCouponId: number | null;
+  finalDiscountType: CouponDiscountTypeCode;
+  finalDiscountValue: number;
+  finalCouponId: number | null;
+  minimumPurchaseForStamp: number;
+  rewardMinimumPurchase: number | null;
+  bonusStampsOnNewCard: number;
+  cardValidityMonths: number;
+  rewardGraceDays: number;
+}
+
+/** Um cartão: quantos carimbos tem, quantos precisa e até quando vale. */
+export interface LoyaltyCardDto {
+  id: number;
+  stamps: number;
+  stampsRequired: number;
+  middleStamp?: number | null;
+  openedAt: string;
+  expiresAt: string;
+  status: EnumValue;
+  /** Em que carimbo cai o próximo prêmio deste cartão, e quanto vale pela regra de agora. */
+  nextRewardAt: number;
+  nextRewardType: EnumValue;
+  nextRewardValue: number;
+}
+
+/** Um prêmio liberado, com o que valia na liberação. */
+export interface LoyaltyRewardDto {
+  id: number;
+  stage: EnumValue;
+  couponId: number;
+  couponCode: string;
+  discountType: EnumValue;
+  discountValue: number;
+  minimumPurchase: number;
+  unlockedAt: string;
+  redeemUntil: string;
+  status: EnumValue;
+  redeemedAt?: string | null;
+  /** Disponível com o prazo de troca já passado. */
+  expired: boolean;
+}
+
+/** O cartão do cliente como o caixa precisa dele ao identificá-lo. */
+export interface CustomerLoyaltyDto {
+  customerId: number;
+  programActive: boolean;
+  minimumPurchaseForStamp: number;
+  /** O cartão aberto e dentro da validade; ausente quando ainda não tem (ou venceu). */
+  card?: LoyaltyCardDto | null;
+  /** Prêmios trocáveis agora, o que vence antes primeiro. */
+  availableRewards: LoyaltyRewardDto[];
+}
+
+/** Um carimbo do extrato. `position` é até que carimbo do cartão a linha chega. */
+export interface LoyaltyStatementStampDto {
+  position: number;
+  points: number;
+  occurredAt: string;
+  kind: EnumValue;
+  saleId?: number | null;
+}
+
+/** A segunda via do cartão: cada carimbo com a data, e os prêmios. */
+export interface LoyaltyStatementDto {
+  customerId: number;
+  customerName: string;
+  programActive: boolean;
+  card?: LoyaltyCardDto | null;
+  stamps: LoyaltyStatementStampDto[];
+  rewards: LoyaltyRewardDto[];
+}
+
+/** O que a venda fez no cartão, para o caixa mostrar o cartão e pedir o carimbo no papel. */
+export interface LoyaltySaleOutcomeDto {
+  stamped: boolean;
+  /** Por que não carimbou ("abaixo do mínimo de R$ 10,00", "programa desligado"). */
+  reason?: string | null;
+  minimumPurchaseForStamp: number;
+  /** Qual carimbo foi este no cartão que o recebeu: o número que vai no papel. */
+  stampNumber?: number | null;
+  /** Completou o cartão: recolher o papel e entregar um novo com `card.stamps` carimbos. */
+  cardCompleted: boolean;
+  card?: LoyaltyCardDto | null;
+  /** Liberados por esta venda; valem a partir da próxima compra. */
+  unlockedRewards: LoyaltyRewardDto[];
+}
+
+/** Os cards do painel no período. */
+export interface LoyaltySummaryDto {
+  from?: string | null;
+  to?: string | null;
+  participants: number;
+  newParticipants: number;
+  customersRegistered: number;
+  customersRegisteredAtPdv: number;
+  sales: number;
+  salesWithCustomer: number;
+  /** De 0 a 1. */
+  identifiedShare: number;
+  stampsGiven: number;
+  rewardsUnlocked: number;
+  rewardsRedeemed: number;
+  rewardsDiscount: number;
+  averageTicket: number;
+  baselineAverageTicket: number;
+  visitsPerCustomerPerMonth: number;
 }

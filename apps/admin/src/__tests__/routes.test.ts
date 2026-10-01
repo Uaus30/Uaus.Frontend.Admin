@@ -258,14 +258,16 @@ describe("buildMenu", () => {
     expect(sistema?.items?.map((i) => i.name)).toEqual(["Tarefas", "Configurações", "Logs"]);
   });
 
-  it("o Admin vê o grupo Marketing com as quatro telas", () => {
+  it("o Admin vê o grupo Marketing com as cinco telas", () => {
     const menu = buildMenu(USER_ROLE.Admin);
     const marketing = menu.find((item) => item.name === "Marketing");
 
     // Promoções entra LOGO ABAIXO de Campanhas, a pedido do dono (18/09/2026) —
     // e não no fim do grupo, que seria a posição natural de uma tela nova.
+    // Fidelidade (01/10/2026) logo abaixo de Cupons: o prêmio do programa é um cupom.
     expect(marketing?.items?.map((s) => s.href)).toEqual([
       "/marketing/cupons",
+      "/marketing/fidelidade",
       "/marketing/campanhas",
       "/marketing/promocoes",
       "/marketing/campanhas/comparativo",
