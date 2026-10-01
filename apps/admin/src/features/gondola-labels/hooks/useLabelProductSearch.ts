@@ -27,6 +27,11 @@ export interface LabelProductSearchState {
   setSearch: (value: string) => void;
   /** Dispara a busca AGORA (Enter/submit), inclusive com termo curto. */
   submit: () => void;
+  /**
+   * Põe o termo no campo e busca na hora. É o que a câmera usa quando o código
+   * lido serve a mais de um produto: a escolha fica com a pessoa, na lista.
+   */
+  searchNow: (term: string) => void;
   /** Produtos da busca corrente. Vazio enquanto ninguém buscou. */
   results: ProductPdvSearchDto[];
   isSearching: boolean;
@@ -103,6 +108,11 @@ export function useLabelProductSearch(): LabelProductSearchState {
 
   const submit = useCallback(() => setActiveTerm(search.trim()), [search]);
 
+  const searchNow = useCallback((term: string) => {
+    setSearch(term);
+    setActiveTerm(term.trim());
+  }, []);
+
   const { data, isFetching, isError } = useQuery({
     queryKey: ["gondola-labels-product-search", activeTerm],
     queryFn: () => searchPdvProducts(activeTerm, SEARCH_LIMIT),
@@ -115,6 +125,7 @@ export function useLabelProductSearch(): LabelProductSearchState {
     search,
     setSearch: updateSearch,
     submit,
+    searchNow,
     results: hasSearched ? (data ?? []) : [],
     isSearching: hasSearched && isFetching,
     hasFailed: hasSearched && isError,

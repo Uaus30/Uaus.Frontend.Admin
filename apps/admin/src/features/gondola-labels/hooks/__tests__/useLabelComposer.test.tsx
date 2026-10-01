@@ -7,6 +7,8 @@ import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 const mocks = vi.hoisted(() => ({
   createProductLabelBatch: vi.fn(),
   searchPdvProducts: vi.fn(),
+  getProductLabelDraft: vi.fn(),
+  saveProductLabelDraft: vi.fn(),
   printLabelSheet: vi.fn(),
   toast: vi.fn(),
 }));
@@ -17,6 +19,8 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   createProductLabelBatch: mocks.createProductLabelBatch,
   searchPdvProducts: mocks.searchPdvProducts,
+  getProductLabelDraft: mocks.getProductLabelDraft,
+  saveProductLabelDraft: mocks.saveProductLabelDraft,
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -51,9 +55,21 @@ const createWrapper = () => {
   );
 };
 
+/**
+ * Monta o hook e espera o rascunho ser lido: antes disso a lista não aceita
+ * alteração (gravar antes sobrescreveria o rascunho salvo).
+ */
+async function renderComposer() {
+  const rendered = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+  await waitFor(() => expect(rendered.result.current.canEdit).toBe(true));
+  return rendered;
+}
+
 describe("useLabelComposer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getProductLabelDraft.mockResolvedValue(null);
+    mocks.saveProductLabelDraft.mockResolvedValue(undefined);
     mocks.searchPdvProducts.mockResolvedValue([]);
     mocks.printLabelSheet.mockResolvedValue(undefined);
     mocks.createProductLabelBatch.mockResolvedValue({
@@ -80,16 +96,16 @@ describe("useLabelComposer", () => {
     });
   });
 
-  it("abre sem buscar nada — a lista de produtos nasce vazia", () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+  it("abre sem buscar nada — a lista de produtos nasce vazia", async () => {
+    const { result } = await renderComposer();
 
     expect(mocks.searchPdvProducts).not.toHaveBeenCalled();
     expect(result.current.searchResults).toEqual([]);
     expect(result.current.hasSearched).toBe(false);
   });
 
-  it("adiciona o produto com tipo Normal e preço do cadastro", () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+  it("adiciona o produto com tipo Normal e preço do cadastro", async () => {
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5, { price: 12.5 })));
 
@@ -103,8 +119,8 @@ describe("useLabelComposer", () => {
     expect(result.current.totalLabels).toBe(1);
   });
 
-  it("soma uma cópia ao adicionar o mesmo produto de novo no tipo Normal", () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+  it("soma uma cópia ao adicionar o mesmo produto de novo no tipo Normal", async () => {
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5)));
     act(() => result.current.addProduct(product(5)));
@@ -114,8 +130,8 @@ describe("useLabelComposer", () => {
     expect(result.current.totalLabels).toBe(2);
   });
 
-  it("permite o mesmo produto com tipos diferentes, mas bloqueia tipo repetido", () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+  it("permite o mesmo produto com tipos diferentes, mas bloqueia tipo repetido", async () => {
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5)));
     act(() => result.current.updateItem(0, { labelType: 2 }));
@@ -131,7 +147,7 @@ describe("useLabelComposer", () => {
   });
 
   it("barra a geração quando algum item tem preço ou quantidade inválidos", async () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5)));
     act(() => result.current.updateItem(0, { priceInput: "0" }));
@@ -143,7 +159,7 @@ describe("useLabelComposer", () => {
   });
 
   it("gera o lote com os valores digitados e imprime o que o backend congelou", async () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5)));
     act(() => result.current.updateItem(0, { labelType: 2, priceInput: "9,99", quantityInput: "2" }));
@@ -168,7 +184,7 @@ describe("useLabelComposer", () => {
   });
 
   it("mantém o lote na tela depois de imprimir, para reimprimir sem remontar", async () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5)));
     act(() => result.current.setDescription("Promoção da semana"));
@@ -187,9 +203,7 @@ describe("useLabelComposer", () => {
   });
 
   it("manda o nome encurtado quando o operador renomeia a etiqueta", async () => {
-    const { result } = renderHook(() => useLabelComposer(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5, { name: "COPO AMERICANO [ORIGINAL]" })));
     act(() => result.current.updateItem(0, { productName: "COPO AMERICANO" }));
@@ -206,7 +220,7 @@ describe("useLabelComposer", () => {
   });
 
   it("nome apagado volta para o do cadastro, na prévia e no envio", async () => {
-    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+    const { result } = await renderComposer();
 
     act(() => result.current.addProduct(product(5, { name: "COPO AMERICANO [ORIGINAL]" })));
     act(() => result.current.updateItem(0, { productName: "   " }));

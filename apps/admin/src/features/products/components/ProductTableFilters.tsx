@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, ScanBarcode } from "lucide-react";
 import {
   PRODUCT_STATUS,
   type CategoryDto,
   type DepartmentDto,
   type EnumOptionDto,
 } from "@workspace/api-client-react";
+import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
+import { canUseCamera } from "@/lib/barcode-scanner";
 
 export interface ProductTableFiltersProps {
   search: string;
@@ -27,6 +30,10 @@ export interface ProductTableFiltersProps {
  *
  * Contém a caixa de pesquisa textual e os selects para Departamento, Categoria
  * e Status (todos em ordem alfabética).
+ *
+ * A câmera (30/09/2026) põe o código lido na caixa de pesquisa e fecha: achar o
+ * produto que está na mão sem digitar 13 dígitos. A busca da listagem já trata
+ * termo só de dígitos como código de barras.
  */
 export function ProductTableFilters({
   search,
@@ -42,6 +49,9 @@ export function ProductTableFilters({
   statusOptions,
   onResetFilters,
 }: ProductTableFiltersProps) {
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const cameraAvailable = canUseCamera();
+
   const isFiltered =
     Boolean(search.trim()) ||
     departmentId !== undefined ||
@@ -51,14 +61,32 @@ export function ProductTableFilters({
   return (
     <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between border-b border-border/50">
       <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar produtos..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="bg-background pl-9 h-9 text-sm"
-          />
+        <div className="flex w-full gap-2 sm:w-72">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produtos..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="bg-background pl-9 h-9 text-sm"
+            />
+          </div>
+          {/* Ao lado do campo, e não dentro dele: o `hover-elevate` do botão do
+              kit força `position: relative` e desmonta o posicionamento
+              absoluto — o botão caía embaixo do campo. */}
+          {cameraAvailable && (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="h-9 w-9 shrink-0"
+              title="Buscar pelo código de barras, com a câmera"
+              aria-label="Buscar pelo código de barras, com a câmera"
+              onClick={() => setScannerOpen(true)}
+            >
+              <ScanBarcode className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         <div className="w-full sm:w-48">
@@ -136,6 +164,17 @@ export function ProductTableFilters({
           Limpar filtros
         </Button>
       )}
+
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        title="Buscar pelo código"
+        description="Aponte a câmera para o código de barras do produto."
+        onDetected={(code) => {
+          setSearch(code);
+          setScannerOpen(false);
+        }}
+      />
     </div>
   );
 }

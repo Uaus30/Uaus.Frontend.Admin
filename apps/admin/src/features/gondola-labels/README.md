@@ -10,14 +10,15 @@ reimpressão.
 
 ## Fluxo
 
-1. **Gerar Etiquetas**: busca produtos (`GET /Pdv/products/search`), monta a
-   lista com nome, tipo, preço e quantidade por item e pré-visualiza as
-   etiquetas.
+1. **Gerar Etiquetas**: busca produtos (`GET /Pdv/products/search`), digitando
+   ou **lendo o código pela câmera**, monta a lista com nome, tipo, preço e
+   quantidade por item e pré-visualiza as etiquetas. **A lista se salva
+   sozinha no servidor** (o rascunho, abaixo).
 2. **Salvar e Imprimir**: grava o lote (`POST /ProductLabelBatches`) e abre a
    caixa de impressão com a folha A4. O backend congela nome, código de barras
    e preço de cada item — a reimpressão reproduz o papel original mesmo que o
-   cadastro mude depois. **A tela não se esvazia depois de imprimir**: o lote
-   fica montado até alguém clicar em Limpar.
+   cadastro mude depois — e **apaga o rascunho**. **A tela não se esvazia
+   depois de imprimir**: o lote fica montado até alguém clicar em Limpar.
 3. **Histórico**: lista paginada dos lotes (`GET /ProductLabelBatches`), com
    detalhes, reimpressão fiel (valores congelados) e exclusão
    (`DELETE /ProductLabelBatches/{id}` — só remove o registro do histórico).
@@ -37,8 +38,8 @@ reimpressão.
   pela foto é mais rápido do que ler o código de barras inteiro. A etiqueta
   errada só aparece depois de impressa e colada na gôndola.
 - **Lápis abre o produto no cadastro, em NOVA aba** (`/produtos?busca=&editar=`,
-  montado em `features/products/product-edit-link.ts`). Nova aba porque o lote
-  montado até ali só existe em memória e some se a tela sair.
+  montado em `features/products/product-edit-link.ts`), para a pessoa não sair
+  da lista no meio da montagem.
 - **Tipos de etiqueta** (enum `ProductLabelType` do backend): Normal = branca,
   Promoção = amarela, Queima de Estoque = vermelha — texto preto em todas,
   como nos cartazes de oferta de mercado.
@@ -61,6 +62,59 @@ reimpressão.
   normal + oferta); repetir o mesmo tipo é bloqueado — para mais cópias existe
   a quantidade.
 - Produto **sem código de barras** imprime a etiqueta sem as barras. Depois de 21/09/2026 isso só acontece com lote congelado antigo: o cadastro não deixa mais um produto ficar sem código.
+
+## Rascunho: a lista que se salva sozinha (30/09/2026)
+
+Pedido do dono: montar a lista **olhando a prateleira**, no celular, e
+continuar depois até imprimir. Uma lista só por usuário, não N listas.
+
+- **Mora no servidor**, e não no navegador, porque a lista é montada no celular
+  e impressa no computador — os dois precisam estar com o **mesmo login**. É a
+  mesma tabela do histórico, com situação Rascunho; o histórico não a enxerga.
+  Contrato em `Uaus.Backend.Api/docs/etiquetas-de-gondola.md`.
+- **Salva sozinha** (`hooks/useLabelDraft.ts`): 800ms depois da última
+  alteração, em fila (uma gravação por vez, para a lista velha nunca chegar
+  depois da nova), na hora ao limpar, ao esconder a página e ao sair da tela. O
+  cabeçalho da lista mostra "Lista salva às 14:32" — é o que deixa a pessoa
+  bloquear o celular no meio da prateleira sem medo.
+- **Só nome e preço EDITADOS ficam guardados**; o resto segue o cadastro e vem
+  atualizado a cada abertura (`draft.ts`). Decisão do dono: a lista fica dias
+  aberta, e a etiqueta não pode sair com o preço do dia em que o produto entrou
+  nela. Preço igual ao do cadastro conta como não editado.
+- **Lista travada até o rascunho ser lido.** Alterar antes e gravar
+  sobrescreveria o rascunho do servidor com a lista vazia da tela.
+- **Relê ao voltar para a tela** (foco da janela, página visível de novo): é o
+  que faz o computador aberto desde ontem mostrar o que o celular acabou de
+  adicionar. Nunca troca uma alteração local ainda não salva, nem aplica
+  resposta que saiu antes de uma alteração (contador de alterações).
+- **Imprimir encerra o rascunho**, mas a lista fica na tela para reimprimir; a
+  releitura que volta vazia depois disso não esvazia a tela.
+- **Concorrência**: vale a última gravação. Celular e computador mexendo na
+  lista AO MESMO TEMPO podem se sobrescrever; a releitura ao voltar para a tela
+  cobre o uso normal, um aparelho de cada vez.
+
+## Leitura pela câmera (30/09/2026)
+
+- O botão ao lado da busca abre `@/components/barcode-scanner-dialog` (o mesmo
+  da listagem de Produtos). A câmera **continua aberta**: cada código lido entra
+  na lista e o aviso embaixo do vídeo diz o nome do produto — a conferência de
+  que leu a etiqueta certa — e as cópias.
+- **Só entra sozinho o produto com o código EXATO** (`barcode-lookup.ts`). Mais
+  de um produto com o mesmo código vai para a busca, e a escolha é da pessoa.
+- Ler de novo o mesmo produto soma uma cópia, mas só depois de o código sair de
+  vista por 2,5 s: a câmera vê o mesmo código várias vezes por segundo. O motor
+  (leitor nativo ou ZXing, recorte da mira, foco e zoom) está em
+  `@/lib/barcode-scanner.ts`.
+- **Serve para a etiqueta antiga colada na prateleira**: desde a padronização
+  de 21/09/2026 o código do cadastro pode não ser o da embalagem de fábrica,
+  mas é o da etiqueta de gôndola.
+
+## Celular
+
+A tela é montada no celular desde 30/09/2026: a lista de itens vira cartões
+abaixo de `md` (nome em cima, tipo numa linha, preço, cópias e lixeira na de
+baixo) e a grade de duas colunas só entra no `lg`. Mexeu no layout? Confira em
+375px — a primeira versão deixava o select do tipo com largura zero.
 
 ## Impressão
 

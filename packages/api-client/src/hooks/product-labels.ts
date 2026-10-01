@@ -6,7 +6,7 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, apiDelete, ApiError, mapPagedResult } from "../client";
+import { apiGet, apiGetOrThrow, apiPost, apiPut, apiDelete, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
 
 // ---------------------------------------------------------------------------
@@ -152,4 +152,74 @@ export async function createProductLabelBatch(
 /** Remove um lote do histórico. Não afeta estoque nem produtos. */
 export async function deleteProductLabelBatch(id: number): Promise<void> {
   await apiDelete<null>(`/ProductLabelBatches/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Rascunho — a lista em montagem do usuário logado (30/09/2026)
+//
+// Mora na mesma tabela do histórico, com outra situação, e o histórico não o
+// enxerga. Nada nele é congelado: só nome e preço EDITADOS ficam guardados; o
+// resto vem do cadastro atualizado a cada leitura.
+// ---------------------------------------------------------------------------
+
+/** Uma etiqueta do rascunho, com o cadastro de hoje ao lado do que foi editado. */
+export interface ProductLabelDraftItemDto {
+  productId: number;
+  /** Enum ProductLabelType — pode vir como número ou nome; normalize com `enumCode()`. */
+  labelType: EnumValue;
+  quantity: number;
+  /** Nome do cadastro (composto, na variação), atualizado. */
+  catalogName: string;
+  /** Preço de venda do cadastro, atualizado. */
+  catalogPrice: number;
+  /** Código de barras do cadastro. O backend omite o campo quando não há código. */
+  barcode?: string | null;
+  /** Nome editado pelo operador. Omitido quando segue o cadastro. */
+  customName?: string | null;
+  /** Preço editado pelo operador (a oferta). Omitido quando segue o cadastro. */
+  customPrice?: number | null;
+}
+
+/** O rascunho do usuário logado. */
+export interface ProductLabelDraftDto {
+  /** Omitida pelo backend quando não há identificação. */
+  description?: string | null;
+  items: ProductLabelDraftItemDto[];
+}
+
+/** Item enviado no salvamento do rascunho. */
+export interface SaveProductLabelDraftItemPayload {
+  productId: number;
+  /** Código numérico de PRODUCT_LABEL_TYPE (1, 2 ou 3). */
+  labelType: number;
+  /** Cópias (mínimo 1). */
+  quantity: number;
+  /** Nome editado; `null` segue o cadastro. */
+  productName: string | null;
+  /** Preço editado; `null` segue o preço de venda do cadastro até a impressão. */
+  price: number | null;
+}
+
+/** O rascunho inteiro, como está na tela. */
+export interface SaveProductLabelDraftPayload {
+  description: string | null;
+  items: SaveProductLabelDraftItemPayload[];
+}
+
+/**
+ * Lê o rascunho do usuário logado.
+ *
+ * @returns `null` quando não há rascunho (HTTP 204).
+ */
+export async function getProductLabelDraft(): Promise<ProductLabelDraftDto | null> {
+  return apiGet<ProductLabelDraftDto>("/ProductLabelBatches/draft");
+}
+
+/**
+ * Grava o rascunho inteiro — o servidor troca os itens, não os mescla. Lista
+ * vazia e identificação em branco apagam o rascunho. Imprimir (a geração do
+ * lote) também o apaga, no servidor.
+ */
+export async function saveProductLabelDraft(data: SaveProductLabelDraftPayload): Promise<void> {
+  await apiPut<null>("/ProductLabelBatches/draft", data);
 }

@@ -59,6 +59,12 @@ export interface LabelDraftItem {
   barcode: string | null;
   /** Preço digitado (ex.: "12,50"). Na promoção, o valor da oferta. */
   priceInput: string;
+  /**
+   * Preço de venda do cadastro quando o item entrou na tela. É a referência
+   * para saber se o operador editou o preço: o rascunho só guarda o editado, e
+   * o resto segue o cadastro até a impressão.
+   */
+  catalogPrice: number;
   labelType: LabelTypeCode;
   /** Cópias digitadas (ex.: "3"). */
   quantityInput: string;

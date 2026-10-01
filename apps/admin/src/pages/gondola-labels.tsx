@@ -18,11 +18,11 @@ export default function GondolaLabels() {
 
   return (
     <>
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:gap-6">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Etiquetas</h1>
-          <p className="mt-1 text-muted-foreground">
-            Monte o lote, imprima em A4 (duas etiquetas por linha) e reimprima pelo histórico.
+          <h1 className="text-2xl font-display font-bold text-foreground sm:text-3xl">Etiquetas</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+            Monte o lote (no celular, pela câmera, se quiser), imprima em A4 e reimprima pelo histórico.
           </p>
         </div>
 
@@ -33,7 +33,7 @@ export default function GondolaLabels() {
           </TabsList>
 
           <TabsContent value="generate" className="flex flex-col gap-6">
-            <div className="grid items-start gap-6 lg:grid-cols-[340px,1fr]">
+            <div className="grid grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-[340px_1fr] [&>*]:min-w-0">
               <LabelProductSearch
                 search={composer.search}
                 setSearch={composer.setSearch}
@@ -43,6 +43,8 @@ export default function GondolaLabels() {
                 hasSearched={composer.hasSearched}
                 hasFailed={composer.searchFailed}
                 onAdd={composer.addProduct}
+                onScanCode={composer.addByBarcode}
+                disabled={!composer.canEdit}
               />
               <LabelItemsTable
                 items={composer.items}
@@ -52,6 +54,14 @@ export default function GondolaLabels() {
                 totalProducts={composer.totalProducts}
                 printing={composer.printing}
                 canGenerate={composer.canGenerate}
+                disabled={!composer.canEdit}
+                draft={{
+                  loadState: composer.draftLoadState,
+                  saveState: composer.draftSaveState,
+                  savedAt: composer.draftSavedAt,
+                  onRetryLoad: composer.retryDraftLoad,
+                  onRetrySave: () => void composer.retryDraftSave(),
+                }}
                 onUpdate={composer.updateItem}
                 onRemove={composer.removeItem}
                 onClear={composer.clearBatch}

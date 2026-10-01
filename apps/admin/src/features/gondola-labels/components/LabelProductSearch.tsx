@@ -1,4 +1,5 @@
-import { ImageIcon, Pencil, Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { ImageIcon, Pencil, Plus, ScanBarcode, Search } from "lucide-react";
 import { Button, ImageHoverZoom } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -6,6 +7,9 @@ import { Spinner } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { buildPublicImageUrl, type ProductPdvSearchDto } from "@workspace/api-client-react";
 import { openProductEditTab } from "@/features/products/product-edit-link";
+import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
+import { canUseCamera } from "@/lib/barcode-scanner";
+import { scanFeedbackOf, type BarcodeScanOutcome } from "../barcode-lookup";
 
 interface LabelProductSearchProps {
   search: string;
@@ -19,6 +23,10 @@ interface LabelProductSearchProps {
   /** A busca falhou — é diferente de não ter achado nada. */
   hasFailed: boolean;
   onAdd: (product: ProductPdvSearchDto) => void;
+  /** Adiciona pelo código lido na câmera. */
+  onScanCode: (code: string) => Promise<BarcodeScanOutcome>;
+  /** A lista ainda não aceita alteração (o rascunho salvo está sendo lido). */
+  disabled: boolean;
 }
 
 /**
@@ -36,8 +44,12 @@ interface LabelProductSearchProps {
  * grande (`ImageHoverZoom`) — em 40px duas marcas da mesma bebida são a mesma
  * mancha colorida, e é aí que a etiqueta sai errada.
  *
- * O lápis abre o produto no cadastro em nova aba — nova, e não navegação, porque
- * o lote montado até aqui só existe em memória e some se a tela sair.
+ * O lápis abre o produto no cadastro em nova aba — nova, e não navegação, para
+ * a pessoa não sair da lista no meio da montagem.
+ *
+ * A câmera (30/09/2026) adiciona direto pelo código de barras e continua aberta
+ * para o próximo: é a lista montada andando pela loja, de prateleira em
+ * prateleira. O botão só aparece onde o navegador oferece câmera.
  */
 export function LabelProductSearch({
   search,
@@ -48,7 +60,12 @@ export function LabelProductSearch({
   hasSearched,
   hasFailed,
   onAdd,
+  onScanCode,
+  disabled,
 }: LabelProductSearchProps) {
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const cameraAvailable = canUseCamera();
+
   return (
     <Card className="border-border/50 shadow-lg shadow-black/5">
       <CardHeader className="pb-3">
@@ -58,21 +75,37 @@ export function LabelProductSearch({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSubmit();
-          }}
-          className="relative"
-        >
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar produtos..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="bg-background pl-9"
-          />
-        </form>
+        <div className="flex gap-2">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSubmit();
+            }}
+            className="relative flex-1"
+          >
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produtos..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="bg-background pl-9"
+            />
+          </form>
+          {cameraAvailable && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              disabled={disabled}
+              title="Adicionar pelo código de barras, com a câmera"
+              aria-label="Adicionar pelo código de barras, com a câmera"
+              onClick={() => setScannerOpen(true)}
+            >
+              <ScanBarcode className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-6">
@@ -138,6 +171,7 @@ export function LabelProductSearch({
                   size="icon"
                   variant="outline"
                   className="h-8 w-8 shrink-0"
+                  disabled={disabled}
                   title="Adicionar ao lote"
                   aria-label={`Adicionar ${product.name} ao lote`}
                   onClick={() => onAdd(product)}
@@ -149,6 +183,14 @@ export function LabelProductSearch({
           </ul>
         )}
       </CardContent>
+
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        title="Adicionar pelo código"
+        description="Aponte para o código de barras do produto ou da etiqueta da prateleira. A câmera continua aberta para o próximo."
+        onDetected={async (code) => scanFeedbackOf(await onScanCode(code))}
+      />
     </Card>
   );
 }
