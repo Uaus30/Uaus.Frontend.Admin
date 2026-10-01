@@ -2,14 +2,19 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getGetCouponsQueryKey,
+  getLoyaltyDashboardQueryKey,
   getLoyaltySettingsQueryKey,
   getLoyaltySummaryQueryKey,
   turnOffLoyalty,
   turnOnLoyalty,
   updateLoyaltySettings,
   useGetCoupons,
+  useGetLoyaltyActionCounts,
+  useGetLoyaltyActionList,
+  useGetLoyaltyCharts,
   useGetLoyaltySettings,
   useGetLoyaltySummary,
+  type LoyaltyActionList,
   type UpdateLoyaltySettingsPayload,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
@@ -31,9 +36,15 @@ export function useLoyalty() {
   const [preset, setPreset] = useState<LoyaltyPeriodPreset>("all");
   const [configOpen, setConfigOpen] = useState(false);
   const [confirmOffOpen, setConfirmOffOpen] = useState(false);
+  const [openAction, setOpenAction] = useState<LoyaltyActionList | null>(null);
 
   const settings = useGetLoyaltySettings();
-  const summary = useGetLoyaltySummary(periodFor(preset));
+  const period = periodFor(preset);
+  const summary = useGetLoyaltySummary(period);
+  const charts = useGetLoyaltyCharts(period);
+  // O "Para agir" é retrato de hoje: não depende do período.
+  const actionCounts = useGetLoyaltyActionCounts();
+  const actionRows = useGetLoyaltyActionList(openAction);
   // Os cupons que o modal oferece para os prêmios: só com ele aberto.
   const coupons = useGetCoupons({ onlyActive: true, limit: 200 }, { query: { enabled: configOpen } });
 
@@ -41,6 +52,7 @@ export function useLoyalty() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: getLoyaltySettingsQueryKey() }),
       queryClient.invalidateQueries({ queryKey: getLoyaltySummaryQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getLoyaltyDashboardQueryKey() }),
       queryClient.invalidateQueries({ queryKey: getGetCouponsQueryKey() }),
     ]);
   };
@@ -88,6 +100,14 @@ export function useLoyalty() {
     isLoadingSettings: settings.isLoading,
     summary: summary.data,
     isLoadingSummary: summary.isLoading,
+    charts: charts.data,
+    isLoadingCharts: charts.isLoading,
+    actionCounts: actionCounts.data,
+    isLoadingActionCounts: actionCounts.isLoading,
+    openAction,
+    setOpenAction,
+    actionRows: actionRows.data,
+    isLoadingActionRows: actionRows.isLoading,
     coupons: coupons.data?.data ?? [],
     preset,
     setPreset,

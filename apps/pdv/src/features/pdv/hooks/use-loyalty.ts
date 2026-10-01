@@ -11,6 +11,7 @@ import {
   type LoyaltyRewardDto,
   type LoyaltySaleOutcomeDto,
 } from "@workspace/api-client-react";
+import { formatLoyaltyPrize } from "@workspace/core";
 import type { ReceiptData } from "@workspace/receipt";
 import { useOfflineStore } from "@/stores/use-offline-store";
 import { isLoyaltyCoupon, usePdvStore, type AppliedCoupon } from "@/stores/use-pdv-store";
@@ -72,9 +73,10 @@ export function useCustomerLoyaltyQuery(customerId: number | null) {
 
 /** "R$ 5,00" ou "10%": o prêmio como o cliente ouve. */
 export function describeLoyaltyPrize(type: unknown, value: number): string {
-  return enumCode(type as never, COUPON_DISCOUNT_TYPE) === COUPON_DISCOUNT_TYPE.Percentage
-    ? `${value.toLocaleString("pt-BR")}%`
-    : value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return formatLoyaltyPrize(
+    enumCode(type as never, COUPON_DISCOUNT_TYPE) === COUPON_DISCOUNT_TYPE.Percentage,
+    value,
+  );
 }
 
 /**

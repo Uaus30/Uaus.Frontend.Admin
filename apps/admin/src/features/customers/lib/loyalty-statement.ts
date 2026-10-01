@@ -5,13 +5,14 @@ import {
   LOYALTY_STAMP_KIND,
   enumCode,
   type LoyaltyRewardDto,
+  type LoyaltyStatementDto,
   type LoyaltyStatementStampDto,
 } from "@workspace/api-client-react";
+import type { LoyaltyStatementReceipt, StatementStampLine, StoreInfo } from "@workspace/receipt";
 import { describeLoyaltyReward } from "@workspace/core";
-import type { StatementStampLine } from "@workspace/receipt";
 
-/** "Prêmio do 5º carimbo (R$ 5,00): trocado em 21/12/2026" — o prêmio como o extrato o conta. */
-export function describeReward(
+/** O prêmio como o extrato o conta — o mesmo texto do PDV (`describeLoyaltyReward`). */
+export function rewardLine(
   reward: LoyaltyRewardDto,
   middleStamp?: number | null,
   stampsRequired?: number,
@@ -41,5 +42,24 @@ export function toStampLine(stamp: LoyaltyStatementStampDto): StatementStampLine
     bonus: kind === LOYALTY_STAMP_KIND.Bonus,
     adjustment: kind === LOYALTY_STAMP_KIND.Adjustment,
     reason: stamp.reason,
+  };
+}
+
+/** O extrato no formato da impressora do caixa (`printLoyaltyStatement`). */
+export function toStatementReceipt(
+  statement: LoyaltyStatementDto,
+  store: StoreInfo | undefined,
+): LoyaltyStatementReceipt {
+  const card = statement.card;
+  return {
+    customerName: statement.customerName,
+    stamps: statement.stamps.map(toStampLine),
+    stampsRequired: card?.stampsRequired ?? 0,
+    expiresAt: card?.expiresAt,
+    rewardLines: statement.rewards.map((reward) =>
+      rewardLine(reward, card?.middleStamp, card?.stampsRequired),
+    ),
+    printedAt: new Date(),
+    store,
   };
 }

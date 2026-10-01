@@ -7,6 +7,7 @@ Este módulo gerencia a listagem, busca debounced, paginação, cadastro, ediç�
 ## 📂 Estrutura de Arquivos
 
 - `components/CustomersTable.tsx`: Tabela de apresentação da base de clientes com controles de paginação e botões de ação (editar e deletar). Exibe o consolidado de compras.
+- `components/CustomerLoyaltyDialog.tsx`: Extrato do cartão fidelidade, impressão e ajuste manual com motivo (`hooks/useCustomerLoyalty.ts`, `lib/loyalty-statement.ts`).
 - `components/CustomerEditorModal.tsx`: Modal contendo o formulário de cadastro/edição de clientes com auto-formatação do telefone onBlur.
 - `hooks/useCustomers.ts`: Centraliza a consulta paginada, a busca debounced e as mutations de persistência.
 - `types.ts`: Tipagens e contratos locais.
@@ -48,6 +49,12 @@ O cliente é a identidade do programa de fidelidade, e o cadastro é o mesmo do 
 - O DDD e a cidade da loja só são pedidos com a modal aberta: a listagem continua custando **uma** requisição (o teste do hook trava isso).
 - A busca da tabela é a mesma do caixa: telefone até sem DDD, CPF com ou sem máscara, nome.
 
-### 3. Ações
+### 3. O cartão fidelidade do cliente (entrega 5, 01/10/2026)
+
+- **Coluna "Cartão"**: os carimbos do cartão aberto e válido ("3 de 10"), somados pelo servidor na mesma consulta da listagem (`GET /Customers/summary`) — continua uma requisição. `—` para quem não tem cartão aberto (nunca carimbou, ou o cartão venceu).
+- **O botão do carimbo** abre o extrato: cada carimbo com a data, marcando o extra do cartão novo e o ajuste manual (com o motivo), e cada prêmio — trocado em, venceu em, disponível até. É o mesmo texto do extrato do PDV (`describeLoyaltyReward`, do `@workspace/core`): o cliente que viu um e pergunta pelo outro ouve a mesma frase. **Imprimir extrato** usa a impressora do caixa (`printLoyaltyStatement`) com os dados da loja; os dados da loja só são pedidos com o diálogo aberto.
+- **Ajuste manual, só com motivo.** De 1 a 10 carimbos, com sinal de menos para tirar; o motivo é obrigatório e aparece no extrato. Serve para a venda que passou sem o cliente identificado e para o cartão de papel com mais carimbos que o digital. O servidor recusa deixar o cartão abaixo de zero; ajuste que cruza o prêmio o libera, e o que completa o cartão abre o novo com o extra mais o que sobrou. O excedente entra no cartão novo como outro ajuste, com o mesmo motivo. Tirar carimbo **não** cancela prêmio já liberado. O extrato mostra cada linha pelo que ela fez ("6º a 8º (ajuste)", "Tirou 1 (ajuste, fica com 4)", com o motivo), na tela e no papel (`describeLoyaltyStamp`, do `@workspace/core`). Venda lançada no cliente errado se corrige reeditando a venda — o diálogo diz isso acima do ajuste. Gravar atualiza o extrato, a coluna Cartão e o painel da fidelidade. Fechar o diálogo limpa o ajuste digitado: o próximo cliente não o herda.
+
+### 4. Ações
 
 - A remoção física/lógica do cliente deve ser confirmada pelo usuário.

@@ -9,6 +9,7 @@ import {
   storeHeader,
   wrapPrintDocument,
 } from "./document";
+import { describeLoyaltyStamp } from "@workspace/core";
 import { printReceiptHtml } from "./print";
 import type { ReceiptStore, StoreInfo } from "./types";
 
@@ -56,8 +57,13 @@ export interface StatementStampLine {
   /** Até que carimbo do cartão a linha chega: o número do papel. */
   position: number;
   occurredAt: string;
+  /** Quantos carimbos a linha dá (ou tira, no ajuste). Sem valor, 1. */
+  points?: number;
   /** O carimbo extra com que o cartão nasceu. */
   bonus?: boolean;
+  /** O ajuste manual do admin, que sai com o motivo. */
+  adjustment?: boolean;
+  reason?: string | null;
 }
 
 /** A segunda via do cartão, para a impressora do caixa. */
@@ -83,8 +89,10 @@ export function buildLoyaltyStatementHtml(data: LoyaltyStatementReceipt): string
 
   const stampRows = data.stamps.length
     ? data.stamps
-        .map((stamp) =>
-          row(`${stamp.position}º${stamp.bonus ? " (extra)" : ""}`, formatReceiptDate(stamp.occurredAt)),
+        .map(
+          (stamp) =>
+            row(describeLoyaltyStamp(stamp), formatReceiptDate(stamp.occurredAt)) +
+            (stamp.reason ? `<div class="notes">${escapeHtml(stamp.reason)}</div>` : ""),
         )
         .join("")
     : `<div class="notes">Nenhum carimbo neste cartão.</div>`;

@@ -1,11 +1,11 @@
 import { Loader2, Printer, ScrollText } from "lucide-react";
-import { LOYALTY_STAMP_KIND, enumCode, useGetLoyaltyStatement } from "@workspace/api-client-react";
+import { useGetLoyaltyStatement } from "@workspace/api-client-react";
 import { printLoyaltyStatement, resolveStoreInfo } from "@workspace/receipt";
 import { Button, Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
-import { formatShortDate } from "@workspace/core";
+import { describeLoyaltyStamp, formatShortDate } from "@workspace/core";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useLoyaltyStore } from "../hooks/use-loyalty";
-import { describeReward } from "../lib/loyalty-text";
+import { describeReward, toStampLine } from "../lib/loyalty-text";
 
 /**
  * O extrato do cartão (a segunda via): cada carimbo com a data, e os prêmios.
@@ -29,11 +29,7 @@ export function LoyaltyStatementDialog() {
     if (!data) return;
     void printLoyaltyStatement({
       customerName: data.customerName,
-      stamps: data.stamps.map((stamp) => ({
-        position: stamp.position,
-        occurredAt: stamp.occurredAt,
-        bonus: enumCode(stamp.kind, LOYALTY_STAMP_KIND) === LOYALTY_STAMP_KIND.Bonus,
-      })),
+      stamps: data.stamps.map(toStampLine),
       stampsRequired: card?.stampsRequired ?? 0,
       expiresAt: card?.expiresAt,
       rewardLines,
@@ -64,11 +60,15 @@ export function LoyaltyStatementDialog() {
             {data.stamps.length === 0 ? (
               <p className="text-muted-foreground">Nenhum carimbo ainda.</p>
             ) : (
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono">
-                {data.stamps.map((stamp) => (
-                  <li key={`${stamp.position}-${stamp.occurredAt}`}>
-                    {stamp.position}º {formatShortDate(stamp.occurredAt)}
-                    {enumCode(stamp.kind, LOYALTY_STAMP_KIND) === LOYALTY_STAMP_KIND.Bonus ? " (extra)" : ""}
+              <ul className="space-y-1 font-mono">
+                {data.stamps.map((stamp, index) => (
+                  <li key={index}>
+                    {describeLoyaltyStamp(toStampLine(stamp))} · {formatShortDate(stamp.occurredAt)}
+                    {stamp.reason && (
+                      <span className="block pl-4 font-sans text-xs text-muted-foreground">
+                        {stamp.reason}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -8,7 +8,13 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, apiPut, ApiError } from "../client";
 import type {
+  AdjustLoyaltyStampsPayload,
   CustomerLoyaltyDto,
+  LoyaltyActionCountsDto,
+  LoyaltyActionList,
+  LoyaltyActionRowDto,
+  LoyaltyChartsDto,
+  LoyaltySaleOutcomeDto,
   LoyaltySettingsDto,
   LoyaltyStatementDto,
   LoyaltySummaryDto,
@@ -104,4 +110,46 @@ export function useGetLoyaltyStatement(
     queryFn: () => getLoyaltyStatement(customerId as number),
     ...options?.query,
   });
+}
+
+/** Prefixo dos gráficos e do "Para agir"; o ajuste manual invalida por ele. */
+export const getLoyaltyDashboardQueryKey = (): QueryKey => ["LoyaltyDashboard"];
+
+export function useGetLoyaltyCharts(
+  period: LoyaltyPeriod,
+  options?: { query?: QueryOptions<LoyaltyChartsDto> },
+) {
+  return useQuery<LoyaltyChartsDto, ApiError, LoyaltyChartsDto, QueryKey>({
+    queryKey: [...getLoyaltyDashboardQueryKey(), "charts", period.from ?? "", period.to ?? ""],
+    queryFn: () => apiGetOrThrow<LoyaltyChartsDto>("/Loyalty/charts", { from: period.from, to: period.to }),
+    ...options?.query,
+  });
+}
+
+export function useGetLoyaltyActionCounts(options?: { query?: QueryOptions<LoyaltyActionCountsDto> }) {
+  return useQuery<LoyaltyActionCountsDto, ApiError, LoyaltyActionCountsDto, QueryKey>({
+    queryKey: [...getLoyaltyDashboardQueryKey(), "actions"],
+    queryFn: () => apiGetOrThrow<LoyaltyActionCountsDto>("/Loyalty/actions"),
+    ...options?.query,
+  });
+}
+
+export function useGetLoyaltyActionList(
+  list: LoyaltyActionList | null,
+  options?: { query?: QueryOptions<LoyaltyActionRowDto[]> },
+) {
+  return useQuery<LoyaltyActionRowDto[], ApiError, LoyaltyActionRowDto[], QueryKey>({
+    queryKey: [...getLoyaltyDashboardQueryKey(), "actions", list ?? ""],
+    enabled: list !== null,
+    queryFn: () => apiGetOrThrow<LoyaltyActionRowDto[]>(`/Loyalty/actions/${list}`),
+    ...options?.query,
+  });
+}
+
+/** Ajuste manual de carimbos, com motivo. Devolve o cartão como ficou. */
+export async function adjustLoyaltyStamps(
+  customerId: number,
+  data: AdjustLoyaltyStampsPayload,
+): Promise<LoyaltySaleOutcomeDto | null> {
+  return (await apiPost<LoyaltySaleOutcomeDto>(`/Loyalty/customers/${customerId}/adjustments`, data)).data;
 }

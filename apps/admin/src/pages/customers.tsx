@@ -1,5 +1,7 @@
 import { Button } from "@workspace/ui";
 import { CustomerEditorModal } from "@/features/customers/components/CustomerEditorModal";
+import { CustomerLoyaltyDialog } from "@/features/customers/components/CustomerLoyaltyDialog";
+import { useCustomerLoyalty } from "@/features/customers/hooks/useCustomerLoyalty";
 import { CustomersTable } from "@/features/customers/components/CustomersTable";
 import { useCustomers } from "@/features/customers/hooks/useCustomers";
 import { Plus } from "lucide-react";
@@ -29,6 +31,7 @@ export default function Customers() {
     isDeleting,
     handleSaveCustomer,
   } = useCustomers();
+  const loyalty = useCustomerLoyalty();
 
   return (
     <>
@@ -57,8 +60,19 @@ export default function Customers() {
           statsByCustomerId={statsByCustomerId}
           onEdit={handleOpenModal}
           onDelete={handleDeleteCustomer}
+          onOpenLoyalty={loyalty.open}
         />
       </div>
+
+      <CustomerLoyaltyDialog
+        customerName={loyalty.customer?.name ?? null}
+        statement={loyalty.statement}
+        isLoading={loyalty.isLoading}
+        onClose={loyalty.close}
+        onPrint={loyalty.print}
+        onAdjust={loyalty.adjust}
+        isAdjusting={loyalty.isAdjusting}
+      />
 
       <CustomerEditorModal
         open={modalOpen}

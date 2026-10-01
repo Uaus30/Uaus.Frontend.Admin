@@ -368,6 +368,12 @@ export interface CustomerSummaryDto extends CustomerDto {
   purchaseCount: number;
   /** Nulo para quem nunca comprou — distinto de "comprou hoje". */
   lastPurchaseAt?: string | null;
+  /**
+   * Carimbos do cartão fidelidade aberto e válido, para a coluna "Cartão"
+   * (ex.: 3 de 10). Ausentes para quem não tem cartão aberto (01/10/2026).
+   */
+  loyaltyStamps?: number | null;
+  loyaltyStampsRequired?: number | null;
 }
 
 export interface DepartmentDto {
@@ -2749,6 +2755,8 @@ export interface LoyaltyStatementStampDto {
   occurredAt: string;
   kind: EnumValue;
   saleId?: number | null;
+  /** Motivo do ajuste manual. */
+  reason?: string | null;
 }
 
 /** A segunda via do cartão: cada carimbo com a data, e os prêmios. */
@@ -2795,4 +2803,49 @@ export interface LoyaltySummaryDto {
   averageTicket: number;
   baselineAverageTicket: number;
   visitsPerCustomerPerMonth: number;
+}
+
+/** Ajuste manual de carimbos no admin, sempre com motivo (aparece no extrato). */
+export interface AdjustLoyaltyStampsPayload {
+  /** Carimbos a dar (positivo) ou tirar (negativo), de 1 a 10. */
+  points: number;
+  reason: string;
+}
+
+/** Os gráficos do painel (entrega 5). Os códigos são os dos enums de cliente. */
+export interface LoyaltyChartsDto {
+  stampsByWeek: { weekStart: string; stamps: number }[];
+  funnel: { registered: number; stamped: number; reachedMiddle: number; completedCard: number };
+  /** Retrato de hoje: cartões abertos por número de carimbos. */
+  openCards: { stamps: number; cards: number; oneAway: boolean }[];
+  acquisitionChannels: { code: number; count: number }[];
+  genders: { code: number; count: number }[];
+  ageRanges: { code: number; count: number }[];
+  operators: { name: string; sales: number; salesWithCustomer: number; customersRegistered: number }[];
+}
+
+/** As listas do "Para agir", pelo nome que vai na URL. */
+export type LoyaltyActionList =
+  "rewards-waiting" | "one-away" | "expiring" | "grace" | "inactive" | "birthdays";
+
+/** O "Para agir" de hoje: quantos clientes em cada lista. */
+export interface LoyaltyActionCountsDto {
+  rewardsWaiting: number;
+  oneStampAway: number;
+  expiringSoon: number;
+  inGrace: number;
+  inactive: number;
+  birthdays: number;
+}
+
+/** Uma linha de lista do "Para agir". */
+export interface LoyaltyActionRowDto {
+  customerId: number;
+  name: string;
+  phone?: string | null;
+  stamps?: number | null;
+  stampsRequired?: number | null;
+  /** A data que importa na lista (vence em, última compra, aniversário). */
+  date?: string | null;
+  prize?: string | null;
 }

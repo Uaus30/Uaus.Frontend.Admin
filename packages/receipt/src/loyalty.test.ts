@@ -81,4 +81,37 @@ describe("extrato do cartão", () => {
     expect(html).toContain("trocado em 21/12/2026");
     expect(html).toContain("A via oficial é a digital.");
   });
+
+  it("o ajuste sai com os carimbos que deu ou tirou e com o motivo", () => {
+    const html = text(
+      buildLoyaltyStatementHtml({
+        customerName: "Ana",
+        stamps: [
+          {
+            position: 5,
+            points: 5,
+            occurredAt: "2026-11-03T10:00:00",
+            adjustment: true,
+            reason: "Cartão de papel",
+          },
+          {
+            position: 4,
+            points: -1,
+            occurredAt: "2026-11-04T10:00:00",
+            adjustment: true,
+            reason: "Venda <estornada>",
+          },
+        ],
+        stampsRequired: 10,
+        rewardLines: [],
+        printedAt: "2026-11-11T09:00:00",
+      }),
+    );
+
+    expect(html).toContain("1º a 5º (ajuste) 03/11/2026");
+    expect(html).toContain("Cartão de papel");
+    expect(html).toContain("Tirou 1 (ajuste, fica com 4) 04/11/2026");
+    expect(html).toContain("Venda &lt;estornada&gt;");
+    expect(html).toContain("4 de 10 carimbos");
+  });
 });

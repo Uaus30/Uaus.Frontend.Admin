@@ -6,7 +6,13 @@ import {
   type LoyaltySettingsDto,
   type UpdateLoyaltySettingsPayload,
 } from "@workspace/api-client-react";
-import { formatAmountInput, formatCurrency, parseAmountOrNull, toDateKey } from "@workspace/core";
+import {
+  formatAmountInput,
+  formatCurrency,
+  formatLoyaltyPrize,
+  parseAmountOrNull,
+  toDateKey,
+} from "@workspace/core";
 import type { LoyaltyConfigForm, LoyaltyPeriodPreset } from "../types";
 
 /**
@@ -128,9 +134,10 @@ export function formToPayload(
 }
 
 const prize = (type: unknown, value: number) =>
-  enumCode(type as never, COUPON_DISCOUNT_TYPE) === COUPON_DISCOUNT_TYPE.Percentage
-    ? `${value}%`
-    : formatCurrency(value);
+  formatLoyaltyPrize(
+    enumCode(type as never, COUPON_DISCOUNT_TYPE) === COUPON_DISCOUNT_TYPE.Percentage,
+    value,
+  );
 
 /** A regra numa linha, como o dono a descreve: "R$ 5 no 5º e no 10º · mínimo R$ 10 · ...". */
 export function describeRule(settings: LoyaltySettingsDto): string {

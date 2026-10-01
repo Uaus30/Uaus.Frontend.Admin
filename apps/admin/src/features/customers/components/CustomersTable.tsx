@@ -4,7 +4,7 @@ import { Input } from "@workspace/ui";
 import { formatCpf, formatCurrency, formatPhone, formatShortDate } from "@workspace/core";
 import type { CustomerSummaryDto, UiPagedResult } from "@workspace/api-client-react";
 import { ConfirmDialog } from "@workspace/ui";
-import { Edit2, Loader2, Search, Trash2 } from "lucide-react";
+import { Edit2, Loader2, Search, Stamp, Trash2 } from "lucide-react";
 
 import type { CustomerStats } from "../types";
 
@@ -40,6 +40,8 @@ interface CustomersTableProps {
   onDelete: (id: number) => void | Promise<unknown>;
   /** Uma exclusão está em andamento — trava o segundo clique. */
   isDeleting?: boolean;
+  /** Abre o cartão fidelidade do cliente: extrato, impressão e ajuste manual. */
+  onOpenLoyalty?: (customer: CustomerSummaryDto) => void;
 }
 
 /** Cliente sem nenhuma compra: zerado, e sem data de última compra. */
@@ -63,6 +65,7 @@ export function CustomersTable({
   onEdit,
   onDelete,
   isDeleting,
+  onOpenLoyalty,
 }: CustomersTableProps) {
   /**
    * Cliente aguardando confirmação de exclusão, ou `null`.
@@ -97,6 +100,7 @@ export function CustomersTable({
                 <th className="px-6 py-4">Cliente</th>
                 <th className="px-6 py-4">Contato</th>
                 <th className="px-6 py-4">Documento</th>
+                <th className="px-6 py-4">Cartão</th>
                 <th className="px-6 py-4">Total Gasto</th>
                 <th className="px-6 py-4">Última compra</th>
                 <th className="px-6 py-4">Desde</th>
@@ -106,7 +110,7 @@ export function CustomersTable({
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={8} className="py-12 text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                   </td>
                 </tr>
@@ -136,6 +140,12 @@ export function CustomersTable({
                       <td className="px-6 py-4 text-muted-foreground">
                         {customer.document ? formatCpf(customer.document) : "-"}
                       </td>
+                      <td className="px-6 py-4 tabular-nums text-muted-foreground">
+                        {/* O cartão fidelidade aberto e válido (01/10/2026). */}
+                        {customer.loyaltyStampsRequired
+                          ? `${customer.loyaltyStamps ?? 0} de ${customer.loyaltyStampsRequired}`
+                          : "—"}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="font-medium text-primary">
@@ -156,6 +166,18 @@ export function CustomersTable({
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {onOpenLoyalty && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Cartão fidelidade: extrato e ajuste"
+                              aria-label="Cartão fidelidade"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
+                              onClick={() => onOpenLoyalty(customer)}
+                            >
+                              <Stamp className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="icon"
                             variant="ghost"

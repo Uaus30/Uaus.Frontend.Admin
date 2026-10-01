@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LoyaltyRewardDto } from "@workspace/api-client-react";
 import { describeLoyaltyPrize, pickReward, rewardToCoupon } from "../../hooks/use-loyalty";
-import { describeReward } from "../loyalty-text";
+import { describeReward, toStampLine } from "../loyalty-text";
 
 const reward = (overrides: Partial<LoyaltyRewardDto> = {}): LoyaltyRewardDto => ({
   id: 9,
@@ -58,5 +58,32 @@ describe("o prêmio no extrato e no carrinho", () => {
     expect(pickReward(status, [])?.id).toBe(1);
     expect(pickReward(status, [1])?.id).toBe(2);
     expect(pickReward({ ...status, programActive: false }, [])).toBeNull();
+  });
+});
+
+describe("a linha do extrato", () => {
+  it("leva quantos carimbos o ajuste deu ou tirou, e o motivo", () => {
+    expect(
+      toStampLine({
+        position: 4,
+        points: -1,
+        occurredAt: "2026-10-03T10:00:00",
+        kind: "Adjustment",
+        reason: "Estorno",
+      }),
+    ).toEqual({
+      position: 4,
+      points: -1,
+      occurredAt: "2026-10-03T10:00:00",
+      bonus: false,
+      adjustment: true,
+      reason: "Estorno",
+    });
+    expect(
+      toStampLine({ position: 1, points: 1, occurredAt: "2026-10-01T10:00:00", kind: "Bonus" }),
+    ).toMatchObject({
+      bonus: true,
+      adjustment: false,
+    });
   });
 });

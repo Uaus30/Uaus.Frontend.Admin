@@ -24,4 +24,20 @@ Os cupons do select só são pedidos com o modal aberto. Salvar, ligar e desliga
 
 Por padrão, **todo o período** (pedido do dono). Os atalhos (este mês, mês passado, 90 dias) viram datas no relógio da loja (`toDateKey`, nunca `toISOString`). Os seis cards contam até o valor quando aparecem (`useCountUp`), sem animação para quem desligou animações no aparelho. O valor médio compara com junho a setembro de 2026, antes do programa.
 
-Gráficos, listas para agir e ajuste manual de carimbos são a entrega 5.
+### 5. "Para agir": retrato de hoje, não do período
+
+Seis números (prêmios esperando troca, a 1 carimbo de um prêmio, cartões que vencem em 30 dias, em folga, sem comprar há 45 dias, aniversariantes do mês), cada um abrindo a lista dos clientes que ele conta — nome, telefone, carimbos e a data que importa naquela lista. Não seguem o filtro de período: "quem está a 1 carimbo" só faz sentido hoje. A lista só é pedida quando aberta. **Sem botão de WhatsApp** (decisão do dono): a lista serve para o balcão lembrar o cliente quando ele aparecer.
+
+O número e a lista saem da **mesma consulta** no servidor (`GET /Loyalty/actions` conta as listas de `GET /Loyalty/actions/{lista}`): o número que diz 3 abre uma lista de 3.
+
+### 6. Os gráficos (entrega 5, 01/10/2026)
+
+Seguem o período, exceto os cartões abertos (hoje):
+
+- **Carimbos por semana**: as 12 semanas (de segunda a domingo) que terminam no fim do período — mostra se o programa pegou.
+- **Onde estão os cartões abertos**: quantos cartões com cada número de carimbos; em destaque, os que estão a 1 de um prêmio.
+- **Do cadastro ao cartão completo**, **como conheceram a loja**, **perfil de quem carimbou** (sexo e faixa de idade, recalculada pelo nascimento) e a **tabela por operador**: vendas, vendas com cliente, % e cadastros — é ali que se vê quem pergunta pelo cliente no caixa.
+
+Listas curtas de categorias são barras horizontais com o número escrito ao lado, legíveis no celular sem passar o mouse. Salvar, ligar e desligar invalidam o prefixo `getLoyaltyDashboardQueryKey` junto com o resumo.
+
+O ajuste manual de carimbos fica na tela de clientes (`features/customers`, regra 4).

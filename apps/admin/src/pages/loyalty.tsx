@@ -1,5 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { ConfirmDialog } from "@workspace/ui";
+import { LoyaltyActionDialog, LoyaltyActions } from "@/features/loyalty/components/LoyaltyActions";
+import { LoyaltyCharts } from "@/features/loyalty/components/LoyaltyCharts";
 import { LoyaltyConfigModal } from "@/features/loyalty/components/LoyaltyConfigModal";
 import { LoyaltyHeader } from "@/features/loyalty/components/LoyaltyHeader";
 import { LoyaltyKpiCards } from "@/features/loyalty/components/LoyaltyKpiCards";
@@ -33,6 +35,22 @@ export default function Loyalty() {
       />
 
       <LoyaltyKpiCards summary={loyalty.summary} isLoading={loyalty.isLoadingSummary} />
+
+      {/* O "Para agir" logo depois dos números: é a parte que pede ação hoje. */}
+      <LoyaltyActions
+        counts={loyalty.actionCounts}
+        isLoading={loyalty.isLoadingActionCounts}
+        onOpen={loyalty.setOpenAction}
+      />
+
+      <LoyaltyCharts charts={loyalty.charts} isLoading={loyalty.isLoadingCharts} />
+
+      <LoyaltyActionDialog
+        list={loyalty.openAction}
+        rows={loyalty.actionRows}
+        isLoading={loyalty.isLoadingActionRows}
+        onClose={() => loyalty.setOpenAction(null)}
+      />
 
       <LoyaltyConfigModal
         open={loyalty.configOpen}

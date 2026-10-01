@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   useGetLoyaltySettings: vi.fn(),
   useGetLoyaltySummary: vi.fn(),
   useGetCoupons: vi.fn(),
+  useGetLoyaltyCharts: vi.fn(),
+  useGetLoyaltyActionCounts: vi.fn(),
+  useGetLoyaltyActionList: vi.fn(),
   turnOnLoyalty: vi.fn(),
   turnOffLoyalty: vi.fn(),
   updateLoyaltySettings: vi.fn(),
@@ -19,6 +22,9 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   useGetLoyaltySettings: mocks.useGetLoyaltySettings,
   useGetLoyaltySummary: mocks.useGetLoyaltySummary,
   useGetCoupons: mocks.useGetCoupons,
+  useGetLoyaltyCharts: mocks.useGetLoyaltyCharts,
+  useGetLoyaltyActionCounts: mocks.useGetLoyaltyActionCounts,
+  useGetLoyaltyActionList: mocks.useGetLoyaltyActionList,
   turnOnLoyalty: mocks.turnOnLoyalty,
   turnOffLoyalty: mocks.turnOffLoyalty,
   updateLoyaltySettings: mocks.updateLoyaltySettings,
@@ -44,6 +50,9 @@ describe("useLoyalty", () => {
     });
     mocks.useGetLoyaltySummary.mockReturnValue({ data: undefined, isLoading: true });
     mocks.useGetCoupons.mockReturnValue({ data: { data: [] } });
+    mocks.useGetLoyaltyCharts.mockReturnValue({ data: undefined, isLoading: true });
+    mocks.useGetLoyaltyActionCounts.mockReturnValue({ data: undefined, isLoading: true });
+    mocks.useGetLoyaltyActionList.mockReturnValue({ data: undefined, isLoading: false });
     mocks.turnOnLoyalty.mockResolvedValue({ isActive: true });
     mocks.turnOffLoyalty.mockResolvedValue({ isActive: false });
   });
@@ -62,6 +71,26 @@ describe("useLoyalty", () => {
     const period = mocks.useGetLoyaltySummary.mock.calls.at(-1)?.[0];
     expect(period).toHaveProperty("from");
     expect(period).toHaveProperty("to");
+  });
+
+  it('os gráficos seguem o período; o "Para agir" é retrato de hoje', () => {
+    const { result } = renderHook(() => useLoyalty(), { wrapper });
+
+    act(() => result.current.setPreset("this-month"));
+
+    expect(mocks.useGetLoyaltyCharts).toHaveBeenLastCalledWith(
+      mocks.useGetLoyaltySummary.mock.calls.at(-1)?.[0],
+    );
+    expect(mocks.useGetLoyaltyActionCounts).toHaveBeenLastCalledWith();
+  });
+
+  it('só busca a lista de um número do "Para agir" quando ela é aberta', () => {
+    const { result } = renderHook(() => useLoyalty(), { wrapper });
+    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith(null);
+
+    act(() => result.current.setOpenAction("one-away"));
+
+    expect(mocks.useGetLoyaltyActionList).toHaveBeenLastCalledWith("one-away");
   });
 
   it("só busca os cupons do modal com ele aberto", () => {
