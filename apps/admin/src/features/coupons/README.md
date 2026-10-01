@@ -189,8 +189,9 @@ alterada" e no log `CouponDefinitionChanged`, como valor e vigência.
   aplica (`POST /Sales` aceita totais arbitrários e não tem gate de
   idempotência).
 
-## 10. Cupom do programa de fidelidade: travado (01/10/2026)
+## 10. Cupom do programa de fidelidade (01/10/2026)
 
-O prêmio do programa de fidelidade (Marketing › Fidelidade) é um cupom. Associado ao programa — ou com prêmio dele ainda para trocar —, o cupom vem com `managedByLoyalty`, a tabela mostra o selo "Gerenciado pelo programa de fidelidade" e troca editar/desativar/excluir por "Travado". O servidor recusa as três operações de qualquer jeito: mexer no cupom pararia o programa no meio de uma venda.
+O prêmio do programa de fidelidade (Marketing › Fidelidade) é um cupom. Duas travas, de tamanhos diferentes (decisão do dono, 01/10/2026):
 
-Ele também não vale pelo código no balcão: o servidor recusa ("ele entra sozinho no carrinho do cliente que tem o prêmio").
+- **Associado ao programa LIGADO** (`managedByLoyalty`): a tabela mostra o selo "Gerenciado pelo programa de fidelidade" e troca editar/desativar/excluir por "Travado"; ele também não vale pelo código no balcão. Mexer nele pararia o programa no meio de uma venda. Com o programa **desligado**, a associação não trava nada — ao religar, a regra confere o cupom de novo.
+- **Com prêmio de cliente para trocar** (`hasPendingLoyaltyRewards`), ligado ou desligado o programa: o direito é do cliente. A tabela mostra "Prêmio de fidelidade a trocar" e não oferece excluir nem desativar; o formulário edita, mas com código, tipo, valor, teto de resgates e ativo travados. O resgate do prêmio confere código, tipo e valor e consome o cupom (ativo, não excluído, dentro do teto); vigência, compra mínima, descrição e campanha não entram no resgate e ficam livres. Reativar, voltar ao teto ilimitado e voltar ao tipo e valor do prêmio pendente são aceitos: devolvem o direito.

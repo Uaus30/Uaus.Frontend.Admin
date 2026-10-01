@@ -61,6 +61,10 @@ export function CouponEditorModal({
   // quem apresentasse o papel ouviria "cupom não encontrado" e ninguém saberia
   // por quê. O backend recusa; aqui o campo nem chega a ser editável.
   const codigoTravado = (editing?.redeemedCount ?? 0) > 0;
+  // Prêmio de fidelidade a trocar: o resgate confere código, tipo e valor e
+  // consome o cupom (ativo, dentro do teto). O direito é do cliente; o servidor
+  // recusa mudar esses campos, e aqui eles nem ficam editáveis.
+  const premioPendente = editing?.hasPendingLoyaltyRewards ?? false;
   const percentual = form.discountType === COUPON_DISCOUNT_TYPE.Percentage;
 
   const alterar = (patch: Partial<CouponForm>) => onFormChange({ ...form, ...patch });
@@ -83,6 +87,12 @@ export function CouponEditorModal({
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4 pt-2">
+          {premioPendente && (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+              Algum cliente tem prêmio do programa de fidelidade com este cupom para trocar. Código, tipo,
+              valor, teto de resgates e ativo ficam como estão até o último prêmio ser trocado ou vencer.
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cp-code">Código *</Label>
@@ -91,7 +101,7 @@ export function CouponEditorModal({
                 placeholder="Ex: VERAO26"
                 value={form.code}
                 onChange={(e) => alterar({ code: e.target.value.toUpperCase() })}
-                disabled={codigoTravado}
+                disabled={codigoTravado || premioPendente}
                 maxLength={30}
                 required
               />
@@ -120,6 +130,7 @@ export function CouponEditorModal({
               <Select
                 value={String(form.discountType)}
                 onValueChange={(value) => alterar({ discountType: Number(value) as CouponDiscountTypeCode })}
+                disabled={premioPendente}
               >
                 <SelectTrigger id="cp-type">
                   <SelectValue />
@@ -142,6 +153,7 @@ export function CouponEditorModal({
                 placeholder={percentual ? "10" : "20,00"}
                 value={form.discountValue}
                 onChange={(e) => alterar({ discountValue: e.target.value })}
+                disabled={premioPendente}
                 required
               />
               <p className="text-xs text-muted-foreground">
@@ -223,6 +235,7 @@ export function CouponEditorModal({
                 placeholder="Ilimitado"
                 value={form.usageLimit}
                 onChange={(e) => alterar({ usageLimit: e.target.value })}
+                disabled={premioPendente}
               />
               <p className="text-xs text-muted-foreground">
                 Deixe em branco para ilimitado. É orçamento de marketing, não trava de estoque: uma venda
@@ -260,6 +273,8 @@ export function CouponEditorModal({
               id="cp-active"
               checked={form.isActive}
               onCheckedChange={(value) => alterar({ isActive: value })}
+              // Reativar devolve o direito; desativar é que tiraria.
+              disabled={premioPendente && form.isActive}
             />
             <Label htmlFor="cp-active" className="cursor-pointer">
               Cupom ativo

@@ -1,7 +1,7 @@
 import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { COUPON_DISCOUNT_TYPE, COUPON_DISCOUNT_TYPE_LABEL, enumCode } from "@workspace/api-client-react";
 import { formatCurrency, formatDate } from "@workspace/core";
-import { Edit2, Lock, Megaphone, PowerOff, TicketPercent, Trash2 } from "lucide-react";
+import { Edit2, Gift, Lock, Megaphone, PowerOff, TicketPercent, Trash2 } from "lucide-react";
 import { canDeleteCoupon } from "../hooks/useCoupons";
 import type { CouponDto } from "../types";
 
@@ -103,6 +103,11 @@ export function CouponsTable({ items, isLoading, isBusy, onEdit, onDelete }: Cou
                           <Lock className="h-3 w-3" /> Gerenciado pelo programa de fidelidade
                         </span>
                       )}
+                      {!item.managedByLoyalty && item.hasPendingLoyaltyRewards && (
+                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                          <Gift className="h-3 w-3" /> Prêmio de fidelidade a trocar
+                        </span>
+                      )}
                       {item.description && (
                         <span className="text-xs font-normal text-muted-foreground">{item.description}</span>
                       )}
@@ -190,7 +195,16 @@ export function CouponsTable({ items, isLoading, isBusy, onEdit, onDelete }: Cou
                         <Edit2 className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                       </Button>
 
-                      {podeExcluir ? (
+                      {item.hasPendingLoyaltyRewards ? (
+                        // O direito é do cliente: com prêmio dele para trocar, o cupom
+                        // não sai de circulação — nem excluir, nem desativar.
+                        <span
+                          className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground"
+                          title="Há cliente com prêmio deste cupom para trocar: não pode ser desativado nem excluído."
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                        </span>
+                      ) : podeExcluir ? (
                         <Button
                           variant="ghost"
                           size="icon"

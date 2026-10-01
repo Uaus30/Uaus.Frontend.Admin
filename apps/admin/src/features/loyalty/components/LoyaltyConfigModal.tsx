@@ -199,7 +199,8 @@ function ConfigForm({ onOpenChange, settings, coupons, isSaving, onSave }: Loyal
         </Field>
         <p className="text-xs text-muted-foreground sm:col-span-3">
           O cupom associado precisa ter o mesmo tipo e valor do prêmio, estar ativo, sem data de fim, com usos
-          ilimitados e sem compra mínima própria. Associado, ele fica travado na tela de cupons.
+          ilimitados e sem compra mínima própria. Com o programa ligado, ele fica travado na tela de cupons;
+          com prêmio de cliente para trocar, não pode ser desativado nem excluído.
         </p>
       </section>
 
