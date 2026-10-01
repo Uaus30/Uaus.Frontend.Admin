@@ -1,7 +1,7 @@
 import { formatReceiptCurrency, resolveStoreInfo, type ReceiptData } from "@workspace/receipt";
 import { COUPON_DISCOUNT_TYPE, type CompanySettingsDto } from "@workspace/api-client-react";
 import { formatQuantity, round2 } from "@workspace/core";
-import { computeCartTotals } from "@/stores/use-pdv-store";
+import { computeCartTotals, couponShortfall } from "@/stores/use-pdv-store";
 import type { AppliedCoupon, CheckoutPayment, PdvItem, SavedSale } from "../types";
 
 /** Tudo que o cupom da venda recém-gravada precisa saber. */
@@ -86,6 +86,9 @@ export function buildSaleReceipt({
   // total nas duas mostraria o mesmo abatimento em dobro — `Subtotal − Desconto −
   // Cupom` daria menos que o TOTAL ao lado, na única conta que o cliente confere.
   const totals = computeCartTotals(items, globalDiscount, coupon);
+  // Cupom suspenso pela compra mínima não foi para a venda: não sai no papel.
+  const printedCoupon =
+    coupon && couponShortfall(coupon, round2(totals.subtotal - totals.globalDiscount)) === 0 ? coupon : null;
 
   return {
     saleId: saved.receiptNumber,
@@ -126,11 +129,11 @@ export function buildSaleReceipt({
             installments: payment.installmentNumber,
           })),
     discount: totals.globalDiscount,
-    coupon: coupon
+    coupon: printedCoupon
       ? {
-          code: coupon.code,
-          description: coupon.description,
-          label: formatCouponLabel(coupon),
+          code: printedCoupon.code,
+          description: printedCoupon.description,
+          label: formatCouponLabel(printedCoupon),
           amount: totals.couponDiscount,
         }
       : undefined,

@@ -152,6 +152,21 @@ export function CouponEditorModal({
             </div>
           </div>
 
+          <div className="space-y-2 sm:w-1/2 sm:pr-2">
+            <Label htmlFor="cp-minimum">Compra mínima (R$)</Label>
+            <Input
+              id="cp-minimum"
+              inputMode="decimal"
+              placeholder="Sem mínimo"
+              value={form.minimumPurchaseAmount}
+              onChange={(e) => alterar({ minimumPurchaseAmount: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Em branco = vale em qualquer compra. Use vírgula nos centavos (29,90). Conta o subtotal menos o
+              desconto manual; abaixo dele, o cupom fica suspenso no PDV até a compra chegar lá.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cp-valid-from">Início da vigência *</Label>

@@ -17,6 +17,8 @@ export type CouponForm = {
   discountType: CouponDiscountTypeCode;
   /** Percentual ou reais, cru do input (string vazia = não preenchido). */
   discountValue: string;
+  /** Compra mínima em reais, crua. **Campo vazio significa SEM MÍNIMO** e vira `null`. */
+  minimumPurchaseAmount: string;
   /** Dia de início da vigência; a hora entra por `validFromTime`. */
   validFromDate: Date | undefined;
   /** Hora "HH:mm" do início da vigência. */

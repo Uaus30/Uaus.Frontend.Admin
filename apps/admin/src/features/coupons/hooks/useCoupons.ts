@@ -15,7 +15,7 @@ import {
   type CouponDto,
   type SaveCouponPayload,
 } from "@workspace/api-client-react";
-import { describeApiError, parseAmountOrNull, toDateKey } from "@workspace/core";
+import { describeApiError, formatAmountInput, parseAmountOrNull, toDateKey } from "@workspace/core";
 import { orderCatalogByName } from "@/lib/select-options";
 import type { CouponConfirm, CouponForm } from "../types";
 
@@ -101,6 +101,7 @@ export function couponToPayload(coupon: CouponDto): SaveCouponPayload {
     description: coupon.description ?? null,
     discountType: enumCode(coupon.discountType, COUPON_DISCOUNT_TYPE) as CouponDiscountTypeCode,
     discountValue: coupon.discountValue,
+    minimumPurchaseAmount: coupon.minimumPurchaseAmount ?? null,
     validFrom: coupon.validFrom,
     validUntil: coupon.validUntil ?? null,
     usageLimit: coupon.usageLimit,
@@ -120,6 +121,7 @@ function definicaoMudou(coupon: CouponDto, payload: SaveCouponPayload): boolean 
   const ateOMinuto = (value?: string | null) => value?.slice(0, 16) ?? null;
   return (
     payload.discountValue !== coupon.discountValue ||
+    (payload.minimumPurchaseAmount ?? null) !== (coupon.minimumPurchaseAmount ?? null) ||
     payload.discountType !== enumCode(coupon.discountType, COUPON_DISCOUNT_TYPE) ||
     ateOMinuto(payload.validFrom) !== ateOMinuto(coupon.validFrom) ||
     ateOMinuto(payload.validUntil) !== ateOMinuto(coupon.validUntil)
@@ -133,6 +135,7 @@ function emptyForm(): CouponForm {
     description: "",
     discountType: COUPON_DISCOUNT_TYPE.Percentage,
     discountValue: "",
+    minimumPurchaseAmount: "",
     validFromDate: new Date(),
     validFromTime: DEFAULT_START_TIME,
     validUntilDate: undefined,
@@ -275,7 +278,11 @@ export function useCoupons() {
       code: coupon.code,
       description: coupon.description ?? "",
       discountType: enumCode(coupon.discountType, COUPON_DISCOUNT_TYPE) as CouponDiscountTypeCode,
-      discountValue: String(coupon.discountValue),
+      // Vírgula decimal: String(7.5) = "7.5", que parseAmount lê como 75.
+      discountValue: formatAmountInput(coupon.discountValue),
+      // Sem mínimo é o campo VAZIO, como o teto ilimitado: o backend omite o nulo.
+      minimumPurchaseAmount:
+        coupon.minimumPurchaseAmount != null ? formatAmountInput(coupon.minimumPurchaseAmount) : "",
       validFromDate: instantToDate(coupon.validFrom),
       validFromTime: instantToTime(coupon.validFrom, DEFAULT_START_TIME),
       validUntilDate: instantToDate(coupon.validUntil),
@@ -312,6 +319,10 @@ export function useCoupons() {
     // JSON — o servidor gravaria 0 por outro caminho e ninguém veria a diferença
     // até um cupom sem teto aparecer esgotado no balcão.
     const usageLimit = parseAmountOrNull(form.usageLimit);
+    // Vazio = sem mínimo (null). Texto que não é número é recusado abaixo, em vez de
+    // virar `null` calado e tirar do panfleto uma condição que o administrador digitou.
+    const minimumPurchaseAmount = parseAmountOrNull(form.minimumPurchaseAmount);
+    const minimumTyped = form.minimumPurchaseAmount.trim() !== "";
 
     if (!code || !form.validFromDate) {
       recusar("Preencha os campos obrigatórios", "Informe o código e o início da vigência.");
@@ -327,6 +338,13 @@ export function useCoupons() {
     }
     if (usageLimit == null) {
       recusar("Teto de usos inválido", "Informe um número ou deixe em branco para ilimitado.");
+      return;
+    }
+    if (minimumTyped && (minimumPurchaseAmount == null || minimumPurchaseAmount <= 0)) {
+      recusar(
+        "Compra mínima inválida",
+        "Informe um valor maior que zero ou deixe em branco para não ter mínimo.",
+      );
       return;
     }
 
@@ -346,6 +364,7 @@ export function useCoupons() {
       description: form.description.trim() || null,
       discountType: form.discountType,
       discountValue,
+      minimumPurchaseAmount: minimumTyped ? minimumPurchaseAmount : null,
       validFrom,
       validUntil,
       // Negativo é normalizado para 0 no servidor; normalizar aqui também mantém

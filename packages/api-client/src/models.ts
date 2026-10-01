@@ -1264,6 +1264,11 @@ export interface CouponDto {
   discountType: EnumValue;
   /** Percentual (1 a 100) ou reais, conforme `discountType`. */
   discountValue: number;
+  /**
+   * Compra mínima para o cupom valer, em reais. **Ausente/nulo = sem mínimo** — o
+   * backend omite o campo nulo do JSON, então compare com `== null`.
+   */
+  minimumPurchaseAmount?: number | null;
   /** Início da vigência, inclusivo. Instante — leia a nota do topo da seção. */
   validFrom: string;
   /** Fim da vigência, inclusivo. Ausente = sem prazo. */
@@ -1406,6 +1411,12 @@ export interface CouponLookupDto {
   discountType: EnumValue;
   /** Percentual (1 a 100) ou reais, conforme `discountType`. */
   discountValue: number;
+  /**
+   * Compra mínima para o cupom valer, em reais. **Ausente/nulo = sem mínimo.** A
+   * consulta não recusa por ele: o carrinho ainda pode crescer, e o PDV mostra
+   * quanto falta.
+   */
+  minimumPurchaseAmount?: number | null;
   /** Fim da vigência, inclusivo. Ausente = sem prazo. Instante, nunca data pura. */
   validUntil?: string | null;
   /** Usos restantes agora. **Ausente/nulo = ILIMITADO.** Não é reserva nem promessa. */
@@ -1601,6 +1612,8 @@ export interface SaveCouponPayload {
   discountType: CouponDiscountTypeCode;
   /** Maior que zero; até 100 quando o tipo é percentual. */
   discountValue: number;
+  /** Compra mínima em reais, maior que zero, ou `null` para cupom sem mínimo. */
+  minimumPurchaseAmount?: number | null;
   /** Instante "yyyy-MM-ddTHH:mm:ss", sem `Z`. Obrigatório. */
   validFrom: string;
   /** Instante ou null/omitido para cupom sem prazo. Deve ser >= `validFrom`. */

@@ -139,6 +139,13 @@ export interface AppliedCoupon {
   discountType: CouponDiscountTypeCode;
   /** Percentual (1 a 100) ou reais, conforme {@link discountType}. */
   discountValue: number;
+  /**
+   * Compra mínima para o cupom valer, em reais. Ausente ou `null` = sem mínimo.
+   *
+   * Opcional na leitura porque as vendas pausadas no `localStorage` antes desta
+   * feature voltam sem o campo — e aí o cupom vale como valia quando foi aplicado.
+   */
+  minimumPurchaseAmount?: number | null;
   /** Respostas do questionário da campanha. Vazio é o caso normal. */
   answers: CouponAnswer[];
 }
@@ -220,7 +227,7 @@ export const toTotalsItems = (items: PdvItem[]): SaleItemForTotals[] =>
  *   ilegível (valor negativo, `NaN`) — virar acréscimo silencioso seria pior.
  */
 export function couponDiscountFor(coupon: AppliedCoupon | null, base: number): number {
-  if (!coupon) return 0;
+  if (!coupon || couponShortfall(coupon, base) > 0) return 0;
 
   const result = computeDiscount({
     base,
@@ -231,6 +238,26 @@ export function couponDiscountFor(coupon: AppliedCoupon | null, base: number): n
   if ("error" in result) return result.error === "excede-base" ? round2(Math.max(0, base)) : 0;
 
   return result.amount;
+}
+
+/**
+ * Quanto falta para a compra chegar ao mínimo do cupom. Zero quando chegou ou
+ * quando o cupom não tem mínimo.
+ *
+ * **Abaixo do mínimo o cupom fica SUSPENSO, e não é retirado.** O operador pode
+ * aplicar o cupom com o carrinho pela metade e bipar o resto depois; tirá-lo da
+ * venda o obrigaria a digitar o código de novo. Suspenso, ele abate zero, a tela
+ * mostra quanto falta e ele não vai no payload (ver `buildSalePayload`): o
+ * servidor recusaria a venda inteira por um cupom que o cliente não alcançou.
+ *
+ * @param coupon Cupom aplicado.
+ * @param base O que resta a pagar depois do desconto global — a mesma base do
+ *   abatimento e a que o servidor confere.
+ */
+export function couponShortfall(coupon: AppliedCoupon, base: number): number {
+  const minimum = coupon.minimumPurchaseAmount;
+  if (minimum == null || minimum <= 0) return 0;
+  return round2(Math.max(0, minimum - base));
 }
 
 /**

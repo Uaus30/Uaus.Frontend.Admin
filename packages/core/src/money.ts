@@ -52,6 +52,21 @@ export function parseAmountOrNull(value: string): number | null {
 }
 
 /**
+ * Número para preencher um campo de valor: o inverso de {@link parseAmount}.
+ *
+ * Vírgula decimal e nenhum separador de milhar. `String(29.9)` daria "29.9", e
+ * `parseAmount` lê o ponto como milhar: abrir um cadastro com R$ 29,90 e salvar
+ * sem mexer gravava R$ 299,00 — foi o que a revisão achou no formulário de cupom
+ * (01/10/2026), no valor do desconto e na compra mínima.
+ *
+ * @param value Valor como veio da API.
+ * @returns Texto que `parseAmount` lê de volta como o mesmo número.
+ */
+export function formatAmountInput(value: number): string {
+  return String(value).replace(".", ",");
+}
+
+/**
  * Valor monetário no formato pt-BR — "R$ 1.234,50".
  *
  * @param value Valor em reais.

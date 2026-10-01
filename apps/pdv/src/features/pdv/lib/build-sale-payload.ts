@@ -1,7 +1,7 @@
 import type { PaymentMethodDto } from "@workspace/api-client-react";
 import { round2 } from "@workspace/core";
 import type { RegisterSalePayload } from "@/services/sales.service";
-import { computeCartTotals } from "@/stores/use-pdv-store";
+import { computeCartTotals, couponShortfall } from "@/stores/use-pdv-store";
 import type { AppliedCoupon, CheckoutPayment, PdvItem, PdvConsumer } from "../types";
 
 /** O que a tela tem em mãos na hora de gravar a venda. */
@@ -61,6 +61,9 @@ export interface BuildSalePayloadParams {
  * 4. **Venda zerada pelo cupom vai com a lista de pagamentos VAZIA.** Nada foi
  *    recebido; mandar a forma escolhida com R$ 0,00 registraria um recebimento
  *    que não existiu e o servidor recusaria a venda.
+ * 5. **Cupom abaixo da compra mínima NÃO vai.** Ele está suspenso no carrinho e
+ *    abate zero; mandá-lo faria o servidor recusar a venda inteira por um cupom
+ *    que o cliente não alcançou (ver `couponShortfall`).
  *
  * Os totais saem de `computeCartTotals` — a MESMA função que o carrinho usa para
  * exibir o total. Enquanto a tela e o payload calculavam cada um o seu, o
@@ -88,6 +91,7 @@ export function buildSalePayload({
   // conferência; calcular sobre o subtotal cru daria um abatimento maior que o
   // impresso no comprovante que o cliente levou.
   const couponBase = round2(totals.subtotal - totals.globalDiscount);
+  const activeCoupon = coupon && couponShortfall(coupon, couponBase) === 0 ? coupon : null;
 
   return {
     promotionReferenceAt,
@@ -95,15 +99,15 @@ export function buildSalePayload({
     customerId: consumer.customerId,
     customerDocument: consumer.document,
     discount: round2(totals.globalDiscount + totals.couponDiscount),
-    coupon: coupon
+    coupon: activeCoupon
       ? {
-          couponId: coupon.couponId,
-          code: coupon.code,
-          discountType: coupon.discountType,
-          discountValue: coupon.discountValue,
+          couponId: activeCoupon.couponId,
+          code: activeCoupon.code,
+          discountType: activeCoupon.discountType,
+          discountValue: activeCoupon.discountValue,
           baseAmount: couponBase,
           discountAmount: totals.couponDiscount,
-          answers: coupon.answers.map((answer) => ({
+          answers: activeCoupon.answers.map((answer) => ({
             questionId: answer.questionId,
             optionId: answer.optionId,
           })),

@@ -127,6 +127,10 @@ Esperar pela configuração fecha a janela — quando ela chega, a consulta de s
 
 O checkout lista as formas por ID crescente. Sem ordenar, a lista herdava a ordem de quem respondeu (paginação da API num caminho, chave do IndexedDB no outro) e as formas trocavam de lugar ao cair a conexão — e o operador clica por posição. Por ID, o que a loja usa desde sempre fica no topo.
 
+### 13. Cupom abaixo da compra mínima fica suspenso, e não vai na venda
+
+Desde 01/10/2026 o cupom pode ter compra mínima. Abaixo dela o cupom **continua no carrinho e abate zero**, com a linha amarela "faltam R$ X" (`couponShortfall`, em `stores/pdv-cart.ts`). Ele não sai sozinho, para o operador não redigitar o código depois de bipar o resto. Se a venda for finalizada assim, `buildSalePayload` e `buildSaleReceipt` o deixam de fora: mandar o cupom faria o servidor recusar a venda inteira com o cliente no balcão. A base é a mesma do abatimento — subtotal menos o desconto da venda —, e é a que o servidor confere.
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

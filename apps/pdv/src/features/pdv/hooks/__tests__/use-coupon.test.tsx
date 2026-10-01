@@ -128,10 +128,29 @@ describe("useCoupon", () => {
       description: "Panfleto de setembro",
       discountType: COUPON_DISCOUNT_TYPE.Percentage,
       discountValue: 10,
+      // O backend omite o nulo; o hook guarda `null`, uma grafia só para "sem mínimo".
+      minimumPurchaseAmount: null,
       answers: [],
     });
     expect(result.current.discount).toBe(2);
     expect(usePdvStore.getState().getTotal()).toBe(18);
+  });
+
+  it("deve guardar a compra mínima e deixar o cupom suspenso enquanto o carrinho não chega nela", async () => {
+    mocks.lookupPdvCoupon.mockResolvedValue({ ...LOOKUP_10, minimumPurchaseAmount: 30 });
+    const { result } = renderHook(() => useCoupon());
+
+    await act(async () => {
+      await result.current.lookup("10OFFSET26");
+    });
+    act(() => {
+      result.current.apply([]);
+    });
+
+    // Carrinho de R$ 20,00 contra mínimo de R$ 30,00: o cupom fica na venda, mas abate zero.
+    expect(usePdvStore.getState().coupon?.minimumPurchaseAmount).toBe(30);
+    expect(result.current.discount).toBe(0);
+    expect(usePdvStore.getState().getTotal()).toBe(20);
   });
 
   it("deve reajustar o abatimento quando um item é bipado depois do cupom", async () => {

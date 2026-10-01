@@ -1,7 +1,7 @@
 import { Tag, Ticket, Trash2 } from "lucide-react";
 import { Button, useToast } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
-import { usePdvStore } from "@/stores/use-pdv-store";
+import { couponShortfall, usePdvStore } from "@/stores/use-pdv-store";
 
 type PdvCartTotalsProps = {
   /** Soma dos itens já com os descontos de linha. */
@@ -34,6 +34,8 @@ export function PdvCartTotals({ subtotal, total }: PdvCartTotalsProps) {
   // abatimento sozinho, e é este número que vai ao payload e ao comprovante.
   const couponDiscount = usePdvStore((state) => state.getCouponDiscount());
   const removeCoupon = usePdvStore((state) => state.removeCoupon);
+  // Base do cupom: o que resta depois do desconto da venda, a mesma da conta.
+  const shortfall = coupon ? couponShortfall(coupon, Math.max(0, subtotal - globalDiscount)) : 0;
 
   return (
     <>
@@ -74,10 +76,15 @@ export function PdvCartTotals({ subtotal, total }: PdvCartTotalsProps) {
             impresso. O cupom aparece mesmo abatendo zero — ele foi apresentado
             no balcão, e sumir da tela faria o operador aplicá-lo de novo. */}
         {coupon && (
-          <div className="flex justify-between items-center text-emerald-500 font-bold text-sm">
+          <div
+            className={`flex justify-between items-center font-bold text-sm ${shortfall > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-500"}`}
+          >
             <span className="flex items-center gap-1 min-w-0">
               <Ticket className="w-3 h-3 shrink-0" />
-              <span className="truncate">CUPOM {coupon.code}</span>
+              <span className="truncate">
+                CUPOM {coupon.code}
+                {shortfall > 0 && ` · faltam ${formatCurrency(shortfall)}`}
+              </span>
             </span>
             <div className="flex items-center gap-1.5">
               <span className="font-mono">- {formatCurrency(couponDiscount)}</span>

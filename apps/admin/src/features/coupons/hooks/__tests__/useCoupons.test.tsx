@@ -98,6 +98,7 @@ const formVerao: CouponForm = {
   description: "  Verão 2026  ",
   discountType: COUPON_DISCOUNT_TYPE.Percentage,
   discountValue: "10",
+  minimumPurchaseAmount: "",
   validFromDate: new Date(2026, 8, 1),
   validFromTime: "00:00",
   validUntilDate: new Date(2026, 8, 30),
@@ -180,6 +181,8 @@ describe("useCoupons", () => {
         description: "Verão 2026",
         discountType: COUPON_DISCOUNT_TYPE.Percentage,
         discountValue: 10,
+        // Campo vazio = sem mínimo: null, nunca 0 (que o servidor recusa).
+        minimumPurchaseAmount: null,
         // Instante local, nunca `toISOString()` — que voltaria um dia no Brasil.
         validFrom: "2026-09-01T00:00:00",
         // O fim fecha em :59 para o cupom valer o último dia INTEIRO.
@@ -224,6 +227,38 @@ describe("useCoupons", () => {
     expect(mocks.createCoupon).not.toHaveBeenCalled();
     expect(mocks.toast).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Teto de usos inválido", variant: "destructive" }),
+    );
+  });
+
+  it("deve enviar a compra mínima digitada em reais", async () => {
+    const { wrapper } = criarWrapper();
+    const { result } = renderHook(() => useCoupons(), { wrapper });
+
+    act(() => result.current.handleOpenCreate());
+    act(() => result.current.setForm({ ...formVerao, minimumPurchaseAmount: "30,00" }));
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() => expect(mocks.createCoupon).toHaveBeenCalled());
+    expect(mocks.createCoupon.mock.calls[0][0].minimumPurchaseAmount).toBe(30);
+  });
+
+  it.each(["abc", "0", "-5"])("deve recusar a compra mínima %s sem chamar a API", async (digitado) => {
+    // Texto ilegível não pode virar "sem mínimo" calado: tiraria do panfleto uma
+    // condição que o administrador digitou.
+    const { wrapper } = criarWrapper();
+    const { result } = renderHook(() => useCoupons(), { wrapper });
+
+    act(() => result.current.handleOpenCreate());
+    act(() => result.current.setForm({ ...formVerao, minimumPurchaseAmount: digitado }));
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    expect(mocks.createCoupon).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Compra mínima inválida", variant: "destructive" }),
     );
   });
 
@@ -368,6 +403,29 @@ describe("useCoupons", () => {
           validFrom: "2026-09-01T00:00:00",
           validUntil: "2026-09-30T23:59:59",
         }),
+      ),
+    );
+  });
+
+  it("deve devolver valor e compra mínima com centavos intactos ao editar sem mexer", async () => {
+    // Regressão (revisão de 01/10/2026): o formulário era preenchido com String(29.9)
+    // = "29.9", e parseAmount lê o ponto como milhar — salvar só a descrição gravava
+    // o mínimo de R$ 299,00 e o desconto de R$ 75,00, sem confirmação nenhuma.
+    const { wrapper } = criarWrapper();
+    const { result } = renderHook(() => useCoupons(), { wrapper });
+
+    act(() =>
+      result.current.handleOpenEdit({ ...cupomSemUso, discountValue: 7.5, minimumPurchaseAmount: 29.9 }),
+    );
+    act(() => result.current.setForm({ ...result.current.form, description: "Panfleto de outubro" }));
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() =>
+      expect(mocks.updateCoupon).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ discountValue: 7.5, minimumPurchaseAmount: 29.9 }),
       ),
     );
   });

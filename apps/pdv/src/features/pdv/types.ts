@@ -67,6 +67,8 @@ export interface FoundCoupon {
   /** Código do enum `CouponDiscountType`: 1 = percentual, 2 = valor fixo. */
   discountType: AppliedCoupon["discountType"];
   discountValue: number;
+  /** Compra mínima para o cupom valer, em reais. `null` = sem mínimo. */
+  minimumPurchaseAmount: number | null;
   /**
    * Usos restantes no instante da consulta. **`null` = ILIMITADO**, nunca "zero
    * usos": ler o nulo como esgotado recusaria justamente o cupom sem teto.

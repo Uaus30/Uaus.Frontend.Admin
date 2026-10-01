@@ -81,6 +81,9 @@ function fromLocalCoupon(
     description: coupon.description,
     discountType,
     discountValue: coupon.discountValue,
+    // A base local de cupons ainda não traz o mínimo; trazer os cupons para ela é a
+    // demanda dos panfletos, e o mínimo entra junto.
+    minimumPurchaseAmount: null,
     remainingUses,
     overLimit,
     fromLocalDatabase: true,
@@ -174,6 +177,8 @@ export function useCoupon() {
             description: dto.description ?? null,
             discountType,
             discountValue: dto.discountValue,
+            // Omitido no JSON quando não há mínimo; `?? null` mantém uma grafia só.
+            minimumPurchaseAmount: dto.minimumPurchaseAmount ?? null,
             // `?? null` obrigatório: o backend OMITE campo nulo do JSON, e nulo
             // aqui significa ILIMITADO. Ler a ausência como zero esgotaria todo
             // cupom sem teto — que é a maioria deles.
@@ -233,6 +238,7 @@ export function useCoupon() {
         description: found.description,
         discountType: found.discountType,
         discountValue: found.discountValue,
+        minimumPurchaseAmount: found.minimumPurchaseAmount,
         answers,
       });
 

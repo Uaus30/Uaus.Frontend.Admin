@@ -109,7 +109,14 @@ export function CouponsTable({ items, isLoading, isBusy, onEdit, onDelete }: Cou
                   {COUPON_DISCOUNT_TYPE_LABEL[enumCode(item.discountType, COUPON_DISCOUNT_TYPE)] ?? "—"}
                 </TableCell>
 
-                <TableCell className="font-mono">{formatDiscount(item)}</TableCell>
+                <TableCell>
+                  <span className="font-mono">{formatDiscount(item)}</span>
+                  {item.minimumPurchaseAmount != null && (
+                    <span className="block text-xs text-muted-foreground">
+                      a partir de {formatCurrency(item.minimumPurchaseAmount)}
+                    </span>
+                  )}
+                </TableCell>
 
                 <TableCell className={expired ? "text-destructive text-sm" : "text-muted-foreground text-sm"}>
                   {formatDate(item.validFrom)} — {item.validUntil ? formatDate(item.validUntil) : "sem prazo"}

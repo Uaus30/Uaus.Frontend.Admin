@@ -233,6 +233,11 @@ export function CouponDialog({ open, onOpenChange }: CouponDialogProps) {
                 </span>
               </p>
               {found.description && <p className="text-sm text-muted-foreground">{found.description}</p>}
+              {found.minimumPurchaseAmount != null && (
+                <p className="text-sm font-semibold mt-1">
+                  Em compras a partir de {formatCurrency(found.minimumPurchaseAmount)}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 {found.remainingUses === null ? "Usos ilimitados" : `Restam ${found.remainingUses} uso(s)`}
                 {found.fromLocalDatabase && " · conferido na base local"}

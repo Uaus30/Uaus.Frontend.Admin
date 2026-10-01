@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatAmountInput,
   formatCurrency,
   formatPercentage,
   formatQuantity,
@@ -100,6 +101,20 @@ describe("parseAmountOrNull", () => {
   it("aceita zero e negativo — a validação de faixa é de quem chama", () => {
     expect(parseAmountOrNull("0")).toBe(0);
     expect(parseAmountOrNull("-5,00")).toBe(-5);
+  });
+});
+
+describe("formatAmountInput", () => {
+  it("devolve um texto que parseAmount lê como o mesmo número", () => {
+    // Regressão: String(29.9) = "29.9", que parseAmount lia como 299.
+    for (const value of [29.9, 7.5, 30, 0.01, 1234.56, 12.5]) {
+      expect(parseAmount(formatAmountInput(value))).toBe(value);
+    }
+  });
+
+  it("usa vírgula decimal", () => {
+    expect(formatAmountInput(29.9)).toBe("29,9");
+    expect(formatAmountInput(30)).toBe("30");
   });
 });
 

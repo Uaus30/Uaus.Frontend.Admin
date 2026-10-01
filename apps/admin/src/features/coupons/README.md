@@ -157,7 +157,27 @@ só para o seletor do formulário e para o filtro.
 
 ---
 
-## 8. O que esta feature NÃO cobre
+## 8. Compra mínima: o campo VAZIO é "sem mínimo"
+
+`minimumPurchaseAmount` é opcional (01/10/2026). Vazio no formulário vira `null`
+no payload, e o cupom vale em qualquer compra; se for maior que ela, zera a venda.
+**Zero não é "sem mínimo"**: zero, negativo e texto ilegível são recusados na
+tela, com toast, sem chamar a API. Aceitar o zero criaria uma segunda grafia do
+mesmo conceito, e o servidor (e o `CHECK` do banco) o recusam de qualquer jeito.
+
+Por isso o campo é lido com `parseAmountOrNull` **mais** a conferência de texto
+digitado: `parseAmountOrNull("")` devolve 0, que aqui não pode virar mínimo zero.
+
+A base comparada com o mínimo é a do abatimento (subtotal menos o desconto
+manual), a mesma no PDV e no servidor. No balcão, abaixo do mínimo o cupom fica
+suspenso; a regra completa está em `Uaus.Docs/dominio/cupons-e-fidelidade.md`.
+
+Mudar o mínimo de um cupom já resgatado entra na confirmação de "definição
+alterada" e no log `CouponDefinitionChanged`, como valor e vigência.
+
+---
+
+## 9. O que esta feature NÃO cobre
 
 - **A atomicidade do contador de uso não tem teste aqui** — e não tem em lugar
   nenhum do front. O consumo concorrente é um `UPDATE` condicional no Postgres, e

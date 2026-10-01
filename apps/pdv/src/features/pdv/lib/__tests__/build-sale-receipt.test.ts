@@ -131,6 +131,14 @@ describe("buildSaleReceipt", () => {
     });
   });
 
+  it("não deve imprimir o cupom suspenso pela compra mínima", () => {
+    // R$ 16,00 de compra com mínimo de R$ 30,00: o cupom não foi para a venda, e o
+    // papel não pode mostrar um desconto que o cliente não teve.
+    const receipt = build({ coupon: { ...CUPOM_20, minimumPurchaseAmount: 30 } });
+
+    expect(receipt.coupon).toBeUndefined();
+  });
+
   it("deve imprimir o cupom de valor fixo em reais", () => {
     const receipt = build({ coupon: CUPOM_20 });
 

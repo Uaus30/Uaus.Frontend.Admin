@@ -222,6 +222,52 @@ describe("buildSalePayload", () => {
     expect(payload.payments).toEqual([]);
   });
 
+  describe("compra mínima do cupom", () => {
+    /** R$ 5,00 em compras a partir de R$ 30,00, como o panfleto da análise. */
+    const PANFLETO: AppliedCoupon = {
+      ...CUPOM_20,
+      couponId: 9,
+      code: "PANFLETO5",
+      discountValue: 5,
+      minimumPurchaseAmount: 30,
+    };
+
+    it("não deve mandar o cupom abaixo do mínimo, e a venda segue sem o desconto", () => {
+      // R$ 16,00 no carrinho: o cupom está suspenso. Mandá-lo faria o servidor recusar
+      // a venda inteira com o cliente esperando.
+      const payload = build({ items: [ITEM], coupon: PANFLETO });
+
+      expect(payload.coupon).toBeNull();
+      expect(payload.discount).toBe(0);
+      expect(computeSaleTotal(payload.items, payload.discount)).toBe(16);
+    });
+
+    it("deve comparar o mínimo com a base DEPOIS do desconto global", () => {
+      // Subtotal 46,00 menos 17,00 de desconto manual = 29,00: abaixo dos 30,00.
+      expect(build({ items: [ITEM, ITEM_30], globalDiscount: 17, coupon: PANFLETO }).coupon).toBeNull();
+      // Com 16,00 de desconto a base é 30,00 e o cupom vale.
+      expect(
+        build({ items: [ITEM, ITEM_30], globalDiscount: 16, coupon: PANFLETO }).coupon?.discountAmount,
+      ).toBe(5);
+    });
+
+    it("deve aplicar o cupom quando a compra chega ao mínimo", () => {
+      const payload = build({ items: [ITEM, ITEM_30], coupon: PANFLETO });
+
+      expect(payload.coupon?.baseAmount).toBe(46);
+      expect(payload.coupon?.discountAmount).toBe(5);
+      expect(payload.discount).toBe(5);
+    });
+
+    it("cupom pausado antes da compra mínima existir vale como valia", () => {
+      // Venda em espera no localStorage volta sem o campo: sem mínimo.
+      const semCampo: AppliedCoupon = { ...CUPOM_20 };
+      delete semCampo.minimumPurchaseAmount;
+
+      expect(build({ items: [ITEM], coupon: semCampo }).coupon?.discountAmount).toBe(16);
+    });
+  });
+
   it("deve arredondar valores em duas casas", () => {
     const payload = buildSalePayload({
       sessionId: null,

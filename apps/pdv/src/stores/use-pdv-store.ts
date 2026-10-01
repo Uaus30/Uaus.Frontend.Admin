@@ -37,6 +37,7 @@ export {
   EMPTY_CONSUMER,
   computeCartTotals,
   couponDiscountFor,
+  couponShortfall,
   itemListPrice,
   toTotalsItems,
 } from "./pdv-cart";
