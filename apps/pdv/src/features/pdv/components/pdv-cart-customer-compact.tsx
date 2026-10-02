@@ -47,7 +47,8 @@ export function PdvCartCustomerCompact() {
       <span
         className={`${chip} border-amber-500/50 bg-amber-400/15 font-semibold text-amber-800 dark:text-amber-300`}
       >
-        <Star className="h-3.5 w-3.5 fill-current" aria-hidden /> {firstName} vai ganhar 1 carimbo
+        <Star className="h-3.5 w-3.5 fill-current" aria-hidden /> {firstName}{" "}
+        {loyalty.completesCard ? "vai completar o cartão!" : "vai ganhar 1 carimbo"}
       </span>
     ) : loyalty?.hasItems ? (
       <span className={`${chip} border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-300`}>

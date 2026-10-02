@@ -67,7 +67,10 @@ export function PdvLoyaltyCard() {
       {loyalty.hasItems &&
         (loyalty.earnsStamp ? (
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-400/15 px-2.5 py-1.5 text-sm font-semibold text-amber-800 dark:text-amber-300">
-            <Star className="h-4 w-4 shrink-0 fill-current" /> Esta compra vai ganhar 1 carimbo
+            <Star className="h-4 w-4 shrink-0 fill-current" />{" "}
+            {loyalty.completesCard
+              ? "Esta compra vai completar o cartão!"
+              : "Esta compra vai ganhar 1 carimbo"}
           </div>
         ) : (
           <div className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-sm text-sky-800 dark:text-sky-300">

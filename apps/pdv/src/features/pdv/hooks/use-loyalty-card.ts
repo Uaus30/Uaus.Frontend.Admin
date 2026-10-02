@@ -53,6 +53,13 @@ export function useLoyaltyCard() {
     /** "7 de 10 carimbos", ou "cartão novo" antes do primeiro. */
     cardLabel: required ? `${stamps} de ${required} carimbos` : "cartão novo",
     earnsStamp: progress.earnsStamp,
+    /**
+     * O carimbo desta compra completa o cartão: o aviso troca "vai ganhar 1
+     * carimbo" por "vai completar o cartão!" (pedido do dono, 01/10/2026). Com o
+     * extra configurado (o de fábrica é 1), são dois carimbos de uma vez — o
+     * último deste cartão e o extra do novo —, e o cartão digital mostra os dois.
+     */
+    completesCard: progress.earnsStamp && required != null && stamps + 1 >= required,
     /** O que falta para o carimbo, já em reais. */
     missing: formatCurrency(progress.missing),
     prizeApplied,

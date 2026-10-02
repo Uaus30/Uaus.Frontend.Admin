@@ -170,6 +170,23 @@ describe("cliente e cartão no carrinho compacto", () => {
     expect(container.querySelectorAll(".rounded-lg")).toHaveLength(0);
   });
 
+  it('na compra que completa o cartão, avisa: "Wagner vai completar o cartão!"', async () => {
+    // 9 de 10: o carimbo desta compra fecha o cartão (e o novo nasce com o extra).
+    mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, card: { ...STATUS.card!, stamps: 9 } });
+    const { container } = renderCard(true);
+
+    await screen.findByRole("button", { name: "Guardar para a próxima" });
+    expect(container.textContent).toContain("Wagner vai completar o cartão!");
+    expect(container.textContent).not.toContain("vai ganhar 1 carimbo");
+  });
+
+  it("no estendido, a caixa dourada diz o mesmo", async () => {
+    mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, card: { ...STATUS.card!, stamps: 9 } });
+    renderCard();
+
+    expect(await screen.findByText(/Esta compra vai completar o cartão!/)).toBeTruthy();
+  });
+
   it("abaixo do mínimo, diz quanto falta com o nome e não escreve o aviso que quebraria a linha", async () => {
     // R$ 6,00: abaixo dos R$ 10 do carimbo e do prêmio — ele fica suspenso.
     usePdvStore.setState({ items: [{ ...ITEM, price: 6 }] });
