@@ -25,11 +25,16 @@ import { CustomerDialog } from "./customer-dialog";
 import { LoyaltyResultDialog } from "./loyalty-result-dialog";
 import { LoyaltyStatementDialog } from "./loyalty-statement-dialog";
 import { useLoyaltySync } from "../hooks/use-loyalty";
+import type { IdentifiedSalesCount } from "../lib/identified-sales";
 import { PreferencesDialog } from "./preferences-dialog";
 
 type PdvDialogsProps = {
   /** Devolve o cursor à busca de produto quando o cartão digital fecha. */
   onLoyaltyClosed?: () => void;
+  /** Vendas com cliente identificado no período, para o Desempenho. */
+  identifiedSales?: IdentifiedSalesCount | null;
+  /** "Neste turno" ou "Hoje", conforme a loja controla caixa. */
+  identifiedPeriodLabel?: string;
   dialogs: PdvDialogControls;
   checkout: CheckoutState;
   /** Uma venda está sendo gravada — o botão de confirmar trava. */
@@ -79,6 +84,8 @@ type PdvDialogsProps = {
  */
 export function PdvDialogs({
   onLoyaltyClosed,
+  identifiedSales = null,
+  identifiedPeriodLabel = "Hoje",
   dialogs,
   checkout,
   savingSale,
@@ -209,7 +216,12 @@ export function PdvDialogs({
         onCloseRegister={register.onCloseRegister}
       />
 
-      <PerformanceDialog open={dialogs.performance.open} onOpenChange={dialogs.performance.setOpen} />
+      <PerformanceDialog
+        open={dialogs.performance.open}
+        onOpenChange={dialogs.performance.setOpen}
+        identifiedSales={identifiedSales}
+        identifiedPeriodLabel={identifiedPeriodLabel}
+      />
 
       <HeldSalesDialog
         open={dialogs.heldSales.open}

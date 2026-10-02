@@ -4,7 +4,9 @@ import { PAYMENT_STATUS, enumCode, type SaleDto } from "@workspace/api-client-re
 export type IdentifiedSalesCount = { identified: number; total: number };
 
 /**
- * O contador do balcão (01/10/2026): "Neste turno: 4 de 13 vendas com cliente".
+ * O contador do Desempenho (01/10/2026): "Neste turno: 4 de 13 vendas com
+ * cliente identificado". Nasceu no carrinho e foi para o Desempenho a pedido do
+ * dono, para poupar a altura da tela HD do caixa.
  *
  * O programa de fidelidade só funciona com o cliente identificado, e a meta do
  * dono é chegar a 30% das vendas de dezembro com cliente. O número à vista lembra

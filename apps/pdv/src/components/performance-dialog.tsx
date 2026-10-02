@@ -3,6 +3,7 @@ import { BarChart3, Loader2, TrendingDown, TrendingUp } from "lucide-react";
 import { describeApiError, formatCurrency } from "@workspace/core";
 import { useGetStorePerformance } from "@workspace/api-client-react";
 import { describePreviousDay } from "@/lib/performance";
+import type { IdentifiedSalesCount } from "@/features/pdv/lib/identified-sales";
 import { WeekdayComparisonChart } from "./weekday-comparison-chart";
 
 /**
@@ -18,6 +19,14 @@ import { WeekdayComparisonChart } from "./weekday-comparison-chart";
 export interface PerformanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Vendas com cliente identificado no período (01/10/2026). Saiu do carrinho a
+   * pedido do dono, para poupar a altura da tela HD do caixa; é aqui que o
+   * operador confere a meta.
+   */
+  identifiedSales?: IdentifiedSalesCount | null;
+  /** "Neste turno" com controle de caixa, "Hoje" sem. */
+  identifiedPeriodLabel?: string;
 }
 
 /**
@@ -71,7 +80,12 @@ function AccumulatedRow({
   );
 }
 
-export function PerformanceDialog({ open, onOpenChange }: PerformanceDialogProps) {
+export function PerformanceDialog({
+  open,
+  onOpenChange,
+  identifiedSales = null,
+  identifiedPeriodLabel = "Hoje",
+}: PerformanceDialogProps) {
   // A consulta só sai quando a modal abre, e o dado é considerado fresco por um
   // minuto: o operador costuma abrir e fechar várias vezes no mesmo turno.
   const { data, isLoading, error } = useGetStorePerformance({
@@ -141,6 +155,15 @@ export function PerformanceDialog({ open, onOpenChange }: PerformanceDialogProps
                     <b className="text-foreground font-mono">{formatCurrency(data.today.averageTicket)}</b>
                   </span>
                 </div>
+
+                {identifiedSales && identifiedSales.total > 0 && (
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    {identifiedPeriodLabel}:{" "}
+                    <b className="font-mono text-foreground">{identifiedSales.identified}</b> de{" "}
+                    <b className="font-mono text-foreground">{identifiedSales.total}</b> vendas com cliente
+                    identificado
+                  </p>
+                )}
               </div>
 
               <WeekdayComparisonChart days={data.weekdayComparison} />

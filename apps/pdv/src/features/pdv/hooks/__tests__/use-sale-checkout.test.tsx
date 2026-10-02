@@ -27,6 +27,7 @@ vi.mock("@workspace/ui", () => ({
 }));
 
 const { useSaleCheckout } = await import("../use-sale-checkout");
+const { useLoyaltyStore } = await import("../use-loyalty");
 const { usePdvStore } = await import("@/stores/use-pdv-store");
 // `computeSaleTotal` é a função DE VERDADE (o mock preserva o resto do módulo):
 // é a mesma conta que o servidor refaz para conferir a venda.
@@ -204,6 +205,45 @@ describe("useSaleCheckout", () => {
 
     expect(printReceipt).toHaveBeenCalledTimes(1);
     expect(focusSearch).toHaveBeenCalled();
+  });
+
+  it("com o cartão digital na tela, não imprime sozinho: o comprovante sai dele", async () => {
+    useLoyaltyStore.getState().setLastResult(null);
+    usePdvStore.setState({ consumer: { customerId: 3, name: "Wagner", document: "" } });
+    registerSale.mockResolvedValue({
+      id: 42,
+      receiptNumber: 42,
+      clientReference: "ref",
+      occurredAt: "2026-08-15T12:00:00",
+      total: 16,
+      notes: null,
+      offline: false,
+      loyalty: {
+        stamped: true,
+        stampNumber: 3,
+        cardCompleted: false,
+        unlockedRewards: [],
+        minimumPurchaseForStamp: 10,
+      },
+    });
+
+    const { result } = render();
+    await act(() => result.current.confirmPayment());
+
+    expect(useLoyaltyStore.getState().lastResult).toMatchObject({ customerId: 3, customerName: "Wagner" });
+    expect(useLoyaltyStore.getState().lastResult?.receipt).toMatchObject({ saleId: 42 });
+    expect(printReceipt).not.toHaveBeenCalled();
+  });
+
+  it("venda com cliente mas sem cartão (programa desligado) continua imprimindo", async () => {
+    useLoyaltyStore.getState().setLastResult(null);
+    usePdvStore.setState({ consumer: { customerId: 3, name: "Wagner", document: "" } });
+
+    const { result } = render();
+    await act(() => result.current.confirmPayment());
+
+    expect(useLoyaltyStore.getState().lastResult).toBeNull();
+    expect(printReceipt).toHaveBeenCalledTimes(1);
   });
 
   it("não deve recarregar o histórico de uma venda que ficou na fila", async () => {

@@ -52,6 +52,24 @@ describe("PdvCartActionsExtended", () => {
 });
 
 describe("PdvCartActionsCompact", () => {
+  it("deve oferecer o Cliente na engrenagem, e trocar depois de identificado", () => {
+    const onCustomer = vi.fn();
+    const { unmount } = renderWithHints(<PdvCartActionsCompact {...props({ onCustomer })} />);
+    openDrawer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cliente (F2)" }));
+    expect(onCustomer).toHaveBeenCalled();
+    unmount();
+
+    renderWithHints(<PdvCartActionsCompact {...props({ onCustomer, customerName: "Wagner" })} />);
+    openDrawer();
+    expect(screen.getByRole("button", { name: "Trocar cliente (F2)" })).toBeDefined();
+    // Duas fileiras, não três: a gaveta tem a altura do rodapé do compacto.
+    expect(
+      screen.getByRole("dialog", { name: "Ações da venda" }).querySelector(".grid-cols-3"),
+    ).not.toBeNull();
+  });
+
   it("deve esconder os quatro botões até a engrenagem ser tocada", () => {
     renderWithHints(<PdvCartActionsCompact {...props()} />);
 

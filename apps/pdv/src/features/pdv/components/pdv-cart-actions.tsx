@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { PauseCircle, Settings, Tag, Ticket, X } from "lucide-react";
+import { PauseCircle, Settings, Tag, Ticket, UserRound, X } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Hint } from "@/components/hint";
+import { CUSTOMER_SHORTCUT_KEY } from "../hooks/use-customer-dialog";
 import { COUPON_SHORTCUT_KEY } from "./coupon-dialog";
 
 export type PdvCartActionsProps = {
@@ -26,6 +27,13 @@ export type PdvCartActionsProps = {
   onHoldSale: () => void;
   /** Pede a confirmação de cancelamento — nunca cancela direto. */
   onCancelSale: () => void;
+  /**
+   * Abre a busca de cliente. No compacto o botão Cliente mora na engrenagem
+   * (pedido do dono, 01/10/2026); o estendido mantém o botão no carrinho.
+   */
+  onCustomer?: () => void;
+  /** O cliente já identificado: o botão vira "trocar cliente". */
+  customerName?: string | null;
 };
 
 /**
@@ -141,6 +149,8 @@ export function PdvCartActionsCompact({
   onCoupon,
   onHoldSale,
   onCancelSale,
+  onCustomer,
+  customerName,
 }: PdvCartActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -215,7 +225,11 @@ export function PdvCartActionsCompact({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween", duration: 0.18, ease: "easeOut" }}
-            className="absolute inset-y-0 right-0 z-30 flex w-[15rem] max-w-full flex-col gap-2 rounded-l-xl border border-border/60 bg-card/80 p-3 shadow-2xl backdrop-blur-md"
+            // Com o Cliente, 3 colunas e mais largura em vez de uma 3ª fileira: a
+            // gaveta tem a altura do rodapé, e o rodapé do compacto sem cliente
+            // (sem a linha do cliente, sem desconto nem cupom) tem uns 160px — uma
+            // fileira a mais cortava PAUSAR e CANCELAR.
+            className={`absolute inset-y-0 right-0 z-30 flex ${onCustomer ? "w-[20rem]" : "w-[15rem]"} max-w-full flex-col gap-2 rounded-l-xl border border-border/60 bg-card/80 p-3 shadow-2xl backdrop-blur-md`}
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -231,7 +245,28 @@ export function PdvCartActionsCompact({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className={`grid gap-2 ${onCustomer ? "grid-cols-3" : "grid-cols-2"}`}>
+              {onCustomer && (
+                // Primeiro: identificar o cliente vem antes de tudo na venda, e é o
+                // que o programa de fidelidade precisa.
+                <Hint
+                  label={`${customerName ? "Trocar o cliente" : "Identificar o cliente"} (${CUSTOMER_SHORTCUT_KEY})`}
+                >
+                  <Button
+                    variant="outline"
+                    aria-label={
+                      customerName
+                        ? `Trocar cliente (${CUSTOMER_SHORTCUT_KEY})`
+                        : `Cliente (${CUSTOMER_SHORTCUT_KEY})`
+                    }
+                    className="h-9 gap-1 text-[10px] font-bold tracking-wider border-primary/20 hover:bg-primary/5 cursor-pointer"
+                    onMouseDown={keepFocusOnSearch}
+                    onClick={run(onCustomer)}
+                  >
+                    <UserRound className="h-3.5 w-3.5" /> {customerName ? "TROCAR" : "CLIENTE"}
+                  </Button>
+                </Hint>
+              )}
               <Button
                 variant="outline"
                 className="h-9 gap-1 text-[10px] font-bold tracking-wider border-primary/20 hover:bg-primary/5 cursor-pointer"
@@ -263,7 +298,7 @@ export function PdvCartActionsCompact({
               </Hint>
               <Button
                 variant="outline"
-                className="h-9 text-[10px] font-bold tracking-wider border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer"
+                className={`h-9 text-[10px] font-bold tracking-wider border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer ${onCustomer ? "col-span-2" : ""}`}
                 onClick={run(onCancelSale)}
                 disabled={!hasItems}
               >

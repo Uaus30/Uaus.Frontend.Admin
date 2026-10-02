@@ -246,13 +246,13 @@ export default function Pdv() {
           checkoutBlocked={(mode.saleRequiresSession && !sessionId) || salesPaused}
           onApplyGlobalDiscount={dialogs.discount.show}
           onHoldSale={counter.holdSale}
-          identifiedSales={identifiedSales}
-          identifiedPeriodLabel={mode.requiresOpenSession ? "Neste turno" : "Hoje"}
         />
       </main>
 
       <PdvDialogs
         onLoyaltyClosed={counter.focusSearch}
+        identifiedSales={identifiedSales}
+        identifiedPeriodLabel={mode.requiresOpenSession ? "Neste turno" : "Hoje"}
         dialogs={dialogs}
         checkout={checkout}
         savingSale={savingSale}

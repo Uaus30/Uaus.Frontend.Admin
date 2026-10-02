@@ -5,28 +5,21 @@ import { Hint } from "@/components/hint";
 import { EMPTY_CONSUMER, hasIdentifiedCustomer, usePdvStore } from "@/stores/use-pdv-store";
 import { CUSTOMER_SHORTCUT_KEY, useCustomerDialog } from "../hooks/use-customer-dialog";
 import { useLoyaltyStore } from "../hooks/use-loyalty";
-import type { IdentifiedSalesCount } from "../lib/identified-sales";
-
-type PdvCartCustomerProps = {
-  /** O contador do balcão; nulo enquanto as vendas do período não chegaram. */
-  identifiedSales: IdentifiedSalesCount | null;
-  /** "Neste turno" com controle de caixa, "Hoje" sem. */
-  periodLabel: string;
-};
 
 /** Ver `keepFocusOnSearch` em `pdv-cart-actions.tsx`: o foco não sai da busca de produto. */
 const keepFocusOnSearch = (event: { preventDefault: () => void }) => event.preventDefault();
 
 /**
- * O cliente da venda no carrinho (01/10/2026): o botão Cliente (F2) enquanto
- * ninguém foi identificado, e o nome com o telefone depois.
+ * O cliente da venda no carrinho ESTENDIDO (01/10/2026): o botão Cliente (F2)
+ * enquanto ninguém foi identificado, e o nome com o telefone depois. No
+ * compacto, o botão mora na engrenagem e o cliente vai numa linha só com o
+ * cartão fidelidade (`pdv-cart-customer-compact.tsx`).
  *
  * Fica no carrinho, e não só no checkout, porque o programa de fidelidade
  * precisa do cliente ANTES de fechar: é ele que diz quanto falta para o carimbo
- * e aplica o prêmio. Embaixo, o contador do período lembra o operador de
- * perguntar.
+ * e aplica o prêmio. O contador de vendas com cliente fica no Desempenho.
  */
-export function PdvCartCustomer({ identifiedSales, periodLabel }: PdvCartCustomerProps) {
+export function PdvCartCustomer() {
   const consumer = usePdvStore((state) => state.consumer);
   const setConsumer = usePdvStore((state) => state.setConsumer);
   const show = useCustomerDialog((state) => state.show);
@@ -89,11 +82,6 @@ export function PdvCartCustomer({ identifiedSales, periodLabel }: PdvCartCustome
         >
           <UserRound className="h-4 w-4" /> CLIENTE ({CUSTOMER_SHORTCUT_KEY})
         </Button>
-      )}
-      {identifiedSales && identifiedSales.total > 0 && (
-        <p className="text-center text-[11px] text-muted-foreground">
-          {periodLabel}: {identifiedSales.identified} de {identifiedSales.total} vendas com cliente
-        </p>
       )}
     </div>
   );

@@ -271,6 +271,7 @@ export function useSaleCheckout({
       // O cartão digital da venda com cliente. Antes do `finishSale`, que zera o
       // cliente do carrinho; e o cartão em cache sai, para a próxima
       // identificação ler os carimbos de agora.
+      const showsLoyaltyCard = Boolean(saved.loyalty) && consumer.customerId !== null;
       if (saved.loyalty && consumer.customerId !== null) {
         useLoyaltyStore.getState().setLastResult({
           outcome: saved.loyalty,
@@ -286,14 +287,20 @@ export function useSaleCheckout({
       setAmountReceived("");
       onSaleFinished();
 
+      // Com o cartão digital na tela, não imprime sozinho (pedido do dono,
+      // 01/10/2026): o cartão já oferece o comprovante, com ou sem o saldo, e a
+      // caixa de impressão do navegador abria por cima dele. O cursor volta para
+      // a busca quando o cartão fecha (`onLoyaltyClosed`).
+      if (showsLoyaltyCard) return;
+
       // Sem await: a caixa de impressão é modal e não pode segurar o botão de
       // finalizar, que já pode liberar para a próxima venda. O cursor volta para
       // a busca quando a impressão sai do caminho.
       //
-      // Sempre imprime — a preferência "imprimir ao finalizar" saiu das
-      // Preferências em 01/09/2026. Ela duplicava a decisão: quem não quer o
-      // papel já fecha a caixa de diálogo do navegador, e o desligado deixava o
-      // operador achando que a impressora tinha falhado.
+      // Sem o cartão, sempre imprime — a preferência "imprimir ao finalizar"
+      // saiu das Preferências em 01/09/2026. Ela duplicava a decisão: quem não
+      // quer o papel já fecha a caixa de diálogo do navegador, e o desligado
+      // deixava o operador achando que a impressora tinha falhado.
       void sendReceiptToPrinter(receipt).then(focusSearch);
     } catch (error) {
       // A venda offline foi recusada pela conferência da base local. A mesma regra

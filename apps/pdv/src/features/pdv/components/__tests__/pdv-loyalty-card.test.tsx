@@ -12,6 +12,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
 }));
 
 const { PdvLoyaltyCard } = await import("../pdv-loyalty-card");
+const { PdvCartCustomerCompact } = await import("../pdv-cart-customer-compact");
 const { usePdvStore } = await import("@/stores/use-pdv-store");
 const { useOfflineStore } = await import("@/stores/use-offline-store");
 const { useLoyaltyStore, loyaltyStampBase, rewardToCoupon } = await import("../../hooks/use-loyalty");
@@ -69,18 +70,16 @@ const CODE_COUPON = {
   answers: [],
 };
 
-function renderCard() {
+function renderCard(compact = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <TooltipProvider>
-        <PdvLoyaltyCard />
-      </TooltipProvider>
+      <TooltipProvider>{compact ? <PdvCartCustomerCompact /> : <PdvLoyaltyCard />}</TooltipProvider>
     </QueryClientProvider>,
   );
 }
 
-describe.each(["compact", "extended"] as const)("card do programa no carrinho (%s)", (cartLayout) => {
+describe.each([false, true])("o programa no carrinho (compacto: %s)", (compact) => {
   beforeEach(() => {
     mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
     useOfflineStore.setState({ online: true });
@@ -89,18 +88,17 @@ describe.each(["compact", "extended"] as const)("card do programa no carrinho (%
       items: [ITEM],
       globalDiscount: 0,
       coupon: null,
-      consumer: { customerId: 7, name: "Ana", document: "" },
-      cartLayout,
+      consumer: { customerId: 7, name: "Ana Paula", document: "" },
     });
   });
 
   it("o cupom do panfleto conta como desconto da compra, como no servidor", async () => {
     // R$ 11 com 10% de panfleto = R$ 9,90: abaixo do mínimo de R$ 10.
     usePdvStore.setState({ coupon: CODE_COUPON });
-    renderCard();
+    renderCard(compact);
 
-    expect(await screen.findByText(/Faltam/)).toBeTruthy();
-    expect(screen.queryByText(/ganhar 1 carimbo|\+1 carimbo/)).toBeNull();
+    expect(await screen.findByText(/faltam/i)).toBeTruthy();
+    expect(screen.queryByText(/ganhar 1 carimbo/)).toBeNull();
     expect(loyaltyStampBase(11, 0, 1.1, CODE_COUPON)).toBe(9.9);
   });
 
@@ -109,7 +107,7 @@ describe.each(["compact", "extended"] as const)("card do programa no carrinho (%
   });
 
   it("o prêmio tirado pelo X do cupom pode voltar para a venda", async () => {
-    renderCard();
+    renderCard(compact);
     const button = await screen.findByRole("button", { name: /Usar o prêmio de/ });
 
     fireEvent.click(button);
@@ -119,11 +117,24 @@ describe.each(["compact", "extended"] as const)("card do programa no carrinho (%
 
   it("guardar para a próxima tira o prêmio e o deixa à mão", async () => {
     act(() => usePdvStore.setState({ coupon: rewardToCoupon(STATUS.availableRewards[0]) }));
-    renderCard();
+    renderCard(compact);
 
     fireEvent.click(await screen.findByRole("button", { name: "Guardar para a próxima" }));
 
     expect(useLoyaltyStore.getState().savedRewardIds).toEqual([9]);
+  });
+});
+
+describe("card do programa no carrinho estendido", () => {
+  beforeEach(() => {
+    mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
+    useOfflineStore.setState({ online: true });
+    usePdvStore.setState({
+      items: [ITEM],
+      globalDiscount: 0,
+      coupon: null,
+      consumer: { customerId: 7, name: "Ana", document: "" },
+    });
   });
 
   it("some com o programa desligado", async () => {
@@ -135,7 +146,7 @@ describe.each(["compact", "extended"] as const)("card do programa no carrinho (%
   });
 });
 
-describe("card do programa no carrinho compacto", () => {
+describe("cliente e cartão no carrinho compacto", () => {
   beforeEach(() => {
     mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
     useOfflineStore.setState({ online: true });
@@ -144,42 +155,57 @@ describe("card do programa no carrinho compacto", () => {
       items: [ITEM],
       globalDiscount: 0,
       coupon: rewardToCoupon(STATUS.availableRewards[0]),
-      consumer: { customerId: 7, name: "Ana", document: "" },
-      cartLayout: "compact",
+      consumer: { customerId: 7, name: "Wagner Barbosa", phone: "44999990001", document: "" },
     });
   });
 
-  it("cabe numa linha: cartão, carimbo da compra e prêmio aplicado", async () => {
-    const { container } = renderCard();
+  it('diz numa linha quem é o cliente e o que a compra rende: "Wagner vai ganhar 1 carimbo"', async () => {
+    const { container } = renderCard(true);
 
     await screen.findByRole("button", { name: "Guardar para a próxima" });
     const row = container.firstElementChild as HTMLElement;
-    // Uma linha só: os três lado a lado no mesmo bloco, sem as caixas do estendido.
     expect(row.className).toContain("flex-wrap");
-    expect(row.children).toHaveLength(3);
-    expect(container.querySelectorAll(".rounded-lg")).toHaveLength(0);
-    expect(row.textContent).toMatch(/7\/10/);
-    expect(row.textContent).toMatch(/\+1 carimbo/);
+    expect(row.textContent).toContain("Wagner vai ganhar 1 carimbo");
     expect(row.textContent).toMatch(/Prêmio R\$\s5,00/);
+    expect(container.querySelectorAll(".rounded-lg")).toHaveLength(0);
   });
 
-  it("abaixo do mínimo do prêmio, não escreve o aviso que quebraria a linha", async () => {
-    // R$ 6,00: abaixo dos R$ 10 do prêmio — ele fica suspenso no carrinho.
+  it("abaixo do mínimo, diz quanto falta com o nome e não escreve o aviso que quebraria a linha", async () => {
+    // R$ 6,00: abaixo dos R$ 10 do carimbo e do prêmio — ele fica suspenso.
     usePdvStore.setState({ items: [{ ...ITEM, price: 6 }] });
-    const { container } = renderCard();
+    const { container } = renderCard(true);
 
     await screen.findByRole("button", { name: "Guardar para a próxima" });
     const row = container.firstElementChild as HTMLElement;
+    expect(row.textContent).toMatch(/Wagner: faltam R\$\s4,00 para o carimbo/);
     expect(row.textContent).not.toMatch(/abaixo do mínimo/);
-    expect(row.textContent).toMatch(/Faltam/);
     expect(row.querySelector(".opacity-60")).not.toBeNull();
   });
 
-  it("o leitor de tela ouve a frase inteira, não a abreviação", async () => {
-    const { container } = renderCard();
+  it("sem itens, mostra o nome e o cartão; o X tira o cliente", async () => {
+    usePdvStore.setState({ items: [], coupon: null });
+    const { container } = renderCard(true);
 
-    await screen.findByRole("button", { name: "Guardar para a próxima" });
-    expect(container.textContent).toContain("Cartão fidelidade: 7/10");
-    expect(container.textContent).toContain("Esta compra vai ganhar +1 carimbo");
+    expect(await screen.findByText(/7\/10/)).toBeTruthy();
+    expect(container.textContent).toContain("Wagner");
+    fireEvent.click(screen.getByRole("button", { name: "Tirar o cliente da venda" }));
+    expect(usePdvStore.getState().consumer.customerId).toBeNull();
+  });
+
+  it("com o programa desligado, ainda diz de quem é a venda", async () => {
+    mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, programActive: false });
+    usePdvStore.setState({ coupon: null });
+    const { container } = renderCard(true);
+
+    await vi.waitFor(() => expect(mocks.getCustomerLoyalty).toHaveBeenCalled());
+    expect(container.textContent).toContain("Wagner");
+    expect(container.textContent).not.toMatch(/carimbo/);
+  });
+
+  it("sem cliente, não ocupa linha nenhuma: o botão Cliente mora na engrenagem", () => {
+    usePdvStore.setState({ consumer: { customerId: null, name: "", document: "" } });
+    const { container } = renderCard(true);
+
+    expect(container.textContent).toBe("");
   });
 });

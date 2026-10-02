@@ -1,17 +1,31 @@
-import { Gift, Printer, ScrollText, Stamp } from "lucide-react";
-import { Button, Dialog, DialogContent, DialogDescription, DialogTitle, cn } from "@workspace/ui";
-import { cardSlots, formatShortDate, ordinal, stampsToNextReward } from "@workspace/core";
+import { Printer, ScrollText, Stamp } from "lucide-react";
+import { Button, Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
+import { formatShortDate, ordinal, stampsToNextReward } from "@workspace/core";
 import { describeLoyaltyPrize, useLoyaltyStore } from "../hooks/use-loyalty";
 import { useReceiptPrinter } from "../hooks/use-receipt-printer";
+import { describeLoyaltyResult } from "../lib/loyalty-result";
+import { LoyaltyCardSlots } from "./loyalty-card-slots";
 
 /**
  * O cartão digital depois da venda com cliente (01/10/2026): as casas do
- * trecho atual com o carimbo novo, o que falta para o próximo prêmio e o
- * lembrete de carimbar o cartão de papel — que é espelho do digital.
+ * trecho atual com o que esta compra rendeu em destaque, o que falta para o
+ * próximo prêmio e o lembrete de carimbar o cartão de papel — que é espelho do
+ * digital.
  *
- * Daqui o operador também imprime o comprovante com o saldo (quando o cliente
- * pede) e abre o extrato.
+ * Com ele na tela a venda não imprime sozinha (pedido do dono, 01/10/2026): o
+ * comprovante sai daqui, com ou sem o saldo do cartão, e o extrato também.
  */
+/**
+ * A frase da compra que completa o cartão: o último carimbo dele e o extra do
+ * novo. Sem extra configurado (o admin aceita zero), é um carimbo só.
+ */
+const completedLine = (earned: number, closedAt: number) => {
+  const extra = earned - 1;
+  const last = `o ${ordinal(closedAt)}, que completou o cartão`;
+  if (extra <= 0) return `Esta compra ganhou 1 carimbo: ${last}.`;
+  return `Esta compra ganhou ${earned} carimbos: ${last}, e ${extra === 1 ? "o 1º do cartão novo (extra)" : `${extra} no cartão novo (extra)`}.`;
+};
+
 export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
   const result = useLoyaltyStore((state) => state.lastResult);
   const setLastResult = useLoyaltyStore((state) => state.setLastResult);
@@ -21,6 +35,11 @@ export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
   const outcome = result?.outcome;
   const card = outcome?.card;
   const close = () => setLastResult(null);
+  const { rows, earnedCount } = outcome ? describeLoyaltyResult(outcome) : { rows: [], earnedCount: 0 };
+
+  const printReceipt = () => {
+    if (result) void sendReceiptToPrinter(result.receipt);
+  };
 
   const printWithBalance = () => {
     if (!result || !card) return;
@@ -39,6 +58,8 @@ export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
     });
   };
 
+  const toNext = card ? stampsToNextReward(card.stamps, card.nextRewardAt) : 0;
+
   return (
     <Dialog open={result !== null} onOpenChange={(open) => !open && close()}>
       <DialogContent
@@ -50,31 +71,25 @@ export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
           onClosed?.();
         }}
       >
-        <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-          <Stamp className="h-5 w-5 text-primary" /> {result?.customerName}
-        </DialogTitle>
-        <DialogDescription className="text-xs">
-          Cartão fidelidade{card ? ` · válido até ${formatShortDate(card.expiresAt)}` : ""}
-        </DialogDescription>
+        <div className="space-y-0.5 text-center">
+          <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold">
+            <Stamp className="h-5 w-5 text-primary" aria-hidden /> Programa de Fidelidade
+          </DialogTitle>
+          <p className="text-base font-semibold">{result?.customerName}</p>
+          <DialogDescription className="text-xs">
+            {card ? `Cartão válido até ${formatShortDate(card.expiresAt)}` : "Cartão fidelidade"}
+          </DialogDescription>
+        </div>
 
-        {card && (
-          // Até 5 casas por linha, como o cartão de papel: o cartão de 10 sem trecho
-          // (sem prêmio do meio, ou com ele já liberado) vira duas fileiras em vez
-          // de dez casas espremidas em elipse.
-          <div className="mx-auto flex max-w-[18rem] flex-wrap justify-center gap-2 py-2">
-            {cardSlots(card.stamps, card.stampsRequired, card.middleStamp, card.nextRewardAt).map((slot) => (
-              <div
-                key={slot.number}
-                className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-full border-2 text-sm font-bold",
-                  slot.filled
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-dashed border-border text-muted-foreground",
-                  slot.number === outcome?.stampNumber && "ring-4 ring-amber-400/60",
-                )}
-              >
-                {slot.prize && !slot.filled ? <Gift className="h-5 w-5" /> : slot.number}
-              </div>
+        {rows.length > 0 && (
+          <div className="space-y-3 py-2">
+            {rows.map((row) => (
+              <LoyaltyCardSlots
+                key={row.label ?? "cartao"}
+                slots={row.slots}
+                earnedNow={row.earnedNow}
+                label={row.label}
+              />
             ))}
           </div>
         )}
@@ -82,11 +97,12 @@ export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
         <div className="space-y-2 text-sm">
           {outcome?.stamped ? (
             <p>
-              Esta compra ganhou 1 carimbo.
+              {outcome.cardCompleted
+                ? completedLine(earnedCount, outcome.stampNumber ?? card?.stampsRequired ?? 0)
+                : "Esta compra ganhou 1 carimbo."}
               {card &&
-                (stampsToNextReward(card.stamps, card.nextRewardAt) > 0
-                  ? ` ${card.stamps} de ${card.stampsRequired} · faltam ${stampsToNextReward(card.stamps, card.nextRewardAt)} para o próximo prêmio de ${describeLoyaltyPrize(card.nextRewardType, card.nextRewardValue)}.`
-                  : "")}
+                toNext > 0 &&
+                ` ${card.stamps} de ${card.stampsRequired} · faltam ${toNext} para o próximo prêmio de ${describeLoyaltyPrize(card.nextRewardType, card.nextRewardValue)}.`}
             </p>
           ) : (
             <p className="text-muted-foreground">Esta compra não ganhou carimbo: {outcome?.reason}</p>
@@ -117,8 +133,11 @@ export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
         </div>
 
         <div className="flex flex-wrap justify-end gap-2 pt-2">
+          <Button variant="outline" className="gap-2" onClick={printReceipt} disabled={!result}>
+            <Printer className="h-4 w-4" /> Comprovante
+          </Button>
           <Button variant="outline" className="gap-2" onClick={printWithBalance} disabled={!card}>
-            <Printer className="h-4 w-4" /> Comprovante com saldo
+            <Printer className="h-4 w-4" /> Com saldo do cartão
           </Button>
           <Button
             variant="outline"
