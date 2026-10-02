@@ -50,6 +50,19 @@ describe("cardSlots", () => {
   it("sem prêmio do meio, mostra o cartão inteiro", () => {
     expect(cardSlots(3, 6, null).map((s) => s.number)).toEqual([1, 2, 3, 4, 5, 6]);
   });
+
+  it("abaixo do meio com o prêmio do meio já liberado, o próximo é o último", () => {
+    // 4 de 10 depois de um ajuste que tirou carimbo: o prêmio do 5º já saiu.
+    const slots = cardSlots(4, 10, 5, 10);
+
+    expect(slots.map((s) => s.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(slots.filter((s) => s.prize).map((s) => s.number)).toEqual([10]);
+  });
+
+  it("com o prêmio do meio por vir, segue o trecho até ele", () => {
+    expect(cardSlots(4, 10, 5, 5).map((s) => s.number)).toEqual([1, 2, 3, 4, 5]);
+    expect(cardSlots(8, 10, 5, 10).map((s) => s.number)).toEqual([6, 7, 8, 9, 10]);
+  });
 });
 
 describe("stampsToNextReward e ordinal", () => {

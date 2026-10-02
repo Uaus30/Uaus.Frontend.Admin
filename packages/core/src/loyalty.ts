@@ -41,9 +41,20 @@ export interface CardSlot {
  * papel — com 8 carimbos, a tela mostra 6 a 10 com três preenchidas. No trecho
  * que acabou de completar (5 carimbos), mostra as 5 cheias: é o momento de
  * anunciar o prêmio.
+ *
+ * @param nextRewardAt O próximo prêmio segundo o servidor. Abaixo do meio com o
+ *   prêmio do meio já liberado (um ajuste tirou carimbo), o próximo é o último:
+ *   desenhar a casa do prêmio no 5º prometeria um prêmio que não sai de novo.
  */
-export function cardSlots(stamps: number, required: number, middle?: number | null): CardSlot[] {
-  const boundaries = middle && middle > 0 && middle < required ? [middle, required] : [required];
+export function cardSlots(
+  stamps: number,
+  required: number,
+  middle?: number | null,
+  nextRewardAt?: number,
+): CardSlot[] {
+  const middleAhead = nextRewardAt === undefined || stamps >= (middle ?? 0) || nextRewardAt === middle;
+  const boundaries =
+    middle && middle > 0 && middle < required && middleAhead ? [middle, required] : [required];
   const filled = Math.max(0, Math.min(stamps, required));
   const end = boundaries.find((boundary) => filled <= boundary) ?? required;
   const index = boundaries.indexOf(end);

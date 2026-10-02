@@ -160,7 +160,10 @@ function ConfigForm({ onOpenChange, settings, coupons, isSaving, onSave }: Loyal
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:col-span-3">
           Prêmios
         </p>
-        <Field label="Prêmio do meio no carimbo" hint="Vazio: só o prêmio do cartão completo.">
+        <Field
+          label="Prêmio do meio no carimbo"
+          hint="Vazio: só o prêmio do cartão completo — vale também para os cartões abertos que ainda não chegaram no do meio."
+        >
           {number("middleStamp", "Prêmio do meio no carimbo", { placeholder: "5" })}
         </Field>
         <Field label="Valor do prêmio do meio">

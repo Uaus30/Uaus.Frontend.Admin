@@ -58,8 +58,11 @@ export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
         </DialogDescription>
 
         {card && (
-          <div className="flex justify-center gap-2 py-2">
-            {cardSlots(card.stamps, card.stampsRequired, card.middleStamp).map((slot) => (
+          // Até 5 casas por linha, como o cartão de papel: o cartão de 10 sem trecho
+          // (sem prêmio do meio, ou com ele já liberado) vira duas fileiras em vez
+          // de dez casas espremidas em elipse.
+          <div className="mx-auto flex max-w-[18rem] flex-wrap justify-center gap-2 py-2">
+            {cardSlots(card.stamps, card.stampsRequired, card.middleStamp, card.nextRewardAt).map((slot) => (
               <div
                 key={slot.number}
                 className={cn(
