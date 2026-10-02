@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CustomerLoyaltyDto } from "@workspace/api-client-react";
+import { TooltipProvider } from "@workspace/ui";
 
 const mocks = vi.hoisted(() => ({ getCustomerLoyalty: vi.fn() }));
 
@@ -72,12 +73,14 @@ function renderCard() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <PdvLoyaltyCard />
+      <TooltipProvider>
+        <PdvLoyaltyCard />
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }
 
-describe("card do programa no carrinho", () => {
+describe.each(["compact", "extended"] as const)("card do programa no carrinho (%s)", (cartLayout) => {
   beforeEach(() => {
     mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
     useOfflineStore.setState({ online: true });
@@ -87,6 +90,7 @@ describe("card do programa no carrinho", () => {
       globalDiscount: 0,
       coupon: null,
       consumer: { customerId: 7, name: "Ana", document: "" },
+      cartLayout,
     });
   });
 
@@ -95,7 +99,8 @@ describe("card do programa no carrinho", () => {
     usePdvStore.setState({ coupon: CODE_COUPON });
     renderCard();
 
-    expect(await screen.findByText(/para esta compra ganhar um carimbo/)).toBeTruthy();
+    expect(await screen.findByText(/Faltam/)).toBeTruthy();
+    expect(screen.queryByText(/ganhar 1 carimbo|\+1 carimbo/)).toBeNull();
     expect(loyaltyStampBase(11, 0, 1.1, CODE_COUPON)).toBe(9.9);
   });
 
@@ -127,5 +132,54 @@ describe("card do programa no carrinho", () => {
 
     await vi.waitFor(() => expect(mocks.getCustomerLoyalty).toHaveBeenCalled());
     expect(container.textContent).toBe("");
+  });
+});
+
+describe("card do programa no carrinho compacto", () => {
+  beforeEach(() => {
+    mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
+    useOfflineStore.setState({ online: true });
+    useLoyaltyStore.getState().resetSaved();
+    usePdvStore.setState({
+      items: [ITEM],
+      globalDiscount: 0,
+      coupon: rewardToCoupon(STATUS.availableRewards[0]),
+      consumer: { customerId: 7, name: "Ana", document: "" },
+      cartLayout: "compact",
+    });
+  });
+
+  it("cabe numa linha: cartão, carimbo da compra e prêmio aplicado", async () => {
+    const { container } = renderCard();
+
+    await screen.findByRole("button", { name: "Guardar para a próxima" });
+    const row = container.firstElementChild as HTMLElement;
+    // Uma linha só: os três lado a lado no mesmo bloco, sem as caixas do estendido.
+    expect(row.className).toContain("flex-wrap");
+    expect(row.children).toHaveLength(3);
+    expect(container.querySelectorAll(".rounded-lg")).toHaveLength(0);
+    expect(row.textContent).toMatch(/7\/10/);
+    expect(row.textContent).toMatch(/\+1 carimbo/);
+    expect(row.textContent).toMatch(/Prêmio R\$\s5,00/);
+  });
+
+  it("abaixo do mínimo do prêmio, não escreve o aviso que quebraria a linha", async () => {
+    // R$ 6,00: abaixo dos R$ 10 do prêmio — ele fica suspenso no carrinho.
+    usePdvStore.setState({ items: [{ ...ITEM, price: 6 }] });
+    const { container } = renderCard();
+
+    await screen.findByRole("button", { name: "Guardar para a próxima" });
+    const row = container.firstElementChild as HTMLElement;
+    expect(row.textContent).not.toMatch(/abaixo do mínimo/);
+    expect(row.textContent).toMatch(/Faltam/);
+    expect(row.querySelector(".opacity-60")).not.toBeNull();
+  });
+
+  it("o leitor de tela ouve a frase inteira, não a abreviação", async () => {
+    const { container } = renderCard();
+
+    await screen.findByRole("button", { name: "Guardar para a próxima" });
+    expect(container.textContent).toContain("Cartão fidelidade: 7/10");
+    expect(container.textContent).toContain("Esta compra vai ganhar +1 carimbo");
   });
 });
