@@ -6,8 +6,7 @@
  * da promoção a cada leitura, e quem o aplica no balcão é o PDV, a partir da base
  * local (fase 1b).
  *
- * Contrato em PLANO-PROMOCOES.md e em `PromotionsController` do backend. Todas as
- * rotas exigem o papel **Admin** — a tela expõe custo e margem item a item.
+ * Contrato em PLANO-PROMOCOES.md e em `PromotionsController` do backend.
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";

@@ -269,8 +269,6 @@ export interface PendingSaleItem {
   promotionId?: number | null;
   /**
    * Parcela de `discount` que veio da promoção, por unidade. **Não somar.**
-   *
-   * É ela que tira a promoção do limite de desconto do vendedor no servidor.
    * Leia com `?? 0`.
    */
   promotionDiscount?: number;

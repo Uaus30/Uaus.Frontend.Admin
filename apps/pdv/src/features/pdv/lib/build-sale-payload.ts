@@ -56,9 +56,7 @@ export interface BuildSalePayloadParams {
  *    `coupon.discountAmount` está DENTRO de `discount`, nunca somado por fora —
  *    somar os dois faria o servidor recusar a venda por total divergente, e
  *    manter o cupom fora inflaria o lucro em todo relatório que consolida venda
- *    (é a §1 do plano). O que o servidor faz com a discriminação é excluir o
- *    cupom do limite de desconto do vendedor: sem ela, todo cupom de 10% passaria
- *    a exigir senha de administrador no balcão.
+ *    (é a §1 do plano).
  * 4. **Venda zerada pelo cupom vai com a lista de pagamentos VAZIA.** Nada foi
  *    recebido; mandar a forma escolhida com R$ 0,00 registraria um recebimento
  *    que não existiu e o servidor recusaria a venda.
@@ -131,8 +129,7 @@ export function buildSalePayload({
         // servidor: a conferência de total de lá é itens menos desconto, então
         // mandá-lo nos dois lugares faria a venda ser recusada por total
         // divergente com o cliente no balcão. A coluna própria abaixo é
-        // auditoria — é o que separa produto de serviço no relatório e o que o
-        // limite de desconto do vendedor desconta da base.
+        // auditoria — é o que separa produto de serviço no relatório.
         unitPrice: round2(item.price - item.discount + surcharge),
         discount: item.discount,
         surcharge,
@@ -140,8 +137,8 @@ export function buildSalePayload({
         // A promoção é PARCELA de `discount`, como o cupom é parcela do desconto
         // da venda — e pelo mesmo motivo: somá-la por fora faria o servidor
         // recusar a venda por total divergente, e omiti-la faria o desconto do
-        // cartaz contar como desconto do vendedor e pedir senha de administrador
-        // a cada cliente da fila do sábado.
+        // cartaz contar como desconto manual do operador — a promoção perderia
+        // a venda na medição.
         //
         // O teto no desconto da própria linha não é paranoia: o servidor RECUSA
         // parcela maior que o desconto ("O desconto da promoção não pode ser maior

@@ -59,9 +59,7 @@ export type SaleItemInput = {
    * Parcela de `discount` que veio da promoção, em R$ por unidade.
    *
    * **Já está dentro de `discount` — não somar.** É o que separa o desconto do
-   * cartaz do desconto que o operador deu: sem ela, toda relâmpago de 40% passaria
-   * a exigir senha de administrador no balcão, pelo mesmo motivo que o cupom
-   * precisa da discriminação dele.
+   * cartaz do desconto que o operador deu, e é por ela que a promoção é medida.
    */
   promotionDiscount?: number;
   /** Nome do produto, guardado na fila offline para o cupom e a lista de pendências. */
@@ -122,8 +120,8 @@ export type RegisterSalePayload = {
    * começou 17:59:40 já levou o preço do cartaz no cupom impresso, e a venda
    * fecha 18:00:12: conferindo a janela contra o pagamento, o servidor
    * descartaria a atribuição de uma venda JÁ PAGA com desconto — a promoção
-   * sumiria da medição e o abatimento inteiro contaria como desconto do vendedor,
-   * podendo exigir senha de administrador na frente do cliente.
+   * sumiria da medição e o abatimento inteiro contaria como desconto manual do
+   * operador.
    *
    * Nulo quando não houve venda a congelar (reedição, venda sem promoção).
    */
@@ -166,8 +164,6 @@ export type RegisterSalePayload = {
    */
   payments: SalePaymentInput[];
   notes?: string | null;
-  managerLogin?: string | null;
-  managerPassword?: string | null;
 };
 
 /** Endpoint da venda completa atômica. Ver `Uaus.Backend.Api/docs/pdv-offline.md`. */
@@ -308,8 +304,6 @@ function buildRequestBody(
     // a venda inteira.
     coupon: payload.coupon ?? null,
     notes: payload.notes?.trim() || null,
-    managerLogin: payload.managerLogin || null,
-    managerPassword: payload.managerPassword || null,
     items: payload.items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,

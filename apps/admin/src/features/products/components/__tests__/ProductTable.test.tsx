@@ -220,7 +220,7 @@ describe("ProductTable — Corrigir estoque no menu da linha", () => {
     fireEvent.contextMenu(screen.getByRole("link", { name: "COPO INFANTIL PLÁSTICO COM ESTAMPA" }));
   }
 
-  it("não aparece sem o onStockCount — é como a página esconde de quem não é Administrador", () => {
+  it("não aparece sem o onStockCount", () => {
     renderTable();
     abrirMenuDaLinha();
 

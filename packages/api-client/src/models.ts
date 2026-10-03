@@ -16,11 +16,6 @@ export interface UserDto {
   username: string;
   email: string;
   /**
-   * Enum UserRole — chega como NOME (`"Admin"`), não como número. Normalize com
-   * `enumCode` e `USER_ROLE`. Ver a nota de `UserListDto.role`.
-   */
-  role: EnumValue;
-  /**
    * Enum UserStatus — chega como NOME (`"Pending"`). Normalize com `enumCode` e
    * `USER_STATUS`. `Pending` significa "ainda usa a senha do primeiro acesso".
    */
@@ -34,17 +29,13 @@ export interface UserListDto {
   username: string;
   email: string;
   /**
-   * Enum UserRole — pode vir como número ou nome; use `enumCode`.
+   * Enum UserStatus — pode vir como número ou nome; use `enumCode`.
    *
-   * Declarar `number` aqui já custou duas telas. O backend registra
-   * `JsonStringEnumConverter`, então a API manda `"Seller"`: `podeAcessar`
-   * comparava `[1].includes("Admin")` e escondia meia retaguarda até o
-   * `routes.ts` normalizar na fronteira, e a modal de edição de usuário
-   * procurava a opção `"Seller"` num `<Select>` cujos valores são `"1"` e `"2"`
-   * — o campo Papel abria em branco, sem erro nenhum no console.
+   * Declarar `number` aqui já custou uma tela. O backend registra
+   * `JsonStringEnumConverter`, então a API manda `"Pending"`, e a modal de
+   * edição de usuário procurava essa opção num `<Select>` cujos valores são
+   * `"1"`, `"2"`... — o campo Status abria em branco, sem erro nenhum no console.
    */
-  role: EnumValue;
-  /** Enum UserStatus — pode vir como número ou nome; use `enumCode`. */
   status: EnumValue;
 }
 
@@ -172,20 +163,13 @@ export const USER_STATUS = {
   Inactive: 4,
 } as const;
 
-export const USER_ROLE = {
-  None: 0,
-  Admin: 1,
-  Seller: 2,
-} as const;
-
 /**
- * Código do papel e do status no que é ENVIADO ao servidor.
+ * Código do status no que é ENVIADO ao servidor.
  *
- * Nas respostas os campos são `EnumValue` (o backend serializa enum pelo nome) e
- * se leem com `enumCode`; nos payloads o tipo é fechado, pelo mesmo motivo do
- * `CouponDiscountTypeCode`: `role: 7` só apareceria como 400 no salvamento.
+ * Na resposta o campo é `EnumValue` (o backend serializa enum pelo nome) e se
+ * lê com `enumCode`; no payload o tipo é fechado, pelo mesmo motivo do
+ * `CouponDiscountTypeCode`: `status: 7` só apareceria como 400 no salvamento.
  */
-export type UserRoleCode = (typeof USER_ROLE)[keyof typeof USER_ROLE];
 export type UserStatusCode = (typeof USER_STATUS)[keyof typeof USER_STATUS];
 
 export const SUPPLIER_STATUS = {
@@ -831,9 +815,8 @@ export interface SaleDto {
    * Parcela de `discount` atribuída ao cupom.
    *
    * **JÁ ESTÁ INCLUÍDA em `discount` — NÃO SOMAR.** Existe para discriminar a
-   * origem do abatimento (e para excluir o cupom do limite de desconto do
-   * vendedor). Somar os dois inflaria o desconto e reduziria o lucro em todo
-   * relatório que consolida venda. Zero nas vendas sem cupom.
+   * origem do abatimento. Somar os dois inflaria o desconto e reduziria o lucro
+   * em todo relatório que consolida venda. Zero nas vendas sem cupom.
    *
    * A API sempre manda o campo (é `decimal`, não anulável); ele é opcional aqui
    * por causa das vendas gravadas no histórico local do PDV antes desta feature,
@@ -866,11 +849,6 @@ export interface SaleDto {
    * escrever "(10%)" ou "(R$ 20,00)". Do snapshot do resgate.
    */
   couponDiscountValue?: number | null;
-  /**
-   * Administrador que autorizou um desconto acima do limite do vendedor
-   * (auditoria do desconto gerencial). Nulo quando não houve autorização.
-   */
-  discountAuthorizedByUserId?: number | null;
   paymentMethodId?: number | null;
   paymentMethodInstallmentId?: number | null;
   paymentMethodName?: string | null;
@@ -1320,7 +1298,7 @@ export interface WeekdayComparisonDto {
  * A comparação é com o último dia que teve VENDA, não com ontem: numa segunda o
  * dia anterior é o domingo fechado, e a variação seria sempre +100%.
  *
- * Não traz custo, lucro nem margem — o endpoint é liberado para o papel Seller.
+ * Não traz custo, lucro nem margem: é o resumo que o balcão mostra.
  */
 export interface StorePerformanceDto {
   referenceDate: string;
@@ -1835,16 +1813,15 @@ export type UpdateCustomerPayload = CreateCustomerPayload;
  * servidor o descartava: o administrador entregava ao operador uma senha que o
  * PDV recusava com "Senha inválida!".
  *
- * Não deriva de `UserDto` com `Omit` como os outros payloads porque o DTO passou
- * a tipar `role`/`status` como `EnumValue` — o que é certo para LER a resposta e
- * frouxo demais para o que se ENVIA: `role: "vendedor"` compilaria e voltaria 400.
+ * Não deriva de `UserDto` com `Omit` como os outros payloads porque o DTO tipa
+ * `status` como `EnumValue` — o que é certo para LER a resposta e frouxo demais
+ * para o que se ENVIA: `status: "ativo"` compilaria e voltaria 400.
  */
 export interface CreateUserPayload {
   firstName: string;
   lastName: string;
   username: string;
   email: string;
-  role: UserRoleCode;
 }
 
 /** Edição. O status entra aqui; a promoção de Pendente a Ativo, não — ver o README. */

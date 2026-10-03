@@ -2,8 +2,8 @@
 
 Aplica o Princípio de Pareto ao catálogo — **medindo, e não presumindo**.
 
-Rota: `/bi/curva-abc` (`pages/product-abc.tsx`), `SO_ADMIN` porque a resposta traz
-lucro e margem item a item.
+Rota: `/bi/curva-abc` (`pages/product-abc.tsx`). A resposta traz lucro e margem
+item a item.
 
 Dados: `GET /ProductAbc` em `packages/api-client/src/hooks/product-abc.ts`.
 

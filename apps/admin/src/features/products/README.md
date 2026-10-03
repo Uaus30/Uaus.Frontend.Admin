@@ -788,9 +788,6 @@ a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
   reenvio de uma resposta perdida, lançavam a diferença duas vezes. Recusada, a
   modal relê o produto e mostra o saldo novo.
 
-- **Só Administrador.** A página passa o `onStockCount` à tabela apenas para ele
-  (`useIsAdmin`, em `src/hooks/use-sessao.ts`); sem a prop, o item não aparece.
-  A API já recusa o resto com 403 — esconder é não oferecer o que vai falhar.
 - **A contagem é do SKU, e a linha é um GRUPO.** Produto simples conta a própria
   linha; grupo com uma variação vai direto para ela; com duas ou mais, a modal
   pede a variação e fica travada até a escolha. Não há padrão de propósito:

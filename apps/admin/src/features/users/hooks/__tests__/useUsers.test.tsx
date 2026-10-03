@@ -8,8 +8,8 @@ import { useUsers } from "../useUsers";
 /**
  * Usuário como a API o entrega: enum pelo NOME, não pelo número.
  *
- * O mock antigo devolvia `role: 1`, e por isso o teste passava enquanto a modal
- * de edição abria com Papel e Status vazios na tela real.
+ * O mock antigo devolvia `status: 1`, e por isso o teste passava enquanto a
+ * modal de edição abria com o Status vazio na tela real.
  */
 const usuarioDaApi: UserRow = {
   id: 1,
@@ -17,7 +17,6 @@ const usuarioDaApi: UserRow = {
   lastName: "Silva",
   username: "joaosilva",
   email: "joao@test.com",
-  role: "Admin",
   status: "Pending",
 };
 
@@ -28,25 +27,16 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-// Mock dos enums, respondendo por caminho: papel e status têm listas diferentes,
-// e um mock único faria o teste do filtro de status validar a lista de papéis.
+// Mock das opções de status — o único enum que a tela consulta.
 vi.mock("@/services/core", () => ({
-  getEnumOptions: vi.fn((path: string) =>
-    Promise.resolve(
-      path.includes("user-role")
-        ? [
-            { id: 0, name: "Nenhum", value: "None", allowSelect: false },
-            { id: 1, name: "Administrador", value: "Admin", allowSelect: true },
-            { id: 2, name: "Vendedor", value: "Seller", allowSelect: true },
-          ]
-        : [
-            { id: 0, name: "Nenhum", value: "None", allowSelect: false },
-            { id: 1, name: "Pendente", value: "Pending", allowSelect: true },
-            { id: 2, name: "Ativo", value: "Active", allowSelect: true },
-            { id: 3, name: "Bloqueado", value: "Bloqued", allowSelect: true },
-            { id: 4, name: "Inativo", value: "Inactive", allowSelect: true },
-          ],
-    ),
+  getEnumOptions: vi.fn(() =>
+    Promise.resolve([
+      { id: 0, name: "Nenhum", value: "None", allowSelect: false },
+      { id: 1, name: "Pendente", value: "Pending", allowSelect: true },
+      { id: 2, name: "Ativo", value: "Active", allowSelect: true },
+      { id: 3, name: "Bloqueado", value: "Bloqued", allowSelect: true },
+      { id: 4, name: "Inativo", value: "Inactive", allowSelect: true },
+    ]),
   ),
 }));
 
@@ -69,9 +59,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
           username: "joaosilva",
           email: "joao@test.com",
           // Como a API manda de verdade: o NOME do membro do enum em C#, não o
-          // número. O mock antes dizia 1/1, e por isso o teste nunca viu o campo
-          // Papel abrir em branco na tela real.
-          role: "Admin",
+          // número.
           status: "Pending",
         },
       ],
@@ -153,19 +141,18 @@ describe("useUsers Hook", () => {
     expect(result.current.form.username).toBe("joaosilva");
   });
 
-  it("preenche Papel e Status com o enum que a API manda por NOME", () => {
+  it("preenche o Status com o enum que a API manda por NOME", () => {
     // REGRESSÃO: a API serializa enum pelo nome do membro em C#
-    // (JsonStringEnumConverter), então chega `role: "Admin"`. O hook fazia
-    // `String(user.role)` e o formulário ficava com "Admin", enquanto as opções
-    // do <Select> valem "1" e "2" — os dois campos abriam EM BRANCO na modal de
-    // edição, sem erro nenhum, e salvar assim rebaixava o papel do usuário.
+    // (JsonStringEnumConverter), então chega `status: "Pending"`. O hook fazia
+    // `String(user.status)` e o formulário ficava com "Pending", enquanto as
+    // opções do <Select> valem "1", "2"... — o campo abria EM BRANCO na modal de
+    // edição, sem erro nenhum.
     const { result } = renderHook(() => useUsers(), { wrapper: createWrapper() });
 
     act(() => {
       result.current.openEdit(usuarioDaApi);
     });
 
-    expect(result.current.form.role).toBe("1");
     expect(result.current.form.status).toBe("1");
   });
 
@@ -199,11 +186,13 @@ describe("useUsers Hook", () => {
     expect(result.current.editableStatusOptions.map((o) => o.value)).toContain("Active");
   });
 
-  it("cadastra SEM senha e SEM status", () => {
+  it("cadastra SEM senha, SEM status e SEM papel", () => {
     // O defeito que originou tudo: a modal pedia uma senha, o servidor a
     // descartava e gravava a padrão do sistema. O administrador entregava ao
     // operador uma senha que o PDV recusava com "Senha inválida!". Agora o
-    // cadastro nasce com a padrão e Pendente, e nem tenta escolher.
+    // cadastro nasce com a padrão e Pendente, e nem tenta escolher. Papel também
+    // não vai: não existe perfil de usuário (03/10/2026), e a igualdade estrita
+    // abaixo é o que impede o campo de voltar ao pedido.
     const { result } = renderHook(() => useUsers(), { wrapper: createWrapper() });
 
     act(() => {
@@ -211,7 +200,6 @@ describe("useUsers Hook", () => {
         fullName: "Pedro Souza",
         username: "pedrosouza",
         email: "pedro@test.com",
-        role: "2",
         status: "1",
       });
     });
@@ -222,9 +210,6 @@ describe("useUsers Hook", () => {
         lastName: "Souza",
         username: "pedrosouza",
         email: "pedro@test.com",
-        // O formulário veio com "2" (Vendedor), e o pedido sai Admin: o perfil
-        // Vendedor foi desativado em 01/10/2026 e o servidor o recusaria.
-        role: 1,
       },
     });
   });
@@ -241,7 +226,6 @@ describe("useUsers Hook", () => {
         fullName: "João Silva",
         username: "joaosilva",
         email: "joao@test.com",
-        role: "1",
         status: "4",
       });
     });
@@ -253,7 +237,6 @@ describe("useUsers Hook", () => {
         lastName: "Silva",
         username: "joaosilva",
         email: "joao@test.com",
-        role: 1,
         status: 4,
       },
     });

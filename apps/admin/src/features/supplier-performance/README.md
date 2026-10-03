@@ -8,9 +8,7 @@ Duas rotas, declaradas em `apps/admin/src/routes.ts`:
 - `/bi/fornecedores` — o ranking (`pages/supplier-performance.tsx`)
 - `/bi/fornecedores/:id` — o detalhe (`pages/supplier-performance-detail.tsx`)
 
-As duas são `SO_ADMIN`: a resposta traz custo, margem e lucro por fornecedor, que
-não é assunto de operador de caixa. O backend recusa de qualquer forma — a
-restrição na rota evita a tela abrir só para mostrar 403.
+A resposta das duas traz custo, margem e lucro por fornecedor.
 
 ---
 

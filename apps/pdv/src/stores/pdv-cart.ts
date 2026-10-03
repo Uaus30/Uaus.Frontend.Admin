@@ -74,9 +74,8 @@ export interface PdvItem {
   /**
    * Parcela de {@link discount} que veio da promoção, em R$ por unidade.
    *
-   * **Não somar a `discount`** — ela já está dentro. É o que o servidor usa para
-   * tirar a promoção do limite de desconto do vendedor, e é por ela que o
-   * desconto manual do operador se distingue do desconto do cartaz.
+   * **Não somar a `discount`** — ela já está dentro. É por ela que o desconto
+   * manual do operador se distingue do desconto do cartaz.
    */
   promotionDiscount?: number;
   /** Estoque disponível no momento em que o item entrou no carrinho. */

@@ -67,10 +67,10 @@ export interface LabelProductSearchState {
  * isso ("kg", "chá").
  *
  * **A busca é a do balcão** (`GET /Pdv/products/search`) e não a listagem
- * paginada do cadastro. Os motivos são três: ela interpreta o termo com a mesma
- * regra (dígitos = código de barras), já devolve a URL da primeira imagem — que
- * é a miniatura que a lista exibe — e é liberada para `Seller`, enquanto
- * `/Products` não é. De quebra, sai do `src/services/`, que o CLAUDE.md congelou.
+ * paginada do cadastro. Os motivos são dois: ela interpreta o termo com a mesma
+ * regra (dígitos = código de barras) e já devolve a URL da primeira imagem — que
+ * é a miniatura que a lista exibe. De quebra, sai do `src/services/`, que o
+ * CLAUDE.md congelou.
  *
  * Termo CURTO não limpa o que já está na tela: quem apaga uma letra para
  * corrigir continua vendo o resultado anterior em vez de uma lista que pisca.

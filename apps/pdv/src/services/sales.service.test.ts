@@ -167,9 +167,8 @@ describe("registerSale online", () => {
     expect(apiPost).toHaveBeenCalledTimes(1);
     expect(apiPost.mock.calls[0][0]).toBe("/Pdv/sales");
     // Desconto e acréscimo por item vão junto: nenhum dos dois entra na
-    // validação de totais, mas o servidor os usa para auditoria — e o desconto,
-    // ainda, para o limite de desconto do vendedor. Sem acréscimo, o par sobe
-    // como zero e nulo, que é o que o CHECK do banco exige.
+    // validação de totais, mas o servidor os usa para auditoria. Sem acréscimo,
+    // o par sobe como zero e nulo, que é o que o CHECK do banco exige.
     //
     // A promoção segue a mesma regra do acréscimo: linha sem promoção sobe com o
     // par zerado, porque o CHECK ck_sale_items_promotion_discount recusa parcela

@@ -1,8 +1,7 @@
 # Anomalias (`/bi/anomalias`)
 
 O que está **errado agora** no cadastro dos produtos, para corrigir no próprio
-cadastro e recarregar. Só Admin (`SO_ADMIN`): a lista mostra custo, preço e
-margem item a item.
+cadastro e recarregar. A lista mostra custo, preço e margem item a item.
 
 Plano e decisões: `PLANO-ANOMALIAS.md`, na raiz deste repositório. A regra de
 cada tipo mora no backend

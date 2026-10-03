@@ -83,14 +83,12 @@ export function useCompanySettings() {
 
   const { data: settings, isLoading } = useGetCompanySettings();
   const [usesCashRegister, setUsesCashRegister] = useState(DEFAULT_USES_CASH_REGISTER);
-  const [maxSellerDiscountPercentage, setMaxSellerDiscountPercentage] = useState(0);
   const [identity, setIdentity] = useState<StoreIdentityFields>(EMPTY_IDENTITY);
   const [site, setSite] = useState<SiteOptionsFields>(DEFAULT_SITE_OPTIONS);
   const [defaultMinStock, setDefaultMinStockState] = useState(STANDARD_DEFAULT_MIN_STOCK);
   const [defaultAreaCode, setDefaultAreaCode] = useState(STANDARD_AREA_CODE);
 
   const serverValue = settings?.usesCashRegister;
-  const serverMaxSellerDiscount = settings ? (settings.maxSellerDiscountPercentage ?? 0) : undefined;
   // Um backend anterior aos campos de identidade responde sem eles; o `?? ""`
   // deixa o formulário editável do mesmo jeito (a gravação simplesmente envia
   // campos que aquele backend ignora).
@@ -120,11 +118,6 @@ export function useCompanySettings() {
     if (serverValue == null) return;
     setUsesCashRegister(serverValue);
   }, [serverValue]);
-
-  useEffect(() => {
-    if (serverMaxSellerDiscount == null) return;
-    setMaxSellerDiscountPercentage(serverMaxSellerDiscount);
-  }, [serverMaxSellerDiscount]);
 
   useEffect(() => {
     if (serverStoreName == null) return;
@@ -214,7 +207,6 @@ export function useCompanySettings() {
     (serverDefaultMinStock != null && serverDefaultMinStock !== defaultMinStock) ||
     (serverAreaCode != null && serverAreaCode !== defaultAreaCode) ||
     (serverValue != null && serverValue !== usesCashRegister) ||
-    (serverMaxSellerDiscount != null && serverMaxSellerDiscount !== maxSellerDiscountPercentage) ||
     isIdentityDirty ||
     isSiteDirty;
 
@@ -225,7 +217,6 @@ export function useCompanySettings() {
     mutationFn: () =>
       updateCompanySettings({
         usesCashRegister,
-        maxSellerDiscountPercentage,
         storeName: identity.storeName.trim(),
         addressLine: identity.addressLine.trim(),
         cityState: identity.cityState.trim(),
@@ -314,8 +305,6 @@ export function useCompanySettings() {
   return {
     usesCashRegister,
     setUsesCashRegister,
-    maxSellerDiscountPercentage,
-    setMaxSellerDiscountPercentage,
     identity,
     setIdentityField,
     site,

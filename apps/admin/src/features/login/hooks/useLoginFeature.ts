@@ -23,7 +23,7 @@ export function useLoginFeature() {
       onSuccess: (data) => {
         queryClient.setQueryData(getGetMeQueryKey(), (data as any).user ?? data);
         // O guard de rota carimba o caminho pedido em `?redirect=`. Sem ele o
-        // dashboard continua sendo o destino — é onde todo papel tem acesso.
+        // dashboard continua sendo o destino.
         setLocation(destinoAposLogin(search) ?? "/dashboard");
       },
       onError: (err: unknown) => {

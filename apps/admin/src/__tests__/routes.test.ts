@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { USER_ROLE } from "@workspace/api-client-react";
-import { MENU_GROUPS, MENU_ORDER, ROUTES, buildMenu, podeAcessar } from "../routes";
+import { MENU_GROUPS, MENU_ORDER, ROUTES, buildMenu } from "../routes";
 
 /**
  * Contrato do arquivo de rotas.
@@ -9,32 +8,10 @@ import { MENU_GROUPS, MENU_ORDER, ROUTES, buildMenu, podeAcessar } from "../rout
  * duas listas mantidas à mão, elas divergiram — a tela de formas de pagamento
  * respondia em dois caminhos e só um aparecia no menu.
  *
- * E a autorização: `USER_ROLE` existia no api-client sem um único uso no admin,
- * então um Vendedor autenticado navegava para `/sistema/usuarios` e
- * `/financeiro/socios`.
+ * Não há autorização por perfil para conferir aqui: não existe perfil de
+ * usuário (decisão do dono, 03/10/2026). Toda rota privada abre para quem tem
+ * sessão, e o menu mostra todas as visíveis.
  */
-
-/** Rotas que um operador de caixa não pode abrir. */
-const RESTRITAS = [
-  "/sistema/usuarios",
-  "/sistema/logs",
-  "/financeiro/socios",
-  "/financeiro/fechamentos",
-  "/financeiro/custos-fixos",
-  "/financeiro/relatorios",
-  "/configuracoes",
-  // Cupom e campanha são de Admin: todas as actions de CouponsController e
-  // CampaignsController são [Authorize(Role.Admin)], e papel de marketing está
-  // declarado fora de escopo. Sem isto o Vendedor veria o menu e tomaria 403.
-  // (O catálogo de divulgação é a exceção do grupo, e não está nesta lista.)
-  "/marketing/cupons",
-  "/marketing/campanhas",
-  "/marketing/campanhas/comparativo",
-  // Promoções expõe custo e margem item a item, como as telas de BI.
-  "/marketing/promocoes",
-  // BI › Analytics lista IPs de visitantes.
-  "/bi/analytics",
-];
 
 describe("declaração das rotas", () => {
   it("não tem caminho duplicado", () => {
@@ -77,52 +54,13 @@ describe("declaração das rotas", () => {
   });
 });
 
-describe("podeAcessar", () => {
-  it("rota sem restrição vale para qualquer papel", () => {
-    const produtos = ROUTES.find((r) => r.path === "/produtos")!;
-
-    expect(podeAcessar(produtos, USER_ROLE.Admin)).toBe(true);
-    expect(podeAcessar(produtos, USER_ROLE.Seller)).toBe(true);
-  });
-
-  it.each(RESTRITAS)("recusa %s para o papel Vendedor", (path) => {
-    const route = ROUTES.find((r) => r.path === path)!;
-
-    expect(route.roles).toBeDefined();
-    expect(podeAcessar(route, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(route, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("recusa rota restrita para papel indefinido", () => {
-    const socios = ROUTES.find((r) => r.path === "/financeiro/socios")!;
-
-    expect(podeAcessar(socios, undefined)).toBe(false);
-  });
-
-  it("o detalhe do log herda a restrição da listagem", () => {
-    // Proteger a lista e esquecer o detalhe deixaria a porta dos fundos aberta.
-    const detalhe = ROUTES.find((r) => r.path === "/sistema/logs/:id")!;
-
-    expect(podeAcessar(detalhe, USER_ROLE.Seller)).toBe(false);
-  });
-
-  it("o relatório de campanha herda a restrição da listagem", () => {
-    // Mesmo motivo do detalhe do log: a rota é oculta, mas continua respondendo
-    // por link colado. Sem `roles` aqui, o Vendedor abriria o faturamento e o
-    // lucro da loja inteira (o denominador do relatório), que o menu esconde.
-    const relatorio = ROUTES.find((r) => r.path === "/marketing/campanhas/:id/relatorio")!;
-
-    expect(relatorio.roles).toBeDefined();
-    expect(podeAcessar(relatorio, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(relatorio, USER_ROLE.Admin)).toBe(true);
-  });
-
+describe("buildMenu", () => {
   it("o grupo BI fica em ordem ALFABÉTICA, e não na ordem de entrega", () => {
     // As telas de BI não têm sequência de trabalho entre si — nenhuma é "a
     // próxima" depois da outra, como Compras é depois de Produtos. A ordem de
     // entrega só é previsível para quem acompanhou as entregas; a do alfabeto é
     // previsível para quem está procurando um nome numa lista.
-    const bi = buildMenu(USER_ROLE.Admin).find((item) => item.name === "BI");
+    const bi = buildMenu().find((item) => item.name === "BI");
     const nomes = bi?.items?.map((s) => s.name) ?? [];
 
     expect(nomes).toEqual([
@@ -150,142 +88,14 @@ describe("podeAcessar", () => {
     expect(nomes).toEqual(alfabetica);
   });
 
-  it("o desempenho de produtos é só de Admin", () => {
-    // A resposta traz custo, lucro e margem item a item.
-    const tela = ROUTES.find((r) => r.path === "/bi/produtos")!;
-
-    expect(tela.roles).toBeDefined();
-    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("o que mudou também é só de Admin", () => {
-    // A resposta traz lucro e margem por linha, como as outras três do BI.
-    const tela = ROUTES.find((r) => r.path === "/bi/o-que-mudou")!;
-
-    expect(tela.roles).toBeDefined();
-    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("o que trouxe lucro também é só de Admin", () => {
-    // A tela expõe custo, lucro e margem item a item. Sem este teste, apagar o
-    // `roles` da rota não deixa nenhum teste vermelho — o único que a citava roda
-    // `buildMenu(Admin)`, e o Admin vê tudo.
-    const tela = ROUTES.find((r) => r.path === "/bi/o-que-trouxe-lucro")!;
-
-    expect(tela.roles).toBeDefined();
-    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("as anomalias também são só de Admin", () => {
-    // A lista traz custo, preço e margem item a item ("preço abaixo do custo",
-    // "custo zerado"). Sem este teste, apagar o `roles` da rota não deixaria
-    // nenhum teste vermelho — o de ordem roda `buildMenu(Admin)`, e o Admin vê tudo.
-    const tela = ROUTES.find((r) => r.path === "/bi/anomalias")!;
-
-    expect(tela.roles).toBeDefined();
-    expect(podeAcessar(tela, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(tela, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("a curva ABC também é só de Admin", () => {
-    // A resposta traz lucro e margem item a item.
-    const curva = ROUTES.find((r) => r.path === "/bi/curva-abc")!;
-
-    expect(curva.roles).toBeDefined();
-    expect(podeAcessar(curva, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(curva, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("o BI de fornecedores é só de Admin, listagem e detalhe", () => {
-    // A resposta traz custo, margem e lucro por fornecedor. O detalhe é oculto
-    // no menu mas continua respondendo por link colado — sem `roles` nele, a
-    // porta dos fundos ficaria aberta exatamente como no detalhe do log.
-    const ranking = ROUTES.find((r) => r.path === "/bi/fornecedores")!;
-    const detalhe = ROUTES.find((r) => r.path === "/bi/fornecedores/:id")!;
-
-    expect(ranking.roles).toBeDefined();
-    expect(detalhe.roles).toBeDefined();
-    expect(podeAcessar(ranking, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(detalhe, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(ranking, USER_ROLE.Admin)).toBe(true);
-    expect(podeAcessar(detalhe, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("o catálogo de divulgação é da equipe inteira", () => {
-    // Decisão do dono (03/10/2026): quem está no balcão também gera e
-    // compartilha, e a tela não mostra custo nem margem.
-    const catalogo = ROUTES.find((r) => r.path === "/marketing/catalogo")!;
-
-    expect(catalogo.roles).toBeUndefined();
-    expect(podeAcessar(catalogo, USER_ROLE.Seller)).toBe(true);
-    expect(podeAcessar(catalogo, USER_ROLE.Admin)).toBe(true);
-  });
-
-  it("o histórico do catálogo é só de Admin: ele mostra unidades vendidas", () => {
-    const historico = ROUTES.find((r) => r.path === "/marketing/catalogo/historico")!;
-
-    expect(podeAcessar(historico, USER_ROLE.Seller)).toBe(false);
-    expect(podeAcessar(historico, USER_ROLE.Admin)).toBe(true);
-  });
-});
-
-describe("buildMenu", () => {
-  it("esconde do Vendedor o que ele não pode abrir", () => {
-    const menu = buildMenu(USER_ROLE.Seller);
-    const hrefs = menu.flatMap((item) => (item.items ? item.items.map((s) => s.href) : [item.href]));
-
-    for (const restrita of RESTRITAS) {
-      expect(hrefs).not.toContain(restrita);
-    }
-  });
-
-  it("mostra ao Admin tudo que o Vendedor vê, e mais", () => {
-    const admin = buildMenu(USER_ROLE.Admin);
-    const seller = buildMenu(USER_ROLE.Seller);
-
-    const contar = (menu: ReturnType<typeof buildMenu>) =>
-      menu.reduce((n, item) => n + (item.items ? item.items.length : 1), 0);
-
-    expect(contar(admin)).toBeGreaterThan(contar(seller));
-  });
-
-  it("some com o grupo cujos itens são todos restritos", () => {
-    // "BI" só tem telas de Admin; mostrá-lo vazio ao Vendedor seria pior que
-    // não mostrar.
-    const menu = buildMenu(USER_ROLE.Seller);
-
-    expect(menu.find((item) => item.name === "BI")).toBeUndefined();
-  });
-
-  it("Marketing aparece ao Vendedor só com o Catálogo, que é da equipe inteira", () => {
-    // Cupom, campanha e promoção continuam de Admin (mostram custo e margem, e
-    // o backend recusa). O catálogo de divulgação é o único item aberto.
-    const marketing = buildMenu(USER_ROLE.Seller).find((item) => item.name === "Marketing");
-
-    expect(marketing?.items?.map((i) => i.href)).toEqual(["/marketing/catalogo"]);
-  });
-
-  it("Sistema aparece ao Vendedor só com Tarefas, que é da equipe inteira", () => {
-    // Desde 30/09/2026 o quadro de tarefas mora em "Sistema" (escolha do dono) e
-    // é aberto a qualquer papel: o operador registra o pedido do cliente. As
-    // outras telas do grupo continuam de Admin, então o Vendedor vê o grupo com
-    // um item só.
-    const sistema = buildMenu(USER_ROLE.Seller).find((item) => item.name === "Sistema");
-
-    expect(sistema?.items?.map((i) => i.name)).toEqual(["Tarefas"]);
-  });
-
-  it("Sistema, para o Admin, abre com Tarefas antes de Configurações e Logs", () => {
-    const sistema = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Sistema");
+  it("Sistema abre com Tarefas antes de Configurações e Logs", () => {
+    const sistema = buildMenu().find((item) => item.name === "Sistema");
 
     expect(sistema?.items?.map((i) => i.name)).toEqual(["Tarefas", "Configurações", "Logs"]);
   });
 
-  it("o Admin vê o grupo Marketing com as sete telas", () => {
-    const menu = buildMenu(USER_ROLE.Admin);
+  it("o grupo Marketing tem as sete telas", () => {
+    const menu = buildMenu();
     const marketing = menu.find((item) => item.name === "Marketing");
 
     // Promoções entra LOGO ABAIXO de Campanhas, a pedido do dono (18/09/2026) —
@@ -305,11 +115,11 @@ describe("buildMenu", () => {
   });
 
   it("começa pelo Dashboard", () => {
-    expect(buildMenu(USER_ROLE.Admin)[0].name).toBe("Dashboard");
+    expect(buildMenu()[0].name).toBe("Dashboard");
   });
 
   it("não mostra rota oculta", () => {
-    const menu = buildMenu(USER_ROLE.Admin);
+    const menu = buildMenu();
     const hrefs = menu.flatMap((item) => (item.items ? item.items.map((s) => s.href) : [item.href]));
 
     // O caminho antigo de formas de pagamento continua respondendo, mas fora do
@@ -325,7 +135,7 @@ describe("buildMenu", () => {
     // montagem. Enquanto era implícita — Dashboard, todos os grupos, e as soltas
     // ao fim — não havia como pôr um grupo depois de uma solta, que é
     // exatamente o que "Sistema por último" pede.
-    const nomes = buildMenu(USER_ROLE.Admin).map((item) => item.name);
+    const nomes = buildMenu().map((item) => item.name);
 
     expect(nomes).toEqual([
       "Dashboard",
@@ -349,7 +159,7 @@ describe("buildMenu", () => {
     // 31/08/2026) e a aba Estoque do cadastro já lista as notas daquele produto,
     // com detalhe e cancelamento — a listagem geral cobrava uma busca para
     // chegar no que interessa. Repô-la tem que ser decisão, não acidente.
-    const produtos = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Estoque");
+    const produtos = buildMenu().find((item) => item.name === "Estoque");
 
     expect(produtos?.items?.map((s) => s.name)).toEqual([
       "Produtos",
@@ -377,7 +187,7 @@ describe("buildMenu", () => {
     // antigo colidiria com o grupo novo de mesmo nome. A posição dos dois é
     // escolhida, não alfabética nem acidental: a ordem dentro do grupo é a
     // ordem das ROUTES.
-    const financeiro = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Financeiro");
+    const financeiro = buildMenu().find((item) => item.name === "Financeiro");
 
     expect(financeiro?.items?.map((s) => s.name)).toEqual([
       "Resumo Financeiro",
@@ -395,7 +205,7 @@ describe("buildMenu", () => {
     // existiu um "Estoque" DIFERENTE, que guardava o Inventário e foi
     // dissolvido. O nome voltou; o Inventário não volta com ele — consulta
     // mora em "Relatórios", e é isso que esta asserção protege.
-    const menu = buildMenu(USER_ROLE.Admin);
+    const menu = buildMenu();
 
     const relatorios = menu.find((item) => item.name === "Relatórios");
     expect(relatorios?.items?.map((s) => s.href)).toEqual([
@@ -409,7 +219,7 @@ describe("buildMenu", () => {
 
   it("Usuários é item de primeiro nível, e não item do grupo Sistema", () => {
     const usuarios = ROUTES.find((r) => r.path === "/sistema/usuarios")!;
-    const sistema = buildMenu(USER_ROLE.Admin).find((item) => item.name === "Sistema");
+    const sistema = buildMenu().find((item) => item.name === "Sistema");
 
     expect(usuarios.group).toBeUndefined();
     expect(sistema?.items?.map((s) => s.href)).toEqual(["/tarefas", "/configuracoes", "/sistema/logs"]);
@@ -419,9 +229,7 @@ describe("buildMenu", () => {
     // A garantia que o fallback de `buildMenu` existe para dar: uma tela nova
     // esquecida em MENU_ORDER aparece no lugar errado — nunca some.
     const visiveis = ROUTES.filter((r) => r.label && !r.hidden && !r.publica).map((r) => r.path);
-    const hrefs = buildMenu(USER_ROLE.Admin).flatMap((item) =>
-      item.items ? item.items.map((s) => s.href) : [item.href],
-    );
+    const hrefs = buildMenu().flatMap((item) => (item.items ? item.items.map((s) => s.href) : [item.href]));
 
     for (const path of visiveis) expect(hrefs).toContain(path);
   });
@@ -439,7 +247,7 @@ describe("buildMenu", () => {
 
   it("todo item do menu corresponde a uma rota declarada", () => {
     const paths = new Set(ROUTES.map((r) => r.path));
-    const menu = buildMenu(USER_ROLE.Admin);
+    const menu = buildMenu();
     const hrefs = menu.flatMap((item) => (item.items ? item.items.map((s) => s.href) : [item.href]));
 
     // A invariante que o arquivo único existe para garantir: menu e rota não
@@ -448,54 +256,15 @@ describe("buildMenu", () => {
   });
 });
 
-describe("papel vindo da API como NOME do enum", () => {
-  /** Uma rota restrita qualquer, pega da fonte única em vez de inventada. */
-  const restrita = ROUTES.find((r) => r.roles && r.label)!;
-
-  it("aceita o papel em texto, que é o formato que a API manda", () => {
-    // REGRESSÃO que escondeu meia retaguarda: o backend registra
-    // JsonStringEnumConverter, então GET /Users/me devolve role: "Admin", e não
-    // 1. A comparação [1].includes("Admin") dava false, o menu perdia Usuários,
-    // Logs, Configurações, Relatórios, Sócios, Custos Fixos e Fechamentos, e o
-    // RequireRole redirecionava o próprio administrador. Sem erro em lugar
-    // nenhum: o item simplesmente não estava lá.
-    expect(podeAcessar(restrita, "Admin")).toBe(true);
-    expect(podeAcessar(restrita, "Seller")).toBe(false);
+describe("sem perfil de usuário", () => {
+  it("nenhuma rota declara papel", () => {
+    // Não existe perfil (03/10/2026): quem tem sessão abre tudo. Um `roles` de
+    // volta numa rota seria uma tela sumindo do menu de alguém sem que nada no
+    // backend a recuse — a autorização de lá é só a sessão.
+    for (const route of ROUTES) expect(route).not.toHaveProperty("roles");
   });
 
-  it("continua aceitando o papel numérico", () => {
-    // Os dois formatos, de propósito: a serialização do backend já mudou uma vez
-    // e uma tela que só entende um dos dois quebra na próxima.
-    expect(podeAcessar(restrita, USER_ROLE.Admin)).toBe(true);
-    expect(podeAcessar(restrita, USER_ROLE.Seller)).toBe(false);
-  });
-
-  it("nega quando o papel não veio", () => {
-    // Ausência não pode virar liberação: sem papel, a rota restrita fica fechada.
-    expect(podeAcessar(restrita, undefined)).toBe(false);
-    expect(podeAcessar(restrita, null)).toBe(false);
-    expect(podeAcessar(restrita, "")).toBe(false);
-  });
-
-  it("o menu do Admin em texto tem os mesmos itens do Admin numérico", () => {
-    // A afirmação que fecha o buraco: o menu não pode depender do FORMATO em que
-    // o papel chegou.
-    const porTexto = JSON.stringify(buildMenu("Admin").map((e) => e.name));
-    const porCodigo = JSON.stringify(buildMenu(USER_ROLE.Admin).map((e) => e.name));
-
-    expect(porTexto).toBe(porCodigo);
-  });
-
-  it("o Admin enxerga MAIS itens que o Vendedor", () => {
-    // Se um dia os dois menus ficarem iguais, ou o SO_ADMIN sumiu das rotas ou a
-    // normalização voltou a falhar — e nos dois casos alguém está vendo o que
-    // não devia.
-    const admin = buildMenu("Admin");
-    const vendedor = buildMenu("Seller");
-
-    const contar = (menu: typeof admin) =>
-      menu.reduce((total, entrada) => total + (entrada.items ? entrada.items.length : 1), 0);
-
-    expect(contar(admin)).toBeGreaterThan(contar(vendedor));
+  it("o menu é o mesmo para qualquer pessoa: não recebe papel", () => {
+    expect(buildMenu).toHaveLength(0);
   });
 });

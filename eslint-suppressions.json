@@ -16,7 +16,7 @@
   },
   "apps/admin/src/features/company-settings/hooks/useCompanySettings.ts": {
     "react-hooks/set-state-in-effect": {
-      "count": 3
+      "count": 2
     }
   },
   "apps/admin/src/features/customers/hooks/useCustomers.ts": {

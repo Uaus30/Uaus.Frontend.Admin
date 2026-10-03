@@ -41,9 +41,6 @@ export function stockCountTargetId(row: ProductTableRow, pickedVariationId: numb
  * gravaria uma sobra — e, com ela, reativaria um produto Inativo. Por isso abrir
  * (e trocar de variação) invalida a consulta do SKU, e a modal só libera quando
  * essa leitura termina — nunca com o que estiver no cache.
- *
- * Só Administrador: quem decide é a página, que só passa o `openFor` à tabela
- * para ele — e a API recusa o resto com 403.
  */
 export function useProductListStockCount() {
   const queryClient = useQueryClient();

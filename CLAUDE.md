@@ -442,14 +442,14 @@ complexidade acoplada — o que a seção 6 pede para evitar.
    certo onde a cadeia de altura é definida — o carrinho e a busca do PDV, que
    descendem de `h-screen`.
 
-> Duas armadilhas antigas **deixaram de valer** e estão registradas aqui para
-> ninguém orçar de novo o que já existe:
+> Duas coisas que **deixaram de valer** e estão registradas aqui para ninguém
+> orçar ou refazer por engano:
 >
-> - **Autorização por papel existe.** `apps/admin/src/routes.ts` declara
->   `roles?: RoleCode[]` por rota (8 já usam `SO_ADMIN`), `podeAcessar` e
->   `buildMenu` derivam menu e acesso dos mesmos dados, e `RequireRole` em
->   `src/components/route-guards.tsx` redireciona quem não tem o papel. "Só Admin
->   faz X" é **uma linha** na rota, não feature nova.
+> - **Não existe perfil de usuário** (decisão do dono, 03/10/2026). Quem tem
+>   sessão abre todas as telas: `apps/admin/src/routes.ts` não tem `roles`, não
+>   há `RequireRole` nem `useIsAdmin`, e no backend controller nenhum leva
+>   `[Authorize]`. Não proponha "só Admin faz X" nem esconda tela ou ação por
+>   papel; se um controle por perfil voltar, é feature nova, desenhada com o dono.
 > - **Rota e menu não divergem mais.** `routes.ts` é a fonte única; `App.tsx` e o
 >   menu do `layout.tsx` são derivados dela. Não há mais string solta para errar.
 

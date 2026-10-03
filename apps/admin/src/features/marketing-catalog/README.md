@@ -2,9 +2,8 @@
 
 Gera o material de divulgação da loja sem montagem manual: o sistema sorteia os
 produtos e desenha a peça pronta para compartilhar. Rota `/marketing/catalogo`,
-item **Catálogo** do grupo Marketing, **aberto a qualquer papel** (decisão do
-dono, 03/10/2026: quem está no balcão também divulga, e a tela não mostra custo,
-margem nem saldo).
+item **Catálogo** do grupo Marketing. Quem está no balcão também divulga, e a
+tela não mostra custo, margem nem saldo.
 
 O contrato completo — decisões, números medidos, regras do sorteio e etapas —
 está em `PLANO-CATALOGO.md`, na raiz do repositório.
@@ -12,7 +11,7 @@ está em `PLANO-CATALOGO.md`, na raiz do repositório.
 **Estado: as quatro etapas.** Três formatos — banner 9:16, banner 4:5 e catálogo
 em PDF —, com escolha de tema e título, sorteio do servidor e troca de um
 produto; e o histórico das peças que saíram, com o descanso de quem já apareceu
-e a venda antes e depois (rota `/marketing/catalogo/historico`, **só Admin**).
+e a venda antes e depois (rota `/marketing/catalogo/historico`).
 
 ## Regras de negócio
 
@@ -233,8 +232,8 @@ explicado no histórico.
 
 ### 19. O histórico compara com o MESMO trecho da semana anterior
 
-A tela de histórico é **só de Admin**: ao contrário da de gerar, mostra unidades
-vendidas. Para cada peça, "depois" são as unidades dos produtos dela desde que
+A tela de histórico, ao contrário da de gerar, mostra unidades vendidas. Para
+cada peça, "depois" são as unidades dos produtos dela desde que
 saiu, por até 7 dias; "antes" é o mesmo trecho da semana anterior — os mesmos
 dias da semana. Com dois dias medidos, uma peça de sábado comparada com a quinta
 e a sexta pareceria um sucesso só por causa do calendário.

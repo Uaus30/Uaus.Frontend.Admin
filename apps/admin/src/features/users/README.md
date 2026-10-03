@@ -63,29 +63,25 @@ derruba todo token emitido antes dela — o deste aparelho e o de qualquer outro
 onde a conta esteja aberta —, e é o token novo que mantém dentro quem acabou de
 trocar.
 
-### 2.1. Todo usuário é Administrador (01/10/2026)
+### 2.1. Não existe perfil de usuário (03/10/2026)
 
-Decisão do dono, para simplificar o uso: o perfil **Vendedor foi desativado**. A
-modal não oferece mais a escolha de papel e `handleSubmitUser` manda sempre
-`USER_ROLE.Admin`, inclusive na edição de um usuário que tenha outro papel gravado.
-O servidor recusa `Seller` no cadastro e na edição, e o enum o marca como não
-selecionável. Na data da decisão não havia nenhum vendedor cadastrado, nem na dev
-nem em produção, então nada precisou ser convertido. Se um controle por perfil
-voltar, ele é desenhado de novo.
+Decisão do dono: quem tem login faz tudo. O cadastro não tem papel — nem na
+tela, nem no pedido, nem no banco (a coluna `users.role` foi removida). Em
+01/10/2026 o perfil Vendedor já tinha sido desativado; em 03/10 saiu o conceito
+inteiro. Se um controle por perfil voltar, ele é desenhado de novo — o porquê e
+o que foi removido estão em
+`Uaus.Docs/historico/2026-10-03-fim-dos-perfis-de-usuario.md`.
 
-### 3. Papel e Status chegam como TEXTO
+### 3. O Status chega como TEXTO
 
-A API registra `JsonStringEnumConverter`: `GET /Users` devolve `role: "Seller"`,
+A API registra `JsonStringEnumConverter`: `GET /Users` devolve
 `status: "Pending"` — o nome do membro do enum em C#, não o número.
 
-Todo ponto que lê esses campos passa por `enumCode`. O `openEdit` fazia
-`String(user.role)` e procurava a opção `"Seller"` num `<Select>` cujos valores
-são `"1"` e `"2"`: **os campos Papel e Status abriam em branco**, sem erro no
-console, e salvar assim rebaixava o papel do usuário. A tabela caía no mesmo
-buraco pelo fallback, mostrando "Seller" e "Pending" em inglês.
-
-O mesmo defeito já havia escondido meia retaguarda pelo `routes.ts` — ver o JSDoc
-de `codigoDoPapel` lá.
+Todo ponto que lê esse campo passa por `enumCode`. O `openEdit` fazia
+`String(user.status)` e procurava a opção `"Pending"` num `<Select>` cujos
+valores são `"1"`, `"2"`...: **o campo Status abria em branco**, sem erro no
+console. A tabela caía no mesmo buraco pelo fallback, mostrando "Pending" em
+inglês.
 
 ### 4. Quem pode entrar
 

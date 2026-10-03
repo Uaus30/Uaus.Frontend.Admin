@@ -3,8 +3,8 @@
 Os dois extremos do catálogo, lado a lado — e a decisão que cada produto está
 pedindo.
 
-Rota: `/bi/produtos` (`pages/product-performance.tsx`), `SO_ADMIN` porque a
-resposta traz custo, lucro e margem item a item.
+Rota: `/bi/produtos` (`pages/product-performance.tsx`). A resposta traz custo,
+lucro e margem item a item.
 
 Dados: `packages/api-client/src/hooks/product-performance.ts`. São **dois
 caminhos para o mesmo relatório**:

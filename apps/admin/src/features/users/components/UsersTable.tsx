@@ -1,24 +1,11 @@
 import { Badge } from "@workspace/ui";
-import {
-  USER_ROLE,
-  USER_STATUS,
-  enumCode,
-  precisaTrocarSenha,
-  type UiPagedResult,
-} from "@workspace/api-client-react";
+import { USER_STATUS, enumCode, precisaTrocarSenha, type UiPagedResult } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui";
 import { getDisplayName } from "@/services/mappers";
-import { KeyRound, Loader2, Pencil, ShieldCheck, Trash2, User, UserCog } from "lucide-react";
+import { KeyRound, Loader2, Pencil, Trash2, UserCog } from "lucide-react";
 import type { UserRow } from "../types";
-
-/**
- * Retorna o ícone associado ao papel de usuário.
- */
-function roleIcon(roleId: number) {
-  return roleId === USER_ROLE.Admin ? ShieldCheck : User;
-}
 
 /**
  * Propriedades do componente de tabela de usuários.
@@ -28,8 +15,6 @@ interface UsersTableProps {
   data: UiPagedResult<UserRow> | undefined;
   /** Estado de carregamento da lista. */
   isLoading: boolean;
-  /** Mapa de ID para o label do papel de usuário. */
-  roleLabels: Record<number, string>;
   /** Mapa de ID para o label de status do usuário. */
   statusLabels: Record<number, string>;
   /** Callback acionado ao clicar em editar. */
@@ -41,17 +26,16 @@ interface UsersTableProps {
 }
 
 /**
- * Tabela de usuários com papel, status e ações.
+ * Tabela de usuários com status e ações.
  *
- * Papel e status passam por `enumCode` porque a API os serializa pelo NOME
- * (`"Seller"`, `"Pending"`). Indexar os mapas de rótulo direto com esse valor
- * devolvia `undefined`, e a tabela caía no fallback: a coluna mostrava "Seller"
- * e "Pending" em inglês, no meio de uma tela em português.
+ * O status passa por `enumCode` porque a API o serializa pelo NOME
+ * (`"Pending"`). Indexar o mapa de rótulos direto com esse valor devolvia
+ * `undefined`, e a tabela caía no fallback: a coluna mostrava "Pending" em
+ * inglês, no meio de uma tela em português.
  */
 export function UsersTable({
   data,
   isLoading,
-  roleLabels,
   statusLabels,
   onEdit,
   onResetPassword,
@@ -65,7 +49,6 @@ export function UsersTable({
             <TableHead>Nome</TableHead>
             <TableHead>Usuário</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Papel</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
@@ -73,22 +56,20 @@ export function UsersTable({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                 <Loader2 className="mx-auto h-6 w-6 animate-spin" />
               </TableCell>
             </TableRow>
           ) : data?.data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                 <UserCog className="mx-auto mb-2 h-8 w-8 opacity-40" />
                 <p>Nenhum usuário encontrado</p>
               </TableCell>
             </TableRow>
           ) : (
             data?.data.map((user) => {
-              const role = enumCode(user.role, USER_ROLE);
               const status = enumCode(user.status, USER_STATUS);
-              const Icon = roleIcon(role);
               return (
                 <TableRow key={user.id} className="border-border hover:bg-muted/30">
                   <TableCell className="font-medium">
@@ -101,12 +82,6 @@ export function UsersTable({
                   </TableCell>
                   <TableCell className="text-muted-foreground">{user.username}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                      <Icon className="h-3 w-3" />
-                      {roleLabels[role] ?? user.role}
-                    </span>
-                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Badge variant={status === USER_STATUS.Active ? "default" : "secondary"}>

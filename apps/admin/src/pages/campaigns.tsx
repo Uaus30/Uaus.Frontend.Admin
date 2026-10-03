@@ -5,7 +5,7 @@ import { Button, Input, TablePagination } from "@workspace/ui";
 import { Megaphone, Plus, Search } from "lucide-react";
 
 /**
- * Página de Campanhas (rota `/marketing/campanhas`, papel Admin).
+ * Página de Campanhas (rota `/marketing/campanhas`).
  *
  * A campanha reúne cupons e um questionário curto para o caixa. O que ela
  * decide é **se o questionário aparece** — o desconto, o prazo e o limite de

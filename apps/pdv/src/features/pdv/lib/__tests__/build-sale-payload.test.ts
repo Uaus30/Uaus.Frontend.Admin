@@ -464,8 +464,7 @@ describe("buildSalePayload", () => {
     it("deve mandar a parcela da promoção discriminada, DENTRO do desconto da linha", () => {
       // Copo de R$ 2,50 na relâmpago a R$ 0,99, com mais R$ 0,20 que o operador
       // deu no balcão. Sem a discriminação, os R$ 1,71 inteiros contariam como
-      // desconto do vendedor e cada cliente da fila passaria a exigir senha de
-      // administrador.
+      // desconto manual do operador, e a promoção perderia a venda na medição.
       const payload = build({
         items: [
           {

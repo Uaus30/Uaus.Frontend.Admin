@@ -229,19 +229,6 @@ export interface CompanySettingsDto {
   /** Mensagem de agradecimento impressa no rodapé de todo cupom. */
   receiptFooterMessage?: string;
   /**
-   * Limite de desconto do operador `Seller`, em percentual (0–100).
-   *
-   * `0` = sem limite. Vale tanto para o desconto GLOBAL (% sobre o subtotal)
-   * quanto para o desconto por ITEM (% sobre o preço de tabela, que é
-   * `unitPrice + discount - surcharge`). Acima do limite, a venda só entra com a
-   * autorização de um Admin (`managerLogin`/`managerPassword` no payload).
-   * Admin operando o caixa não tem limite.
-   *
-   * Opcional por segurança de versão: um backend anterior ao campo responde
-   * sem ele, e a ausência deve ser tratada como sem limite.
-   */
-  maxSellerDiscountPercentage?: number;
-  /**
    * Abaixo de quantas unidades o SITE mostra "Últimas unidades" (uma unidade
    * vira "Último disponível"). Zero desliga as tags. Opcional por segurança
    * de versão.

@@ -48,8 +48,7 @@ export function useTaskCard(cardId: number | null) {
 
   const { data: card, isLoading, isError } = useGetTaskCard(cardId);
   const { data: labels } = useGetTaskLabels();
-  // Quem pode ser membro, pela rota do quadro (aberta a todo papel; `GET /Users`
-  // é só Admin e deixaria o Vendedor com o seletor vazio).
+  // Quem pode ser membro, pela rota do próprio quadro.
   const { data: members } = useGetTaskBoardMembers();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: TASK_CARDS_QUERY_KEY });

@@ -27,9 +27,8 @@ import type {
 
 /**
  * Produto na busca do balcão (`GET /Pdv/products/search`): só o que o operador
- * precisa para encontrar o produto e vendê-lo. Campos sensíveis do cadastro
- * (custo, margem, fornecedor) ficam fora de propósito — o endpoint é liberado
- * para `Seller`.
+ * precisa para encontrar o produto e vendê-lo. Custo, margem e fornecedor
+ * ficam fora de propósito: o balcão não os usa.
  */
 export interface ProductPdvSearchDto {
   id: number;
@@ -101,8 +100,7 @@ export async function getPdvTodaySales(): Promise<SaleDto[]> {
 
 /**
  * Consulta o cupom pelo código lido do panfleto e devolve, junto, o
- * questionário a apresentar no balcão (`GET /Pdv/coupons/{code}`, liberado para
- * `Admin` e `Seller`).
+ * questionário a apresentar no balcão (`GET /Pdv/coupons/{code}`).
  *
  * **NÃO É HOOK DE QUERY, e isso é deliberado.** A resposta vale para o instante
  * da consulta e não reserva nada: guardá-la em cache faria o segundo caixa ler
@@ -194,8 +192,7 @@ export interface RegisterPdvSaleItemPayload {
   /**
    * Desconto unitário concedido no item, em reais, apenas para auditoria: o
    * preço de tabela no momento da venda era `unitPrice + discount - surcharge`.
-   * Não participa da validação de totais, mas conta para o limite de desconto do
-   * `Seller` (ver `RegisterPdvSalePayload.managerLogin`).
+   * Não participa da validação de totais.
    */
   discount?: number;
   /**
@@ -204,9 +201,7 @@ export interface RegisterPdvSaleItemPayload {
    *
    * **Já está dentro do `unitPrice`.** A conferência de total do servidor
    * (itens menos desconto) não o soma por fora; mandá-lo em dobro faria a venda
-   * ser recusada com o cliente no balcão. Serve para o cupom, para o histórico e
-   * para o servidor descontá-lo do preço de tabela ao medir o limite do
-   * vendedor.
+   * ser recusada com o cliente no balcão. Serve para o cupom e para o histórico.
    */
   surcharge?: number;
   /**
@@ -220,16 +215,12 @@ export interface RegisterPdvSaleItemPayload {
    * O servidor confere três portas — a promoção existe, cobre o grupo daquele
    * produto, e a janela dela alcança o `occurredAt` (nunca a hora do sync).
    * Falhando qualquer uma, a atribuição some e o abatimento continua na linha
-   * como desconto do vendedor: **venda paga nunca é recusada por promoção**.
+   * como desconto manual do operador: **venda paga nunca é recusada por promoção**.
    */
   promotionId?: number | null;
   /**
    * Parcela de `discount` que veio da promoção, por unidade. **Não somar** — ela
    * já está dentro do desconto, e o total da venda não a conhece.
-   *
-   * É ela que tira a promoção do limite de desconto do vendedor. Sem ela, toda
-   * relâmpago de 30% passaria a exigir senha de administrador a cada cliente da
-   * fila.
    */
   promotionDiscount?: number;
 }
@@ -305,7 +296,7 @@ export interface RegisterPdvSalePayload {
    * própria venda (nunca depois do `occurredAt`, nunca mais de 12h antes). Sem
    * ele, a venda que começou 17:59:40 numa relâmpago que acaba às 18:00 e foi
    * paga 18:00:12 perderia a atribuição — e o abatimento que o cliente já levou
-   * impresso viraria desconto do vendedor, podendo exigir senha de administrador.
+   * impresso viraria desconto manual do operador.
    *
    * Nulo é o normal de quem não congela nada; aí vale o `occurredAt`.
    */
@@ -339,24 +330,6 @@ export interface RegisterPdvSalePayload {
    */
   coupon?: RegisterPdvSaleCouponPayload | null;
   notes?: string | null;
-  /**
-   * Login do administrador que autoriza um desconto acima do limite do
-   * vendedor.
-   *
-   * A regra: quando o operador é `Seller` e a empresa configurou
-   * `maxSellerDiscountPercentage` > 0, qualquer desconto que exceda o limite —
-   * o GLOBAL (`discount` como % do subtotal) ou o de ITEM (`discount` do item
-   * como % do preço de tabela `unitPrice + discount`) — exige as credenciais
-   * de um Admin. Sem autorização válida o servidor recusa a venda com erro
-   * legível (e, no sync offline, a venda volta como `Rejected`). Admin
-   * operando o caixa não tem limite.
-   */
-  managerLogin?: string | null;
-  /**
-   * Senha do administrador autorizador. Validada com o mesmo mecanismo do
-   * login; nunca é gravada nem registrada em log pelo servidor.
-   */
-  managerPassword?: string | null;
   items: RegisterPdvSaleItemPayload[];
   payments: SalePaymentPayload[];
 }
@@ -427,10 +400,9 @@ export const getGetStorePerformanceQueryKey = (): QueryKey => ["PdvPerformance"]
 /**
  * Resumo de desempenho da loja para a modal do PDV.
  *
- * Vive sob `/Pdv` e não sob `/Dashboard` por causa da autorização: o painel
- * inteiro é restrito a Admin, e o operador de caixa é Seller — ele tomaria 403
- * em qualquer endpoint de lá. Este é liberado para os dois papéis e não devolve
- * custo, lucro nem margem.
+ * Vive sob `/Pdv` e não sob `/Dashboard` porque nasceu quando existia o perfil
+ * Vendedor (até 03/10/2026), que não alcançava o painel. Continua separado
+ * porque devolve só o que o balcão mostra — sem custo, lucro nem margem.
  *
  * A comparação vem pronta do servidor contra o último dia que teve VENDA, não
  * contra ontem.

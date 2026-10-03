@@ -325,7 +325,7 @@ describe("syncPendingSales", () => {
   it("deve enviar a promoção que a venda praticou no balcão, e não a de hoje", async () => {
     // A venda das 17h50 de sábado sobe na segunda. O servidor confere a janela
     // contra o `occurredAt` e aceita; o que ele NÃO pode receber é a venda sem a
-    // atribuição, senão o desconto do cartaz vira desconto do vendedor e a
+    // atribuição, senão o desconto do cartaz vira desconto manual do operador e a
     // promoção perde a venda na medição.
     const comPromocao = pendingSale("ref-1");
     comPromocao.items = [

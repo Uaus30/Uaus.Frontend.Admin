@@ -1,6 +1,6 @@
 # Módulo de Campanhas (Admin)
 
-Cadastro das campanhas de marketing: período, questionário do caixa e os cupons ligados a elas. Rota `/marketing/campanhas`, papel **Admin** (não existe papel de marketing no sistema, e o `CampaignsController` recusa Seller em todas as actions). Contrato em `PLANO-CUPONS-CAMPANHAS.md` (raiz do repositório) e nos DTOs de `Uaus.Application/DTOs/Campaigns`.
+Cadastro das campanhas de marketing: período, questionário do caixa e os cupons ligados a elas. Rota `/marketing/campanhas`. Contrato em `PLANO-CUPONS-CAMPANHAS.md` (raiz do repositório) e nos DTOs de `Uaus.Application/DTOs/Campaigns`.
 
 ## A regra que mais confunde
 

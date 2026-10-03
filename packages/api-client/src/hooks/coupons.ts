@@ -4,11 +4,10 @@
  * Aqui se define **o que o panfleto promete**. Nada neste arquivo aplica cupom
  * em venda nem mexe no contador de uso: o consumo é um UPDATE condicional que
  * roda dentro da transação da venda, no servidor. A consulta do balcão também
- * não mora aqui — ela é `lookupPdvCoupon`, em `./pdv`, porque tem rota, papel
- * (`Admin,Seller`) e semântica próprios.
+ * não mora aqui — ela é `lookupPdvCoupon`, em `./pdv`, porque tem rota e
+ * semântica próprias.
  *
  * Contrato em PLANO-CUPONS-CAMPANHAS.md e em `CouponsController` do backend.
- * Todas as rotas exigem o papel **Admin**.
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";

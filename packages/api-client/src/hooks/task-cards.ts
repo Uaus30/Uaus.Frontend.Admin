@@ -101,8 +101,8 @@ export function useGetArchivedTaskCards(options?: QueryOpts<TaskCardSummaryDto[]
 
 /**
  * Quem pode ser membro de um cartão (usuários ativos ou pendentes, por nome).
- * É `GET /TaskCards/members`, e não `GET /Users`: aquele é só de Admin, e o
- * quadro é de todo papel — o Vendedor abriria o seletor vazio.
+ * É `GET /TaskCards/members`, e não `GET /Users`: só id e nome, que é o que o
+ * seletor mostra.
  */
 export function useGetTaskBoardMembers(options?: QueryOpts<TaskCardMemberDto[]>) {
   return useQuery<TaskCardMemberDto[], ApiError, TaskCardMemberDto[], QueryKey>({

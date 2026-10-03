@@ -3,7 +3,7 @@ import type { UserListDto } from "@workspace/api-client-react";
 /**
  * Campos do formulário de Usuários.
  *
- * `role` e `status` são string porque o `<Select>` do shadcn trabalha com string;
+ * `status` é string porque o `<Select>` do shadcn trabalha com string;
  * a conversão para o código numérico acontece no envio. **Não há campo de senha**:
  * o cadastro nasce com a senha padrão do sistema e a troca é do próprio usuário,
  * no primeiro acesso. Ver o README da feature.
@@ -12,7 +12,6 @@ export interface UserForm {
   fullName: string;
   username: string;
   email: string;
-  role: string;
   status: string;
 }
 

@@ -3,7 +3,7 @@
 Os produtos que **sozinhos compõem metade do lucro** do período, com o motivo da
 posição de cada um e o que fazer a respeito.
 
-Só Admin (`SO_ADMIN`): a tela expõe custo, lucro e margem item a item.
+A tela expõe custo, lucro e margem item a item.
 
 ---
 

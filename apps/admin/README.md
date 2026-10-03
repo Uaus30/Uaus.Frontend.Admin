@@ -86,23 +86,15 @@ tela de formas de pagamento respondia em `/formas-pagamento` e em
 continua respondendo, marcado `hidden`, para não quebrar link salvo — mas fora do
 menu, porque a mesma tela em dois lugares confunde mais do que ajuda.
 
-### Autorização por papel: existe, e é conveniência
+### Autorização: só a sessão
 
-`App.tsx` embrulha toda rota privada no `AuthGate`; as que declaram `roles`
-ganham o `RequireRole` por cima (`src/components/route-guards.tsx`). Restritas a
-Admin hoje: relatórios, fechamentos, custos fixos, sócios, configurações, logs
-(lista e detalhe) e usuários — o dinheiro da sociedade, o cadastro de usuários e
-a auditoria não são assunto de operador de caixa.
+`App.tsx` embrulha toda rota privada no `AuthGate`
+(`src/components/route-guards.tsx`), e é só isso: **não existe perfil de
+usuário** (decisão do dono, 03/10/2026). Quem tem login abre todas as telas, e o
+menu é o mesmo para todo mundo. Rota nova não declara papel.
 
-Duas coisas para não entender errado:
-
-1. **A checagem do cliente não é segurança.** Quem decide é o backend, que recusa
-   esses endpoints para `Seller`. O que ela evita é o usuário abrir uma tela que
-   só vai mostrar 403 — e, principalmente, ver no menu um caminho que não é dele.
-   Um grupo cujos itens sejam todos restritos some inteiro: "Sistema" vazio para
-   um vendedor seria pior que nada.
-2. **`RequireRole` redireciona para o dashboard**, não mostra "acesso negado".
-   Tela de erro não dá ao usuário nada a fazer; o dashboard todo papel abre.
+A checagem do cliente não é segurança: quem decide é o backend, que responde 401
+sem token válido.
 
 O `AuthGate` mostra spinner enquanto a sessão carrega e **não** redireciona nesse
 intervalo — sem essa espera, um F5 jogava o usuário logado no login por um

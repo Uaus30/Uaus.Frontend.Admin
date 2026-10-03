@@ -2,7 +2,6 @@ import { type ReactNode } from "react";
 import { Redirect, useLocation, useSearch } from "wouter";
 import { Spinner } from "@workspace/ui";
 import { precisaTrocarSenha } from "@workspace/api-client-react";
-import { podeAcessar, type AppRoute } from "@/routes";
 import { useSessao } from "@/hooks/use-sessao";
 import { getDisplayName } from "@/services/mappers";
 import { TrocaSenhaObrigatoria } from "@/features/users/components/TrocaSenhaObrigatoria";
@@ -13,13 +12,12 @@ import { urlLoginCom } from "@/lib/destino-login";
  *
  * Antes disso a proteção dependia de cada página lembrar de renderizar
  * `<AppLayout>`, cuja checagem de sessão ficava lá dentro: uma página que
- * esquecesse o layout abria para qualquer um. E papel nenhum era verificado —
- * `USER_ROLE` existia no api-client sem um único uso no admin, então um Vendedor
- * autenticado navegava para `/sistema/usuarios` e `/financeiro/socios`.
+ * esquecesse o layout abria para qualquer um.
  *
- * A checagem daqui é CONVENIÊNCIA, não segurança: quem decide é o backend, que
- * recusa esses endpoints para Seller. O que ela evita é o usuário abrir uma tela
- * que só vai mostrar 403, e ver no menu um caminho que não é dele.
+ * Só a SESSÃO é conferida: não existe perfil de usuário (decisão do dono,
+ * 03/10/2026), então quem entrou abre todas as telas. A checagem daqui é
+ * CONVENIÊNCIA, não segurança — quem decide é o backend, que responde 401 sem
+ * token válido.
  */
 
 function TelaCarregando() {
@@ -66,23 +64,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // é a mesma para todo cadastro novo. A troca vem antes de qualquer tela, e no
   // gate em vez de numa rota — rota daria para pular pela URL.
   if (precisaTrocarSenha(user.status)) return <TrocaSenhaObrigatoria nome={getDisplayName(user)} />;
-
-  return <>{children}</>;
-}
-
-/**
- * Exige que o papel do usuário conste na rota.
- *
- * Redireciona para o dashboard em vez de mostrar "acesso negado": a tela de erro
- * não daria ao usuário nada a fazer, e o dashboard é onde todo papel tem acesso.
- */
-export function RequireRole({ route, children }: { route: AppRoute; children: ReactNode }) {
-  const { data: user, isLoading } = useSessao();
-  const caminho = useCaminhoAtual();
-
-  if (isLoading) return <TelaCarregando />;
-  if (!user) return <Redirect to={urlLoginCom(caminho)} />;
-  if (!podeAcessar(route, user.role)) return <Redirect to="/dashboard" />;
 
   return <>{children}</>;
 }

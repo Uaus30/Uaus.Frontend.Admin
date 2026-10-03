@@ -31,9 +31,8 @@ reimpressão.
   primeiros produtos do catálogo — uma lista que não responde pergunta nenhuma
   e faz parecer que já há um filtro aplicado.
 - **Por que `/Pdv/products/search` e não `/Products`**: interpreta o termo com
-  a mesma regra (só dígitos = código de barras), já devolve a URL da primeira
-  imagem — que é a miniatura da lista — e é liberado para `Seller`, enquanto a
-  listagem do cadastro não é.
+  a mesma regra (só dígitos = código de barras) e já devolve a URL da primeira
+  imagem — que é a miniatura da lista.
 - **Miniatura na listagem**: o catálogo tem muito nome parecido, e conferir
   pela foto é mais rápido do que ler o código de barras inteiro. A etiqueta
   errada só aparece depois de impressa e colada na gôndola.

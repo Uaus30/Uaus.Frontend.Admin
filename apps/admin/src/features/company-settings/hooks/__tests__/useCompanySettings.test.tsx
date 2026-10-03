@@ -44,7 +44,6 @@ const serverSettings = {
   phone: "Cel: (44) 99137-2305",
   document: "64.958.682/0001-22",
   receiptFooterMessage: "Obrigado pela preferência!",
-  maxSellerDiscountPercentage: 0,
   siteLowStockThreshold: 0,
   siteNewProductsCount: 20,
   defaultMinStock: 3,

@@ -7,7 +7,7 @@ import { Button } from "@workspace/ui";
 import { Plus, TicketPercent } from "lucide-react";
 
 /**
- * Página de cupons de desconto (rota `/marketing/cupons`, papel Admin).
+ * Página de cupons de desconto (rota `/marketing/cupons`).
  *
  * Não há query nem mutação aqui: tudo vem de `useCoupons`. A página só desenha.
  */

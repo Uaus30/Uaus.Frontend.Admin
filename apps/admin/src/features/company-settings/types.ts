@@ -23,8 +23,6 @@ export type CompanySettingsForm = {
   state: string;
   zipCode: string;
   receiptFooter: string;
-  /** Teto de desconto do operador Seller, em pontos percentuais. */
-  maxSellerDiscountPercentage: string;
   /** A loja controla abertura e fechamento de caixa. */
   requiresCashRegisterSession: boolean;
 };

@@ -38,7 +38,6 @@ describe("AppLayout header version", () => {
       data: {
         id: 1,
         name: "Administrador",
-        role: "ADMIN",
       },
       isLoading: false,
     });

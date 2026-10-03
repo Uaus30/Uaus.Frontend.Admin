@@ -94,9 +94,9 @@ export interface PromotionAllocationInput {
    * promoção de "R$ 19,90" sairia por R$ 19,90 — a gravação de graça.
    *
    * É a mesma base que `DescontoEsperado` usa no servidor
-   * (`UnitPrice + Discount − Surcharge`) e a mesma que o limite de desconto do
-   * vendedor usa; divergir aqui carimbaria um alerta em `logs` a cada venda
-   * assim, com a frase "desconto da promoção diferente do que a regra daria".
+   * (`UnitPrice + Discount − Surcharge`); divergir aqui carimbaria um alerta em
+   * `logs` a cada venda assim, com a frase "desconto da promoção diferente do
+   * que a regra daria".
    */
   listPrice: number;
   quantity: number;

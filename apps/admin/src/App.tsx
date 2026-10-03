@@ -9,7 +9,7 @@ import { WifiOff, Loader2 } from "lucide-react";
 import { useToast } from "@workspace/ui";
 import { DevEnvironmentBanner, DEV_ENVIRONMENT_BANNER_HEIGHT, isDevEnvironment } from "@workspace/ui";
 import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
-import { AuthGate, RequireRole } from "@/components/route-guards";
+import { AuthGate } from "@/components/route-guards";
 import { AppLayout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProductReactivationDialog } from "@/components/product-reactivation-dialog";
@@ -82,13 +82,7 @@ function AreaPrivada() {
                 // `<Route>` só, para a página não desmontar entre eles (ver
                 // `features/products/product-detail-route.ts`).
                 <Route key={route.path} path={route.matchPath ?? route.path}>
-                  {route.roles ? (
-                    <RequireRole route={route}>
-                      <Page />
-                    </RequireRole>
-                  ) : (
-                    <Page />
-                  )}
+                  <Page />
                 </Route>
               );
             })}
@@ -106,9 +100,8 @@ function AreaPrivada() {
  * em sincronia, e já divergiam — a tela de formas de pagamento respondia em dois
  * caminhos e só um aparecia no menu.
  *
- * Toda rota privada passa pelo `AuthGate`; as que declaram `roles` ganham o
- * `RequireRole` por cima. Antes a proteção dependia de cada página lembrar de
- * renderizar o `<AppLayout>`.
+ * Toda rota privada passa pelo `AuthGate`. Antes a proteção dependia de cada
+ * página lembrar de renderizar o `<AppLayout>`.
  *
  * Exportado para o teste de `__tests__/app-shell.test.tsx`, que é quem prova as
  * duas propriedades desta estrutura: a casca não desmonta entre telas, e a 404

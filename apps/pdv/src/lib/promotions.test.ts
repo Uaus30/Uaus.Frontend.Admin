@@ -213,7 +213,7 @@ describe("applyPromotionsToCart", () => {
     const [linha] = applyPromotionsToCart([item({ discount: 0.2 })], [promocao()], DENTRO);
 
     // O desconto total da linha é a soma dos dois; a parcela da promoção fica
-    // discriminada para o servidor tirá-la do limite do vendedor.
+    // discriminada para o servidor atribuí-la à promoção.
     expect(linha.discount).toBe(1.71);
     expect(linha.promotionDiscount).toBe(1.51);
   });

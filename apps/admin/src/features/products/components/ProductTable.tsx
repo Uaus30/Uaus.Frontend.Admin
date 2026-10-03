@@ -66,7 +66,7 @@ type ProductTableProps = {
   onViewHistory?: (product: ProductTableRow) => void;
   /**
    * "Corrigir estoque" direto da linha — a contagem física. Ausente, o item não
-   * aparece — é como a página o esconde de quem não é Administrador.
+   * aparece.
    */
   onStockCount?: (product: ProductTableRow) => void;
   onUpdatePrice?: (product: ProductTableRow, newPrice: number) => Promise<void>;

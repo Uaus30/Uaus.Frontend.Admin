@@ -27,7 +27,6 @@ export default function Users() {
     isLoading,
     editableStatusOptions,
     pendentePrimeiroAcesso,
-    roleLabels,
     statusLabels,
     creating,
     updating,
@@ -57,7 +56,6 @@ export default function Users() {
         <UsersTable
           data={data}
           isLoading={isLoading}
-          roleLabels={roleLabels}
           statusLabels={statusLabels}
           onEdit={openEdit}
           onResetPassword={setResetTarget}

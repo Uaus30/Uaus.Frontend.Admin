@@ -7,7 +7,7 @@ import { PromotionsTable } from "@/features/promotions/components/PromotionsTabl
 import { PromotionEditorScreen } from "@/features/promotions/components/PromotionEditorScreen";
 
 /**
- * Página de Promoções (rota `/marketing/promocoes`, papel Admin).
+ * Página de Promoções (rota `/marketing/promocoes`).
  *
  * Três telas numa entrada de rota só — listagem, cadastro e detalhe. É o mesmo
  * desenho da página de Produtos, e pelo mesmo motivo: entradas separadas no

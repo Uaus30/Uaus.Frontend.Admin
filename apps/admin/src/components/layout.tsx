@@ -25,10 +25,9 @@ import { getGetMeQueryKey } from "@workspace/api-client-react";
 import { getDisplayName } from "@/services/mappers";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { ROLE_LABELS, ROUTES, buildMenu, type RoleCode } from "@/routes";
+import { ROUTES, buildMenu } from "@/routes";
 import { pdvHomeUrl } from "@/lib/pdv-links";
 import { StockFreezeBanner } from "@/components/stock-freeze-banner";
-import { enumCode, USER_ROLE } from "@workspace/api-client-react";
 import { formatUpdatedAt, formatVersion } from "@workspace/core";
 
 /**
@@ -36,9 +35,6 @@ import { formatUpdatedAt, formatVersion } from "@workspace/core";
  *
  * Enquanto eram duas listas mantidas a mao em sincronia, elas divergiam: a tela
  * de formas de pagamento respondia em dois caminhos e so um aparecia aqui.
- *
- * O menu tambem passa a esconder o que o papel do usuario nao pode abrir — antes
- * um Vendedor via (e clicava em) Socios e Usuarios.
  */
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -88,10 +84,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const displayName = getDisplayName(user);
   const initials = displayName.charAt(0).toUpperCase();
-  // Mesmo motivo do `podeAcessar`: a API manda o NOME do papel, não o
-  // código. Sem normalizar, o rodapé do menu dizia "Usuário" para todo mundo.
-  const roleLabel = ROLE_LABELS[enumCode(user.role, USER_ROLE) as RoleCode] ?? "Usuário";
-  const navigation = buildMenu(user.role);
+  const navigation = buildMenu();
 
   // `null` quando não dá para saber onde o PDV está — aí o botão nem aparece,
   // em vez de abrir uma aba do próprio admin. Detalhe em `lib/pdv-links.ts`.
@@ -222,7 +215,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-medium leading-none">{displayName}</span>
-                <span className="text-xs text-muted-foreground mt-1">{roleLabel}</span>
               </div>
             </div>
             <button

@@ -76,8 +76,7 @@ Decisão do dono: enquanto houver conferência de estoque aberta, o PDV fica
 meio dela dá a diferença errada. O servidor recusa a venda de qualquer jeito; o PDV
 avisa antes:
 
-- `useStockFreeze` consulta `GET /Pdv/status` a cada 30 s. A rota é liberada para
-  Vendedor, porque a da conferência é só de Administrador.
+- `useStockFreeze` consulta `GET /Pdv/status` a cada 30 s.
 - Com as vendas pausadas, aparece a faixa âmbar `StockFreezeBanner` no topo, e o
   FINALIZAR fica travado (`checkoutBlocked`, que junta este motivo ao do caixa
   fechado).

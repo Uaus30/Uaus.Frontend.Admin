@@ -281,8 +281,8 @@ interface PdvState {
  * **A reedição não recebe promoção**, e não por descuido: os itens vêm da venda
  * gravada, onde a parcela da promoção JÁ está dentro do `discount` de cada linha.
  * Realocar somaria o desconto do cartaz por cima dele mesmo. O efeito colateral é
- * o mesmo já declarado para o cupom — ao reenviar, a parcela vira desconto manual
- * e pode passar a exigir senha de administrador. Reeditar venda com promoção
+ * o mesmo já declarado para o cupom — ao reenviar, a parcela vira desconto
+ * manual, e a promoção perde a venda na medição. Reeditar venda com promoção
  * continua sendo caminho a evitar: cancele e registre de novo.
  */
 const allocatedLines = (
@@ -633,8 +633,8 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   // respostas do questionário, e sem elas o bloco do payload sairia incompleto.
   // Enquanto a reedição não souber remontá-lo, ela reenvia a venda sem cupom — o
   // servidor estorna o resgate e o abatimento fica no cabeçalho como desconto
-  // manual, o que pode passar a exigir senha de administrador. Reeditar venda com
-  // cupom continua sendo caminho a evitar: cancele e registre de novo.
+  // manual. Reeditar venda com cupom continua sendo caminho a evitar: cancele e
+  // registre de novo.
   loadSaleForEditing: (saleId, items, globalDiscount, consumer = EMPTY_CONSUMER) =>
     set(() => ({
       items,

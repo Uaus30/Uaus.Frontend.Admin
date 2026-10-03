@@ -16,7 +16,6 @@ const SESSION_PAYLOAD = {
     lastName: "Uaus",
     username: "admin",
     email: "admin@uaus.com.br",
-    role: 1,
     status: 1,
   },
   token: {

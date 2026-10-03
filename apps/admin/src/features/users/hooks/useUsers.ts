@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  USER_ROLE,
   USER_STATUS,
   enumCode,
   useCreateUser,
@@ -9,7 +8,6 @@ import {
   useGetUsers,
   useResetUserPassword,
   useUpdateUser,
-  type UserRoleCode,
   type UserStatusCode,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
@@ -22,7 +20,6 @@ export const emptyForm: UserForm = {
   fullName: "",
   username: "",
   email: "",
-  role: "",
   status: "",
 };
 
@@ -55,18 +52,12 @@ export function useUsers() {
   // Consulta paginada dos usuários
   const { data, isLoading, refetch } = useGetUsers({ page, limit: 50 });
 
-  // Consultas das opções de enum
-  const { data: roleOptions = [] } = useQuery({
-    queryKey: ["user-role-options"],
-    queryFn: () => getEnumOptions("/Users/enums/user-role"),
-  });
-
+  // Consulta das opções de enum
   const { data: statusOptions = [] } = useQuery({
     queryKey: ["user-status-options"],
     queryFn: () => getEnumOptions("/Users/enums/user-status"),
   });
 
-  const selectableRoleOptions = useMemo(() => roleOptions.filter((item) => item.allowSelect), [roleOptions]);
   const selectableStatusOptions = useMemo(
     () => statusOptions.filter((item) => item.allowSelect),
     [statusOptions],
@@ -86,10 +77,6 @@ export function useUsers() {
     return selectableStatusOptions.filter((item) => item.id !== USER_STATUS.Active);
   }, [selectableStatusOptions, pendentePrimeiroAcesso]);
 
-  const roleLabels = useMemo(
-    () => Object.fromEntries(roleOptions.map((item) => [item.id, item.name])),
-    [roleOptions],
-  );
   const statusLabels = useMemo(
     () => Object.fromEntries(statusOptions.map((item) => [item.id, item.name])),
     [statusOptions],
@@ -195,21 +182,17 @@ export function useUsers() {
   function openCreate() {
     setEditingId(null);
     setStatusGravado(null);
-    setForm({
-      ...emptyForm,
-      role: selectableRoleOptions[0]?.id.toString() ?? "",
-    });
+    setForm(emptyForm);
     setDialogOpen(true);
   }
 
   /**
    * Abre a modal de edição já com os dados do usuário.
    *
-   * `enumCode` é o que faz Papel e Status aparecerem preenchidos. A API serializa
-   * enum pelo NOME (`role: "Seller"`), e a versão anterior fazia `String(user.role)`
-   * — procurando a opção `"Seller"` numa lista cujos valores são `"1"` e `"2"`.
-   * Os dois campos abriam em branco, sem erro em lugar nenhum, e salvar assim
-   * rebaixava o papel do usuário.
+   * `enumCode` é o que faz o Status aparecer preenchido. A API serializa enum
+   * pelo NOME (`status: "Pending"`), e a versão anterior fazia
+   * `String(user.status)` — procurando a opção `"Pending"` numa lista cujos
+   * valores são `"1"`, `"2"`... O campo abria em branco, sem erro em lugar nenhum.
    */
   function openEdit(user: UserRow) {
     const status = enumCode(user.status, USER_STATUS);
@@ -220,7 +203,6 @@ export function useUsers() {
       fullName: getDisplayName(user),
       username: user.username,
       email: user.email,
-      role: String(enumCode(user.role, USER_ROLE)),
       status: String(status),
     });
     setDialogOpen(true);
@@ -247,11 +229,6 @@ export function useUsers() {
       lastName,
       username: formPayload.username.trim(),
       email: formPayload.email.trim(),
-      // Todo usuário é Administrador desde 01/10/2026 (decisão do dono): o perfil
-      // Vendedor foi desativado e o servidor o recusa. A tela não oferece mais a
-      // escolha, e o pedido manda sempre Admin, inclusive na edição de um usuário
-      // que tenha ficado com outro perfil gravado.
-      role: USER_ROLE.Admin as UserRoleCode,
     };
 
     if (editingId) {
@@ -298,13 +275,10 @@ export function useUsers() {
     setForm,
     data,
     isLoading,
-    roleOptions,
     statusOptions,
-    selectableRoleOptions,
     selectableStatusOptions,
     editableStatusOptions,
     pendentePrimeiroAcesso,
-    roleLabels,
     statusLabels,
     creating,
     updating,

@@ -100,7 +100,7 @@ describe("useLoginFeature Hook", () => {
     renderHook(() => useLoginFeature(), { wrapper: createWrapper() });
 
     act(() => {
-      opcoesDaMutation.mutation.onSuccess({ user: { id: 1, role: 1 } });
+      opcoesDaMutation.mutation.onSuccess({ user: { id: 1 } });
     });
 
     expect(mockSetLocation).toHaveBeenCalledWith("/produtos?busca=Caneca&editar=10");
@@ -110,7 +110,7 @@ describe("useLoginFeature Hook", () => {
     renderHook(() => useLoginFeature(), { wrapper: createWrapper() });
 
     act(() => {
-      opcoesDaMutation.mutation.onSuccess({ user: { id: 1, role: 1 } });
+      opcoesDaMutation.mutation.onSuccess({ user: { id: 1 } });
     });
 
     expect(mockSetLocation).toHaveBeenCalledWith("/dashboard");
@@ -123,7 +123,7 @@ describe("useLoginFeature Hook", () => {
     renderHook(() => useLoginFeature(), { wrapper: createWrapper() });
 
     act(() => {
-      opcoesDaMutation.mutation.onSuccess({ user: { id: 1, role: 1 } });
+      opcoesDaMutation.mutation.onSuccess({ user: { id: 1 } });
     });
 
     expect(mockSetLocation).toHaveBeenCalledWith("/dashboard");

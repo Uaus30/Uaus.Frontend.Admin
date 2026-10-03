@@ -23,7 +23,7 @@ interno.
 ## Como adicionar um endpoint
 
 1. **DTO em `src/models.ts`.** Se tiver enum, siga o padrão `EnumValue` +
-   tabela de códigos (como `USER_ROLE`), e leia com `enumCode()`.
+   tabela de códigos (como `USER_STATUS`), e leia com `enumCode()`.
 2. **Arquivo do domínio em `src/hooks/`.** Existe um? Use. Não existe? Crie e
    exporte no `src/hooks/index.ts`.
 3. **Chave de cache** seguindo a convenção abaixo.

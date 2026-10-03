@@ -2,8 +2,7 @@
  * Campanhas de marketing — cadastro, questionário e relatórios.
  *
  * O balcão nunca chega nestas rotas: o PDV consulta o cupom pelo código e
- * recebe as perguntas já resolvidas, sem saber que a campanha existe. Tudo aqui
- * exige o papel **Admin** — não há papel de marketing no sistema.
+ * recebe as perguntas já resolvidas, sem saber que a campanha existe.
  *
  * Os cupons de uma campanha saem de `useGetCoupons({ campaignId })`, e não de
  * uma coleção dentro da campanha: é a mesma tabela paginada da tela de cupons.

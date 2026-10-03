@@ -16,7 +16,6 @@ import { ProductListStockCount } from "@/features/products/components/ProductLis
 import { useProductListStockCount } from "@/features/products/hooks/useProductListStockCount";
 import { useListFirstPhotoSitePrompt } from "@/features/products/hooks/useListFirstPhotoSitePrompt";
 import { FirstPhotoSiteDialog } from "@/features/products/components/detail/FirstPhotoSiteDialog";
-import { useIsAdmin } from "@/hooks/use-sessao";
 import type { ProductTableRow } from "@/features/products/types";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
 
@@ -42,8 +41,7 @@ import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
  */
 export default function Products() {
   const table = useProductTable();
-  // Contagem de estoque pela linha: só Administrador (pedido do dono, 23/09/2026).
-  const isAdmin = useIsAdmin();
+  // Contagem de estoque pela linha (pedido do dono, 23/09/2026).
   const stockCount = useProductListStockCount();
   // A primeira foto pela lupa também pergunta pelo site (pedido do dono, 23/09/2026).
   const sitePrompt = useListFirstPhotoSitePrompt();
@@ -188,11 +186,11 @@ export default function Products() {
           onUpdatePrice={table.updateProductPrice}
           updatingPriceId={table.updatingPriceId}
           onSearchInternetImage={setSearchImageProduct}
-          onStockCount={isAdmin ? stockCount.openFor : undefined}
+          onStockCount={stockCount.openFor}
         />
       </div>
 
-      {isAdmin && <ProductListStockCount state={stockCount} />}
+      <ProductListStockCount state={stockCount} />
       <FirstPhotoSiteDialog
         open={sitePrompt.open}
         immediate

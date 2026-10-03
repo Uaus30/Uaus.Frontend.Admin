@@ -39,8 +39,8 @@ interface UserEditorModalProps {
 /**
  * Modal com formulário para cadastro e edição de dados de usuários administrativos.
  *
- * **Não pede papel.** Desde 01/10/2026 todo usuário é Administrador (decisão do
- * dono); o hook manda sempre Admin.
+ * **Não pede papel**: não existe perfil de usuário (decisão do dono,
+ * 03/10/2026) — quem tem login faz tudo.
  *
  * **Não pede senha.** O cadastro nasce com a senha padrão do sistema e status
  * Pendente; quem define a senha de verdade é o próprio usuário, no primeiro

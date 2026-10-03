@@ -13,7 +13,6 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { enumCode, USER_ROLE, type EnumValue } from "@workspace/api-client-react";
 import { PRODUCTS_MATCH_PATH } from "@/features/products/product-detail-route";
 import { LOW_STOCK_REPORT_PATH } from "@/features/low-stock/low-stock-route";
 import { PURCHASES_PATH } from "@/features/purchases/purchases-route";
@@ -30,9 +29,6 @@ import { PROMOTIONS_MATCH_PATH, PROMOTIONS_PATH } from "@/features/promotions/pr
  * Acrescentar uma tela passa a ser uma entrada aqui. Menu e rota não têm mais
  * como divergir.
  */
-
-/** Papéis que podem abrir uma rota. */
-export type RoleCode = (typeof USER_ROLE)[keyof typeof USER_ROLE];
 
 export interface AppRoute {
   path: string;
@@ -53,14 +49,6 @@ export interface AppRoute {
   group?: string;
   icon?: LucideIcon;
   component: LazyExoticComponent<ComponentType<Record<string, never>>>;
-  /**
-   * Papéis autorizados. Ausente = qualquer usuário autenticado.
-   *
-   * A checagem no cliente é conveniência, não segurança: quem decide de verdade
-   * é o backend. O que ela evita é o usuário navegar para uma tela que só vai
-   * mostrar erro 403 — e, principalmente, ver no menu um caminho que não é dele.
-   */
-  roles?: RoleCode[];
   /** A rota existe, responde, mas não aparece no menu. */
   hidden?: boolean;
   /** A rota é pública — não exige sessão. */
@@ -171,12 +159,10 @@ export const MENU_ORDER: readonly string[] = [
 ];
 
 /**
- * Só Admin. O dinheiro da sociedade, o cadastro de usuários e a auditoria não
- * são assunto de operador de caixa — e o backend recusa esses endpoints para
- * Seller de qualquer forma, então sem isto a tela abriria só para mostrar erro.
+ * Toda rota privada abre para quem tem sessão: não existe perfil de usuário
+ * (decisão do dono, 03/10/2026). Rota nova não declara papel — só `publica`,
+ * quando dispensa login.
  */
-const SO_ADMIN: RoleCode[] = [USER_ROLE.Admin];
-
 export const ROUTES: AppRoute[] = [
   { path: "/login", component: Login, publica: true, hidden: true },
 
@@ -211,7 +197,6 @@ export const ROUTES: AppRoute[] = [
     label: "Resumo Financeiro",
     group: "Financeiro",
     component: FinancialReports,
-    roles: SO_ADMIN,
   },
   { path: "/vendas", label: "Vendas", group: "Financeiro", component: Sales },
   { path: "/estoque/baixas", label: "Baixas", group: "Financeiro", component: StockWriteOffs },
@@ -222,16 +207,14 @@ export const ROUTES: AppRoute[] = [
     label: "Fechamentos Mensais",
     group: "Financeiro",
     component: FinancialClosings,
-    roles: SO_ADMIN,
   },
   {
     path: "/financeiro/custos-fixos",
     label: "Custos Fixos",
     group: "Financeiro",
     component: FixedCosts,
-    roles: SO_ADMIN,
   },
-  { path: "/financeiro/socios", label: "Sócios", group: "Financeiro", component: Partners, roles: SO_ADMIN },
+  { path: "/financeiro/socios", label: "Sócios", group: "Financeiro", component: Partners },
   {
     path: "/financeiro/formas-pagamento",
     label: "Formas de Pagamento",
@@ -242,7 +225,7 @@ export const ROUTES: AppRoute[] = [
   // tela em dois lugares confundiria mais do que ajuda.
   { path: "/formas-pagamento", component: PaymentMethodsPage, hidden: true },
 
-  { path: "/marketing/cupons", label: "Cupons", group: "Marketing", component: Coupons, roles: SO_ADMIN },
+  { path: "/marketing/cupons", label: "Cupons", group: "Marketing", component: Coupons },
   // Programa de fidelidade (01/10/2026): uma tela só, com ligar/desligar, a
   // configuração num modal e o painel do período.
   {
@@ -250,14 +233,12 @@ export const ROUTES: AppRoute[] = [
     label: "Fidelidade",
     group: "Marketing",
     component: Loyalty,
-    roles: SO_ADMIN,
   },
   {
     path: "/marketing/campanhas",
     label: "Campanhas",
     group: "Marketing",
     component: Campaigns,
-    roles: SO_ADMIN,
   },
 
   // Logo abaixo de Campanhas, a pedido do dono. `matchPath` cobre os três
@@ -269,7 +250,6 @@ export const ROUTES: AppRoute[] = [
     label: "Promoções",
     group: "Marketing",
     component: Promotions,
-    roles: SO_ADMIN,
   },
   // O comparativo vem ANTES do relatório de propósito: não há colisão (dois
   // segmentos contra três), mas manter o caminho literal na frente do
@@ -280,25 +260,19 @@ export const ROUTES: AppRoute[] = [
     label: "Comparativo de Campanhas",
     group: "Marketing",
     component: CampaignComparison,
-    roles: SO_ADMIN,
   },
-  // Detalhe: chega pela lista, não pelo menu. Repete `roles` porque proteger a
-  // listagem e esquecer o detalhe é exatamente a porta dos fundos que o teste
-  // de rotas cobre no log.
-  { path: "/marketing/campanhas/:id/relatorio", component: CampaignReport, roles: SO_ADMIN, hidden: true },
-  // Catálogo de divulgação (03/10/2026). Sem `roles` por decisão do dono: quem
-  // está no balcão também gera e compartilha, e a tela não mostra custo nem
-  // margem — é o único item do grupo aberto a qualquer papel. Por último: não
-  // tem sequência de trabalho com cupom nem com campanha.
+  // Detalhe: chega pela lista, não pelo menu.
+  { path: "/marketing/campanhas/:id/relatorio", component: CampaignReport, hidden: true },
+  // Catálogo de divulgação (03/10/2026). Por último: não tem sequência de
+  // trabalho com cupom nem com campanha.
   { path: "/marketing/catalogo", label: "Catálogo", group: "Marketing", component: MarketingCatalog },
-  // O histórico das peças JÁ é só de Admin: ao contrário da tela de gerar, ele
-  // mostra unidades vendidas (o antes e depois de cada peça), que são número de BI.
+  // O histórico das peças mostra unidades vendidas (o antes e depois de cada
+  // peça), que são número de BI.
   {
     path: "/marketing/catalogo/historico",
     label: "Histórico do Catálogo",
     group: "Marketing",
     component: MarketingCatalogHistory,
-    roles: SO_ADMIN,
   },
 
   { path: "/estoque/inventario", label: "Inventário", group: "Relatórios", component: Inventory },
@@ -312,13 +286,12 @@ export const ROUTES: AppRoute[] = [
   // que alguém consegue prever é a do alfabeto. Tela nova entra na posição
   // alfabética, não no fim.
   {
-    // As métricas de acesso da loja online. Lista IPs de visitantes: só Admin,
-    // como o resto do grupo. "Analytics" é o nome que o dono usa (30/09/2026).
+    // As métricas de acesso da loja online. "Analytics" é o nome que o dono usa
+    // (30/09/2026).
     path: "/bi/analytics",
     label: "Analytics",
     group: "BI",
     component: SiteMetrics,
-    roles: SO_ADMIN,
   },
   {
     // Mostra custo e margem item a item, como as outras telas do grupo.
@@ -326,28 +299,23 @@ export const ROUTES: AppRoute[] = [
     label: "Anomalias",
     group: "BI",
     component: ProductAnomalies,
-    roles: SO_ADMIN,
   },
   {
     path: "/bi/curva-abc",
     label: "Curva ABC de Produtos",
     group: "BI",
     component: ProductAbc,
-    roles: SO_ADMIN,
   },
   {
     path: "/bi/fornecedores",
     label: "Desempenho de Fornecedores",
     group: "BI",
     component: SupplierPerformance,
-    roles: SO_ADMIN,
   },
-  // Detalhe: chega pelo ranking, não pelo menu. Repete `roles` porque proteger a
-  // listagem e esquecer o detalhe é a porta dos fundos que o teste de rotas cobre.
+  // Detalhe: chega pelo ranking, não pelo menu.
   {
     path: "/bi/fornecedores/:id",
     component: SupplierPerformanceDetail,
-    roles: SO_ADMIN,
     hidden: true,
   },
   {
@@ -355,41 +323,34 @@ export const ROUTES: AppRoute[] = [
     label: "Desempenho de Produtos",
     group: "BI",
     component: ProductPerformance,
-    roles: SO_ADMIN,
   },
   {
     path: "/bi/o-que-mudou",
     label: "O que mudou",
     group: "BI",
     component: PeriodComparison,
-    roles: SO_ADMIN,
   },
   {
     path: "/bi/o-que-trouxe-lucro",
     label: "O que trouxe lucro",
     group: "BI",
     component: ProfitLeaders,
-    roles: SO_ADMIN,
   },
 
   { path: "/imagens", label: "Mídia", icon: ImageIcon, component: Images },
   { path: "/clientes", label: "Clientes", icon: Users, component: Customers },
 
   // Em "Sistema" por escolha do dono (30/09/2026), e primeiro do grupo: é a
-  // única tela dele que se abre todo dia. Sem `roles` de propósito — o quadro é
-  // da equipe inteira: o operador de caixa registra o pedido do cliente, o
-  // administrador registra o ajuste do sistema. É o que faz "Sistema" aparecer
-  // para o Vendedor só com este item.
+  // única tela dele que se abre todo dia.
   { path: "/tarefas", label: "Tarefas", group: "Sistema", component: TaskBoard, fullBleed: true },
   {
     path: "/configuracoes",
     label: "Configurações",
     group: "Sistema",
     component: CompanySettings,
-    roles: SO_ADMIN,
   },
-  { path: "/sistema/logs", label: "Logs", group: "Sistema", component: Logs, roles: SO_ADMIN },
-  { path: "/sistema/logs/:id", component: LogDetails, roles: SO_ADMIN, hidden: true },
+  { path: "/sistema/logs", label: "Logs", group: "Sistema", component: Logs },
+  { path: "/sistema/logs/:id", component: LogDetails, hidden: true },
 
   // Fora do grupo "Sistema": gerenciar quem entra na loja é rotina de dono, não
   // configuração de sistema, e ficava escondido atrás de um submenu que também
@@ -400,51 +361,10 @@ export const ROUTES: AppRoute[] = [
     label: "Usuários",
     icon: UserCog,
     component: UsersPage,
-    roles: SO_ADMIN,
   },
 ];
 
 export const NOT_FOUND_COMPONENT = NotFound;
-
-/** Rótulo de cada papel, derivado do enum em vez de hardcoded na tela. */
-export const ROLE_LABELS: Record<RoleCode, string> = {
-  [USER_ROLE.None]: "Sem acesso",
-  [USER_ROLE.Admin]: "Administrador",
-  [USER_ROLE.Seller]: "Vendedor",
-};
-
-/**
- * Normaliza o papel que veio da API para o código numérico.
- *
- * **É o conserto de um defeito que escondia meia retaguarda.** O backend registra
- * `JsonStringEnumConverter`, então `GET /Users/me` devolve `role: "Admin"` — a
- * STRING do nome do membro em C#, não o número. O `UserDto` do api-client
- * declarava `role: number`, e a comparação `[1].includes("Admin")` dava `false`
- * para todo mundo: as rotas com `roles` sumiam do menu e o `RequireRole`
- * redirecionava até o próprio administrador. Usuários, logs, configurações,
- * relatórios, sócios, custos fixos e fechamentos ficaram inalcançáveis, sem
- * erro em lugar nenhum — o menu simplesmente não tinha o item.
- *
- * A conversão mora AQUI, na fronteira, e não em cada chamador: `podeAcessar` e
- * `buildMenu` são os dois únicos pontos que decidem acesso, e um terceiro
- * chamador que esquecesse de normalizar reabriria o buraco em silêncio.
- *
- * `enumCode` aceita os dois formatos de propósito — o contrato do backend pode
- * mudar de novo, e uma tela que só entende um dos dois é uma tela que quebra na
- * próxima configuração de serialização.
- */
-function codigoDoPapel(role: EnumValue): number | undefined {
-  if (role === null || role === undefined || role === "") return undefined;
-  return enumCode(role, USER_ROLE);
-}
-
-/** O papel pode abrir esta rota? Rota sem `roles` é livre para quem tem sessão. */
-export function podeAcessar(route: AppRoute, role: EnumValue): boolean {
-  if (!route.roles) return true;
-
-  const codigo = codigoDoPapel(role);
-  return codigo !== undefined && route.roles.includes(codigo as RoleCode);
-}
 
 /** Item de primeiro nível do menu — leva direto a uma tela. */
 export interface MenuLink {
@@ -471,18 +391,14 @@ export interface MenuGroup {
 export type MenuEntry = MenuLink | MenuGroup;
 
 /**
- * Menu montado a partir das rotas visíveis que o papel pode abrir, na ordem de
- * `MENU_ORDER`.
- *
- * Um grupo cujos itens sejam todos restritos some inteiro — mostrar "Sistema"
- * vazio para um Vendedor seria pior que não mostrar.
+ * Menu montado a partir das rotas visíveis, na ordem de `MENU_ORDER`.
  *
  * O que `MENU_ORDER` não menciona entra ao fim, na ordem em que aparece nas
  * `ROUTES`. Isso é deliberado: uma tela nova esquecida na lista de ordenação
  * aparece no lugar errado, o que se vê; se sumisse, ninguém notaria.
  */
-export function buildMenu(role: EnumValue): MenuEntry[] {
-  const visiveis = ROUTES.filter((r) => r.label && !r.hidden && !r.publica && podeAcessar(r, role));
+export function buildMenu(): MenuEntry[] {
+  const visiveis = ROUTES.filter((r) => r.label && !r.hidden && !r.publica);
 
   const paraLink = (r: AppRoute): MenuLink => ({
     name: r.label!,

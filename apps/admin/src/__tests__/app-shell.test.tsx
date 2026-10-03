@@ -39,7 +39,6 @@ vi.mock("@/components/layout", () => ({
 
 vi.mock("@/components/route-guards", () => ({
   AuthGate: ({ children }: { children: React.ReactNode }) => <div data-testid="auth-gate">{children}</div>,
-  RequireRole: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("@/routes", () => ({

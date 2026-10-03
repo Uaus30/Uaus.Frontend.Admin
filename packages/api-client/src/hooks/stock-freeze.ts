@@ -7,8 +7,8 @@
  * Esta consulta é o que deixa as telas avisarem ANTES — a faixa no topo, o
  * FINALIZAR do PDV travado — em vez de o operador descobrir na recusa.
  *
- * Mora sob `/Pdv` por causa da autorização: a rota da conferência é só de
- * Administrador, e o caixa entra como Vendedor. Esta é liberada para os dois.
+ * Mora sob `/Pdv` porque é o balcão que mais precisa dela; o admin a usa para a
+ * mesma faixa.
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";

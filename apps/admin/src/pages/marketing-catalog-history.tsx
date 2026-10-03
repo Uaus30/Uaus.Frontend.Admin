@@ -3,7 +3,7 @@ import { AlertCircle, History, RefreshCw } from "lucide-react";
 import { CatalogHistoryList } from "@/features/marketing-catalog/components/CatalogHistoryList";
 import { useCatalogHistory } from "@/features/marketing-catalog/hooks/useCatalogHistory";
 
-/** Histórico do catálogo de divulgação (rota `/marketing/catalogo/historico`, só Admin). */
+/** Histórico do catálogo de divulgação (rota `/marketing/catalogo/historico`). */
 export default function MarketingCatalogHistoryPage() {
   const tela = useCatalogHistory();
   const history = tela.history;

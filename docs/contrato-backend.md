@@ -100,7 +100,7 @@ anulável?"**. Se declara, o campo pode não chegar.
 | `string? Description`               | **omitido** quando nulo    | `description?: string \| null`      |
 | `DateTime? UpdatedAt`               | **omitido** quando nulo    | `updatedAt?: string \| null`        |
 | `List<ItemDto> Items { get; } = []` | `[]` presente              | `items: ItemDto[]`                  |
-| `UserRole Role`                     | `"Admin"` (texto)          | `role: EnumValue` + `enumCode()`    |
+| `UserStatus Status`                 | `"Active"` (texto)         | `status: EnumValue` + `enumCode()`  |
 | `PeriodDto Sales { get; } = null!`  | some se o serviço esquecer | trate como anulável                 |
 
 Quatro regras práticas:

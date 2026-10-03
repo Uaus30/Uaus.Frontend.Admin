@@ -106,8 +106,8 @@ O servidor trava o estoque do produto, relê o saldo e recusa se ele mudou:
 duas contagens do mesmo SKU, ou o reenvio de uma resposta perdida, lançavam a
 diferença duas vezes. Recusada, a modal relê o produto e mostra o saldo novo.
 
-**A mesma modal abre pela listagem de produtos** (23/09/2026), no menu da linha,
-só para Administrador. Ali a linha é um GRUPO, então a modal ganha por cima a
+**A mesma modal abre pela listagem de produtos** (23/09/2026), no menu da linha.
+Ali a linha é um GRUPO, então a modal ganha por cima a
 escolha da variação (`picker`) e fica travada (`ready = false`) até haver um SKU
 escolhido e o saldo dele chegar do servidor. A observação em branco vira
 "Contagem de estoque pela listagem de produtos." (`defaultNotes`): sem ela, o
