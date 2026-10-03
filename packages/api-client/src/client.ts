@@ -1,5 +1,12 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
-import { AuthSession, ApiResponse, BackendPagedResult, UiPagedResult } from "./models";
+import {
+  AuthSession,
+  ApiResponse,
+  BackendPagedResult,
+  PasswordChangedDto,
+  UiPagedResult,
+  UserDto,
+} from "./models";
 const AUTH_STORAGE_KEY = "uaus-office-auth";
 
 export const API_BASE_URL =
@@ -93,10 +100,32 @@ export function setAuthSession(session: AuthSession | null) {
   }
 
   window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+
+  // Sessão recém-gravada (login, renovação, troca de senha) traz token novo:
+  // renová-lo de novo na requisição seguinte seria ida ao servidor à toa.
+  nextSessionRenewalAt = Date.now() + SESSION_RENEWAL_INTERVAL_MS;
 }
 
 export function clearAuthSession() {
   setAuthSession(null);
+}
+
+/**
+ * Grava na sessão o resultado da troca de senha: o usuário atualizado e, quando
+ * o servidor manda, o token novo.
+ *
+ * O token antigo morre na troca. Sem gravar o novo, a próxima requisição
+ * responderia 401 e a pessoa cairia no login logo depois de trocar a senha.
+ *
+ * @returns O usuário, sem o token — é o que as telas guardam.
+ */
+export function applyPasswordChange(changed: PasswordChangedDto): UserDto {
+  const { token, ...user } = changed;
+  const session = getAuthSession();
+
+  if (session) setAuthSession({ user, token: token ?? session.token });
+
+  return user;
 }
 
 export function isTokenExpired(session: AuthSession | null) {
@@ -136,14 +165,22 @@ function buildLoginUrl() {
 
 /**
  * Trata o 401 de uma requisição autenticada: o servidor recusou o token
- * (expirado ou inválido), então a sessão local é limpa e o app volta para a
- * tela de login em vez de deixar o usuário clicando numa tela morta.
+ * (expirado, de conta sem acesso ou anterior a uma troca de senha), então a
+ * sessão local é limpa e o app volta para a tela de login em vez de deixar o
+ * usuário clicando numa tela morta.
  *
  * De propósito, NADA além do localStorage de autenticação é tocado — as filas
  * offline do PDV (IndexedDB) ficam intactas para sincronizar as vendas
  * pendentes depois do novo login.
+ *
+ * @param sentToken Token que a requisição recusada levava. Se a sessão guardada
+ * já é outra, o 401 fala de um token que ninguém usa mais e é ignorado: a
+ * troca de senha substitui o token, e uma requisição ainda em voo com o
+ * anterior derrubaria a sessão que acabou de nascer.
  */
-function handleUnauthorized() {
+function handleUnauthorized(sentToken: string | undefined) {
+  if (getAuthSession()?.token.value !== sentToken) return;
+
   clearAuthSession();
 
   // `typeof` protege ambientes sem navegador (SSR e utilitários de build).
@@ -159,6 +196,84 @@ function handleUnauthorized() {
   window.location.assign(loginUrl);
 }
 
+/** Caminho da renovação: troca o token da sessão por um novo, com a validade cheia. */
+const RENEW_SESSION_PATH = "/Users/renew-session";
+
+/** Caminho da troca de senha, cuja resposta já traz o token novo. */
+const CHANGE_PASSWORD_PATH = "/Users/change-password";
+
+/**
+ * De quanto em quanto tempo a sessão é renovada numa página que fica aberta.
+ *
+ * O token vale 7 dias a contar da última renovação, então uma hora de folga não
+ * muda nada no prazo — e é também de hora em hora que uma mudança no cadastro
+ * do usuário (nome, papel) chega ao aparelho sem novo login.
+ */
+export const SESSION_RENEWAL_INTERVAL_MS = 60 * 60 * 1000;
+
+/** Espera depois de uma renovação que falhou (sem rede, servidor fora). */
+const SESSION_RENEWAL_RETRY_MS = 60 * 1000;
+
+/**
+ * Quando a próxima renovação fica devida. Zero na carga do módulo: toda
+ * abertura do app renova na primeira requisição autenticada — é o "acessou,
+ * ganhou mais 7 dias" que o app instalado no celular precisa.
+ */
+let nextSessionRenewalAt = 0;
+
+/**
+ * Volta ao estado de página recém-aberta, com a renovação devida. Só os testes
+ * precisam disto: no navegador é o recarregamento que zera o módulo.
+ */
+export function resetSessionRenewal() {
+  nextSessionRenewalAt = 0;
+}
+
+/**
+ * Troca o token da sessão por um novo, com a validade cheia, e atualiza o
+ * usuário guardado com o cadastro atual.
+ *
+ * Sessão recusada pelo servidor (401) segue o caminho de sempre: limpa e leva
+ * ao login. Qualquer outra falha é lançada e NÃO mexe na sessão — ficar sem
+ * rede não desloga ninguém; o token em uso continua valendo até vencer.
+ *
+ * @returns A sessão renovada, ou `null` se não havia o que renovar.
+ */
+export async function renewSession(): Promise<AuthSession | null> {
+  const current = getAuthSession();
+  if (!current?.token.value) return null;
+
+  const { data: renewed } = await apiRequest<AuthSession>("POST", RENEW_SESSION_PATH);
+  if (!renewed?.token?.value) return null;
+
+  // A resposta pode chegar depois de um logout ou da troca de usuário. Gravar
+  // assim mesmo ressuscitaria a sessão de quem acabou de sair.
+  if (getAuthSession()?.token.value !== current.token.value) return null;
+
+  setAuthSession(renewed);
+  return renewed;
+}
+
+/**
+ * Renova a sessão em segundo plano, se já estiver na hora.
+ *
+ * Chamado depois de toda requisição autenticada bem-sucedida: é o uso do
+ * sistema que mantém a sessão viva, sem cada app precisar lembrar de renovar.
+ */
+function renewSessionIfDue() {
+  if (Date.now() < nextSessionRenewalAt) return;
+
+  // Marcado ANTES de enviar: uma tela dispara várias queries juntas, e todas
+  // passam por aqui. O sucesso empurra o prazo para a próxima hora (em
+  // `setAuthSession`); a falha deixa este, curto, para tentar de novo.
+  nextSessionRenewalAt = Date.now() + SESSION_RENEWAL_RETRY_MS;
+
+  renewSession().catch(() => {
+    // Falha de rede ou do servidor não é problema de quem está usando a tela.
+    // O 401 já foi tratado dentro do `apiRequest`.
+  });
+}
+
 export async function apiRequest<T>(
   method: string,
   path: string,
@@ -171,13 +286,15 @@ export async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const session = getAuthSession();
   const headers = new Headers(options?.headers);
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
   if (options?.body != null && !headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (options?.auth !== false && session?.token.value) {
-    headers.set("Authorization", `Bearer ${session.token.value}`);
+  const sentToken = options?.auth !== false ? session?.token.value || undefined : undefined;
+  if (sentToken) {
+    headers.set("Authorization", `Bearer ${sentToken}`);
   }
 
   const response = await fetch(buildUrl(path, options?.params), {
@@ -197,13 +314,19 @@ export async function apiRequest<T>(
     // 401 numa chamada autenticada significa token recusado pelo servidor. O
     // login (`auth: false`) fica de fora: ali o 401 é credencial errada, e
     // redirecionar apagaria a mensagem de erro do formulário.
-    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
     if (response.status === 401 && options?.auth !== false && normalizedPath !== AUTHENTICATE_PATH) {
-      handleUnauthorized();
+      handleUnauthorized(sentToken);
     }
 
     const fallback = `Erro ${response.status} ao acessar ${path}`;
     throw new ApiError(extractErrorMessage(payload, fallback), response.status, payload, method, path);
+  }
+
+  // O servidor acabou de aceitar o token: é a hora de trocá-lo por um novo, se
+  // já estiver devido. Ficam de fora a própria renovação e a troca de senha,
+  // que devolvem o token novo na resposta.
+  if (sentToken && normalizedPath !== RENEW_SESSION_PATH && normalizedPath !== CHANGE_PASSWORD_PATH) {
+    renewSessionIfDue();
   }
 
   return {
@@ -298,7 +421,7 @@ export async function apiGetBlob(
   const response = await fetch(url, { method: "GET", headers });
 
   if (!response.ok) {
-    if (response.status === 401) handleUnauthorized();
+    if (response.status === 401) handleUnauthorized(session?.token.value || undefined);
 
     throw new ApiError(`Erro ${response.status} ao baixar ${path}`, response.status, null, "GET", path);
   }

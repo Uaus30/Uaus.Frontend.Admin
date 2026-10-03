@@ -57,6 +57,12 @@ O `useChangePassword` regrava a sessão do `localStorage` **dentro do
 quem chama por cima das nossas, e um `onSuccess` do app apagaria a gravação. O
 sintoma seria a tela de troca reaparecendo para sempre.
 
+A resposta da troca traz também um **token novo**, gravado junto
+(`applyPasswordChange`, no `api-client`). Desde 03/10/2026 a troca de senha
+derruba todo token emitido antes dela — o deste aparelho e o de qualquer outro
+onde a conta esteja aberta —, e é o token novo que mantém dentro quem acabou de
+trocar.
+
 ### 2.1. Todo usuário é Administrador (01/10/2026)
 
 Decisão do dono, para simplificar o uso: o perfil **Vendedor foi desativado**. A
@@ -91,6 +97,14 @@ A verificação de status vem **depois** da verificação da senha — responder
 "usuário bloqueado" a quem errou a senha confirmaria de graça que aquele login
 existe.
 
+**Quem já está dentro também é conferido**, a cada requisição
+(`IsSessionValidAsync`). Bloquear, inativar ou excluir o cadastro, e resetar a
+senha, derrubam a sessão **na hora**: a próxima requisição daquele aparelho
+responde 401 e ele volta ao login. Antes de 03/10/2026 nada disso tirava quem já
+estava logado — o token seguia valendo até vencer. Reativar a conta não devolve a
+sessão a um aparelho que já foi levado ao login; para derrubar um token que
+possa ter vazado, o caminho é o **reset de senha**.
+
 ### 5. Separação de nome
 
 O formulário usa um campo único ("Nome completo") e a API espera `firstName` e
@@ -106,6 +120,7 @@ O formulário usa um campo único ("Nome completo") e a API espera `firstName` e
 | `PUT`  | `/Users`                     | Admin  | Edita; recusa promover Pendente a Ativo   |
 | `POST` | `/Users/change-password`     | Logado | Troca a própria senha; Pendente → Ativo   |
 | `POST` | `/Users/{id}/reset-password` | Admin  | Volta à senha padrão e a Pendente         |
+| `POST` | `/Users/renew-session`       | Logado | Troca o token por um novo, de 7 dias      |
 
 A troca de senha **não recebe id**: o servidor tira o alvo do token. Aceitar id
 deixaria qualquer autenticado reescrever a senha de qualquer outro.

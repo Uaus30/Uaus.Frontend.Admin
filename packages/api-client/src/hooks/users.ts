@@ -17,8 +17,7 @@ import {
   apiPut,
   apiDelete,
   ApiError,
-  getAuthSession,
-  setAuthSession,
+  applyPasswordChange,
   useCrudMutation,
   mapPagedResult,
 } from "../client";
@@ -27,6 +26,7 @@ import type {
   BackendPagedResult,
   ChangePasswordPayload,
   CreateUserPayload,
+  PasswordChangedDto,
   QueryKey,
   UiPagedResult,
   UpdateUserPayload,
@@ -95,6 +95,11 @@ export function useDeleteUser(options?: { mutation?: UseMutationOptions<null, Ap
  * Não recebe id: o servidor tira o alvo do token. Aceitar id deixaria qualquer
  * autenticado reescrever a senha de qualquer outro.
  *
+ * A troca derruba todo token emitido antes dela, em qualquer aparelho. Este
+ * aqui segue dentro porque a resposta traz o token novo, gravado pelo
+ * `applyPasswordChange` — pedir um novo login obrigaria o operador a digitar a
+ * senha recém-criada numa tela que ele acabou de deixar.
+ *
  * Quem estava `Pending` vira `Active` — é o que conclui o primeiro acesso. A
  * sessão guardada é atualizada aqui dentro, no `mutationFn`, e não num
  * `onSuccess`: o `useCrudMutation` espalha as opções de quem chama por cima das
@@ -109,17 +114,11 @@ export function useChangePassword(options?: {
   const queryClient = useQueryClient();
 
   return useCrudMutation(async ({ data }) => {
-    const response = await apiPost<UserDto>("/Users/change-password", data);
-    const user = response.data;
+    const response = await apiPost<PasswordChangedDto>("/Users/change-password", data);
+    if (!response.data) return null;
 
-    if (user) {
-      const session = getAuthSession();
-      // O token segue valendo: a troca de senha não o invalida, e pedir um novo
-      // login logo depois obrigaria o operador a digitar a senha recém-criada
-      // numa tela que ele acabou de deixar.
-      if (session) setAuthSession({ ...session, user });
-      queryClient.setQueryData(getGetMeQueryKey(), user);
-    }
+    const user = applyPasswordChange(response.data);
+    queryClient.setQueryData(getGetMeQueryKey(), user);
 
     return user;
   }, options);

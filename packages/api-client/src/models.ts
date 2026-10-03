@@ -9,7 +9,8 @@ export interface TokenDto {
 export interface UserDto {
   id: number;
   createdAt: string;
-  updatedAt: string | null;
+  /** Omitido pelo servidor enquanto o cadastro nunca foi alterado. */
+  updatedAt?: string | null;
   firstName: string;
   lastName: string;
   username: string;
@@ -50,6 +51,17 @@ export interface UserListDto {
 export interface AuthenticatedUserDto {
   user: UserDto;
   token: TokenDto;
+}
+
+/**
+ * Resposta da troca de senha: o usuário atualizado, com o token novo da sessão.
+ *
+ * A troca derruba todo token emitido antes dela — inclusive o do aparelho que
+ * trocou —, e é este que mantém a pessoa dentro. Opcional porque um backend
+ * anterior a 03/10/2026 devolve só o usuário; lá o token em uso segue valendo.
+ */
+export interface PasswordChangedDto extends UserDto {
+  token?: TokenDto;
 }
 
 /**

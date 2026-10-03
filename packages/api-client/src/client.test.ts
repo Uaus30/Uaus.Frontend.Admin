@@ -7,6 +7,7 @@ import {
   apiGetOrThrow,
   apiPost,
   apiRequest,
+  applyPasswordChange,
   buildUrl,
   clearAuthSession,
   extractCreatedId,
@@ -15,10 +16,13 @@ import {
   getAuthSession,
   isTokenExpired,
   mapPagedResult,
+  renewSession,
+  resetSessionRenewal,
   resetUnauthorizedRedirect,
+  SESSION_RENEWAL_INTERVAL_MS,
   setAuthSession,
 } from "./client";
-import type { AuthSession } from "./models";
+import type { AuthSession, PasswordChangedDto } from "./models";
 
 /** Resposta de sucesso com o corpo informado, ou 204 quando o corpo é `null`. */
 function mockResponse(body: unknown, status = 200) {
@@ -84,6 +88,15 @@ function signIn(tokenValue = "token-do-caixa") {
     user: { id: 1, username: "caixa" },
     token: { type: "Bearer", value: tokenValue, expiration: "2099-01-01T00:00:00Z" },
   } as AuthSession);
+}
+
+/** Promessa que o teste resolve na hora que quiser — para respostas fora de ordem. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
 }
 
 /** Última requisição que o client mandou para o `fetch`. */
@@ -503,6 +516,264 @@ describe("401 — sessão recusada pelo servidor", () => {
     await expect(apiGet("/Sales")).rejects.toBeInstanceOf(ApiError);
 
     expect(assign).toHaveBeenCalledWith("/login");
+  });
+
+  it("ignora o 401 de um token que a sessão já substituiu", async () => {
+    // A troca de senha mata o token antigo e grava um novo. Uma requisição que
+    // ainda estava em voo com o antigo volta 401 — e, sem esta trava, derrubaria
+    // a sessão que acabou de nascer, jogando no login quem só trocou a senha.
+    const { assign } = stubBrowser();
+    signIn("token-antigo");
+    const resposta = deferred<Response>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => resposta.promise),
+    );
+
+    const emVoo = apiGet("/Sales");
+    signIn("token-novo");
+    resposta.resolve(mockErrorResponse(401));
+
+    await expect(emVoo).rejects.toBeInstanceOf(ApiError);
+    expect(getAuthSession()?.token.value).toBe("token-novo");
+    expect(assign).not.toHaveBeenCalled();
+  });
+});
+
+describe("renovação da sessão", () => {
+  const RENOVADA = {
+    user: { id: 1, username: "caixa", firstName: "Ana" },
+    token: { type: "Bearer", value: "token-renovado", expiration: "2099-01-08T00:00:00Z" },
+  };
+
+  /** API de mentira: a renovação responde o que o teste mandar; o resto, 200. */
+  function stubApi(renew: () => Response | Promise<Response> = () => mockResponse(RENOVADA)) {
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("/Users/renew-session") ? renew() : mockResponse({ ok: true }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  /** As chamadas de renovação que saíram, com o cabeçalho que cada uma levou. */
+  function renewals(fetchMock: Mock) {
+    return fetchMock.mock.calls
+      .filter(([url]) => String(url).includes("/Users/renew-session"))
+      .map(([, init]) => ({
+        method: (init as RequestInit).method,
+        authorization: new Headers((init as RequestInit).headers).get("Authorization"),
+      }));
+  }
+
+  /** App aberto com a sessão que já estava guardada — o caso do celular. */
+  function openAppWithSavedSession(tokenValue = "token-guardado") {
+    const browser = stubBrowser();
+    signIn(tokenValue);
+    resetSessionRenewal();
+    return browser;
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renova na primeira requisição autenticada depois de abrir o app", async () => {
+    // O pedido do dono: o admin instalado no celular pedia a senha em toda
+    // abertura. Abrir o app e usar tem que render mais 7 dias, sozinho.
+    openAppWithSavedSession("token-guardado");
+    const fetchMock = stubApi();
+
+    await apiGet("/Sales");
+
+    await vi.waitFor(() => expect(getAuthSession()?.token.value).toBe("token-renovado"));
+    expect(renewals(fetchMock)).toEqual([{ method: "POST", authorization: "Bearer token-guardado" }]);
+    // O cadastro atual vem junto: é assim que mudança de nome ou de papel chega
+    // ao aparelho sem novo login.
+    expect(getAuthSession()?.user).toMatchObject({ firstName: "Ana" });
+  });
+
+  it("módulo recém-carregado renova na primeira requisição, sem ninguém rearmar nada", async () => {
+    // O caso real do celular: o app abre, o módulo nasce e a sessão já está no
+    // armazenamento. Os outros testes imitam isso com `resetSessionRenewal()`;
+    // este carrega o módulo de verdade, para o valor inicial do prazo não poder
+    // mudar em silêncio — com ele no futuro, a renovação na abertura some e a
+    // suíte inteira seguiria verde.
+    const { storage } = stubBrowser();
+    storage.set(
+      "uaus-office-auth",
+      JSON.stringify({
+        user: { id: 1, username: "caixa" },
+        token: { type: "Bearer", value: "token-guardado", expiration: "2099-01-01T00:00:00Z" },
+      }),
+    );
+    const fetchMock = stubApi();
+    vi.resetModules();
+    const recemCarregado = await import("./client");
+
+    await recemCarregado.apiGet("/Sales");
+
+    await vi.waitFor(() => expect(recemCarregado.getAuthSession()?.token.value).toBe("token-renovado"));
+    expect(renewals(fetchMock)).toEqual([{ method: "POST", authorization: "Bearer token-guardado" }]);
+  });
+
+  it("várias requisições juntas renovam uma vez só", async () => {
+    // Uma tela do admin abre com meia dúzia de queries em paralelo.
+    openAppWithSavedSession();
+    const fetchMock = stubApi();
+
+    await Promise.all([apiGet("/Sales"), apiGet("/Products"), apiGet("/Customers")]);
+
+    await vi.waitFor(() => expect(getAuthSession()?.token.value).toBe("token-renovado"));
+    expect(renewals(fetchMock)).toHaveLength(1);
+  });
+
+  it("com a página aberta, só renova de novo depois de uma hora", async () => {
+    let now = Date.parse("2026-10-03T12:00:00Z");
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    openAppWithSavedSession();
+    const fetchMock = stubApi();
+
+    await apiGet("/Sales");
+    await vi.waitFor(() => expect(renewals(fetchMock)).toHaveLength(1));
+    await vi.waitFor(() => expect(getAuthSession()?.token.value).toBe("token-renovado"));
+
+    now += SESSION_RENEWAL_INTERVAL_MS - 1000;
+    await apiGet("/Sales");
+    expect(renewals(fetchMock)).toHaveLength(1);
+
+    now += 2000;
+    await apiGet("/Sales");
+    await vi.waitFor(() => expect(renewals(fetchMock)).toHaveLength(2));
+    // A segunda renovação leva o token da primeira, não o original.
+    expect(renewals(fetchMock)[1].authorization).toBe("Bearer token-renovado");
+  });
+
+  it("não renova logo depois do login", async () => {
+    // O token do login acabou de nascer com a validade cheia.
+    stubBrowser();
+    resetSessionRenewal();
+    signIn();
+    const fetchMock = stubApi();
+
+    await apiGet("/Sales");
+
+    expect(renewals(fetchMock)).toHaveLength(0);
+  });
+
+  it("não renova em chamada anônima nem sem sessão", async () => {
+    openAppWithSavedSession();
+    const fetchMock = stubApi();
+
+    await apiPost("/Users/authenticate", { login: "ana" }, { auth: false });
+    clearAuthSession();
+    await apiGet("/Storefront/products");
+
+    expect(renewals(fetchMock)).toHaveLength(0);
+  });
+
+  it("a troca de senha não dispara renovação com o token que ela acabou de matar", async () => {
+    // A resposta da troca já traz o token novo. Renovar em paralelo mandaria o
+    // antigo, que o servidor recusa — um 401 gratuito no meio do primeiro acesso.
+    openAppWithSavedSession();
+    const fetchMock = stubApi();
+
+    await apiPost("/Users/change-password", { currentPassword: "a", newPassword: "b" });
+
+    expect(renewals(fetchMock)).toHaveLength(0);
+  });
+
+  it.each([
+    ["sem rede", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ["backend que ainda não tem a renovação (404)", () => mockErrorResponse(404)],
+    ["servidor fora do ar (500)", () => mockErrorResponse(500)],
+  ])("falha na renovação não desloga: %s", async (_caso, renew) => {
+    // Só o 401 diz "esta sessão não vale mais". Deslogar por falta de sinal
+    // traria de volta a tela de senha que esta renovação existe para evitar.
+    let now = Date.parse("2026-10-03T12:00:00Z");
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const { assign } = openAppWithSavedSession("token-guardado");
+    const fetchMock = stubApi(renew);
+
+    await apiGet("/Sales");
+    await vi.waitFor(() => expect(renewals(fetchMock)).toHaveLength(1));
+    // Dá à renovação recusada a chance de (não) mexer na sessão.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getAuthSession()?.token.value).toBe("token-guardado");
+    expect(assign).not.toHaveBeenCalled();
+
+    // E tenta de novo em um minuto, não só na hora seguinte.
+    now += 61 * 1000;
+    await apiGet("/Sales");
+    await vi.waitFor(() => expect(renewals(fetchMock)).toHaveLength(2));
+  });
+
+  it("sessão revogada: o 401 da renovação limpa a sessão e leva ao login", async () => {
+    // Usuário inativado ou com a senha resetada: é aqui que o aparelho descobre.
+    const { assign } = openAppWithSavedSession();
+    stubApi(() => mockErrorResponse(401));
+
+    await apiGet("/Sales");
+
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
+    expect(getAuthSession()).toBeNull();
+  });
+
+  it("renovação que chega depois do logout não ressuscita a sessão", async () => {
+    openAppWithSavedSession();
+    const resposta = deferred<Response>();
+    const fetchMock = stubApi(() => resposta.promise);
+
+    await apiGet("/Sales");
+    await vi.waitFor(() => expect(renewals(fetchMock)).toHaveLength(1));
+    clearAuthSession();
+    resposta.resolve(mockResponse(RENOVADA));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getAuthSession()).toBeNull();
+  });
+
+  it("renewSession sem sessão não chama o servidor", async () => {
+    stubBrowser();
+    const fetchMock = stubApi();
+
+    await expect(renewSession()).resolves.toBeNull();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyPasswordChange", () => {
+  it("grava o token novo e o usuário atualizado", () => {
+    // O token antigo morre na troca de senha. Se o novo não for gravado, a
+    // próxima requisição responde 401 e a pessoa cai no login logo depois de
+    // concluir o primeiro acesso.
+    stubBrowser();
+    signIn("token-antigo");
+
+    const user = applyPasswordChange({
+      id: 1,
+      username: "caixa",
+      status: "Active",
+      token: { type: "Bearer", value: "token-novo", expiration: "2099-01-08T00:00:00Z" },
+    } as PasswordChangedDto);
+
+    expect(getAuthSession()?.token.value).toBe("token-novo");
+    expect(getAuthSession()?.user).toEqual({ id: 1, username: "caixa", status: "Active" });
+    // O usuário devolvido às telas não carrega o token.
+    expect(user).toEqual({ id: 1, username: "caixa", status: "Active" });
+  });
+
+  it("sem token na resposta, mantém o que está em uso", () => {
+    // Backend anterior à renovação devolve só o usuário — e lá o token antigo
+    // continua valendo. Apagá-lo aqui deslogaria quem acabou de trocar a senha.
+    stubBrowser();
+    signIn("token-em-uso");
+
+    applyPasswordChange({ id: 1, username: "caixa", status: "Active" } as PasswordChangedDto);
+
+    expect(getAuthSession()?.token.value).toBe("token-em-uso");
+    expect(getAuthSession()?.user).toMatchObject({ status: "Active" });
   });
 });
 

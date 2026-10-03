@@ -70,7 +70,6 @@
     "nulo-sem-opcional|SupplierDto.document",
     "nulo-sem-opcional|SupplierDto.email",
     "nulo-sem-opcional|SupplierDto.updatedAt",
-    "nulo-sem-opcional|TagDto.updatedAt",
-    "nulo-sem-opcional|UserDto.updatedAt"
+    "nulo-sem-opcional|TagDto.updatedAt"
   ]
 }

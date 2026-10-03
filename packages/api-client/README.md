@@ -66,7 +66,19 @@ fora do padrão quebra o teste sem ninguém precisar lembrar de cobri-la.
 - **401 é tratado centralmente** (`client.ts`): limpa a sessão, deduplica o
   redirecionamento quando várias queries respondem 401 juntas, isenta o caminho
   de autenticação e preserva o `BASE_URL` do deploy. Não replique isso nas
-  features.
+  features. O 401 de um token que a sessão já substituiu é ignorado: a troca de
+  senha grava um token novo, e uma requisição ainda em voo com o antigo não pode
+  derrubar a sessão que acabou de nascer.
+- **A sessão se renova sozinha** (`client.ts`). O token vale 7 dias a contar do
+  último acesso: depois de toda requisição autenticada que deu certo, o client
+  troca o token em segundo plano (`POST /Users/renew-session`) — na primeira
+  requisição de cada abertura do app e, com a página aberta, de hora em hora. A
+  resposta traz também o cadastro atual, e é assim que mudança de nome ou de
+  papel chega ao aparelho sem novo login. Falha de rede ou do servidor **não**
+  desloga (tenta de novo em um minuto); só o 401 desloga, e ele agora chega
+  também quando o usuário foi inativado ou teve a senha trocada ou resetada — o
+  servidor confere isso a cada requisição. Admin e PDV não precisam fazer nada:
+  usar o sistema é o que mantém a sessão viva. Não renove por conta própria.
 - **`fetchAllPages` serve a catálogo, não a tabela que cresce.** Ele pede as
   páginas restantes numa janela de 6 por vez e **lança** ao passar de 20 mil
   itens (`FETCH_ALL_PAGES_MAX_ITEMS`), em vez de devolver a lista cortada — meia
