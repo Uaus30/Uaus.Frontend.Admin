@@ -9,10 +9,10 @@ margem nem saldo).
 O contrato completo — decisões, números medidos, regras do sorteio e etapas —
 está em `PLANO-CATALOGO.md`, na raiz do repositório.
 
-**Estado: etapas 1 a 3.** Três formatos — banner 9:16, banner 4:5 e catálogo em
-PDF —, com escolha de tema e título, sorteio do servidor e troca de um produto.
-O histórico das peças (não repetir quem saiu, medir venda antes e depois) é a
-etapa 4.
+**Estado: as quatro etapas.** Três formatos — banner 9:16, banner 4:5 e catálogo
+em PDF —, com escolha de tema e título, sorteio do servidor e troca de um
+produto; e o histórico das peças que saíram, com o descanso de quem já apareceu
+e a venda antes e depois (rota `/marketing/catalogo/historico`, **só Admin**).
 
 ## Regras de negócio
 
@@ -204,6 +204,42 @@ menos de 0,1 s, e a tela mostra em que página está.
 - O worker recebe o **nome** da peça, e não as medidas: `PieceSpec` tem uma
   função, que não atravessa `postMessage`.
 
+### 17. Só a peça que SAIU vai para o histórico
+
+Compartilhar (quando a folha do aparelho conclui, ou cai no download) e baixar
+registram a peça no servidor (`POST /Catalogs/pieces`): tema, formato, título e
+os produtos na ordem do desenho, com o **preço impresso**. A peça que ficou na
+tela não é registrada — "sortear de novo" dez vezes não são dez divulgações, e
+fechar a folha sem escolher nada é desistência.
+
+- **Uma peça, um registro.** Cada arquivo gerado tem uma chave (`newPieceKey`);
+  compartilhar e depois baixar o mesmo arquivo manda a mesma chave, e o servidor
+  não cria outro registro. Trocar um produto ou o título gera **outro** arquivo,
+  com outra chave.
+- **A falha é calada.** A pessoa já tem o arquivo, e o registro não é tarefa
+  dela: sem aviso na tela, com o motivo no console, e a chave volta a ficar
+  livre para a próxima tentativa.
+
+### 18. Quem saiu descansa uma semana — como preferência, não como veto
+
+O sorteio manda para o fim da fila quem saiu numa peça registrada nos últimos 7
+dias (`CatalogDrawRules.CooldownDays`, no backend): o produto só volta quando
+faltar outro do mesmo tipo de vaga. Veto esvaziaria os temas pequenos — com
+quatro promoções no ar, em quatro dias "Novidades e promoções" ficaria sem
+oferta. A tela não mostra o descanso; ele é explicado no histórico.
+
+### 19. O histórico compara com o MESMO trecho da semana anterior
+
+A tela de histórico é **só de Admin**: ao contrário da de gerar, mostra unidades
+vendidas. Para cada peça, "depois" são as unidades dos produtos dela desde que
+saiu, por até 7 dias; "antes" é o mesmo trecho da semana anterior — os mesmos
+dias da semana. Com dois dias medidos, uma peça de sábado comparada com a quinta
+e a sexta pareceria um sucesso só por causa do calendário.
+
+A conta é toda do servidor (`CatalogPieceRules`); a tela mostra e avisa que é
+**pista, não prova** — ela não separa a divulgação do dia de pagamento ou de uma
+reposição. A queda aparece em âmbar, e não em vermelho, pelo mesmo motivo.
+
 ## O molde é desenhado pelo satori, não pelo navegador
 
 `template/` é JSX comum, mas quem o transforma em imagem é o **satori** (layout e
@@ -299,7 +335,11 @@ os valores sobem para o `packages/core`.
 - `lib/pdfWriter.ts` e `lib/links.ts`: o PDF escrito à mão e o link de cada
   produto.
 - `lib/share.ts`: folha de compartilhamento, download e nome do arquivo.
+- `lib/pieceRecord.ts`: a chave da peça e o registro dela no histórico.
+- `lib/history.ts`: a diferença com sinal e o estado da medição, em texto.
 - `hooks/useCatalogGenerator.ts`: estado e ações da tela.
+- `hooks/useCatalogHistory.ts` e `components/CatalogHistoryList.tsx`: a tela de
+  histórico.
 - `components/CatalogControls.tsx`: formato, tema, título e os botões de gerar.
 - `components/CatalogPreview.tsx`: a moldura da prévia — que mostra o próprio
   arquivo (ou as páginas que estão dentro do PDF), e não uma simulação.

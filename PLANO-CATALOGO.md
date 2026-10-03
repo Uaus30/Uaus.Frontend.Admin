@@ -56,6 +56,15 @@ A escolha dos produtos é sorteada, para cada peça sair diferente da anterior.
 | I9  | O **link de cada produto no PDF** leva `utm_source=whatsapp`, `utm_medium=catalogo`, `utm_campaign=catalogo-AAAA-MM-DD` | são as marcas que o coletor de métricas do site já lê |
 | I10 | O PDF é **escrito à mão** e o desenho roda num **worker**, com a thread principal de reserva | o jsPDF pesa 30 MB instalado; e na thread principal a tela travava a cada página |
 
+### Decididas na implementação da etapa 4 (para o dono conferir)
+
+| #   | Decisão | Por quê |
+| --- | ------- | ------- |
+| I11 | **Só vira histórico a peça que saiu**: compartilhada (ou baixada). A gerada e descartada não conta, nem a folha de compartilhamento fechada sem escolher | "sortear de novo" dez vezes não são dez divulgações; o descanso e a medição só fazem sentido para o que o cliente pôde ver |
+| I12 | O **descanso é de 7 dias e é preferência, não veto**: quem saiu vai para o fim da fila do sorteio e só volta quando faltar outro do mesmo tipo de vaga | veto esvaziaria os temas pequenos — com 4 promoções no ar, em 4 dias "Novidades e promoções" ficaria sem oferta |
+| I13 | A medição é em **unidades**, por até 7 dias, contra o **mesmo trecho da semana anterior** | os dois lados cobrem os mesmos dias da semana; receita ficou de fora porque desconto e cupom a distorcem |
+| I14 | O **histórico é só de Admin** (item "Histórico do Catálogo" no grupo Marketing); gerar e registrar continuam de todos | ele mostra unidades vendidas, que são número de BI |
+
 ### Em aberto
 
 | #   | Pergunta | Recomendação |
@@ -65,6 +74,8 @@ A escolha dos produtos é sorteada, para cada peça sair diferente da anterior.
 | A7  | Achados **baixos** da revisão da tela (etapa 2): a troca e o "Atualizar título" reimprimem o aviso com a data de **hoje**, mesmo com a aba aberta desde ontem; em "Novidades e promoções", trocar uma oferta traz uma novidade, e não outra oferta; o aviso "não foi possível carregar os temas" acende também numa recarga em segundo plano que falha com os temas já na tela; emoji no título sai como quadrado vazio | decidir depois da bateria de testes do dono |
 | A8  | Achados **baixos** da revisão do backend da etapa 3: JPEG com mais de 512 KB de metadados antes do tamanho é gravado como ilegível (0 × 0) e fica fora da etiqueta; a medição aloca 512 KB por imagem | sem caso no acervo (113 capas conferidas contra o Pillow); corrigir se aparecer |
 | A9  | Achados **baixos** da revisão da tela (etapa 3): na troca de um produto do PDF, se a foto do substituto é pequena ou não carrega, as páginas são redesenhadas antes de a troca ser recusada, e o aviso diz "não carregou" mesmo quando a foto é pequena; a página guardada não percebe a troca da FOTO de um produto na mesma sessão; se a rede pendurar ao baixar o renderizador, a tela fica em "Montando…" até recarregar (já era assim antes do worker); na promoção para produção o **backend sobe primeiro** — sem ele o PDF fica desabilitado e a ajuda de Anomalias imprime "undefined px" | decidir depois da bateria de testes do dono; a ordem da promoção é regra, não pendência |
+| A10 | Achados **baixos** da revisão do backend da etapa 4: no tema, o **teto de departamento ainda vence o descanso** — "Novidades" com 25 novidades de Cozinha e 3 de Brinquedos repete as mesmas 3 de Brinquedos em toda peça (já era assim antes do descanso); `items: [null]` ou preço acima de 10^16 no registro dão erro 500 em vez de 400 (a tela não manda nenhum dos dois); depois que a peça é compartilhada, a mesma **semente** já não reproduz o sorteio, e ela não é gravada no histórico; o caminho dos dois toques simultâneos no registro não tem teste contra o Postgres | a primeira é decisão do dono: no tema, o descanso deve vir antes da diversidade de departamento? As outras, corrigir se aparecer caso |
+| A11 | Achados **baixos** da revisão da tela (etapa 4): se o registro da peça falhar (rede), ela só entra no histórico e no descanso se a pessoa compartilhar ou baixar o mesmo arquivo de novo — não há nova tentativa sozinha nem sinal na tela; a peça é registrada mesmo quando o navegador bloqueia o download (não há como a tela saber); no primeiro dia o histórico diz "ainda é cedo para comparar" ao lado de uma diferença já colorida; em `/marketing/catalogo/historico` o menu acende "Catálogo" e "Histórico do Catálogo" juntos (como já acontece com Campanhas e Comparativo); departamento com nome acima de 60 caracteres e título em branco faria o registro ser recusado, calado | decidir depois da bateria de testes do dono |
 
 ---
 
@@ -244,6 +255,7 @@ de `template/geometry.ts` — mudou num, mude no outro.
 | Rota | `/marketing/catalogo`, sem `roles`; item "Catálogo" do grupo Marketing |
 | Sorteio | `Uaus.Backend.Api`: `CatalogsController` (`GET /Catalogs/themes`, `POST /Catalogs/draw`, qualquer usuário autenticado), `Services/Catalogs/` |
 | Cliente | `packages/api-client/src/hooks/catalogs.ts` e os DTOs em `models.ts` |
+| Histórico | `POST /Catalogs/pieces` (qualquer autenticado) e `GET /Catalogs/pieces` (só Admin); tabelas `catalog_pieces` e `catalog_piece_items`; régua em `CatalogPieceRules`; tela em `/marketing/catalogo/historico` |
 
 ---
 
@@ -254,7 +266,7 @@ de `template/geometry.ts` — mudou num, mude no outro.
 | 1   | CORS no bucket; molde padrão; banner 9:16 "Novidades e promoções" com produtos reais; sortear de novo, compartilhar e baixar | **feita em 03/10/2026**; testada e aprovada pelo dono no celular (~6 s para gerar, com leves travadas; salvar e compartilhar funcionaram) |
 | 2   | Sorteio na API (papéis, mistura, teto por departamento); escolha de tema e título; trocar um produto; item no menu Marketing; controles antes da prévia | **feita em 03/10/2026** |
 | 3   | Catálogo PDF com links rastreados; banner 4:5; largura e altura em `images`; etiqueta "Foto pequena" em Anomalias; atalho no BI › Desempenho de Produtos; desenho fora da thread principal | **feita em 03/10/2026** |
-| 4   | Histórico das peças compartilhadas: não repetir quem saiu nas últimas e medir vendas antes e depois | depois de algumas semanas de uso |
+| 4   | Histórico das peças que saíram (compartilhadas ou baixadas); descanso de 7 dias para quem já apareceu; venda antes e depois de cada peça, numa tela só de Admin | **feita em 03/10/2026** |
 
 ### O que ainda não está garantido
 

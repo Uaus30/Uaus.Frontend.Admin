@@ -223,6 +223,13 @@ describe("podeAcessar", () => {
     expect(podeAcessar(catalogo, USER_ROLE.Seller)).toBe(true);
     expect(podeAcessar(catalogo, USER_ROLE.Admin)).toBe(true);
   });
+
+  it("o histórico do catálogo é só de Admin: ele mostra unidades vendidas", () => {
+    const historico = ROUTES.find((r) => r.path === "/marketing/catalogo/historico")!;
+
+    expect(podeAcessar(historico, USER_ROLE.Seller)).toBe(false);
+    expect(podeAcessar(historico, USER_ROLE.Admin)).toBe(true);
+  });
 });
 
 describe("buildMenu", () => {
@@ -277,7 +284,7 @@ describe("buildMenu", () => {
     expect(sistema?.items?.map((i) => i.name)).toEqual(["Tarefas", "Configurações", "Logs"]);
   });
 
-  it("o Admin vê o grupo Marketing com as seis telas", () => {
+  it("o Admin vê o grupo Marketing com as sete telas", () => {
     const menu = buildMenu(USER_ROLE.Admin);
     const marketing = menu.find((item) => item.name === "Marketing");
 
@@ -291,8 +298,9 @@ describe("buildMenu", () => {
       "/marketing/promocoes",
       "/marketing/campanhas/comparativo",
       // O catálogo de divulgação por último (03/10/2026): não tem sequência de
-      // trabalho com cupom nem com campanha.
+      // trabalho com cupom nem com campanha. O histórico vem colado nele.
       "/marketing/catalogo",
+      "/marketing/catalogo/historico",
     ]);
   });
 

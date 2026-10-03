@@ -10,7 +10,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGetOrThrow, apiPost, ApiError } from "../client";
 import { STALE_TIME } from "../query-client";
-import type { CatalogDrawDto, CatalogThemeDto, QueryKey } from "../models";
+import type {
+  CatalogDrawDto,
+  CatalogPieceHistoryDto,
+  CatalogPieceRegisteredDto,
+  CatalogThemeDto,
+  QueryKey,
+} from "../models";
 
 /** Prefixo da lista de temas. */
 export const getGetCatalogThemesQueryKey = (): QueryKey => ["catalog-themes"];
@@ -67,4 +73,57 @@ export async function drawCatalog(request: CatalogDrawRequest): Promise<CatalogD
     throw new ApiError("O sorteio do catálogo veio sem conteúdo.", 204, null, "POST", "/Catalogs/draw");
   }
   return response.data;
+}
+
+/** Uma peça que saiu do admin. Os enums vão como código numérico. */
+export interface RegisterCatalogPieceRequest {
+  /** Chave gerada pelo navegador para ESTA peça: repetir o envio não cria outro registro. */
+  clientKey: string;
+  theme: number;
+  /** Obrigatório no tema `Department`. */
+  departmentId?: number;
+  /** Código de `CATALOG_FORMAT`. */
+  format: number;
+  /** O título impresso no cabeçalho. */
+  title: string;
+  /** Os produtos, na ordem em que foram desenhados, com o preço impresso. */
+  items: Array<{ productGroupId: number; role: number; price: number }>;
+}
+
+/**
+ * Registra a peça que foi compartilhada ou baixada.
+ *
+ * É este registro que faz o sorteio seguinte evitar os mesmos produtos, e que
+ * alimenta o histórico. Aberto a qualquer usuário autenticado, como o sorteio.
+ */
+export async function registerCatalogPiece(
+  request: RegisterCatalogPieceRequest,
+): Promise<CatalogPieceRegisteredDto> {
+  const response = await apiPost<CatalogPieceRegisteredDto>("/Catalogs/pieces", request);
+  if (!response.data) {
+    throw new ApiError("O registro da peça veio sem conteúdo.", 204, null, "POST", "/Catalogs/pieces");
+  }
+  return response.data;
+}
+
+/** Prefixo do histórico de peças. Quem consulta acrescenta a quantidade. */
+export const getGetCatalogPiecesQueryKey = (): QueryKey => ["catalog-pieces"];
+
+/** As últimas peças que saíram, com a venda antes e depois. Só Admin. */
+export function getCatalogPieces(take: number): Promise<CatalogPieceHistoryDto> {
+  return apiGetOrThrow<CatalogPieceHistoryDto>("/Catalogs/pieces", { take });
+}
+
+/**
+ * O histórico das peças.
+ *
+ * `staleTime` de operação: o "depois" de uma peça cresce a cada venda, e quem
+ * abre a tela quer o número de agora.
+ */
+export function useGetCatalogPieces(take = 30) {
+  return useQuery<CatalogPieceHistoryDto, ApiError>({
+    queryKey: [...getGetCatalogPiecesQueryKey(), take],
+    queryFn: () => getCatalogPieces(take),
+    staleTime: STALE_TIME.operacao,
+  });
 }

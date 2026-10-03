@@ -1,3 +1,4 @@
+import { CATALOG_FORMAT, enumCode, type EnumValue } from "@workspace/api-client-react";
 import { FEED, PAGE, PIECE_SPECS, STORY, type PieceKind } from "../template/geometry";
 import type { CatalogFormat } from "../types";
 import type { CatalogThemeOption } from "./themes";
@@ -5,6 +6,8 @@ import type { CatalogThemeOption } from "./themes";
 /** Um formato de peça: o que a tela mostra, o que vai ao sorteio e o arquivo que sai. */
 export interface CatalogFormatOption {
   key: CatalogFormat;
+  /** Código de `CATALOG_FORMAT`: é como o formato vai ao registro da peça. */
+  code: number;
   /** Como o formato aparece no seletor. */
   label: string;
   /** Para onde a peça vai — a linha miúda do seletor. */
@@ -38,6 +41,7 @@ const PDF_PAGES = 4;
 export const CATALOG_FORMATS: Record<CatalogFormat, CatalogFormatOption> = {
   story: {
     key: "story",
+    code: CATALOG_FORMAT.Story,
     label: "Banner 9:16",
     hint: "status do WhatsApp e story do Instagram",
     noun: "banner",
@@ -51,6 +55,7 @@ export const CATALOG_FORMATS: Record<CatalogFormat, CatalogFormatOption> = {
   },
   feed: {
     key: "feed",
+    code: CATALOG_FORMAT.Feed,
     label: "Banner 4:5",
     hint: "imagem para o grupo e para o feed",
     noun: "banner",
@@ -64,6 +69,7 @@ export const CATALOG_FORMATS: Record<CatalogFormat, CatalogFormatOption> = {
   },
   pdf: {
     key: "pdf",
+    code: CATALOG_FORMAT.Pdf,
     label: "Catálogo em PDF",
     hint: "grupos de WhatsApp, com link para o site",
     noun: "catálogo",
@@ -88,6 +94,14 @@ export const DEFAULT_FORMAT: CatalogFormat = "story";
 export function describeFormatSize(format: CatalogFormatOption): string {
   const perPage = PIECE_SPECS[format.piece].maxProducts;
   return format.count > perPage ? `até ${format.count} produtos` : `${format.count} produtos`;
+}
+
+/** O rótulo do formato que a API devolve (pelo nome). Desconhecido vira "Peça". */
+export function formatLabel(format: EnumValue): string {
+  const code = enumCode(format, CATALOG_FORMAT);
+  return (
+    FORMAT_ORDER.map((key) => CATALOG_FORMATS[key]).find((option) => option.code === code)?.label ?? "Peça"
+  );
 }
 
 /** Quantos cadastros o tema tem para ESTE formato: o PDF só conta os de foto grande. */

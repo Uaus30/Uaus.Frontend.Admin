@@ -108,6 +108,7 @@ const Promotions = lazy(() => import("@/pages/promotions"));
 const CampaignReport = lazy(() => import("@/pages/campaign-report"));
 const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
 const MarketingCatalog = lazy(() => import("@/pages/marketing-catalog"));
+const MarketingCatalogHistory = lazy(() => import("@/pages/marketing-catalog-history"));
 const SupplierPerformance = lazy(() => import("@/pages/supplier-performance"));
 const SupplierPerformanceDetail = lazy(() => import("@/pages/supplier-performance-detail"));
 const ProductAbc = lazy(() => import("@/pages/product-abc"));
@@ -290,6 +291,15 @@ export const ROUTES: AppRoute[] = [
   // margem — é o único item do grupo aberto a qualquer papel. Por último: não
   // tem sequência de trabalho com cupom nem com campanha.
   { path: "/marketing/catalogo", label: "Catálogo", group: "Marketing", component: MarketingCatalog },
+  // O histórico das peças JÁ é só de Admin: ao contrário da tela de gerar, ele
+  // mostra unidades vendidas (o antes e depois de cada peça), que são número de BI.
+  {
+    path: "/marketing/catalogo/historico",
+    label: "Histórico do Catálogo",
+    group: "Marketing",
+    component: MarketingCatalogHistory,
+    roles: SO_ADMIN,
+  },
 
   { path: "/estoque/inventario", label: "Inventário", group: "Relatórios", component: Inventory },
   // Relatório, e não tela de Estoque: ele só LÊ o saldo. O alerta vermelho do

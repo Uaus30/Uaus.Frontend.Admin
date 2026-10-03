@@ -4,6 +4,7 @@ import {
   enumCode,
   STOREFRONT_STOCK_BADGE,
   type CatalogItemDto,
+  type EnumValue,
 } from "@workspace/api-client-react";
 import type { CatalogBadge, CatalogProduct, CatalogRole } from "../types";
 
@@ -33,6 +34,12 @@ export const ROLE_LABEL: Record<CatalogRole, string> = {
   regular: "Intermediário",
   slow: "Achado",
 };
+
+/** O rótulo do papel que a API devolve (pelo nome), para o histórico. */
+export function roleLabel(role: EnumValue): string {
+  const name = ROLE_BY_CODE[enumCode(role, CATALOG_ROLE)];
+  return name ? ROLE_LABEL[name] : "—";
+}
 
 /**
  * Um selo só por card, e a prioridade é a do que muda a decisão do cliente: a

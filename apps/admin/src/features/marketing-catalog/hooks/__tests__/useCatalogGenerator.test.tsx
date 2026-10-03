@@ -7,12 +7,14 @@ import type {
   CatalogDrawRequest,
   CatalogItemDto,
   CatalogThemeDto,
+  RegisterCatalogPieceRequest,
 } from "@workspace/api-client-react";
 import type { PieceRequest, PieceResult } from "../../lib/buildPiece";
 
 const mocks = vi.hoisted(() => ({
   getCatalogThemes: vi.fn(),
   drawCatalog: vi.fn(),
+  registerCatalogPiece: vi.fn(),
   buildPiece: vi.fn(),
   preloadPiece: vi.fn(),
   shareFile: vi.fn(),
@@ -29,6 +31,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => {
   return {
     ...original,
     drawCatalog: mocks.drawCatalog,
+    registerCatalogPiece: mocks.registerCatalogPiece,
     useGetCatalogThemes: () =>
       useQuery({ queryKey: [...original.getGetCatalogThemesQueryKey()], queryFn: mocks.getCatalogThemes }),
   };
@@ -142,6 +145,7 @@ describe("useCatalogGenerator", () => {
     );
     mocks.buildPiece.mockImplementation(async (request: PieceRequest) => buildFrom(request));
     mocks.canShareFile.mockReturnValue(true);
+    mocks.registerCatalogPiece.mockResolvedValue({ id: 1, alreadyRegistered: false });
   });
 
   afterEach(() => {
@@ -612,6 +616,116 @@ describe("useCatalogGenerator", () => {
     expect(mocks.downloadFile).not.toHaveBeenCalled();
     expect(mocks.drawCatalog).not.toHaveBeenCalled();
     expect(result.current.canShare).toBe(false);
+  });
+
+  // ------------------------------------------------ registro no histórico
+
+  const lastRecord = () => mocks.registerCatalogPiece.mock.calls.at(-1)![0] as RegisterCatalogPieceRequest;
+
+  it("peça gerada e não compartilhada NÃO vai para o histórico", async () => {
+    const { result } = await renderGenerator();
+
+    await act(() => result.current.generate());
+    await act(() => result.current.generate());
+
+    expect(mocks.registerCatalogPiece).not.toHaveBeenCalled();
+  });
+
+  it("compartilhar registra a peça: tema, formato, título e os produtos na ordem, com o preço impresso", async () => {
+    mocks.shareFile.mockResolvedValue("shared");
+    const { result } = await renderGenerator();
+    act(() => result.current.selectTheme("5:7"));
+    await act(() => result.current.generate());
+
+    await act(() => result.current.share());
+
+    expect(mocks.registerCatalogPiece).toHaveBeenCalledTimes(1);
+    expect(lastRecord()).toEqual({
+      clientKey: result.current.piece?.key,
+      theme: 5,
+      departmentId: 7,
+      format: 1,
+      title: "Brinquedos",
+      items: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => ({
+        productGroupId: id,
+        // 1 a 3 saíram como novidade (2); os demais, como pouca saída (5).
+        role: id <= 3 ? 2 : 5,
+        price: 10,
+      })),
+    });
+    expect(lastRecord().clientKey.length).toBeGreaterThan(10);
+  });
+
+  it("compartilhar e depois baixar o MESMO arquivo é uma divulgação só", async () => {
+    mocks.shareFile.mockResolvedValue("shared");
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+
+    await act(() => result.current.share());
+    act(() => result.current.download());
+    await act(() => result.current.share());
+
+    expect(mocks.registerCatalogPiece).toHaveBeenCalledTimes(1);
+  });
+
+  it("baixar também registra — o arquivo saiu do sistema", async () => {
+    const { result } = await renderGenerator();
+    act(() => result.current.selectFormat("pdf"));
+    await act(() => result.current.generate());
+
+    act(() => result.current.download());
+
+    expect(mocks.registerCatalogPiece).toHaveBeenCalledTimes(1);
+    expect(lastRecord().format).toBe(3);
+  });
+
+  it("fechar a folha de compartilhamento sem escolher não registra: a peça não saiu", async () => {
+    mocks.shareFile.mockResolvedValue("cancelled");
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+
+    await act(() => result.current.share());
+
+    expect(mocks.registerCatalogPiece).not.toHaveBeenCalled();
+  });
+
+  it("trocar um produto é outro arquivo: compartilhado de novo, registra de novo com outra chave", async () => {
+    mocks.shareFile.mockResolvedValue("shared");
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    await act(() => result.current.share());
+    const firstKey = lastRecord().clientKey;
+
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
+    await act(() => result.current.swap(2));
+    await act(() => result.current.share());
+
+    expect(mocks.registerCatalogPiece).toHaveBeenCalledTimes(2);
+    expect(lastRecord().clientKey).not.toBe(firstKey);
+    expect(lastRecord().items.map((entry) => entry.productGroupId)).toEqual([1, 50, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it("falha no registro não incomoda quem compartilhou, e a tentativa seguinte registra", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mocks.shareFile.mockResolvedValue("shared");
+    mocks.registerCatalogPiece.mockRejectedValueOnce(new Error("sem rede"));
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+
+    await act(() => result.current.share());
+
+    expect(result.current.status).toBe("ready");
+    expect(mocks.toast).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
+
+    // A chave voltou a ficar livre: baixar a mesma peça tenta de novo.
+    await act(async () => result.current.download());
+    expect(mocks.registerCatalogPiece).toHaveBeenCalledTimes(2);
+    expect(mocks.registerCatalogPiece.mock.calls[1][0].clientKey).toBe(
+      mocks.registerCatalogPiece.mock.calls[0][0].clientKey,
+    );
+
+    warn.mockRestore();
   });
 
   it("ao sair da tela solta a prévia", async () => {

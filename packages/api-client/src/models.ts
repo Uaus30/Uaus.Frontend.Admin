@@ -2938,3 +2938,66 @@ export interface CatalogDrawDto {
   /** Reservas para o produto cuja foto não carregar. Nunca ofertas. */
   reserves: CatalogItemDto[];
 }
+
+/** O formato de uma peça. Vai ao servidor como código e volta como NOME. */
+export const CATALOG_FORMAT = {
+  None: 0,
+  /** Banner 9:16. */
+  Story: 1,
+  /** Banner 4:5. */
+  Feed: 2,
+  /** Catálogo em PDF. */
+  Pdf: 3,
+} as const;
+
+/** O resultado do registro de uma peça que saiu do admin. */
+export interface CatalogPieceRegisteredDto {
+  id: number;
+  /** A peça já estava registrada com esta chave: nada foi gravado agora. */
+  alreadyRegistered: boolean;
+}
+
+/** Um produto de uma peça registrada, com a venda antes e depois. */
+export interface CatalogPieceItemDto {
+  productGroupId: number;
+  /** O nome ATUAL do cadastro. */
+  name: string;
+  role: EnumValue;
+  /** O preço impresso na peça. */
+  price: number;
+  unitsBefore: number;
+  unitsAfter: number;
+}
+
+/** Uma peça que saiu do admin (compartilhada ou baixada). */
+export interface CatalogPieceDto {
+  id: number;
+  /** Quando a peça saiu, no horário da loja. */
+  sharedAt: string;
+  sharedBy?: string | null;
+  theme: EnumValue;
+  /** Só no tema `Department`. */
+  departmentName?: string | null;
+  format: EnumValue;
+  title: string;
+  /** Dias inteiros já medidos depois da peça, de 0 a `measureDays`. */
+  measuredDays: number;
+  /** A semana fechou: os números não mudam mais. */
+  isComplete: boolean;
+  /** Unidades vendidas dos produtos da peça no MESMO trecho da semana anterior. */
+  unitsBefore: number;
+  /** Unidades vendidas dos produtos da peça desde que ela saiu. */
+  unitsAfter: number;
+  /** Na ordem em que foram desenhados. */
+  items: CatalogPieceItemDto[];
+}
+
+/** O histórico das peças, com as réguas que o servidor usou. Só Admin. */
+export interface CatalogPieceHistoryDto {
+  /** Quantos dias cada lado da comparação cobre quando ela se completa. */
+  measureDays: number;
+  /** Por quantos dias o sorteio evita repetir quem saiu numa peça. */
+  cooldownDays: number;
+  /** Da mais recente para a mais antiga. */
+  pieces: CatalogPieceDto[];
+}

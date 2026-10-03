@@ -1,4 +1,4 @@
-import { CATALOG_THEME, enumCode, type CatalogThemeDto } from "@workspace/api-client-react";
+import { CATALOG_THEME, enumCode, type CatalogThemeDto, type EnumValue } from "@workspace/api-client-react";
 
 /** Uma opção do seletor de tema: o que a tela mostra e o que vai ao sorteio. */
 export interface CatalogThemeOption {
@@ -71,6 +71,14 @@ export function buildThemeOptions(themes: readonly CatalogThemeDto[]): CatalogTh
         ]
       : [];
   });
+}
+
+/** O nome do tema de uma peça do histórico. No tema de departamento, o do departamento. */
+export function themeLabel(theme: EnumValue, departmentName?: string | null): string {
+  const code = enumCode(theme, CATALOG_THEME);
+  if (code === CATALOG_THEME.Department) return departmentName || "Departamento";
+  if (code === CATALOG_THEME.General) return "Geral";
+  return FIXED_THEMES[code]?.label ?? "Tema";
 }
 
 /** "1 produto", "12 produtos" — a contagem ao lado de cada tema. */

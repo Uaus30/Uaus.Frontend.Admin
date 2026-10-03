@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { drawCatalog, useGetCatalogThemes } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  drawCatalog,
+  getGetCatalogPiecesQueryKey,
+  registerCatalogPiece,
+  useGetCatalogThemes,
+} from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { buildPiece, preloadPiece, type PieceProgress } from "../lib/buildPiece";
 import { ROLE_CODE, toCatalogProducts } from "../lib/catalogProducts";
 import { CATALOG_FORMATS, DEFAULT_FORMAT, FORMAT_ORDER, type CatalogFormatOption } from "../lib/formats";
+import { newPieceKey, toPieceRecord } from "../lib/pieceRecord";
 import { canShareFile, downloadFile, pieceFileName, shareFile } from "../lib/share";
 import { buildThemeOptions, DEFAULT_THEME_KEY, type CatalogThemeOption } from "../lib/themes";
 import { normalizeTitle } from "../template/text";
@@ -13,6 +20,11 @@ export type GeneratorStatus = "idle" | "generating" | "ready" | "error";
 
 /** A peça pronta: o arquivo, as URLs da prévia, quem saiu nela, com que título e em que formato. */
 export interface GeneratedPiece {
+  /**
+   * A identidade DESTE arquivo no histórico. Trocar um produto ou o título gera
+   * outro arquivo, e portanto outra chave.
+   */
+  key: string;
   file: File;
   /** Uma URL por página. No banner, uma só. */
   previewUrls: string[];
@@ -40,6 +52,7 @@ const FORMATS = FORMAT_ORDER.map((key) => CATALOG_FORMATS[key]);
  */
 export function useCatalogGenerator() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const themesQuery = useGetCatalogThemes();
 
   const themes = useMemo(() => buildThemeOptions(themesQuery.data ?? []), [themesQuery.data]);
@@ -65,6 +78,9 @@ export function useCatalogGenerator() {
   const runRef = useRef(0);
   // Quem já foi trocado nesta peça não volta na troca seguinte.
   const swappedOutRef = useRef<number[]>([]);
+  // As peças que já foram para o histórico: compartilhar e depois baixar o
+  // mesmo arquivo é uma divulgação só.
+  const recordedRef = useRef(new Set<string>());
 
   // As URLs da prévia seguram os arquivos na memória; soltam ao trocar e ao sair.
   useEffect(() => {
@@ -143,6 +159,7 @@ export function useCatalogGenerator() {
       });
 
       return {
+        key: newPieceKey(),
         file: new File([result.blob], pieceFileName(printed, date, target.format.extension), {
           type: target.format.mimeType,
         }),
@@ -241,21 +258,51 @@ export function useCatalogGenerator() {
     await run(piece.format.noun, (report) => draw(piece, title, piece.products, [], report));
   }, [piece, draw, run, title]);
 
+  /**
+   * Avisa o servidor de que a peça SAIU do admin. É o que faz o próximo sorteio
+   * evitar os mesmos produtos e o que alimenta o histórico.
+   *
+   * Só a peça que saiu: a que ficou na tela não foi vista por cliente nenhum, e
+   * "sortear de novo" dez vezes não pode contar como dez divulgações. A falha é
+   * calada de propósito — a pessoa já tem o arquivo, e o registro não é tarefa
+   * dela —, mas a chave volta a ficar livre para a próxima tentativa.
+   */
+  const record = useCallback(
+    (target: GeneratedPiece) => {
+      if (recordedRef.current.has(target.key)) return;
+      recordedRef.current.add(target.key);
+
+      registerCatalogPiece(toPieceRecord(target))
+        .then(() => queryClient.invalidateQueries({ queryKey: [...getGetCatalogPiecesQueryKey()] }))
+        .catch((error: unknown) => {
+          recordedRef.current.delete(target.key);
+          console.warn("Catálogo: não foi possível registrar a peça no histórico.", error);
+        });
+    },
+    [queryClient],
+  );
+
   const share = useCallback(async () => {
     if (!piece) return;
 
     const outcome = await shareFile(piece.file);
+    // Fechar a folha sem escolher nada é desistência: a peça não saiu.
+    if (outcome !== "cancelled") record(piece);
+
     if (outcome === "downloaded") {
       toast({
         title: piece.format.noun === "banner" ? "Banner salvo" : "Catálogo salvo",
         description: "O arquivo foi para a pasta de downloads deste aparelho.",
       });
     }
-  }, [piece, toast]);
+  }, [piece, record, toast]);
 
   const download = useCallback(() => {
-    if (piece) downloadFile(piece.file);
-  }, [piece]);
+    if (!piece) return;
+
+    downloadFile(piece.file);
+    record(piece);
+  }, [piece, record]);
 
   // A peça na tela é do tema e do formato que estão nos campos? Com outro tema
   // ou outro formato selecionado, o que está nos campos é o PRÓXIMO sorteio.
