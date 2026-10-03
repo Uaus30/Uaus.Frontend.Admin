@@ -1,14 +1,18 @@
 import { Button } from "@workspace/ui";
 import { Download, Megaphone, Share2 } from "lucide-react";
-import { CatalogBannerPreview } from "@/features/marketing-catalog/components/CatalogBannerPreview";
 import { CatalogControls } from "@/features/marketing-catalog/components/CatalogControls";
+import { CatalogPreview } from "@/features/marketing-catalog/components/CatalogPreview";
 import { CatalogProductList } from "@/features/marketing-catalog/components/CatalogProductList";
 import { useCatalogGenerator } from "@/features/marketing-catalog/hooks/useCatalogGenerator";
+import { PIECE_SPECS } from "@/features/marketing-catalog/template/geometry";
 
 /** Catálogo de divulgação (rota `/marketing/catalogo`). */
 export default function MarketingCatalogPage() {
   const generator = useCatalogGenerator();
-  const { banner, isGenerating } = generator;
+  const { piece, isGenerating } = generator;
+
+  // A moldura segue a peça que está na tela; sem peça, o formato selecionado.
+  const shown = piece?.format ?? generator.format;
 
   return (
     <div className="space-y-6">
@@ -20,8 +24,8 @@ export default function MarketingCatalogPage() {
           </h1>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          O sistema sorteia os produtos e monta a imagem pronta para o status do WhatsApp e o story do
-          Instagram. Cada geração sai diferente da anterior.
+          O sistema sorteia os produtos e monta a peça pronta: banner em imagem para o status do WhatsApp e o
+          story do Instagram, ou catálogo em PDF para os grupos. Cada geração sai diferente da anterior.
         </p>
       </div>
 
@@ -33,6 +37,9 @@ export default function MarketingCatalogPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <CatalogControls
+            formats={generator.formats}
+            format={generator.format}
+            onFormatChange={generator.selectFormat}
             themes={generator.themes}
             theme={generator.theme}
             onThemeChange={generator.selectTheme}
@@ -40,7 +47,7 @@ export default function MarketingCatalogPage() {
             themesFailed={generator.themesFailed}
             title={generator.title}
             onTitleChange={generator.setTitle}
-            hasBanner={banner !== null}
+            hasPiece={generator.pieceMatchesFormat}
             isGenerating={isGenerating}
             titleChanged={generator.titleChanged}
             onGenerate={generator.generate}
@@ -49,13 +56,16 @@ export default function MarketingCatalogPage() {
         </div>
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <CatalogBannerPreview
+          <CatalogPreview
             status={generator.status}
-            previewUrl={banner?.previewUrl}
+            format={shown}
+            previewUrls={piece?.previewUrls ?? []}
+            progress={generator.progress}
+            busyNoun={generator.busyNoun}
             errorMessage={generator.errorMessage}
           />
 
-          {banner && (
+          {piece && (
             <div className="mx-auto flex w-full max-w-[360px] flex-col gap-2 sm:flex-row">
               {generator.canShare && (
                 <Button onClick={generator.share} disabled={isGenerating} className="flex-1 gap-2">
@@ -74,10 +84,12 @@ export default function MarketingCatalogPage() {
           )}
         </div>
 
-        {banner && (
+        {piece && (
           <div className="min-w-0 lg:col-start-1 lg:row-start-2">
             <CatalogProductList
-              products={banner.products}
+              products={piece.products}
+              noun={piece.format.noun}
+              pageSize={PIECE_SPECS[piece.format.piece].maxProducts}
               isGenerating={isGenerating}
               onSwap={generator.swap}
             />

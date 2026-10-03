@@ -48,6 +48,8 @@ export interface CatalogDrawRequest {
   role?: number;
   /** Cadastros que não podem sair: os que já estão na peça e os já recusados. */
   excludeGroupIds?: number[];
+  /** Só cadastros de foto grande: é o sorteio do catálogo em PDF, de card grande. */
+  largePhotosOnly?: boolean;
   /** Sem valor, o servidor escolhe a semente e a devolve. */
   seed?: number;
 }

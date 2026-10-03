@@ -52,6 +52,37 @@ describe("useProductAnomalies", () => {
     expect(result.current.items).toHaveLength(3);
   });
 
+  it("com a pastilha Foto pequena ligada, a lista sai do que mais vende para o que menos vende", () => {
+    const comFotoPequena = (id: number, unitsSold: number) => ({
+      ...livro,
+      productGroupId: id,
+      stock: 5,
+      anomalies: [{ type: "SmallPhoto" as const, photoWidth: 225, photoHeight: 225, unitsSold }],
+    });
+    mocks.useGetProductAnomalies.mockReturnValue({
+      data: {
+        ...relatorio,
+        items: [comFotoPequena(901, 3), ...relatorio.items, comFotoPequena(902, 40), comFotoPequena(903, 9)],
+      },
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: mocks.refetch,
+    });
+    const { result } = renderHook(() => useProductAnomalies());
+
+    // Sem a pastilha vale a ordem do servidor.
+    expect(result.current.items.map((x) => x.productGroupId).filter((id) => id > 900)).toEqual([
+      901, 902, 903,
+    ]);
+
+    act(() => result.current.toggleType("SmallPhoto"));
+
+    expect(result.current.items.map((x) => x.productGroupId)).toEqual([902, 903, 901]);
+    expect(result.current.counts.get("SmallPhoto")).toBe(3);
+  });
+
   it("a busca ignora acento e caixa, e acha pelo nome da variação e pelo código do cadastro", () => {
     const { result } = renderHook(() => useProductAnomalies());
 

@@ -47,18 +47,26 @@ export interface CatalogStoreInfo {
   site: string;
 }
 
-/** As duas artes do banner, em data URL (ver `Artes/catalogo/gerador`). */
-export interface StoryBannerArt {
+/** As duas artes de uma peça, em data URL (ver `Artes/catalogo/gerador`). */
+export interface PieceArt {
   header: string;
   footer: string;
 }
 
-/** Tudo o que o molde do banner 9:16 precisa para ser desenhado. */
-export interface StoryBannerData {
+/** Tudo o que o molde precisa para desenhar uma peça (ou uma página do PDF). */
+export interface PieceData {
   title: string;
+  /** Linha miúda sob o título — "Página 2 de 4", no catálogo em PDF. */
+  caption?: string;
   cards: CatalogCard[];
   store: CatalogStoreInfo;
   /** O dia impresso no aviso de preços. */
   date: Date;
-  art: StoryBannerArt;
+  art: PieceArt;
 }
+
+/**
+ * O que a pessoa escolhe gerar. "Banner" é imagem e "catálogo" é PDF — é o
+ * vocabulário do dono.
+ */
+export type CatalogFormat = "story" | "feed" | "pdf";

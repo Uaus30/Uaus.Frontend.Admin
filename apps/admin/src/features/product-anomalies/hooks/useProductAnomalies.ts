@@ -5,7 +5,7 @@ import {
   type ProductAnomalyRowDto,
   type ProductAnomalyTypeName,
 } from "@workspace/api-client-react";
-import { isSingleUnitIdle } from "../lib/anomalies";
+import { isSingleUnitIdle, sortBySmallPhotoSales } from "../lib/anomalies";
 
 /**
  * Estado da tela "Anomalias".
@@ -60,7 +60,7 @@ export function useProductAnomalies() {
     const linhas = base;
     const termo = normalizeSearchText(search);
 
-    return linhas.filter((linha) => {
+    const filtradas = linhas.filter((linha) => {
       if (type && !linha.anomalies.some((anomalia) => anomalia.type === type)) return false;
       if (!termo) return true;
 
@@ -72,6 +72,11 @@ export function useProductAnomalies() {
       ];
       return textos.some((texto) => normalizeSearchText(texto).includes(termo));
     });
+
+    // Com a pastilha "Foto pequena" ligada a lista vira ordem de trabalho: do
+    // que mais vende para o que menos vende. Nos outros recortes vale a ordem
+    // do servidor, da anomalia mais grave para a menos grave.
+    return type === "SmallPhoto" ? sortBySmallPhotoSales(filtradas) : filtradas;
   }, [base, search, type]);
 
   return {

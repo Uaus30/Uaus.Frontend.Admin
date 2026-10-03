@@ -8,6 +8,7 @@ import {
   FilePen,
   Ghost,
   Hourglass,
+  ImageMinus,
   ImageOff,
   PackageX,
   TrendingDown,
@@ -51,6 +52,7 @@ export const ANOMALY_ORDER: ProductAnomalyTypeName[] = [
   "DuplicateName",
   "NeverSold",
   "NoRecentSales",
+  "SmallPhoto",
 ];
 
 /**
@@ -129,6 +131,12 @@ export const ANOMALY_META: Record<ProductAnomalyTypeName, AnomalyMeta> = {
     icon: CalendarClock,
     tone: "neutro",
     fix: "Confira a gôndola e o preço; se a procura passou, promova antes de repor.",
+  },
+  SmallPhoto: {
+    label: "Foto pequena",
+    icon: ImageMinus,
+    tone: "neutro",
+    fix: "Troque a capa por uma foto maior: a atual fica de fora do catálogo de divulgação em PDF, onde borraria.",
   },
 };
 
@@ -252,9 +260,29 @@ export function describeAnomaly(anomaly: ProductAnomalyDto, row: ProductAnomalyR
       const venda = anomaly.lastSaleAt ? ` Última venda em ${formatShortDate(anomaly.lastSaleAt)}.` : "";
       return `${unidades(anomaly.stock)} e ${dias(anomaly.daysWithoutSales)} sem vender.${venda}`;
     }
+    case "SmallPhoto": {
+      const vendidas = anomaly.unitsSold ?? 0;
+      const venda = vendidas > 0 ? `Vendeu ${unidades(vendidas)} no período.` : "Não vendeu no período.";
+      return `Capa de ${anomaly.photoWidth ?? 0} × ${anomaly.photoHeight ?? 0} px. ${venda}`;
+    }
     default:
       return anomalyMeta(anomaly.type).fix;
   }
+}
+
+/**
+ * A ordem de trabalho da etiqueta "Foto pequena": do que mais vende para o que
+ * menos vende. São centenas de fotos para refazer (cerca de 290 em 03/10/2026),
+ * e a que rende primeiro é a do produto que mais sai. O servidor já manda nessa
+ * ordem quem só tem esta etiqueta; aqui entram também os cadastros que têm
+ * outra anomalia junto, e que viriam no topo por ela.
+ */
+export function sortBySmallPhotoSales(rows: readonly ProductAnomalyRowDto[]): ProductAnomalyRowDto[] {
+  const vendidas = (row: ProductAnomalyRowDto) =>
+    row.anomalies.find((anomaly) => anomaly.type === "SmallPhoto")?.unitsSold ?? 0;
+
+  // `sort` é estável: no empate vale a ordem do servidor.
+  return [...rows].sort((a, b) => vendidas(b) - vendidas(a));
 }
 
 /**

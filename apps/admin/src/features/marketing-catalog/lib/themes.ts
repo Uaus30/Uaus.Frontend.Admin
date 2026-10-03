@@ -13,6 +13,8 @@ export interface CatalogThemeOption {
   title: string;
   /** Quantos cadastros o tema tem para sortear. */
   products: number;
+  /** Desses, quantos têm foto que aguenta o card grande do catálogo em PDF. */
+  productsWithLargePhoto: number;
 }
 
 /**
@@ -51,12 +53,23 @@ export function buildThemeOptions(themes: readonly CatalogThemeDto[]): CatalogTh
           label: item.departmentName,
           title: item.departmentName,
           products: item.products,
+          productsWithLargePhoto: item.productsWithLargePhoto,
         },
       ];
     }
 
     const fixed = FIXED_THEMES[theme];
-    return fixed ? [{ key: String(theme), theme, ...fixed, products: item.products }] : [];
+    return fixed
+      ? [
+          {
+            key: String(theme),
+            theme,
+            ...fixed,
+            products: item.products,
+            productsWithLargePhoto: item.productsWithLargePhoto,
+          },
+        ]
+      : [];
   });
 }
 

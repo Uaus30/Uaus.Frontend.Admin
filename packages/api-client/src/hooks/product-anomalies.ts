@@ -29,7 +29,8 @@ export type ProductAnomalyTypeName =
   | "HiddenFromStorefront"
   | "DuplicateName"
   | "NeverSold"
-  | "NoRecentSales";
+  | "NoRecentSales"
+  | "SmallPhoto";
 
 /** Os números da regra do estoque fantasma — o manual da tela fala com eles. */
 export interface ProductAnomalyRulesDto {
@@ -45,6 +46,10 @@ export interface ProductAnomalyRulesDto {
   phantomWindowDays: number;
   /** Dias sem venda a partir dos quais o produto parado acende (nunca vendeu, ou parou de vender). */
   idleDays: number;
+  /** Menor lado, em pixels, abaixo do qual a capa é pequena para o catálogo de divulgação. */
+  smallPhotoMinSide: number;
+  /** Janela, em dias, das unidades vendidas que ordenam a lista de foto pequena. */
+  smallPhotoSalesWindowDays: number;
 }
 
 export interface ProductAnomalyCountDto {
@@ -105,6 +110,11 @@ export interface ProductAnomalyDto {
   daysWithoutSales?: number | null;
   /** Os outros cadastros com o mesmo nome. */
   duplicateGroupIds?: number[] | null;
+  /** Em `SmallPhoto`, a largura e a altura da capa, em pixels. */
+  photoWidth?: number | null;
+  photoHeight?: number | null;
+  /** Em `SmallPhoto`, as unidades vendidas na janela de `smallPhotoSalesWindowDays`. */
+  unitsSold?: number | null;
 }
 
 /** Uma linha: um cadastro com as anomalias dele. */

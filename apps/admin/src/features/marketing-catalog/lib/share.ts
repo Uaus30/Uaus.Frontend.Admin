@@ -3,8 +3,8 @@ import { toDateKey } from "@workspace/core";
 /** O que aconteceu com o arquivo depois do toque em "Compartilhar". */
 export type ShareOutcome = "shared" | "cancelled" | "downloaded";
 
-/** Nome do arquivo: `uaus-novidades-e-promocoes-2026-10-03.jpg`. */
-export function bannerFileName(title: string, date: Date): string {
+/** Nome do arquivo: `uaus-novidades-e-promocoes-2026-10-03.jpg` (ou `.pdf`). */
+export function pieceFileName(title: string, date: Date, extension: string): string {
   const slug = title
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -12,7 +12,7 @@ export function bannerFileName(title: string, date: Date): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return `uaus-${slug || "catalogo"}-${toDateKey(date)}.jpg`;
+  return `uaus-${slug || "catalogo"}-${toDateKey(date)}.${extension}`;
 }
 
 /**

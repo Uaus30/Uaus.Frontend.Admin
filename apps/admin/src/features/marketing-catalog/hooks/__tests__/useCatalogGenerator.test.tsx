@@ -8,13 +8,13 @@ import type {
   CatalogItemDto,
   CatalogThemeDto,
 } from "@workspace/api-client-react";
-import type { StoryBannerRequest, StoryBannerResult } from "../../lib/buildStoryBanner";
+import type { PieceRequest, PieceResult } from "../../lib/buildPiece";
 
 const mocks = vi.hoisted(() => ({
   getCatalogThemes: vi.fn(),
   drawCatalog: vi.fn(),
-  buildStoryBanner: vi.fn(),
-  preloadStoryBanner: vi.fn(),
+  buildPiece: vi.fn(),
+  preloadPiece: vi.fn(),
   shareFile: vi.fn(),
   downloadFile: vi.fn(),
   canShareFile: vi.fn(),
@@ -40,10 +40,11 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 }));
 
 // O montador desenha com WebAssembly e canvas, que o jsdom não tem. O molde em
-// si é coberto por `StoryBanner.render.test.tsx`, no satori de verdade.
-vi.mock("../../lib/buildStoryBanner", () => ({
-  buildStoryBanner: mocks.buildStoryBanner,
-  preloadStoryBanner: mocks.preloadStoryBanner,
+// si é coberto por `CatalogPiece.render.test.tsx`, no satori de verdade, e a
+// montagem (páginas, links, foto pequena) por `buildPiece.test.ts`.
+vi.mock("../../lib/buildPiece", () => ({
+  buildPiece: mocks.buildPiece,
+  preloadPiece: mocks.preloadPiece,
 }));
 
 vi.mock("../../lib/share", async (importOriginal) => ({
@@ -56,11 +57,17 @@ vi.mock("../../lib/share", async (importOriginal) => ({
 const { useCatalogGenerator } = await import("../useCatalogGenerator");
 
 const THEMES: CatalogThemeDto[] = [
-  { theme: "General", products: 40 },
-  { theme: "NewsAndOffers", products: 12 },
-  { theme: "BestSellers", products: 0 },
-  { theme: "Finds", products: 20 },
-  { theme: "Department", departmentId: 7, departmentName: "Brinquedos", products: 15 },
+  { theme: "General", products: 40, productsWithLargePhoto: 30 },
+  { theme: "NewsAndOffers", products: 12, productsWithLargePhoto: 12 },
+  { theme: "BestSellers", products: 0, productsWithLargePhoto: 0 },
+  { theme: "Finds", products: 20, productsWithLargePhoto: 0 },
+  {
+    theme: "Department",
+    departmentId: 7,
+    departmentName: "Brinquedos",
+    products: 15,
+    productsWithLargePhoto: 9,
+  },
 ];
 
 /** Item sorteado como a API manda: enum pelo nome, nulo omitido. */
@@ -83,16 +90,27 @@ function drawOf(items: CatalogItemDto[], reserves: CatalogItemDto[] = []): Catal
   return { seed: 7, items, reserves };
 }
 
-/** O montador devolve os primeiros `count` candidatos, como o de verdade. */
-function buildFrom(request: StoryBannerRequest): StoryBannerResult {
+/** O montador devolve os primeiros `count` candidatos, como o de verdade: uma página a cada 6 no PDF. */
+function buildFrom(request: PieceRequest): PieceResult {
+  const products = request.candidates.slice(0, request.count);
+  const pages = request.format.extension === "pdf" ? Math.ceil(products.length / 6) : 1;
+  const jpegs = Array.from({ length: pages }, () => new Blob(["jpeg"], { type: "image/jpeg" }));
+
   return {
-    blob: new Blob(["jpeg"], { type: "image/jpeg" }),
-    products: request.candidates.slice(0, request.count),
+    blob: request.format.extension === "pdf" ? new Blob(["pdf"], { type: "application/pdf" }) : jpegs[0],
+    pages: jpegs,
+    products,
   };
 }
 
+/** O resultado de um banner com estes produtos. */
+function bannerOf(products: PieceResult["products"], content = "jpeg"): PieceResult {
+  const blob = new Blob([content], { type: "image/jpeg" });
+  return { blob, pages: [blob], products };
+}
+
 const lastDrawRequest = () => mocks.drawCatalog.mock.calls.at(-1)![0] as CatalogDrawRequest;
-const lastBuildRequest = () => mocks.buildStoryBanner.mock.calls.at(-1)![0] as StoryBannerRequest;
+const lastBuildRequest = () => mocks.buildPiece.mock.calls.at(-1)![0] as PieceRequest;
 
 const createWrapper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -122,7 +140,7 @@ describe("useCatalogGenerator", () => {
         [item(20), item(21)],
       ),
     );
-    mocks.buildStoryBanner.mockImplementation(async (request: StoryBannerRequest) => buildFrom(request));
+    mocks.buildPiece.mockImplementation(async (request: PieceRequest) => buildFrom(request));
     mocks.canShareFile.mockReturnValue(true);
   });
 
@@ -138,8 +156,9 @@ describe("useCatalogGenerator", () => {
     expect(result.current.theme?.label).toBe("Geral (mistura inteligente)");
     expect(result.current.title).toBe("Destaques da loja");
     expect(result.current.status).toBe("idle");
-    expect(result.current.banner).toBeNull();
-    expect(mocks.preloadStoryBanner).toHaveBeenCalledTimes(1);
+    expect(result.current.piece).toBeNull();
+    expect(result.current.format.key).toBe("story");
+    expect(mocks.preloadPiece).toHaveBeenCalledTimes(1);
   });
 
   it("trocar de tema troca o título sugerido e descarta o que foi digitado", async () => {
@@ -175,9 +194,9 @@ describe("useCatalogGenerator", () => {
 
     expect(lastDrawRequest()).toEqual({ theme: 5, departmentId: 7, count: 9, spare: 4 });
     expect(result.current.status).toBe("ready");
-    expect(result.current.banner?.products).toHaveLength(9);
-    expect(result.current.banner?.title).toBe("Brinquedos");
-    expect(result.current.banner?.file.name).toMatch(/^uaus-brinquedos-\d{4}-\d{2}-\d{2}\.jpg$/);
+    expect(result.current.piece?.products).toHaveLength(9);
+    expect(result.current.piece?.title).toBe("Brinquedos");
+    expect(result.current.piece?.file.name).toMatch(/^uaus-brinquedos-\d{4}-\d{2}-\d{2}\.jpg$/);
   });
 
   it("as reservas vão ao montador depois dos 9, para a foto que falhar ceder a vaga", async () => {
@@ -199,7 +218,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.generate());
 
     expect(lastBuildRequest().title).toBe("Utilidades de cozinha");
-    expect(result.current.banner?.title).toBe("Utilidades de cozinha");
+    expect(result.current.piece?.title).toBe("Utilidades de cozinha");
   });
 
   it("título apagado volta ao sugerido pelo tema: a peça não sai sem cabeçalho", async () => {
@@ -218,7 +237,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.generate());
 
     expect(mocks.drawCatalog).toHaveBeenCalledTimes(2);
-    expect(result.current.banner?.previewUrl).toBe("blob:banner-2");
+    expect(result.current.piece?.previewUrls).toEqual(["blob:banner-2"]);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:banner-1");
   });
 
@@ -230,7 +249,7 @@ describe("useCatalogGenerator", () => {
 
     expect(result.current.status).toBe("error");
     expect(result.current.errorMessage).toMatch(/não tem produto/i);
-    expect(mocks.buildStoryBanner).not.toHaveBeenCalled();
+    expect(mocks.buildPiece).not.toHaveBeenCalled();
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 
@@ -243,14 +262,12 @@ describe("useCatalogGenerator", () => {
 
     expect(result.current.status).toBe("error");
     expect(result.current.errorMessage).toBe("Sessão expirada.");
-    expect(result.current.banner?.previewUrl).toBe("blob:banner-1");
+    expect(result.current.piece?.previewUrls).toEqual(["blob:banner-1"]);
   });
 
   it("dois toques seguidos: vale a última geração, e a atrasada não a cobre", async () => {
-    const pending: Array<(value: StoryBannerResult) => void> = [];
-    mocks.buildStoryBanner.mockImplementation(
-      () => new Promise<StoryBannerResult>((resolve) => pending.push(resolve)),
-    );
+    const pending: Array<(value: PieceResult) => void> = [];
+    mocks.buildPiece.mockImplementation(() => new Promise<PieceResult>((resolve) => pending.push(resolve)));
     const { result } = await renderGenerator();
 
     let first!: Promise<void>;
@@ -266,38 +283,160 @@ describe("useCatalogGenerator", () => {
 
     // A segunda responde antes; a primeira chega depois, atrasada.
     await act(async () => {
-      pending[1]({ blob: new Blob(["b"]), products: [catalogProduct(2)] });
+      pending[1](bannerOf([catalogProduct(2)], "b"));
       await second;
     });
     await act(async () => {
-      pending[0]({ blob: new Blob(["a"]), products: [catalogProduct(1)] });
+      pending[0](bannerOf([catalogProduct(1)], "a"));
       await first;
     });
 
     expect(result.current.status).toBe("ready");
-    expect(result.current.banner?.products[0].productGroupId).toBe(2);
+    expect(result.current.piece?.products[0].productGroupId).toBe(2);
   });
 
   it("sair da tela no meio da geração não deixa prévia órfã na memória", async () => {
-    let finish!: (value: StoryBannerResult) => void;
-    mocks.buildStoryBanner.mockImplementation(
-      () => new Promise<StoryBannerResult>((resolve) => (finish = resolve)),
-    );
+    let finish!: (value: PieceResult) => void;
+    mocks.buildPiece.mockImplementation(() => new Promise<PieceResult>((resolve) => (finish = resolve)));
     const { result, unmount } = await renderGenerator();
 
     let running!: Promise<void>;
     act(() => {
       running = result.current.generate();
     });
-    await waitFor(() => expect(mocks.buildStoryBanner).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.buildPiece).toHaveBeenCalledTimes(1));
     unmount();
 
-    finish({ blob: new Blob(["a"]), products: [catalogProduct(1)] });
+    finish(bannerOf([catalogProduct(1)], "a"));
     await running;
 
     // A URL só é criada para uma tela que ainda existe: depois do unmount não
     // há efeito de limpeza que a solte.
     expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+
+  // ------------------------------------------------------------- formatos
+
+  it("o banner 4:5 pede 6 produtos e sai em JPEG", async () => {
+    const { result } = await renderGenerator();
+    act(() => result.current.selectFormat("feed"));
+
+    await act(() => result.current.generate());
+
+    expect(lastDrawRequest()).toMatchObject({ count: 6, spare: 4 });
+    expect(lastDrawRequest().largePhotosOnly).toBeUndefined();
+    expect(lastBuildRequest().format.key).toBe("feed");
+    expect(result.current.piece?.file.name).toMatch(/\.jpg$/);
+  });
+
+  it("o catálogo em PDF pede 24 produtos só de foto grande, com 8 reservas", async () => {
+    mocks.drawCatalog.mockResolvedValue(
+      drawOf(
+        Array.from({ length: 24 }, (_, index) => item(index + 1)),
+        [item(90), item(91)],
+      ),
+    );
+    const { result } = await renderGenerator();
+    act(() => result.current.selectFormat("pdf"));
+
+    await act(() => result.current.generate());
+
+    expect(lastDrawRequest()).toEqual({
+      theme: 1,
+      departmentId: undefined,
+      count: 24,
+      spare: 8,
+      largePhotosOnly: true,
+    });
+    expect(result.current.piece?.products).toHaveLength(24);
+    expect(result.current.piece?.format.key).toBe("pdf");
+    expect(result.current.piece?.file.name).toMatch(/^uaus-destaques-da-loja-\d{4}-\d{2}-\d{2}\.pdf$/);
+    expect(result.current.piece?.file.type).toBe("application/pdf");
+    // Uma URL de prévia por página: 24 produtos são 4 páginas.
+    expect(result.current.piece?.previewUrls).toHaveLength(4);
+  });
+
+  it("gerar outra peça solta TODAS as páginas da prévia anterior", async () => {
+    mocks.drawCatalog.mockResolvedValue(drawOf(Array.from({ length: 12 }, (_, index) => item(index + 1))));
+    const { result } = await renderGenerator();
+    act(() => result.current.selectFormat("pdf"));
+    await act(() => result.current.generate());
+    expect(result.current.piece?.previewUrls).toEqual(["blob:banner-1", "blob:banner-2"]);
+
+    await act(() => result.current.generate());
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:banner-1");
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:banner-2");
+  });
+
+  it("trocar um produto do PDF continua exigindo foto grande e redesenha em PDF", async () => {
+    mocks.drawCatalog.mockResolvedValue(drawOf(Array.from({ length: 12 }, (_, index) => item(index + 1))));
+    const { result } = await renderGenerator();
+    act(() => result.current.selectFormat("pdf"));
+    await act(() => result.current.generate());
+    // A pessoa já olha para outro formato; a peça da tela continua sendo o PDF.
+    act(() => result.current.selectFormat("story"));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50)]));
+
+    await act(() => result.current.swap(8));
+
+    expect(lastDrawRequest()).toMatchObject({ count: 1, largePhotosOnly: true });
+    expect(lastBuildRequest().format.key).toBe("pdf");
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 50, 9, 10, 11, 12,
+    ]);
+  });
+
+  it("com outro formato selecionado, o botão volta a ser 'Gerar' e o aviso de título não acende", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    expect(result.current.pieceMatchesFormat).toBe(true);
+
+    act(() => result.current.selectFormat("pdf"));
+    act(() => result.current.setTitle("Outro título"));
+
+    expect(result.current.pieceMatchesFormat).toBe(false);
+    expect(result.current.titleChanged).toBe(false);
+  });
+
+  it("mostra em que página o desenho está, e limpa ao terminar", async () => {
+    let finish!: (value: PieceResult) => void;
+    mocks.buildPiece.mockImplementation(
+      (request: PieceRequest) =>
+        new Promise<PieceResult>((resolve) => {
+          request.onProgress?.({ page: 2, pages: 4 });
+          finish = () => resolve(buildFrom(request));
+        }),
+    );
+    const { result } = await renderGenerator();
+    act(() => result.current.selectFormat("pdf"));
+
+    let running!: Promise<void>;
+    act(() => {
+      running = result.current.generate();
+    });
+    await waitFor(() => expect(result.current.progress).toEqual({ page: 2, pages: 4 }));
+
+    await act(async () => {
+      finish(bannerOf([]));
+      await running;
+    });
+
+    expect(result.current.progress).toBeNull();
+    expect(result.current.status).toBe("ready");
+  });
+
+  it("o aviso de erro e o de download falam 'catálogo' quando a peça é o PDF", async () => {
+    mocks.drawCatalog.mockResolvedValue(drawOf([]));
+    const { result } = await renderGenerator();
+    act(() => result.current.selectFormat("pdf"));
+
+    await act(() => result.current.generate());
+
+    expect(result.current.errorMessage).toMatch(/montar o catálogo/);
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Não foi possível gerar o catálogo" }),
+    );
   });
 
   // ----------------------------------------------------- trocar um produto
@@ -317,7 +456,7 @@ describe("useCatalogGenerator", () => {
       excludeGroupIds: [1, 2, 3, 4, 5, 6, 7, 8, 9],
     });
     // O novo entra no LUGAR do antigo; os outros oito não se mexem.
-    expect(result.current.banner?.products.map((product) => product.productGroupId)).toEqual([
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
       1, 50, 3, 4, 5, 6, 7, 8, 9,
     ]);
     expect(lastBuildRequest().count).toBe(9);
@@ -356,7 +495,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.swap(2));
 
     expect(result.current.status).toBe("ready");
-    expect(result.current.banner?.previewUrl).toBe("blob:banner-1");
+    expect(result.current.piece?.previewUrls).toEqual(["blob:banner-1"]);
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Sem outro produto" }));
   });
 
@@ -365,18 +504,17 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.generate());
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
     // O montador descarta o produto cuja foto falhou: devolve 8 em vez de 9.
-    mocks.buildStoryBanner.mockImplementationOnce(async (request: StoryBannerRequest) => ({
-      blob: new Blob(["jpeg"]),
-      products: request.candidates.filter((product) => product.productGroupId !== 50),
-    }));
+    mocks.buildPiece.mockImplementationOnce(async (request: PieceRequest) =>
+      bannerOf(request.candidates.filter((product) => product.productGroupId !== 50)),
+    );
 
     await act(() => result.current.swap(2));
 
     expect(result.current.status).toBe("error");
     expect(result.current.errorMessage).toMatch(/foto do produto sorteado não carregou/i);
     // A peça que está na tela é a de antes da troca, inteira.
-    expect(result.current.banner?.previewUrl).toBe("blob:banner-1");
-    expect(result.current.banner?.products.map((product) => product.productGroupId)).toEqual([
+    expect(result.current.piece?.previewUrls).toEqual(["blob:banner-1"]);
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9,
     ]);
 
@@ -386,7 +524,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.swap(2));
 
     expect(lastDrawRequest().excludeGroupIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 50]);
-    expect(result.current.banner?.products.map((product) => product.productGroupId)).toEqual([
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
       1, 51, 3, 4, 5, 6, 7, 8, 9,
     ]);
   });
@@ -400,7 +538,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.swap(2));
 
     expect(lastDrawRequest().theme).toBe(1);
-    expect(result.current.banner?.title).toBe("Destaques da loja");
+    expect(result.current.piece?.title).toBe("Destaques da loja");
   });
 
   it("trocar produto que não está na peça não faz nada", async () => {
@@ -425,8 +563,8 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.applyTitle());
 
     expect(mocks.drawCatalog).toHaveBeenCalledTimes(1);
-    expect(result.current.banner?.title).toBe("Semana das crianças");
-    expect(result.current.banner?.products).toHaveLength(9);
+    expect(result.current.piece?.title).toBe("Semana das crianças");
+    expect(result.current.piece?.products).toHaveLength(9);
     expect(result.current.titleChanged).toBe(false);
   });
 
@@ -448,7 +586,7 @@ describe("useCatalogGenerator", () => {
 
     await act(() => result.current.share());
 
-    expect(mocks.shareFile).toHaveBeenCalledWith(result.current.banner?.file);
+    expect(mocks.shareFile).toHaveBeenCalledWith(result.current.piece?.file);
     expect(mocks.toast).not.toHaveBeenCalled();
   });
 

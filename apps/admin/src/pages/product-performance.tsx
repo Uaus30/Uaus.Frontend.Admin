@@ -1,5 +1,6 @@
-import { AlertCircle, Camera as CameraIcon, Flame, Radio, Sparkles, X } from "lucide-react";
-import { Button, Card, Spinner } from "@workspace/ui";
+import { AlertCircle, Camera as CameraIcon, Flame, Megaphone, Radio, Sparkles, X } from "lucide-react";
+import { Link } from "wouter";
+import { Button, buttonVariants, Card, Spinner } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import {
   useProductPerformance,
@@ -82,6 +83,15 @@ export default function ProductPerformancePage() {
               {formatInteger(relatorio.totals.sales)} vendas
             </span>
           )}
+          {/* Do diagnóstico à ação: o sorteio do catálogo usa a mesma leitura
+              desta tela (o que mais vende, o que não sai, o que acabou de chegar). */}
+          <Link
+            href="/marketing/catalogo"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-7 gap-1.5 text-xs" })}
+          >
+            <Megaphone className="h-3.5 w-3.5" />
+            Gerar catálogo de divulgação
+          </Link>
         </div>
       </div>
 

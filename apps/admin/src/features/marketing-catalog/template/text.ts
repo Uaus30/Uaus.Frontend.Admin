@@ -41,6 +41,17 @@ export function formatStoreDate(date: Date): string {
   }).format(date);
 }
 
+/** O mesmo dia da loja, no formato `2026-10-03` — vai no nome da campanha dos links. */
+export function storeDateKey(date: Date): string {
+  // O `en-CA` escreve a data como ano-mês-dia.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
 /**
  * O aviso fixo de toda peça (texto pedido pelo dono em 03/10/2026).
  *

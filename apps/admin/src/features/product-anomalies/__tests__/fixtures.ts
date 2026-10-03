@@ -125,6 +125,8 @@ export const relatorio: ProductAnomaliesReportDto = {
     phantomMinExpectedSales: 3,
     phantomWindowDays: 90,
     idleDays: 30,
+    smallPhotoMinSide: 300,
+    smallPhotoSalesWindowDays: 90,
   },
   counts: [
     { type: "PriceBelowCost", groups: 1 },

@@ -9,9 +9,10 @@ margem nem saldo).
 O contrato completo — decisões, números medidos, regras do sorteio e etapas —
 está em `PLANO-CATALOGO.md`, na raiz do repositório.
 
-**Estado: etapas 1 e 2.** Um formato (banner 9:16, para o status do WhatsApp e o
-story do Instagram), com escolha de tema e título, sorteio do servidor e troca
-de um produto. O PDF e o banner 4:5 são a etapa 3.
+**Estado: etapas 1 a 3.** Três formatos — banner 9:16, banner 4:5 e catálogo em
+PDF —, com escolha de tema e título, sorteio do servidor e troca de um produto.
+O histórico das peças (não repetir quem saiu, medir venda antes e depois) é a
+etapa 4.
 
 ## Regras de negócio
 
@@ -99,10 +100,10 @@ de novo, e o substituto de foto quebrada não é sorteado outra vez.
 
 ### 9. Foto fora do ar cede a vaga
 
-O sorteio devolve **reservas** à parte (4). O montador baixa todas as fotos e
-usa as nove primeiras que vieram: o banner não sai com buraco, e uma foto
-quebrada não derruba a geração. Só há erro quando nenhuma carrega. As reservas
-nunca são ofertas — a reserva não pode furar o teto delas.
+O sorteio devolve **reservas** à parte (4 no banner, 8 no PDF). O montador baixa
+todas as fotos e usa as primeiras que serviram: a peça não sai com buraco, e uma
+foto quebrada não derruba a geração. Só há erro quando nenhuma serve. As
+reservas nunca são ofertas — a reserva não pode furar o teto delas.
 
 ### 10. Vale a última geração
 
@@ -127,8 +128,81 @@ download, porque quem tocou quer o arquivo.
 
 Pedido do dono (03/10/2026). No celular a tela é uma coluna só, e com a prévia
 em cima o botão de gerar ficava abaixo de uma moldura vazia. A ordem é a do
-trabalho: tema e título, gerar, prévia, compartilhar, e por fim a lista para
-trocar produto. No computador a prévia sobe para a coluna da direita.
+trabalho: formato, tema e título, gerar, prévia, compartilhar, e por fim a lista
+para trocar produto. No computador a prévia sobe para a coluna da direita.
+
+### 13. Três formatos: banner é imagem, catálogo é PDF
+
+| Formato         | Arquivo                                | Produtos                  | Para onde                  |
+| --------------- | -------------------------------------- | ------------------------- | -------------------------- |
+| Banner 9:16     | JPEG 1080 × 1920                       | 9                         | status do WhatsApp e story |
+| Banner 4:5      | JPEG 1080 × 1350                       | 6                         | imagem no grupo e feed     |
+| Catálogo em PDF | páginas de 1080 × 2340 (540 × 1170 pt) | até 24, em 4 páginas de 6 | grupos de WhatsApp         |
+
+As medidas de cada um estão em `template/geometry.ts`; o que vai ao sorteio e o
+arquivo que sai, em `lib/formats.ts`. O vocabulário é o do dono: os botões e os
+avisos dizem "banner" ou "catálogo".
+
+**A peça é redesenhada no formato em que foi gerada.** Trocar produto e
+atualizar título usam o formato (e o tema) da peça que está na tela, e não o que
+estiver nos campos. Com outro formato selecionado, o botão principal volta a ser
+"Gerar…" e o aviso de título não acende: o que está nos campos é o próximo
+sorteio.
+
+### 14. O catálogo em PDF só leva foto grande
+
+Na página do PDF o card tem 498 px de largura, contra 325 no banner. A capa de
+225 px herdada do Mais PDV borra ali, e são centenas delas. Duas barreiras:
+
+- o **servidor** sorteia só cadastros com capa de 300 px ou mais no menor lado
+  (`largePhotosOnly`), e a lista de temas diz quantos cada tema tem — é a
+  contagem que o seletor mostra quando o formato é o PDF;
+- o **navegador** confere de novo com o arquivo na mão (`minPhotoSide` em
+  `formats.ts`). A capa que a rotina de fundo ainda não mediu passa pelo
+  servidor como "grande"; aqui ela é recusada e a reserva entra no lugar.
+
+O número (300) é o mesmo dos dois lados: `CatalogDrawRules.LargeCardMinPhotoSide`
+no backend. As fotos recusadas aparecem em BI › Anomalias, etiqueta **Foto
+pequena**, em ordem de venda — é a fila de fotos para refazer.
+
+### 15. No PDF, cada produto é um link para o site
+
+Cada página é uma imagem do mesmo molde, e por cima de cada card vai uma área
+clicável para `uaus.com.br/produtos/{id}` com `utm_source=whatsapp`,
+`utm_medium=catalogo` e `utm_campaign=catalogo-AAAA-MM-DD` (o dia da loja). O
+coletor de métricas do site lê as três marcas: cada catálogo compartilhado vira
+uma linha na tela de métricas.
+
+- A área de cada card vem de `cardRects`, que **repete a conta de posição do
+  molde**. Mudou o alinhamento da grade em `CatalogPiece.tsx`, mude lá também: o
+  link sairia deslocado sem erro nenhum.
+- Com mais de uma página, o cabeçalho leva "Página 2 de 4". A última página, com
+  menos produtos, mantém o card do mesmo tamanho e a grade encostada em cima.
+- **O PDF é escrito à mão** (`lib/pdfWriter.ts`, ~150 linhas): página, imagem
+  JPEG e link. A biblioteca usual (jsPDF) pesa 30 MB instalada e traria
+  html2canvas e dompurify para dentro do admin por causa de uma tela. O teste
+  confere a tabela de referências byte a byte — é ela que um leitor usa para
+  achar as páginas.
+- **Páginas já desenhadas são guardadas** (as últimas 12). Trocar um produto de
+  um catálogo de quatro páginas redesenha uma.
+
+### 16. O desenho roda fora da tela
+
+O satori e o resvg ocupam o processador por segundos. Na thread principal a tela
+congelava (as "leves travadas" do teste do dono no celular), e o PDF congelaria
+quatro vezes. O desenho roda num **worker** (`lib/render.worker.ts`); medido em
+03/10/2026 no computador, a maior travada durante a geração caiu de 2,1 s para
+menos de 0,1 s, e a tela mostra em que página está.
+
+- **A thread principal é a rede de segurança** (`lib/renderer.ts`): se o worker
+  não sobe (navegador antigo) ou falha, a mesma peça é desenhada pelo mesmo
+  código, travando como antes — mas o arquivo sai. O console registra o motivo.
+- **O molde fica fora do Fast Refresh** (`exclude` do plugin do React, no
+  `vite.config.ts`). O código que o plugin injeta em todo `.tsx` usa `window`,
+  que não existe no worker: em desenvolvimento o worker morria ao carregar e o
+  desenho caía, calado, para a thread principal.
+- O worker recebe o **nome** da peça, e não as medidas: `PieceSpec` tem uma
+  função, que não atravessa `postMessage`.
 
 ## O molde é desenhado pelo satori, não pelo navegador
 
@@ -143,8 +217,10 @@ no iPhone e no computador. O preço disso é um subconjunto do CSS:
 - fonte embutida: Montserrat (a do logotipo) em WOFF. WOFF2 o satori não lê.
 
 O navegador renderiza o mesmo JSX sem reclamar, então o erro só aparece ao
-gerar. Por isso `template/__tests__/StoryBanner.render.test.tsx` passa o molde
-pelo satori **de verdade**, com todas as variações de card e de grade.
+gerar. Por isso `template/__tests__/CatalogPiece.render.test.tsx` passa o molde
+pelo satori **de verdade**, nas três peças, com todas as variações de card e de
+grade. Foi ele que pegou, na etapa 3, que o satori recusa `boxShadow: undefined`
+e quebra em `border: undefined` — a chave não pode existir.
 
 **Satori fixado em 0.32.0.** A 0.33 passou a carregar o HarfBuzz por caminho
 relativo de WebAssembly, que não resolve dentro do bundle.
@@ -155,23 +231,25 @@ Satori e resvg somam 515 KB de JavaScript (~170 KB comprimidos) e 2,4 MB de
 WebAssembly (~950 KB comprimidos). Três cuidados, os três conferidos no build de
 03/10/2026:
 
-- entram por `import()` dinâmico, e o `manualChunks` do `vite.config.ts` os põe
-  no chunk `vendor-catalogo` — sem isso cairiam no `vendor` comum, que todo
-  mundo baixa no primeiro paint (o `vendor` ficou com os mesmos 414 KB);
+- entram por `import()` dinâmico. No worker, que é o caminho normal, viram
+  chunks do próprio worker; na thread principal (a rede de segurança), o
+  `manualChunks` do `vite.config.ts` os põe no chunk `vendor-catalogo` — sem
+  isso cairiam no `vendor` comum, que todo mundo baixa no primeiro paint;
 - a lista de pacotes do `vite.config.ts` é o fecho de dependências do satori
   0.32. **Atualizou o satori? Refaça a lista e confira o tamanho do `vendor`**;
-- a tela chama `preloadStoryBanner()` ao abrir: o download acontece enquanto a
-  pessoa lê, e não com o botão "Gerar" já apertado.
+- a tela chama `preloadPiece()` ao abrir: o worker sobe e baixa as bibliotecas
+  e as fontes enquanto a pessoa lê, e não com o botão "Gerar" já apertado.
 
 ### Conferir uma mudança de desenho sem abrir o navegador
 
 ```bash
 cd apps/admin
-CATALOG_PREVIEW_DIR=../../../TEMP/catalogo npx vitest run StoryBanner.render
+CATALOG_PREVIEW_DIR=../../../TEMP/catalogo npx vitest run CatalogPiece.render
 ```
 
-Grava `banner-story.png` com produtos reais da **vitrine pública** (o sorteio
-exige sessão; a prévia serve para olhar o desenho, não a escolha).
+Grava `banner-story.png`, `banner-feed.png` e `catalogo-pagina.png` com produtos
+reais da **vitrine pública** (o sorteio exige sessão; a prévia serve para olhar
+o desenho, não a escolha).
 `CATALOG_PREVIEW_SEED` desloca a janela de produtos; `CATALOG_PREVIEW_API` troca
 a API.
 
@@ -187,11 +265,13 @@ do cache, ela seria recusada mesmo com o bucket liberado.
 
 ### A arte do cabeçalho
 
-`assets/story-header.jpg` e `story-footer.jpg` saem de
+`assets/story-header.jpg`, `feed-header.jpg`, `page-header.jpg` e
+`story-footer.jpg` (o rodapé é o mesmo nas três peças) saem de
 `C:\Projects\Uaus\Artes\catalogo\gerador\gerar_fundos.py --publicar`, que recorta
-o logotipo da arte da marca e estende a textura. As medidas de lá são as de
-`template/geometry.ts`: mudou a posição do logotipo num, mude no outro, senão o
-título passa por cima dele.
+o logotipo da arte da marca e estende a textura. No banner o logotipo fica
+centralizado, com o título embaixo; na página do PDF, compacto à esquerda, com o
+título ao lado. As medidas de lá são as de `template/geometry.ts`: mudou a
+posição do logotipo num, mude no outro, senão o título passa por cima dele.
 
 ## O contato do rodapé é o do site
 
@@ -202,18 +282,25 @@ os valores sobem para o `packages/core`.
 
 ## Estrutura
 
-- `template/geometry.ts`: medidas do banner e a grade conforme a quantidade.
+- `template/geometry.ts`: medidas das três peças, a grade conforme a quantidade
+  e a posição de cada card (`cardRects`).
 - `template/text.ts`: preço partido, data da loja, aviso, corpo do título.
-- `template/StoryBanner.tsx` e `ProductCard.tsx`: o molde.
+- `template/CatalogPiece.tsx` e `ProductCard.tsx`: o molde, um só para as três.
+- `lib/formats.ts`: os três formatos — quantidades, foto mínima, arquivo.
 - `lib/catalogProducts.ts`: o item sorteado no formato do molde; papéis e selo.
 - `lib/themes.ts`: as opções do seletor de tema, com rótulo e título sugerido.
-- `lib/renderer.ts`: satori + resvg, carregados sob demanda.
-- `lib/photos.ts`: fotos e artes em data URL; pixels em JPEG.
+- `lib/rasterize.ts`: satori + resvg, do molde aos pixels (roda nos dois lados).
+- `lib/render.worker.ts` e `lib/renderer.ts`: o worker e a porta dele, com a
+  rede de segurança na thread principal.
+- `lib/photos.ts`: fotos (com o tamanho original) e artes em data URL; pixels
+  em JPEG.
 - `lib/fonts.ts`: os cinco pesos da Montserrat.
-- `lib/buildStoryBanner.ts`: junta tudo e devolve o arquivo.
+- `lib/buildPiece.ts`: junta tudo — páginas, links e o arquivo final.
+- `lib/pdfWriter.ts` e `lib/links.ts`: o PDF escrito à mão e o link de cada
+  produto.
 - `lib/share.ts`: folha de compartilhamento, download e nome do arquivo.
 - `hooks/useCatalogGenerator.ts`: estado e ações da tela.
-- `components/CatalogControls.tsx`: tema, título e os botões de gerar.
-- `components/CatalogBannerPreview.tsx`: a moldura da prévia — que mostra o
-  próprio arquivo, e não uma simulação.
+- `components/CatalogControls.tsx`: formato, tema, título e os botões de gerar.
+- `components/CatalogPreview.tsx`: a moldura da prévia — que mostra o próprio
+  arquivo (ou as páginas que estão dentro do PDF), e não uma simulação.
 - `components/CatalogProductList.tsx`: quem saiu na peça, com a troca.

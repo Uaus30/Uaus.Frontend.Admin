@@ -45,13 +45,26 @@ A escolha dos produtos é sorteada, para cada peça sair diferente da anterior.
 | I3  | **A troca de um produto fica dentro do tema** | em "Mais vendidos", trocar um campeão recém-chegado só pelo papel traria uma novidade sem venda |
 | I4  | O item do menu chama-se **"Catálogo"** e fica por último no grupo Marketing | não tem sequência de trabalho com cupom nem campanha |
 
+### Decididas na implementação da etapa 3 (para o dono conferir)
+
+| #   | Decisão | Por quê |
+| --- | ------- | ------- |
+| I5  | O PDF tem **24 produtos em 4 páginas de 6**, sem título de seção: a ordem do sorteio e os selos (oferta, novidade) fazem esse papel | 6 por página dá o card grande que justifica o PDF; seção com título fixo deixaria página pela metade quando o tema tem 2 ofertas. Subir para 30 (5 páginas) é trocar um número em `lib/formats.ts` |
+| I6  | O banner 4:5 leva **6 produtos** | o painel dele é mais baixo: 9 cards ficariam com a foto menor que o texto |
+| I7  | **O PDF só sorteia capa com 300 px ou mais** no menor lado; capa ainda não medida passa pelo servidor e é conferida no navegador | abaixo disso a foto é ampliada mais de 1,6 vez no card e borra no celular |
+| I8  | A etiqueta **"Foto pequena"** é cinza, a última da ordem, e só acende com saldo; com a pastilha ligada a lista sai **por unidades vendidas em 90 dias** | não trava venda nenhuma: é fila de trabalho, e a foto que rende primeiro é a do que mais vende |
+| I9  | O **link de cada produto no PDF** leva `utm_source=whatsapp`, `utm_medium=catalogo`, `utm_campaign=catalogo-AAAA-MM-DD` | são as marcas que o coletor de métricas do site já lê |
+| I10 | O PDF é **escrito à mão** e o desenho roda num **worker**, com a thread principal de reserva | o jsPDF pesa 30 MB instalado; e na thread principal a tela travava a cada página |
+
 ### Em aberto
 
 | #   | Pergunta | Recomendação |
 | --- | -------- | ------------ |
 | A3  | Oferta com **limite por cliente**: o site imprime "Limite de N por cliente"; o card do banner ainda não | imprimir junto do selo de oferta. Nenhuma promoção teve limite até 03/10/2026 (0 de 5) |
 | A6  | Achados **baixos** da revisão do sorteio (etapa 2), sem caso no ar: oferta cujo card vem sem promoção vira "intermediário" mesmo sendo novidade; lote e venda de variação **excluída** contam para o grupo; "Novidades e promoções" com 1 ou 2 produtos nunca sorteia oferta; `POST /Catalogs/draw` sem corpo não foi provado como 400 | corrigir junto de uma próxima mexida no sorteio |
-| A7  | Achados **baixos** da revisão da tela (etapa 2): a troca e o "Atualizar título" reimprimem o aviso com a data de **hoje**, mesmo com a aba aberta desde ontem; em "Novidades e promoções", trocar uma oferta traz uma novidade, e não outra oferta; o aviso "não foi possível carregar os temas" acende também numa recarga em segundo plano que falha com os temas já na tela; emoji no título sai como quadrado vazio | corrigir junto da etapa 3, se o dono quiser |
+| A7  | Achados **baixos** da revisão da tela (etapa 2): a troca e o "Atualizar título" reimprimem o aviso com a data de **hoje**, mesmo com a aba aberta desde ontem; em "Novidades e promoções", trocar uma oferta traz uma novidade, e não outra oferta; o aviso "não foi possível carregar os temas" acende também numa recarga em segundo plano que falha com os temas já na tela; emoji no título sai como quadrado vazio | decidir depois da bateria de testes do dono |
+| A8  | Achados **baixos** da revisão do backend da etapa 3: JPEG com mais de 512 KB de metadados antes do tamanho é gravado como ilegível (0 × 0) e fica fora da etiqueta; a medição aloca 512 KB por imagem | sem caso no acervo (113 capas conferidas contra o Pillow); corrigir se aparecer |
+| A9  | Achados **baixos** da revisão da tela (etapa 3): na troca de um produto do PDF, se a foto do substituto é pequena ou não carrega, as páginas são redesenhadas antes de a troca ser recusada, e o aviso diz "não carregou" mesmo quando a foto é pequena; a página guardada não percebe a troca da FOTO de um produto na mesma sessão; se a rede pendurar ao baixar o renderizador, a tela fica em "Montando…" até recarregar (já era assim antes do worker); na promoção para produção o **backend sobe primeiro** — sem ele o PDF fica desabilitado e a ajuda de Anomalias imprime "undefined px" | decidir depois da bateria de testes do dono; a ordem da promoção é regra, não pendência |
 
 ---
 
@@ -98,7 +111,7 @@ Custo e saldo nunca saem para a peça.
 | ------- | ------- | -------- |
 | Banner 9:16 | imagem 1080×1920 (status e story) | 9, em 3×3 |
 | Banner 4:5 | imagem 1080×1350 (grupo e feed) | 6 por imagem |
-| Catálogo | PDF em páginas verticais, 2 colunas | 24 a 32, em seções |
+| Catálogo | PDF em páginas verticais de 1080×2340 (540×1170 pt), 2 colunas | 24, em 4 páginas de 6; cada produto é um link para o site |
 
 Temas: **Geral** (mistura inteligente), **Novidades e promoções**, **Mais
 vendidos**, **Achados** e **um por departamento**. O tema dá o título do
@@ -240,12 +253,19 @@ de `template/geometry.ts` — mudou num, mude no outro.
 | --- | ------- | ------ |
 | 1   | CORS no bucket; molde padrão; banner 9:16 "Novidades e promoções" com produtos reais; sortear de novo, compartilhar e baixar | **feita em 03/10/2026**; testada e aprovada pelo dono no celular (~6 s para gerar, com leves travadas; salvar e compartilhar funcionaram) |
 | 2   | Sorteio na API (papéis, mistura, teto por departamento); escolha de tema e título; trocar um produto; item no menu Marketing; controles antes da prévia | **feita em 03/10/2026** |
-| 3   | Catálogo PDF com seções e links rastreados; banner 4:5; largura e altura em `images`; etiqueta "Foto pequena" em Anomalias; atalho no BI › Desempenho de Produtos | a fazer |
+| 3   | Catálogo PDF com links rastreados; banner 4:5; largura e altura em `images`; etiqueta "Foto pequena" em Anomalias; atalho no BI › Desempenho de Produtos; desenho fora da thread principal | **feita em 03/10/2026** |
 | 4   | Histórico das peças compartilhadas: não repetir quem saiu nas últimas e medir vendas antes e depois | depois de algumas semanas de uso |
 
 ### O que ainda não está garantido
 
-- **A travada ao gerar no celular.** O desenho roda na linha principal do
-  navegador. Entra na etapa 3, junto do PDF (que desenha várias páginas).
-- **Foto pequena.** O sorteio ainda não conhece o tamanho da foto; no banner de
-  3 colunas isso não aparece, e passa a importar no PDF (etapa 3).
+- **O celular de verdade.** O worker tirou a travada no computador (maior pausa
+  da tela ao gerar: de 2,1 s para menos de 0,1 s) e o PDF abre no leitor do
+  Chromium. Compartilhar o PDF pela folha do Android e do iPhone, e o tempo de
+  gerar 4 páginas no celular, só o teste do dono mostra. No computador: banner
+  ~3 s, banner 4:5 ~2,3 s, PDF de 24 produtos ~4 s (1,3 MB), troca de um
+  produto no PDF ~1,7 s.
+- **A medição do acervo leva algumas rodadas.** A rotina de fundo mede 400
+  imagens a cada 15 minutos. Enquanto não termina, a contagem de "foto grande"
+  de cada tema está inflada (capa não medida conta como grande) e a etiqueta
+  "Foto pequena" ainda cresce. O PDF não sai errado por isso: o navegador
+  confere o tamanho de cada foto antes de desenhar.

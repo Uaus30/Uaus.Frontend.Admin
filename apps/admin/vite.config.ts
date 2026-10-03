@@ -46,7 +46,18 @@ export default defineConfig({
     "import.meta.env.VITE_BUILD_TIME": JSON.stringify(buildInfo.buildTime),
     "import.meta.env.VITE_COMMIT_HASH": JSON.stringify(buildInfo.commitHash),
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      // O molde do catálogo de divulgação é JSX, mas quem o desenha é o satori,
+      // dentro de um worker — o React nunca o monta na página. O Fast Refresh
+      // que este plugin injeta em todo `.tsx` usa `window`, que não existe no
+      // worker: em desenvolvimento o worker morria ao carregar ("window is not
+      // defined") e o desenho caía, calado, para a thread principal. Fora do
+      // plugin, o JSX destes arquivos é convertido pelo próprio Vite.
+      exclude: [/\/node_modules\//, /features\/marketing-catalog\/template\//],
+    }),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
@@ -54,6 +65,12 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   root: path.resolve(import.meta.dirname),
+  /**
+   * O worker do catálogo de divulgação (`render.worker.ts`) carrega o satori e
+   * o resvg por `import()` dinâmico, e o formato padrão dos workers (iife) não
+   * aceita divisão de código — o build falharia.
+   */
+  worker: { format: "es" },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,

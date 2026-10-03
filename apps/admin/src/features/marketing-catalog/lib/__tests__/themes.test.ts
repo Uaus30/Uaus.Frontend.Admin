@@ -4,12 +4,24 @@ import { buildThemeOptions, DEFAULT_THEME_KEY, describeProductCount } from "../t
 
 /** A lista como a API manda: enum pelo nome, campos de departamento só no tema dele. */
 const fromApi: CatalogThemeDto[] = [
-  { theme: "General", products: 608 },
-  { theme: "NewsAndOffers", products: 22 },
-  { theme: "BestSellers", products: 128 },
-  { theme: "Finds", products: 285 },
-  { theme: "Department", departmentId: 7, departmentName: "Brinquedos", products: 82 },
-  { theme: "Department", departmentId: 3, departmentName: "Cozinha", products: 199 },
+  { theme: "General", products: 608, productsWithLargePhoto: 304 },
+  { theme: "NewsAndOffers", products: 22, productsWithLargePhoto: 11 },
+  { theme: "BestSellers", products: 128, productsWithLargePhoto: 64 },
+  { theme: "Finds", products: 285, productsWithLargePhoto: 142 },
+  {
+    theme: "Department",
+    departmentId: 7,
+    departmentName: "Brinquedos",
+    products: 82,
+    productsWithLargePhoto: 41,
+  },
+  {
+    theme: "Department",
+    departmentId: 3,
+    departmentName: "Cozinha",
+    products: 199,
+    productsWithLargePhoto: 99,
+  },
 ];
 
 describe("buildThemeOptions", () => {
@@ -36,6 +48,7 @@ describe("buildThemeOptions", () => {
       label: "Cozinha",
       title: "Cozinha",
       products: 199,
+      productsWithLargePhoto: 99,
     });
   });
 
@@ -54,22 +67,25 @@ describe("buildThemeOptions", () => {
   });
 
   it("tema que esta versão da tela não conhece fica de fora", () => {
-    const options = buildThemeOptions([{ theme: "Sazonal", products: 9 }, ...fromApi]);
+    const options = buildThemeOptions([
+      { theme: "Sazonal", products: 9, productsWithLargePhoto: 4 },
+      ...fromApi,
+    ]);
 
     expect(options).toHaveLength(6);
   });
 
   it("departamento sem id ou sem nome não vira opção sem rótulo", () => {
     const options = buildThemeOptions([
-      { theme: "Department", products: 9 },
-      { theme: "Department", departmentId: 4, products: 9 },
+      { theme: "Department", products: 9, productsWithLargePhoto: 4 },
+      { theme: "Department", departmentId: 4, products: 9, productsWithLargePhoto: 4 },
     ]);
 
     expect(options).toEqual([]);
   });
 
   it("tema sem produto continua na lista — quem o desabilita é a tela", () => {
-    const options = buildThemeOptions([{ theme: "NewsAndOffers", products: 0 }]);
+    const options = buildThemeOptions([{ theme: "NewsAndOffers", products: 0, productsWithLargePhoto: 0 }]);
 
     expect(options).toHaveLength(1);
     expect(options[0].products).toBe(0);

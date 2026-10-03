@@ -5,6 +5,7 @@ import {
   normalizeTitle,
   priceDisclaimer,
   splitPrice,
+  storeDateKey,
   TITLE_MAX_LENGTH,
   titleFontSize,
 } from "../text";
@@ -47,6 +48,14 @@ describe("formatStoreDate", () => {
 
   it("vira o dia à meia-noite de Brasília", () => {
     expect(formatStoreDate(new Date("2026-10-04T03:00:00Z"))).toBe("04/10/2026");
+  });
+});
+
+describe("storeDateKey", () => {
+  it("escreve o dia de Brasília como ano-mês-dia", () => {
+    expect(storeDateKey(new Date("2026-10-03T15:00:00Z"))).toBe("2026-10-03");
+    // 02:00 UTC do dia 4 ainda são 23:00 do dia 3 na loja.
+    expect(storeDateKey(new Date("2026-10-04T02:00:00Z"))).toBe("2026-10-03");
   });
 });
 

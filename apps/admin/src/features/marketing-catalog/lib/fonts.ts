@@ -4,7 +4,14 @@ import montserrat700 from "@fontsource/montserrat/files/montserrat-latin-700-nor
 import montserrat800 from "@fontsource/montserrat/files/montserrat-latin-800-normal.woff?url";
 import montserrat900 from "@fontsource/montserrat/files/montserrat-latin-900-normal.woff?url";
 import { CATALOG_FONT_FAMILY } from "../template/palette";
-import type { RenderFont } from "./renderer";
+
+/** Uma fonte entregue ao satori. Ele lê TTF, OTF e WOFF — WOFF2 não. */
+export interface RenderFont {
+  name: string;
+  data: ArrayBuffer;
+  weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  style: "normal";
+}
 
 /**
  * A Montserrat do molde, nos cinco pesos que ele usa.

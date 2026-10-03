@@ -1,4 +1,4 @@
-import type { RenderedPixels } from "./renderer";
+import type { RenderedPixels } from "./rasterize";
 
 /**
  * Fotos e artes viram data URL antes de chegar ao molde.
@@ -58,11 +58,7 @@ function decode(blob: Blob): Promise<HTMLImageElement> {
  * Guarda a promessa por URL e esquece a que falhou: uma queda de rede não pode
  * deixar a imagem marcada como "indisponível" pelo resto da sessão.
  */
-function remember(
-  cache: Map<string, Promise<string>>,
-  url: string,
-  load: () => Promise<string>,
-): Promise<string> {
+function remember<T>(cache: Map<string, Promise<T>>, url: string, load: () => Promise<T>): Promise<T> {
   let pending = cache.get(url);
   if (!pending) {
     pending = load().catch((error: unknown) => {
@@ -85,9 +81,17 @@ export function loadAssetAsDataUrl(url: string): Promise<string> {
   });
 }
 
-const photoCache = new Map<string, Promise<string>>();
+/** A capa pronta para o molde, com o tamanho que ela tem NO ARQUIVO. */
+export interface LoadedPhoto {
+  dataUrl: string;
+  /** Largura e altura originais, antes da redução para o card. */
+  width: number;
+  height: number;
+}
 
-async function downloadPhoto(url: string): Promise<string> {
+const photoCache = new Map<string, Promise<LoadedPhoto>>();
+
+async function downloadPhoto(url: string): Promise<LoadedPhoto> {
   // `no-store` é o que faz o CORS funcionar: o admin já mostrou esta mesma URL
   // num `<img>` comum, e o navegador guardou a resposta SEM o cabeçalho de
   // CORS. Lida do cache, ela seria recusada aqui mesmo com o bucket liberado.
@@ -106,22 +110,30 @@ async function downloadPhoto(url: string): Promise<string> {
   context.fillStyle = "#FFFFFF";
   context.fillRect(0, 0, size.width, size.height);
   context.drawImage(image, 0, 0, size.width, size.height);
-  return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+  return {
+    dataUrl: canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  };
 }
 
 /**
  * A capa de um produto, pronta para o molde. Guarda o resultado na sessão:
  * "sortear de novo" costuma trazer de volta produto que já apareceu.
+ *
+ * O tamanho original vem junto porque o catálogo em PDF recusa foto pequena
+ * (ver `minPhotoSide` em `formats.ts`): o servidor já filtra pelo tamanho
+ * gravado, mas imagem ainda não medida passa por lá, e aqui é a última rede.
  */
-export function loadPhotoAsDataUrl(url: string): Promise<string> {
+export function loadPhoto(url: string): Promise<LoadedPhoto> {
   return remember(photoCache, url, () => downloadPhoto(url));
 }
 
 /**
- * Os pixels do banner em JPEG: um quarto do peso do PNG para subir no 4G, e o
+ * Os pixels da peça em JPEG: um quarto do peso do PNG para subir no 4G, e o
  * WhatsApp e o Instagram recomprimem a imagem de qualquer jeito.
  */
-export async function pixelsToJpegBlob(pixels: RenderedPixels, quality = 0.92): Promise<Blob> {
+export async function pixelsToJpegBlob(pixels: RenderedPixels, quality: number): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = pixels.width;
   canvas.height = pixels.height;

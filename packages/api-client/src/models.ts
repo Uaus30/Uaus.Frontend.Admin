@@ -2910,6 +2910,11 @@ export interface CatalogThemeDto {
   /** Só no tema `Department`. */
   departmentName?: string | null;
   products: number;
+  /**
+   * Desses, quantos têm a capa com o menor lado de ao menos 300 px — os que o
+   * catálogo em PDF aceita. Capa ainda não medida conta como grande.
+   */
+  productsWithLargePhoto: number;
 }
 
 /**

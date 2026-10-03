@@ -1,36 +1,42 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { drawCatalog, useGetCatalogThemes } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
-import { buildStoryBanner, preloadStoryBanner } from "../lib/buildStoryBanner";
+import { buildPiece, preloadPiece, type PieceProgress } from "../lib/buildPiece";
 import { ROLE_CODE, toCatalogProducts } from "../lib/catalogProducts";
-import { bannerFileName, canShareFile, downloadFile, shareFile } from "../lib/share";
+import { CATALOG_FORMATS, DEFAULT_FORMAT, FORMAT_ORDER, type CatalogFormatOption } from "../lib/formats";
+import { canShareFile, downloadFile, pieceFileName, shareFile } from "../lib/share";
 import { buildThemeOptions, DEFAULT_THEME_KEY, type CatalogThemeOption } from "../lib/themes";
-import { STORY_MAX_PRODUCTS } from "../template/geometry";
 import { normalizeTitle } from "../template/text";
-import type { CatalogProduct } from "../types";
-
-/** Reservas pedidas ao sorteio, para o produto de foto fora do ar ceder a vaga. */
-const SPARE_CANDIDATES = 4;
+import type { CatalogFormat, CatalogProduct } from "../types";
 
 export type GeneratorStatus = "idle" | "generating" | "ready" | "error";
 
-/** O banner pronto: o arquivo, a URL da prévia, quem saiu nele e com que título. */
-export interface GeneratedBanner {
+/** A peça pronta: o arquivo, as URLs da prévia, quem saiu nela, com que título e em que formato. */
+export interface GeneratedPiece {
   file: File;
-  previewUrl: string;
+  /** Uma URL por página. No banner, uma só. */
+  previewUrls: string[];
   products: CatalogProduct[];
   /** O título impresso — pode já não ser o do campo, se a pessoa mexeu nele. */
   title: string;
   /** O tema do sorteio: é dele que sai a troca de um produto. */
   theme: CatalogThemeOption;
+  /** O formato em que a peça foi desenhada: troca e título redesenham NELE. */
+  format: CatalogFormatOption;
 }
+
+/** O que cada ação devolve ao caminho comum: a peça sem as URLs, mais as páginas da prévia. */
+type DrawnPiece = Omit<GeneratedPiece, "previewUrls"> & { pages: Blob[] };
+
+const FORMATS = FORMAT_ORDER.map((key) => CATALOG_FORMATS[key]);
 
 /**
  * Estado e ações da tela do catálogo de divulgação.
  *
- * A pessoa escolhe o tema, ajusta o título e gera; o servidor sorteia e o
- * navegador desenha. Depois dá para sortear tudo de novo, trocar um produto só
- * ou reescrever o título — os dois últimos redesenham a MESMA peça.
+ * A pessoa escolhe o formato e o tema, ajusta o título e gera; o servidor
+ * sorteia e o navegador desenha. Depois dá para sortear tudo de novo, trocar um
+ * produto só ou reescrever o título — os dois últimos redesenham a MESMA peça,
+ * no formato em que ela foi gerada.
  */
 export function useCatalogGenerator() {
   const { toast } = useToast();
@@ -38,13 +44,19 @@ export function useCatalogGenerator() {
 
   const themes = useMemo(() => buildThemeOptions(themesQuery.data ?? []), [themesQuery.data]);
 
+  const [formatKey, setFormatKey] = useState<CatalogFormat>(DEFAULT_FORMAT);
   const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY);
   // `null` = a pessoa não mexeu: vale o título sugerido pelo tema.
   const [typedTitle, setTypedTitle] = useState<string | null>(null);
   const [status, setStatus] = useState<GeneratorStatus>("idle");
-  const [banner, setBanner] = useState<GeneratedBanner | null>(null);
+  const [piece, setPiece] = useState<GeneratedPiece | null>(null);
+  const [progress, setProgress] = useState<PieceProgress | null>(null);
+  // O que está sendo desenhado AGORA ("banner" ou "catálogo"): pode não ser o
+  // formato da peça que ainda está na moldura.
+  const [busyNoun, setBusyNoun] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const format = CATALOG_FORMATS[formatKey];
   const theme = themes.find((option) => option.key === themeKey) ?? themes[0];
   const title = typedTitle ?? theme?.title ?? "";
 
@@ -54,15 +66,15 @@ export function useCatalogGenerator() {
   // Quem já foi trocado nesta peça não volta na troca seguinte.
   const swappedOutRef = useRef<number[]>([]);
 
-  // A URL da prévia segura o arquivo na memória; solta ao trocar e ao sair.
+  // As URLs da prévia seguram os arquivos na memória; soltam ao trocar e ao sair.
   useEffect(() => {
-    if (!banner) return;
-    return () => URL.revokeObjectURL(banner.previewUrl);
-  }, [banner]);
+    if (!piece) return;
+    return () => piece.previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  }, [piece]);
 
   useEffect(() => {
     // Renderizador, fontes e artes começam a baixar enquanto a pessoa lê a tela.
-    preloadStoryBanner();
+    preloadPiece();
 
     // Sair no meio de uma geração a invalida: sem isto ela terminaria depois,
     // criaria a URL da prévia para uma tela que não existe mais, e ninguém
@@ -78,24 +90,33 @@ export function useCatalogGenerator() {
    * nenhuma outra geração começou depois. O erro vira estado e aviso.
    */
   const run = useCallback(
-    async (work: () => Promise<Omit<GeneratedBanner, "previewUrl"> | null>) => {
+    async (noun: string, work: (report: (progress: PieceProgress) => void) => Promise<DrawnPiece | null>) => {
       const current = ++runRef.current;
       setStatus("generating");
+      setBusyNoun(noun);
       setErrorMessage(null);
+      setProgress(null);
 
       try {
-        const result = await work();
+        const result = await work((value) => {
+          if (current === runRef.current) setProgress(value);
+        });
         if (current !== runRef.current) return;
 
-        if (result) setBanner({ ...result, previewUrl: URL.createObjectURL(result.file) });
+        if (result) {
+          const { pages, ...drawn } = result;
+          setPiece({ ...drawn, previewUrls: pages.map((page) => URL.createObjectURL(page)) });
+        }
         setStatus("ready");
       } catch (error) {
         if (current !== runRef.current) return;
 
-        const message = error instanceof Error ? error.message : "Erro desconhecido ao gerar o banner.";
+        const message = error instanceof Error ? error.message : `Erro desconhecido ao gerar o ${noun}.`;
         setErrorMessage(message);
         setStatus("error");
-        toast({ variant: "destructive", title: "Não foi possível gerar o banner", description: message });
+        toast({ variant: "destructive", title: `Não foi possível gerar o ${noun}`, description: message });
+      } finally {
+        if (current === runRef.current) setProgress(null);
       }
     },
     [toast],
@@ -104,25 +125,32 @@ export function useCatalogGenerator() {
   /** Desenha a peça com exatamente estes produtos (mais as reservas, se houver). */
   const draw = useCallback(
     async (
-      option: CatalogThemeOption,
+      target: { theme: CatalogThemeOption; format: CatalogFormatOption },
       heading: string,
       products: CatalogProduct[],
-      reserves: CatalogProduct[] = [],
-    ) => {
+      reserves: CatalogProduct[],
+      report: (progress: PieceProgress) => void,
+    ): Promise<DrawnPiece> => {
       const date = new Date();
-      const printed = normalizeTitle(heading) || option.title;
-      const result = await buildStoryBanner({
+      const printed = normalizeTitle(heading) || target.theme.title;
+      const result = await buildPiece({
+        format: target.format,
         title: printed,
         candidates: [...products, ...reserves],
         count: products.length,
         date,
+        onProgress: report,
       });
 
       return {
-        file: new File([result.blob], bannerFileName(printed, date), { type: "image/jpeg" }),
+        file: new File([result.blob], pieceFileName(printed, date, target.format.extension), {
+          type: target.format.mimeType,
+        }),
+        pages: result.pages,
         products: result.products,
         title: printed,
-        theme: option,
+        theme: target.theme,
+        format: target.format,
       };
     },
     [],
@@ -134,45 +162,47 @@ export function useCatalogGenerator() {
     setTypedTitle(null);
   }, []);
 
-  /** Sorteia uma peça nova no tema escolhido. */
+  /** Sorteia uma peça nova no tema e no formato escolhidos. */
   const generate = useCallback(async () => {
     if (!theme) return;
 
-    await run(async () => {
+    await run(format.noun, async (report) => {
       // Sem cache de propósito: o preço vai IMPRESSO na peça e tem de ser o de agora.
       const drawn = await drawCatalog({
         theme: theme.theme,
         departmentId: theme.departmentId,
-        count: STORY_MAX_PRODUCTS,
-        spare: SPARE_CANDIDATES,
+        count: format.count,
+        spare: format.spare,
+        largePhotosOnly: format.minPhotoSide > 0 || undefined,
       });
 
       const products = toCatalogProducts(drawn.items);
       if (products.length === 0) {
-        throw new Error("Este tema não tem produto com foto e saldo para montar o banner.");
+        throw new Error(`Este tema não tem produto com foto e saldo para montar o ${format.noun}.`);
       }
 
       swappedOutRef.current = [];
-      return draw(theme, title, products, toCatalogProducts(drawn.reserves));
+      return draw({ theme, format }, title, products, toCatalogProducts(drawn.reserves), report);
     });
-  }, [draw, run, theme, title]);
+  }, [draw, format, run, theme, title]);
 
   /** Troca UM produto da peça por outro do mesmo papel, mantendo os demais. */
   const swap = useCallback(
     async (productGroupId: number) => {
-      if (!banner) return;
+      if (!piece) return;
 
-      const leaving = banner.products.find((product) => product.productGroupId === productGroupId);
+      const leaving = piece.products.find((product) => product.productGroupId === productGroupId);
       if (!leaving) return;
 
-      await run(async () => {
-        const inPiece = banner.products.map((product) => product.productGroupId);
+      await run(piece.format.noun, async (report) => {
+        const inPiece = piece.products.map((product) => product.productGroupId);
         const drawn = await drawCatalog({
-          theme: banner.theme.theme,
-          departmentId: banner.theme.departmentId,
+          theme: piece.theme.theme,
+          departmentId: piece.theme.departmentId,
           count: 1,
           role: ROLE_CODE[leaving.role],
           excludeGroupIds: [...inPiece, ...swappedOutRef.current],
+          largePhotosOnly: piece.format.minPhotoSide > 0 || undefined,
         });
 
         const [replacement] = toCatalogProducts(drawn.items);
@@ -184,15 +214,15 @@ export function useCatalogGenerator() {
           return null;
         }
 
-        const products = banner.products.map((product) =>
+        const products = piece.products.map((product) =>
           product.productGroupId === productGroupId ? replacement : product,
         );
-        const result = await draw(banner.theme, banner.title, products);
+        const result = await draw(piece, piece.title, products, [], report);
 
         // Aqui não há reserva para ceder a vaga: se a foto do substituto não
-        // carregou, o montador o descartou e a peça voltaria com um produto a
-        // menos, em silêncio. A troca não é aplicada, e o substituto de foto
-        // quebrada entra na lista para não ser sorteado de novo.
+        // carregou (ou é pequena demais para o catálogo), o montador o descartou
+        // e a peça voltaria com um produto a menos, em silêncio. A troca não é
+        // aplicada, e o substituto entra na lista para não ser sorteado de novo.
         if (result.products.length < products.length) {
           swappedOutRef.current = [...swappedOutRef.current, replacement.productGroupId];
           throw new Error("A foto do produto sorteado não carregou. Toque em Trocar de novo.");
@@ -202,32 +232,40 @@ export function useCatalogGenerator() {
         return result;
       });
     },
-    [banner, draw, run, toast],
+    [piece, draw, run, toast],
   );
 
   /** Redesenha a mesma peça com o título que está no campo. */
   const applyTitle = useCallback(async () => {
-    if (!banner) return;
-    await run(() => draw(banner.theme, title, banner.products));
-  }, [banner, draw, run, title]);
+    if (!piece) return;
+    await run(piece.format.noun, (report) => draw(piece, title, piece.products, [], report));
+  }, [piece, draw, run, title]);
 
   const share = useCallback(async () => {
-    if (!banner) return;
+    if (!piece) return;
 
-    const outcome = await shareFile(banner.file);
+    const outcome = await shareFile(piece.file);
     if (outcome === "downloaded") {
       toast({
-        title: "Banner salvo",
+        title: piece.format.noun === "banner" ? "Banner salvo" : "Catálogo salvo",
         description: "O arquivo foi para a pasta de downloads deste aparelho.",
       });
     }
-  }, [banner, toast]);
+  }, [piece, toast]);
 
   const download = useCallback(() => {
-    if (banner) downloadFile(banner.file);
-  }, [banner]);
+    if (piece) downloadFile(piece.file);
+  }, [piece]);
+
+  // A peça na tela é do tema e do formato que estão nos campos? Com outro tema
+  // ou outro formato selecionado, o que está nos campos é o PRÓXIMO sorteio.
+  const pieceMatchesFields =
+    piece !== null && theme?.key === piece.theme.key && format.key === piece.format.key;
 
   return {
+    formats: FORMATS,
+    format,
+    selectFormat: setFormatKey,
     themes,
     isLoadingThemes: themesQuery.isLoading,
     themesFailed: themesQuery.isError,
@@ -235,19 +273,20 @@ export function useCatalogGenerator() {
     selectTheme,
     title,
     setTitle: setTypedTitle,
+    /** A peça da tela foi gerada com o formato dos campos: o botão principal vira "Sortear de novo". */
+    pieceMatchesFormat: piece !== null && format.key === piece.format.key,
     /** O campo diz uma coisa e a peça impressa, outra: falta redesenhar. */
-    titleChanged:
-      banner !== null &&
-      // Com outro tema selecionado, o título do campo é o do PRÓXIMO sorteio,
-      // e não uma correção da peça que está na tela.
-      theme?.key === banner.theme.key &&
-      (normalizeTitle(title) || banner.theme.title) !== banner.title,
+    titleChanged: pieceMatchesFields && (normalizeTitle(title) || piece.theme.title) !== piece.title,
     status,
-    banner,
+    piece,
+    /** Em que página o desenho está. Só o catálogo em PDF tem mais de uma. */
+    progress,
+    /** O nome do que está sendo desenhado, para o aviso da moldura. */
+    busyNoun,
     errorMessage,
     isGenerating: status === "generating",
     /** O aparelho abre a folha de compartilhamento com arquivo (celular)? */
-    canShare: banner ? canShareFile(banner.file) : false,
+    canShare: piece ? canShareFile(piece.file) : false,
     generate,
     swap,
     applyTitle,

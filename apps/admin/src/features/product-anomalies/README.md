@@ -53,6 +53,22 @@ etiqueta sem a conta seria uma acusação sem prova.
 novo no backend sem entrada aqui cai no `FALLBACK_META` ("Anomalia", neutra, no
 fim da ordem) em vez de estourar a rota pelo ErrorBoundary.
 
+## Foto pequena: a fila de fotos para refazer (03/10/2026)
+
+A capa com o menor lado abaixo de 300 px (`rules.smallPhotoMinSide`) serve para o
+site e para o banner, mas borra no card grande do catálogo de divulgação em PDF,
+e o sorteio do PDF deixa o produto de fora. A etiqueta é **cinza e a última da
+ordem**: não trava venda nenhuma. Só acende com saldo, como "Sem foto".
+
+- **Capa ainda não medida não é acusada.** O tamanho é medido uma vez por foto,
+  no upload ou pela rotina de fundo do servidor; acusar o que falta medir
+  encheria a lista com o acervo inteiro no dia do deploy.
+- **Com a pastilha ligada, a lista vira ordem de trabalho**: do que mais vendeu
+  para o que menos vendeu em `rules.smallPhotoSalesWindowDays` dias (90). O
+  servidor já ordena assim quem só tem esta etiqueta; o hook reordena o recorte
+  inteiro (`sortBySmallPhotoSales`), porque o cadastro que tem outra anomalia
+  junto viria no topo por ela. Nos outros recortes vale a ordem do servidor.
+
 ## Produto parado: as duas etiquetas do fim (30/09/2026)
 
 Pedido do dono. **Nunca vendeu**: comprado há mais de 30 dias (`rules.idleDays`),

@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { CatalogBadge, CatalogCard } from "../types";
-import type { StoryGrid } from "./geometry";
+import type { PieceGrid } from "./geometry";
 import { CATALOG_COLORS } from "./palette";
 import { BADGE_LABEL, formatPrice, splitPrice } from "./text";
 
@@ -10,7 +10,7 @@ import { BADGE_LABEL, formatPrice, splitPrice } from "./text";
  * **Este arquivo é desenhado pelo satori, não pelo navegador.** Ele entende um
  * subconjunto do CSS: flexbox (sem grid), e todo `div` com mais de um filho
  * precisa de `display: flex`. Estilo só inline — classe do Tailwind não chega
- * ao arquivo gerado. O teste `StoryBanner.render.test.tsx` passa o molde pelo
+ * ao arquivo gerado. O teste `CatalogPiece.render.test.tsx` passa o molde pelo
  * satori de verdade justamente para pegar o que este subconjunto recusa.
  */
 
@@ -91,7 +91,14 @@ function PriceCaption({ card, scale }: { card: CatalogCard; scale: number }) {
   );
 }
 
-export function ProductCard({ card, grid }: { card: CatalogCard; grid: StoryGrid }) {
+interface ProductCardProps {
+  card: CatalogCard;
+  grid: PieceGrid;
+  /** Sombra esfumada (banner) ou só uma borda (página do PDF, onde o desfoque pesa). */
+  softShadow: boolean;
+}
+
+export function ProductCard({ card, grid, softShadow }: ProductCardProps) {
   const { scale } = grid;
   const price = splitPrice(card.price);
   const photoPadding = Math.round(14 * scale);
@@ -106,7 +113,11 @@ export function ProductCard({ card, grid }: { card: CatalogCard; grid: StoryGrid
         height: grid.cardHeight,
         backgroundColor: CATALOG_COLORS.card,
         borderRadius: Math.round(24 * scale),
-        boxShadow: "0 8px 18px rgba(133, 62, 14, 0.16)",
+        // Sombra esfumada ou contorno, nunca a chave com `undefined`: o satori
+        // recusa `boxShadow: undefined` e quebra ao ler `border: undefined`.
+        ...(softShadow
+          ? { boxShadow: "0 8px 18px rgba(133, 62, 14, 0.16)" }
+          : { border: "2px solid #F2D9C4" }),
         overflow: "hidden",
       }}
     >

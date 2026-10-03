@@ -1,101 +1,124 @@
-import type { ReactNode } from "react";
-import resvgWasmUrl from "@resvg/resvg-wasm/index_bg.wasm?url";
+import type { PieceKind } from "../template/geometry";
+import type { PieceData } from "../types";
+import type { RenderedPixels } from "./rasterize";
+import type { RenderJob, RenderRequest, RenderResponse } from "./render.worker";
 
 /**
- * Do molde ao PNG, dentro do navegador.
+ * A porta do desenho: manda a peça para o worker e devolve os pixels.
  *
- * Dois passos, e nenhum deles usa o motor de desenho do aparelho: o satori
- * calcula o layout e transforma o molde em SVG (com o texto já convertido em
- * curvas, pela fonte embutida), e o resvg pinta o SVG em pixels. É por isso que
- * o banner sai IGUAL no Android, no iPhone e no computador — "fotografar a
- * página" (html2canvas e parentes) depende do navegador e falha no Safari.
- *
- * As duas bibliotecas entram por `import()` dinâmico: juntas passam de 2 MB, e
- * só quem abre a tela do catálogo paga por elas.
+ * **O worker é o caminho normal; a thread principal é a rede de segurança.** Se
+ * o worker não sobe (navegador antigo, sem worker de módulo) ou falha no meio,
+ * a mesma peça é desenhada aqui, pelo mesmo código (`rasterize.ts`). A tela
+ * trava durante o desenho, como travava antes do worker — mas o arquivo sai.
+ * Devolver só a mensagem de erro deixaria o dono sem a peça por um problema
+ * que não é dele.
  */
 
-/** Uma fonte entregue ao satori. Ele lê TTF, OTF e WOFF — WOFF2 não. */
-export interface RenderFont {
-  name: string;
-  data: ArrayBuffer;
-  weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
-  style: "normal";
+interface PendingJob {
+  resolve: (pixels: RenderedPixels | undefined) => void;
+  reject: (error: Error) => void;
 }
 
-export interface RenderSize {
-  width: number;
-  height: number;
+/** `undefined` = ainda não tentou subir; `null` = não tem ou morreu. */
+let worker: Worker | null | undefined;
+let lastId = 0;
+const pending = new Map<number, PendingJob>();
+
+/** Desiste do worker e devolve o erro a quem estava esperando por ele. */
+function abandonWorker(reason: string): void {
+  worker?.terminate();
+  worker = null;
+  // Fica registrado no console: daqui em diante o desenho é na thread
+  // principal, e sem o aviso ninguém saberia por que a tela voltou a travar.
+  console.warn(`Catálogo: ${reason} O desenho passa para a thread principal.`);
+
+  const jobs = [...pending.values()];
+  pending.clear();
+  for (const job of jobs) job.reject(new Error(reason));
 }
 
-let resvgReady: Promise<void> | null = null;
-
-/** Inicializa o WebAssembly do resvg uma vez por sessão. */
-async function ensureResvg(initWasm: (input: Promise<Response>) => Promise<void>): Promise<void> {
-  resvgReady ??= initWasm(fetch(resvgWasmUrl));
-  try {
-    await resvgReady;
-  } catch (error) {
-    // Falhou por rede? A próxima tentativa precisa poder baixar de novo — sem
-    // isto a promessa rejeitada ficaria guardada e o botão nunca mais funcionaria.
-    resvgReady = null;
-    throw error;
+function getWorker(): Worker | null {
+  if (worker !== undefined) return worker;
+  if (typeof Worker === "undefined") {
+    worker = null;
+    return worker;
   }
+
+  try {
+    const created = new Worker(new URL("./render.worker.ts", import.meta.url), { type: "module" });
+
+    created.onmessage = (event: MessageEvent<RenderResponse>) => {
+      const response = event.data;
+      const job = pending.get(response.id);
+      if (!job) return;
+
+      pending.delete(response.id);
+      if (response.ok) job.resolve(response.pixels);
+      else job.reject(new Error(response.message));
+    };
+    // `error` sem resposta é o worker que não carregou ou quebrou fora de um
+    // pedido: ninguém mais vai responder, então não adianta esperar.
+    created.onerror = () => abandonWorker("O worker de desenho parou.");
+    created.onmessageerror = () => abandonWorker("O worker de desenho devolveu uma resposta ilegível.");
+
+    worker = created;
+  } catch {
+    worker = null;
+  }
+
+  return worker;
 }
 
-/** As duas bibliotecas prontas para uso: baixadas e com o WebAssembly iniciado. */
-async function loadRenderer() {
-  const [{ default: satori }, { Resvg, initWasm }] = await Promise.all([
-    import("satori"),
-    import("@resvg/resvg-wasm"),
-  ]);
-  await ensureResvg(initWasm);
-  return { satori, Resvg };
+function ask(target: Worker, job: RenderJob): Promise<RenderedPixels | undefined> {
+  return new Promise((resolve, reject) => {
+    const id = ++lastId;
+    pending.set(id, { resolve, reject });
+    target.postMessage({ ...job, id } satisfies RenderRequest);
+  });
+}
+
+/** O mesmo desenho, na thread principal. */
+async function renderHere(kind: PieceKind, data: PieceData): Promise<RenderedPixels> {
+  const { rasterize } = await import("./rasterize");
+  return rasterize(kind, data);
+}
+
+/** Desenha uma peça (ou uma página do catálogo) e devolve os pixels. */
+export async function renderPiece(kind: PieceKind, data: PieceData): Promise<RenderedPixels> {
+  const target = getWorker();
+
+  if (target) {
+    try {
+      const pixels = await ask(target, { kind: "render", piece: kind, data });
+      if (pixels) return pixels;
+    } catch (error) {
+      console.warn("Catálogo: o worker de desenho falhou nesta peça; desenhando na thread principal.", error);
+    }
+  }
+
+  return renderHere(kind, data);
 }
 
 /**
- * Adianta o download do renderizador enquanto a pessoa ainda lê a tela.
+ * Adianta o download do renderizador e das fontes enquanto a pessoa ainda lê a
+ * tela.
  *
  * São ~1,1 MB comprimidos na primeira vez (depois o navegador guarda): baixados
  * só no toque em "Gerar", eles seriam espera com o botão já apertado. Falha
  * aqui é silenciosa de propósito — quem mostra o erro é a geração de verdade.
  */
 export function preloadRenderer(): void {
-  void loadRenderer().catch(() => undefined);
+  const target = getWorker();
+  const warming = target
+    ? ask(target, { kind: "warm" })
+    : import("./rasterize").then((module) => module.warmUp());
+
+  void warming.catch(() => undefined);
 }
 
-/** A imagem pintada, em RGBA cru — o formato do `ImageData` do canvas. */
-export interface RenderedPixels extends RenderSize {
-  data: Uint8ClampedArray<ArrayBuffer>;
-}
-
-/**
- * Desenha o molde e devolve os pixels no tamanho pedido.
- *
- * Pixels, e não PNG: o arquivo final é JPEG, e pedir o PNG ao resvg para
- * decodificá-lo logo depois custava 1,6 s dos 3 s da geração (medido em
- * 03/10/2026, num banner de 9 produtos). Os pixels vão direto para o canvas.
- */
-export async function renderToPixels(
-  element: ReactNode,
-  size: RenderSize,
-  fonts: RenderFont[],
-): Promise<RenderedPixels> {
-  const { satori, Resvg } = await loadRenderer();
-
-  const svg = await satori(element, { ...size, fonts });
-
-  const resvg = new Resvg(svg, {
-    fitTo: { mode: "width", value: size.width },
-    // O texto já chegou em curvas: procurar fonte do sistema seria trabalho à toa.
-    font: { loadSystemFonts: false },
-  });
-  const image = resvg.render();
-  try {
-    // Cópia: os bytes originais moram na memória do WebAssembly, liberada abaixo.
-    return { data: new Uint8ClampedArray(image.pixels), width: image.width, height: image.height };
-  } finally {
-    // Memória do WebAssembly não é coletada sozinha.
-    image.free();
-    resvg.free();
-  }
+/** Só para os testes: volta ao estado de "ainda não tentou subir o worker". */
+export function resetRendererForTests(): void {
+  worker?.terminate();
+  worker = undefined;
+  pending.clear();
 }

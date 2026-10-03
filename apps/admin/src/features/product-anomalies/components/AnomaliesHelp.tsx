@@ -1,4 +1,4 @@
-import { ClipboardCheck, Ghost, HelpCircle, Hourglass, ListChecks } from "lucide-react";
+import { ClipboardCheck, Ghost, HelpCircle, Hourglass, ImageMinus, ListChecks } from "lucide-react";
 import type { ProductAnomalyRulesDto } from "@workspace/api-client-react";
 import { BiHelpDialog, BiHelpTerm } from "@/components/bi-help-dialog";
 import { ANOMALY_ORDER, IDLE_MIN_STOCK, anomalyMeta } from "../lib/anomalies";
@@ -125,6 +125,30 @@ export function AnomaliesHelp({ rules }: { rules: ProductAnomalyRulesDto }) {
                 único, peça única — que fica meses na prateleira por natureza. Cadastro com variações soma
                 todas: três tamanhos de uma unidade cada são três peças paradas, e aparecem. Vem ligado;
                 desligue para ver tudo.
+              </p>
+            </div>
+          ),
+        },
+        {
+          title: "Foto pequena: a fila de fotos para refazer",
+          icon: ImageMinus,
+          body: (
+            <div className="flex flex-col gap-2">
+              <p>
+                A capa com o menor lado abaixo de {rules.smallPhotoMinSide} px serve para o site e para o
+                banner, mas borra no card grande do{" "}
+                <strong className="text-foreground/85">catálogo de divulgação em PDF</strong> — por isso o
+                sorteio do PDF deixa o produto de fora. Só acende com saldo: sem mercadoria não há o que
+                divulgar.
+              </p>
+              <p>
+                Com a pastilha <strong className="text-foreground/85">Foto pequena</strong> ligada, a lista
+                sai <strong className="text-foreground/85">do que mais vendeu para o que menos vendeu</strong>{" "}
+                nos últimos {rules.smallPhotoSalesWindowDays} dias: é a ordem de refazer as fotos.
+              </p>
+              <p>
+                O tamanho é medido uma vez por foto, por uma rotina de fundo. Foto que ela ainda não mediu não
+                é acusada.
               </p>
             </div>
           ),

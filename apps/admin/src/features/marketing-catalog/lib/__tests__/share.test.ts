@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { bannerFileName, canShareFile, shareFile } from "../share";
+import { canShareFile, pieceFileName, shareFile } from "../share";
 
 const file = new File(["x"], "uaus-teste.jpg", { type: "image/jpeg" });
 
@@ -9,16 +9,16 @@ function stubShare(share: unknown, canShare: unknown) {
   Object.defineProperty(navigator, "canShare", { value: canShare, configurable: true });
 }
 
-describe("bannerFileName", () => {
+describe("pieceFileName", () => {
   it("vira nome de arquivo sem acento, espaço nem símbolo, com o dia local", () => {
     // Meio-dia local: longe da virada, o teste não depende do fuso da máquina.
-    expect(bannerFileName("Novidades e promoções", new Date(2026, 9, 3, 12))).toBe(
+    expect(pieceFileName("Novidades e promoções", new Date(2026, 9, 3, 12), "jpg")).toBe(
       "uaus-novidades-e-promocoes-2026-10-03.jpg",
     );
   });
 
   it("título só de símbolos cai num nome genérico", () => {
-    expect(bannerFileName("!!!", new Date(2026, 9, 3, 12))).toBe("uaus-catalogo-2026-10-03.jpg");
+    expect(pieceFileName("!!!", new Date(2026, 9, 3, 12), "pdf")).toBe("uaus-catalogo-2026-10-03.pdf");
   });
 });
 

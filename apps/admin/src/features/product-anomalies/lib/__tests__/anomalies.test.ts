@@ -8,6 +8,7 @@ import {
   anomalyRank,
   describeAnomaly,
   isSingleUnitIdle,
+  sortBySmallPhotoSales,
   variationLabel,
   zeroCostIsCorrectable,
 } from "../anomalies";
@@ -114,6 +115,57 @@ describe("describeAnomaly", () => {
     expect(
       describeAnomaly({ type: "HiddenFromStorefront" }, { ...cumbuca, stock: 1 } as ProductAnomalyRowDto),
     ).toBe("Tem foto e 1 unidade, e “Exibir no site” está desligado.");
+  });
+});
+
+describe("foto pequena", () => {
+  it("a etiqueta diz o tamanho medido e quanto o produto vendeu", () => {
+    expect(
+      describeAnomaly({ type: "SmallPhoto", photoWidth: 225, photoHeight: 225, unitsSold: 12 }, cumbuca),
+    ).toBe("Capa de 225 × 225 px. Vendeu 12 unidades no período.");
+    expect(
+      describeAnomaly({ type: "SmallPhoto", photoWidth: 1600, photoHeight: 299, unitsSold: 1 }, cumbuca),
+    ).toBe("Capa de 1600 × 299 px. Vendeu 1 unidade no período.");
+  });
+
+  it("sem venda — e o servidor omite o zero? não: mas o campo ausente também vira 'não vendeu'", () => {
+    expect(
+      describeAnomaly({ type: "SmallPhoto", photoWidth: 225, photoHeight: 225, unitsSold: 0 }, cumbuca),
+    ).toBe("Capa de 225 × 225 px. Não vendeu no período.");
+    expect(describeAnomaly({ type: "SmallPhoto", photoWidth: 225, photoHeight: 225 }, cumbuca)).toBe(
+      "Capa de 225 × 225 px. Não vendeu no período.",
+    );
+  });
+
+  it("é a última da ordem e cinza: é para olhar, não trava venda nenhuma", () => {
+    expect(ANOMALY_ORDER.at(-1)).toBe("SmallPhoto");
+    expect(anomalyMeta("SmallPhoto")).toMatchObject({ label: "Foto pequena", tone: "neutro" });
+  });
+
+  it("a ordem de trabalho é do que mais vende para o que menos vende, com empate na ordem do servidor", () => {
+    const linha = (
+      id: number,
+      unitsSold: number | undefined,
+      outras: ProductAnomalyRowDto["anomalies"] = [],
+    ) =>
+      ({
+        ...cumbuca,
+        productGroupId: id,
+        anomalies: [...outras, { type: "SmallPhoto" as const, photoWidth: 225, photoHeight: 225, unitsSold }],
+      }) satisfies ProductAnomalyRowDto;
+
+    // A 1 vem primeiro do servidor por ter uma anomalia mais grave junto.
+    const linhas = [
+      linha(1, 2, [{ type: "ZeroCost" }]),
+      linha(2, 30),
+      linha(3, 2),
+      linha(4, undefined),
+      linha(5, 7),
+    ];
+
+    expect(sortBySmallPhotoSales(linhas).map((x) => x.productGroupId)).toEqual([2, 5, 1, 3, 4]);
+    // Não mexe na lista recebida: ela é o cache do React Query.
+    expect(linhas.map((x) => x.productGroupId)).toEqual([1, 2, 3, 4, 5]);
   });
 });
 
