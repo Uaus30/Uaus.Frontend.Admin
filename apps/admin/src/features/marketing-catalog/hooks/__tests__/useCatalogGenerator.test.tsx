@@ -333,10 +333,10 @@ describe("useCatalogGenerator", () => {
     expect(result.current.piece?.file.name).toMatch(/\.jpg$/);
   });
 
-  it("o catálogo em PDF pede 24 produtos só de foto grande, com 8 reservas", async () => {
+  it("o catálogo em PDF pede 30 produtos só de foto grande, com 8 reservas", async () => {
     mocks.drawCatalog.mockResolvedValue(
       drawOf(
-        Array.from({ length: 24 }, (_, index) => item(index + 1)),
+        Array.from({ length: 30 }, (_, index) => item(index + 1)),
         [item(90), item(91)],
       ),
     );
@@ -348,16 +348,16 @@ describe("useCatalogGenerator", () => {
     expect(lastDrawRequest()).toEqual({
       theme: 1,
       departmentId: undefined,
-      count: 24,
+      count: 30,
       spare: 8,
       largePhotosOnly: true,
     });
-    expect(result.current.piece?.products).toHaveLength(24);
+    expect(result.current.piece?.products).toHaveLength(30);
     expect(result.current.piece?.format.key).toBe("pdf");
     expect(result.current.piece?.file.name).toMatch(/^uaus-destaques-da-loja-\d{4}-\d{2}-\d{2}\.pdf$/);
     expect(result.current.piece?.file.type).toBe("application/pdf");
-    // Uma URL de prévia por página: 24 produtos são 4 páginas.
-    expect(result.current.piece?.previewUrls).toHaveLength(4);
+    // Uma URL de prévia por página: 30 produtos são 5 páginas.
+    expect(result.current.piece?.previewUrls).toHaveLength(5);
   });
 
   it("gerar outra peça solta TODAS as páginas da prévia anterior", async () => {

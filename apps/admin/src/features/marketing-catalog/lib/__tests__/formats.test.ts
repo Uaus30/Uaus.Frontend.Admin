@@ -26,9 +26,10 @@ describe("formatos do catálogo", () => {
     expect(FORMAT_ORDER.map((key) => CATALOG_FORMATS[key].key)).toEqual(FORMAT_ORDER);
   });
 
-  it("as quantidades são as combinadas com o dono: 9 no banner e de 24 a 32 no PDF", () => {
+  it("as quantidades são as combinadas com o dono: 9 no banner e 30 no PDF (5 páginas)", () => {
     expect(CATALOG_FORMATS.story.count).toBe(9);
     expect(CATALOG_FORMATS.feed.count).toBe(6);
+    expect(CATALOG_FORMATS.pdf.count).toBe(30);
     expect(CATALOG_FORMATS.pdf.count).toBeGreaterThanOrEqual(24);
     expect(CATALOG_FORMATS.pdf.count).toBeLessThanOrEqual(32);
   });
@@ -60,7 +61,7 @@ describe("formatos do catálogo", () => {
 
   it("descreve o tamanho: exato no banner, 'até' no catálogo", () => {
     expect(describeFormatSize(CATALOG_FORMATS.story)).toBe("9 produtos");
-    expect(describeFormatSize(CATALOG_FORMATS.pdf)).toBe("até 24 produtos");
+    expect(describeFormatSize(CATALOG_FORMATS.pdf)).toBe("até 30 produtos");
   });
 
   it("só o PDF exige foto grande — e conta só os cadastros que a têm", () => {

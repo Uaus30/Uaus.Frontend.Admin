@@ -35,12 +35,15 @@ A escolha dos produtos é sorteada, para cada peça sair diferente da anterior.
 | 11  | **O contato do rodapé é o do site**, e não o de Configurações | `lib/storeContact.ts`; o cadastro de Configurações é o do cupom |
 | 12  | **O nome impresso é o do cadastro**, sem edição na peça | nada a fazer; quem quer outro nome corrige o cadastro |
 | 13  | **Os dois achados baixos da revisão da etapa 1 não serão corrigidos** (foto lenta que segura a tela; dois toques em Compartilhar) | ficam registrados aqui, sem tarefa |
+| 14  | **Nos temas de assunto, o descanso vem antes do limite por departamento** (03/10/2026: "seria interessante repetir menos") | em Novidades e promoções, Mais vendidos e Achados o sorteio esgota quem não saiu — com e depois sem o limite — antes de voltar a quem saiu há pouco. No Geral a mistura por papel segue na frente (ver A12) |
+| 15  | **O PDF tem 5 páginas** (30 produtos), e não 4 | `PDF_PAGES` em `lib/formats.ts` |
+| 16  | **Não precisa imprimir "Limite de N por cliente"** na oferta. Ele acrescentou que "seria legal destacar como promoção ou como 'Últimas peças' para produtos com pouco estoque" | fecha a A3. O selo de oferta já sai; o de pouco estoque **existe mas não aparece hoje** — ver A12 |
 
 ### Decididas na implementação da etapa 2 (para o dono conferir)
 
 | #   | Decisão | Por quê |
 | --- | ------- | ------- |
-| I1  | No tema Geral as **ofertas ficam com no máximo metade das âncoras** (1 das 3 do banner; 4 das 8 do PDF de 24) | sem o teto, com 4 promoções no ar todo banner geral saía com 3 delas e **nenhum** mais vendido — o terço da peça virava quase fixo (achado da revisão) |
+| I1  | No tema Geral as **ofertas ficam com no máximo metade das âncoras** (1 das 3 do banner; 5 das 10 do PDF de 30) | sem o teto, com 4 promoções no ar todo banner geral saía com 3 delas e **nenhum** mais vendido — o terço da peça virava quase fixo (achado da revisão) |
 | I2  | **O assunto do tema vence o teto de departamento** | com as novidades concentradas num departamento, o teto as barrava e "Novidades" saía completada com outros papéis |
 | I3  | **A troca de um produto fica dentro do tema** | em "Mais vendidos", trocar um campeão recém-chegado só pelo papel traria uma novidade sem venda |
 | I4  | O item do menu chama-se **"Catálogo"** e fica por último no grupo Marketing | não tem sequência de trabalho com cupom nem campanha |
@@ -49,7 +52,7 @@ A escolha dos produtos é sorteada, para cada peça sair diferente da anterior.
 
 | #   | Decisão | Por quê |
 | --- | ------- | ------- |
-| I5  | O PDF tem **24 produtos em 4 páginas de 6**, sem título de seção: a ordem do sorteio e os selos (oferta, novidade) fazem esse papel | 6 por página dá o card grande que justifica o PDF; seção com título fixo deixaria página pela metade quando o tema tem 2 ofertas. Subir para 30 (5 páginas) é trocar um número em `lib/formats.ts` |
+| I5  | O PDF sai em **páginas de 6, sem título de seção**: a ordem do sorteio e os selos (oferta, novidade) fazem esse papel. Eram 4 páginas (24 produtos); o dono escolheu **5 (30 produtos)** em 03/10/2026 | 6 por página dá o card grande que justifica o PDF; seção com título fixo deixaria página pela metade quando o tema tem 2 ofertas |
 | I6  | O banner 4:5 leva **6 produtos** | o painel dele é mais baixo: 9 cards ficariam com a foto menor que o texto |
 | I7  | **O PDF só sorteia capa com 300 px ou mais** no menor lado; capa ainda não medida passa pelo servidor e é conferida no navegador | abaixo disso a foto é ampliada mais de 1,6 vez no card e borra no celular |
 | I8  | A etiqueta **"Foto pequena"** é cinza, a última da ordem, e só acende com saldo; com a pastilha ligada a lista sai **por unidades vendidas em 90 dias** | não trava venda nenhuma: é fila de trabalho, e a foto que rende primeiro é a do que mais vende |
@@ -69,13 +72,15 @@ A escolha dos produtos é sorteada, para cada peça sair diferente da anterior.
 
 | #   | Pergunta | Recomendação |
 | --- | -------- | ------------ |
-| A3  | Oferta com **limite por cliente**: o site imprime "Limite de N por cliente"; o card do banner ainda não | imprimir junto do selo de oferta. Nenhuma promoção teve limite até 03/10/2026 (0 de 5) |
+| A3  | ~~Oferta com **limite por cliente**: o site imprime "Limite de N por cliente"; o card do banner ainda não~~ | **fechada em 03/10/2026**: o dono disse que não precisa (decisão 16) |
 | A6  | Achados **baixos** da revisão do sorteio (etapa 2), sem caso no ar: oferta cujo card vem sem promoção vira "intermediário" mesmo sendo novidade; lote e venda de variação **excluída** contam para o grupo; "Novidades e promoções" com 1 ou 2 produtos nunca sorteia oferta; `POST /Catalogs/draw` sem corpo não foi provado como 400 | corrigir junto de uma próxima mexida no sorteio |
 | A7  | Achados **baixos** da revisão da tela (etapa 2): a troca e o "Atualizar título" reimprimem o aviso com a data de **hoje**, mesmo com a aba aberta desde ontem; em "Novidades e promoções", trocar uma oferta traz uma novidade, e não outra oferta; o aviso "não foi possível carregar os temas" acende também numa recarga em segundo plano que falha com os temas já na tela; emoji no título sai como quadrado vazio | decidir depois da bateria de testes do dono |
 | A8  | Achados **baixos** da revisão do backend da etapa 3: JPEG com mais de 512 KB de metadados antes do tamanho é gravado como ilegível (0 × 0) e fica fora da etiqueta; a medição aloca 512 KB por imagem | sem caso no acervo (113 capas conferidas contra o Pillow); corrigir se aparecer |
 | A9  | Achados **baixos** da revisão da tela (etapa 3): na troca de um produto do PDF, se a foto do substituto é pequena ou não carrega, as páginas são redesenhadas antes de a troca ser recusada, e o aviso diz "não carregou" mesmo quando a foto é pequena; a página guardada não percebe a troca da FOTO de um produto na mesma sessão; se a rede pendurar ao baixar o renderizador, a tela fica em "Montando…" até recarregar (já era assim antes do worker); na promoção para produção o **backend sobe primeiro** — sem ele o PDF fica desabilitado e a ajuda de Anomalias imprime "undefined px" | decidir depois da bateria de testes do dono; a ordem da promoção é regra, não pendência |
-| A10 | Achados **baixos** da revisão do backend da etapa 4: no tema, o **teto de departamento ainda vence o descanso** — "Novidades" com 25 novidades de Cozinha e 3 de Brinquedos repete as mesmas 3 de Brinquedos em toda peça (já era assim antes do descanso); `items: [null]` ou preço acima de 10^16 no registro dão erro 500 em vez de 400 (a tela não manda nenhum dos dois); depois que a peça é compartilhada, a mesma **semente** já não reproduz o sorteio, e ela não é gravada no histórico; o caminho dos dois toques simultâneos no registro não tem teste contra o Postgres | a primeira é decisão do dono: no tema, o descanso deve vir antes da diversidade de departamento? As outras, corrigir se aparecer caso |
+| A10 | Achados **baixos** da revisão do backend da etapa 4: ~~no tema, o teto de departamento ainda vence o descanso~~ (**corrigido em 03/10/2026**, decisão 14); `items: [null]` ou preço acima de 10^16 no registro dão erro 500 em vez de 400 (a tela não manda nenhum dos dois); depois que a peça é compartilhada, a mesma **semente** já não reproduz o sorteio, e ela não é gravada no histórico; o caminho dos dois toques simultâneos no registro não tem teste contra o Postgres | corrigir se aparecer caso |
 | A11 | Achados **baixos** da revisão da tela (etapa 4): se o registro da peça falhar (rede), ela só entra no histórico e no descanso se a pessoa compartilhar ou baixar o mesmo arquivo de novo — não há nova tentativa sozinha nem sinal na tela; a peça é registrada mesmo quando o navegador bloqueia o download (não há como a tela saber); no primeiro dia o histórico diz "ainda é cedo para comparar" ao lado de uma diferença já colorida; em `/marketing/catalogo/historico` o menu acende "Catálogo" e "Histórico do Catálogo" juntos (como já acontece com Campanhas e Comparativo); departamento com nome acima de 60 caracteres e título em branco faria o registro ser recusado, calado | decidir depois da bateria de testes do dono |
+| A12 | **O selo de pouco estoque** que o dono pediu ("Últimas peças"). A peça já tem o selo "ÚLTIMAS UNIDADES", pela regra da tag do site, mas: (1) a tag é ligada pelo número de Sistema › Configurações (`Tag "Últimas unidades" abaixo de`), que estava em **zero** em produção e em dev em 03/10/2026 — desligada no site e nas peças; (2) é um selo por card, na ordem oferta, novidade, pouco estoque: oferta ou novidade com pouco saldo **não** mostra a escassez, e em "Novidades e promoções" ela nunca aparece; (3) o texto impresso é "ÚLTIMAS UNIDADES", e não "Últimas peças" | perguntas ao dono: liga o número (liga no site junto)? Quer o selo de escassez também em oferta e novidade? O texto vira "Últimas peças"? |
+| A13 | Achados **baixos** da revisão dos ajustes de 03/10/2026: no tema **Geral**, o limite por departamento ainda vem antes do descanso dentro de cada papel (sem caso prático com os tamanhos atuais); esgotado quem não saiu, a volta sorteia entre todos os recentes, sem preferir quem saiu há mais tempo — com um PDF de 30 por dia, "Mais vendidos" esgota em poucos dias e o de ontem pode voltar antes do de seis dias atrás; as páginas guardadas saem por ordem de chegada, e depois de dez trocas no mesmo PDF uma troca redesenha as cinco páginas | decidir depois da bateria de testes do dono |
 
 ---
 
@@ -122,7 +127,7 @@ Custo e saldo nunca saem para a peça.
 | ------- | ------- | -------- |
 | Banner 9:16 | imagem 1080×1920 (status e story) | 9, em 3×3 |
 | Banner 4:5 | imagem 1080×1350 (grupo e feed) | 6 por imagem |
-| Catálogo | PDF em páginas verticais de 1080×2340 (540×1170 pt), 2 colunas | 24, em 4 páginas de 6; cada produto é um link para o site |
+| Catálogo | PDF em páginas verticais de 1080×2340 (540×1170 pt), 2 colunas | 30, em 5 páginas de 6; cada produto é um link para o site |
 
 Temas: **Geral** (mistura inteligente), **Novidades e promoções**, **Mais
 vendidos**, **Achados** e **um por departamento**. O tema dá o título do
@@ -273,8 +278,8 @@ de `template/geometry.ts` — mudou num, mude no outro.
 - **O celular de verdade.** O worker tirou a travada no computador (maior pausa
   da tela ao gerar: de 2,1 s para menos de 0,1 s) e o PDF abre no leitor do
   Chromium. Compartilhar o PDF pela folha do Android e do iPhone, e o tempo de
-  gerar 4 páginas no celular, só o teste do dono mostra. No computador: banner
-  ~3 s, banner 4:5 ~2,3 s, PDF de 24 produtos ~4 s (1,3 MB), troca de um
+  gerar 5 páginas no celular, só o teste do dono mostra. No computador: banner
+  ~3 s, banner 4:5 ~2,3 s, PDF de 30 produtos ~4,6 s (1,8 MB), troca de um
   produto no PDF ~1,7 s.
 - **A medição do acervo leva algumas rodadas.** A rotina de fundo mede 400
   imagens a cada 15 minutos. Enquanto não termina, a contagem de "foto grande"

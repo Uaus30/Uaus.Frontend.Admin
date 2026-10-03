@@ -91,12 +91,12 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 /**
  * As últimas páginas desenhadas, pelo que elas mostram.
  *
- * Trocar UM produto do catálogo em PDF muda uma página de quatro: as outras
- * três saem daqui em vez de serem desenhadas de novo (cada uma custa segundos
+ * Trocar UM produto do catálogo em PDF muda uma página de cinco: as outras
+ * quatro saem daqui em vez de serem desenhadas de novo (cada uma custa segundos
  * no celular). O teto é o de três catálogos — o que passar disso sai pela ordem
  * de chegada.
  */
-const PAGE_CACHE_SIZE = 12;
+const PAGE_CACHE_SIZE = 15;
 const pageCache = new Map<string, Promise<Blob>>();
 
 /** Tudo o que muda o desenho de uma página. Mudou qualquer coisa, é outra página. */

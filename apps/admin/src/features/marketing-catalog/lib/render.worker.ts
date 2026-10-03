@@ -8,7 +8,7 @@ import { rasterize, warmUp, type RenderedPixels } from "./rasterize";
  * O satori e o resvg ocupam o processador por 2 s num computador e por mais de
  * 5 s num celular. Na thread principal, a tela congelava durante esse tempo —
  * as "leves travadas" que o dono viu no celular em 03/10/2026 — e o catálogo
- * em PDF, que são quatro páginas, congelaria quatro vezes. Aqui o desenho corre
+ * em PDF, que são cinco páginas, congelaria cinco vezes. Aqui o desenho corre
  * ao lado, e a tela segue respondendo e mostrando em que página está.
  */
 

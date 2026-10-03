@@ -35,8 +35,11 @@ export interface CatalogFormatOption {
   mimeType: string;
 }
 
-/** Quatro páginas de seis: dentro da faixa de 24 a 32 que o dono pediu para o PDF. */
-const PDF_PAGES = 4;
+/**
+ * Cinco páginas de seis (escolha do dono, 03/10/2026, depois de ver o de
+ * quatro): 30 produtos, dentro da faixa de 24 a 32 combinada para o PDF.
+ */
+const PDF_PAGES = 5;
 
 export const CATALOG_FORMATS: Record<CatalogFormat, CatalogFormatOption> = {
   story: {
@@ -77,7 +80,7 @@ export const CATALOG_FORMATS: Record<CatalogFormat, CatalogFormatOption> = {
     count: PAGE.maxProducts * PDF_PAGES,
     spare: 8,
     minPhotoSide: 300,
-    // Um pouco abaixo do banner: são quatro páginas no mesmo arquivo, e ele
+    // Um pouco abaixo do banner: são cinco páginas no mesmo arquivo, e ele
     // sobe para o grupo pelo 4G.
     jpegQuality: 0.86,
     extension: "pdf",
@@ -90,7 +93,7 @@ export const FORMAT_ORDER: readonly CatalogFormat[] = ["story", "feed", "pdf"];
 
 export const DEFAULT_FORMAT: CatalogFormat = "story";
 
-/** "9 produtos", "até 24 produtos" — o tamanho da peça, para o seletor. */
+/** "9 produtos", "até 30 produtos" — o tamanho da peça, para o seletor. */
 export function describeFormatSize(format: CatalogFormatOption): string {
   const perPage = PIECE_SPECS[format.piece].maxProducts;
   return format.count > perPage ? `até ${format.count} produtos` : `${format.count} produtos`;

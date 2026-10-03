@@ -137,7 +137,7 @@ para trocar produto. No computador a prévia sobe para a coluna da direita.
 | --------------- | -------------------------------------- | ------------------------- | -------------------------- |
 | Banner 9:16     | JPEG 1080 × 1920                       | 9                         | status do WhatsApp e story |
 | Banner 4:5      | JPEG 1080 × 1350                       | 6                         | imagem no grupo e feed     |
-| Catálogo em PDF | páginas de 1080 × 2340 (540 × 1170 pt) | até 24, em 4 páginas de 6 | grupos de WhatsApp         |
+| Catálogo em PDF | páginas de 1080 × 2340 (540 × 1170 pt) | até 30, em 5 páginas de 6 | grupos de WhatsApp         |
 
 As medidas de cada um estão em `template/geometry.ts`; o que vai ao sorteio e o
 arquivo que sai, em `lib/formats.ts`. O vocabulário é o do dono: os botões e os
@@ -183,14 +183,14 @@ uma linha na tela de métricas.
   html2canvas e dompurify para dentro do admin por causa de uma tela. O teste
   confere a tabela de referências byte a byte — é ela que um leitor usa para
   achar as páginas.
-- **Páginas já desenhadas são guardadas** (as últimas 12). Trocar um produto de
-  um catálogo de quatro páginas redesenha uma.
+- **Páginas já desenhadas são guardadas** (as últimas 15). Trocar um produto de
+  um catálogo de cinco páginas redesenha uma.
 
 ### 16. O desenho roda fora da tela
 
 O satori e o resvg ocupam o processador por segundos. Na thread principal a tela
 congelava (as "leves travadas" do teste do dono no celular), e o PDF congelaria
-quatro vezes. O desenho roda num **worker** (`lib/render.worker.ts`); medido em
+cinco vezes. O desenho roda num **worker** (`lib/render.worker.ts`); medido em
 03/10/2026 no computador, a maior travada durante a geração caiu de 2,1 s para
 menos de 0,1 s, e a tela mostra em que página está.
 
@@ -226,7 +226,10 @@ O sorteio manda para o fim da fila quem saiu numa peça registrada nos últimos 
 dias (`CatalogDrawRules.CooldownDays`, no backend): o produto só volta quando
 faltar outro do mesmo tipo de vaga. Veto esvaziaria os temas pequenos — com
 quatro promoções no ar, em quatro dias "Novidades e promoções" ficaria sem
-oferta. A tela não mostra o descanso; ele é explicado no histórico.
+oferta. Nos temas de assunto (Novidades e promoções, Mais vendidos, Achados), o
+descanso vem **antes** do limite por departamento (decisão
+do dono, 03/10/2026, para repetir menos). A tela não mostra o descanso; ele é
+explicado no histórico.
 
 ### 19. O histórico compara com o MESMO trecho da semana anterior
 
