@@ -7,6 +7,38 @@ import { getBuildInfo } from "../../scripts/build-version.ts";
 
 const buildInfo = getBuildInfo();
 
+/**
+ * Pacotes que só a tela do catálogo de divulgação usa — ver `manualChunks`.
+ *
+ * É o satori 0.32, o resvg e TUDO o que só eles puxam (conferido no
+ * package-lock em 03/10/2026). Ficam de fora, de propósito, `base64-js` e
+ * `pako`: outras bibliotecas também dependem deles, e forçá-los para cá faria
+ * o código de entrada importar este chunk inteiro no primeiro paint.
+ */
+const CATALOG_RENDERER_PACKAGES = [
+  "satori",
+  "@resvg/resvg-wasm",
+  "yoga-layout",
+  "@shuding/opentype.js",
+  "camelize",
+  "color-name",
+  "css-background-parser",
+  "css-box-shadow",
+  "css-color-keywords",
+  "css-gradient-parser",
+  "css-to-react-native",
+  "emoji-regex-xs",
+  "escape-html",
+  "fflate",
+  "hex-rgb",
+  "linebreak",
+  "parse-css-color",
+  "postcss-value-parser",
+  "string.prototype.codepointat",
+  "tiny-inflate",
+  "unicode-trie",
+];
+
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
   define: {
@@ -64,6 +96,20 @@ export default defineConfig({
           // sem esta regra o `manualChunks` o puxaria para o vendor comum — que
           // é baixado no primeiro paint, por todo mundo, sempre.
           if (id.includes("exceljs")) return "vendor-xlsx";
+          // O renderizador do catálogo de divulgação (satori + resvg) é o mesmo
+          // caso do ExcelJS: serve UMA tela e pesa mais que o resto do vendor
+          // junto. Sem nome próprio, ele e as dependências dele cairiam no
+          // vendor comum, baixado por todo mundo no primeiro paint. A lista são
+          // as dependências do satori 0.32 — atualizou a versão, confira o
+          // tamanho do chunk `vendor` no build.
+          // `?url` (o .wasm do resvg, as fontes) é só o ENDEREÇO do arquivo: fica
+          // no chunk da própria tela. Dentro do `vendor-catalogo`, a tela teria
+          // de importá-lo de forma estática só para saber um caminho, e o
+          // `import()` dinâmico do renderizador deixaria de adiar o download.
+          if (id.includes("node_modules/@fontsource/") && id.includes("?url")) return undefined;
+          if (CATALOG_RENDERER_PACKAGES.some((name) => id.includes(`node_modules/${name}/`))) {
+            return id.includes("?url") ? undefined : "vendor-catalogo";
+          }
 
           return "vendor";
         },

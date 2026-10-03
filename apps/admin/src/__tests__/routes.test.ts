@@ -212,6 +212,18 @@ describe("podeAcessar", () => {
     expect(podeAcessar(ranking, USER_ROLE.Admin)).toBe(true);
     expect(podeAcessar(detalhe, USER_ROLE.Admin)).toBe(true);
   });
+
+  it("o catálogo de divulgação é da equipe inteira, e ainda fica fora do menu", () => {
+    // Decisão do dono (03/10/2026): quem está no balcão também gera e
+    // compartilha, e a tela não mostra custo nem margem. Oculto enquanto só a
+    // etapa 1 existe — se o item aparecer no menu antes da etapa 2, o grupo
+    // Marketing passa a existir para o Vendedor com uma tela pela metade.
+    const catalogo = ROUTES.find((r) => r.path === "/marketing/catalogo")!;
+
+    expect(catalogo.roles).toBeUndefined();
+    expect(podeAcessar(catalogo, USER_ROLE.Seller)).toBe(true);
+    expect(catalogo.hidden).toBe(true);
+  });
 });
 
 describe("buildMenu", () => {

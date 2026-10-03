@@ -107,6 +107,7 @@ const Campaigns = lazy(() => import("@/pages/campaigns"));
 const Promotions = lazy(() => import("@/pages/promotions"));
 const CampaignReport = lazy(() => import("@/pages/campaign-report"));
 const CampaignComparison = lazy(() => import("@/pages/campaign-comparison"));
+const MarketingCatalog = lazy(() => import("@/pages/marketing-catalog"));
 const SupplierPerformance = lazy(() => import("@/pages/supplier-performance"));
 const SupplierPerformanceDetail = lazy(() => import("@/pages/supplier-performance-detail"));
 const ProductAbc = lazy(() => import("@/pages/product-abc"));
@@ -284,6 +285,11 @@ export const ROUTES: AppRoute[] = [
   // listagem e esquecer o detalhe é exatamente a porta dos fundos que o teste
   // de rotas cobre no log.
   { path: "/marketing/campanhas/:id/relatorio", component: CampaignReport, roles: SO_ADMIN, hidden: true },
+  // Catálogo de divulgação (03/10/2026). Sem `roles` por decisão do dono: quem
+  // está no balcão também gera e compartilha, e a tela não mostra custo nem
+  // margem. Oculto do menu enquanto só a etapa 1 existe (banner 9:16, tema
+  // único) — o item entra no grupo Marketing com a etapa 2 do PLANO-CATALOGO.md.
+  { path: "/marketing/catalogo", component: MarketingCatalog, hidden: true },
 
   { path: "/estoque/inventario", label: "Inventário", group: "Relatórios", component: Inventory },
   // Relatório, e não tela de Estoque: ele só LÊ o saldo. O alerta vermelho do
