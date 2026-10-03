@@ -1,8 +1,9 @@
 # Marketing › Catálogo de divulgação (plano técnico)
 
-> **Estado: decisões fechadas com o dono em 03/10/2026; etapa 1 implementada na
-> `dev` no mesmo dia.** Este arquivo é o contrato da feature: toda camada
-> codifica contra ele, e divergência se corrige aqui primeiro.
+> **Estado: decisões fechadas com o dono em 03/10/2026; etapas 1 e 2 na `dev` no
+> mesmo dia** (a etapa 1 foi testada e aprovada por ele no celular). Este arquivo
+> é o contrato da feature: toda camada codifica contra ele, e divergência se
+> corrige aqui primeiro.
 >
 > Salvo indicação, os números foram medidos no **banco de produção em
 > 03/10/2026**, só com leitura (`Uaus.DbTools/console.sh prod`). A resolução das
@@ -30,16 +31,27 @@ A escolha dos produtos é sorteada, para cada peça sair diferente da anterior.
 | 7   | **Aviso fixo em toda peça**: preços de referência, sujeitos a alteração; imagens ilustrativas | texto na seção 2.4, com a data dentro |
 | 8   | **Ao gerar, escolhe-se o formato e o tema** (ex.: brinquedos, utilidades de cozinha, promoções e novidades) | seção 2.2 |
 | 9   | "Banner" é o formato de **imagem**; "catálogo" é o **PDF** | vocabulário da tela |
+| 10  | **Escolher e gerar vêm antes da prévia**, em especial no celular (depois do teste da etapa 1) | a ordem da tela é: tema e título, gerar, prévia, compartilhar, lista para trocar |
+| 11  | **O contato do rodapé é o do site**, e não o de Configurações | `lib/storeContact.ts`; o cadastro de Configurações é o do cupom |
+| 12  | **O nome impresso é o do cadastro**, sem edição na peça | nada a fazer; quem quer outro nome corrige o cadastro |
+| 13  | **Os dois achados baixos da revisão da etapa 1 não serão corrigidos** (foto lenta que segura a tela; dois toques em Compartilhar) | ficam registrados aqui, sem tarefa |
+
+### Decididas na implementação da etapa 2 (para o dono conferir)
+
+| #   | Decisão | Por quê |
+| --- | ------- | ------- |
+| I1  | No tema Geral as **ofertas ficam com no máximo metade das âncoras** (1 das 3 do banner; 4 das 8 do PDF de 24) | sem o teto, com 4 promoções no ar todo banner geral saía com 3 delas e **nenhum** mais vendido — o terço da peça virava quase fixo (achado da revisão) |
+| I2  | **O assunto do tema vence o teto de departamento** | com as novidades concentradas num departamento, o teto as barrava e "Novidades" saía completada com outros papéis |
+| I3  | **A troca de um produto fica dentro do tema** | em "Mais vendidos", trocar um campeão recém-chegado só pelo papel traria uma novidade sem venda |
+| I4  | O item do menu chama-se **"Catálogo"** e fica por último no grupo Marketing | não tem sequência de trabalho com cupom nem campanha |
 
 ### Em aberto
 
 | #   | Pergunta | Recomendação |
 | --- | -------- | ------------ |
-| A1  | O contato do rodapé repete o do site (endereço, WhatsApp da loja). Deve vir de Configurações? | manter o do site; o cadastro de Configurações é o do cupom (caixa alta, celular de sócio) |
-| A2  | O nome impresso é o do cadastro, com código de fornecedor ("ESCORREDOR DE MASSA 22CM 13339 INOX") | permitir editar o nome só na peça, como nas etiquetas de gôndola (etapa 2) |
-| A3  | Oferta com **limite por cliente**: o site imprime "Limite de N por cliente"; o card do banner ainda não | imprimir junto do selo de oferta na etapa 2. Nenhuma promoção teve limite até 03/10/2026 (0 de 5) |
-| A4  | Foto que **demora** (conexão pendurada) segura a tela em "Montando o banner…": a folga cobre foto que falha, não foto lenta (achado baixo da revisão) | tempo máximo por foto, cedendo a vaga à reserva |
-| A5  | Dois toques seguidos em "Compartilhar": o segundo é recusado pelo aparelho e cai no download, com o aviso "Banner salvo" (achado baixo da revisão) | desabilitar o botão enquanto a folha está aberta |
+| A3  | Oferta com **limite por cliente**: o site imprime "Limite de N por cliente"; o card do banner ainda não | imprimir junto do selo de oferta. Nenhuma promoção teve limite até 03/10/2026 (0 de 5) |
+| A6  | Achados **baixos** da revisão do sorteio (etapa 2), sem caso no ar: oferta cujo card vem sem promoção vira "intermediário" mesmo sendo novidade; lote e venda de variação **excluída** contam para o grupo; "Novidades e promoções" com 1 ou 2 produtos nunca sorteia oferta; `POST /Catalogs/draw` sem corpo não foi provado como 400 | corrigir junto de uma próxima mexida no sorteio |
+| A7  | Achados **baixos** da revisão da tela (etapa 2): a troca e o "Atualizar título" reimprimem o aviso com a data de **hoje**, mesmo com a aba aberta desde ontem; em "Novidades e promoções", trocar uma oferta traz uma novidade, e não outra oferta; o aviso "não foi possível carregar os temas" acende também numa recarga em segundo plano que falha com os temas já na tela; emoji no título sai como quadrado vazio | corrigir junto da etapa 3, se o dono quiser |
 
 ---
 
@@ -99,7 +111,7 @@ Tecnologia e Banheiro e Limpeza (27 cada). Casa e Decoração (23), Mercearia e
 Papelaria (12) rendem banner ou catálogo curto. Os outros dez têm menos de 10 e
 entram só no Geral.
 
-### 2.3 O sorteio (API, etapa 2)
+### 2.3 O sorteio (API)
 
 Cada cadastro elegível recebe **um** papel, por prioridade:
 
@@ -111,15 +123,35 @@ Cada cadastro elegível recebe **um** papel, por prioridade:
 | Intermediário | vendeu de 1 a 5 unidades | 245 |
 | Pouca saída | não vendeu em 90 dias e não é novidade | 277 |
 
-- **Mistura "inteligente"** (tema Geral): um terço de novidades, um terço de
-  mais vendidos (as ofertas entram aqui), um terço de pouca saída com
-  intermediários.
+- **Mistura "inteligente"** (tema Geral): um terço de âncoras (mais vendidos e
+  ofertas), um terço de novidades e um terço de descobertas — dois de pouca
+  saída para cada intermediário. **As ofertas ficam com no máximo metade das
+  âncoras**: oferta tem tema próprio, e no geral ela divide a vitrine. A peça
+  sai nessa ordem (âncoras, novidades, descobertas).
+- **Novidades e promoções**: até um terço de ofertas, o resto de novidades.
+  **Mais vendidos**: o terço de cima em unidades, inclusive o campeão que está
+  em oferta. **Achados**: só pouca saída. **Departamento**: a mistura geral
+  dentro dele.
+- **Faltando cadastro num papel, os outros completam**: melhor a peça cheia do
+  que a regra exata.
 - **Sorteio com peso**, com semente: nos mais vendidos pesa a quantidade
   vendida; na pouca saída, o dinheiro parado na prateleira; nas novidades, a
   mais recente. Semente injetada, para o teste afirmar o que saiu.
-- **Teto por departamento**: um terço das vagas.
+- **Teto por departamento**: um terço das vagas — menos no tema de
+  departamento e com menos de três departamentos em jogo. **O assunto do tema
+  vence o teto**: antes de outro papel entrar, o papel do tema é sorteado de
+  novo sem ele.
+- **Troca de um produto**: outro do mesmo papel, **dentro do tema**, sem repetir
+  quem está na peça nem quem já foi trocado.
+- **Reservas** à parte, para a foto que não carregar. Nunca ofertas.
 - **Venda cancelada não conta**, como em todo o BI.
-- A regra mora num `static` sem banco, no molde de `ProductScoreRules`.
+- A regra mora em `CatalogDrawRules` (`static`, sem banco, com o acaso
+  injetado), no molde de `ProductScoreRules`. O serviço faz quatro consultas
+  agregadas e pede o card de cada sorteado à vitrine (`GetCardsAsync`).
+
+Medido contra a dev em 03/10/2026: 608 elegíveis; ~11 idas ao banco por
+sorteio, 1,5 s rodando daqui (a medição local exagera cerca de 8 vezes o custo
+em produção).
 
 ### 2.4 O que cada peça imprime
 
@@ -196,8 +228,9 @@ de `template/geometry.ts` — mudou num, mude no outro.
 | Peça | Onde |
 | ---- | ---- |
 | Molde, geração e tela | `apps/admin/src/features/marketing-catalog/` (README com as regras) |
-| Rota | `/marketing/catalogo`, sem `roles`; oculta do menu até a etapa 2 |
-| Sorteio (etapa 2) | `Uaus.Backend.Api`, serviço e regra próprios, `POST /Catalogs/draw` |
+| Rota | `/marketing/catalogo`, sem `roles`; item "Catálogo" do grupo Marketing |
+| Sorteio | `Uaus.Backend.Api`: `CatalogsController` (`GET /Catalogs/themes`, `POST /Catalogs/draw`, qualquer usuário autenticado), `Services/Catalogs/` |
+| Cliente | `packages/api-client/src/hooks/catalogs.ts` e os DTOs em `models.ts` |
 
 ---
 
@@ -205,16 +238,14 @@ de `template/geometry.ts` — mudou num, mude no outro.
 
 | #   | Entrega | Estado |
 | --- | ------- | ------ |
-| 1   | CORS no bucket; molde padrão; banner 9:16 "Novidades e promoções" com produtos reais; sortear de novo, compartilhar e baixar | **feita em 03/10/2026** — produtos sorteados da vitrine pública, provisório |
-| 2   | Sorteio na API (papéis, mistura, teto por departamento); escolha de tema e título; trocar um produto; item no menu Marketing | a fazer |
+| 1   | CORS no bucket; molde padrão; banner 9:16 "Novidades e promoções" com produtos reais; sortear de novo, compartilhar e baixar | **feita em 03/10/2026**; testada e aprovada pelo dono no celular (~6 s para gerar, com leves travadas; salvar e compartilhar funcionaram) |
+| 2   | Sorteio na API (papéis, mistura, teto por departamento); escolha de tema e título; trocar um produto; item no menu Marketing; controles antes da prévia | **feita em 03/10/2026** |
 | 3   | Catálogo PDF com seções e links rastreados; banner 4:5; largura e altura em `images`; etiqueta "Foto pequena" em Anomalias; atalho no BI › Desempenho de Produtos | a fazer |
 | 4   | Histórico das peças compartilhadas: não repetir quem saiu nas últimas e medir vendas antes e depois | depois de algumas semanas de uso |
 
-### O que a etapa 1 NÃO garante
+### O que ainda não está garantido
 
-- **Saldo.** A vitrine pública não expõe saldo, então o sorteio provisório pode
-  escolher produto esgotado. A etapa 2 resolve no servidor.
-- **Novidade de verdade.** "Mais recente" aqui é a ordem da vitrine (cadastro
-  mais novo primeiro), não os 30 dias de loja.
-- **iPhone.** A geração foi provada no Chromium. O teste no Safari do celular é
-  do dono, no ambiente de dev.
+- **A travada ao gerar no celular.** O desenho roda na linha principal do
+  navegador. Entra na etapa 3, junto do PDF (que desenha várias páginas).
+- **Foto pequena.** O sorteio ainda não conhece o tamanho da foto; no banner de
+  3 colunas isso não aparece, e passa a importar no PDF (etapa 3).

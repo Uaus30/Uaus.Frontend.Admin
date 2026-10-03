@@ -1,12 +1,14 @@
 import { Button } from "@workspace/ui";
-import { Download, Megaphone, RefreshCw, Share2, Sparkles } from "lucide-react";
+import { Download, Megaphone, Share2 } from "lucide-react";
 import { CatalogBannerPreview } from "@/features/marketing-catalog/components/CatalogBannerPreview";
-import { STORY_TITLE, useCatalogGenerator } from "@/features/marketing-catalog/hooks/useCatalogGenerator";
+import { CatalogControls } from "@/features/marketing-catalog/components/CatalogControls";
+import { CatalogProductList } from "@/features/marketing-catalog/components/CatalogProductList";
+import { useCatalogGenerator } from "@/features/marketing-catalog/hooks/useCatalogGenerator";
 
 /** Catálogo de divulgação (rota `/marketing/catalogo`). */
 export default function MarketingCatalogPage() {
-  const { status, banner, errorMessage, isGenerating, canShare, generate, share, download } =
-    useCatalogGenerator();
+  const generator = useCatalogGenerator();
+  const { banner, isGenerating } = generator;
 
   return (
     <div className="space-y-6">
@@ -23,55 +25,64 @@ export default function MarketingCatalogPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start">
-        <CatalogBannerPreview status={status} previewUrl={banner?.previewUrl} errorMessage={errorMessage} />
+      {/* A ordem no código é a do celular, que é uma coluna só: escolher e gerar,
+          ver a prévia, compartilhar, e por fim trocar produto. No computador a
+          prévia sobe para a coluna da direita sem mudar essa ordem.
+          `min-w-0`: item de grid não encolhe abaixo do próprio conteúdo, e o
+          nome comprido da lista alargava a coluna além da tela do celular. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+          <CatalogControls
+            themes={generator.themes}
+            theme={generator.theme}
+            onThemeChange={generator.selectTheme}
+            isLoadingThemes={generator.isLoadingThemes}
+            themesFailed={generator.themesFailed}
+            title={generator.title}
+            onTitleChange={generator.setTitle}
+            hasBanner={banner !== null}
+            isGenerating={isGenerating}
+            titleChanged={generator.titleChanged}
+            onGenerate={generator.generate}
+            onApplyTitle={generator.applyTitle}
+          />
+        </div>
 
-        {/* `min-w-0`: item de grid não encolhe abaixo do próprio conteúdo, e o nome
-            comprido da lista (que não quebra linha) alargava a coluna além da
-            tela do celular — a prévia e os botões saíam cortados. */}
-        <div className="min-w-0 space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Banner 9:16</p>
-            <p className="text-lg font-semibold text-foreground">{STORY_TITLE}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Ofertas vigentes e os cadastros mais recentes do site, com foto. O preço impresso é o de agora.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Button onClick={generate} disabled={isGenerating} className="gap-2">
-              {banner ? <RefreshCw className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-              {banner ? "Sortear de novo" : "Gerar banner"}
-            </Button>
-
-            {banner && canShare && (
-              <Button variant="outline" onClick={share} disabled={isGenerating} className="gap-2">
-                <Share2 className="h-4 w-4" /> Compartilhar
-              </Button>
-            )}
-
-            {banner && (
-              <Button variant="outline" onClick={download} disabled={isGenerating} className="gap-2">
-                <Download className="h-4 w-4" /> Baixar
-              </Button>
-            )}
-          </div>
+        <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <CatalogBannerPreview
+            status={generator.status}
+            previewUrl={banner?.previewUrl}
+            errorMessage={generator.errorMessage}
+          />
 
           {banner && (
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Produtos neste banner ({banner.products.length})
-              </p>
-              <ul className="mt-2 space-y-1 text-sm text-foreground">
-                {banner.products.map((product) => (
-                  <li key={product.productGroupId} className="truncate">
-                    {product.name}
-                  </li>
-                ))}
-              </ul>
+            <div className="mx-auto flex w-full max-w-[360px] flex-col gap-2 sm:flex-row">
+              {generator.canShare && (
+                <Button onClick={generator.share} disabled={isGenerating} className="flex-1 gap-2">
+                  <Share2 className="h-4 w-4" /> Compartilhar
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={generator.download}
+                disabled={isGenerating}
+                className="flex-1 gap-2"
+              >
+                <Download className="h-4 w-4" /> Baixar
+              </Button>
             </div>
           )}
         </div>
+
+        {banner && (
+          <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+            <CatalogProductList
+              products={banner.products}
+              isGenerating={isGenerating}
+              onSwap={generator.swap}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

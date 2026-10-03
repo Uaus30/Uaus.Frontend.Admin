@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import satori from "satori";
+import type { StorefrontProductDto } from "@workspace/api-client-react";
 import type { CatalogCard, StoryBannerData } from "../../types";
 import { StoryBanner } from "../StoryBanner";
 import { STORY } from "../geometry";
@@ -55,6 +56,7 @@ function card(id: number, overrides: Partial<CatalogCard> = {}): CatalogCard {
     name: `PRODUTO ${id}`,
     price: 9.9,
     hasPriceRange: false,
+    role: "regular",
     photo: PIXEL,
     ...overrides,
   };
@@ -189,13 +191,20 @@ describe("molde do banner 9:16 no satori", () => {
     "grava a prévia com produtos reais da vitrine",
     async () => {
       const { Resvg, initWasm } = await import("@resvg/resvg-wasm");
-      const { createSeededRandom, pickStoryProducts } = await import("../../lib/pickProducts");
+      const { toCatalogProducts } = await import("../../lib/catalogProducts");
       await initWasm(readFile(require.resolve("@resvg/resvg-wasm/index_bg.wasm")));
 
+      // A vitrine PÚBLICA, e não o sorteio: `/Catalogs/draw` exige sessão, e a
+      // prévia serve para olhar o desenho, não a escolha. `CATALOG_PREVIEW_SEED`
+      // desloca a janela de produtos, para ver cards diferentes.
       const api = process.env.CATALOG_PREVIEW_API ?? "https://api.uaus.com.br";
       const page = await (await fetch(`${api}/Storefront/products?size=60`)).json();
-      const seed = Number(process.env.CATALOG_PREVIEW_SEED ?? Date.now());
-      const products = pickStoryProducts(page.items, 9, createSeededRandom(seed), 9);
+      const offset = Number(process.env.CATALOG_PREVIEW_SEED ?? 0) % 40;
+      const products = toCatalogProducts(
+        page.items
+          .slice(offset, offset + 18)
+          .map((product: StorefrontProductDto) => ({ role: "Regular", product })),
+      );
 
       // Aqui não há o canvas do navegador para normalizar a foto, então só entra
       // o que o satori lê cru: JPEG e PNG de verdade, conferidos pelos primeiros

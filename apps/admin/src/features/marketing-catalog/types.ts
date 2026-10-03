@@ -5,6 +5,13 @@
 export type CatalogBadge = "offer" | "new" | "lastUnits";
 
 /**
+ * O papel que fez o produto sair no sorteio (o `CATALOG_ROLE` da API, em nome
+ * de tela). É ele que a troca de um produto devolve ao servidor: a novidade
+ * trocada dá lugar a outra novidade, e a mistura da peça não se desfaz.
+ */
+export type CatalogRole = "offer" | "new" | "bestSeller" | "regular" | "slow";
+
+/**
  * Um produto do catálogo, como ele chega dos dados: o que o cliente pode ver.
  * Custo e saldo não existem aqui de propósito — a peça circula em grupo de
  * WhatsApp, fora do controle da loja.
@@ -24,6 +31,7 @@ export interface CatalogProduct {
   referencePrice?: number;
   /** URL pública da capa, no bucket. */
   imageUrl: string;
+  role: CatalogRole;
   badge?: CatalogBadge;
 }
 

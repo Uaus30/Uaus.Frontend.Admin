@@ -2,25 +2,38 @@
 
 Gera o material de divulgação da loja sem montagem manual: o sistema sorteia os
 produtos e desenha a peça pronta para compartilhar. Rota `/marketing/catalogo`,
-**aberta a qualquer papel** (decisão do dono, 03/10/2026: quem está no balcão
-também divulga, e a tela não mostra custo, margem nem saldo).
+item **Catálogo** do grupo Marketing, **aberto a qualquer papel** (decisão do
+dono, 03/10/2026: quem está no balcão também divulga, e a tela não mostra custo,
+margem nem saldo).
 
 O contrato completo — decisões, números medidos, regras do sorteio e etapas —
 está em `PLANO-CATALOGO.md`, na raiz do repositório.
 
-**Esta é a etapa 1**: um formato (banner 9:16, para o status do WhatsApp e o
-story do Instagram) e um tema (novidades e promoções). A rota existe e responde,
-mas fica **fora do menu** até a etapa 2.
+**Estado: etapas 1 e 2.** Um formato (banner 9:16, para o status do WhatsApp e o
+story do Instagram), com escolha de tema e título, sorteio do servidor e troca
+de um produto. O PDF e o banner 4:5 são a etapa 3.
 
 ## Regras de negócio
 
-### 1. A peça só leva o que o cliente pode ver
+### 1. Quem sorteia é o servidor; quem desenha é o navegador
+
+`POST /Catalogs/draw` devolve os produtos da peça já na ordem de desenho, cada um
+com o **papel** que o fez sair (oferta, novidade, mais vendido, intermediário,
+pouca saída). O servidor sorteia com números que a tela não recebe — venda,
+dinheiro parado, dias de loja. As regras do sorteio estão no `PLANO-CATALOGO.md`
+(seção 2.3) e em `CatalogDrawRules`, no backend.
+
+A tela não sorteia, não filtra e não recalcula preço. Ela só converte o item no
+formato do molde (`lib/catalogProducts.ts`).
+
+### 2. A peça só leva o que o cliente pode ver
 
 `CatalogProduct` não tem custo nem saldo, e não é esquecimento: a imagem circula
-em grupo de WhatsApp, fora do controle da loja. O preço impresso é o que o
-cliente paga hoje — o promocional quando há oferta vigente.
+em grupo de WhatsApp, fora do controle da loja. O card que chega da API é o
+**mesmo da vitrine pública**; o preço impresso é o que o cliente paga hoje — o
+promocional quando há oferta vigente.
 
-### 2. Toda peça sai com o aviso, e a data vai dentro dele
+### 3. Toda peça sai com o aviso, e a data vai dentro dele
 
 > Preços de referência em dd/mm/aaaa, sujeitos a alteração sem aviso e à
 > disponibilidade de estoque. Imagens meramente ilustrativas.
@@ -30,48 +43,68 @@ do aparelho: quem gera é o celular de quem estiver no balcão, e um fuso errado
 não pode datar a peça de ontem. Ela existe porque a imagem é vista dias depois —
 sem data, o preço de hoje vira promessa sem prazo.
 
-### 3. O preço é buscado a cada geração
+### 4. O sorteio nunca vem do cache
 
-O hook pede a vitrine com `staleTime: 0`. O preço vai **impresso**; servir o do
-cache de dez minutos atrás colocaria no status um preço que o balcão já não
-pratica.
+`drawCatalog` é função, e não hook de query: cada chamada dá uma peça diferente
+de propósito, e o preço vai **impresso** — servir o de dez minutos atrás
+colocaria no status um preço que o balcão já não pratica.
 
-### 4. Um selo por card, e a oferta vence
+### 5. Um selo por card: oferta, depois novidade, depois escassez
 
-Oferta, Novidade ou Últimas unidades — nunca dois. Dois selos disputando o canto
-da foto tapam o produto sem informar mais. A oferta vence porque é ela que muda
-o preço impresso.
+Nunca dois. Dois selos disputando o canto da foto tapam o produto sem informar
+mais. A oferta vence porque é ela que muda o preço impresso — e quem decide que
+é oferta é o **card** (`promotion` presente), não o papel do sorteio: uma
+promoção que começou entre o sorteio e a montagem do card não pode deixar o selo
+dizendo uma coisa e o preço outra.
 
-### 5. O "de" riscado e o "a partir de" convivem
+### 6. O "de" riscado e o "a partir de" convivem
 
 Oferta de 20% num grupo com variações de R$ 10 e R$ 16 custa de R$ 8,00 a
 R$ 12,80. Imprimir só "de R$ 10,00" sobre o R$ 8,00 prometeria o menor preço
 para todas as variações; a peça mostra as duas legendas, como o `PriceTag` do
 site.
 
-O "de" só aparece quando a API manda.
+O "de" só aparece quando a API manda: `referencePrice` já vem ausente quando o
+corte é de até 5% (regra do servidor, a mesma do site).
 
-`referencePrice` já vem ausente quando o corte é de até 5% (regra do servidor, a
-mesma do site). A peça não refaz essa conta: refazer criaria um catálogo
-prometendo "de R$ 5,00 por R$ 4,90" que o site não mostra.
+### 7. O tema sugere o título; a pessoa pode trocar
 
-### 6. As ofertas ocupam no máximo um terço do banner
+Os quatro temas fixos e um por departamento vêm de `GET /Catalogs/themes`, com
+quantos cadastros cada um tem para sortear. Tema sem produto continua na lista,
+desabilitado: sumir com "Novidades" num mês sem novidade pareceria defeito.
 
-Mesmo raciocínio da seção Novidades do site: com muitas promoções no ar, o banner
-viraria só oferta e deixaria de mostrar o que chegou. Faltando produto sem oferta
-para completar, as ofertas que sobraram entram.
+O título do cabeçalho nasce do tema ("Cozinha") e é editável ("Utilidades de
+cozinha"), até 36 caracteres — o que cabe em uma linha na menor fonte.
 
-O terço é dos **9 do banner**, e não dos candidatos com folga (regra 7): as
-reservas vêm depois, e são produtos sem oferta. Somando a folga ao tamanho do
-banner, o teto virava 4 em 9.
+- **Trocar de tema descarta o que foi digitado**: o texto era do outro tema.
+- **Título apagado volta ao sugerido**: a peça não sai sem cabeçalho.
+- **Mexer no título depois de gerar** acende "Atualizar título", que redesenha a
+  **mesma** peça, sem sortear de novo. Com outro tema selecionado o botão não
+  aparece: aí o campo é o título do próximo sorteio.
 
-### 7. Foto fora do ar cede a vaga
+### 8. Trocar um produto mantém a mistura
 
-O sorteio entrega candidatos **a mais** (9 + 4). O montador baixa todas as fotos
-e usa as nove primeiras que vieram: o banner não sai com buraco, e uma foto
-quebrada não derruba a geração. Só há erro quando nenhuma carrega.
+"Trocar" pede ao servidor **um** produto do mesmo papel, no tema da **peça** (e
+não no que estiver selecionado no campo), sem repetir quem está nela nem quem já
+foi trocado nesta peça. A novidade trocada dá lugar a outra novidade. O novo
+entra no lugar do antigo; os outros oito não se mexem.
 
-### 8. "Sortear de novo": vale a última
+Um sorteio novo zera a lista de trocados. Sem outro produto para pôr no lugar, a
+tela avisa e mantém a peça.
+
+**A troca só vale se a foto do substituto carregar.** Na troca não há reserva
+para ceder a vaga: o montador descartaria o produto de foto quebrada e a peça
+voltaria com oito, em silêncio. A peça fica como estava, a tela pede para trocar
+de novo, e o substituto de foto quebrada não é sorteado outra vez.
+
+### 9. Foto fora do ar cede a vaga
+
+O sorteio devolve **reservas** à parte (4). O montador baixa todas as fotos e
+usa as nove primeiras que vieram: o banner não sai com buraco, e uma foto
+quebrada não derruba a geração. Só há erro quando nenhuma carrega. As reservas
+nunca são ofertas — a reserva não pode furar o teto delas.
+
+### 10. Vale a última geração
 
 Cada geração tem um número (`runRef`). Dois toques seguidos disparam duas
 gerações, e a que responder atrasada é descartada — sem isso, o banner da
@@ -83,12 +116,19 @@ depois, criaria a URL da prévia para uma tela que não existe mais, e o arquivo
 ficaria preso na memória — não há efeito de limpeza para um estado que nunca foi
 exibido.
 
-### 9. Compartilhar baixa quando a folha do aparelho não existe
+### 11. Compartilhar baixa quando a folha do aparelho não existe
 
 No celular, "Compartilhar" abre a folha do sistema com o arquivo (WhatsApp,
 Instagram). No computador ela não aceita arquivo, e o botão nem aparece — fica o
 "Baixar". Fechar a folha sem escolher é desistência; qualquer outra falha cai no
 download, porque quem tocou quer o arquivo.
+
+### 12. Escolher e gerar vêm antes da prévia
+
+Pedido do dono (03/10/2026). No celular a tela é uma coluna só, e com a prévia
+em cima o botão de gerar ficava abaixo de uma moldura vazia. A ordem é a do
+trabalho: tema e título, gerar, prévia, compartilhar, e por fim a lista para
+trocar produto. No computador a prévia sobe para a coluna da direita.
 
 ## O molde é desenhado pelo satori, não pelo navegador
 
@@ -130,8 +170,10 @@ cd apps/admin
 CATALOG_PREVIEW_DIR=../../../TEMP/catalogo npx vitest run StoryBanner.render
 ```
 
-Grava `banner-story.png` com produtos reais da vitrine pública.
-`CATALOG_PREVIEW_SEED` fixa o sorteio; `CATALOG_PREVIEW_API` troca a API.
+Grava `banner-story.png` com produtos reais da **vitrine pública** (o sorteio
+exige sessão; a prévia serve para olhar o desenho, não a escolha).
+`CATALOG_PREVIEW_SEED` desloca a janela de produtos; `CATALOG_PREVIEW_API` troca
+a API.
 
 ### As fotos passam por um canvas antes do molde
 
@@ -151,27 +193,27 @@ o logotipo da arte da marca e estende a textura. As medidas de lá são as de
 `template/geometry.ts`: mudou a posição do logotipo num, mude no outro, senão o
 título passa por cima dele.
 
-## O que é provisório na etapa 1
+## O contato do rodapé é o do site
 
-`lib/pickProducts.ts` sorteia da **vitrine pública** (`/Storefront/products`): as
-ofertas e os 60 cadastros mais recentes. A vitrine não expõe saldo nem dias de
-loja, então o banner pode trazer produto esgotado e "novidade" é só a ordem do
-cadastro. A etapa 2 troca esse arquivo pelo sorteio do servidor.
-
-`lib/storeContact.ts` repete o contato do site (`apps/loja/src/lib/site.ts`). O
-cadastro de Configurações não serve: é o do cupom — caixa alta e o celular de um
-sócio. É a segunda cópia; na terceira os valores sobem para o `packages/core`.
+`lib/storeContact.ts` repete o contato do site (`apps/loja/src/lib/site.ts`), e
+o dono confirmou a escolha em 03/10/2026. O cadastro de Configurações não serve:
+é o do cupom — caixa alta e o celular de um sócio. É a segunda cópia; na terceira
+os valores sobem para o `packages/core`.
 
 ## Estrutura
 
 - `template/geometry.ts`: medidas do banner e a grade conforme a quantidade.
 - `template/text.ts`: preço partido, data da loja, aviso, corpo do título.
 - `template/StoryBanner.tsx` e `ProductCard.tsx`: o molde.
+- `lib/catalogProducts.ts`: o item sorteado no formato do molde; papéis e selo.
+- `lib/themes.ts`: as opções do seletor de tema, com rótulo e título sugerido.
 - `lib/renderer.ts`: satori + resvg, carregados sob demanda.
 - `lib/photos.ts`: fotos e artes em data URL; pixels em JPEG.
 - `lib/fonts.ts`: os cinco pesos da Montserrat.
 - `lib/buildStoryBanner.ts`: junta tudo e devolve o arquivo.
 - `lib/share.ts`: folha de compartilhamento, download e nome do arquivo.
 - `hooks/useCatalogGenerator.ts`: estado e ações da tela.
+- `components/CatalogControls.tsx`: tema, título e os botões de gerar.
 - `components/CatalogBannerPreview.tsx`: a moldura da prévia — que mostra o
   próprio arquivo, e não uma simulação.
+- `components/CatalogProductList.tsx`: quem saiu na peça, com a troca.

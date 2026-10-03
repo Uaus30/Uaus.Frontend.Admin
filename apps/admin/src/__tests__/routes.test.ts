@@ -23,9 +23,10 @@ const RESTRITAS = [
   "/financeiro/custos-fixos",
   "/financeiro/relatorios",
   "/configuracoes",
-  // Marketing inteiro é Admin: todas as actions de CouponsController e
+  // Cupom e campanha são de Admin: todas as actions de CouponsController e
   // CampaignsController são [Authorize(Role.Admin)], e papel de marketing está
   // declarado fora de escopo. Sem isto o Vendedor veria o menu e tomaria 403.
+  // (O catálogo de divulgação é a exceção do grupo, e não está nesta lista.)
   "/marketing/cupons",
   "/marketing/campanhas",
   "/marketing/campanhas/comparativo",
@@ -213,16 +214,14 @@ describe("podeAcessar", () => {
     expect(podeAcessar(detalhe, USER_ROLE.Admin)).toBe(true);
   });
 
-  it("o catálogo de divulgação é da equipe inteira, e ainda fica fora do menu", () => {
+  it("o catálogo de divulgação é da equipe inteira", () => {
     // Decisão do dono (03/10/2026): quem está no balcão também gera e
-    // compartilha, e a tela não mostra custo nem margem. Oculto enquanto só a
-    // etapa 1 existe — se o item aparecer no menu antes da etapa 2, o grupo
-    // Marketing passa a existir para o Vendedor com uma tela pela metade.
+    // compartilha, e a tela não mostra custo nem margem.
     const catalogo = ROUTES.find((r) => r.path === "/marketing/catalogo")!;
 
     expect(catalogo.roles).toBeUndefined();
     expect(podeAcessar(catalogo, USER_ROLE.Seller)).toBe(true);
-    expect(catalogo.hidden).toBe(true);
+    expect(podeAcessar(catalogo, USER_ROLE.Admin)).toBe(true);
   });
 });
 
@@ -247,11 +246,19 @@ describe("buildMenu", () => {
   });
 
   it("some com o grupo cujos itens são todos restritos", () => {
-    // "Marketing" só tem telas de Admin; mostrá-lo vazio ao Vendedor seria pior
-    // que não mostrar.
+    // "BI" só tem telas de Admin; mostrá-lo vazio ao Vendedor seria pior que
+    // não mostrar.
     const menu = buildMenu(USER_ROLE.Seller);
 
-    expect(menu.find((item) => item.name === "Marketing")).toBeUndefined();
+    expect(menu.find((item) => item.name === "BI")).toBeUndefined();
+  });
+
+  it("Marketing aparece ao Vendedor só com o Catálogo, que é da equipe inteira", () => {
+    // Cupom, campanha e promoção continuam de Admin (mostram custo e margem, e
+    // o backend recusa). O catálogo de divulgação é o único item aberto.
+    const marketing = buildMenu(USER_ROLE.Seller).find((item) => item.name === "Marketing");
+
+    expect(marketing?.items?.map((i) => i.href)).toEqual(["/marketing/catalogo"]);
   });
 
   it("Sistema aparece ao Vendedor só com Tarefas, que é da equipe inteira", () => {
@@ -270,7 +277,7 @@ describe("buildMenu", () => {
     expect(sistema?.items?.map((i) => i.name)).toEqual(["Tarefas", "Configurações", "Logs"]);
   });
 
-  it("o Admin vê o grupo Marketing com as cinco telas", () => {
+  it("o Admin vê o grupo Marketing com as seis telas", () => {
     const menu = buildMenu(USER_ROLE.Admin);
     const marketing = menu.find((item) => item.name === "Marketing");
 
@@ -283,6 +290,9 @@ describe("buildMenu", () => {
       "/marketing/campanhas",
       "/marketing/promocoes",
       "/marketing/campanhas/comparativo",
+      // O catálogo de divulgação por último (03/10/2026): não tem sequência de
+      // trabalho com cupom nem com campanha.
+      "/marketing/catalogo",
     ]);
   });
 

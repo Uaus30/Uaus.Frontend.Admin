@@ -2867,3 +2867,69 @@ export interface LoyaltyActionRowDto {
   /** Nas listas de prêmio: disponível, mas passou do prazo de troca. */
   expired?: boolean | null;
 }
+
+// ------------------------------------------------- Catálogo de divulgação
+
+/**
+ * O tema de uma peça do catálogo de divulgação: de onde os produtos são
+ * sorteados. Chega como NOME do enum; leia com `enumCode(valor, CATALOG_THEME)`.
+ */
+export const CATALOG_THEME = {
+  None: 0,
+  /** A mistura "inteligente": âncoras, novidades e descobertas, um terço cada. */
+  General: 1,
+  NewsAndOffers: 2,
+  BestSellers: 3,
+  /** "Achados": o que tem saldo e não vendeu em 90 dias. O nome é do dono. */
+  Finds: 4,
+  /** A mistura geral, restrita a um departamento. */
+  Department: 5,
+} as const;
+
+/**
+ * O papel que fez o produto sair no sorteio. Cada cadastro tem um só, pela
+ * prioridade desta ordem. Chega como NOME do enum.
+ */
+export const CATALOG_ROLE = {
+  None: 0,
+  Offer: 1,
+  /** Até 30 dias na loja. */
+  New: 2,
+  BestSeller: 3,
+  /** Vendeu no período, fora do terço de cima. */
+  Regular: 4,
+  /** Tem saldo e não vendeu no período. */
+  Slow: 5,
+} as const;
+
+/** Um tema disponível, com quantos cadastros ele tem para sortear. */
+export interface CatalogThemeDto {
+  theme: EnumValue;
+  /** Só no tema `Department`. */
+  departmentId?: number | null;
+  /** Só no tema `Department`. */
+  departmentName?: string | null;
+  products: number;
+}
+
+/**
+ * Um produto sorteado: o papel e o card.
+ *
+ * O card é o MESMO da vitrine pública, montado pelo mesmo serviço — o preço, o
+ * "de/por" e a tag de escassez da peça não têm como divergir do site. E, por
+ * ser ele, não carrega custo nem saldo.
+ */
+export interface CatalogItemDto {
+  role: EnumValue;
+  product: StorefrontProductDto;
+}
+
+/** O resultado de um sorteio. */
+export interface CatalogDrawDto {
+  /** A semente usada: a enviada, ou a que o servidor escolheu. */
+  seed: number;
+  /** Os produtos da peça, na ordem em que devem ser desenhados. */
+  items: CatalogItemDto[];
+  /** Reservas para o produto cuja foto não carregar. Nunca ofertas. */
+  reserves: CatalogItemDto[];
+}
