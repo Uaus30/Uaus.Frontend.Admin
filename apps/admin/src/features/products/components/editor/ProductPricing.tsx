@@ -20,7 +20,7 @@ type ProductPricingProps = {
  * para lugar nenhum — e o operador o preencheria achando que vale para todas.
  *
  * Estoque mínimo, estoque atual e visibilidade moravam aqui atrás do botão de
- * olho; foram para a aba **Opcionais** da tela de detalhe.
+ * olho; hoje moram em "Mais campos", logo abaixo de preço e status.
  *
  * Abaixo do preço, a margem sobre o último custo — ou sobre o da compra, no
  * cadastro que veio dela — ver `ProductMarginHint`.

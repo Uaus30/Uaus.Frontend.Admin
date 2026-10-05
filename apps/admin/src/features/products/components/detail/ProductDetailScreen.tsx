@@ -7,12 +7,10 @@ import { useGetStockFreezeStatus } from "@workspace/api-client-react";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 import type { ProductGrade, VariationDraft } from "../../types";
 import { resolveBarcodeInput } from "@workspace/core";
-import { printBarcodeLabel } from "../../lib/barcodeLabel";
 import { nomeExibidoDaVariacao, opcoesDeVariacao } from "../../lib/variationNames";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
 import { validateProductForm } from "../../lib/validateProductForm";
 import { useFirstPhotoSitePrompt } from "../../hooks/editor/useFirstPhotoSitePrompt";
-import { ProductOptionalFields } from "../editor/ProductOptionalFields";
 import { ProductNotesAlert } from "./ProductNotesAlert";
 import { ProductDetailActions } from "./ProductDetailActions";
 import { ProductEditorDialogs } from "./ProductEditorDialogs";
@@ -28,7 +26,7 @@ import { ProductConferenceBanner } from "@/features/inventory-count/components/P
 type ProductDetailScreenProps = {
   editor: ReturnType<typeof useProductEditor>;
   /** Aba aberta na montagem. O menu "Estoque" da listagem cai direto no lançamento. */
-  initialTab?: "dados" | "estoque" | "vendas" | "opcionais";
+  initialTab?: "dados" | "estoque" | "vendas";
   /**
    * Variação já escolhida na aba de Estoque, quando quem abriu a tela sabe qual
    * é — o recebimento de uma compra. Id que não pertença ao grupo é ignorado
@@ -43,14 +41,13 @@ type ProductDetailScreenProps = {
  * Para onde o "Avançar" leva a partir de cada aba.
  *
  * Dados → Estoque é o caminho do cadastro de mercadoria nova (cadastrar e
- * lançar o que chegou). De Estoque e de Opcionais ele volta para Dados: a tela
- * tem três abas, e o Avançar é um par de idas e vindas, não um carrossel.
+ * lançar o que chegou). Das outras abas ele volta para Dados: o Avançar é um par
+ * de idas e vindas, não um carrossel.
  */
 const PROXIMA_ABA: Record<string, "dados" | "estoque"> = {
   dados: "estoque",
   estoque: "dados",
   vendas: "dados",
-  opcionais: "dados",
   desempenho: "dados",
   historico: "dados",
 };
@@ -59,7 +56,6 @@ const ROTULO_DA_ABA: Record<string, string> = {
   dados: "Dados",
   estoque: "Estoque",
   vendas: "Vendas",
-  opcionais: "Opcionais",
   desempenho: "Desempenho",
   historico: "Histórico",
 };
@@ -99,9 +95,10 @@ function impedirEnvioPeloEnter(event: React.KeyboardEvent<HTMLFormElement>) {
  *
  * As abas separam por FREQUÊNCIA de uso, não por assunto:
  *
- * - **Dados** — o que o cadastro do dia a dia preenche e sem o que não salva.
+ * - **Dados** — o que o cadastro do dia a dia preenche e sem o que não salva,
+ *   as fotos e, atrás de "Mais campos", os opcionais (até 04/10/2026 eram a aba
+ *   **Opcionais**; ver `ProductGeneralTab`).
  * - **Estoque** — o histórico de entradas do produto e o lançamento rápido.
- * - **Opcionais** — o que era o olho fechado.
  * - **Vendas** — as saídas: cada venda que levou o produto (30/09/2026),
  *   penúltima, depois de Desempenho.
  *
@@ -115,9 +112,10 @@ function impedirEnvioPeloEnter(event: React.KeyboardEvent<HTMLFormElement>) {
  * Radix, então ficam FORA do form — o formulário simplificado de entrada tem
  * `<form>` próprio e aninhar os dois seria HTML inválido.
  *
- * **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem
- * id não há lote para lançar nem etiqueta para associar, e a aba Estoque
- * abriria só para dizer "salve primeiro". O Avançar da aba Dados salva e já
+ * **Cadastro novo trava as abas até o primeiro salvamento.** Sem id não há
+ * lote para lançar, venda, nota nem histórico, e a aba Estoque abriria só para
+ * dizer "salve primeiro". Os opcionais, que moram na aba Dados, já valem no
+ * cadastro novo: o salvar os grava junto. O Avançar da aba Dados salva e já
  * cai na aba Estoque, que é o fluxo de quem acabou de receber mercadoria nova.
  */
 export function ProductDetailScreen({
@@ -165,10 +163,8 @@ export function ProductDetailScreen({
   );
 
   const currentBarcode = productEditor.barcode || "";
-  // O que a API vai GRAVAR a partir do que está no campo — é isso que a prévia
-  // desenha e a etiqueta imprime. Até 21/09/2026 a tela sintetizava um código só
-  // para exibir, e o cadastro guardava outro: a etiqueta de 80mm saía com
-  // `2000000000206` enquanto o banco tinha `0020`, e o PDV não achava o produto.
+  // O que a API vai GRAVAR a partir do que está no campo — é o que os avisos
+  // embaixo dele explicam (inválido, faixa interna, gerado ao salvar).
   const barcodeInput = useMemo(() => resolveBarcodeInput(currentBarcode), [currentBarcode]);
 
   /** Variações JÁ GRAVADAS: só elas têm id, e só id tem entrada de estoque. */
@@ -391,9 +387,6 @@ export function ProductDetailScreen({
               <TabsTrigger value="estoque" disabled={cadastroNovo}>
                 Estoque
               </TabsTrigger>
-              <TabsTrigger value="opcionais" disabled={cadastroNovo}>
-                Opcionais
-              </TabsTrigger>
               <TabsTrigger value="desempenho" disabled={cadastroNovo}>
                 Desempenho
               </TabsTrigger>
@@ -407,7 +400,7 @@ export function ProductDetailScreen({
             </TabsList>
             {cadastroNovo && (
               <p className="text-xs text-muted-foreground">
-                Salve o produto para liberar as abas Estoque e Opcionais — o Avançar já faz isso.
+                Salve o produto para liberar as outras abas — o Avançar já faz isso e abre a aba Estoque.
               </p>
             )}
           </div>
@@ -421,15 +414,6 @@ export function ProductDetailScreen({
               barcodeInput={barcodeInput}
               currentBarcode={currentBarcode}
               flashSuccess={flashSuccess}
-              onPrintBarcode={() =>
-                barcodeInput.code &&
-                printBarcodeLabel({
-                  barcode: barcodeInput.code,
-                  name: form.productGroupName,
-                  price: productEditor.price,
-                })
-              }
-              onPrintVariationBarcode={(barcode, name, price) => printBarcodeLabel({ barcode, name, price })}
               setSearchModalOpen={setSearchModalOpen}
               setVariationToDelete={setVariationToDelete}
               onOpenGradePicker={() => setGradesModalOpen(true)}
@@ -472,10 +456,6 @@ export function ProductDetailScreen({
                 onSelectProduct={setPickedStockProductId}
               />
             )}
-          </TabsContent>
-
-          <TabsContent value="opcionais" className="mt-4">
-            <ProductOptionalFields editor={editor} />
           </TabsContent>
 
           {/* Montada só quando a aba é aberta: a consulta é da apuração guardada,

@@ -57,13 +57,13 @@ export function FirstPhotoSiteDialog({
             <>
               Ligando agora, o produto vai ao ar{" "}
               <span className="font-medium text-foreground">em seguida</span>, desde que tenha variação ativa.
-              Dá para mudar depois no cadastro, na aba Opcionais.
+              Dá para mudar depois no cadastro, em "Mais campos".
             </>
           ) : (
             <>
               Ligando agora, o produto vai ao ar quando você{" "}
               <span className="font-medium text-foreground">salvar</span>, desde que tenha variação ativa. Dá
-              para mudar depois na aba Opcionais, em Visibilidade.
+              para mudar depois em "Mais campos", em Visibilidade.
             </>
           )}
         </p>

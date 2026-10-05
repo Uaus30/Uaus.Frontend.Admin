@@ -4,8 +4,10 @@ import { Textarea } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
 import { HelpCircle, Settings } from "lucide-react";
 import { TagMultiSelect } from "@/components/tag-multi-select";
+import { formatShortDate } from "@workspace/core";
 import { STOCK_SETTINGS_PATH } from "@/lib/stock-control";
 import type { useProductEditor } from "../../hooks/useProductEditor";
+import { useProductForEntry } from "../../hooks/useProductForEntry";
 import { ProductStockControlField } from "./ProductStockControlField";
 
 type ProductOptionalFieldsProps = {
@@ -14,14 +16,19 @@ type ProductOptionalFieldsProps = {
 
 /**
  * Campos que o cadastro do dia a dia não preenche: descrição, etiquetas,
- * estoque mínimo, estoque atual, visibilidade no site, controle de estoque e
- * observações internas.
+ * estoque mínimo, visibilidade no site, controle de estoque e observações
+ * internas.
  *
- * Ficavam escondidos atrás do botão de olho da modal, e hoje são a aba
- * **Opcionais** da tela de detalhe. O olho tinha um problema
- * que a aba resolve: nada na tela dizia que existiam vários campos ali dentro —
- * quem não conhecia o ícone nunca marcava "exibir no site", e o produto não
- * aparecia na loja sem ninguém entender por quê.
+ * Ficavam atrás do botão de olho da modal, depois numa aba **Opcionais** (de
+ * 30/08 a 04/10/2026) e hoje voltam para a aba **Dados**, atrás do botão "Mais
+ * campos" abaixo de preço e status (`ProductGeneralTab`). A aba obrigava a
+ * trocar de tela para mexer no mínimo e no controle de estoque, que é o ajuste
+ * mais frequente daqui (relato do dono). O "Estoque atual" que existia aqui saiu:
+ * era o mesmo número do campo da aba Dados.
+ *
+ * Abaixo do estoque mínimo, a **última compra** ("comprei 3, o mínimo é 1"), do
+ * mesmo jeito que a margem aparece abaixo do preço. Só no produto simples: no
+ * grupo com variações o mínimo daqui não vale, cada variação tem o seu.
  *
  * Estoque mínimo e visibilidade são do PRODUTO representante e do GRUPO,
  * respectivamente. Num grupo com variações o estoque mínimo daqui não é usado:
@@ -35,9 +42,11 @@ type ProductOptionalFieldsProps = {
  */
 export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
   const { form, setForm, productEditor, setProductEditor, tags, registerTag, stockControl } = editor;
+  // A mesma consulta de "Último custo" e da margem: uma requisição só.
+  const { data: product } = useProductForEntry(form.hasVariations ? null : (productEditor.id ?? null));
 
   return (
-    <div className="space-y-6 rounded-2xl border border-border/50 bg-background/40 p-5">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
           <label className="text-sm font-medium">Descrição</label>
@@ -59,7 +68,7 @@ export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:col-span-2">
           <div className="space-y-2">
             <div className="flex items-center gap-1">
               <label className="text-sm font-medium">Estoque mínimo</label>
@@ -108,28 +117,16 @@ export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
               }
               className="bg-background"
             />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <label className="text-sm font-medium">Estoque atual</label>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger type="button" tabIndex={-1}>
-                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Calculado automaticamente com base nas entradas de estoque.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Input
-              type="number"
-              value={productEditor.stock}
-              readOnly
-              className="bg-muted/30 text-muted-foreground cursor-not-allowed"
-            />
+            {product?.lastPurchaseQuantity != null && (
+              <p
+                className="text-xs text-muted-foreground"
+                title="A última entrada de compra deste produto. Ajuda a escolher o mínimo: comprou 3, o mínimo pode ser 1."
+              >
+                Última compra:{" "}
+                <span className="font-semibold text-foreground">{product.lastPurchaseQuantity} un</span>
+                {product.lastPurchaseDate ? ` em ${formatShortDate(product.lastPurchaseDate)}` : ""}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

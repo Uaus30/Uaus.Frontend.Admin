@@ -556,6 +556,14 @@ export interface ProductDto {
   monthlySalesMedian?: number | null;
   /** Unidades por dia previstas pela rotina diária. */
   dailyDemand?: number | null;
+  /**
+   * Quantidade da última entrada de COMPRA (04/10/2026) — o "comprei 3" que
+   * ajuda a escolher o estoque mínimo. Só no `GET /Products/{id}`; omitida sem
+   * compra.
+   */
+  lastPurchaseQuantity?: number | null;
+  /** Data dessa entrada. Omitida sem compra. */
+  lastPurchaseDate?: string | null;
   /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
   status: EnumValue;
   canDelete: boolean;

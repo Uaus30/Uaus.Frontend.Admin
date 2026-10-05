@@ -159,6 +159,13 @@ describe("ProductDetailScreen — o que cada botão faz", () => {
     expect(await screen.findByText("histórico do grupo 7")).toBeTruthy();
   });
 
+  it("não há mais a aba Opcionais: os campos moram na aba Dados (04/10/2026)", () => {
+    renderScreen();
+
+    expect(screen.queryByRole("tab", { name: "Opcionais" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "Dados" })).toBeTruthy();
+  });
+
   it("cadastro novo não tem histórico ainda: a aba fica travada", () => {
     renderScreen({ editingGroupId: null });
 

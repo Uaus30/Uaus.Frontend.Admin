@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, Printer, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { formatQuantity, resolveBarcodeInput } from "@workspace/core";
@@ -24,8 +24,6 @@ type ProductVariationsSectionProps = {
   validationErrors: Record<string, boolean>;
   /** Callback to update a variation's properties */
   updateVariationDraft: (key: string, updater: (draft: VariationDraft) => VariationDraft) => void;
-  /** Callback handler to execute barcode label printing */
-  handlePrintBarcode: (barcode: string, name?: string, price?: number) => void;
   /** Handler to set the variation to be confirmed for deletion in AlertDialog */
   setVariationToDelete: (variation: VariationDraft) => void;
   /** Handler to delete a variation locally or on the API */
@@ -57,7 +55,6 @@ export function ProductVariationsSection({
   selectableStatusOptions,
   validationErrors,
   updateVariationDraft,
-  handlePrintBarcode,
   setVariationToDelete,
   handleDeleteVariation,
   addVariationDraft,
@@ -174,24 +171,6 @@ export function ProductVariationsSection({
                           barcodeInput.kind === "invalid" ? "border-red-500 text-red-600" : ""
                         }`}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary"
-                        onClick={() =>
-                          barcodeInput.code &&
-                          handlePrintBarcode(
-                            barcodeInput.code,
-                            nomeExibidoDaVariacao(productGroupName, variation.values),
-                            variation.price,
-                          )
-                        }
-                        disabled={!barcodeInput.code}
-                        title="Imprimir etiqueta"
-                      >
-                        <Printer className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
                     {barcodeInput.kind === "invalid" && (
                       <p className="mt-1 text-[10px] font-medium text-red-500">

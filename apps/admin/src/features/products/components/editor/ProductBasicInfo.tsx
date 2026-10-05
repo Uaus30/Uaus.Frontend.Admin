@@ -3,9 +3,8 @@ import { Input } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
-import { HelpCircle, Plus, Printer } from "lucide-react";
-import Barcode from "react-barcode";
-import { resolveBarcodeFormat, type BarcodeInputResolution } from "@workspace/core";
+import { HelpCircle, Plus } from "lucide-react";
+import type { BarcodeInputResolution } from "@workspace/core";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 
 type ProductBasicInfoProps = {
@@ -16,16 +15,21 @@ type ProductBasicInfoProps = {
   barcodeInput: BarcodeInputResolution;
   currentBarcode: string;
   flashSuccess: boolean;
-  onPrintBarcode: () => void;
 };
 
 /**
  * Campos obrigatórios de identificação: código de barras, nome, departamento e
  * categoria.
  *
- * Descrição e etiquetas moravam aqui atrás do botão de olho; foram para a aba
- * **Opcionais** da tela de detalhe. O que sobrou é o que impede o
- * cadastro de ser salvo — e é por isso que abre a tela.
+ * Descrição e etiquetas moram em "Mais campos", abaixo de preço e status. O que
+ * fica aqui é o que impede o cadastro de ser salvo — e é por isso que abre a
+ * tela.
+ *
+ * **Sem prévia do código de barras e sem o botão de imprimir** (04/10/2026,
+ * pedido do dono: "se mostrou inútil na prática"). A etiqueta se imprime na tela
+ * Etiquetas, que continua como estava; no lugar da prévia ficaram as fotos do
+ * produto. Os avisos de código inválido, interno e gerado continuam embaixo do
+ * campo — é o campo que grava.
  */
 export function ProductBasicInfo({
   editor,
@@ -34,7 +38,6 @@ export function ProductBasicInfo({
   barcodeInput,
   currentBarcode,
   flashSuccess,
-  onPrintBarcode,
 }: ProductBasicInfoProps) {
   const { form, setForm, productEditor, setProductEditor, departments, filteredCategories, lookupBarcode } =
     editor;
@@ -58,7 +61,7 @@ export function ProductBasicInfo({
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center">
           <Input
             value={productEditor.barcode || ""}
             onChange={(event) => {
@@ -78,40 +81,6 @@ export function ProductBasicInfo({
             }`}
             placeholder="Ex: 7891234567890"
           />
-          <div
-            data-testid="barcode-preview"
-            className={`flex min-h-[46px] min-w-[120px] items-center justify-center rounded border bg-white px-2 py-1 text-center transition-all duration-300 ${barcodeInput.code ? "opacity-100" : "opacity-40 grayscale"}`}
-          >
-            {barcodeInput.code ? (
-              <Barcode
-                value={barcodeInput.code}
-                // Sempre EAN-13 desde a padronização de 21/09/2026; a chamada
-                // continua derivando o formato para a prévia nunca depender de
-                // uma premissa que o `core` possa mudar sem avisar aqui.
-                format={resolveBarcodeFormat(barcodeInput.code)}
-                height={30}
-                width={1.5}
-                fontSize={12}
-                margin={0}
-                background="transparent"
-              />
-            ) : (
-              <span className="text-muted-foreground text-xs">
-                {barcodeInput.kind === "generated" ? "Gerado ao salvar" : "Sem prévia"}
-              </span>
-            )}
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="shrink-0"
-            onClick={onPrintBarcode}
-            title="Imprimir etiqueta (80mm)"
-            disabled={!barcodeInput.code}
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
         </div>
         {barcodeInput.error && <p className="text-xs font-medium text-red-500">{barcodeInput.error}</p>}
         {barcodeInput.kind === "internal" && (

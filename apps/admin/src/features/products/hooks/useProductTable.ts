@@ -9,6 +9,7 @@ import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.s
 import { upsertProduct, syncProductGroupImages } from "@/services/products.service";
 
 import { optimizeImage } from "@/lib/imageOptimizer";
+import { withinImageLimit } from "@/lib/product-images";
 import {
   PRODUCT_STATUS,
   STALE_TIME,
@@ -248,11 +249,12 @@ export function useProductTable() {
     });
 
     // A galeria atual vem da própria linha — antes custava uma consulta por
-    // produto da página. A nova entra como CAPA e as antigas descem, sem que
-    // nenhuma seja perdida.
+    // produto da página. A nova entra como CAPA e as antigas descem; com o
+    // limite de 3 fotos (04/10/2026), a última sai — mandar quatro seria
+    // recusado pelo backend, e a capa não trocaria.
     await syncProductGroupImages({
       productGroupId: product.productGroupId,
-      imageIds: [uploadedImage.id, ...product.images.map((image) => image.imageId)],
+      imageIds: withinImageLimit([uploadedImage.id, ...product.images.map((image) => image.imageId)]),
     });
 
     await Promise.all([

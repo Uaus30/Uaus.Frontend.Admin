@@ -8,9 +8,9 @@ type ProductNotesAlertProps = {
 /**
  * Aviso de observação interna, no topo da aba Dados.
  *
- * O campo em si mora na aba Opcionais (junto com descrição, tags e
- * visibilidade) — mas uma observação que só aparece para quem pensa em abrir
- * Opcionais é uma observação que ninguém lê. Preenchida, ela precisa aparecer
+ * O campo em si mora em "Mais campos" da aba Dados (junto com descrição, tags
+ * e visibilidade), fechado por padrão — e uma observação que só aparece para
+ * quem pensa em abrir ali é uma observação que ninguém lê. Preenchida, ela precisa aparecer
  * onde o olho já está: assim que o cadastro abre.
  *
  * <b>Âmbar mais forte, e não uma quinta cor.</b> O vocabulário deste repositório

@@ -15,10 +15,9 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/ProductEditorDialogs.tsx`: Confirmação de exclusão de variação, fora do formulário.
 - `components/detail/ProductWebImageSearch.tsx`: Liga a busca de imagem na web à galeria do produto em edição.
 - `components/detail/ProductNotesAlert.tsx`: Card âmbar no topo da aba **Dados**, visível só quando o grupo tem Observações preenchida. Ver seção 4.6.
-- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (aba **Opcionais**, com Observações — seção 4.6), `ProductImageGallery` e `ProductVariationsManager`.
+- `components/editor/`: Os grupos de campos que as abas montam — `ProductBasicInfo` (obrigatórios), `ProductPricing` (preço e status do produto simples), `ProductOptionalFields` (o bloco **Mais campos** da aba Dados, com Observações — seção 4.6 — e a última compra abaixo do estoque mínimo — seção 4.11), `ProductImageGallery` e `ProductVariationsManager`.
 - `components/ProductHistoryModal.tsx`: Modal com a linha do tempo do histórico de auditoria (criação, edições e remoção).
 - A regra do código de barras mora em `@workspace/core` (`packages/core/src/barcode.ts`) e o desenho das barras em `@/lib/barcode-svg` — ver itens 4.4 e 4.5.
-- `lib/barcodeLabel.ts`: Documento e impressão da etiqueta de 80mm × 40mm.
 - `hooks/editor/useBarcodeLookup.ts`: Reconhece, enquanto o código é bipado ou digitado, que ele já pertence a um produto — e carrega esse produto na tela. Ver seção 4.2.
 - `hooks/editor/usePurchaseProductConflict.ts` e `components/detail/PurchaseProductConflictDialog.tsx`: o mesmo achado num cadastro vindo de compra, onde ele PARA o cadastro e leva de volta à tela de Compras. Ver seção 4.2.
 - `lib/validateProductForm.ts`: Validação de preenchimento antes de gravar; devolve o mapa de erros e o primeiro campo a focar.
@@ -30,7 +29,7 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `components/detail/VariationGradesModal.tsx`: A modal de variações — escolhe o TIPO da grade (Cor/Tamanho/Modelo), nunca os valores.
 - `components/detail/VariationColumnsForm.tsx`: O formulário dentro dela: marca e desmarca coluna. Com a tabela vazia, confirmar cria a primeira linha — o próprio produto.
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
-- `components/ProductImagesSection.tsx`: Gerencia o upload, ordenação (drag-and-drop) e exclusão de fotos do produto.
+- `components/ProductImagesSection.tsx`: As fotos do produto na aba Dados — capa grande e duas menores, no máximo 3 (seção 4.10): acrescentar, arrastar para reordenar e remover.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 - `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
 - `components/VariationGradeHeader.tsx`: Cabeçalho da coluna de grade, com a troca do tipo (Cor/Tamanho/Modelo) para todas as linhas.
@@ -328,13 +327,12 @@ o que chegou dele:
 
 As abas separam por **frequência de uso**, não por assunto:
 
-| Aba           | O que tem                                                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Dados**     | Código de barras, nome, departamento, categoria, último custo e estoque atual (só leitura), preço, status, imagens e variações. |
-| **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                                                       |
-| **Vendas**    | As saídas: cada venda que levou o produto, da mais recente para a mais antiga, com o olho que abre a venda inteira. Seção 4.9.  |
-| **Opcionais** | Descrição, etiquetas, estoque mínimo, estoque atual (só leitura), visibilidade no site e Observações (uso interno — seção 4.6). |
-| **Histórico** | O histórico completo do grupo — o mesmo da modal do menu da listagem (`ProductHistoryTimeline`).                                |
+| Aba           | O que tem                                                                                                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dados**     | Código de barras, nome, departamento, categoria, último custo e estoque atual (só leitura), preço, status, **Mais campos** (os opcionais, seção 4.11), as fotos (seção 4.10) e as variações. |
+| **Estoque**   | Histórico de entradas do produto e o lançamento simplificado. Ver abaixo.                                                                                                                    |
+| **Vendas**    | As saídas: cada venda que levou o produto, da mais recente para a mais antiga, com o olho que abre a venda inteira. Seção 4.9.                                                               |
+| **Histórico** | O histórico completo do grupo — o mesmo da modal do menu da listagem (`ProductHistoryTimeline`).                                                                                             |
 
 Regras que valem a pena conhecer antes de mexer:
 
@@ -389,9 +387,10 @@ Regras que valem a pena conhecer antes de mexer:
   compra (o mesmo com que a entrada vem preenchida), e o rótulo diz "sobre o
   custo da compra #N", porque o "Último custo" logo acima ainda mostra "-"
   (`resolveMarginBase`). Sem custo nenhum maior que zero, não aparece.
-- **Cadastro novo trava Estoque e Opcionais até o primeiro salvamento.** Sem id
-  não há lote para lançar nem etiqueta para associar; a aba Estoque abriria só
-  para dizer "salve primeiro". O `Avançar` da aba Dados salva e já cai em
+- **Cadastro novo trava as abas até o primeiro salvamento.** Sem id não há lote
+  para lançar, venda, nota nem histórico; a aba Estoque abriria só para dizer
+  "salve primeiro". Os opcionais, em "Mais campos" da aba Dados, já valem no
+  cadastro novo — o salvar os grava junto. O `Avançar` da aba Dados salva e já cai em
   Estoque, que é o fluxo de quem acabou de receber mercadoria nova. O
   `handleSubmit` devolve `boolean` para o Avançar só trocar de aba depois de o
   servidor confirmar.
@@ -562,6 +561,10 @@ variações, a entrada vai para a variação escolhida na aba Estoque.
 
 ### 4.4. A prévia e a etiqueta escolhem o formato pelo dígito verificador (07/09/2026)
 
+> **A prévia e a etiqueta de 80mm saíram do cadastro em 04/10/2026** (seção 4.10).
+> A regra abaixo continua valendo para a tela Etiquetas, que desenha os lotes
+> congelados de `product_label_batch_items`.
+
 A simbologia sai de `resolveBarcodeFormat` (hoje em `@workspace/core`): **EAN-13 ou
 EAN-8 quando o dígito verificador fecha, CODE128 em todo o resto** — inclusive
 para código de 13 dígitos com verificador errado.
@@ -623,6 +626,9 @@ o desenho do SVG toca o DOM e foi para `@/lib/barcode-svg`, que `products` e
 `lib/barcode.ts` desta feature deixou de existir.
 
 #### A etiqueta de 80mm desenha as barras aqui, não no documento de impressão (07/09/2026)
+
+> Histórico: a etiqueta de 80mm do cadastro (`lib/barcodeLabel.ts`) foi removida
+> em 04/10/2026. O motivo do SVG local vale para a tela Etiquetas.
 
 `buildBarcodeLabelHtml` (`lib/barcodeLabel.ts`) recebe o SVG **já pronto**, de
 `buildBarcodeSvg`, e escreve o markup no documento do iframe.
@@ -754,6 +760,42 @@ mesmo desenho — uma tabela enxuta e um olho por linha.
   reimprimir não aparece aqui.
 - Montada só quando a aba é aberta: é uma consulta a mais por produto, e a
   maioria das aberturas do cadastro não passa por ela.
+
+### 4.10. Fotos: capa grande e duas menores, no máximo 3 (04/10/2026)
+
+- **A prévia do código de barras e o botão de imprimir saíram** do cadastro e da
+  tabela de variações (pedido do dono: "se mostrou inútil na prática"). O campo
+  continua, com os avisos de código inválido, interno e gerado. A etiqueta se
+  imprime na tela Etiquetas, que não mudou.
+- **No lugar, as fotos** (`ProductImagesSection`, coluna da direita da aba Dados;
+  no celular, depois dos campos): a capa grande e duas menores embaixo. Os três
+  lugares estão sempre na tela — o vazio é o botão de acrescentar —, porque 118
+  vendáveis ainda não têm foto (produção, 04/10/2026). Arrastar uma foto sobre
+  outra troca a ordem; a do primeiro lugar é a capa.
+- **Limite de 3 fotos por produto**, novidade desta data (`MAX_PRODUCT_IMAGES`,
+  em `@/lib/product-images`, o mesmo teto do backend). Arquivo, colagem e busca
+  na web passam pelo mesmo funil (`applyGalleryUpdate` em `useProductEditor`):
+  as primeiras ficam e um aviso diz quantas ficaram de fora. A busca na web
+  trava com três. Galeria antiga com mais é cortada nas três primeiras ao abrir,
+  e o salvar seguinte grava só elas.
+- A tela de Compras, que também grava a galeria, recusa a quarta foto antes de
+  baixar ou enviar (`usePurchaseImages`).
+
+### 4.11. Os opcionais voltaram para a aba Dados, em "Mais campos" (04/10/2026)
+
+- A aba **Opcionais** saiu. Os campos (descrição, tags, estoque mínimo,
+  visibilidade, controle de estoque e observações) ficam atrás do botão **Mais
+  campos**, logo abaixo de preço e status, ocultos por padrão. O motivo é do
+  dono: mexer no estoque mínimo e no controle exigia trocar de aba.
+- Fechar só esconde (`hidden`), não desmonta: o que foi digitado continua no
+  formulário e o salvar leva junto.
+- O **"Estoque atual"** que havia nos opcionais saiu — era o mesmo número do
+  campo da aba Dados.
+- **Abaixo do estoque mínimo, a última compra** ("Última compra: 3 un em
+  12/09/2026"), como a margem abaixo do preço: é a última entrada do tipo
+  Compra, não cancelada (`ProductDto.lastPurchaseQuantity`/`lastPurchaseDate`,
+  só no `GET /Products/{id}`), da mesma consulta do "Último custo". Só no
+  produto simples — no grupo com variações o mínimo daqui não vale.
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 

@@ -2,7 +2,16 @@ import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { ProductOptionalFields } from "../ProductOptionalFields";
+import type { ProductDto } from "@workspace/api-client-react";
+
+// A última compra vem da mesma consulta de "Último custo" (`product-for-entry`);
+// o dublê decide o que o servidor respondeu.
+const forEntry = vi.hoisted(() => ({ data: undefined as Partial<ProductDto> | undefined }));
+vi.mock("../../../hooks/useProductForEntry", () => ({
+  useProductForEntry: () => ({ data: forEntry.data, isLoading: false }),
+}));
+
+const { ProductOptionalFields } = await import("../ProductOptionalFields");
 import { createEmptyProductEditor } from "../../../hooks/editor/utils";
 import type { ProductGroupForm } from "../../../types";
 import type { useProductEditor } from "../../../hooks/useProductEditor";
@@ -176,5 +185,29 @@ describe("ProductOptionalFields — controle de estoque", () => {
     );
 
     expect(screen.getByText(/1 de 3 variações estão com o controle desligado/)).toBeTruthy();
+  });
+});
+
+describe("ProductOptionalFields — última compra abaixo do estoque mínimo (04/10/2026)", () => {
+  it("mostra quantas unidades vieram na última compra e quando", () => {
+    forEntry.data = { lastPurchaseQuantity: 3, lastPurchaseDate: "2026-09-12T00:00:00" };
+    renderAba(fakeEditor({ productEditor: { ...createEmptyProductEditor(), id: 7 } }));
+
+    expect(screen.getByText(/Última compra:/).textContent).toBe("Última compra: 3 un em 12/09/2026");
+    forEntry.data = undefined;
+  });
+
+  it("sem compra registrada, não mostra nada", () => {
+    forEntry.data = {};
+    renderAba(fakeEditor({ productEditor: { ...createEmptyProductEditor(), id: 7 } }));
+
+    expect(screen.queryByText(/Última compra:/)).toBeNull();
+    forEntry.data = undefined;
+  });
+
+  it("o estoque atual saiu daqui: ele já está na aba Dados", () => {
+    renderAba(fakeEditor());
+
+    expect(screen.queryByText("Estoque atual")).toBeNull();
   });
 });

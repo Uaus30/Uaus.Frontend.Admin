@@ -16,6 +16,7 @@ import {
 import { getProductGroupById, getProductGroupImages } from "@/services/products.service";
 import type { ProductSearchOption } from "@/components/product-search-picker";
 import { useSessao } from "@/hooks/use-sessao";
+import { withinImageLimit } from "@/lib/product-images";
 import { syncPurchaseDetailParam } from "../purchases-route";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
 import {
@@ -143,11 +144,15 @@ export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] 
     // backend recebe nulo nesse caso.
     suggestedPrice: purchase.suggestedPrice ?? 0,
     status: String(status === PURCHASE_STATUS.None ? PURCHASE_STATUS.Pending : status),
-    images: purchase.images.map((image) => ({
-      imageId: image.imageId,
-      url: buildPublicImageUrl(image.url),
-      name: purchase.productName,
-    })),
+    // Compra anterior ao limite de 3 fotos (04/10/2026) pode ter mais: ficam as
+    // primeiras, senão o salvar seguinte seria recusado.
+    images: withinImageLimit(
+      purchase.images.map((image) => ({
+        imageId: image.imageId,
+        url: buildPublicImageUrl(image.url),
+        name: purchase.productName,
+      })),
+    ),
   };
 }
 
@@ -425,7 +430,11 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setForm(value);
   };
 
-  const images = usePurchaseImages({ productName: form.productName, setForm: setFormTouched });
+  const images = usePurchaseImages({
+    productName: form.productName,
+    imageCount: form.images.length,
+    setForm: setFormTouched,
+  });
   const variations = usePurchaseVariations({ form, setForm, onEdit: markDirty });
   /**
    * Compra lançada abre em leitura, e não deixa de abrir.
@@ -482,11 +491,16 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
           images:
             galeria === null
               ? current.images
-              : galeria.map((image) => ({
-                  imageId: image.imageId,
-                  url: buildPublicImageUrl(image.url),
-                  name: image.name,
-                })),
+              : // Galeria anterior ao limite de 3 (04/10/2026): as primeiras, na
+                // ordem, que são as que o produto mantém — a compra com mais
+                // seria recusada no salvar.
+                withinImageLimit(
+                  galeria.map((image) => ({
+                    imageId: image.imageId,
+                    url: buildPublicImageUrl(image.url),
+                    name: image.name,
+                  })),
+                ),
         };
       });
     } catch (error) {
