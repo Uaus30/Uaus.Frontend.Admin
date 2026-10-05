@@ -61,7 +61,7 @@ export type DashboardSeriesPoint = {
   itemsCount: number;
 };
 
-/** Fatia de uma quebra do faturamento (categoria, forma de pagamento). */
+/** Fatia de uma quebra do faturamento (departamento, categoria, forma de pagamento). */
 export type DashboardBreakdown = {
   id: number | null;
   name: string;
@@ -70,6 +70,10 @@ export type DashboardBreakdown = {
   salesCount: number;
   itemsCount: number;
   percentageOfTotal: number;
+  /** Na categoria, o departamento dela. Omitido pela API quando não se aplica. */
+  parentId?: number | null;
+  /** Faturamento na base de comparação — só no departamento. Omitido quando não calculado. */
+  previousRevenue?: number | null;
 };
 
 export type DashboardTopProduct = {
@@ -90,6 +94,8 @@ export type DashboardOverview = {
   previous: PeriodTotals;
   series: DashboardSeriesPoint[];
   byCategory: DashboardBreakdown[];
+  /** Departamentos, com `previousRevenue`; as categorias de cada um ligam por `parentId`. */
+  byDepartment: DashboardBreakdown[];
   byPaymentMethod: DashboardBreakdown[];
   topProducts: DashboardTopProduct[];
 };
@@ -292,4 +298,45 @@ export type DashboardIntelligence = {
   restock: RestockSuggestion[];
   affinities: ProductAffinity[];
   baits: BaitProduct[];
+};
+
+/**
+ * Leitura do estoque de um campeão (regra no backend, `ChampionStockAlert`):
+ * zerado, acaba em menos de 7 dias, menos de 15 dias ou no mínimo, tranquilo, ou
+ * controle de estoque desligado.
+ */
+export type ChampionStockAlert = "out" | "critical" | "low" | "ok" | "untracked";
+
+export type DashboardChampion = {
+  rank: number;
+  /** Posição na janela anterior; omitida quando o produto não vendeu lá. */
+  previousRank?: number | null;
+  id: number;
+  productGroupId: number;
+  name: string;
+  categoryName: string;
+  quantitySold: number;
+  revenue: number;
+  profit: number;
+  marginPercentage: number;
+  /** Participação no lucro de todos os produtos da janela, em pontos percentuais. */
+  profitShare: number;
+  stock: number;
+  minStock: number;
+  stockControlEnabled: boolean;
+  /** Omitido quando o controle de estoque está desligado. */
+  daysOfCover?: number | null;
+  hasOpenPurchase: boolean;
+  stockAlert: ChampionStockAlert;
+};
+
+export type DashboardChampions = {
+  startDate: string;
+  endDate: string;
+  days: number;
+  totalRevenue: number;
+  totalProfit: number;
+  totalProducts: number;
+  hasMore: boolean;
+  products: DashboardChampion[];
 };

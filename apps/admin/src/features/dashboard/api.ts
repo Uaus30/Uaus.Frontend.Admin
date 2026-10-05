@@ -1,5 +1,6 @@
 import { apiGetOrThrow, apiPost } from "@workspace/api-client-react";
 import type {
+  DashboardChampions,
   DashboardIntelligence,
   DashboardMonthly,
   DashboardOverview,
@@ -55,6 +56,16 @@ export async function getDashboardToday() {
  */
 export async function getDashboardMonthly(months = 12) {
   return apiGetOrThrow<DashboardMonthly>("/Dashboard/monthly", { months });
+}
+
+/**
+ * Produtos campeões: o ranking por lucro de uma janela fixa de dias, com o
+ * estoque de cada um lido como alerta.
+ *
+ * @param params Janela em dias e quantos produtos trazer (o "Ver mais" aumenta).
+ */
+export async function getDashboardChampions(params: { days: number; take: number }) {
+  return apiGetOrThrow<DashboardChampions>("/Dashboard/champions", { days: params.days, take: params.take });
 }
 
 /**

@@ -11,7 +11,9 @@ import { LiveTodayCard } from "@/features/dashboard/components/LiveTodayCard";
 import { MonthComparisonCard } from "@/features/dashboard/components/MonthComparisonCard";
 import { MonthHeatmap } from "@/features/dashboard/components/MonthHeatmap";
 import { RevenueBreakdownCard } from "@/features/dashboard/components/RevenueBreakdownCard";
-import { TopProductsTable } from "@/features/dashboard/components/TopProductsTable";
+import { DepartmentBreakdownCard } from "@/features/dashboard/components/DepartmentBreakdownCard";
+import { ChampionsTable } from "@/features/dashboard/components/ChampionsTable";
+import { useChampions } from "@/features/dashboard/hooks/useChampions";
 import { PatternsPanel } from "@/features/dashboard/components/PatternsPanel";
 import { IntelligencePanel } from "@/features/dashboard/components/IntelligencePanel";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
@@ -24,8 +26,9 @@ import { OpenPurchasesAlert } from "@/features/purchases/components/OpenPurchase
  *
  * 1. **Imediata** — faturamento do dia e os totais do período. É o que a tela
  *    precisa mostrar para ser útil no primeiro segundo.
- * 2. **Em paralelo** — o comparativo mensal, que não depende do período escolhido
- *    e por isso não bloqueia nem é bloqueado pelos filtros.
+ * 2. **Em paralelo** — o mês corrente (matriz e curva) e os produtos campeões,
+ *    que não dependem do período escolhido e por isso não bloqueiam nem são
+ *    bloqueados pelos filtros.
  * 3. **Sob demanda** — padrões históricos e inteligência comercial, as consultas
  *    caras. Ficam fechadas até o usuário pedir; abri-las junto com a tela faria
  *    todo acesso pagar por um dado que muda uma vez por dia.
@@ -34,6 +37,7 @@ export default function Dashboard() {
   const dashboard = useDashboard();
   const live = useLiveToday();
   const monthly = useMonthlyComparison();
+  const champions = useChampions();
   const patterns = useSalesPatterns();
   const intelligence = useSalesIntelligence();
 
@@ -101,12 +105,12 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <RevenueBreakdownCard
-          title="Faturamento por categoria"
-          description={dashboard.period.label}
-          items={dashboard.overview?.byCategory ?? []}
+        <DepartmentBreakdownCard
+          departments={dashboard.overview?.byDepartment ?? []}
+          categories={dashboard.overview?.byCategory ?? []}
+          periodLabel={dashboard.period.label}
+          comparisonLabel={dashboard.comparison.label}
           isLoading={dashboard.isLoading}
-          emptyMessage="Nenhuma venda por categoria no período selecionado."
         />
         <RevenueBreakdownCard
           title="Formas de pagamento"
@@ -117,11 +121,9 @@ export default function Dashboard() {
         />
       </div>
 
-      <TopProductsTable
-        products={dashboard.overview?.topProducts ?? []}
-        periodLabel={dashboard.period.label}
-        isLoading={dashboard.isLoading}
-      />
+      {/* Janela própria de 30 dias, fora do seletor: no começo do mês o período
+          "Este mês" tem poucos dias para um ranking. O card diz a janela. */}
+      <ChampionsTable {...champions} />
 
       <PatternsPanel {...patterns} />
 
