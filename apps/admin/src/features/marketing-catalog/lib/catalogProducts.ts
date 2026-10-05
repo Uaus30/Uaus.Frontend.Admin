@@ -2,10 +2,13 @@ import {
   buildPublicImageUrl,
   CATALOG_ROLE,
   enumCode,
+  PROMOTION_DISCOUNT_TYPE,
   STOREFRONT_STOCK_BADGE,
   type CatalogItemDto,
   type EnumValue,
+  type StorefrontComboDto,
 } from "@workspace/api-client-react";
+import { describeComboOffer, promotionDiscountKindFromCode } from "@workspace/core";
 import type { CatalogBadge, CatalogProduct, CatalogRole } from "../types";
 
 /** O papel da API (número) no nome que a tela usa. */
@@ -28,7 +31,9 @@ export const ROLE_CODE: Record<CatalogRole, number> = {
 
 /** Como o papel aparece na lista de produtos da tela. */
 export const ROLE_LABEL: Record<CatalogRole, string> = {
-  offer: "Oferta",
+  // "Promoção", e não "Oferta" (pedido do dono, 05/10/2026): é a palavra do
+  // selo impresso na peça, e a lista da tela fala a mesma língua.
+  offer: "Promoção",
   new: "Novidade",
   bestSeller: "Mais vendido",
   regular: "Intermediário",
@@ -46,6 +51,22 @@ export function roleLabel(role: EnumValue): string {
  * oferta mexe no preço impresso, a novidade é a notícia, e a escassez vem por
  * último.
  */
+/**
+ * O resumo do combo, com a mesma frase do admin, do balcão e do site. Sem o preço
+ * quando o grupo tem faixa: no "a partir de N" em percentual o preço por unidade
+ * só é um quando as variações custam o mesmo.
+ */
+function comboOfferOf(combo: StorefrontComboDto, price: number, hasPriceRange: boolean): string {
+  return describeComboOffer(
+    {
+      quantity: combo.quantity,
+      discountKind: promotionDiscountKindFromCode(enumCode(combo.discountType, PROMOTION_DISCOUNT_TYPE)),
+      discountValue: combo.discountValue,
+    },
+    hasPriceRange ? undefined : price,
+  );
+}
+
 function badgeOf(hasPromotion: boolean, role: CatalogRole, isLastUnits: boolean): CatalogBadge | undefined {
   if (hasPromotion) return "offer";
   if (role === "new") return "new";
@@ -59,12 +80,16 @@ function badgeOf(hasPromotion: boolean, role: CatalogRole, isLastUnits: boolean)
  * O preço NÃO é recalculado aqui. O card é o da vitrine, e a peça imprime o que
  * ele traz: `promotion.price` quando há oferta, o de tabela quando não há, e o
  * "de" só quando o servidor o manda (corte acima de 5%).
+ *
+ * No combo (05/10/2026) o preço é o de tabela e o selo de promoção leva o resumo
+ * da oferta — o servidor manda o combo só quando ele barateia a unidade.
  */
 export function toCatalogProduct(item: CatalogItemDto): CatalogProduct | null {
   const card = item.product;
   if (!card.imageUrl) return null;
 
   const promotion = card.promotion ?? null;
+  const combo = promotion ? null : (card.combo ?? null);
   const role = ROLE_BY_CODE[enumCode(item.role, CATALOG_ROLE)] ?? "regular";
   const stockBadge = enumCode(card.stockBadge ?? STOREFRONT_STOCK_BADGE.None, STOREFRONT_STOCK_BADGE);
   const isLastUnits =
@@ -78,7 +103,8 @@ export function toCatalogProduct(item: CatalogItemDto): CatalogProduct | null {
     referencePrice: promotion?.referencePrice ?? undefined,
     imageUrl: buildPublicImageUrl(card.imageUrl),
     role,
-    badge: badgeOf(promotion !== null, role, isLastUnits),
+    badge: badgeOf(promotion !== null || combo !== null, role, isLastUnits),
+    comboOffer: combo ? comboOfferOf(combo, card.price, card.priceMax != null) : undefined,
   };
 }
 

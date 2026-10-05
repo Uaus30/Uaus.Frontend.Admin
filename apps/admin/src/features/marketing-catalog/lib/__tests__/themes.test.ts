@@ -62,7 +62,7 @@ describe("buildThemeOptions", () => {
   it("o tema geral leva um título de vitrine, e não o rótulo do seletor", () => {
     const geral = buildThemeOptions(fromApi)[0];
 
-    expect(geral.title).toBe("Destaques da loja");
+    expect(geral.title).toBe("Promoções e Novidades");
     expect(geral.departmentId).toBeUndefined();
   });
 

@@ -84,7 +84,7 @@ describe("rótulos do que a API devolve pelo nome", () => {
   });
 
   it("papel", () => {
-    expect(roleLabel("Offer")).toBe("Oferta");
+    expect(roleLabel("Offer")).toBe("Promoção");
     expect(roleLabel("Slow")).toBe("Achado");
     expect(roleLabel("Desconhecido")).toBe("—");
   });

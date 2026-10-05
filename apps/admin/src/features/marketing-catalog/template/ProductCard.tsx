@@ -15,8 +15,9 @@ import { BADGE_LABEL, formatPrice, splitPrice } from "./text";
  */
 
 const BADGE_STYLE: Record<CatalogBadge, CSSProperties> = {
-  // Preto com laranja e o raio: é o vocabulário de oferta do site da loja.
-  offer: { backgroundColor: CATALOG_COLORS.ink, color: CATALOG_COLORS.white },
+  // Vermelho com o raio amarelo (05/10/2026): o preto de antes sumia no meio da
+  // peça, e o dono pediu um selo de promoção mais chamativo.
+  offer: { backgroundColor: CATALOG_COLORS.promo, color: CATALOG_COLORS.white },
   new: { backgroundColor: CATALOG_COLORS.orange, color: CATALOG_COLORS.white },
   lastUnits: {
     backgroundColor: CATALOG_COLORS.white,
@@ -25,7 +26,13 @@ const BADGE_STYLE: Record<CatalogBadge, CSSProperties> = {
   },
 };
 
-function Badge({ badge, scale }: { badge: CatalogBadge; scale: number }) {
+/**
+ * O selo do card. No combo, o selo de promoção diz a oferta ("3 POR R$ 20,00")
+ * no lugar da palavra: o card não tem altura para mais uma linha abaixo do preço
+ * (150 px de texto na escala 1, já ocupados por nome, "de" e preço), e o selo é
+ * onde o olho procura a promoção.
+ */
+function Badge({ badge, scale, text }: { badge: CatalogBadge; scale: number; text?: string }) {
   const size = Math.round(15 * scale);
   return (
     <div
@@ -45,10 +52,10 @@ function Badge({ badge, scale }: { badge: CatalogBadge; scale: number }) {
     >
       {badge === "offer" && (
         <svg width={size} height={size} viewBox="0 0 24 24" style={{ marginRight: Math.round(5 * scale) }}>
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill={CATALOG_COLORS.orange} />
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill={CATALOG_COLORS.promoAccent} />
         </svg>
       )}
-      {BADGE_LABEL[badge]}
+      {text ? text.toUpperCase() : BADGE_LABEL[badge]}
     </div>
   );
 }
@@ -205,7 +212,9 @@ export function ProductCard({ card, grid, softShadow }: ProductCardProps) {
         </div>
       </div>
 
-      {card.badge && <Badge badge={card.badge} scale={scale} />}
+      {card.badge && (
+        <Badge badge={card.badge} scale={scale} text={card.badge === "offer" ? card.comboOffer : undefined} />
+      )}
     </div>
   );
 }

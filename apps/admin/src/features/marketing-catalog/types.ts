@@ -33,6 +33,12 @@ export interface CatalogProduct {
   imageUrl: string;
   role: CatalogRole;
   badge?: CatalogBadge;
+  /**
+   * O resumo do combo ("3 por R$ 20,00"), quando o produto está num combo
+   * vigente (05/10/2026). O preço do card continua o NORMAL — a unidade avulsa
+   * sai por ele —, e o resumo vai no selo de promoção, no lugar da palavra.
+   */
+  comboOffer?: string;
 }
 
 /** O produto pronto para o molde: a foto já baixada, reduzida e em data URL. */

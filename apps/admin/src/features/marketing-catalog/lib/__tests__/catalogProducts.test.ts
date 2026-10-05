@@ -48,6 +48,16 @@ describe("toCatalogProduct", () => {
     expect(product).toMatchObject({ price: 7, referencePrice: 10, role: "offer", badge: "offer" });
   });
 
+  it("no combo, o preço é o de tabela e o selo de promoção leva o resumo da oferta", () => {
+    const product = toCatalogProduct(
+      item(1, "Regular", { price: 7, combo: { quantity: 3, discountType: "KitPrice", discountValue: 20 } }),
+    );
+
+    expect(product).toMatchObject({ price: 7, badge: "offer" });
+    expect(product?.referencePrice).toBeUndefined();
+    expect(product?.comboOffer?.replace(/\u00a0/g, " ")).toBe("3 por R$ 20,00");
+  });
+
   it("corte de até 5% vem sem 'de': o card mostra só o preço e o selo", () => {
     const product = toCatalogProduct(item(1, "Offer", { promotion: { type: "Everyday", price: 9.8 } }));
 

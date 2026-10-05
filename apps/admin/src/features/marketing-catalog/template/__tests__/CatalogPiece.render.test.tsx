@@ -119,7 +119,7 @@ describe("conteúdo do molde", () => {
     // Riscado é só o valor, como no site: "de" + R$ 15,00 cortado.
     expect(markup.match(/line-through[^>]*>R\$ 15,00</g)).toHaveLength(1);
     expect(markup.match(/>de</g)).toHaveLength(1);
-    expect(markup.match(/OFERTA/g)).toHaveLength(1);
+    expect(markup.match(/PROMOÇÃO/g)).toHaveLength(1);
   });
 
   it("grupo com faixa de preço diz 'a partir de'", async () => {

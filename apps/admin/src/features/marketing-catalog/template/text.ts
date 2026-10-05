@@ -89,7 +89,8 @@ export function titleFontSize(title: string): number {
 
 /** O texto de cada selo, como sai impresso. */
 export const BADGE_LABEL: Record<CatalogBadge, string> = {
-  offer: "OFERTA",
+  // "PROMOÇÃO", e não "OFERTA" (pedido do dono, 05/10/2026).
+  offer: "PROMOÇÃO",
   new: "NOVIDADE",
   lastUnits: "ÚLTIMAS UNIDADES",
 };

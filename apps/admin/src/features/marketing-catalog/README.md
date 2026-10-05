@@ -261,6 +261,19 @@ A conta é toda do servidor (`CatalogPieceRules`); a tela mostra e avisa que é
 **pista, não prova** — ela não separa a divulgação do dia de pagamento ou de uma
 reposição. A queda aparece em âmbar, e não em vermelho, pelo mesmo motivo.
 
+## Promoção na peça e a memória do sorteio (05/10/2026)
+
+- O selo de promoção diz **"PROMOÇÃO"** em vermelho com o raio amarelo (era
+  "OFERTA" em preto — o dono pediu uma cor mais chamativa). Na lista da tela o
+  papel "Oferta" virou "Promoção".
+- **Combo**: o preço do card é o de tabela, e o selo traz a oferta ("3 POR R$
+  20,00", `describeComboOffer` do `@workspace/core`) no lugar da palavra. Não cabe
+  linha abaixo do preço: o card tem 150px de texto na escala 1.
+- O título padrão do tema geral é **"Promoções e Novidades"**.
+- O servidor lembra **todo sorteio**, compartilhado ou não, e dá um quinto do peso
+  a quem apareceu nos últimos 3 dias — a tela não muda nada para isso. Detalhe em
+  `Uaus.Docs/historico/2026-10-05-catalogo-memoria-do-sorteio.md`.
+
 ## O molde é desenhado pelo satori, não pelo navegador
 
 `template/` é JSX comum, mas quem o transforma em imagem é o **satori** (layout e

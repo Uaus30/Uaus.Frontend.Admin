@@ -158,7 +158,7 @@ describe("useCatalogGenerator", () => {
     const { result } = await renderGenerator();
 
     expect(result.current.theme?.label).toBe("Geral (mistura inteligente)");
-    expect(result.current.title).toBe("Destaques da loja");
+    expect(result.current.title).toBe("Promoções e Novidades");
     expect(result.current.status).toBe("idle");
     expect(result.current.piece).toBeNull();
     expect(result.current.format.key).toBe("story");
@@ -231,7 +231,7 @@ describe("useCatalogGenerator", () => {
 
     await act(() => result.current.generate());
 
-    expect(lastBuildRequest().title).toBe("Destaques da loja");
+    expect(lastBuildRequest().title).toBe("Promoções e Novidades");
   });
 
   it("sorteia de novo a cada geração: nada de cache no preço impresso", async () => {
@@ -354,7 +354,7 @@ describe("useCatalogGenerator", () => {
     });
     expect(result.current.piece?.products).toHaveLength(30);
     expect(result.current.piece?.format.key).toBe("pdf");
-    expect(result.current.piece?.file.name).toMatch(/^uaus-destaques-da-loja-\d{4}-\d{2}-\d{2}\.pdf$/);
+    expect(result.current.piece?.file.name).toMatch(/^uaus-promocoes-e-novidades-\d{4}-\d{2}-\d{2}\.pdf$/);
     expect(result.current.piece?.file.type).toBe("application/pdf");
     // Uma URL de prévia por página: 30 produtos são 5 páginas.
     expect(result.current.piece?.previewUrls).toHaveLength(5);
@@ -542,7 +542,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.swap([2]));
 
     expect(lastDrawRequest().theme).toBe(1);
-    expect(result.current.piece?.title).toBe("Destaques da loja");
+    expect(result.current.piece?.title).toBe("Promoções e Novidades");
   });
 
   it("trocar produto que não está na peça não faz nada", async () => {

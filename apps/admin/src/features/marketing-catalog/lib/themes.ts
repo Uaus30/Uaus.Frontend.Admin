@@ -25,7 +25,9 @@ export interface CatalogThemeOption {
  * pode ler nada que soe a encalhe.
  */
 const FIXED_THEMES: Record<number, { label: string; title: string }> = {
-  [CATALOG_THEME.General]: { label: "Geral (mistura inteligente)", title: "Destaques da loja" },
+  // "Promoções e Novidades" desde 05/10/2026, a pedido do dono — é o título que
+  // ele já vinha digitando à mão nas peças do sorteio inteligente.
+  [CATALOG_THEME.General]: { label: "Geral (mistura inteligente)", title: "Promoções e Novidades" },
   [CATALOG_THEME.NewsAndOffers]: { label: "Novidades e promoções", title: "Novidades e promoções" },
   [CATALOG_THEME.BestSellers]: { label: "Mais vendidos", title: "Os mais vendidos" },
   [CATALOG_THEME.Finds]: { label: "Achados", title: "Achados" },

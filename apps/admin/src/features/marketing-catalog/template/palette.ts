@@ -14,6 +14,14 @@ export const CATALOG_COLORS = {
   ink: "#2B1B12",
   muted: "#8A6A57",
   white: "#FFFFFF",
+  /**
+   * O vermelho do selo de PROMOÇÃO (05/10/2026): o dono pediu uma cor mais
+   * chamativa que o preto de antes. Vermelho de cartaz de oferta, com o raio em
+   * amarelo — o amarelo da etiqueta de gôndola de Promoção (`#ffe600`), que o
+   * cliente já vê na prateleira.
+   */
+  promo: "#E30613",
+  promoAccent: "#FFE600",
 } as const;
 
 /** A família embutida no arquivo — a mesma do logotipo. */
