@@ -516,9 +516,12 @@ export interface UpdatePaymentMethodRequest {
 /**
  * Por que o controle de estoque de um produto foi desligado (29/09/2026). O
  * backend serializa o enum pelo NOME. `EndOfLine` religa o controle sozinho
- * quando entra mercadoria do produto.
+ * quando entra mercadoria do produto. `PoorPerformance` (04/10/2026) só a
+ * rotina diária grava — nota de reposição abaixo do corte das Configurações —
+ * e também religa sozinho com a entrada de compra; não vai no seletor.
  */
-export type StockControlDisabledReason = "EndOfLine" | "InternalUse" | "Seasonal" | "Other";
+export type StockControlDisabledReason =
+  "EndOfLine" | "InternalUse" | "Seasonal" | "Other" | "PoorPerformance";
 
 /**
  * Como a rotina diária classificou o produto: `Controlled` vende o bastante
@@ -734,6 +737,20 @@ export interface ProductTableRowDto {
   minStock: number;
   /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
   status: EnumValue;
+  /*
+   * As marcas da coluna de estoque. Na linha do GRUPO, cada uma vale se
+   * qualquer variação estiver assim — como o estoque, que é a soma delas.
+   */
+  /**
+   * Controlado e no estoque mínimo que vale para ele (o próprio ou o padrão da
+   * loja), ou esgotado — o vermelho da coluna de estoque (04/10/2026). Opcional
+   * por segurança de versão: ausente, nada é destacado.
+   */
+  atMinimumStock?: boolean;
+  /** Está no relatório de estoque baixo — a etiqueta "Comprar!". */
+  needsRestock?: boolean;
+  /** Tem compra "A caminho" — a etiqueta "Comprado", que prevalece sobre "Comprar!". */
+  purchaseInTransit?: boolean;
   /** Produtos ativos do grupo. Grupo sem variações tem 1. */
   variationCount: number;
   tags: ProductTableTagDto[];
@@ -759,6 +776,16 @@ export interface ProductTableVariationDto {
   stock: number;
   /** Enum ProductStatus — pode vir como número ou nome; use `enumCode`. */
   status: EnumValue;
+  /**
+   * Controlado e no estoque mínimo que vale para ele (o próprio ou o padrão da
+   * loja), ou esgotado — o vermelho da coluna de estoque (04/10/2026). Opcional
+   * por segurança de versão: ausente, nada é destacado.
+   */
+  atMinimumStock?: boolean;
+  /** Está no relatório de estoque baixo — a etiqueta "Comprar!". */
+  needsRestock?: boolean;
+  /** Tem compra "A caminho" — a etiqueta "Comprado", que prevalece sobre "Comprar!". */
+  purchaseInTransit?: boolean;
 }
 
 export interface SupplierDto {

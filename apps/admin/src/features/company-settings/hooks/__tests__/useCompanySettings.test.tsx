@@ -47,6 +47,7 @@ const serverSettings = {
   siteLowStockThreshold: 0,
   siteNewProductsCount: 20,
   defaultMinStock: 3,
+  restockScoreCutoff: 60,
   defaultAreaCode: 44,
 };
 
@@ -356,5 +357,61 @@ describe("useCompanySettings", () => {
     );
     // O toggle continua desligado: a falha não pode desfazer o que o usuário escolheu.
     expect(result.current.usesCashRegister).toBe(false);
+  });
+});
+
+describe("useCompanySettings — nota de corte da reposição (04/10/2026)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useGetCompanySettings.mockReturnValue({ data: { ...serverSettings }, isLoading: false });
+    mocks.updateCompanySettings.mockResolvedValue({ ...serverSettings });
+  });
+
+  it("assume 50 de fábrica quando o backend não conhece o campo", async () => {
+    const { restockScoreCutoff: _ignorado, ...semOCampo } = serverSettings;
+    mocks.useGetCompanySettings.mockReturnValue({ data: semOCampo, isLoading: false });
+
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultMinStock).toBe(3));
+    expect(result.current.restockScoreCutoff).toBe(50);
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it("assume o valor do servidor e grava o valor editado", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.restockScoreCutoff).toBe(60));
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => result.current.setRestockScoreCutoff(40));
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() =>
+      expect(mocks.updateCompanySettings).toHaveBeenCalledWith(
+        expect.objectContaining({ restockScoreCutoff: 40 }),
+      ),
+    );
+  });
+
+  it("não grava nota de corte fora de 0 a 100 e avisa", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultMinStock).toBe(3));
+    for (const invalida of [-1, 101, 49.5]) {
+      act(() => result.current.setRestockScoreCutoff(invalida));
+      await act(async () => {
+        result.current.handleSubmit(submitEvent);
+      });
+    }
+
+    expect(mocks.updateCompanySettings).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Nota de corte da reposição inválida", variant: "destructive" }),
+    );
   });
 });

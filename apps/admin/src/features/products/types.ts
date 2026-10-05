@@ -68,6 +68,13 @@ export type ProductTableRow = {
   minStock: number;
   /** Enum ProductStatus — pode vir como número ou nome; leia com `enumCode`. */
   status: EnumValue;
+  /**
+   * As marcas da coluna de estoque (04/10/2026) — ver `ProductStockCell`. Na
+   * linha do grupo, valem se qualquer variação estiver assim.
+   */
+  atMinimumStock?: boolean;
+  needsRestock?: boolean;
+  purchaseInTransit?: boolean;
   /** Produtos ativos do grupo. Grupo sem variações tem 1. */
   variationCount: number;
   /**
@@ -110,6 +117,10 @@ export type ProductTableRowVariation = {
   stock: number;
   /** Enum ProductStatus — pode vir como número ou nome; leia com `enumCode`. */
   status: EnumValue;
+  /** As marcas da coluna de estoque desta variação — ver `ProductStockCell`. */
+  atMinimumStock?: boolean;
+  needsRestock?: boolean;
+  purchaseInTransit?: boolean;
 };
 
 /**

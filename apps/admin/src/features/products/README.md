@@ -826,3 +826,20 @@ a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
   Variações. Do `md` para cima a tabela é a mesma de antes. O resumo existe no
   DOM em toda largura (só some por CSS): teste que procura o preço, o estoque
   ou o botão Variações acha um a mais.
+
+### 9. A coluna de estoque: vermelho no mínimo, "Comprar!" e "Comprado" (04/10/2026)
+
+- **Vermelho só para o produto controlado no mínimo que vale para ele** (o
+  próprio ou o padrão da loja), **ou esgotado**. Era "menos de 10", que pintava
+  961 dos 1.176 vendáveis. A regra é do backend (`StockControlRules.AtMinimumStock`)
+  e chega pronta em `atMinimumStock`; a tela não recalcula.
+- **"Comprar!"** pulsando (`animate-restock-glow`, parada com
+  `prefers-reduced-motion`) quando o produto está no relatório de estoque baixo
+  (`needsRestock`). Pode vir sem o vermelho: o relatório inclui quem ainda tem
+  saldo, mas não dura 30 dias.
+- **"Comprado"** em verde com compra **A caminho** (`purchaseInTransit`;
+  Pendente não conta), e prevalece sobre "Comprar!" (`lib/stockSignal.ts`). Na
+  linha do grupo, o servidor só marca "Comprado" se nenhuma variação pedir compra
+  sem ter uma a caminho.
+- A mesma célula (`ProductStockCell`) serve à linha, à lista de variações e ao
+  resumo do celular. Backend anterior às marcas: nada é destacado.

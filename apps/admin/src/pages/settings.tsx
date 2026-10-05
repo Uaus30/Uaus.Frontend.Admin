@@ -15,6 +15,8 @@ export default function CompanySettings() {
     setSiteField,
     defaultMinStock,
     setDefaultMinStock,
+    restockScoreCutoff,
+    setRestockScoreCutoff,
     defaultAreaCode,
     setDefaultAreaCode,
     isDirty,
@@ -45,6 +47,8 @@ export default function CompanySettings() {
         onSiteChange={setSiteField}
         defaultMinStock={defaultMinStock}
         onDefaultMinStockChange={setDefaultMinStock}
+        restockScoreCutoff={restockScoreCutoff}
+        onRestockScoreCutoffChange={setRestockScoreCutoff}
         defaultAreaCode={defaultAreaCode}
         onDefaultAreaCodeChange={setDefaultAreaCode}
         isDirty={isDirty}

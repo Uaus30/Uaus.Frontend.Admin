@@ -3,6 +3,7 @@ import { Badge } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import { PRODUCT_STATUS, enumCode, type EnumOptionDto } from "@workspace/api-client-react";
 import type { ProductTableRowVariation } from "../types";
+import { ProductStockCell } from "./ProductStockCell";
 
 type ProductTableVariationsProps = {
   /** As variações do grupo, na ordem que o servidor mandou (id crescente). */
@@ -63,17 +64,14 @@ export function ProductTableVariations({
                   <td className="hidden px-4 py-2 text-muted-foreground md:table-cell">{departmentName}</td>
                   <td className="px-4 py-2 font-medium text-orange-500">{formatCurrency(variation.price)}</td>
                   <td className="px-4 py-2">
-                    {/* A mesma faixa da linha de cima: quem lê a listagem inteira
+                    {/* A mesma célula da linha de cima: quem lê a listagem inteira
                         não pode precisar de duas regras de cor para "está acabando". */}
-                    <span
-                      className={`inline-block w-max rounded-md px-2 py-0.5 text-[11px] font-semibold ${
-                        variation.stock < 10
-                          ? "bg-destructive/20 text-destructive"
-                          : "bg-secondary text-secondary-foreground"
-                      }`}
-                    >
-                      {variation.stock} un
-                    </span>
+                    <ProductStockCell
+                      stock={variation.stock}
+                      atMinimumStock={variation.atMinimumStock}
+                      needsRestock={variation.needsRestock}
+                      purchaseInTransit={variation.purchaseInTransit}
+                    />
                   </td>
                   <td className="px-4 py-2">
                     <Badge

@@ -1,6 +1,10 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch } from "@workspace/ui";
 import type { StockControlDisabledReason } from "@workspace/api-client-react";
-import { forecastStatusLabel, STOCK_CONTROL_DISABLED_REASONS } from "@/lib/stock-control";
+import {
+  forecastStatusLabel,
+  POOR_PERFORMANCE_REASON,
+  STOCK_CONTROL_DISABLED_REASONS,
+} from "@/lib/stock-control";
 import type { StockControlState } from "../../hooks/editor/useStockControl";
 
 type ProductStockControlFieldProps = {
@@ -29,7 +33,12 @@ function porMes(valor: number): string {
 export function ProductStockControlField({ stockControl, hasVariations }: ProductStockControlFieldProps) {
   const { view, choose, forecastStatus, monthlySalesMedian } = stockControl;
   const ligado = view.state !== "off";
-  const motivo = STOCK_CONTROL_DISABLED_REASONS.find((item) => item.value === view.reason);
+  // "Desempenho fraco" só a rotina grava: entra no seletor apenas quando já é o
+  // motivo do produto, senão o campo apareceria vazio.
+  const pelaRotina = view.reason === POOR_PERFORMANCE_REASON.value;
+  const motivo = pelaRotina
+    ? POOR_PERFORMANCE_REASON
+    : STOCK_CONTROL_DISABLED_REASONS.find((item) => item.value === view.reason);
 
   return (
     <div className="space-y-2 sm:col-span-2">
@@ -65,6 +74,9 @@ export function ProductStockControlField({ stockControl, hasVariations }: Produc
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={SEM_MOTIVO}>Sem motivo</SelectItem>
+              {pelaRotina && (
+                <SelectItem value={POOR_PERFORMANCE_REASON.value}>{POOR_PERFORMANCE_REASON.label}</SelectItem>
+              )}
               {STOCK_CONTROL_DISABLED_REASONS.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}

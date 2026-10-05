@@ -7,7 +7,11 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
-import { STANDARD_DEFAULT_MIN_STOCK, STOCK_SETTINGS_ANCHOR } from "@/lib/stock-control";
+import {
+  STANDARD_DEFAULT_MIN_STOCK,
+  STANDARD_RESTOCK_SCORE_CUTOFF,
+  STOCK_SETTINGS_ANCHOR,
+} from "@/lib/stock-control";
 
 /**
  * Padrão local enquanto a leitura não chega.
@@ -86,6 +90,7 @@ export function useCompanySettings() {
   const [identity, setIdentity] = useState<StoreIdentityFields>(EMPTY_IDENTITY);
   const [site, setSite] = useState<SiteOptionsFields>(DEFAULT_SITE_OPTIONS);
   const [defaultMinStock, setDefaultMinStockState] = useState(STANDARD_DEFAULT_MIN_STOCK);
+  const [restockScoreCutoff, setRestockScoreCutoffState] = useState(STANDARD_RESTOCK_SCORE_CUTOFF);
   const [defaultAreaCode, setDefaultAreaCode] = useState(STANDARD_AREA_CODE);
 
   const serverValue = settings?.usesCashRegister;
@@ -110,6 +115,9 @@ export function useCompanySettings() {
     ? (settings.defaultMinStock ?? STANDARD_DEFAULT_MIN_STOCK)
     : undefined;
   const serverAreaCode = settings ? (settings.defaultAreaCode ?? STANDARD_AREA_CODE) : undefined;
+  const serverRestockScoreCutoff = settings
+    ? (settings.restockScoreCutoff ?? STANDARD_RESTOCK_SCORE_CUTOFF)
+    : undefined;
 
   // A sincronia depende dos valores, não do objeto devolvido pela query: um
   // refetch que traz exatamente o mesmo estado não pode apagar o que o usuário
@@ -158,6 +166,13 @@ export function useCompanySettings() {
     setDefaultMinStockState(serverDefaultMinStock);
   }
 
+  // E para a nota de corte da reposição (04/10/2026).
+  const [cutoffSyncedFrom, setCutoffSyncedFrom] = useState<number | null>(null);
+  if (serverRestockScoreCutoff != null && cutoffSyncedFrom !== serverRestockScoreCutoff) {
+    setCutoffSyncedFrom(serverRestockScoreCutoff);
+    setRestockScoreCutoffState(serverRestockScoreCutoff);
+  }
+
   // E para o DDD padrão do telefone de cliente (01/10/2026).
   const [areaCodeSyncedFrom, setAreaCodeSyncedFrom] = useState<number | null>(null);
   if (serverAreaCode != null && areaCodeSyncedFrom !== serverAreaCode) {
@@ -176,6 +191,11 @@ export function useCompanySettings() {
   /** Altera o estoque mínimo padrão. Campo vazio ou lixo vira zero, e a validação segura no salvar. */
   function setDefaultMinStock(value: number) {
     setDefaultMinStockState(Number.isFinite(value) ? value : 0);
+  }
+
+  /** Altera a nota de corte da reposição. Campo vazio ou lixo vira zero, e a validação segura no salvar. */
+  function setRestockScoreCutoff(value: number) {
+    setRestockScoreCutoffState(Number.isFinite(value) ? value : 0);
   }
 
   /** Altera um campo da identidade sem tocar nos demais. */
@@ -205,6 +225,7 @@ export function useCompanySettings() {
 
   const isDirty =
     (serverDefaultMinStock != null && serverDefaultMinStock !== defaultMinStock) ||
+    (serverRestockScoreCutoff != null && serverRestockScoreCutoff !== restockScoreCutoff) ||
     (serverAreaCode != null && serverAreaCode !== defaultAreaCode) ||
     (serverValue != null && serverValue !== usesCashRegister) ||
     isIdentityDirty ||
@@ -226,6 +247,7 @@ export function useCompanySettings() {
         siteLowStockThreshold: site.lowStockThreshold,
         siteNewProductsCount: site.newProductsCount,
         defaultMinStock,
+        restockScoreCutoff,
         defaultAreaCode,
       }),
     onSuccess: async () => {
@@ -283,6 +305,15 @@ export function useCompanySettings() {
       return;
     }
 
+    if (!Number.isInteger(restockScoreCutoff) || restockScoreCutoff < 0 || restockScoreCutoff > 100) {
+      toast({
+        title: "Nota de corte da reposição inválida",
+        description: "Informe um número inteiro entre 0 (rotina desligada) e 100.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Não existe DDD terminado em zero, e o telefone sem DDD ganharia um que
     // nenhum número tem.
     if (
@@ -311,6 +342,8 @@ export function useCompanySettings() {
     setSiteField,
     defaultMinStock,
     setDefaultMinStock,
+    restockScoreCutoff,
+    setRestockScoreCutoff,
     defaultAreaCode,
     setDefaultAreaCode,
     isDirty,

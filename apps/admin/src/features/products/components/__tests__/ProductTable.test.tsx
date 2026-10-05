@@ -254,3 +254,41 @@ describe("ProductTable — Corrigir estoque no menu da linha", () => {
     expect(screen.queryByRole("menuitem", { name: /corrigir estoque/i })).toBeNull();
   });
 });
+
+describe("ProductTable — coluna de estoque (04/10/2026)", () => {
+  afterEach(cleanup);
+
+  /** A célula de estoque do computador — a do celular repete o número. */
+  function celulaDeEstoque() {
+    return screen.getAllByText("3 un")[0];
+  }
+
+  it("só pinta de vermelho o controlado que chegou ao mínimo — não mais 'menos de 10'", () => {
+    renderTable({
+      enrichedProducts: [row({ productGroup: { ...row().productGroup, hasVariations: false } })],
+    });
+    expect(celulaDeEstoque().className).not.toContain("text-destructive");
+
+    cleanup();
+    renderTable({
+      enrichedProducts: [
+        row({ atMinimumStock: true, productGroup: { ...row().productGroup, hasVariations: false } }),
+      ],
+    });
+    expect(celulaDeEstoque().className).toContain("text-destructive");
+  });
+
+  it("'Comprar!' aparece para quem está no relatório de estoque baixo", () => {
+    renderTable({ enrichedProducts: [row({ needsRestock: true })] });
+
+    expect(screen.getAllByText("Comprar!").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Comprado")).toBeNull();
+  });
+
+  it("'Comprado' prevalece sobre 'Comprar!' quando há compra a caminho", () => {
+    renderTable({ enrichedProducts: [row({ needsRestock: true, purchaseInTransit: true })] });
+
+    expect(screen.getAllByText("Comprado").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Comprar!")).toBeNull();
+  });
+});

@@ -12,6 +12,9 @@ import type { StockControlDisabledReason, StockForecastStatus } from "@workspace
 /** Estoque mínimo padrão de fábrica — o mesmo do backend e do DEFAULT da coluna. */
 export const STANDARD_DEFAULT_MIN_STOCK = 2;
 
+/** Nota de corte da reposição de fábrica (04/10/2026) — a mesma do backend e do DEFAULT da coluna. */
+export const STANDARD_RESTOCK_SCORE_CUTOFF = 50;
+
 /** Onde se muda o estoque mínimo padrão: a seção Estoque das Configurações. */
 export const STOCK_SETTINGS_PATH = "/configuracoes#estoque";
 
@@ -34,8 +37,23 @@ export const STOCK_CONTROL_DISABLED_REASONS: ReadonlyArray<{
   { value: "Other", label: "Outro", hint: "Religue quando quiser voltar a acompanhar." },
 ];
 
+/**
+ * O motivo que só a rotina diária grava (04/10/2026): o produto chegou ao estoque
+ * mínimo com a nota de reposição abaixo do corte das Configurações. Fica FORA de
+ * {@link STOCK_CONTROL_DISABLED_REASONS} porque ninguém o escolhe à mão — o
+ * seletor só o mostra quando já é o motivo gravado.
+ */
+export const POOR_PERFORMANCE_REASON = {
+  value: "PoorPerformance" as const,
+  label: "Desempenho fraco",
+  hint:
+    "Desligado pela rotina diária: chegou ao estoque mínimo com a nota de reposição abaixo do corte das " +
+    "Configurações. Religando, ele só é julgado de novo depois da próxima venda; uma entrada de compra religa sozinha.",
+};
+
 /** Rótulo do motivo; vazio sem motivo. */
 export function stockControlReasonLabel(reason: StockControlDisabledReason | null | undefined): string {
+  if (reason === POOR_PERFORMANCE_REASON.value) return POOR_PERFORMANCE_REASON.label;
   return STOCK_CONTROL_DISABLED_REASONS.find((item) => item.value === reason)?.label ?? "";
 }
 

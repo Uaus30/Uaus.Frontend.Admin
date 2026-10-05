@@ -27,6 +27,11 @@ export function mapProductTableRow(row: ProductTableRowDto): ProductTableRow {
     stock: row.stock,
     minStock: row.minStock,
     status: row.status,
+    // Ausentes num backend anterior a 04/10/2026: nada é destacado, em vez de
+    // tudo ficar vermelho como na regra antiga.
+    atMinimumStock: row.atMinimumStock ?? false,
+    needsRestock: row.needsRestock ?? false,
+    purchaseInTransit: row.purchaseInTransit ?? false,
     variationCount: row.variationCount,
     variations: (row.variations ?? []).map((variation) => ({
       id: variation.id,
@@ -34,6 +39,9 @@ export function mapProductTableRow(row: ProductTableRowDto): ProductTableRow {
       price: variation.price,
       stock: variation.stock,
       status: variation.status,
+      atMinimumStock: variation.atMinimumStock ?? false,
+      needsRestock: variation.needsRestock ?? false,
+      purchaseInTransit: variation.purchaseInTransit ?? false,
     })),
     productGroup: {
       id: row.productGroupId,

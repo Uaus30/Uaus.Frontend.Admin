@@ -244,6 +244,12 @@ export interface CompanySettingsDto {
    */
   defaultMinStock?: number;
   /**
+   * Corte da nota de reposição (0 a 100; 50 de fábrica, 04/10/2026): o produto
+   * que chega ao estoque mínimo com a nota abaixo dele sai do controle de
+   * estoque sozinho. Zero desliga. Omitido na gravação, o servidor mantém.
+   */
+  restockScoreCutoff?: number;
+  /**
    * DDD que vale para o telefone de cliente digitado sem ele (44 de fábrica).
    * O PDV o guarda na cópia local para cadastrar e buscar sem internet. Ausente
    * num backend anterior a 01/10/2026; omitido na gravação, o servidor mantém.

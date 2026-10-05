@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   forecastStatusLabel,
   outOfControlLabel,
+  STOCK_CONTROL_DISABLED_REASONS,
   stockControlReasonLabel,
   suggestedRestockQuantity,
 } from "../stock-control";
@@ -33,6 +34,9 @@ describe("suggestedRestockQuantity", () => {
 describe("rótulos do controle de estoque", () => {
   it("dá nome ao motivo e à classificação, e vazio para o que não existe", () => {
     expect(stockControlReasonLabel("EndOfLine")).toBe("Fim de linha");
+    // O motivo que só a rotina grava (04/10/2026) fica fora do seletor, mas tem nome.
+    expect(stockControlReasonLabel("PoorPerformance")).toBe("Desempenho fraco");
+    expect(STOCK_CONTROL_DISABLED_REASONS.map((item) => item.value)).not.toContain("PoorPerformance");
     expect(stockControlReasonLabel(null)).toBe("");
     expect(forecastStatusLabel("LowTurnover")).toBe("Giro baixo");
     expect(forecastStatusLabel(undefined)).toBe("");

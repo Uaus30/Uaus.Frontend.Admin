@@ -32,6 +32,7 @@ import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-c
 import type { ProductTableRow } from "../types";
 import { productDetailPathname } from "../product-detail-route";
 import { canCountStock } from "../hooks/useProductListStockCount";
+import { ProductStockCell } from "./ProductStockCell";
 import { ProductTableFilters } from "./ProductTableFilters";
 import { ProductTableVariations } from "./ProductTableVariations";
 import React, { useState } from "react";
@@ -331,15 +332,13 @@ export function ProductTable({
                             <span className="font-semibold text-orange-500">
                               {formatCurrency(product.price)}
                             </span>
-                            <span
-                              className={
-                                product.stock < 10
-                                  ? "font-semibold text-destructive"
-                                  : "text-muted-foreground"
-                              }
-                            >
-                              {product.stock} un
-                            </span>
+                            <ProductStockCell
+                              variant="text"
+                              stock={product.stock}
+                              atMinimumStock={product.atMinimumStock}
+                              needsRestock={product.needsRestock}
+                              purchaseInTransit={product.purchaseInTransit}
+                            />
                             {enumCode(product.status, PRODUCT_STATUS) !== PRODUCT_STATUS.Active && (
                               <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
                                 {statusOptions.find(
@@ -399,11 +398,12 @@ export function ProductTable({
                         */}
                         <td className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">
                           <div className="flex flex-col">
-                            <span
-                              className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold w-max ${product.stock < 10 ? "bg-destructive/20 text-destructive" : "bg-secondary text-secondary-foreground"}`}
-                            >
-                              {product.stock} un
-                            </span>
+                            <ProductStockCell
+                              stock={product.stock}
+                              atMinimumStock={product.atMinimumStock}
+                              needsRestock={product.needsRestock}
+                              purchaseInTransit={product.purchaseInTransit}
+                            />
                             {product.productGroup?.hasVariations && (
                               <BotaoVariacoes
                                 aberto={aberto}

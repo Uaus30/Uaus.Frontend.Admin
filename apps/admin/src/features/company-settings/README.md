@@ -38,6 +38,17 @@ Opções de operação e identidade da loja (`company_settings` no backend, uma 
 - **`siteNewProductsCount`** — quantos produtos a seção "Novidades" da home mostra (1 a 100; padrão 20). O front tinha 8 fixo.
 - A faixa é conferida no `handleSubmit` antes da ida à rede, porque a recusa do backend chegaria como toast genérico.
 
+### 4.1. Estoque: mínimo padrão e nota de corte da reposição (04/10/2026)
+
+- O cartão Estoque (`StockSettingsCard`, âncora `#estoque`) tem o **mínimo
+  padrão** e a **nota de corte da reposição** (`restockScoreCutoff`, 0 a 100, 50
+  de fábrica). Quem chega ao mínimo com a nota de reposição abaixo do corte sai
+  do controle de estoque pela rotina diária do backend; zero desliga a rotina.
+- O texto do cartão é longo de propósito (pedido do dono: "explicação clara"):
+  o efeito acontece longe daqui, no relatório de estoque baixo e na listagem.
+- Ausente num backend anterior, vale 50; omitido na gravação, o servidor
+  mantém o gravado (o PDV salva sem conhecer o campo).
+
 ### 5. Sincronia com o servidor
 
 - Os `useEffect` de sincronia dependem dos **valores** vindos da query, não do objeto: um refetch que traz o mesmo estado não pode apagar o que o usuário ainda não salvou.

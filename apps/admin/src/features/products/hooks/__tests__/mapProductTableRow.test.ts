@@ -121,3 +121,30 @@ describe("mapProductTableRow", () => {
     expect(row.images).toEqual([]);
   });
 });
+
+describe("mapProductTableRow — marcas da coluna de estoque (04/10/2026)", () => {
+  it("repassa as marcas da linha e de cada variação", () => {
+    const row = mapProductTableRow({
+      ...linha,
+      atMinimumStock: true,
+      needsRestock: true,
+      purchaseInTransit: false,
+      variations: [
+        { id: 1, name: "A", price: 1, stock: 0, status: 2, atMinimumStock: true, purchaseInTransit: true },
+      ],
+    });
+
+    expect([row.atMinimumStock, row.needsRestock, row.purchaseInTransit]).toEqual([true, true, false]);
+    expect(row.variations[0]).toMatchObject({
+      atMinimumStock: true,
+      needsRestock: false,
+      purchaseInTransit: true,
+    });
+  });
+
+  it("backend anterior às marcas não destaca nada", () => {
+    const row = mapProductTableRow(linha);
+
+    expect([row.atMinimumStock, row.needsRestock, row.purchaseInTransit]).toEqual([false, false, false]);
+  });
+});

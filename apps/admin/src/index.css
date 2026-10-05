@@ -305,6 +305,29 @@
   animation: border-flash-primary 1.2s ease-in-out 1;
 }
 
+/*
+ * "Comprar!" na coluna de estoque da listagem de produtos (04/10/2026): o brilho
+ * pulsa para o olho achar, numa página de vinte linhas, o que pede compra. Quem
+ * pediu menos movimento ao sistema operacional fica com a etiqueta parada.
+ */
+@keyframes restock-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--destructive) / 0);
+  }
+  50% {
+    box-shadow: 0 0 10px 2px hsl(var(--destructive) / 0.6);
+  }
+}
+.animate-restock-glow {
+  animation: restock-glow 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-restock-glow {
+    animation: none;
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
