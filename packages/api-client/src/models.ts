@@ -1319,6 +1319,14 @@ export interface WeekdayComparisonDto {
   isFuture: boolean;
 }
 
+/** Uma hora do dia corrente no resumo do balcão — sem lucro, como o resto dele. */
+export interface PerformanceHourDto {
+  /** Hora do relógio da loja, de 0 a 23. */
+  hour: number;
+  revenue: number;
+  salesCount: number;
+}
+
 /**
  * Resumo de desempenho da loja.
  *
@@ -1340,7 +1348,14 @@ export interface StorePerformanceDto {
   previousSalesDay?: PerformanceDayDto | null;
   week: PerformanceRangeDto;
   month: PerformanceRangeDto;
+  /**
+   * Fora da tela desde 10/2026 (a modal passou a mostrar `hours`). Segue na
+   * resposta para o caixa que ainda roda o build antigo, guardado no service
+   * worker, não quebrar.
+   */
   weekdayComparison: WeekdayComparisonDto[];
+  /** Faturamento de hoje hora a hora, sempre as 24 horas (0 a 23). */
+  hours: PerformanceHourDto[];
 }
 
 // ---------------------------------------------------------------------------

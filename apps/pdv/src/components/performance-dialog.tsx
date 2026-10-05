@@ -4,14 +4,15 @@ import { describeApiError, formatCurrency } from "@workspace/core";
 import { useGetStorePerformance } from "@workspace/api-client-react";
 import { describePreviousDay } from "@/lib/performance";
 import type { IdentifiedSalesCount } from "@/features/pdv/lib/identified-sales";
-import { WeekdayComparisonChart } from "./weekday-comparison-chart";
+import { HourlyRevenueChart } from "./hourly-revenue-chart";
 
 /**
  * Desempenho da loja — a espiada rápida pelo balcão.
  *
  * Mostra o dia corrente comparado com o último dia que teve VENDA (numa segunda,
- * o sábado; depois de um feriado, a quinta anterior), e de forma discreta o
- * acumulado da semana e do mês. A comparação vem pronta do servidor.
+ * o sábado; depois de um feriado, a quinta anterior), o faturamento de hoje hora
+ * a hora e, de forma discreta, o acumulado da semana e do mês. A comparação vem
+ * pronta do servidor.
  *
  * Não há custo, lucro nem margem: o endpoint é liberado para o operador de caixa,
  * e o que ele precisa saber é como a loja está vendendo.
@@ -166,7 +167,9 @@ export function PerformanceDialog({
                 )}
               </div>
 
-              <WeekdayComparisonChart days={data.weekdayComparison} />
+              {/* A hora atual vem do relógio do servidor, que é o da loja: o
+                  relógio do computador do caixa pode estar adiantado. */}
+              <HourlyRevenueChart hours={data.hours} currentHour={new Date(data.serverTime).getHours()} />
 
               <div className="divide-y divide-border/40 border-t border-border/40">
                 <AccumulatedRow

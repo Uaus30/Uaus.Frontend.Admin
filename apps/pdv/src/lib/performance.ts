@@ -1,5 +1,5 @@
-import { round2, type WeekComparisonPoint } from "@workspace/core";
-import type { PerformanceDayDto, WeekdayComparisonDto } from "@workspace/api-client-react";
+import { round2 } from "@workspace/core";
+import type { PerformanceDayDto, PerformanceHourDto } from "@workspace/api-client-react";
 
 /**
  * Leituras do resumo de desempenho.
@@ -8,14 +8,6 @@ import type { PerformanceDayDto, WeekdayComparisonDto } from "@workspace/api-cli
  * — o que fazer sem base de comparação, como rotular um dia que não é ontem —
  * e testá-las pela tela exigiria montar a modal inteira.
  */
-
-/** Rótulos curtos dos dias, na ordem da semana comercial (segunda primeiro). */
-const WEEKDAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] as const;
-
-/** Rótulo do eixo do gráfico para o índice de dia devolvido pelo servidor. */
-export function weekdayLabel(weekday: number): string {
-  return WEEKDAY_LABELS[weekday] ?? "?";
-}
 
 /** Variação entre dois valores, ou `null` quando não há base de comparação. */
 export function changePercentage(current: number, previous: number): number | null {
@@ -73,19 +65,36 @@ export function describePreviousDay(
   };
 }
 
+/** Primeira hora exibida quando o dia ainda não teve venda cedo — a loja abre às 8h. */
+export const DEFAULT_FIRST_HOUR = 8;
+
 /**
- * Maior acumulado entre as duas semanas, para escalar as linhas do gráfico.
+ * Horas que o gráfico do dia mostra.
  *
- * Uma escala só para as duas séries: escalas independentes fariam uma semana
- * fraca parecer igual a uma forte, que é o oposto do que o gráfico existe para
- * mostrar. O piso de 1 evita divisão por zero na semana sem venda nenhuma.
+ * Recorta as 24 horas à janela em que a loja de fato operou, estendida até a
+ * hora atual: vinte e quatro colunas, quase todas vazias, esconderiam a variação
+ * do expediente. É o mesmo recorte do card "Faturamento de hoje" do painel.
+ *
+ * @param hours As 24 horas do servidor. Aceita `undefined` porque um PDV novo
+ *   pode falar com uma API ainda sem o campo, e aí o gráfico some em vez de
+ *   quebrar a modal.
+ * @param currentHour Hora atual no relógio da loja.
  */
-export function weekComparisonScale(points: WeekComparisonPoint[]): number {
-  const maior = points.reduce((max, point) => Math.max(max, point.current ?? 0, point.previous), 0);
-  return maior > 0 ? maior : 1;
+export function hourWindow(
+  hours: PerformanceHourDto[] | undefined,
+  currentHour: number,
+): PerformanceHourDto[] {
+  if (!hours || hours.length === 0) return [];
+
+  const withSales = hours.filter((hour) => hour.revenue > 0).map((hour) => hour.hour);
+  const first = Math.min(withSales[0] ?? DEFAULT_FIRST_HOUR, DEFAULT_FIRST_HOUR);
+  const last = Math.max(withSales.at(-1) ?? currentHour, currentHour, first);
+
+  return hours.filter((hour) => hour.hour >= first && hour.hour <= last);
 }
 
-/** Soma do faturamento dos dias que já aconteceram nesta semana. */
-export function weekRevenueSoFar(days: WeekdayComparisonDto[]): number {
-  return round2(days.filter((day) => !day.isFuture).reduce((sum, day) => sum + day.revenue, 0));
+/** Maior faturamento da janela, com piso de 1 para não dividir por zero. */
+export function hourlyScale(hours: PerformanceHourDto[]): number {
+  const maior = hours.reduce((max, hour) => Math.max(max, hour.revenue), 0);
+  return maior > 0 ? maior : 1;
 }

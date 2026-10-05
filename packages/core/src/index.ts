@@ -24,4 +24,3 @@ export * from "./money";
 export * from "./pricing";
 export * from "./search";
 export * from "./text";
-export * from "./week-comparison";

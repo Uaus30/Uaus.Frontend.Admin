@@ -1,35 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { WeekdayComparisonDto } from "@workspace/api-client-react";
-import {
-  changePercentage,
-  describePreviousDay,
-  weekComparisonScale,
-  weekRevenueSoFar,
-  weekdayLabel,
-} from "./performance";
+import type { PerformanceHourDto } from "@workspace/api-client-react";
+import { changePercentage, describePreviousDay, hourWindow, hourlyScale } from "./performance";
 
-/** Dia do comparativo semanal, com o mínimo preenchido. */
-function dia(overrides: Partial<WeekdayComparisonDto> = {}): WeekdayComparisonDto {
-  return {
-    weekday: 0,
-    date: "2026-08-10T00:00:00",
-    revenue: 0,
-    previousRevenue: 0,
-    isFuture: false,
-    ...overrides,
-  };
+/** As 24 horas do dia, com faturamento só nas horas informadas. */
+function horas(faturamento: Record<number, number> = {}): PerformanceHourDto[] {
+  return Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    revenue: faturamento[hour] ?? 0,
+    salesCount: faturamento[hour] ? 1 : 0,
+  }));
 }
-
-describe("weekdayLabel", () => {
-  it("começa na segunda, como a semana do varejo", () => {
-    expect(weekdayLabel(0)).toBe("Seg");
-    expect(weekdayLabel(6)).toBe("Dom");
-  });
-
-  it("não quebra com índice fora da faixa", () => {
-    expect(weekdayLabel(9)).toBe("?");
-  });
-});
 
 describe("changePercentage", () => {
   it("calcula a alta", () => {
@@ -95,50 +75,36 @@ describe("describePreviousDay", () => {
   });
 });
 
-describe("weekComparisonScale", () => {
-  it("usa o maior acumulado entre as DUAS semanas", () => {
-    // Escala única: escalas independentes fariam uma semana fraca parecer igual
-    // a uma forte, que é o oposto do que o gráfico existe para mostrar.
-    const pontos = [
-      { weekday: 0, current: 100, previous: 250 },
-      { weekday: 1, current: 300, previous: 260 },
-    ];
-
-    expect(weekComparisonScale(pontos)).toBe(300);
+describe("hourWindow", () => {
+  it("recorta do início do expediente até a hora atual", () => {
+    const janela = hourWindow(horas({ 9: 100, 11: 40 }), 14);
+    expect(janela.map((h) => h.hour)).toEqual([8, 9, 10, 11, 12, 13, 14]);
   });
 
-  it("ignora o dia que ainda não chegou na série atual", () => {
-    expect(weekComparisonScale([{ weekday: 0, current: null, previous: 40 }])).toBe(40);
+  it("começa antes das 8h quando houve venda mais cedo", () => {
+    expect(hourWindow(horas({ 7: 20 }), 10)[0].hour).toBe(7);
   });
 
-  it("devolve 1 na semana sem venda nenhuma, para não dividir por zero", () => {
-    expect(weekComparisonScale([{ weekday: 0, current: 0, previous: 0 }])).toBe(1);
+  it("vai até a última venda quando ela é depois da hora atual do relógio", () => {
+    expect(hourWindow(horas({ 9: 10, 19: 30 }), 18).at(-1)?.hour).toBe(19);
   });
 
-  it("devolve 1 com a lista vazia", () => {
-    expect(weekComparisonScale([])).toBe(1);
+  it("antes de abrir, mostra ao menos a hora de abertura", () => {
+    expect(hourWindow(horas(), 6).map((h) => h.hour)).toEqual([8]);
+  });
+
+  it("sem o campo na resposta (API antiga), não quebra", () => {
+    expect(hourWindow(undefined, 10)).toEqual([]);
   });
 });
 
-describe("weekRevenueSoFar", () => {
-  it("soma só os dias que já aconteceram", () => {
-    const dias = [
-      dia({ weekday: 0, revenue: 100 }),
-      dia({ weekday: 1, revenue: 150 }),
-      dia({ weekday: 2, revenue: 0, isFuture: true }),
-      dia({ weekday: 3, revenue: 0, isFuture: true }),
-    ];
-
-    expect(weekRevenueSoFar(dias)).toBe(250);
+describe("hourlyScale", () => {
+  it("usa a hora de maior faturamento", () => {
+    expect(hourlyScale(horas({ 9: 100, 11: 240 }))).toBe(240);
   });
 
-  it("devolve zero na segunda de manhã, sem venda ainda", () => {
-    expect(weekRevenueSoFar([dia({ isFuture: false }), dia({ isFuture: true })])).toBe(0);
-  });
-
-  it("não propaga erro de ponto flutuante", () => {
-    const dias = [dia({ revenue: 0.1 }), dia({ revenue: 0.2 })];
-
-    expect(weekRevenueSoFar(dias)).toBe(0.3);
+  it("devolve 1 sem venda nenhuma, para não dividir por zero", () => {
+    expect(hourlyScale(horas())).toBe(1);
+    expect(hourlyScale([])).toBe(1);
   });
 });

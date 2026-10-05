@@ -14,15 +14,14 @@ bater com o total enviado à API nem com o subtotal impresso no cupom.
 
 ## O que entra
 
-| Arquivo              | Responsabilidade                                                                                     |
-| -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `money.ts`           | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
-| `discount.ts`        | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem`                                       |
-| `format.ts`          | `formatDate`, `formatShortDate`, `toDateKey`                                                         |
-| `text.ts`            | `normalizeSearchText`                                                                                |
-| `mask.ts`            | `cleanPhone`, `formatPhone`                                                                          |
-| `api-error.ts`       | `describeApiError`                                                                                   |
-| `week-comparison.ts` | `accumulateWeekComparison` — curva acumulada da semana atual x anterior                              |
+| Arquivo        | Responsabilidade                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| `money.ts`     | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
+| `discount.ts`  | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem`                                       |
+| `format.ts`    | `formatDate`, `formatShortDate`, `toDateKey`                                                         |
+| `text.ts`      | `normalizeSearchText`                                                                                |
+| `mask.ts`      | `cleanPhone`, `formatPhone`                                                                          |
+| `api-error.ts` | `describeApiError`                                                                                   |
 
 ## O que NÃO entra
 

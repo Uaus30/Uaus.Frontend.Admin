@@ -1,4 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { render as renderBase, screen } from "@testing-library/react";
+import { TooltipProvider } from "@workspace/ui";
 import { describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ useGetStorePerformance: vi.fn() }));
@@ -8,10 +10,12 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   useGetStorePerformance: mocks.useGetStorePerformance,
 }));
 
-// O gráfico mede a tela (recharts); aqui interessa só o texto da modal.
-vi.mock("../weekday-comparison-chart", () => ({ WeekdayComparisonChart: () => null }));
-
 const { PerformanceDialog } = await import("../performance-dialog");
+
+/** As barras do gráfico por hora têm dica, que exige o provider do `App.tsx`. */
+function render(ui: ReactElement) {
+  return renderBase(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 mocks.useGetStorePerformance.mockReturnValue({
   isLoading: false,
@@ -21,6 +25,11 @@ mocks.useGetStorePerformance.mockReturnValue({
     serverTime: "2026-10-01T20:00:00",
     today: { revenue: 300, salesCount: 13, averageTicket: 23.07 },
     weekdayComparison: [],
+    hours: Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      revenue: hour === 9 ? 120 : hour === 14 ? 180 : 0,
+      salesCount: hour === 9 ? 5 : hour === 14 ? 8 : 0,
+    })),
     week: { revenue: 1200 },
     month: { revenue: 5000 },
   },
@@ -40,6 +49,16 @@ describe("Desempenho", () => {
     expect(screen.getByText(/vendas com cliente/).textContent).toBe(
       "Neste turno: 4 de 13 vendas com cliente identificado",
     );
+  });
+
+  it("mostra o faturamento de hoje por hora, até a hora atual", () => {
+    render(<PerformanceDialog open onOpenChange={vi.fn()} />);
+
+    expect(screen.getByText("Faturamento por hora")).toBeTruthy();
+    // Das 8h (abertura) até as 20h do relógio do servidor.
+    expect(screen.getByText("08h")).toBeTruthy();
+    expect(screen.getByText("20h")).toBeTruthy();
+    expect(screen.queryByText("Semana atual x anterior")).toBeNull();
   });
 
   it("sem venda no período, não mostra o contador", () => {
