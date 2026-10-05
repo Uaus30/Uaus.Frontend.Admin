@@ -7,6 +7,7 @@ import {
   parseQuantityInput,
   type LabelDraftItem,
 } from "./types";
+import { expectedLabelPrice } from "./promotion";
 
 /**
  * Conversões entre a lista da tela e o rascunho salvo no servidor.
@@ -43,7 +44,11 @@ function toCents(value: number): number {
 export function customPriceForPayload(item: LabelDraftItem): number | null {
   const typed = parsePriceInput(item.priceInput);
   if (typed <= 0) return null;
-  return toCents(typed) === toCents(item.catalogPrice) ? null : toCents(typed) / 100;
+  // A régua do "editado" é o preço que a etiqueta teria sozinha — o promocional,
+  // na etiqueta de oferta de um produto em promoção (05/10/2026). Comparar com o
+  // de tabela gravaria o preço da relâmpago como oferta digitada, e a etiqueta
+  // continuaria com ele depois do sábado.
+  return toCents(typed) === toCents(expectedLabelPrice(item)) ? null : toCents(typed) / 100;
 }
 
 /**
@@ -76,6 +81,10 @@ export function fromDraftDto(dto: ProductLabelDraftDto | null): LoadedLabelDraft
     description: dto.description ?? "",
     items: dto.items.map((item) => ({
       productId: item.productId,
+      // A promoção chega depois, pela lista de promoções (`withLabelPromotion`
+      // no composer): o rascunho não a guarda, como não guarda o preço.
+      productGroupId: item.productGroupId ?? null,
+      promotion: null,
       productName: item.customName ?? item.catalogName,
       catalogName: item.catalogName,
       barcode: item.barcode?.trim() ? item.barcode.trim() : null,

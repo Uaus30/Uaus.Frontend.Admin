@@ -105,6 +105,27 @@ describe("buildLabelSheetHtml", () => {
     expect(html).not.toContain("<svg");
   });
 
+  it("na promoção, imprime o De riscado acima do preço e o selo abaixo, escapado", () => {
+    const html = buildLabelSheetHtml(
+      [label({ price: 9.9, referencePrice: 12.5, promotionSeal: "3 por <R$ 20>" })],
+      stubBarcode,
+    );
+
+    expect(html).toContain('<div class="label-price-stack">');
+    expect(html).toContain('<div class="label-ref">DE R$ <s>12,50</s></div>');
+    expect(html).toContain('<div class="label-seal">3 por &lt;R$ 20&gt;</div>');
+    // O "De" vem antes do preço, e o selo depois.
+    expect(html.indexOf("label-ref")).toBeLessThan(html.indexOf('class="label-value"'));
+    expect(html.indexOf('class="label-value"')).toBeLessThan(html.indexOf('class="label-seal"'));
+  });
+
+  it("sem promoção, a etiqueta continua só com o preço", () => {
+    const html = buildLabelSheetHtml([label()], stubBarcode);
+
+    expect(html).not.toContain('<div class="label-price-stack">');
+    expect(html).not.toContain('<div class="label-seal">');
+  });
+
   it("injeta o SVG gerado para o código de barras", () => {
     const html = buildLabelSheetHtml([label()], stubBarcode);
 

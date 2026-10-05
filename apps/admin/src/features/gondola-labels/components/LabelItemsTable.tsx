@@ -1,10 +1,19 @@
-import { Eraser, Printer, Trash2 } from "lucide-react";
+import { Eraser, Printer, Tag, Trash2 } from "lucide-react";
+import { PRODUCT_LABEL_TYPE } from "@workspace/api-client-react";
+import { formatCurrency } from "@workspace/core";
+import { PromotionSeal } from "@/components/shelf-price";
 import { Button } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { LABEL_NAME_MAX_LENGTH, LABEL_TYPE_INFOS, type LabelDraftItem, type LabelTypeCode } from "../types";
+import {
+  draftToPrintable,
+  LABEL_NAME_MAX_LENGTH,
+  LABEL_TYPE_INFOS,
+  type LabelDraftItem,
+  type LabelTypeCode,
+} from "../types";
 import { DraftStatus, type DraftStatusProps } from "./DraftStatus";
 
 interface LabelItemsTableProps {
@@ -31,6 +40,37 @@ function TypeDot({ background }: { background: string }) {
       className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-black/20"
       style={{ background }}
     />
+  );
+}
+
+/**
+ * O que a promoção põe nesta etiqueta, ou por que ela não sai (05/10/2026).
+ *
+ * Na Normal, a promoção NÃO vai para o papel — é o caminho para imprimir o
+ * preço de tabela com a relâmpago no ar —, e a linha diz isso, senão a pessoa
+ * imprime achando que a etiqueta sai com o preço do cartaz.
+ */
+function LabelPromotionHint({ item }: { item: LabelDraftItem }) {
+  if (!item.promotion) return null;
+
+  if (item.labelType === PRODUCT_LABEL_TYPE.Normal) {
+    return (
+      <p className="mt-1 text-xs text-muted-foreground">
+        Em promoção ({item.promotion.seal}) — escolha o tipo Promoção para imprimir com ela.
+      </p>
+    );
+  }
+
+  const printable = draftToPrintable(item);
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+      <PromotionSeal icon={Tag} label={item.promotion.seal} />
+      {printable.referencePrice != null && (
+        <span>
+          sai com &quot;De <s>{formatCurrency(printable.referencePrice)}</s>&quot; acima do preço
+        </span>
+      )}
+    </p>
   );
 }
 
@@ -121,6 +161,7 @@ export function LabelItemsTable({
                     <p className="mt-1 truncate text-xs text-muted-foreground">
                       {item.barcode ?? "Sem código de barras"}
                     </p>
+                    <LabelPromotionHint item={item} />
                   </div>
 
                   {/* No celular: tipo numa linha inteira, e preço, cópias e a

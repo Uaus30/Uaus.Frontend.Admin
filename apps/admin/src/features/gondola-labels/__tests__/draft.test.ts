@@ -30,6 +30,15 @@ describe("customPriceForPayload", () => {
     expect(customPriceForPayload(item({ priceInput: "1.234,5" }))).toBe(1234.5);
   });
 
+  it("na etiqueta de oferta, o preço promocional segue a promoção — não vira oferta digitada", () => {
+    // Gravado como digitado, o preço da relâmpago continuaria na etiqueta
+    // depois do sábado (05/10/2026).
+    const promocao = { price: 9.9, referencePrice: 12.5, seal: "Relâmpago" };
+    expect(customPriceForPayload(item({ labelType: 2, priceInput: "9,90", promotion: promocao }))).toBeNull();
+    // Na Normal a régua continua o de tabela.
+    expect(customPriceForPayload(item({ labelType: 1, priceInput: "9,90", promotion: promocao }))).toBe(9.9);
+  });
+
   it("campo vazio ou zero (no meio da digitação) segue o cadastro, para o salvamento não falhar", () => {
     expect(customPriceForPayload(item({ priceInput: "" }))).toBeNull();
     expect(customPriceForPayload(item({ priceInput: "0" }))).toBeNull();

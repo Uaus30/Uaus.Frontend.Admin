@@ -62,6 +62,31 @@ reimpressão.
   a quantidade.
 - Produto **sem código de barras** imprime a etiqueta sem as barras. Depois de 21/09/2026 isso só acontece com lote congelado antigo: o cadastro não deixa mais um produto ficar sem código.
 
+## Preço promocional na etiqueta (05/10/2026)
+
+Pedido do dono: onde o sistema mostra o preço, mostrar o promocional. A regra de
+anúncio é a do `@workspace/core` (`shelfPrice`), a mesma da listagem de produtos
+e da busca do PDV; a lista de promoções é a do admin (`useShelfPrice`). A
+etiqueta-específica mora em `promotion.ts`.
+
+- **O tipo é a chave.** Produto em promoção entra como **Promoção** (amarela) e
+  com o preço promocional. Trocar para **Normal** volta ao preço de tabela, sem
+  "De" nem selo — é o caminho para a etiqueta que fica na gôndola depois do
+  sábado. A Queima de Estoque também leva a promoção. Na Normal, a linha avisa que
+  o produto está em promoção.
+- **Relâmpago e Dia a Dia**: "DE R$ 12,90" riscado acima do preço e o selo do tipo
+  embaixo. **Combo**: preço de tabela e o resumo no selo ("3 POR R$ 20,00").
+- **A promoção é derivada, nunca guardada no rascunho.** O preço promocional conta
+  como "não editado" (`expectedLabelPrice`): gravado como oferta digitada, a
+  etiqueta continuaria com o preço da relâmpago depois do sábado. A oferta digitada
+  à mão continua a dela ao trocar o tipo e quando a lista de promoções muda.
+- **O lote impresso congela o "De" e o selo** (`referencePrice`, `promotionSeal`),
+  e a reimpressão do histórico os repete. O "De" só sai acima de um preço MENOR
+  que ele — o backend recusa o contrário.
+- **No papel o preço desce de 32pt para 25pt** só nessas etiquetas, para o "De" e
+  o selo caberem nos ~13,8mm abaixo do nome (`print.ts`, e a prévia em
+  `LabelPreviewCard` com as mesmas medidas).
+
 ## Rascunho: a lista que se salva sozinha (30/09/2026)
 
 Pedido do dono: montar a lista **olhando a prateleira**, no celular, e

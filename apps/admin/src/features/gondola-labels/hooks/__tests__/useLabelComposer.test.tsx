@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   saveProductLabelDraft: vi.fn(),
   printLabelSheet: vi.fn(),
   toast: vi.fn(),
+  useGetCurrentPromotions: vi.fn(),
 }));
 
 // Só o que fala com a rede é dublado — enums, chaves de cache e helpers puros
@@ -21,6 +22,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   searchPdvProducts: mocks.searchPdvProducts,
   getProductLabelDraft: mocks.getProductLabelDraft,
   saveProductLabelDraft: mocks.saveProductLabelDraft,
+  useGetCurrentPromotions: mocks.useGetCurrentPromotions,
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -33,6 +35,41 @@ vi.mock("../../print", () => ({
 }));
 
 const { useLabelComposer } = await import("../useLabelComposer");
+
+/** Sem promoção nenhuma. Referência ÚNICA: o React Query devolve dado estável. */
+const SEM_PROMOCOES = { data: [] };
+
+/** Relâmpago de R$ 9,90 no grupo 41, das 08:00 às 18:00 de 11/10/2026. */
+const RELAMPAGO_ATE_AS_18H = {
+  data: [
+    {
+      id: 8,
+      productGroupId: 41,
+      productGroupIds: [41],
+      type: "Flash",
+      discountType: "FinalPrice",
+      discountValue: 9.9,
+      validFrom: "2026-10-11T08:00:00",
+      validUntil: "2026-10-11T18:00:00",
+    },
+  ],
+};
+
+/** Relâmpago de R$ 9,90 no grupo 41, valendo o dia todo de qualquer dia. */
+const RELAMPAGO_NO_GRUPO_41 = {
+  data: [
+    {
+      id: 7,
+      productGroupId: 41,
+      productGroupIds: [41],
+      type: "Flash",
+      discountType: "FinalPrice",
+      discountValue: 9.9,
+      validFrom: "2000-01-01T00:00:00",
+      validUntil: "2999-12-31T23:59:59",
+    },
+  ],
+};
 
 /** Produto devolvido pela busca do balcão; só os campos que o hook usa. */
 function product(id: number, patch?: Partial<ProductPdvSearchDto>): ProductPdvSearchDto {
@@ -68,6 +105,7 @@ async function renderComposer() {
 describe("useLabelComposer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.useGetCurrentPromotions.mockReturnValue(SEM_PROMOCOES);
     mocks.getProductLabelDraft.mockResolvedValue(null);
     mocks.saveProductLabelDraft.mockResolvedValue(undefined);
     mocks.searchPdvProducts.mockResolvedValue([]);
@@ -169,7 +207,17 @@ describe("useLabelComposer", () => {
 
     expect(mocks.createProductLabelBatch).toHaveBeenCalledWith({
       description: "Promoção da semana",
-      items: [{ productId: 5, labelType: 2, price: 9.99, quantity: 2, productName: null }],
+      items: [
+        {
+          productId: 5,
+          labelType: 2,
+          price: 9.99,
+          quantity: 2,
+          productName: null,
+          referencePrice: null,
+          promotionSeal: null,
+        },
+      ],
     });
 
     expect(mocks.printLabelSheet).toHaveBeenCalledWith([
@@ -179,8 +227,116 @@ describe("useLabelComposer", () => {
         price: 9.99,
         labelType: 2,
         quantity: 2,
+        referencePrice: null,
+        promotionSeal: null,
       },
     ]);
+  });
+
+  describe("produto em promoção (05/10/2026)", () => {
+    beforeEach(() => {
+      mocks.useGetCurrentPromotions.mockReturnValue(RELAMPAGO_NO_GRUPO_41);
+    });
+
+    it("entra como Promoção, com o preço promocional, o De e o selo na prévia", async () => {
+      const { result } = await renderComposer();
+
+      act(() => result.current.addProduct(product(5, { price: 12.5, productGroupId: 41 })));
+
+      expect(result.current.items[0]).toMatchObject({ labelType: 2, priceInput: "9,90" });
+      expect(result.current.previewLabels[0]).toMatchObject({
+        price: 9.9,
+        referencePrice: 12.5,
+        promotionSeal: "Relâmpago",
+      });
+    });
+
+    it("trocar para Normal volta ao preço de tabela, sem De nem selo — e de volta", async () => {
+      // A Normal é o caminho para imprimir a etiqueta que fica na gôndola depois
+      // do sábado sem desligar a relâmpago.
+      const { result } = await renderComposer();
+      act(() => result.current.addProduct(product(5, { price: 12.5, productGroupId: 41 })));
+
+      act(() => result.current.updateItem(0, { labelType: 1 }));
+      expect(result.current.items[0].priceInput).toBe("12,50");
+      expect(result.current.previewLabels[0]).toMatchObject({ referencePrice: null, promotionSeal: null });
+
+      act(() => result.current.updateItem(0, { labelType: 2 }));
+      expect(result.current.items[0].priceInput).toBe("9,90");
+    });
+
+    it("o preço digitado à mão não é trocado pela troca de tipo", async () => {
+      const { result } = await renderComposer();
+      act(() => result.current.addProduct(product(5, { price: 12.5, productGroupId: 41 })));
+      act(() => result.current.updateItem(0, { priceInput: "8,00" }));
+
+      act(() => result.current.updateItem(0, { labelType: 3 }));
+
+      expect(result.current.items[0].priceInput).toBe("8,00");
+      expect(result.current.previewLabels[0]).toMatchObject({ price: 8, referencePrice: 12.5 });
+    });
+
+    it("gera o lote com o De e o selo, para o backend congelar", async () => {
+      const { result } = await renderComposer();
+      act(() => result.current.addProduct(product(5, { price: 12.5, productGroupId: 41 })));
+
+      await act(async () => result.current.handleGenerate());
+
+      expect(mocks.createProductLabelBatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [expect.objectContaining({ price: 9.9, referencePrice: 12.5, promotionSeal: "Relâmpago" })],
+        }),
+      );
+    });
+
+    it("a etiqueta montada durante a relâmpago volta ao preço de tabela quando ela acaba", async () => {
+      // Achado da revisão: montada às 17h e impressa às 18h30, ela saía com o
+      // preço da relâmpago — a lista do dia não muda às 18h, e nada reavaliava.
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        vi.setSystemTime(new Date(2026, 9, 11, 17, 59, 30));
+        mocks.useGetCurrentPromotions.mockReturnValue(RELAMPAGO_ATE_AS_18H);
+        const { result } = await renderComposer();
+
+        act(() => result.current.addProduct(product(5, { price: 12.5, productGroupId: 41 })));
+        expect(result.current.previewLabels[0]).toMatchObject({ price: 9.9, promotionSeal: "Relâmpago" });
+
+        await act(async () => {
+          vi.advanceTimersByTime(31_000 + 100);
+        });
+
+        expect(result.current.items[0].priceInput).toBe("12,50");
+        expect(result.current.previewLabels[0]).toMatchObject({
+          price: 12.5,
+          referencePrice: null,
+          promotionSeal: null,
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("reabre o rascunho com o preço promocional no item que segue o cadastro", async () => {
+      mocks.getProductLabelDraft.mockResolvedValue({
+        description: null,
+        items: [
+          {
+            productId: 5,
+            productGroupId: 41,
+            labelType: "Promotion",
+            quantity: 1,
+            catalogName: "CANECA",
+            catalogPrice: 12.5,
+          },
+        ],
+      });
+
+      const { result } = await renderComposer();
+
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+      expect(result.current.items[0].priceInput).toBe("9,90");
+      expect(result.current.previewLabels[0]).toMatchObject({ referencePrice: 12.5 });
+    });
   });
 
   it("mantém o lote na tela depois de imprimir, para reimprimir sem remontar", async () => {

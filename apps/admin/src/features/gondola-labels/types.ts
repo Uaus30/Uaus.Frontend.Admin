@@ -68,6 +68,29 @@ export interface LabelDraftItem {
   labelType: LabelTypeCode;
   /** Cópias digitadas (ex.: "3"). */
   quantityInput: string;
+  /**
+   * Grupo do produto — a promoção é dele. Ausente em item de um rascunho lido de
+   * uma API anterior a 05/10/2026: aí o item fica no preço de tabela.
+   */
+  productGroupId?: number | null;
+  /**
+   * A promoção que vale AGORA para o produto, derivada a cada leitura da lista
+   * de promoções (ver `promotion.ts`). Nunca vai para o rascunho.
+   */
+  promotion?: LabelPromotion | null;
+}
+
+/**
+ * O que a promoção põe na etiqueta (05/10/2026): o preço promocional, o "De"
+ * riscado acima dele e o selo abaixo.
+ */
+export interface LabelPromotion {
+  /** Preço promocional da unidade. Nulo no combo, que sai pelo preço de tabela. */
+  price: number | null;
+  /** O "De R$ X": o preço de tabela. Nulo no combo e na isca sem desconto. */
+  referencePrice: number | null;
+  /** O selo: o tipo ("Relâmpago", "Dia a Dia") ou o resumo do combo ("3 por R$ 20,00"). */
+  seal: string;
 }
 
 /** Uma etiqueta pronta para preview/impressão; `quantity` repete a célula na folha. */
@@ -77,6 +100,10 @@ export interface PrintableLabel {
   price: number;
   labelType: LabelTypeCode;
   quantity: number;
+  /** O "De R$ X" riscado acima do preço. Ausente sem promoção. */
+  referencePrice?: number | null;
+  /** O selo abaixo do preço. Ausente sem promoção. */
+  promotionSeal?: string | null;
 }
 
 /** Converte o preço digitado ("12,50", "1.234,56" ou "12.50") em número; inválido vira 0. */
@@ -126,13 +153,27 @@ export function customNameForPayload(item: LabelDraftItem): string | null {
   return !typed || typed === item.catalogName.trim() ? null : typed;
 }
 
-/** Materializa um item do rascunho na etiqueta de preview/impressão. */
+/**
+ * Materializa um item do rascunho na etiqueta de preview/impressão.
+ *
+ * A promoção só vai para o papel na etiqueta de oferta (Promoção ou Queima de
+ * Estoque): a Normal é o caminho para imprimir o preço de tabela com a promoção
+ * no ar. O "De" só sai acima de um preço MENOR que ele — o preço digitado à mão
+ * pode ter passado do de tabela, e aí o "De" anunciaria um desconto que sobe o
+ * preço (o backend também recusa).
+ */
 export function draftToPrintable(item: LabelDraftItem): PrintableLabel {
+  const price = parsePriceInput(item.priceInput);
+  const promocao = item.labelType !== PRODUCT_LABEL_TYPE.Normal ? item.promotion : null;
+  const de = promocao?.referencePrice;
+
   return {
     productName: printedNameOf(item),
     barcode: item.barcode,
-    price: parsePriceInput(item.priceInput),
+    price,
     labelType: item.labelType,
     quantity: Math.max(1, parseQuantityInput(item.quantityInput)),
+    referencePrice: de != null && price > 0 && price < de ? de : null,
+    promotionSeal: promocao?.seal ?? null,
   };
 }

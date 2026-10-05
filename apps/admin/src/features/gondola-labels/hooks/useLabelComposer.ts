@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  PRODUCT_LABEL_TYPE,
   createProductLabelBatch,
   getGetProductLabelBatchesQueryKey,
   searchPdvProducts,
@@ -10,10 +9,18 @@ import {
 import { useToast } from "@workspace/ui";
 import { useLabelProductSearch } from "./useLabelProductSearch";
 import { useLabelDraft } from "./useLabelDraft";
-import { describeApiError } from "@workspace/core";
+import { describeApiError, type ShelfPrice } from "@workspace/core";
+import { useShelfPrice } from "@/hooks/use-shelf-price";
 import { printLabelSheet } from "../print";
 import { exactBarcodeMatches, scanToastOf, type BarcodeScanOutcome } from "../barcode-lookup";
 import { toDraftPayload, type LoadedLabelDraft } from "../draft";
+import {
+  defaultLabelTypeOf,
+  expectedLabelPrice,
+  labelPromotionOf,
+  withLabelPromotion,
+  withLabelType,
+} from "../promotion";
 import {
   customNameForPayload,
   draftToPrintable,
@@ -23,6 +30,7 @@ import {
   parseQuantityInput,
   printedNameOf,
   type LabelDraftItem,
+  type LabelPromotion,
   type PrintableLabel,
 } from "../types";
 
@@ -45,12 +53,30 @@ import {
  * Limpar: quem imprime costuma reimprimir na hora — papel torto, etiqueta
  * faltando. Mas imprimir ENCERRA o rascunho no servidor: a lista impressa não
  * volta na próxima abertura.
+ *
+ * **Produto em promoção entra com o preço promocional** (05/10/2026): tipo
+ * Promoção, o "De" e o selo, derivados da mesma lista de promoções da listagem
+ * de produtos — ver `promotion.ts`.
  */
 export function useLabelComposer() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const productSearch = useLabelProductSearch();
+  const { shelfPriceOf } = useShelfPrice();
+
+  /** A promoção que um produto leva para a etiqueta agora. */
+  const promotionOf = useCallback(
+    (productGroupId: number | null | undefined, price: number): LabelPromotion | null =>
+      labelPromotionOf(shelfPriceOf(productGroupId, price)),
+    [shelfPriceOf],
+  );
+  // O rascunho é lido uma vez, por um callback estável; a promoção que ele
+  // aplica tem de ser a da lista MAIS RECENTE, e não a da montagem.
+  const promotionOfRef = useRef(promotionOf);
+  useEffect(() => {
+    promotionOfRef.current = promotionOf;
+  }, [promotionOf]);
   const [description, setDescriptionState] = useState("");
   const [items, setItems] = useState<LabelDraftItem[]>([]);
   const [printing, setPrinting] = useState(false);
@@ -63,9 +89,26 @@ export function useLabelComposer() {
   const touch = () => setRevision((current) => current + 1);
 
   const hydrate = useCallback((loaded: LoadedLabelDraft) => {
-    setItems(loaded.items);
+    setItems(
+      loaded.items.map((item) =>
+        withLabelPromotion(item, promotionOfRef.current(item.productGroupId, item.catalogPrice)),
+      ),
+    );
     setDescriptionState(loaded.description);
   }, []);
+
+  // A lista de promoções chegou depois do rascunho, ou mudou (a relâmpago
+  // começou com a tela aberta): cada item acompanha, sem agendar gravação — a
+  // promoção é derivada e não vai para o rascunho. Ajuste DURANTE o render, o
+  // padrão do React para estado que acompanha outro valor; num efeito a lista
+  // seria desenhada uma vez com a promoção velha.
+  const [promotionsSeen, setPromotionsSeen] = useState(() => promotionOf);
+  if (promotionsSeen !== promotionOf) {
+    setPromotionsSeen(() => promotionOf);
+    setItems((current) =>
+      current.map((item) => withLabelPromotion(item, promotionOf(item.productGroupId, item.catalogPrice))),
+    );
+  }
   const draft = useLabelDraft(hydrate);
   const { schedule } = draft;
   const canEdit = draft.loadState === "ready";
@@ -98,12 +141,25 @@ export function useLabelComposer() {
     touch();
   };
 
-  /** Adiciona o produto com tipo Normal; se já estiver na lista com esse tipo, soma uma cópia. */
+  /**
+   * Tipo com que o produto entra: Promoção quando há promoção valendo para ele,
+   * Normal no resto.
+   */
+  const entryTypeOf = (product: ProductPdvSearchDto) =>
+    defaultLabelTypeOf(promotionOf(product.productGroupId, product.price));
+
+  /**
+   * Adiciona o produto — com tipo Promoção e o preço promocional quando há
+   * promoção valendo, Normal no resto; se já estiver na lista com esse tipo, soma
+   * uma cópia.
+   */
   const addProduct = (product: ProductPdvSearchDto) => {
     if (!canEdit) return;
+    const promotion = promotionOf(product.productGroupId, product.price);
+    const labelType = defaultLabelTypeOf(promotion);
     setItems((current) => {
       const existingIndex = current.findIndex(
-        (item) => item.productId === product.id && item.labelType === PRODUCT_LABEL_TYPE.Normal,
+        (item) => item.productId === product.id && item.labelType === labelType,
       );
 
       if (existingIndex >= 0) {
@@ -121,10 +177,14 @@ export function useLabelComposer() {
           productName: product.name,
           catalogName: product.name,
           barcode: product.barcode?.trim() ? product.barcode.trim() : null,
-          priceInput: formatPriceInput(product.price),
+          priceInput: formatPriceInput(
+            expectedLabelPrice({ labelType, promotion, catalogPrice: product.price }),
+          ),
           catalogPrice: product.price,
-          labelType: PRODUCT_LABEL_TYPE.Normal,
+          labelType,
           quantityInput: "1",
+          productGroupId: product.productGroupId ?? null,
+          promotion,
         },
       ];
     });
@@ -155,7 +215,7 @@ export function useLabelComposer() {
 
       const product = matches[0];
       const existing = itemsRef.current.find(
-        (item) => item.productId === product.id && item.labelType === PRODUCT_LABEL_TYPE.Normal,
+        (item) => item.productId === product.id && item.labelType === entryTypeOf(product),
       );
       addProduct(product);
       const outcome: BarcodeScanOutcome = {
@@ -200,7 +260,14 @@ export function useLabelComposer() {
         }
       }
 
-      return current.map((item, i) => (i === index ? { ...item, ...patch } : item));
+      // Trocar o tipo leva o preço junto quando ele não foi editado: de Promoção
+      // para Normal, o promocional dá lugar ao de tabela (`withLabelType`).
+      return current.map((item, i) => {
+        if (i !== index) return item;
+        const { labelType, ...rest } = patch;
+        const retipado = labelType !== undefined ? withLabelType(item, labelType) : item;
+        return { ...retipado, ...rest };
+      });
     });
     touch();
   };
@@ -247,13 +314,20 @@ export function useLabelComposer() {
 
       const batch = await createProductLabelBatch({
         description: description.trim() || null,
-        items: items.map((item) => ({
-          productId: item.productId,
-          labelType: item.labelType,
-          price: parsePriceInput(item.priceInput),
-          quantity: parseQuantityInput(item.quantityInput),
-          productName: customNameForPayload(item),
-        })),
+        items: items.map((item) => {
+          // O "De" e o selo saem da mesma conta da prévia, e o backend os
+          // congela para a reimpressão.
+          const printable = draftToPrintable(item);
+          return {
+            productId: item.productId,
+            labelType: item.labelType,
+            price: parsePriceInput(item.priceInput),
+            quantity: parseQuantityInput(item.quantityInput),
+            productName: customNameForPayload(item),
+            referencePrice: printable.referencePrice ?? null,
+            promotionSeal: printable.promotionSeal ?? null,
+          };
+        }),
       });
       draft.markPrinted(changeAtPrint);
 
@@ -265,6 +339,8 @@ export function useLabelComposer() {
             price: item.price,
             labelType: labelTypeFromEnum(item.labelType),
             quantity: item.quantity,
+            referencePrice: item.referencePrice ?? null,
+            promotionSeal: item.promotionSeal ?? null,
           }))
         : items.map(draftToPrintable);
 
@@ -292,7 +368,12 @@ export function useLabelComposer() {
     }
   };
 
+  /** O preço de um resultado da busca, já com a promoção — o que a lista mostra. */
+  const searchResultShelf = (product: ProductPdvSearchDto): ShelfPrice =>
+    shelfPriceOf(product.productGroupId, product.price);
+
   return {
+    searchResultShelf,
     search: productSearch.search,
     setSearch: productSearch.setSearch,
     submitSearch: productSearch.submit,

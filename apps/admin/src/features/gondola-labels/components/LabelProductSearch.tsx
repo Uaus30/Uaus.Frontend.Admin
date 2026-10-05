@@ -4,7 +4,8 @@ import { Button, ImageHoverZoom } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
 import { Spinner } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
+import type { ShelfPrice } from "@workspace/core";
+import { ShelfPriceView } from "@/components/shelf-price";
 import { buildPublicImageUrl, type ProductPdvSearchDto } from "@workspace/api-client-react";
 import { openProductEditTab } from "@/features/products/product-edit-link";
 import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
@@ -27,6 +28,8 @@ interface LabelProductSearchProps {
   onScanCode: (code: string) => Promise<BarcodeScanOutcome>;
   /** A lista ainda não aceita alteração (o rascunho salvo está sendo lido). */
   disabled: boolean;
+  /** O preço de cada resultado com a promoção que vale agora. Ausente = o de tabela. */
+  priceOf?: (product: ProductPdvSearchDto) => ShelfPrice;
 }
 
 /**
@@ -63,6 +66,7 @@ export function LabelProductSearch({
   onAdd,
   onScanCode,
   disabled,
+  priceOf,
 }: LabelProductSearchProps) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const cameraAvailable = canUseCamera();
@@ -151,9 +155,15 @@ export function LabelProductSearch({
                   <p className="truncate text-sm font-medium text-foreground">{product.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {product.barcode?.trim() ? product.barcode : "Sem código de barras"}
-                    {" · "}
-                    {formatCurrency(product.price)}
                   </p>
+                  {/* Com a promoção que vale agora: é o preço que a etiqueta vai
+                      levar se o produto entrar no lote. */}
+                  <div className="mt-0.5 text-xs">
+                    <ShelfPriceView
+                      shelf={priceOf ? priceOf(product) : { kind: "regular", price: product.price }}
+                      priceClassName="text-muted-foreground"
+                    />
+                  </div>
                 </div>
 
                 <Button

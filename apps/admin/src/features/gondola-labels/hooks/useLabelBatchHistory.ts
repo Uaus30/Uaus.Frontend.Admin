@@ -20,6 +20,10 @@ export function batchToPrintableLabels(batch: ProductLabelBatchDto): PrintableLa
     price: item.price,
     labelType: labelTypeFromEnum(item.labelType),
     quantity: item.quantity,
+    // Congelados no lote: a reimpressão repete o "De" e o selo mesmo depois de
+    // a promoção acabar.
+    referencePrice: item.referencePrice ?? null,
+    promotionSeal: item.promotionSeal ?? null,
   }));
 }
 

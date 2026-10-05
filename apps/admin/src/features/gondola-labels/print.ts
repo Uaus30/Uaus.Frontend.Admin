@@ -103,6 +103,37 @@ const SHEET_STYLES = `
   }
   .label-currency { font-size: 13pt; font-weight: 900; }
   .label-value { font-size: 32pt; font-weight: 900; letter-spacing: -0.04em; line-height: 0.8; }
+  /* Promocao (05/10/2026): o "De" riscado ACIMA do preco e o selo EMBAIXO, os
+     dois menores — menos destaque, e cabem nos ~13,8mm abaixo do nome. O preco
+     encolhe de 32pt para 25pt so nessas etiquetas: 2,6mm de "De" + 7,1mm de
+     preco + 3mm de selo, contra 9mm do preco sozinho. */
+  .label-price-stack {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3mm;
+  }
+  .label-ref {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 7.5pt;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .label-ref s { text-decoration-thickness: 0.3mm; }
+  .label-price-stack .label-currency { font-size: 11pt; }
+  .label-price-stack .label-value { font-size: 25pt; }
+  .label-seal {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 6pt;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 0.35mm solid currentColor;
+    padding: 0.3mm 1mm;
+  }
 `;
 
 /**
@@ -217,14 +248,25 @@ export function buildLabelSheetHtml(
     const bottomClass = hasBarcode ? "label-bottom" : "label-bottom no-barcode";
 
     const fontSizePt = getProductNameFontSizePt(label.productName);
+    const priceHtml =
+      `<div class="label-price"><span class="label-currency">R$</span>` +
+      `<span class="label-value">${formatLabelPrice(label.price)}</span></div>`;
+    const comPromocao = Boolean(label.referencePrice || label.promotionSeal);
 
     const cell = [
       `<div class="label" style="background:${info.background};color:${info.foreground};">`,
       `<div class="label-name" style="font-size:${fontSizePt}pt;">${escapeHtml(label.productName)}</div>`,
       `<div class="${bottomClass}">`,
       hasBarcode ? `<div class="label-barcode">${barcodeSvg}</div>` : "",
-      `<div class="label-price"><span class="label-currency">R$</span>` +
-        `<span class="label-value">${formatLabelPrice(label.price)}</span></div>`,
+      comPromocao
+        ? `<div class="label-price-stack">` +
+          (label.referencePrice
+            ? `<div class="label-ref">DE R$ <s>${formatLabelPrice(label.referencePrice)}</s></div>`
+            : "") +
+          priceHtml +
+          (label.promotionSeal ? `<div class="label-seal">${escapeHtml(label.promotionSeal)}</div>` : "") +
+          `</div>`
+        : priceHtml,
       `</div>`,
       `</div>`,
     ].join("");

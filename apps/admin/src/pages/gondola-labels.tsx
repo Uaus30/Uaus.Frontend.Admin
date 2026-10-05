@@ -45,6 +45,7 @@ export default function GondolaLabels() {
                 onAdd={composer.addProduct}
                 onScanCode={composer.addByBarcode}
                 disabled={!composer.canEdit}
+                priceOf={composer.searchResultShelf}
               />
               <LabelItemsTable
                 items={composer.items}

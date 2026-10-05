@@ -6,12 +6,16 @@ import { getLabelTypeInfo, type PrintableLabel } from "../types";
  * Réplica em tela de uma etiqueta impressa (proporção ~95mm × 24mm): nome em
  * caixa alta no topo com tamanho dinâmico, código de barras SVG à esquerda
  * e preço grande à direita, com o fundo do tipo (branca, amarela ou vermelha).
+ * Com promoção (05/10/2026), o "De" riscado acima do preço e o selo abaixo.
  *
  * O contorno é retângulo de canto vivo igual ao do papel (ver `print.ts`): a
  * borda é a linha de corte, e a prévia só serve se mostrar o que vai sair na
  * impressora. Pelo mesmo motivo, largura das barras e alinhamento pelo centro
  * saem das mesmas constantes e regras do documento impresso.
  */
+/** A fonte do papel, a mesma de `print.ts`. */
+const ARIAL_BLACK = '"Arial Black", Arial, sans-serif';
+
 export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
   const info = getLabelTypeInfo(label.labelType);
   // Mesmo desenho do papel (largura, corpo do número e formato reto).
@@ -21,6 +25,8 @@ export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
 
   const fontSizePt = getProductNameFontSizePt(label.productName);
   const hasBarcode = Boolean(label.barcode && barcodeSvg);
+  // Com promoção o preço encolhe para caber o "De" acima e o selo abaixo.
+  const comPromocao = Boolean(label.referencePrice || label.promotionSeal);
 
   return (
     <div
@@ -56,21 +62,50 @@ export function LabelPreviewCard({ label }: { label: PrintableLabel }) {
           </div>
         )}
 
-        <div
-          className="flex shrink-0 items-baseline gap-[0.8mm] whitespace-nowrap"
-          style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900 }}
-        >
-          <span style={{ fontSize: "13pt", fontWeight: 900, lineHeight: 1 }}>R$</span>
-          <span
-            style={{
-              fontSize: "32pt",
-              fontWeight: 900,
-              letterSpacing: "-0.04em",
-              lineHeight: 0.8,
-            }}
+        <div className="flex shrink-0 flex-col items-end gap-[0.3mm]">
+          {/* O "De" e o selo da promoção, com as medidas de `print.ts`: a prévia
+              só vale se mostrar o papel. */}
+          {label.referencePrice ? (
+            <div
+              className="whitespace-nowrap"
+              style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: "7.5pt", lineHeight: 1 }}
+            >
+              DE R$ <s>{formatLabelPrice(label.referencePrice)}</s>
+            </div>
+          ) : null}
+          <div
+            className="flex items-baseline gap-[0.8mm] whitespace-nowrap"
+            style={{ fontFamily: ARIAL_BLACK, fontWeight: 900 }}
           >
-            {formatLabelPrice(label.price)}
-          </span>
+            <span style={{ fontSize: comPromocao ? "11pt" : "13pt", fontWeight: 900, lineHeight: 1 }}>
+              R$
+            </span>
+            <span
+              style={{
+                fontSize: comPromocao ? "25pt" : "32pt",
+                fontWeight: 900,
+                letterSpacing: "-0.04em",
+                lineHeight: 0.8,
+              }}
+            >
+              {formatLabelPrice(label.price)}
+            </span>
+          </div>
+          {label.promotionSeal ? (
+            <div
+              className="whitespace-nowrap uppercase"
+              style={{
+                fontFamily: ARIAL_BLACK,
+                fontWeight: 900,
+                fontSize: "6pt",
+                lineHeight: 1,
+                border: "0.35mm solid currentColor",
+                padding: "0.3mm 1mm",
+              }}
+            >
+              {label.promotionSeal}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

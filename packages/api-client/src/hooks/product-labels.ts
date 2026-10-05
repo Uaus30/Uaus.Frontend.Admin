@@ -63,6 +63,13 @@ export interface ProductLabelBatchItemDto {
   labelTypeName: string;
   /** Cópias desta etiqueta no lote. */
   quantity: number;
+  /**
+   * O "De R$ X" riscado acima do preço, congelado (05/10/2026). Omitido sem
+   * promoção e em todo lote anterior.
+   */
+  referencePrice?: number | null;
+  /** O selo da promoção abaixo do preço ("Relâmpago", "3 por R$ 20,00"). Omitido sem promoção. */
+  promotionSeal?: string | null;
 }
 
 /** Item enviado na geração de um lote. */
@@ -80,6 +87,13 @@ export interface CreateProductLabelBatchItemPayload {
    * Máximo de 150 caracteres, como a coluna congelada.
    */
   productName?: string | null;
+  /**
+   * O "De R$ X" — o preço de tabela quando a etiqueta sai com o promocional.
+   * Tem de ser MAIOR que `price` (o backend recusa o contrário). Nulo sem promoção.
+   */
+  referencePrice?: number | null;
+  /** O selo abaixo do preço, até 40 caracteres. Nulo sem promoção. */
+  promotionSeal?: string | null;
 }
 
 /** Dados enviados ao gerar um lote de etiquetas. */
@@ -165,6 +179,12 @@ export async function deleteProductLabelBatch(id: number): Promise<void> {
 /** Uma etiqueta do rascunho, com o cadastro de hoje ao lado do que foi editado. */
 export interface ProductLabelDraftItemDto {
   productId: number;
+  /**
+   * Grupo do produto — a promoção é dele. Com ele a tela deriva o preço
+   * promocional ao reabrir o rascunho (05/10/2026). Ausente numa API anterior:
+   * aí o item reabre no preço de tabela.
+   */
+  productGroupId?: number;
   /** Enum ProductLabelType — pode vir como número ou nome; normalize com `enumCode()`. */
   labelType: EnumValue;
   quantity: number;
