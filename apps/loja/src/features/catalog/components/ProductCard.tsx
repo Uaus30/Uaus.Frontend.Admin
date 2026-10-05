@@ -56,7 +56,12 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           {product.name}
         </h3>
         <div className="mt-3">
-          <PriceTag price={product.price} priceMax={product.priceMax} promotion={product.promotion} />
+          <PriceTag
+            price={product.price}
+            priceMax={product.priceMax}
+            promotion={product.promotion}
+            combo={product.combo}
+          />
         </div>
       </div>
     </Link>

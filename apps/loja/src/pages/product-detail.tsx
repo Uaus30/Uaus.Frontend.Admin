@@ -144,6 +144,7 @@ export default function ProductDetailPage() {
                       price={detail.product.price}
                       priceMax={detail.product.priceMax}
                       promotion={detail.product.promotion}
+                      combo={detail.product.combo}
                       size="lg"
                     />
                   </div>

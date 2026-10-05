@@ -1944,6 +1944,21 @@ export interface StorefrontPromotionDto {
 }
 
 /**
+ * O combo vigente do grupo ("3 por R$ 20", "a partir de 2"), como o site o
+ * mostra: um selo abaixo do preço NORMAL (05/10/2026). Não é "de/por" — a
+ * unidade avulsa sai pelo preço de tabela. O resumo do selo sai de
+ * `describeComboOffer` do `@workspace/core`, a mesma frase do admin e do balcão.
+ */
+export interface StorefrontComboDto {
+  /** Unidades do combo: o "3" de "3 por R$ 20" ou de "a partir de 3". */
+  quantity: number;
+  /** Enum PromotionDiscountType — preço do kit, percentual ou preço final. Leia com `enumCode`. */
+  discountType: EnumValue;
+  /** Preço do kit, percentual ou preço por unidade, conforme o tipo. */
+  discountValue: number;
+}
+
+/**
  * A relâmpago que ocupa o banner da home. No máximo **uma** — o banco garante
  * isso, e o site mostra um banner só.
  */
@@ -1980,6 +1995,12 @@ export interface StorefrontProductDto {
    * cliente à loja para ouvir "acabou". Compare com `== null`.
    */
   promotion?: StorefrontPromotionDto | null;
+  /**
+   * O combo vigente do grupo. Ausente sem combo, com o grupo sem saldo e com uma
+   * relâmpago no ar (ela vence o combo). Ausente também numa API anterior a
+   * 05/10/2026.
+   */
+  combo?: StorefrontComboDto | null;
 }
 
 /** Variação ativa exibida no detalhe ("Caneca 300ml — R$ 25,00"). */
@@ -2026,6 +2047,8 @@ export interface StorefrontProductDetailDto {
   stockBadge?: EnumValue;
   /** A mesma promoção do card, pela mesma razão. */
   promotion?: StorefrontPromotionDto | null;
+  /** O mesmo combo do card. */
+  combo?: StorefrontComboDto | null;
 }
 
 /** Categoria na lista de filtros da vitrine. */

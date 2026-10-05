@@ -1,5 +1,11 @@
-import { formatCurrency } from "@workspace/core";
-import type { StorefrontPromotionDto } from "@workspace/api-client-react";
+import { Layers } from "lucide-react";
+import { describeComboOffer, formatCurrency, promotionDiscountKindFromCode } from "@workspace/core";
+import {
+  PROMOTION_DISCOUNT_TYPE,
+  enumCode,
+  type StorefrontComboDto,
+  type StorefrontPromotionDto,
+} from "@workspace/api-client-react";
 
 interface PriceTagProps {
   /** Preço de TABELA — continua sendo ele, mesmo com promoção. */
@@ -9,6 +15,8 @@ interface PriceTagProps {
   promotion?: StorefrontPromotionDto | null;
   /** `lg` no detalhe, `md` no card. */
   size?: "md" | "lg";
+  /** O combo vigente do grupo, quando houver: o selo vai abaixo do preço normal. */
+  combo?: StorefrontComboDto | null;
 }
 
 /**
@@ -27,8 +35,15 @@ interface PriceTagProps {
  *
  * O limite por venda vai junto quando existe: é o que a cliente precisa saber
  * ANTES de sair de casa, e é o que o cartaz do WhatsApp já diz.
+ *
+ * ## O combo (05/10/2026)
+ *
+ * O preço continua o normal — a unidade avulsa sai por ele — e o resumo da
+ * oferta vai num selo embaixo ("3 por R$ 20,00", "R$ 6,50 pra 2+"), na mesma
+ * frase do admin e do balcão (`describeComboOffer`). Preto com âmbar, como o
+ * selo da promoção no card: é marca da vitrine (ver `PromotionRibbon`).
  */
-export function PriceTag({ price, priceMax, promotion, size = "md" }: PriceTagProps) {
+export function PriceTag({ price, priceMax, promotion, combo, size = "md" }: PriceTagProps) {
   const emPromocao = promotion != null;
   const valor = emPromocao ? promotion.price : price;
   const valorMax = emPromocao ? promotion.priceMax : priceMax;
@@ -51,6 +66,24 @@ export function PriceTag({ price, priceMax, promotion, size = "md" }: PriceTagPr
         {faixa ? "A partir de" : "Por apenas"}
       </p>
       <p className={tamanho}>{formatCurrency(valor)}</p>
+
+      {!emPromocao && combo && (
+        <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-neutral-900 px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-amber-400 uppercase">
+          <Layers className="h-3 w-3" />
+          {describeComboOffer(
+            {
+              quantity: combo.quantity,
+              discountKind: promotionDiscountKindFromCode(
+                enumCode(combo.discountType, PROMOTION_DISCOUNT_TYPE),
+              ),
+              discountValue: combo.discountValue,
+            },
+            // "a partir de N" em percentual: o preço por unidade só é um quando
+            // todas as variações custam o mesmo; na faixa, fica o percentual.
+            faixa ? undefined : price,
+          )}
+        </span>
+      )}
 
       {emPromocao && promotion.maxQuantityPerSale != null && promotion.maxQuantityPerSale > 0 && (
         <p className="text-[11px] text-muted-foreground">

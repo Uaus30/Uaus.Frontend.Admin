@@ -78,4 +78,30 @@ describe("PriceTag", () => {
       "Limite de",
     );
   });
+
+  describe("combo (05/10/2026)", () => {
+    it("mantém o preço normal e põe o resumo do kit num selo embaixo", () => {
+      const { container } = render(
+        <PriceTag price={7} combo={{ quantity: 3, discountType: "KitPrice", discountValue: 20 }} />,
+      );
+      const texto = (container.textContent ?? "").replace(/\u00a0/g, " ");
+
+      expect(texto).toContain("Por apenas");
+      expect(texto).toContain("R$ 7,00");
+      expect(texto).toContain("3 por R$ 20,00");
+      expect(texto).not.toContain("de R$");
+    });
+
+    it("no 'a partir de N' em percentual, com faixa de preço, fica o percentual", () => {
+      const { container } = render(
+        <PriceTag
+          price={10}
+          priceMax={16}
+          combo={{ quantity: 3, discountType: "Percentage", discountValue: 10 }}
+        />,
+      );
+
+      expect(container.textContent).toContain("10% off pra 3+");
+    });
+  });
 });
