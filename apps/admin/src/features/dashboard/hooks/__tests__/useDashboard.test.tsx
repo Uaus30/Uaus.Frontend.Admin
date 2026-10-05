@@ -40,7 +40,6 @@ describe("useDashboard", () => {
       series: [],
       byCategory: [],
       byPaymentMethod: [],
-      topProducts: [],
     });
   });
 

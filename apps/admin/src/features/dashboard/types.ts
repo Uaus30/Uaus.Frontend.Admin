@@ -97,7 +97,6 @@ export type DashboardOverview = {
   /** Departamentos, com `previousRevenue`; as categorias de cada um ligam por `parentId`. */
   byDepartment: DashboardBreakdown[];
   byPaymentMethod: DashboardBreakdown[];
-  topProducts: DashboardTopProduct[];
 };
 
 export type DashboardHourPoint = {

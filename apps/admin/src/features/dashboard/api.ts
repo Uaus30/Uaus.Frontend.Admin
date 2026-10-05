@@ -19,25 +19,22 @@ import type {
 
 /**
  * Totais do período, comparativo com a base pedida, série diária e quebras por
- * categoria, forma de pagamento e produto.
+ * departamento, categoria e forma de pagamento.
  *
- * @param params Intervalo e base de comparação em `yyyy-MM-dd`, e tamanho do
- * ranking de produtos. Sem a base, o backend compara com o período anterior de
- * igual duração.
+ * @param params Intervalo e base de comparação em `yyyy-MM-dd`. Sem a base, o
+ * backend compara com o período anterior de igual duração.
  */
 export async function getDashboardOverview(params: {
   startDate: string;
   endDate: string;
   compareStartDate?: string;
   compareEndDate?: string;
-  topProducts?: number;
 }) {
   return apiGetOrThrow<DashboardOverview>("/Dashboard/overview", {
     startDate: params.startDate,
     endDate: params.endDate,
     compareStartDate: params.compareStartDate,
     compareEndDate: params.compareEndDate,
-    topProducts: params.topProducts ?? 8,
   });
 }
 
