@@ -30,7 +30,9 @@ A regra transversal (o que o backend garante e o PDV não vê) está em
   citando o número e o título, e não volta pela tela.
 - **Busca global** (topo): número (`#12` ou `12`), título, descrição, solução,
   comentário, nome de etiqueta e texto de checklist, inclusive nos arquivados e
-  nos finalizados antigos. Clicar num resultado abre a modal.
+  nos finalizados antigos. Clicar num resultado abre a modal. No texto formatado,
+  a frase é conferida sem a marcação: "peso padrão" acha `peso <strong>padrão</strong>`,
+  e "strong" não acha nada (servidor, `RichText.ToPlainText`).
 - **Etiquetas** têm nome, cor (chave da paleta do Trello, traduzida em
   `LABEL_COLOR_CLASSES`) e **prioridade** — da etiqueta, não do cartão: "Bug"
   nasce urgente, "Ideia" nasce baixa. No cartão elas aparecem da mais urgente
@@ -66,11 +68,13 @@ nem como inserir comentários no card".
   coluna (reordenar não conta), arquivou/desarquivou, título, descrição,
   solução, etiqueta, membro, anexo e checklist (adicionar, marcar, desmarcar,
   remover — renomear item não). A frase é montada aqui (`activity.ts`); ir para
-  Finalizado é dito "finalizou a tarefa". Quem fez é o nome do dia.
+  Finalizado é dito "finalizou a tarefa". Quem fez aparece pelo **nome completo**
+  (o servidor traduz o login gravado; usuário excluído fica com o login), como o
+  "Criado por" da modal e o autor do anexo.
 - **Comentário**: só o autor vê "Editar" e "Excluir" (o servidor recusa os
   outros). Não é perfil de usuário — é autoria: editar a frase de outra pessoa
   faria a atividade dizer, com o nome dela, o que ela não escreveu. Editado
-  mostra "(editado)".
+  mostra "(editado)"; salvar sem mudar nada não grava e não marca.
 
 ## Texto formatado
 
@@ -87,8 +91,13 @@ tachado, código, alinhamento e link. Guarda HTML.
   HTML e o histórico diria "editou a descrição".
 - **Editor vazio** (`<p></p>`) é "sem texto": apaga a descrição/solução e não
   deixa comentar em branco (o servidor confere igual, `RichText.IsBlank`).
-- **Esc dentro do editor** cancela a edição e não fecha a modal (o Radix trata o
-  Esc antes do editor; a modal checa `data-rich-text-editor`). Ctrl+Enter salva.
+- **Esc**: com o foco numa edição (o editor, a barra ou os botões dela), cancela
+  aquela edição (`RichTextEditingArea`); a caixa de comentário só fecha se vazia.
+  Com qualquer edição aberta, a modal **não fecha** no Esc — o rascunho iria
+  junto, sem aviso; a modal procura `data-rich-text-editing`. Sem edição aberta,
+  Esc fecha a modal. Ctrl+Enter salva.
+- **Link**: endereço sem protocolo ganha `https://`; na exibição, todo link sai
+  com `target="_blank"` e `rel="noopener noreferrer nofollow"`, sem `class`.
 - Limites do servidor em caracteres de HTML (a formatação conta): descrição e
   solução 20.000, comentário 10.000.
 

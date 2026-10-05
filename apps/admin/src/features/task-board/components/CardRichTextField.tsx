@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CircleCheckBig, type LucideIcon } from "lucide-react";
 import { Button, cn, filledFieldClass } from "@workspace/ui";
-import { RichTextEditor, RichTextView, isBlankRichText } from "@/components/rich-text";
+import { RichTextEditingArea, RichTextEditor, RichTextView, isBlankRichText } from "@/components/rich-text";
 
 interface CardRichTextFieldProps {
   title: string;
@@ -103,7 +103,7 @@ export function CardRichTextField(props: CardRichTextFieldProps) {
       </header>
 
       {editing ? (
-        <div className="space-y-2">
+        <RichTextEditingArea onCancel={() => setEditing(false)} className="space-y-2">
           <RichTextEditor
             initialValue={value}
             autoFocus
@@ -112,7 +112,6 @@ export function CardRichTextField(props: CardRichTextFieldProps) {
               setDirty(true);
             }}
             onSubmit={save}
-            onCancel={() => setEditing(false)}
             placeholder={placeholder}
             ariaLabel={ariaLabel}
             minHeight={120}
@@ -145,7 +144,7 @@ export function CardRichTextField(props: CardRichTextFieldProps) {
             </Button>
             <span className="ml-auto text-[11px] text-muted-foreground">Ctrl+Enter salva</span>
           </div>
-        </div>
+        </RichTextEditingArea>
       ) : value ? (
         // Clicar no texto abre a edição — menos num link, que tem que abrir o
         // endereço. O "Editar" do cabeçalho é o caminho do teclado.

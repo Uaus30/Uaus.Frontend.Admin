@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Archive, CircleCheckBig, Loader2, TextAlignStart } from "lucide-react";
 import { Button, ConfirmDialog, Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
 import { TASK_CARD_STATUS, type TaskCardStatusCode } from "@workspace/api-client-react";
-import { RICH_TEXT_EDITOR_ATTRIBUTE } from "@/components/rich-text";
+import { RICH_TEXT_EDITING_ATTRIBUTE } from "@/components/rich-text";
 import { statusCode } from "../board";
 import { useCardActivity } from "../hooks/useCardActivity";
 import { useTaskCard } from "../hooks/useTaskCard";
@@ -47,6 +47,7 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
   const card = ctl.card;
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const isDone = card !== null && statusCode(card.status) === TASK_CARD_STATUS.Done;
   const canFinish = card !== null && !isDone && !card.isArchived;
@@ -54,11 +55,12 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
   return (
     <Dialog open={cardId !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
+        ref={contentRef}
         onEscapeKeyDown={(e) => {
-          // Pelo alvo da tecla, e não pelo `document.activeElement`: é o mesmo
-          // elemento no navegador, e não depende de o foco já ter sido aplicado.
-          const target = e.target instanceof Element ? e.target : null;
-          if (target?.closest(`[${RICH_TEXT_EDITOR_ATTRIBUTE}]`)) e.preventDefault();
+          // Com uma edição aberta (descrição, solução, comentário), o Esc é dela: a
+          // área de edição cancela se o foco está nela, e a modal não fecha levando o
+          // rascunho junto. Sem edição aberta, o Esc fecha a modal como sempre.
+          if (contentRef.current?.querySelector(`[${RICH_TEXT_EDITING_ATTRIBUTE}]`)) e.preventDefault();
         }}
         className="flex h-[100dvh] w-full max-w-none flex-col gap-0 rounded-none p-0 sm:h-[92vh] sm:max-w-4xl sm:rounded-xl lg:max-w-6xl"
       >

@@ -119,3 +119,16 @@ describe("trimTrailingEmptyParagraphs", () => {
     expect(trimTrailingEmptyParagraphs("<p>a</p><p></p><p>b</p>")).toBe("<p>a</p><p></p><p>b</p>");
   });
 });
+
+describe("sanitizeRichText — atributos do link", () => {
+  it("o link sai sempre com os mesmos atributos: sem class, em nova aba e sem opener", () => {
+    const html = sanitizeRichText(
+      '<p><a href="https://uaus.com.br" class="fixed inset-0 z-50" target="_self" rel="opener">site</a></p>',
+    );
+
+    expect(html).not.toMatch(/class=|_self|"opener"/);
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer nofollow"');
+    expect(html).toContain('href="https://uaus.com.br"');
+  });
+});

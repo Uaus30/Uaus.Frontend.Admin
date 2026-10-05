@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   createTaskCard: vi.fn(),
   moveTaskCard: vi.fn(),
   saveTaskCardSolution: vi.fn(),
+  updateTaskCardComment: vi.fn(),
   useGetTaskCardActivities: vi.fn(),
   useGetMe: vi.fn(),
   toast: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   createTaskCard: mocks.createTaskCard,
   moveTaskCard: mocks.moveTaskCard,
   saveTaskCardSolution: mocks.saveTaskCardSolution,
+  updateTaskCardComment: mocks.updateTaskCardComment,
   useGetTaskCardActivities: mocks.useGetTaskCardActivities,
   useGetMe: mocks.useGetMe,
 }));
@@ -339,5 +341,65 @@ describe("TaskBoardPage", () => {
     const textbox = await screen.findByRole("textbox", { name: "Novo comentário" });
     expect(textbox.style.maxHeight).not.toBe("");
     expect(textbox.style.overflowY).toBe("auto");
+  });
+
+  // Ajustes pedidos pelo dono depois da entrega (05/10/2026).
+
+  it("Esc com o foco num botão da edição cancela a edição e não fecha a modal", async () => {
+    renderPage();
+    fireEvent.click(screen.getByText("Trocar a impressora do caixa"));
+    fireEvent.click(await screen.findByText("Registrar como a demanda foi resolvida…"));
+    const cancel = await screen.findByRole("button", { name: "Cancelar" });
+
+    fireEvent.keyDown(cancel, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("toolbar", { name: "Formatação do texto" })).toBeNull());
+    expect(screen.getByLabelText("Título do cartão")).toBeTruthy();
+  });
+
+  it("com uma edição aberta, Esc fora dela não fecha a modal (o rascunho não vai junto)", async () => {
+    renderPage();
+    fireEvent.click(screen.getByText("Trocar a impressora do caixa"));
+    fireEvent.click(await screen.findByText("Escreva um comentário…"));
+    await screen.findByRole("textbox", { name: "Novo comentário" });
+
+    fireEvent.keyDown(screen.getByLabelText("Título do cartão"), { key: "Escape" });
+
+    expect(screen.getByLabelText("Título do cartão")).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Novo comentário" })).toBeTruthy();
+  });
+
+  it("salvar o comentário sem mudar nada não chama o servidor (não vira editado)", async () => {
+    renderPage();
+    fireEvent.click(screen.getByText("Trocar a impressora do caixa"));
+    const activity = await screen.findByRole("region", { name: "Atividade" });
+    const mine = within(activity).getAllByRole("listitem")[3];
+
+    fireEvent.click(within(mine).getByRole("button", { name: "Editar" }));
+    fireEvent.click(await within(mine).findByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(within(mine).queryByRole("textbox")).toBeNull());
+    expect(mocks.updateTaskCardComment).not.toHaveBeenCalled();
+  });
+
+  it("Esc para fechar a paleta de cor não cancela a edição (o rascunho fica)", async () => {
+    renderPage();
+    fireEvent.click(screen.getByText("Trocar a impressora do caixa"));
+    fireEvent.click(await screen.findByText("Registrar como a demanda foi resolvida…"));
+    const textbox = await screen.findByRole("textbox", { name: "Solução do cartão" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cor do texto" }));
+    await screen.findByRole("button", { name: "Vermelho" });
+    // A paleta não tira o foco do editor: o Esc nasce no texto.
+    fireEvent.keyDown(textbox, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Vermelho" })).toBeNull());
+    expect(screen.getByRole("toolbar", { name: "Formatação do texto" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Solução do cartão" })).toBeTruthy();
+
+    // Com a paleta fechada, o próximo Esc é da edição: cancela, e a modal fica.
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Solução do cartão" }), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("toolbar", { name: "Formatação do texto" })).toBeNull());
+    expect(screen.getByLabelText("Título do cartão")).toBeTruthy();
   });
 });

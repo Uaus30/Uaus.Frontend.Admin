@@ -74,7 +74,18 @@ export function isBlankRichText(html: string | null | undefined): boolean {
 export function sanitizeRichText(value: string | null | undefined): string {
   const html = toEditorHtml(value);
   if (!html) return "";
-  return generateHTML(generateJSON(html, RICH_TEXT_EXTENSIONS), RICH_TEXT_EXTENSIONS);
+  const clean = generateHTML(generateJSON(html, RICH_TEXT_EXTENSIONS), RICH_TEXT_EXTENSIONS);
+
+  // O Link do Tiptap relê `class`, `target` e `rel` do HTML guardado: quem gravasse
+  // pela API um `class="fixed inset-0"` cobriria a tela com um link, ou tiraria o
+  // `noopener`. Na saída, todo link tem os mesmos atributos, e só eles.
+  const doc = new DOMParser().parseFromString(clean, "text/html");
+  doc.querySelectorAll("a").forEach((link) => {
+    link.removeAttribute("class");
+    link.setAttribute("target", "_blank");
+    link.setAttribute("rel", "noopener noreferrer nofollow");
+  });
+  return doc.body.innerHTML;
 }
 
 /**
@@ -93,3 +104,13 @@ export const RICH_TEXT_CLASSES = [
   "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-foreground/10 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0",
   "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2",
 ].join(" ");
+
+/**
+ * Esc fecha só o popover. A paleta deixa o foco no editor (para a cor agir sobre a
+ * seleção), então o Esc nasce dentro da área de edição — e, sem isto, subiria até
+ * ela e cancelaria a edição com o rascunho. O Radix trata o Esc no `document`, na
+ * captura: parar ali impede que ele chegue ao editor e à área.
+ */
+export function stopEscape(event: KeyboardEvent) {
+  event.stopPropagation();
+}

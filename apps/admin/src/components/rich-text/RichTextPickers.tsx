@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { Baseline, Link } from "lucide-react";
 import { Button, Input, Popover, PopoverContent, PopoverTrigger, cn } from "@workspace/ui";
-import { normalizeLinkHref } from "./content";
+import { normalizeLinkHref, stopEscape } from "./content";
 import { RICH_TEXT_COLORS } from "./extensions";
 
 /** O "A" da barra: a paleta de cores do texto, com "Padrão" para tirar a cor. */
@@ -30,7 +30,12 @@ export function ColorPicker({ editor, current }: { editor: Editor; current: stri
           <Baseline className="h-4 w-4" style={current ? { color: current } : undefined} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-2" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent
+        align="start"
+        className="w-auto p-2"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onEscapeKeyDown={stopEscape}
+      >
         <p className="mb-1.5 text-xs font-medium text-muted-foreground">Cor do texto</p>
         <div className="grid grid-cols-5 gap-1.5">
           <button
@@ -107,7 +112,7 @@ export function LinkPicker({ editor, active }: { editor: Editor; active: boolean
           <Link className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 space-y-2 p-2">
+      <PopoverContent align="start" className="w-72 space-y-2 p-2" onEscapeKeyDown={stopEscape}>
         <Input
           autoFocus
           value={url}

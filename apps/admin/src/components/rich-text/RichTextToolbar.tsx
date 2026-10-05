@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
   cn,
 } from "@workspace/ui";
+import { stopEscape } from "./content";
 import { ColorPicker, LinkPicker } from "./RichTextPickers";
 
 interface BlockOption {
@@ -152,7 +153,11 @@ export function RichTextToolbar({ editor }: { editor: Editor }) {
             <ChevronDown className="h-3 w-3 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
+        <DropdownMenuContent
+          align="start"
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onEscapeKeyDown={stopEscape}
+        >
           {BLOCKS.map((option) => (
             <DropdownMenuItem key={option.id} onSelect={() => option.run(editor)} className="gap-2">
               <option.icon className="h-4 w-4" />
@@ -218,7 +223,11 @@ export function RichTextToolbar({ editor }: { editor: Editor }) {
             <ChevronDown className="h-3 w-3 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
+        <DropdownMenuContent
+          align="start"
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onEscapeKeyDown={stopEscape}
+        >
           {ALIGNMENTS.map((option) => (
             <DropdownMenuItem
               key={option.value}

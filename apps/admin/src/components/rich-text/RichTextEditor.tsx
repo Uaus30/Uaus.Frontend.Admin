@@ -15,13 +15,6 @@ const PLACEHOLDER_CLASSES = [
   "[&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]",
 ].join(" ");
 
-/**
- * Atributo que marca a área do editor. A modal que o contém usa para não fechar
- * no Esc: dentro do editor, Esc é "cancelar a edição" — e o Radix fecha o
- * diálogo antes de o editor ver a tecla.
- */
-export const RICH_TEXT_EDITOR_ATTRIBUTE = "data-rich-text-editor";
-
 interface RichTextEditorProps {
   /**
    * Valor inicial: HTML, ou texto puro de cartão antigo. O editor NÃO acompanha
@@ -32,8 +25,6 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   /** Ctrl+Enter (Cmd+Enter no Mac). */
   onSubmit?: () => void;
-  /** Esc (dentro do editor ou da barra dele). */
-  onCancel?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
   ariaLabel: string;
@@ -55,7 +46,6 @@ export function RichTextEditor({
   initialValue,
   onChange,
   onSubmit,
-  onCancel,
   placeholder,
   autoFocus,
   ariaLabel,
@@ -65,9 +55,9 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   // O editor nasce uma vez; os callbacks do pai mudam a cada render. Pela ref,
   // o atalho e o onUpdate sempre chamam a versão mais nova.
-  const handlers = useRef({ onChange, onSubmit, onCancel });
+  const handlers = useRef({ onChange, onSubmit });
   useEffect(() => {
-    handlers.current = { onChange, onSubmit, onCancel };
+    handlers.current = { onChange, onSubmit };
   });
 
   const editor = useEditor({
@@ -90,9 +80,8 @@ export function RichTextEditor({
           handlers.current.onSubmit?.();
           return true;
         }
-        // O Esc NÃO é tratado aqui: dentro da modal, o Radix o vê antes (captura
-        // no document) e o marca com preventDefault para a modal não fechar — e o
-        // ProseMirror ignora evento já marcado. Ele chega pelo onKeyDown abaixo.
+        // O Esc é da RichTextEditingArea em volta (cancela com o foco no editor ou nos
+        // botões dela), não daqui.
         return false;
       },
     },
@@ -102,13 +91,6 @@ export function RichTextEditor({
 
   return (
     <div
-      {...{ [RICH_TEXT_EDITOR_ATTRIBUTE]: "" }}
-      // O React entrega o Esc mesmo marcado pela modal. `contains`: o popover do
-      // link vem num portal, e o evento sintético dele sobe pela árvore React até
-      // aqui — sem a conferência, fechar o popover com Esc cancelaria a edição.
-      onKeyDown={(e) => {
-        if (e.key === "Escape" && onCancel && e.currentTarget.contains(e.target as Node)) onCancel();
-      }}
       className={cn(
         "overflow-hidden rounded-md border bg-foreground/[0.04] focus-within:ring-2 focus-within:ring-ring",
         className,

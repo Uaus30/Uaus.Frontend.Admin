@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, MessagesSquare, Send } from "lucide-react";
 import { Button, cn } from "@workspace/ui";
 import type { TaskCardActivityDto } from "@workspace/api-client-react";
-import { RichTextEditor, isBlankRichText } from "@/components/rich-text";
+import { RichTextEditingArea, RichTextEditor, isBlankRichText } from "@/components/rich-text";
 import { canEditComment, isComment } from "../activity";
 import { ActivityItem } from "./ActivityItem";
 
@@ -136,14 +136,16 @@ function CommentComposer({
   }
 
   return (
-    <div className="space-y-2">
+    <RichTextEditingArea
+      onCancel={() => {
+        if (blank) close();
+      }}
+      className="space-y-2"
+    >
       <RichTextEditor
         autoFocus
         onChange={setDraft}
         onSubmit={() => void submit()}
-        onCancel={() => {
-          if (blank) close();
-        }}
         placeholder="Escreva um comentário…"
         ariaLabel="Novo comentário"
         minHeight={72}
@@ -166,6 +168,6 @@ function CommentComposer({
         </Button>
         <span className="ml-auto text-[11px] text-muted-foreground">Ctrl+Enter envia</span>
       </div>
-    </div>
+    </RichTextEditingArea>
   );
 }

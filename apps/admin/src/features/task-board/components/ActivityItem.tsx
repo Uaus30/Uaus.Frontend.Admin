@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, ConfirmDialog, cn } from "@workspace/ui";
 import type { TaskCardActivityDto } from "@workspace/api-client-react";
-import { RichTextEditor, RichTextView, isBlankRichText } from "@/components/rich-text";
+import { RichTextEditingArea, RichTextEditor, RichTextView, isBlankRichText } from "@/components/rich-text";
 import { describeActivity, formatActivityDate, initials, isComment } from "../activity";
 import { memberColor } from "../board";
 import { ColumnBadge } from "./CardBits";
@@ -63,6 +63,12 @@ function CommentItem({ activity, canEdit, onUpdate, isUpdating, onDelete, isDele
 
   async function save() {
     if (isBlankRichText(draft) || isUpdating) return;
+    // Sem mudança não é edição: gravar marcaria "(editado)" à toa (o servidor
+    // também ignora, mas nem precisa da ida e volta).
+    if (draft.trim() === (activity.text ?? "").trim()) {
+      setEditing(false);
+      return;
+    }
     try {
       await onUpdate(activity.id, draft);
       setEditing(false);
@@ -125,13 +131,12 @@ function CommentItem({ activity, canEdit, onUpdate, isUpdating, onDelete, isDele
         </div>
 
         {editing ? (
-          <div className="mt-2 space-y-2">
+          <RichTextEditingArea onCancel={() => setEditing(false)} className="mt-2 space-y-2">
             <RichTextEditor
               initialValue={activity.text}
               autoFocus
               onChange={setDraft}
               onSubmit={() => void save()}
-              onCancel={() => setEditing(false)}
               ariaLabel="Editar comentário"
               minHeight={64}
               maxHeight={240}
@@ -149,7 +154,7 @@ function CommentItem({ activity, canEdit, onUpdate, isUpdating, onDelete, isDele
                 Cancelar
               </Button>
             </div>
-          </div>
+          </RichTextEditingArea>
         ) : (
           <RichTextView value={activity.text} className="mt-1" />
         )}
