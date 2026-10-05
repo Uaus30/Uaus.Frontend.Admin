@@ -32,6 +32,7 @@ import { usePurchaseProductConflict } from "./editor/usePurchaseProductConflict"
 import { useProductForm } from "./editor/useProductForm";
 import { useProductVariations } from "./editor/useProductVariations";
 import { useProductImages } from "./editor/useProductImages";
+import { imageLimitMessage, MAX_PRODUCT_IMAGES, withinImageLimit } from "@/lib/product-images";
 import { useProductSubmit } from "./editor/useProductSubmit";
 import { useReactivatedStatusSync } from "./editor/useReactivatedStatusSync";
 import { useStockControl } from "./editor/useStockControl";
@@ -60,6 +61,12 @@ export function useProductEditor() {
   const detailOpenRef = useRef(false);
 
   const [images, setImages] = useState<LocalImage[]>([]);
+  // A galeria mais recente para o aviso do limite (`applyGalleryUpdate`), que
+  // roda em chamadas assíncronas e não pode ler a da renderização antiga.
+  const latestImagesRef = useRef<LocalImage[]>([]);
+  useEffect(() => {
+    latestImagesRef.current = images;
+  }, [images]);
   /**
    * O "Exibir no site" e a galeria como o servidor os tinha quando o cadastro
    * abriu, ou no último salvar. O salvar só manda os dois quando a pessoa mexeu
@@ -252,7 +259,35 @@ export function useProductEditor() {
     productVariations.updateVariationDraft(key, updater);
   }
 
-  const productImagesHook = useProductImages({ setImages });
+  /**
+   * O único funil de entrada da galeria: arquivo escolhido, colagem e busca na
+   * web passam por aqui. Acima de {@link MAX_PRODUCT_IMAGES} (04/10/2026), as
+   * primeiras ficam e um aviso diz quantas ficaram de fora — o backend recusaria
+   * a quarta foto no salvar, e o erro chegaria longe do gesto que o causou.
+   *
+   * O corte mora DENTRO do atualizador funcional: os chamadores somam à
+   * galeria depois de um `await` (otimizar, baixar), e calcular sobre a galeria
+   * da renderização em que o gesto começou perdia a primeira de duas colagens
+   * seguidas e ressuscitava a foto removida durante a otimização (revisão de
+   * 04/10/2026). O aviso é efeito colateral e fica fora do atualizador, que o
+   * React pode chamar duas vezes; ele lê a galeria mais recente pelo ref.
+   */
+  function applyGalleryUpdate(update: React.SetStateAction<LocalImage[]>) {
+    const resolve = (current: LocalImage[]) => (typeof update === "function" ? update(current) : update);
+
+    const previsto = resolve(latestImagesRef.current);
+    if (previsto.length > MAX_PRODUCT_IMAGES) {
+      toast({ ...imageLimitMessage(previsto.length - MAX_PRODUCT_IMAGES), variant: "warning" });
+    }
+
+    setImages((current) => {
+      const next = withinImageLimit(resolve(current));
+      latestImagesRef.current = next;
+      return next;
+    });
+  }
+
+  const productImagesHook = useProductImages({ setImages: applyGalleryUpdate });
 
   const stockControl = useStockControl({ form, setForm, productEditor, variationDrafts, markDirty });
 
@@ -362,7 +397,9 @@ export function useProductEditor() {
         `PUT /ProductGroupImages/{id}` manda a lista inteira, então lista vazia
         apaga as fotos do grupo, sem erro e sem aviso.
       */
-      const galeria = productImagesHook.toLocalImages(product.images);
+      // Galeria anterior ao limite de 3 (04/10/2026): as primeiras, na ordem de
+      // exibição, que são as que o produto mantém — a capa não muda.
+      const galeria = withinImageLimit(productImagesHook.toLocalImages(product.images));
       setImages(galeria);
       setSavedBaseline({
         showOnSite: product.productGroup?.showOnSite ?? true,
@@ -445,11 +482,13 @@ export function useProductEditor() {
       barcode: purchase.productBarcode ?? "",
     });
     setImages(
-      purchase.images.map((image) => ({
-        imageId: image.imageId,
-        name: purchase.productName,
-        url: buildPublicImageUrl(image.url),
-      })),
+      withinImageLimit(
+        purchase.images.map((image) => ({
+          imageId: image.imageId,
+          name: purchase.productName,
+          url: buildPublicImageUrl(image.url),
+        })),
+      ),
     );
     setPurchaseContext({
       purchaseId: purchase.id,
@@ -578,7 +617,7 @@ export function useProductEditor() {
     galleryImages: images,
     setGalleryImages: (update: React.SetStateAction<LocalImage[]>) => {
       markDirty();
-      setImages(update);
+      applyGalleryUpdate(update);
     },
     handleGalleryFileSelection: (event: React.ChangeEvent<HTMLInputElement>) => {
       markDirty();

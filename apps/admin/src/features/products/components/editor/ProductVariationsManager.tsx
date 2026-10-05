@@ -5,14 +5,12 @@ import type { useProductEditor } from "../../hooks/useProductEditor";
 type ProductVariationsManagerProps = {
   editor: ReturnType<typeof useProductEditor>;
   validationErrors: Record<string, boolean>;
-  handlePrintBarcode: (barcodeValue: string, customName?: string, customPrice?: number) => void;
   setVariationToDelete: React.Dispatch<React.SetStateAction<any>>;
 };
 
 export function ProductVariationsManager({
   editor,
   validationErrors,
-  handlePrintBarcode,
   setVariationToDelete,
 }: ProductVariationsManagerProps) {
   const {
@@ -36,7 +34,6 @@ export function ProductVariationsManager({
       selectableStatusOptions={selectableStatusOptions}
       validationErrors={validationErrors}
       updateVariationDraft={updateVariationDraft}
-      handlePrintBarcode={handlePrintBarcode}
       setVariationToDelete={setVariationToDelete}
       handleDeleteVariation={handleDeleteVariation}
       addVariationDraft={addVariationDraft}

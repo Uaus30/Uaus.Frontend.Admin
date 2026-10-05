@@ -272,6 +272,26 @@ describe("useProductTable Hook", () => {
     );
   });
 
+  it("com 3 fotos, a da web vira capa e a última sai — não manda quatro (04/10/2026)", async () => {
+    // O backend recusa a quarta foto: mandar as quatro deixaria a capa como
+    // estava e a imagem enviada órfã no bucket.
+    const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.enrichedProducts).toHaveLength(1));
+    const linha = result.current.enrichedProducts[0];
+    const [foto] = linha.images;
+    const comTres = {
+      ...linha,
+      images: [88, 89, 90].map((imageId) => ({ ...foto, imageId, image: { ...foto.image, id: imageId } })),
+    };
+
+    await act(async () => {
+      await result.current.saveWebImageAsPrincipal(comTres, "https://web/nova.jpg");
+    });
+
+    expect(syncProductGroupImages).toHaveBeenCalledWith(expect.objectContaining({ imageIds: [99, 88, 89] }));
+  });
+
   it("inicia com status Ativo selecionado por padrão e repassa para a API", async () => {
     const { result } = renderHook(() => useProductTable(), { wrapper: createWrapper() });
 

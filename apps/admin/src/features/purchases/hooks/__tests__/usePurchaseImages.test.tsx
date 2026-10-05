@@ -64,7 +64,9 @@ describe("usePurchaseImages", () => {
 
   it("a URL passa pelo proxy e pela compressão antes do upload", async () => {
     const spy = formSpy();
-    const { result } = renderHook(() => usePurchaseImages({ productName: "CANECA", setForm: spy.setForm }));
+    const { result } = renderHook(() =>
+      usePurchaseImages({ productName: "CANECA", imageCount: 0, setForm: spy.setForm }),
+    );
 
     let aceita: boolean | undefined;
     await act(async () => {
@@ -81,9 +83,32 @@ describe("usePurchaseImages", () => {
     await waitFor(() => expect(spy.current().images).toEqual([expect.objectContaining({ imageId: 42 })]));
   });
 
+  it("com 3 fotos, a quarta nem sobe ao catálogo (limite de 04/10/2026)", async () => {
+    const spy = formSpy();
+    const { result } = renderHook(() =>
+      usePurchaseImages({ productName: "CANECA", imageCount: 3, setForm: spy.setForm }),
+    );
+
+    let aceita: boolean | undefined;
+    await act(async () => {
+      aceita = await result.current.addImageFromUrl("https://cdn.loja/foto.jpg");
+    });
+
+    // A URL é válida; quem barra é o limite, antes do download e do upload: a
+    // foto subiria só para virar arquivo órfão no bucket.
+    expect(aceita).toBe(true);
+    expect(mocks.downloadWebImageAsFile).not.toHaveBeenCalled();
+    expect(mocks.createImageFromFile).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Limite de 3 imagens", variant: "warning" }),
+    );
+  });
+
   it("URL que não é http(s) nem chega ao proxy", async () => {
     const spy = formSpy();
-    const { result } = renderHook(() => usePurchaseImages({ productName: "CANECA", setForm: spy.setForm }));
+    const { result } = renderHook(() =>
+      usePurchaseImages({ productName: "CANECA", imageCount: 0, setForm: spy.setForm }),
+    );
 
     let aceita: boolean | undefined;
     await act(async () => {
@@ -97,7 +122,9 @@ describe("usePurchaseImages", () => {
 
   it("Ctrl+V com imagem na área de transferência envia o arquivo colado", async () => {
     const spy = formSpy();
-    const { result } = renderHook(() => usePurchaseImages({ productName: "CANECA", setForm: spy.setForm }));
+    const { result } = renderHook(() =>
+      usePurchaseImages({ productName: "CANECA", imageCount: 0, setForm: spy.setForm }),
+    );
 
     const file = imageFile();
     const event = pasteEvent({ items: [{ type: "image/png", getAsFile: () => file }] });
@@ -113,7 +140,9 @@ describe("usePurchaseImages", () => {
 
   it("Ctrl+V de uma URL de imagem, que é o que o botão direito do navegador copia", async () => {
     const spy = formSpy();
-    const { result } = renderHook(() => usePurchaseImages({ productName: "CANECA", setForm: spy.setForm }));
+    const { result } = renderHook(() =>
+      usePurchaseImages({ productName: "CANECA", imageCount: 0, setForm: spy.setForm }),
+    );
 
     await act(async () => {
       await result.current.handlePaste(pasteEvent({ items: [], text: "https://cdn.loja/foto.jpg" }));
@@ -126,7 +155,9 @@ describe("usePurchaseImages", () => {
     // O "Link da compra" é justamente uma URL: sequestrar a colagem ali
     // impediria de preencher o campo.
     const spy = formSpy();
-    const { result } = renderHook(() => usePurchaseImages({ productName: "CANECA", setForm: spy.setForm }));
+    const { result } = renderHook(() =>
+      usePurchaseImages({ productName: "CANECA", imageCount: 0, setForm: spy.setForm }),
+    );
 
     const input = document.createElement("input");
     document.body.appendChild(input);
@@ -143,7 +174,9 @@ describe("usePurchaseImages", () => {
 
   it("colagem sem imagem nem URL é ignorada", async () => {
     const spy = formSpy();
-    const { result } = renderHook(() => usePurchaseImages({ productName: "CANECA", setForm: spy.setForm }));
+    const { result } = renderHook(() =>
+      usePurchaseImages({ productName: "CANECA", imageCount: 0, setForm: spy.setForm }),
+    );
 
     const event = pasteEvent({ items: [], text: "só um texto" });
     await act(async () => {

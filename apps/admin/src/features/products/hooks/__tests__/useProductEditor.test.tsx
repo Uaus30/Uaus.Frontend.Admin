@@ -570,6 +570,31 @@ describe("useProductEditor Hook", () => {
     expect(syncProductGroupImages).toHaveBeenCalledWith({ productGroupId: 1, imageIds: [99] });
   });
 
+  it("a galeria fica com as 3 primeiras fotos, na ordem (limite de 04/10/2026)", () => {
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.setGalleryImages([1, 2, 3, 4].map((n) => ({ name: `foto ${n}`, url: `blob:${n}` })));
+    });
+
+    // O backend recusaria a quarta no salvar, longe do gesto que a acrescentou.
+    expect(result.current.galleryImages.map((image) => image.name)).toEqual(["foto 1", "foto 2", "foto 3"]);
+  });
+
+  it("duas entradas seguidas na galeria somam, mesmo vindas do mesmo render (colagem durante a otimização)", () => {
+    // Revisão de 04/10/2026: o limite calculava sobre a galeria da renderização
+    // em que o gesto começou, e a segunda colagem apagava a primeira.
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+    const { setGalleryImages } = result.current;
+
+    act(() => {
+      setGalleryImages((current) => [...current, { name: "colada 1", url: "blob:1" }]);
+      setGalleryImages((current) => [...current, { name: "colada 2", url: "blob:2" }]);
+    });
+
+    expect(result.current.galleryImages.map((image) => image.name)).toEqual(["colada 1", "colada 2"]);
+  });
+
   it("deve manter a tela aberta depois de salvar um produto simples, ja com o id do grupo", async () => {
     // Desde 05/09/2026 o cadastro novo NAO fecha ao salvar: o operador segue
     // para a aba Estoque e lanca a entrada do que acabou de receber. Antes a

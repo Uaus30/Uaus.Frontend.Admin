@@ -37,7 +37,6 @@ function renderSection(overrides: Partial<React.ComponentProps<typeof ProductVar
       selectableStatusOptions={[{ id: 2, name: "Ativo" }]}
       validationErrors={{}}
       updateVariationDraft={vi.fn()}
-      handlePrintBarcode={vi.fn()}
       setVariationToDelete={vi.fn()}
       handleDeleteVariation={vi.fn()}
       addVariationDraft={vi.fn()}

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { buildPublicImageUrl } from "@workspace/api-client-react";
 import { createImageFromFile, downloadWebImageAsFile } from "@/services/images.service";
 import { collectPastedImageFiles } from "@/features/products/lib/pasteProductImages";
 import { optimizeImage } from "@/lib/imageOptimizer";
+import { imageLimitMessage, MAX_PRODUCT_IMAGES, withinImageLimit } from "@/lib/product-images";
 import type { PurchaseForm, PurchaseFormImage } from "../types";
 
 /** Tipo de imagem "Produtos" no enum ImageType do backend. */
@@ -23,6 +24,8 @@ export function isHttpUrl(value: string): boolean {
 type UsePurchaseImagesParams = {
   /** Nome do produto: batiza o arquivo enviado ao catálogo. */
   productName: string;
+  /** Quantas fotos o formulário tem agora — o limite de 3 é conferido antes do upload. */
+  imageCount: number;
   setForm: React.Dispatch<React.SetStateAction<PurchaseForm>>;
 };
 
@@ -46,10 +49,17 @@ type UsePurchaseImagesParams = {
  * por arquivo, e porque a foto é um assunto inteiro: quatro entradas, proxy,
  * compressão e upload.
  */
-export function usePurchaseImages({ productName, setForm }: UsePurchaseImagesParams) {
+export function usePurchaseImages({ productName, imageCount, setForm }: UsePurchaseImagesParams) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [imageSearchOpen, setImageSearchOpen] = useState(false);
+  // A contagem em ref: os laços de envio (vários arquivos, colagem) aguardam
+  // cada upload, e o valor da renderização em que o laço começou já estaria velho
+  // na segunda volta.
+  const imageCountRef = useRef(imageCount);
+  useEffect(() => {
+    imageCountRef.current = imageCount;
+  }, [imageCount]);
 
   /**
    * Comprime, envia ao catálogo e acrescenta ao formulário.
@@ -57,7 +67,20 @@ export function usePurchaseImages({ productName, setForm }: UsePurchaseImagesPar
    * O aviso de otimização só aparece quando a imagem encolheu de verdade — é a
    * confirmação de que a foto de 8 MB do fornecedor não subiu inteira.
    */
+  /**
+   * Limite de 3 fotos por produto (04/10/2026): a quarta nem é baixada nem sobe
+   * ao catálogo — subiria só para virar arquivo órfão no bucket, porque a compra
+   * e a galeria a recusam.
+   */
+  function limitReached(): boolean {
+    if (imageCountRef.current < MAX_PRODUCT_IMAGES) return false;
+    toast({ ...imageLimitMessage(1), variant: "warning" });
+    return true;
+  }
+
   async function addImageFile(file: File) {
+    if (limitReached()) return;
+
     setUploading(true);
     try {
       const optimized = await optimizeImage(file);
@@ -71,7 +94,8 @@ export function usePurchaseImages({ productName, setForm }: UsePurchaseImagesPar
         url: buildPublicImageUrl(created.url),
         name: created.name,
       };
-      setForm((current) => ({ ...current, images: [...current.images, image] }));
+      imageCountRef.current += 1;
+      setForm((current) => ({ ...current, images: withinImageLimit([...current.images, image]) }));
 
       if (optimized.optimized) {
         toast({
@@ -101,6 +125,7 @@ export function usePurchaseImages({ productName, setForm }: UsePurchaseImagesPar
 
   /** Foto de fora da loja (busca na web ou URL digitada): baixa pelo proxy e envia. */
   async function addWebImage(webImageUrl: string) {
+    if (limitReached()) return;
     const file = await downloadWebImageAsFile(webImageUrl, productName || "compra");
     await addImageFile(file);
   }
