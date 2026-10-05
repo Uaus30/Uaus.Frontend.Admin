@@ -4,6 +4,7 @@ import {
   Building2,
   DollarSign,
   Gauge,
+  House,
   ImageIcon,
   LayoutDashboard,
   Megaphone,
@@ -17,6 +18,8 @@ import { PRODUCTS_MATCH_PATH } from "@/features/products/product-detail-route";
 import { LOW_STOCK_REPORT_PATH } from "@/features/low-stock/low-stock-route";
 import { PURCHASES_PATH } from "@/features/purchases/purchases-route";
 import { PROMOTIONS_MATCH_PATH, PROMOTIONS_PATH } from "@/features/promotions/promotion-route";
+import { HOME_PATH } from "@/features/home/home-route";
+import { PRODUCT_ANOMALIES_PATH } from "@/features/product-anomalies/anomalies-route";
 
 /**
  * Fonte ÚNICA das rotas do admin.
@@ -64,6 +67,7 @@ export interface AppRoute {
 
 const Login = lazy(() => import("@/pages/login"));
 const NotFound = lazy(() => import("@/pages/not-found"));
+const HomePage = lazy(() => import("@/pages/home"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const TaskBoard = lazy(() => import("@/pages/task-board"));
 const Loyalty = lazy(() => import("@/pages/loyalty"));
@@ -144,6 +148,8 @@ export const MENU_GROUPS = [
  * aparece no lugar escolhido.
  */
 export const MENU_ORDER: readonly string[] = [
+  // A tela em que o admin abre vem primeiro: é para onde o "Início" leva de volta.
+  HOME_PATH,
   "/dashboard",
   "Estoque",
   "Financeiro",
@@ -165,6 +171,10 @@ export const MENU_ORDER: readonly string[] = [
  */
 export const ROUTES: AppRoute[] = [
   { path: "/login", component: Login, publica: true, hidden: true },
+
+  // Tela inicial (05/10/2026): a grade de atalhos, pensada para o celular. A
+  // raiz, o login e a 404 mandam para cá — ver `features/home/home-route.ts`.
+  { path: HOME_PATH, label: "Início", icon: House, component: HomePage },
 
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, component: Dashboard },
 
@@ -295,7 +305,7 @@ export const ROUTES: AppRoute[] = [
   },
   {
     // Mostra custo e margem item a item, como as outras telas do grupo.
-    path: "/bi/anomalias",
+    path: PRODUCT_ANOMALIES_PATH,
     label: "Anomalias",
     group: "BI",
     component: ProductAnomalies,

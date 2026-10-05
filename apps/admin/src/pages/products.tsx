@@ -18,6 +18,7 @@ import { useListFirstPhotoSitePrompt } from "@/features/products/hooks/useListFi
 import { FirstPhotoSiteDialog } from "@/features/products/components/detail/FirstPhotoSiteDialog";
 import type { ProductTableRow } from "@/features/products/types";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
+import { AnomaliesShortcut } from "@/features/product-anomalies/components/AnomaliesShortcut";
 
 /**
  * Página de Produtos: a listagem e, no lugar dela, o detalhe do produto.
@@ -144,6 +145,8 @@ export default function Products() {
           <div className="flex flex-wrap items-center gap-3">
             {/* Vermelho só com pendência; leva ao relatório de estoque baixo. */}
             <LowStockAlert variant="compact" />
+            {/* Atalho para BI › Anomalias: corrigir cadastro parte daqui. */}
+            <AnomaliesShortcut />
             <Button
               onClick={() => abrirDetalhe()}
               className="bg-primary text-primary-foreground hover-elevate"

@@ -44,6 +44,7 @@ vi.mock("@/components/route-guards", () => ({
 vi.mock("@/routes", () => ({
   ROUTES: [
     { path: "/login", component: () => <div data-testid="login" />, publica: true },
+    { path: "/inicio", component: () => <div data-testid="inicio" /> },
     { path: "/dashboard", component: () => <div data-testid="dashboard" /> },
     { path: "/produtos", component: () => <div data-testid="produtos" /> },
   ],
@@ -107,10 +108,13 @@ describe("casca do admin", () => {
     expect(screen.queryByTestId("auth-gate")).toBeNull();
   });
 
-  it("a raiz redireciona para o dashboard, dentro da casca", async () => {
+  it("a raiz redireciona para a tela inicial, dentro da casca", async () => {
+    // Até 05/10/2026 a raiz levava ao dashboard; a tela inicial é a grade de
+    // atalhos (`features/home`).
     renderApp("/");
 
-    await waitFor(() => expect(screen.getByTestId("dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("inicio")).toBeTruthy());
     expect(screen.getByTestId("casca")).toBeTruthy();
+    expect(screen.queryByTestId("dashboard")).toBeNull();
   });
 });

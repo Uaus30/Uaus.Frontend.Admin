@@ -2,6 +2,7 @@ import React, { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button, isChunkLoadError, reloadOnChunkLoadError } from "@workspace/ui";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { reportClientError } from "../lib/clientLogger";
+import { HOME_PATH } from "@/features/home/home-route";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -58,7 +59,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   private handleGoHome = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = "/dashboard";
+    // A tela inicial, e não o dashboard: depois de uma queda, a tela que não
+    // consulta nada é a que tem menos chance de cair de novo.
+    window.location.href = HOME_PATH;
   };
 
   override render() {

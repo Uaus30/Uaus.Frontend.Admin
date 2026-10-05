@@ -9,6 +9,7 @@ import { WifiOff, Loader2 } from "lucide-react";
 import { useToast } from "@workspace/ui";
 import { DevEnvironmentBanner, DEV_ENVIRONMENT_BANNER_HEIGHT, isDevEnvironment } from "@workspace/ui";
 import { ROUTES, NOT_FOUND_COMPONENT } from "@/routes";
+import { HOME_PATH } from "@/features/home/home-route";
 import { AuthGate } from "@/components/route-guards";
 import { AppLayout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -110,7 +111,7 @@ function AreaPrivada() {
 export function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => <Redirect to="/dashboard" />} />
+      <Route path="/" component={() => <Redirect to={HOME_PATH} />} />
 
       {/* Públicas: sem sessão e sem casca. O fallback aqui é de tela cheia
           porque não há barra lateral para preservar. */}

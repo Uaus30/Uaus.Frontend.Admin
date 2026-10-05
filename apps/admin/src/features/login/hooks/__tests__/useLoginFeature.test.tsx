@@ -106,14 +106,15 @@ describe("useLoginFeature Hook", () => {
     expect(mockSetLocation).toHaveBeenCalledWith("/produtos?busca=Caneca&editar=10");
   });
 
-  it("deve cair no dashboard quando não há destino carimbado", () => {
+  it("deve cair na tela inicial quando não há destino carimbado", () => {
+    // A grade de atalhos (05/10/2026), e não mais o dashboard.
     renderHook(() => useLoginFeature(), { wrapper: createWrapper() });
 
     act(() => {
       opcoesDaMutation.mutation.onSuccess({ user: { id: 1 } });
     });
 
-    expect(mockSetLocation).toHaveBeenCalledWith("/dashboard");
+    expect(mockSetLocation).toHaveBeenCalledWith("/inicio");
   });
 
   it("deve ignorar destino externo carimbado à mão na URL", () => {
@@ -126,6 +127,6 @@ describe("useLoginFeature Hook", () => {
       opcoesDaMutation.mutation.onSuccess({ user: { id: 1 } });
     });
 
-    expect(mockSetLocation).toHaveBeenCalledWith("/dashboard");
+    expect(mockSetLocation).toHaveBeenCalledWith("/inicio");
   });
 });
