@@ -9,8 +9,8 @@ O contrato completo — decisões, números medidos, regras do sorteio e etapas 
 está em `PLANO-CATALOGO.md`, na raiz do repositório.
 
 **Estado: as quatro etapas.** Três formatos — banner 9:16, banner 4:5 e catálogo
-em PDF —, com escolha de tema e título, sorteio do servidor e troca de um
-produto; e o histórico das peças que saíram, com o descanso de quem já apareceu
+em PDF —, com escolha de tema e título, sorteio do servidor e troca dos
+produtos marcados; e o histórico das peças que saíram, com o descanso de quem já apareceu
 e a venda antes e depois (rota `/marketing/catalogo/historico`).
 
 ## Regras de negócio
@@ -82,20 +82,37 @@ cozinha"), até 36 caracteres — o que cabe em uma linha na menor fonte.
   **mesma** peça, sem sortear de novo. Com outro tema selecionado o botão não
   aparece: aí o campo é o título do próximo sorteio.
 
-### 8. Trocar um produto mantém a mistura
+### 8. Trocar produtos mantém a mistura — e é em lote
 
-"Trocar" pede ao servidor **um** produto do mesmo papel, no tema da **peça** (e
+A pessoa **marca** na lista os produtos que quer trocar (tocar na linha marca) e
+toca uma vez em "Trocar N produtos". Pedido do dono (05/10/2026): um por um,
+trocar três eram três desenhos da peça — e, no PDF, três montagens do arquivo.
+Agora são os sorteios e **um** desenho só.
+
+Cada produto marcado dá lugar a outro do **mesmo papel**, no tema da **peça** (e
 não no que estiver selecionado no campo), sem repetir quem está nela nem quem já
-foi trocado nesta peça. A novidade trocada dá lugar a outra novidade. O novo
-entra no lugar do antigo; os outros oito não se mexem.
+foi trocado nesta peça. A novidade trocada dá lugar a outra novidade. Cada novo
+entra no lugar do seu; os demais não se mexem.
 
-Um sorteio novo zera a lista de trocados. Sem outro produto para pôr no lugar, a
-tela avisa e mantém a peça.
+- **Um sorteio por papel, um depois do outro** (`lib/swapPlan.ts`). Duas
+  novidades e um achado marcados são dois pedidos: duas novidades, um achado. Em
+  sequência, e não em paralelo, porque o servidor, sem produto do papel no tema,
+  completa com outros papéis — dois pedidos ao mesmo tempo podiam trazer o mesmo
+  cadastro. O segundo pedido já evita quem o primeiro trouxe.
+- **Papel sem substituto suficiente:** troca quem veio e avisa "2 de 3
+  trocados"; os que ficaram continuam onde estavam. Sem substituto nenhum, a tela
+  avisa e mantém a peça.
+- **A marcação acaba** quando a troca é aplicada e quando sai um sorteio novo (os
+  produtos marcados eram da outra peça). Num erro ela **fica**: tocar de novo
+  não exige marcar tudo outra vez.
 
-**A troca só vale se a foto do substituto carregar.** Na troca não há reserva
-para ceder a vaga: o montador descartaria o produto de foto quebrada e a peça
-voltaria com oito, em silêncio. A peça fica como estava, a tela pede para trocar
-de novo, e o substituto de foto quebrada não é sorteado outra vez.
+Um sorteio novo zera a lista de trocados.
+
+**A troca só vale se as fotos dos substitutos carregarem.** Na troca não há
+reserva para ceder a vaga: o montador descartaria o produto de foto quebrada e a
+peça voltaria com oito, em silêncio. A peça fica como estava — nenhuma das
+trocas é aplicada —, a tela pede para trocar de novo, e só o substituto de foto
+quebrada não é sorteado outra vez.
 
 ### 9. Foto fora do ar cede a vaga
 
@@ -175,15 +192,17 @@ uma linha na tela de métricas.
 - A área de cada card vem de `cardRects`, que **repete a conta de posição do
   molde**. Mudou o alinhamento da grade em `CatalogPiece.tsx`, mude lá também: o
   link sairia deslocado sem erro nenhum.
-- Com mais de uma página, o cabeçalho leva "Página 2 de 4". A última página, com
-  menos produtos, mantém o card do mesmo tamanho e a grade encostada em cima.
+- Com mais de uma página, o cabeçalho leva "Página 2 de 4", embaixo do título.
+  Os dois encostam **à direita**, com a mesma margem de 48 px do logotipo, que
+  fica à esquerda (pedido do dono, 05/10/2026). A última página, com menos
+  produtos, mantém o card do mesmo tamanho e a grade encostada em cima.
 - **O PDF é escrito à mão** (`lib/pdfWriter.ts`, ~150 linhas): página, imagem
   JPEG e link. A biblioteca usual (jsPDF) pesa 30 MB instalada e traria
   html2canvas e dompurify para dentro do admin por causa de uma tela. O teste
   confere a tabela de referências byte a byte — é ela que um leitor usa para
   achar as páginas.
-- **Páginas já desenhadas são guardadas** (as últimas 15). Trocar um produto de
-  um catálogo de cinco páginas redesenha uma.
+- **Páginas já desenhadas são guardadas** (as últimas 15). Trocar produtos de
+  um catálogo de cinco páginas redesenha só as páginas deles.
 
 ### 16. O desenho roda fora da tela
 
@@ -308,7 +327,7 @@ do cache, ela seria recusada mesmo com o bucket liberado.
 `C:\Projects\Uaus\Artes\catalogo\gerador\gerar_fundos.py --publicar`, que recorta
 o logotipo da arte da marca e estende a textura. No banner o logotipo fica
 centralizado, com o título embaixo; na página do PDF, compacto à esquerda, com o
-título ao lado. As medidas de lá são as de `template/geometry.ts`: mudou a
+título do outro lado, encostado à direita. As medidas de lá são as de `template/geometry.ts`: mudou a
 posição do logotipo num, mude no outro, senão o título passa por cima dele.
 
 ## O contato do rodapé é o do site
@@ -339,10 +358,13 @@ os valores sobem para o `packages/core`.
 - `lib/share.ts`: folha de compartilhamento, download e nome do arquivo.
 - `lib/pieceRecord.ts`: a chave da peça e o registro dela no histórico.
 - `lib/history.ts`: a diferença com sinal e o estado da medição, em texto.
+- `lib/swapPlan.ts`: a troca em lote — os marcados juntos por papel, e cada um
+  casado com o seu substituto.
 - `hooks/useCatalogGenerator.ts`: estado e ações da tela.
 - `hooks/useCatalogHistory.ts` e `components/CatalogHistoryList.tsx`: a tela de
   histórico.
 - `components/CatalogControls.tsx`: formato, tema, título e os botões de gerar.
 - `components/CatalogPreview.tsx`: a moldura da prévia — que mostra o próprio
   arquivo (ou as páginas que estão dentro do PDF), e não uma simulação.
-- `components/CatalogProductList.tsx`: quem saiu na peça, com a troca.
+- `components/CatalogProductList.tsx`: quem saiu na peça, com a marcação e o
+  botão de trocar os marcados (preso ao pé da tela enquanto a lista rola).

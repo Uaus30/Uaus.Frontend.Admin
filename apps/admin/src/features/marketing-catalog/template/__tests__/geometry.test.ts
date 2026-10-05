@@ -60,6 +60,13 @@ describe("pieceGrid — página do catálogo em PDF", () => {
     }
   });
 
+  it("título e paginação encostam à direita, com a margem do logotipo, sem invadi-lo", () => {
+    // Logotipo de 360 px a 48 px da borda esquerda (ver `gerar_fundos.py`).
+    expect(PAGE.title.align).toBe("end");
+    expect(PAGE.title.left + PAGE.title.width).toBe(PAGE.width - 48);
+    expect(PAGE.title.left).toBeGreaterThanOrEqual(48 + 360);
+  });
+
   it("o card é maior que o do banner: é por isso que o PDF pede foto de 300 px", () => {
     expect(pieceGrid(PAGE, 6).cardWidth).toBeGreaterThan(pieceGrid(STORY, 9).cardWidth * 1.4);
   });

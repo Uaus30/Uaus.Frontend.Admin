@@ -154,6 +154,17 @@ describe("conteúdo do molde", () => {
     expect(await html(cards)).not.toContain("Página");
   });
 
+  it("na página do PDF título e paginação encostam à direita; no banner, ficam centralizados", async () => {
+    const page = await html([card(1)], { caption: "Página 2 de 4" }, PAGE);
+    const banner = await html([card(1)]);
+
+    // A caixa do título alinha os dois filhos (título e legenda) pelo mesmo lado.
+    expect(page).toMatch(/align-items:flex-end[^>]*>(?:(?!<div).)*<div[^>]*text-align:right[^>]*>NOVIDADES/i);
+    expect(page).toContain("Página 2 de 4");
+    expect(banner).not.toContain("align-items:flex-end");
+    expect(banner).toMatch(/text-align:center[^>]*>Novidades e promoções/i);
+  });
+
   it("o aviso de preços vai em TODAS as peças, inclusive em cada página do PDF", async () => {
     for (const spec of [STORY, FEED, PAGE]) {
       expect(await html([card(1)], {}, spec)).toContain("Imagens meramente ilustrativas.");

@@ -91,7 +91,10 @@ export default function MarketingCatalogPage() {
               noun={piece.format.noun}
               pageSize={PIECE_SPECS[piece.format.piece].maxProducts}
               isGenerating={isGenerating}
-              onSwap={generator.swap}
+              selectedIds={generator.selectedIds}
+              onToggle={generator.toggleSelected}
+              onClearSelection={generator.clearSelection}
+              onSwapSelected={() => generator.swap(generator.selectedIds)}
             />
           </div>
         )}

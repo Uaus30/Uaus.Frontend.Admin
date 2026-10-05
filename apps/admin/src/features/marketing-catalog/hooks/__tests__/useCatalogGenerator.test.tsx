@@ -382,7 +382,7 @@ describe("useCatalogGenerator", () => {
     act(() => result.current.selectFormat("story"));
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50)]));
 
-    await act(() => result.current.swap(8));
+    await act(() => result.current.swap([8]));
 
     expect(lastDrawRequest()).toMatchObject({ count: 1, largePhotosOnly: true });
     expect(lastBuildRequest().format.key).toBe("pdf");
@@ -450,7 +450,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.generate());
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
 
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
 
     expect(lastDrawRequest()).toEqual({
       theme: 1,
@@ -470,10 +470,10 @@ describe("useCatalogGenerator", () => {
     const { result } = await renderGenerator();
     await act(() => result.current.generate());
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(51, "New")]));
 
-    await act(() => result.current.swap(50));
+    await act(() => result.current.swap([50]));
 
     expect(lastDrawRequest().excludeGroupIds).toEqual([1, 50, 3, 4, 5, 6, 7, 8, 9, 2]);
   });
@@ -482,11 +482,11 @@ describe("useCatalogGenerator", () => {
     const { result } = await renderGenerator();
     await act(() => result.current.generate());
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
 
     await act(() => result.current.generate());
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(60, "New")]));
-    await act(() => result.current.swap(1));
+    await act(() => result.current.swap([1]));
 
     expect(lastDrawRequest().excludeGroupIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
@@ -496,7 +496,7 @@ describe("useCatalogGenerator", () => {
     await act(() => result.current.generate());
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([]));
 
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
 
     expect(result.current.status).toBe("ready");
     expect(result.current.piece?.previewUrls).toEqual(["blob:banner-1"]);
@@ -512,7 +512,7 @@ describe("useCatalogGenerator", () => {
       bannerOf(request.candidates.filter((product) => product.productGroupId !== 50)),
     );
 
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
 
     expect(result.current.status).toBe("error");
     expect(result.current.errorMessage).toMatch(/foto do produto sorteado não carregou/i);
@@ -525,7 +525,7 @@ describe("useCatalogGenerator", () => {
     // Na tentativa seguinte, o de foto quebrada está na lista de quem não pode sair
     // — e o 2, que NÃO foi trocado, continua só como item da peça.
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(51, "New")]));
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
 
     expect(lastDrawRequest().excludeGroupIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 50]);
     expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
@@ -539,7 +539,7 @@ describe("useCatalogGenerator", () => {
     act(() => result.current.selectTheme("5:7"));
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
 
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
 
     expect(lastDrawRequest().theme).toBe(1);
     expect(result.current.piece?.title).toBe("Destaques da loja");
@@ -549,9 +549,131 @@ describe("useCatalogGenerator", () => {
     const { result } = await renderGenerator();
     await act(() => result.current.generate());
 
-    await act(() => result.current.swap(999));
+    await act(() => result.current.swap([999]));
 
     expect(mocks.drawCatalog).toHaveBeenCalledTimes(1);
+  });
+
+  // ------------------------------------------- trocar vários de uma vez
+
+  it("trocar vários de uma vez: um sorteio por papel, cada um evitando o anterior, e UM redesenho só", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    // 1 a 3 são novidades (2); 4 a 9, pouca saída (5).
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(60, "Slow"), item(61, "Slow")]));
+
+    await act(() => result.current.swap([5, 2, 7]));
+
+    const [, first, second] = mocks.drawCatalog.mock.calls.map(([request]) => request as CatalogDrawRequest);
+    expect(first).toMatchObject({ count: 1, role: 2, excludeGroupIds: [1, 2, 3, 4, 5, 6, 7, 8, 9] });
+    expect(second).toMatchObject({ count: 2, role: 5, excludeGroupIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 50] });
+    // Gerar + uma troca: dois desenhos, e não quatro.
+    expect(mocks.buildPiece).toHaveBeenCalledTimes(2);
+    // Cada um no lugar do seu, na ordem da peça; os outros não se mexem.
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
+      1, 50, 3, 4, 60, 6, 61, 8, 9,
+    ]);
+  });
+
+  it("quem saiu numa troca em lote não volta na troca seguinte", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(60, "Slow")]));
+    await act(() => result.current.swap([2, 5]));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(70, "Slow")]));
+
+    await act(() => result.current.swap([4]));
+
+    expect(lastDrawRequest().excludeGroupIds).toEqual([1, 50, 3, 4, 60, 6, 7, 8, 9, 2, 5]);
+  });
+
+  it("marcar e desmarcar; a troca aplicada limpa a marcação", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+
+    act(() => result.current.toggleSelected(2));
+    act(() => result.current.toggleSelected(5));
+    act(() => result.current.toggleSelected(2));
+    expect(result.current.selectedIds).toEqual([5]);
+
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(60, "Slow")]));
+    await act(() => result.current.swap(result.current.selectedIds));
+
+    expect(result.current.piece?.products[4].productGroupId).toBe(60);
+    expect(result.current.selectedIds).toEqual([]);
+  });
+
+  it("sortear de novo limpa a marcação: os produtos marcados eram da outra peça", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    act(() => result.current.toggleSelected(3));
+
+    await act(() => result.current.generate());
+
+    expect(result.current.selectedIds).toEqual([]);
+  });
+
+  it("papel sem substituto: troca os que têm e avisa quantos ficaram", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([]));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(60, "Slow")]));
+
+    await act(() => result.current.swap([2, 5]));
+
+    expect(result.current.status).toBe("ready");
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
+      1, 2, 3, 4, 60, 6, 7, 8, 9,
+    ]);
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "1 de 2 trocados" }));
+  });
+
+  it("nenhum dos marcados tem substituto: avisa, mantém a peça e não redesenha", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([]));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([]));
+
+    await act(() => result.current.swap([2, 5]));
+
+    expect(mocks.buildPiece).toHaveBeenCalledTimes(1);
+    expect(result.current.piece?.previewUrls).toEqual(["blob:banner-1"]);
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Sem outro produto" }));
+  });
+
+  it("foto quebrada de um dos substitutos: nada é aplicado, a marcação fica, e só ele é evitado depois", async () => {
+    const { result } = await renderGenerator();
+    await act(() => result.current.generate());
+    act(() => result.current.toggleSelected(2));
+    act(() => result.current.toggleSelected(5));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(60, "Slow")]));
+    mocks.buildPiece.mockImplementationOnce(async (request: PieceRequest) =>
+      bannerOf(request.candidates.filter((product) => product.productGroupId !== 60)),
+    );
+
+    await act(() => result.current.swap(result.current.selectedIds));
+
+    expect(result.current.status).toBe("error");
+    expect(result.current.errorMessage).toMatch(/foto do produto sorteado não carregou/i);
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ]);
+    // Tocar de novo não exige marcar tudo outra vez.
+    expect(result.current.selectedIds).toEqual([2, 5]);
+
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(51, "New")]));
+    mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(61, "Slow")]));
+    await act(() => result.current.swap(result.current.selectedIds));
+
+    // O 60 (foto quebrada) é evitado; o 50, que carregou, podia voltar.
+    const retry = mocks.drawCatalog.mock.calls.at(-2)![0] as CatalogDrawRequest;
+    expect(retry.excludeGroupIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 60]);
+    expect(result.current.piece?.products.map((product) => product.productGroupId)).toEqual([
+      1, 51, 3, 4, 61, 6, 7, 8, 9,
+    ]);
   });
 
   // ------------------------------------------------------ atualizar título
@@ -608,7 +730,7 @@ describe("useCatalogGenerator", () => {
     const { result } = await renderGenerator();
 
     await act(() => result.current.share());
-    await act(() => result.current.swap(1));
+    await act(() => result.current.swap([1]));
     await act(() => result.current.applyTitle());
     act(() => result.current.download());
 
@@ -697,7 +819,7 @@ describe("useCatalogGenerator", () => {
     const firstKey = lastRecord().clientKey;
 
     mocks.drawCatalog.mockResolvedValueOnce(drawOf([item(50, "New")]));
-    await act(() => result.current.swap(2));
+    await act(() => result.current.swap([2]));
     await act(() => result.current.share());
 
     expect(mocks.registerCatalogPiece).toHaveBeenCalledTimes(2);

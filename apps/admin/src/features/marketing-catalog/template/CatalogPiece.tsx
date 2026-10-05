@@ -29,6 +29,8 @@ export function CatalogPiece({
   const rows = chunkRows(visible, grid.columns);
   const heading = normalizeTitle(title);
   const centered = spec.title.align === "center";
+  // Título e legenda ("Página 2 de 4") seguem o mesmo alinhamento.
+  const titleAlign = centered ? "center" : "flex-end";
 
   const panelHeight = spec.height - spec.panelTop - spec.footerHeight;
   // Cada bloco do contato só entra quando o dado existe: rodapé com "WhatsApp"
@@ -68,7 +70,7 @@ export function CatalogPiece({
           left: spec.title.left,
           display: "flex",
           flexDirection: "column",
-          alignItems: centered ? "center" : "flex-start",
+          alignItems: titleAlign,
           justifyContent: "center",
           width: spec.title.width,
           height: spec.title.height,
@@ -84,7 +86,7 @@ export function CatalogPiece({
             fontWeight: 900,
             letterSpacing: 1,
             textTransform: "uppercase",
-            textAlign: centered ? "center" : "left",
+            textAlign: centered ? "center" : "right",
           }}
         >
           {heading}

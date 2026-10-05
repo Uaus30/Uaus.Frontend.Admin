@@ -12,6 +12,7 @@ import { ROLE_CODE, toCatalogProducts } from "../lib/catalogProducts";
 import { CATALOG_FORMATS, DEFAULT_FORMAT, FORMAT_ORDER, type CatalogFormatOption } from "../lib/formats";
 import { newPieceKey, toPieceRecord } from "../lib/pieceRecord";
 import { canShareFile, downloadFile, pieceFileName, shareFile } from "../lib/share";
+import { groupSwapsByRole, matchReplacements } from "../lib/swapPlan";
 import { buildThemeOptions, DEFAULT_THEME_KEY, type CatalogThemeOption } from "../lib/themes";
 import { normalizeTitle } from "../template/text";
 import type { CatalogFormat, CatalogProduct } from "../types";
@@ -31,7 +32,7 @@ export interface GeneratedPiece {
   products: CatalogProduct[];
   /** O título impresso — pode já não ser o do campo, se a pessoa mexeu nele. */
   title: string;
-  /** O tema do sorteio: é dele que sai a troca de um produto. */
+  /** O tema do sorteio: é dele que sai a troca de produtos. */
   theme: CatalogThemeOption;
   /** O formato em que a peça foi desenhada: troca e título redesenham NELE. */
   format: CatalogFormatOption;
@@ -46,9 +47,9 @@ const FORMATS = FORMAT_ORDER.map((key) => CATALOG_FORMATS[key]);
  * Estado e ações da tela do catálogo de divulgação.
  *
  * A pessoa escolhe o formato e o tema, ajusta o título e gera; o servidor
- * sorteia e o navegador desenha. Depois dá para sortear tudo de novo, trocar um
- * produto só ou reescrever o título — os dois últimos redesenham a MESMA peça,
- * no formato em que ela foi gerada.
+ * sorteia e o navegador desenha. Depois dá para sortear tudo de novo, trocar os
+ * produtos marcados ou reescrever o título — os dois últimos redesenham a MESMA
+ * peça, no formato em que ela foi gerada.
  */
 export function useCatalogGenerator() {
   const { toast } = useToast();
@@ -68,6 +69,8 @@ export function useCatalogGenerator() {
   // formato da peça que ainda está na moldura.
   const [busyNoun, setBusyNoun] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Quem a pessoa marcou na lista para trocar, na ordem dos toques.
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const format = CATALOG_FORMATS[formatKey];
   const theme = themes.find((option) => option.key === themeKey) ?? themes[0];
@@ -104,9 +107,14 @@ export function useCatalogGenerator() {
   /**
    * O caminho comum das três ações: roda `work`, e só aplica o resultado se
    * nenhuma outra geração começou depois. O erro vira estado e aviso.
+   *
+   * Devolve `true` quando esta geração terminou sem erro e ainda é a última.
    */
   const run = useCallback(
-    async (noun: string, work: (report: (progress: PieceProgress) => void) => Promise<DrawnPiece | null>) => {
+    async (
+      noun: string,
+      work: (report: (progress: PieceProgress) => void) => Promise<DrawnPiece | null>,
+    ): Promise<boolean> => {
       const current = ++runRef.current;
       setStatus("generating");
       setBusyNoun(noun);
@@ -117,20 +125,22 @@ export function useCatalogGenerator() {
         const result = await work((value) => {
           if (current === runRef.current) setProgress(value);
         });
-        if (current !== runRef.current) return;
+        if (current !== runRef.current) return false;
 
         if (result) {
           const { pages, ...drawn } = result;
           setPiece({ ...drawn, previewUrls: pages.map((page) => URL.createObjectURL(page)) });
         }
         setStatus("ready");
+        return true;
       } catch (error) {
-        if (current !== runRef.current) return;
+        if (current !== runRef.current) return false;
 
         const message = error instanceof Error ? error.message : `Erro desconhecido ao gerar o ${noun}.`;
         setErrorMessage(message);
         setStatus("error");
         toast({ variant: "destructive", title: `Não foi possível gerar o ${noun}`, description: message });
+        return false;
       } finally {
         if (current === runRef.current) setProgress(null);
       }
@@ -183,7 +193,7 @@ export function useCatalogGenerator() {
   const generate = useCallback(async () => {
     if (!theme) return;
 
-    await run(format.noun, async (report) => {
+    const done = await run(format.noun, async (report) => {
       // Sem cache de propósito: o preço vai IMPRESSO na peça e tem de ser o de agora.
       const drawn = await drawCatalog({
         theme: theme.theme,
@@ -201,29 +211,54 @@ export function useCatalogGenerator() {
       swappedOutRef.current = [];
       return draw({ theme, format }, title, products, toCatalogProducts(drawn.reserves), report);
     });
+    // Peça nova, produtos novos: a marcação era da outra.
+    if (done) setSelectedIds([]);
   }, [draw, format, run, theme, title]);
 
-  /** Troca UM produto da peça por outro do mesmo papel, mantendo os demais. */
+  /** Marca ou desmarca um produto da peça para a próxima troca. */
+  const toggleSelected = useCallback((productGroupId: number) => {
+    setSelectedIds((current) =>
+      current.includes(productGroupId)
+        ? current.filter((id) => id !== productGroupId)
+        : [...current, productGroupId],
+    );
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds([]), []);
+
+  /**
+   * Troca de uma vez os produtos marcados, cada um por outro do MESMO papel, e
+   * redesenha a peça UMA vez só; os demais não se mexem. Um sorteio por papel,
+   * um depois do outro: cada um já evita quem o anterior trouxe.
+   */
   const swap = useCallback(
-    async (productGroupId: number) => {
+    async (productGroupIds: readonly number[]) => {
       if (!piece) return;
 
-      const leaving = piece.products.find((product) => product.productGroupId === productGroupId);
-      if (!leaving) return;
+      const swaps = groupSwapsByRole(piece.products, productGroupIds);
+      if (swaps.length === 0) return;
 
-      await run(piece.format.noun, async (report) => {
+      const done = await run(piece.format.noun, async (report) => {
         const inPiece = piece.products.map((product) => product.productGroupId);
-        const drawn = await drawCatalog({
-          theme: piece.theme.theme,
-          departmentId: piece.theme.departmentId,
-          count: 1,
-          role: ROLE_CODE[leaving.role],
-          excludeGroupIds: [...inPiece, ...swappedOutRef.current],
-          largePhotosOnly: piece.format.minPhotoSide > 0 || undefined,
-        });
+        const drawn: CatalogProduct[][] = [];
+        for (const { role, leaving } of swaps) {
+          const response = await drawCatalog({
+            theme: piece.theme.theme,
+            departmentId: piece.theme.departmentId,
+            count: leaving.length,
+            role: ROLE_CODE[role],
+            excludeGroupIds: [
+              ...inPiece,
+              ...swappedOutRef.current,
+              ...drawn.flat().map((p) => p.productGroupId),
+            ],
+            largePhotosOnly: piece.format.minPhotoSide > 0 || undefined,
+          });
+          drawn.push(toCatalogProducts(response.items));
+        }
 
-        const [replacement] = toCatalogProducts(drawn.items);
-        if (!replacement) {
+        const replacements = matchReplacements(swaps, drawn, inPiece);
+        if (replacements.size === 0) {
           toast({
             title: "Sem outro produto",
             description: "Não há outro produto neste tema para pôr no lugar.",
@@ -231,23 +266,44 @@ export function useCatalogGenerator() {
           return null;
         }
 
-        const products = piece.products.map((product) =>
-          product.productGroupId === productGroupId ? replacement : product,
-        );
+        const products = piece.products.map((product) => replacements.get(product.productGroupId) ?? product);
         const result = await draw(piece, piece.title, products, [], report);
 
-        // Aqui não há reserva para ceder a vaga: se a foto do substituto não
+        // Aqui não há reserva para ceder a vaga: se a foto de um substituto não
         // carregou (ou é pequena demais para o catálogo), o montador o descartou
         // e a peça voltaria com um produto a menos, em silêncio. A troca não é
-        // aplicada, e o substituto entra na lista para não ser sorteado de novo.
+        // aplicada — a marcação fica, para tocar de novo —, e os substitutos de
+        // foto quebrada entram na lista para não serem sorteados outra vez.
         if (result.products.length < products.length) {
-          swappedOutRef.current = [...swappedOutRef.current, replacement.productGroupId];
-          throw new Error("A foto do produto sorteado não carregou. Toque em Trocar de novo.");
+          const loaded = new Set(result.products.map((product) => product.productGroupId));
+          const broken = [...replacements.values()]
+            .map((product) => product.productGroupId)
+            .filter((id) => !loaded.has(id));
+          swappedOutRef.current = [...swappedOutRef.current, ...broken];
+          throw new Error(
+            broken.length > 1
+              ? `As fotos de ${broken.length} produtos sorteados não carregaram. Toque em Trocar de novo.`
+              : "A foto do produto sorteado não carregou. Toque em Trocar de novo.",
+          );
         }
 
-        swappedOutRef.current = [...swappedOutRef.current, productGroupId];
+        swappedOutRef.current = [...swappedOutRef.current, ...replacements.keys()];
+
+        const selected = swaps.reduce((total, { leaving }) => total + leaving.length, 0);
+        const kept = selected - replacements.size;
+        if (kept > 0) {
+          toast({
+            title: `${replacements.size} de ${selected} trocados`,
+            description:
+              kept === 1
+                ? "Um produto ficou: não há outro do mesmo tipo neste tema para pôr no lugar."
+                : `${kept} produtos ficaram: não há outros do mesmo tipo neste tema para pôr no lugar.`,
+          });
+        }
         return result;
       });
+      // Os marcados saíram da peça (ou não têm substituto): a marcação acabou.
+      if (done) setSelectedIds([]);
     },
     [piece, draw, run, toast],
   );
@@ -335,6 +391,10 @@ export function useCatalogGenerator() {
     /** O aparelho abre a folha de compartilhamento com arquivo (celular)? */
     canShare: piece ? canShareFile(piece.file) : false,
     generate,
+    /** Os produtos da peça marcados para a próxima troca. */
+    selectedIds,
+    toggleSelected,
+    clearSelection,
     swap,
     applyTitle,
     share,

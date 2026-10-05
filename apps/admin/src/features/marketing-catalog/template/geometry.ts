@@ -12,8 +12,11 @@ export interface TitleBox {
   top: number;
   width: number;
   height: number;
-  /** Centralizado embaixo do logotipo (banner) ou à esquerda, ao lado dele (página). */
-  align: "center" | "start";
+  /**
+   * Centralizado embaixo do logotipo (banner) ou encostado à direita, do outro
+   * lado do logotipo (página do PDF).
+   */
+  align: "center" | "end";
   /** Fator sobre o corpo de `titleFontSize`, calculado para 1000 px de largura. */
   fontScale: number;
 }
@@ -103,8 +106,10 @@ export const PAGE: PieceSpec = {
   ...STORY,
   height: 2340,
   headerArtHeight: 270,
-  // Logotipo de 360 px encostado à esquerda (48 a 408); o título vai ao lado.
-  title: { left: 440, top: 34, width: 600, height: 162, align: "start", fontScale: 0.6 },
+  // Logotipo de 360 px encostado à esquerda (48 a 408). O título e a paginação
+  // encostam à direita (pedido do dono, 05/10/2026), com a mesma margem de 48
+  // px do logotipo: a caixa termina em 1032.
+  title: { left: 432, top: 34, width: 600, height: 162, align: "end", fontScale: 0.6 },
   panelTop: 230,
   footerHeight: 180,
   maxProducts: 6,
