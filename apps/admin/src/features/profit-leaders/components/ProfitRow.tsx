@@ -4,6 +4,7 @@ import { formatCurrency } from "@workspace/core";
 import type { ProfitBucketDto, ProfitLeaderDto } from "@workspace/api-client-react";
 import { BI_TONE_FILL, BI_TONE_TEXT } from "@/lib/bi-tone";
 import { productDetailPathname } from "@/features/products/product-detail-route";
+import { adminNewTabProps } from "@/lib/installed-app";
 import { ArchetypeBadge, AlertBadge } from "./ProfitBadges";
 import { ProfitSparkline } from "./ProfitSparkline";
 import {
@@ -72,11 +73,11 @@ export function ProfitRow({ leader, buckets, median }: ProfitRowProps) {
               {/* Abre em nova aba, e não navega dentro do admin: a tela de BI
                   não pode se perder por causa de um clique de conferência. É
                   o mesmo padrão de `PurchaseLinkField` — âncora simples, sem
-                  o roteador da SPA. */}
+                  o roteador da SPA. No app do iPhone abre na mesma janela
+                  (ver `adminNewTabProps`). */}
               <a
                 href={productDetailPathname(leader.productGroupId)}
-                target="_blank"
-                rel="noreferrer"
+                {...adminNewTabProps()}
                 aria-label={`Abrir ${leader.productName} no cadastro, em nova aba`}
                 title="Abrir no cadastro do produto"
                 className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"

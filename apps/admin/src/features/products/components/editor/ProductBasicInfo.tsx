@@ -156,6 +156,11 @@ export function ProductBasicInfo({
               ))}
             </SelectContent>
           </Select>
+          {/*
+            Nova aba, aqui e no "+" da categoria: na mesma janela, o cadastro
+            aberto se perderia. Vale também no app do iPhone, onde a nova aba
+            abre no Safari e pede login uma vez (decisão do dono, 05/10/2026).
+          */}
           <Button
             type="button"
             variant="outline"

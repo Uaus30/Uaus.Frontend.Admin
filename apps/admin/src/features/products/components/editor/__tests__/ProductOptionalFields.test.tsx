@@ -129,6 +129,20 @@ describe("ProductOptionalFields — controle de estoque", () => {
     expect(link.getAttribute("target")).toBe("_blank");
   });
 
+  it("continua em nova aba também no app do iPhone, onde ela abre no Safari", () => {
+    // Decisão do dono (05/10/2026): no iPhone a nova aba pede login no Safari
+    // uma vez, mas na mesma janela o que foi digitado no cadastro se perderia.
+    // Não troque por `adminNewTabProps` — ele é só para tela de consulta.
+    Object.defineProperty(navigator, "standalone", { value: true, configurable: true });
+    try {
+      renderAba(fakeEditor());
+
+      expect(screen.getByTitle("Abrir as Configurações de estoque").getAttribute("target")).toBe("_blank");
+    } finally {
+      Reflect.deleteProperty(navigator, "standalone");
+    }
+  });
+
   it("mínimo próprio aparece no campo", () => {
     renderAba(fakeEditor({ productEditor: { ...createEmptyProductEditor(), minStock: 7 } }));
 

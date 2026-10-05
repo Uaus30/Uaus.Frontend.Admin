@@ -51,6 +51,10 @@ export function productEditPath(produto: ProdutoParaEditar): string {
  * nenhum e sumiria na navegação. O `noopener` impede que a aba aberta consiga
  * navegar a aba de origem — que é justamente a que tem o trabalho não salvo.
  *
+ * Nova aba também no app instalado no iPhone, onde ela abre no Safari e pede
+ * login uma vez — decisão do dono (05/10/2026): o lote vale mais que o login.
+ * Ver `adminNewTabProps` em `@/lib/installed-app`.
+ *
  * @param produto Produto escolhido na listagem de origem.
  */
 export function openProductEditTab(produto: ProdutoParaEditar): void {

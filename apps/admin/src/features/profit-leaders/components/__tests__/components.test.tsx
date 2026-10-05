@@ -363,6 +363,20 @@ describe("ProfitRow", () => {
     expect(link.getAttribute("rel")).toBe("noreferrer");
   });
 
+  it("no app do iPhone, o cadastro abre na mesma janela", () => {
+    // Lá a nova aba vai para o Safari, que não tem a sessão do app.
+    Object.defineProperty(navigator, "standalone", { value: true, configurable: true });
+    try {
+      renderRow(liderDeTeste({ productGroupId: 42, productName: "POTE OVAL COM TAMPA 1 LITRO" }));
+
+      const link = screen.getByRole("link", { name: /Abrir POTE OVAL COM TAMPA 1 LITRO no cadastro/ });
+      expect(link.getAttribute("href")).toBe(productDetailPathname(42));
+      expect(link.hasAttribute("target")).toBe(false);
+    } finally {
+      Reflect.deleteProperty(navigator, "standalone");
+    }
+  });
+
   it("o estoque fica visivel em qualquer tela, nao so a partir do breakpoint sm", () => {
     // RTL/jsdom não aplicam CSS: um `hidden sm:block` esquecido aqui passaria
     // pelo `getByText` do mesmo jeito, porque a arvore continua tendo o nó. A

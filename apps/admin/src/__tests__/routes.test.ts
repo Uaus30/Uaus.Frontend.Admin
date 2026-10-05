@@ -114,8 +114,14 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("começa pelo Dashboard", () => {
-    expect(buildMenu()[0].name).toBe("Dashboard");
+  it("começa pelo Início, com o Dashboard logo abaixo", () => {
+    // A tela inicial (05/10/2026) é onde o admin abre; o menu leva de volta a
+    // ela pelo primeiro item.
+    const [inicio, dashboard] = buildMenu();
+
+    expect(inicio).toMatchObject({ name: "Início", href: "/inicio" });
+    expect(inicio.items).toBeUndefined();
+    expect(dashboard.name).toBe("Dashboard");
   });
 
   it("não mostra rota oculta", () => {
@@ -138,6 +144,7 @@ describe("buildMenu", () => {
     const nomes = buildMenu().map((item) => item.name);
 
     expect(nomes).toEqual([
+      "Início",
       "Dashboard",
       "Estoque",
       "Financeiro",

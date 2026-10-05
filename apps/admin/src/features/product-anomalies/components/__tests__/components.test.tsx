@@ -39,6 +39,24 @@ describe("AnomalyRow", () => {
     expect(link.getAttribute("rel")).toBe("noreferrer");
   });
 
+  it("no app do iPhone, o cadastro abre na mesma janela", () => {
+    // Lá a nova aba vai para o Safari, que não tem a sessão do app.
+    Object.defineProperty(navigator, "standalone", { value: true, configurable: true });
+    try {
+      render(
+        <ul>
+          <AnomalyRow row={cumbuca} />
+        </ul>,
+      );
+
+      const link = screen.getByRole("link", { name: /Abrir CUMBUCA .* no cadastro/ });
+      expect(link.getAttribute("href")).toMatch(/produtos\/851\/detalhes$/);
+      expect(link.hasAttribute("target")).toBe(false);
+    } finally {
+      Reflect.deleteProperty(navigator, "standalone");
+    }
+  });
+
   it("cada anomalia vem com a evidência e o que fazer", () => {
     render(
       <ul>

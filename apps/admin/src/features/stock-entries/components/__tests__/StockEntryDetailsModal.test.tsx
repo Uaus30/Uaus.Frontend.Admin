@@ -80,6 +80,22 @@ describe("StockEntryDetailsModal", () => {
       expect(link.getAttribute("rel")).toBe("noreferrer");
     });
 
+    it("continua em nova aba também no app do iPhone, onde ela abre no Safari", () => {
+      // Decisão do dono (05/10/2026): a modal vive dentro do cadastro do
+      // produto, e na mesma janela o que foi digitado e não salvo se perderia.
+      // Não troque por `adminNewTabProps` — ele é só para tela de consulta.
+      Object.defineProperty(navigator, "standalone", { value: true, configurable: true });
+      try {
+        renderModal({ entryDetails: { ...entryDetails, purchaseId: 26 } });
+
+        expect(screen.getByRole("link", { name: /Abrir a compra #26/i }).getAttribute("target")).toBe(
+          "_blank",
+        );
+      } finally {
+        Reflect.deleteProperty(navigator, "standalone");
+      }
+    });
+
     it("sem compra, não há link", () => {
       renderModal();
 

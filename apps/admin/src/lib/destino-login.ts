@@ -42,8 +42,8 @@ function caminhoInternoSeguro(valor: string): string | null {
  *
  * @param caminho Caminho interno atual COM query string, relativo à base do
  *   router (ex.: `/produtos?busca=Caneca&editar=10`).
- * @returns `/login` puro quando o caminho não é um destino aceitável — cair no
- *   dashboard é melhor que propagar um valor suspeito até o outro lado.
+ * @returns `/login` puro quando o caminho não é um destino aceitável — cair na
+ *   tela inicial é melhor que propagar um valor suspeito até o outro lado.
  */
 export function urlLoginCom(caminho: string): string {
   const destino = caminhoInternoSeguro(caminho);

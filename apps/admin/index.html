@@ -25,7 +25,32 @@
     -->
     <meta name="google" content="notranslate" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>Painel Administrativo</title>
+    <title>Uaus Admin</title>
+    <!--
+      Instalação no celular como app, com o nome e o logo da Uaus.
+
+      Sem manifesto, o "Instalar" do Chrome no Android só criava um atalho: o
+      nome era o título da aba ("Painel Administrativo") e o ícone, o
+      favicon.ico de 126x132 ampliado. Com o manifesto, o Chrome instala o app
+      de verdade (WebAPK, gerado e instalado pelo próprio Google): nome e logo
+      certos, tela cheia, sem publicar nada na Play Store. Não é APK baixado de
+      fora da loja — o caminho que a verificação de desenvolvedor do Android
+      passou a barrar no Brasil em 30/09/2026.
+
+      O iPhone não lê nome nem ícone do manifesto com segurança em todas as
+      versões; ele usa as tags apple-* abaixo. O apple-touch-icon é OPACO
+      (180x180, sem canal alfa) porque o iOS pinta a transparência de preto.
+      Sem service worker, de propósito: o admin não funciona offline, e um
+      cache de bundle só atrasaria as versões novas que sobem toda semana.
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#090e1a" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Admin" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

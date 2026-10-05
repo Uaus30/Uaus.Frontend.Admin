@@ -5,6 +5,7 @@ import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { destinoAposLogin } from "@/lib/destino-login";
+import { HOME_PATH } from "@/features/home/home-route";
 
 /**
  * Hook customizado para gerenciar a lógica de autenticação (Login) no painel.
@@ -23,8 +24,8 @@ export function useLoginFeature() {
       onSuccess: (data) => {
         queryClient.setQueryData(getGetMeQueryKey(), (data as any).user ?? data);
         // O guard de rota carimba o caminho pedido em `?redirect=`. Sem ele o
-        // dashboard continua sendo o destino.
-        setLocation(destinoAposLogin(search) ?? "/dashboard");
+        // destino é a tela inicial (o dashboard até 05/10/2026).
+        setLocation(destinoAposLogin(search) ?? HOME_PATH);
       },
       onError: (err: unknown) => {
         toast({
