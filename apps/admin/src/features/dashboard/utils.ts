@@ -120,10 +120,21 @@ function shortDate(date: Date): string {
  * - **Janelas móveis e intervalo livre:** o período imediatamente anterior, de
  *   mesma duração — que é também o que o backend usa quando nada é pedido.
  */
-export function resolveComparison(preset: PeriodPreset | null, period: ResolvedPeriod): ComparisonPeriod {
+export function resolveComparison(
+  preset: PeriodPreset | null,
+  period: ResolvedPeriod,
+  today = new Date(),
+): ComparisonPeriod {
   const start = parseDateInput(period.startDate) ?? new Date();
   const end = parseDateInput(period.endDate) ?? start;
   const lengthInDays = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  // O backend corta o último dia da base no horário atual quando o período
+  // termina hoje; a dica precisa dizer isso, senão "03/09 a 05/09" parece o dia
+  // inteiro.
+  const inProgress = period.endDate === formatDateInput(today);
+  const sameHourNote = inProgress
+    ? " O último dia conta só até este mesmo horário, porque hoje ainda não fechou."
+    : "";
 
   if (preset === "month") {
     const weeks = Math.max(4, Math.ceil(lengthInDays / 7));
@@ -136,7 +147,8 @@ export function resolveComparison(preset: PeriodPreset | null, period: ResolvedP
       description:
         `Comparado com ${shortDate(compareStart)} a ${shortDate(compareEnd)}: os mesmos dias da semana, ` +
         `${weeks} semanas antes. Comparar com o mesmo dia do mês misturaria dias da semana diferentes, ` +
-        "e o sábado vende o dobro da segunda.",
+        "e o sábado vende o dobro da segunda." +
+        sameHourNote,
     };
   }
 
@@ -160,7 +172,8 @@ export function resolveComparison(preset: PeriodPreset | null, period: ResolvedP
     label: "vs período anterior",
     description:
       `Comparado com ${shortDate(compareStart)} a ${shortDate(compareEnd)}: ` +
-      `os ${lengthInDays} dias imediatamente anteriores.`,
+      `os ${lengthInDays} dias imediatamente anteriores.` +
+      sameHourNote,
   };
 }
 

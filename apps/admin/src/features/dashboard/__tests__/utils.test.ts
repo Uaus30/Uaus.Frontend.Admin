@@ -94,6 +94,16 @@ describe("resolveComparison", () => {
     expect(comparison.endDate < period.startDate).toBe(true);
   });
 
+  it("avisa na dica que a base é cortada no mesmo horário quando o período termina hoje", () => {
+    const hoje = new Date(2026, 9, 3, 10, 0);
+    const emAndamento = resolveComparison("month", resolvePreset("month", hoje), hoje);
+    expect(emAndamento.description).toContain("até este mesmo horário");
+
+    // Mês passado já fechou: a base é o mês anterior inteiro, sem corte.
+    const fechado = resolveComparison("lastMonth", resolvePreset("lastMonth", hoje), hoje);
+    expect(fechado.description).not.toContain("mesmo horário");
+  });
+
   it("explica as datas e o motivo na dica", () => {
     const period = resolvePreset("month", new Date(2026, 9, 3));
     expect(resolveComparison("month", period).description).toContain("03/09 a 05/09");

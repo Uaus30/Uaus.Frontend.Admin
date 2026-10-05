@@ -62,6 +62,7 @@ O card do dia compara o acumulado de hoje com **ontem até o mesmo horário** e 
 - **Este mês:** os mesmos dias da semana, **quatro semanas antes** (cinco depois do dia 28, para as janelas não se sobreporem). O "mesmo dia do mês anterior" mistura dias da semana: em 04/10/2026, 1 a 3/10 (qui a sáb) contra 1 a 3/09 (ter a qui) dava +72%; alinhado, +21%. Nesta loja o sábado fatura em média 2,3 vezes a segunda.
 - **Mês passado:** o mês anterior inteiro.
 - **Janelas móveis e intervalo livre:** o período imediatamente anterior, de mesma duração.
+- **Período que termina hoje:** o último dia da base conta só até o horário atual (corte feito no backend). Sem isso, às 10h o parcial de hoje era comparado com um dia já fechado e os cards abriam o dia em queda — em 01/10/2026 às 10h, R$ 40 contra R$ 328 dava −88%. Vale também para a variação dos departamentos.
 
 O card mostra só o rótulo curto ("vs 4 semanas antes"); as datas exatas e o porquê ficam na dica que abre ao passar o mouse. A "Projeção do mês" aparece no card de faturamento só quando o período é o mês corrente.
 
