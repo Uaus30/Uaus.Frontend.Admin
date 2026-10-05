@@ -2635,7 +2635,10 @@ export interface TaskCardDto {
   id: number;
   number: number;
   title: string;
+  /** HTML do editor do admin. Cartões anteriores a 05/10/2026 trazem texto puro. */
   description?: string | null;
+  /** Como a demanda foi resolvida, no formato da descrição. Grava-se por `saveTaskCardSolution`. */
+  solution?: string | null;
   /** Enum TaskCardStatus — chega como NOME; leia com `enumCode`. */
   status: EnumValue;
   position: number;
@@ -2687,6 +2690,72 @@ export interface SaveTaskLabelPayload {
 export interface SaveTaskChecklistItemPayload {
   text: string;
   isDone: boolean;
+}
+
+/**
+ * O que aconteceu numa linha da atividade do cartão (enum `TaskCardActivityKind`).
+ * Só `Comment` é escrito por uma pessoa; o resto o servidor grava junto com a
+ * ação. A frase ("moveu de Fazendo para Testes") é montada pela tela.
+ */
+export const TASK_CARD_ACTIVITY_KIND = {
+  None: 0,
+  Comment: 1,
+  Created: 2,
+  Moved: 3,
+  Archived: 4,
+  Unarchived: 5,
+  TitleChanged: 6,
+  DescriptionChanged: 7,
+  SolutionAdded: 8,
+  SolutionEdited: 9,
+  SolutionRemoved: 10,
+  LabelAdded: 11,
+  LabelRemoved: 12,
+  MemberAdded: 13,
+  MemberRemoved: 14,
+  AttachmentAdded: 15,
+  AttachmentRemoved: 16,
+  ChecklistItemAdded: 17,
+  ChecklistItemChecked: 18,
+  ChecklistItemUnchecked: 19,
+  ChecklistItemRemoved: 20,
+} as const;
+
+export type TaskCardActivityKindCode = (typeof TASK_CARD_ACTIVITY_KIND)[keyof typeof TASK_CARD_ACTIVITY_KIND];
+
+/** Uma linha da linha do tempo do cartão: comentário ou fato do histórico, do mais antigo ao mais recente. */
+export interface TaskCardActivityDto {
+  id: number;
+  /** Enum TaskCardActivityKind — chega como NOME; leia com `enumCode` e `TASK_CARD_ACTIVITY_KIND`. */
+  kind: EnumValue;
+  /**
+   * O HTML do comentário, ou o complemento do fato: nome da etiqueta, do anexo,
+   * do membro, texto do item do checklist, título novo. Omitido quando não há.
+   */
+  text?: string | null;
+  /** Coluna de origem ao mover (enum TaskCardStatus, pelo nome). */
+  fromStatus?: EnumValue;
+  /** Coluna de destino ao mover, ou a coluna em que o cartão nasceu. */
+  toStatus?: EnumValue;
+  /** Quem fez. Só o autor vê "Editar" e "Excluir" no comentário. */
+  userId?: number | null;
+  /** Nome de quem fez, como estava no dia. */
+  author?: string | null;
+  createdAt: string;
+  /** Num comentário, a última edição. Omitido se nunca foi editado. */
+  updatedAt?: string | null;
+}
+
+export interface SaveTaskCardSolutionPayload {
+  /** HTML do editor; vazio apaga a solução. */
+  solution: string | null;
+  /** Também leva o cartão para o fim de Finalizado ("Salvar e finalizar"). */
+  finish: boolean;
+}
+
+export interface SaveTaskCardCommentPayload {
+  /** HTML do editor. */
+  text: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -28,9 +28,9 @@ A regra transversal (o que o backend garante e o PDV não vê) está em
 - **Arquivar ≠ excluir.** Arquivado sai do quadro, continua na busca e na gaveta
   "Arquivados", e volta para o fim da coluna de origem. Excluir pede confirmação
   citando o número e o título, e não volta pela tela.
-- **Busca global** (topo): número (`#12` ou `12`), título, descrição, nome de
-  etiqueta e texto de checklist, inclusive nos arquivados e nos finalizados
-  antigos. Clicar num resultado abre a modal.
+- **Busca global** (topo): número (`#12` ou `12`), título, descrição, solução,
+  comentário, nome de etiqueta e texto de checklist, inclusive nos arquivados e
+  nos finalizados antigos. Clicar num resultado abre a modal.
 - **Etiquetas** têm nome, cor (chave da paleta do Trello, traduzida em
   `LABEL_COLOR_CLASSES`) e **prioridade** — da etiqueta, não do cartão: "Bug"
   nasce urgente, "Ideia" nasce baixa. No cartão elas aparecem da mais urgente
@@ -40,6 +40,57 @@ A regra transversal (o que o backend garante e o PDV não vê) está em
 - **Anexos** vão para o S3, em pasta própria por cartão dentro da pasta pública
   (`…/tarefas/{id}/`). Até 10 MB; imagens, PDF, Office, CSV, TXT, ZIP, vídeo e
   áudio. A URL é pública como a das fotos de produto.
+
+## Solução, finalizar e atividade (05/10/2026)
+
+Pedido do dono depois de usar o quadro: "não há campo para digitar a solução e
+nem como inserir comentários no card".
+
+- **Solução** fica logo abaixo da descrição, no mesmo formato. Preenchida, ganha
+  o destaque de campo preenchido (`filledFieldClass`, o verde do cadastro de
+  cliente) com o ícone verde e o rótulo "registrada" — cor nunca sozinha. Ao
+  editar: **Salvar**, **Salvar e finalizar** (grava e leva o cartão para o fim de
+  Finalizado numa chamada só; some se o cartão já está lá ou arquivado) e
+  Cancelar. Vai por `PUT /TaskCards/{id}/solution`, nunca no PUT do cartão: um
+  admin aberto antes da solução existir mandaria o PUT sem ela e a apagaria.
+- **Finalizar tarefa**: botão verde no topo da modal, ao lado do fechar. Leva
+  para o fim de Finalizado de qualquer coluna (o mesmo movimento do select
+  "Coluna"); no cartão já finalizado vira o selo "Finalizada"; arquivado não
+  finaliza (desarquive antes).
+- **Atividade** (`CardActivity`): comentários e histórico numa lista só, do mais
+  antigo para o mais recente, com a caixa de comentário embaixo — o painel do
+  ClickUp como referência. No desktop largo (`lg`) é um painel à direita com
+  rolagem própria, que desce até o fim ao abrir e a cada linha nova; no celular
+  vem depois do conteúdo. "Só comentários" esconde o histórico.
+- **Histórico** é gravado pelo servidor junto com cada ação: criou, mudou de
+  coluna (reordenar não conta), arquivou/desarquivou, título, descrição,
+  solução, etiqueta, membro, anexo e checklist (adicionar, marcar, desmarcar,
+  remover — renomear item não). A frase é montada aqui (`activity.ts`); ir para
+  Finalizado é dito "finalizou a tarefa". Quem fez é o nome do dia.
+- **Comentário**: só o autor vê "Editar" e "Excluir" (o servidor recusa os
+  outros). Não é perfil de usuário — é autoria: editar a frase de outra pessoa
+  faria a atividade dizer, com o nome dela, o que ela não escreveu. Editado
+  mostra "(editado)".
+
+## Texto formatado
+
+Descrição, solução e comentários usam o editor de `@/components/rich-text`
+(Tiptap), com a barra do ClickUp que o dono mandou de referência: tipo de bloco
+(texto, títulos, listas, citação, código), cor, negrito, itálico, sublinhado,
+tachado, código, alinhamento e link. Guarda HTML.
+
+- **Exibição sempre saneada** (`sanitizeRichText`): o HTML é relido pelo esquema
+  do editor antes do `dangerouslySetInnerHTML` — script, evento, estilo fora de
+  cor/alinhamento e link `javascript:` não chegam ao DOM.
+- **Descrição antiga em texto puro** (antes de 05/10/2026) vira um parágrafo por
+  linha, escapada. Abrir e salvar sem mexer não grava nada — senão ela viraria
+  HTML e o histórico diria "editou a descrição".
+- **Editor vazio** (`<p></p>`) é "sem texto": apaga a descrição/solução e não
+  deixa comentar em branco (o servidor confere igual, `RichText.IsBlank`).
+- **Esc dentro do editor** cancela a edição e não fecha a modal (o Radix trata o
+  Esc antes do editor; a modal checa `data-rich-text-editor`). Ctrl+Enter salva.
+- Limites do servidor em caracteres de HTML (a formatação conta): descrição e
+  solução 20.000, comentário 10.000.
 
 ## Arrastar e soltar
 
@@ -75,7 +126,11 @@ leitura — o pedido foi "efeito translúcido em algumas partes".
 
 - `board.ts` — regras puras: colunas, cores, `positionBetween`, agrupamento.
 - `hooks/useTaskBoard.ts` — o quadro, o arrasto e as ações de cartão.
-- `hooks/useTaskCard.ts` — a modal: cada campo salva sozinho.
+- `hooks/useTaskCard.ts` — a modal: cada campo salva sozinho; a solução também.
+- `hooks/useCardActivity.ts` — a atividade: linha do tempo e comentários.
+- `activity.ts` — regras puras da atividade: a frase de cada fato, quem edita.
 - `hooks/useTaskLabels.ts`, `hooks/useTaskSearch.ts`.
 - `components/` — puros, por props. `TaskBoard` é o único que conhece o dnd-kit.
-- Testes: `__tests__/board.test.ts` e `hooks/__tests__/useTaskBoard.test.tsx`.
+- Testes: `__tests__/` (quadro, atividade e a página com a modal) e
+  `hooks/__tests__/` (quadro, modal e atividade); o editor em
+  `@/components/rich-text/__tests__/`.

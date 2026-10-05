@@ -5,6 +5,7 @@ import {
   createTaskCard,
   deleteTaskCard,
   moveTaskCard,
+  TASK_CARD_STATUS,
   TASK_CARDS_QUERY_KEY,
   unarchiveTaskCard,
   useGetTaskBoard,
@@ -139,6 +140,21 @@ export function useTaskBoard() {
   }
 
   /**
+   * "Finalizar tarefa" da modal: leva o cartão para o fim de Finalizado, de
+   * qualquer coluna, a qualquer momento. É o mesmo movimento do select "Coluna";
+   * o histórico registra como "finalizou a tarefa". Falha já vira aviso no
+   * `onError` do mover — aqui só não deixa a promessa estourar sem dono.
+   */
+  async function finishCard(cardId: number) {
+    try {
+      await moveCardToColumn(cardId, TASK_CARD_STATUS.Done);
+      toast({ title: "Tarefa finalizada.", description: "Foi para o fim da coluna Finalizado." });
+    } catch {
+      // Avisado pelo onError do moveMutation.
+    }
+  }
+
+  /**
    * Início do arrasto: congela a sincronização com o servidor até soltar.
    */
   function beginDrag(cardId: number) {
@@ -240,6 +256,7 @@ export function useTaskBoard() {
     endDrag,
     cancelDrag,
     moveCardToColumn,
+    finishCard,
     isMoving: moveMutation.isPending,
 
     // Modal de detalhe

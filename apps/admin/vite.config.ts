@@ -39,6 +39,20 @@ const CATALOG_RENDERER_PACKAGES = [
   "unicode-trie",
 ];
 
+/**
+ * O editor de texto formatado do quadro de tarefas e tudo o que só ele puxa
+ * (conferido no package-lock em 05/10/2026: os 48 pacotes que a instalação
+ * acrescentou). Prefixos: `@tiptap/` e `prosemirror-` cobrem as famílias.
+ */
+const EDITOR_PACKAGES = [
+  "@tiptap/",
+  "prosemirror-",
+  "linkifyjs/",
+  "orderedmap/",
+  "rope-sequence/",
+  "w3c-keyname/",
+];
+
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
   define: {
@@ -123,6 +137,12 @@ export default defineConfig({
           // no chunk da própria tela. Dentro do `vendor-catalogo`, a tela teria
           // de importá-lo de forma estática só para saber um caminho, e o
           // `import()` dinâmico do renderizador deixaria de adiar o download.
+          // O editor de texto formatado (Tiptap + ProseMirror) serve o quadro de
+          // tarefas, rota lazy. Sem nome próprio caía no vendor comum: +~100 KB
+          // gzip no primeiro paint de toda tela (medido no build de 05/10/2026).
+          // A lista são os pacotes que entraram com ele; os que ele divide com
+          // outros (use-sync-external-store, fast-deep-equal) ficam no vendor.
+          if (EDITOR_PACKAGES.some((name) => id.includes(`node_modules/${name}`))) return "vendor-editor";
           if (id.includes("node_modules/@fontsource/") && id.includes("?url")) return undefined;
           if (CATALOG_RENDERER_PACKAGES.some((name) => id.includes(`node_modules/${name}/`))) {
             return id.includes("?url") ? undefined : "vendor-catalogo";

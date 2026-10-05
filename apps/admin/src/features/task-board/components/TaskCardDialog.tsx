@@ -1,32 +1,26 @@
 import { useState } from "react";
-import { Archive, ArchiveRestore, Clock, Loader2, Trash2 } from "lucide-react";
-import {
-  Button,
-  ConfirmDialog,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui";
-import { formatBrasiliaDateTime } from "@workspace/core";
-import type { TaskCardStatusCode } from "@workspace/api-client-react";
-import { BOARD_COLUMNS, statusCode } from "../board";
+import { Archive, CircleCheckBig, Loader2, TextAlignStart } from "lucide-react";
+import { Button, ConfirmDialog, Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
+import { TASK_CARD_STATUS, type TaskCardStatusCode } from "@workspace/api-client-react";
+import { RICH_TEXT_EDITOR_ATTRIBUTE } from "@/components/rich-text";
+import { statusCode } from "../board";
+import { useCardActivity } from "../hooks/useCardActivity";
 import { useTaskCard } from "../hooks/useTaskCard";
+import { CardActivity } from "./CardActivity";
 import { CardAttachments } from "./CardAttachments";
 import { ColumnBadge, MemberAvatar, TaskLabelChip } from "./CardBits";
 import { CardChecklist } from "./CardChecklist";
-import { CardDescription } from "./CardDescription";
-import { LabelsPicker, MembersPicker } from "./CardPickers";
+import { CardRichTextField } from "./CardRichTextField";
+import { CardSidebar } from "./CardSidebar";
+import { CardTitleInput } from "./CardTitleInput";
 
 interface TaskCardDialogProps {
   cardId: number | null;
   onClose: () => void;
   onMove: (cardId: number, status: TaskCardStatusCode) => Promise<unknown>;
+  /** "Finalizar tarefa": para o fim de Finalizado, de qualquer coluna. */
+  onFinish: (cardId: number) => Promise<unknown>;
+  isMoving: boolean;
   onArchive: (cardId: number) => Promise<unknown>;
   onUnarchive: (cardId: number) => Promise<unknown>;
   onDelete: (cardId: number) => Promise<unknown>;
@@ -36,31 +30,38 @@ interface TaskCardDialogProps {
 }
 
 /**
- * A modal de detalhe do cartão. No celular ocupa a tela inteira; no desktop é
- * uma caixa larga com o conteúdo à esquerda e as ações à direita, como no
- * Trello. O corpo rola nativamente (`overflow-y-auto`), não com `ScrollArea` —
- * armadilha 7 do CLAUDE.md.
+ * A modal de detalhe do cartão. No celular ocupa a tela inteira e tudo rola
+ * junto, com a atividade no fim; no desktop largo são dois painéis, como no
+ * ClickUp: o cartão (conteúdo e ações) à esquerda e a atividade à direita, cada
+ * um com a própria rolagem. A rolagem é nativa (`overflow-y-auto`), não
+ * `ScrollArea` — armadilha 7 do CLAUDE.md.
+ *
+ * Esc dentro de um editor de texto cancela a edição e NÃO fecha a modal: o Radix
+ * trata o Esc antes do editor, e fechar a modal no meio de um comentário perderia
+ * o que foi escrito.
  */
 export function TaskCardDialog(props: TaskCardDialogProps) {
-  const {
-    cardId,
-    onClose,
-    onMove,
-    onArchive,
-    onUnarchive,
-    onDelete,
-    onManageLabels,
-    isArchiving,
-    isDeleting,
-  } = props;
+  const { cardId, onClose, onFinish, isMoving, onDelete, isDeleting } = props;
   const ctl = useTaskCard(cardId);
+  const activity = useCardActivity(cardId);
   const card = ctl.card;
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const isDone = card !== null && statusCode(card.status) === TASK_CARD_STATUS.Done;
+  const canFinish = card !== null && !isDone && !card.isArchived;
+
   return (
     <Dialog open={cardId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex h-[100dvh] w-full max-w-none flex-col gap-0 rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:max-w-3xl sm:rounded-xl">
+      <DialogContent
+        onEscapeKeyDown={(e) => {
+          // Pelo alvo da tecla, e não pelo `document.activeElement`: é o mesmo
+          // elemento no navegador, e não depende de o foco já ter sido aplicado.
+          const target = e.target instanceof Element ? e.target : null;
+          if (target?.closest(`[${RICH_TEXT_EDITOR_ATTRIBUTE}]`)) e.preventDefault();
+        }}
+        className="flex h-[100dvh] w-full max-w-none flex-col gap-0 rounded-none p-0 sm:h-[92vh] sm:max-w-4xl sm:rounded-xl lg:max-w-6xl"
+      >
         {!card ? (
           <div className="flex flex-1 items-center justify-center p-10 text-muted-foreground">
             {ctl.isError ? (
@@ -75,7 +76,7 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
           </div>
         ) : (
           <>
-            <header className="space-y-2 border-b px-4 pb-3 pr-12 pt-4 sm:px-6">
+            <header className="space-y-2 border-b px-4 pb-3 pr-12 pt-4 sm:px-6 sm:pr-14">
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="font-mono">#{card.number}</span>
                 <ColumnBadge status={card.status} />
@@ -83,6 +84,22 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
                   <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5">
                     <Archive className="h-3 w-3" /> Arquivado
                   </span>
+                )}
+                {isDone ? (
+                  <span className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <CircleCheckBig className="h-3.5 w-3.5" /> Finalizada
+                  </span>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="ml-auto h-8 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                    disabled={!canFinish || isMoving}
+                    title={card.isArchived ? "Desarquive o cartão para finalizá-lo" : undefined}
+                    onClick={() => void onFinish(card.id)}
+                  >
+                    <CircleCheckBig className="h-4 w-4" /> Finalizar tarefa
+                  </Button>
                 )}
               </div>
               <DialogTitle asChild>
@@ -94,144 +111,116 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
               </DialogDescription>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="grid gap-6 p-4 sm:grid-cols-[1fr_190px] sm:p-6">
-                <div className="min-w-0 space-y-6">
-                  {(card.labels.length > 0 || card.members.length > 0) && (
-                    <div className="flex flex-wrap items-start gap-4">
-                      {card.labels.length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">Etiquetas</p>
-                          <div className="flex flex-wrap gap-1">
-                            {card.labels.map((label) => (
-                              <TaskLabelChip key={label.id} label={label} />
-                            ))}
+            <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+              <div className="lg:min-h-0 lg:overflow-y-auto">
+                <div className="grid gap-6 p-4 sm:grid-cols-[1fr_190px] sm:p-6">
+                  <div className="min-w-0 space-y-6">
+                    {(card.labels.length > 0 || card.members.length > 0) && (
+                      <div className="flex flex-wrap items-start gap-4">
+                        {card.labels.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Etiquetas</p>
+                            <div className="flex flex-wrap gap-1">
+                              {card.labels.map((label) => (
+                                <TaskLabelChip key={label.id} label={label} />
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {card.members.length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">Membros</p>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {card.members.map((member) => (
-                              <span key={member.userId} className="inline-flex items-center gap-1.5 text-sm">
-                                <MemberAvatar member={member} size="sm" />
-                                {member.firstName}
-                              </span>
-                            ))}
+                        )}
+                        {card.members.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Membros</p>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {card.members.map((member) => (
+                                <span
+                                  key={member.userId}
+                                  className="inline-flex items-center gap-1.5 text-sm"
+                                >
+                                  <MemberAvatar member={member} size="sm" />
+                                  {member.firstName}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
 
-                  <CardDescription
-                    key={card.description ?? ""}
-                    value={card.description ?? ""}
-                    onSave={ctl.saveDescription}
+                    <CardRichTextField
+                      key={`description-${card.description ?? ""}`}
+                      title="Descrição"
+                      icon={TextAlignStart}
+                      value={card.description ?? ""}
+                      emptyLabel="Adicionar uma descrição mais detalhada…"
+                      placeholder="Detalhe a demanda: o que precisa ser feito, para quem, até quando…"
+                      ariaLabel="Descrição do cartão"
+                      onSave={ctl.saveDescription}
+                      isSaving={ctl.isSaving}
+                    />
+
+                    <CardRichTextField
+                      key={`solution-${card.solution ?? ""}`}
+                      title="Solução"
+                      icon={CircleCheckBig}
+                      value={card.solution ?? ""}
+                      emptyLabel="Registrar como a demanda foi resolvida…"
+                      placeholder="O que foi feito, onde, e o que conferir se voltar a acontecer…"
+                      ariaLabel="Solução do cartão"
+                      onSave={(html) => ctl.saveSolution(html)}
+                      onSaveAndFinish={canFinish ? (html) => ctl.saveSolution(html, true) : undefined}
+                      isSaving={ctl.isSavingSolution}
+                      highlightFilled
+                    />
+
+                    <CardChecklist
+                      items={card.checklistItems}
+                      onAdd={ctl.addChecklistItem}
+                      onToggle={ctl.toggleChecklistItem}
+                      onRename={ctl.renameChecklistItem}
+                      onDelete={ctl.deleteChecklistItem}
+                      busy={ctl.isChecklistBusy}
+                    />
+
+                    <CardAttachments
+                      attachments={card.attachments}
+                      onUpload={ctl.uploadAttachment}
+                      isUploading={ctl.isUploading}
+                      onDelete={ctl.deleteAttachment}
+                      isDeleting={ctl.isDeletingAttachment}
+                    />
+                  </div>
+
+                  <CardSidebar
+                    card={card}
+                    labels={ctl.labels}
+                    users={ctl.users}
+                    onToggleLabel={ctl.toggleLabel}
+                    onToggleMember={ctl.toggleMember}
                     isSaving={ctl.isSaving}
-                  />
-
-                  <CardChecklist
-                    items={card.checklistItems}
-                    onAdd={ctl.addChecklistItem}
-                    onToggle={ctl.toggleChecklistItem}
-                    onRename={ctl.renameChecklistItem}
-                    onDelete={ctl.deleteChecklistItem}
-                    busy={ctl.isChecklistBusy}
-                  />
-
-                  <CardAttachments
-                    attachments={card.attachments}
-                    onUpload={ctl.uploadAttachment}
-                    isUploading={ctl.isUploading}
-                    onDelete={ctl.deleteAttachment}
-                    isDeleting={ctl.isDeletingAttachment}
+                    onMove={props.onMove}
+                    onManageLabels={props.onManageLabels}
+                    onArchive={props.onArchive}
+                    onUnarchive={props.onUnarchive}
+                    isArchiving={props.isArchiving}
+                    onRequestDelete={() => setConfirmDelete(true)}
+                    isDeleting={isDeleting}
                   />
                 </div>
-
-                <aside className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Coluna</p>
-                  <Select
-                    value={String(statusCode(card.status))}
-                    onValueChange={(value) => void onMove(card.id, Number(value) as TaskCardStatusCode)}
-                    disabled={card.isArchived}
-                  >
-                    <SelectTrigger className="h-9 w-full text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BOARD_COLUMNS.map((column) => (
-                        <SelectItem key={column.status} value={String(column.status)}>
-                          <span className="inline-flex items-center gap-2">
-                            <span className={`h-2 w-2 rounded-full ${column.dot}`} />
-                            {column.title}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <p className="pt-2 text-xs font-medium text-muted-foreground">Adicionar ao cartão</p>
-                  <LabelsPicker
-                    labels={ctl.labels}
-                    selectedIds={card.labels.map((l) => l.id)}
-                    onToggle={ctl.toggleLabel}
-                    onManage={onManageLabels}
-                    disabled={ctl.isSaving}
-                  />
-                  <MembersPicker
-                    users={ctl.users}
-                    selectedIds={card.members.map((m) => m.userId)}
-                    onToggle={ctl.toggleMember}
-                    disabled={ctl.isSaving}
-                  />
-
-                  <p className="pt-2 text-xs font-medium text-muted-foreground">Ações</p>
-                  {card.isArchived ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="w-full justify-start gap-2"
-                      disabled={isArchiving}
-                      onClick={() => void onUnarchive(card.id)}
-                    >
-                      <ArchiveRestore className="h-4 w-4" /> Desarquivar
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="w-full justify-start gap-2"
-                      disabled={isArchiving}
-                      onClick={() => void onArchive(card.id)}
-                    >
-                      <Archive className="h-4 w-4" /> Arquivar
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10"
-                    disabled={isDeleting}
-                    onClick={() => setConfirmDelete(true)}
-                  >
-                    <Trash2 className="h-4 w-4" /> Excluir
-                  </Button>
-
-                  <div className="space-y-1 pt-3 text-[11px] leading-relaxed text-muted-foreground">
-                    <p className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> Criado em {formatBrasiliaDateTime(card.createdAt)}
-                      {card.createdBy ? ` por ${card.createdBy}` : ""}
-                    </p>
-                    {card.updatedAt && <p>Atualizado em {formatBrasiliaDateTime(card.updatedAt)}</p>}
-                    {card.finishedAt && <p>Finalizado em {formatBrasiliaDateTime(card.finishedAt)}</p>}
-                  </div>
-                </aside>
               </div>
+
+              <CardActivity
+                className="border-t lg:min-h-0 lg:border-l lg:border-t-0"
+                activities={activity.activities}
+                isLoading={activity.isLoading}
+                isError={activity.isError}
+                currentUserId={activity.currentUserId}
+                onAdd={activity.addComment}
+                isAdding={activity.isAdding}
+                onUpdate={activity.updateComment}
+                isUpdating={activity.isUpdating}
+                onDelete={activity.deleteComment}
+                isDeleting={activity.isDeleting}
+              />
             </div>
 
             <ConfirmDialog
@@ -252,30 +241,5 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface CardTitleInputProps {
-  title: string;
-  onSave: (title: string) => void;
-}
-
-/** O título editável no lugar: salva ao sair do campo ou no Enter; Esc desfaz. */
-function CardTitleInput({ title, onSave }: CardTitleInputProps) {
-  const [value, setValue] = useState(title);
-
-  return (
-    <input
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={() => onSave(value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setValue(title);
-      }}
-      maxLength={200}
-      aria-label="Título do cartão"
-      className="w-full rounded-md bg-transparent px-1 text-lg font-semibold leading-tight tracking-tight outline-none ring-ring focus:bg-foreground/10 focus:ring-2"
-    />
   );
 }

@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger, cn } from "@workspace/ui";
 import type { EnumValue, TaskCardMemberDto, TaskLabelDto } from "@workspace/api-client-react";
-import { BOARD_COLUMNS, columnTitle, labelClasses, statusCode } from "../board";
+import { BOARD_COLUMNS, columnTitle, labelClasses, memberColor, statusCode } from "../board";
 
 /**
  * Peças pequenas e puras do cartão, compartilhadas entre o quadro, a busca, a
@@ -48,7 +48,7 @@ export function MemberAvatar({ member, size = "md", className }: MemberAvatarPro
           className={cn(
             "inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold text-white ring-2 ring-background",
             size === "sm" ? "h-6 w-6 text-[11px]" : "h-8 w-8 text-sm",
-            avatarColor(member.userId),
+            memberColor(member.userId),
             className,
           )}
         >
@@ -58,21 +58,6 @@ export function MemberAvatar({ member, size = "md", className }: MemberAvatarPro
       <TooltipContent side="top">{member.fullName || member.firstName}</TooltipContent>
     </Tooltip>
   );
-}
-
-const AVATAR_COLORS = [
-  "bg-rose-500",
-  "bg-orange-500",
-  "bg-amber-600",
-  "bg-emerald-600",
-  "bg-teal-600",
-  "bg-sky-600",
-  "bg-indigo-500",
-  "bg-fuchsia-600",
-];
-
-function avatarColor(userId: number): string {
-  return AVATAR_COLORS[Math.abs(userId) % AVATAR_COLORS.length];
 }
 
 /** Até `max` avatares e um "+N" para o resto. */

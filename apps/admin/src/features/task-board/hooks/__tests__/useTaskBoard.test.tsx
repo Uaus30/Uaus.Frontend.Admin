@@ -198,6 +198,30 @@ describe("useTaskBoard", () => {
     await waitFor(() => expect(result.current.columns[TASK_CARD_STATUS.Doing].map((c) => c.id)).toEqual([3]));
   });
 
+  it("Finalizar tarefa leva para o fim de Finalizado e avisa", async () => {
+    const { result } = renderHook(() => useTaskBoard(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.finishCard(3);
+    });
+
+    expect(mocks.moveTaskCard).toHaveBeenCalledWith(3, { status: TASK_CARD_STATUS.Done, position: 0 });
+    expect(result.current.columns[TASK_CARD_STATUS.Done].map((c) => c.id)).toEqual([4, 3]);
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Tarefa finalizada." }));
+  });
+
+  it("Finalizar tarefa recusado pelo servidor não estoura a promessa nem avisa sucesso", async () => {
+    mocks.moveTaskCard.mockRejectedValueOnce(new Error("Cartão arquivado não pode ser movido"));
+    const { result } = renderHook(() => useTaskBoard(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.finishCard(3);
+    });
+
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
+    expect(mocks.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: "Tarefa finalizada." }));
+  });
+
   it("criar pelo rodapé da coluna usa a coluna certa e nenhum vínculo", async () => {
     const { result } = renderHook(() => useTaskBoard(), { wrapper: createWrapper() });
 

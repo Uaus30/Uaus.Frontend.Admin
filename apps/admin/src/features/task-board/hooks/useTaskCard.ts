@@ -3,6 +3,7 @@ import {
   addTaskChecklistItem,
   deleteTaskCardAttachment,
   deleteTaskChecklistItem,
+  saveTaskCardSolution,
   TASK_CARDS_QUERY_KEY,
   updateTaskCard,
   updateTaskChecklistItem,
@@ -16,6 +17,7 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
+import { isBlankRichText } from "@/components/rich-text";
 
 /** O payload de edição a partir do cartão atual, com o que mudou por cima. */
 function payloadFrom(card: TaskCardDto, overrides: Partial<SaveTaskCardPayload>): SaveTaskCardPayload {
@@ -32,7 +34,8 @@ function payloadFrom(card: TaskCardDto, overrides: Partial<SaveTaskCardPayload>)
  * useTaskCard
  *
  * Hook da modal de detalhe: o cartão completo e cada edição como mutação
- * própria — título, descrição, etiquetas, membros, checklist e anexos.
+ * própria — título, descrição, solução, etiquetas, membros, checklist e anexos.
+ * Comentários e histórico estão em `useCardActivity`.
  *
  * Cada campo salva sozinho (ao sair do campo ou marcar a caixa), sem botão
  * "Salvar" geral: é o jeito do Trello, e reduz o que uma pessoa sobrescreve da
@@ -61,6 +64,17 @@ export function useTaskCard(cardId: number | null) {
       updateTaskCard(card!.id, payloadFrom(card!, overrides)),
     onSuccess: invalidate,
     onError: fail("Erro ao salvar o cartão"),
+  });
+
+  // Rota própria, fora do PUT do cartão: ver `saveTaskCardSolution`.
+  const solutionMutation = useMutation({
+    mutationFn: (input: { solution: string | null; finish: boolean }) =>
+      saveTaskCardSolution(card!.id, input),
+    onSuccess: async (_data, input) => {
+      await invalidate();
+      if (input.finish) toast({ title: `Solução salva e tarefa #${card?.number} finalizada.` });
+    },
+    onError: fail("Erro ao salvar a solução"),
   });
 
   const checklistAddMutation = useMutation({
@@ -126,11 +140,27 @@ export function useTaskCard(cardId: number | null) {
     saveMutation.mutate({ title: trimmed });
   }
 
-  function saveDescription(description: string) {
-    if (!card) return;
-    const trimmed = description.trim();
-    if (trimmed === (card.description ?? "")) return;
-    saveMutation.mutate({ description: trimmed || null });
+  /**
+   * HTML do editor; vazio ("" ou `<p></p>`) apaga a descrição. Devolve a promessa
+   * da gravação (rejeita se falhar) para o campo só fechar depois de gravado.
+   */
+  function saveDescription(description: string): Promise<unknown> {
+    if (!card) return Promise.resolve();
+    const next = isBlankRichText(description) ? null : description.trim();
+    if (next === (card.description ?? null)) return Promise.resolve();
+    return saveMutation.mutateAsync({ description: next });
+  }
+
+  /**
+   * Solução: HTML do editor, vazio apaga. Com `finish`, o servidor também leva o
+   * cartão para Finalizado na mesma gravação — mesmo sem mudança no texto, que é
+   * o "Salvar e finalizar" de uma solução já registrada.
+   */
+  function saveSolution(solution: string, finish = false): Promise<unknown> {
+    if (!card) return Promise.resolve();
+    const next = isBlankRichText(solution) ? null : solution.trim();
+    if (next === (card.solution ?? null) && !finish) return Promise.resolve();
+    return solutionMutation.mutateAsync({ solution: next, finish });
   }
 
   return {
@@ -145,6 +175,8 @@ export function useTaskCard(cardId: number | null) {
     toggleLabel,
     toggleMember,
     isSaving: saveMutation.isPending,
+    saveSolution,
+    isSavingSolution: solutionMutation.isPending,
 
     addChecklistItem: (text: string) => checklistAddMutation.mutateAsync(text),
     toggleChecklistItem: (item: TaskCardChecklistItemDto) =>

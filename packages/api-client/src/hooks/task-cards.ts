@@ -1,5 +1,6 @@
 /**
- * Quadro de tarefas — cartões, etiquetas, checklist e anexos.
+ * Quadro de tarefas — cartões, etiquetas, checklist, anexos, solução e a linha
+ * do tempo (comentários e histórico).
  *
  * Contrato do backend em `Uaus.Backend.Api/Uaus.Api/Controllers/TaskCardsController.cs`
  * e `TaskLabelsController.cs`.
@@ -15,10 +16,13 @@ import { apiDelete, apiGetOrThrow, apiPost, apiPut, ApiError } from "../client";
 import type {
   MoveTaskCardPayload,
   QueryKey,
+  SaveTaskCardCommentPayload,
   SaveTaskCardPayload,
+  SaveTaskCardSolutionPayload,
   SaveTaskChecklistItemPayload,
   SaveTaskLabelPayload,
   TaskBoardDto,
+  TaskCardActivityDto,
   TaskCardAttachmentDto,
   TaskCardChecklistItemDto,
   TaskCardDto,
@@ -35,6 +39,13 @@ export const getGetTaskBoardQueryKey = (): QueryKey => [...TASK_CARDS_QUERY_KEY,
 
 /** Chave de cache do detalhe de um cartão. */
 export const getGetTaskCardQueryKey = (): QueryKey => [...TASK_CARDS_QUERY_KEY, "detail"];
+
+/**
+ * Chave de cache da linha do tempo (comentários e histórico) de um cartão. Dentro
+ * do prefixo dos cartões de propósito: toda ação no cartão grava uma linha nova,
+ * e a invalidação que já existe em cada mutação a traz junto.
+ */
+export const getGetTaskCardActivitiesQueryKey = (): QueryKey => [...TASK_CARDS_QUERY_KEY, "activities"];
 
 /** Chave de cache da busca global. */
 export const getSearchTaskCardsQueryKey = (): QueryKey => [...TASK_CARDS_QUERY_KEY, "search"];
@@ -71,6 +82,16 @@ export function useGetTaskCard(id: number | null, options?: QueryOpts<TaskCardDt
   return useQuery<TaskCardDto, ApiError, TaskCardDto, QueryKey>({
     queryKey: [...getGetTaskCardQueryKey(), { id }],
     queryFn: () => apiGetOrThrow<TaskCardDto>(`/TaskCards/${id}`),
+    enabled: id != null,
+    ...options?.query,
+  });
+}
+
+/** Comentários e histórico do cartão, do mais antigo para o mais recente. `id` nulo desliga a consulta. */
+export function useGetTaskCardActivities(id: number | null, options?: QueryOpts<TaskCardActivityDto[]>) {
+  return useQuery<TaskCardActivityDto[], ApiError, TaskCardActivityDto[], QueryKey>({
+    queryKey: [...getGetTaskCardActivitiesQueryKey(), { id }],
+    queryFn: () => apiGetOrThrow<TaskCardActivityDto[]>(`/TaskCards/${id}/activities`),
     enabled: id != null,
     ...options?.query,
   });
@@ -201,6 +222,43 @@ export async function uploadTaskCardAttachment(
 
 export async function deleteTaskCardAttachment(cardId: number, attachmentId: number): Promise<void> {
   await apiDelete<null>(`/TaskCards/${cardId}/attachments/${attachmentId}`);
+}
+
+/**
+ * Registra, edita ou apaga (vazio) a solução. Com `finish`, o servidor também leva
+ * o cartão para o fim de Finalizado, na mesma gravação — e recusa se ele estiver
+ * arquivado, sem salvar a solução. Fica fora do `updateTaskCard` de propósito:
+ * um admin aberto antes da solução existir mandaria o PUT sem ela e a apagaria.
+ */
+export async function saveTaskCardSolution(
+  cardId: number,
+  data: SaveTaskCardSolutionPayload,
+): Promise<TaskCardDto | null> {
+  const response = await apiPut<TaskCardDto>(`/TaskCards/${cardId}/solution`, data);
+  return response.data;
+}
+
+export async function addTaskCardComment(
+  cardId: number,
+  data: SaveTaskCardCommentPayload,
+): Promise<TaskCardActivityDto | null> {
+  const response = await apiPost<TaskCardActivityDto>(`/TaskCards/${cardId}/comments`, data);
+  return response.data;
+}
+
+/** Só o autor edita; o servidor recusa o comentário de outra pessoa. */
+export async function updateTaskCardComment(
+  cardId: number,
+  commentId: number,
+  data: SaveTaskCardCommentPayload,
+): Promise<TaskCardActivityDto | null> {
+  const response = await apiPut<TaskCardActivityDto>(`/TaskCards/${cardId}/comments/${commentId}`, data);
+  return response.data;
+}
+
+/** Exclusão lógica; só o autor exclui. */
+export async function deleteTaskCardComment(cardId: number, commentId: number): Promise<void> {
+  await apiDelete<null>(`/TaskCards/${cardId}/comments/${commentId}`);
 }
 
 export async function createTaskLabel(data: SaveTaskLabelPayload): Promise<TaskLabelDto | null> {

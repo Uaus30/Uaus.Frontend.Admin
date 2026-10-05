@@ -88,6 +88,8 @@ export default function TaskBoardPage() {
         cardId={board.selectedCardId}
         onClose={board.closeCard}
         onMove={board.moveCardToColumn}
+        onFinish={board.finishCard}
+        isMoving={board.isMoving}
         onArchive={board.archiveCard}
         onUnarchive={board.unarchiveCard}
         onDelete={board.deleteCard}
