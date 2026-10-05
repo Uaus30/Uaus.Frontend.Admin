@@ -90,7 +90,9 @@ export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
                 O padrão mora nas Configurações, e o caminho até lá fica no próprio
                 campo: quem estranha o número vazio acha onde ele é definido. Em
                 NOVA aba: trocar de página aqui desmontaria o cadastro aberto e
-                perderia o que foi digitado, sem a pergunta de descartar.
+                perderia o que foi digitado, sem a pergunta de descartar. Vale
+                também no app do iPhone, onde a nova aba abre no Safari e pede
+                login uma vez (decisão do dono, 05/10/2026).
               */}
               <a
                 href={STOCK_SETTINGS_PATH}

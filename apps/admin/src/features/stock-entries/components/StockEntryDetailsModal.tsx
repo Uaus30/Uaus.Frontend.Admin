@@ -177,6 +177,13 @@ export function StockEntryDetailsModal({
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-sm font-semibold text-foreground">Recebimento</h4>
+                  {/*
+                    Nova aba também no app do iPhone, onde ela abre no Safari e
+                    pede login uma vez (decisão do dono, 05/10/2026): esta modal
+                    só existe na aba Estoque do cadastro do produto, dentro do
+                    mesmo formulário das outras abas, e na mesma janela o que
+                    foi digitado e não salvo se perderia.
+                  */}
                   {entryDetails.purchaseId != null && (
                     <a
                       href={purchaseDetailPathname(entryDetails.purchaseId)}

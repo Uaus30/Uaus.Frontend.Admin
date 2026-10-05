@@ -8,13 +8,15 @@ import {
   type ProductAnomalyRowDto,
 } from "@workspace/api-client-react";
 import { productDetailPathname, productStockTabPathname } from "@/features/products/product-detail-route";
+import { adminNewTabProps } from "@/lib/installed-app";
 import { AnomalyTag } from "./AnomalyTag";
 import { anomalyMeta, describeAnomaly, variationLabel, zeroCostIsCorrectable } from "../lib/anomalies";
 
 /**
  * Link que abre o cadastro em nova aba. Âncora simples, sem o roteador da SPA:
  * a lista não pode se perder por causa de um clique de correção — é o mesmo
- * padrão do ranking de "O que trouxe lucro".
+ * padrão do ranking de "O que trouxe lucro". No app do iPhone abre na mesma
+ * janela (ver `adminNewTabProps`).
  */
 function NewTabLink({
   href,
@@ -30,8 +32,7 @@ function NewTabLink({
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noreferrer"
+      {...adminNewTabProps()}
       aria-label={label}
       title={title}
       className="inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
