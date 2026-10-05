@@ -44,17 +44,29 @@ describe("useDashboard", () => {
     });
   });
 
-  it("abre nos últimos 7 dias", async () => {
+  it("abre no mês corrente, do dia 1 até hoje", async () => {
     const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
 
     expect(result.current.periodMode).toBe("preset");
-    expect(result.current.preset).toBe("7d");
-    expect(result.current.period.label).toBe("Últimos 7 dias");
-    // Sete dias contando hoje: a janela começa seis dias atrás, não sete.
-    expect(result.current.period.startDate).toBe(localDate(-6));
+    expect(result.current.preset).toBe("month");
+    expect(result.current.period.startDate).toBe(`${localDate(0).slice(0, 8)}01`);
     expect(result.current.period.endDate).toBe(localDate(0));
 
     await waitFor(() => expect(getDashboardOverview).toHaveBeenCalled());
+  });
+
+  it("pede ao backend a base dos mesmos dias da semana, semanas antes", async () => {
+    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(getDashboardOverview).toHaveBeenCalled());
+
+    const shift = Math.max(4, Math.ceil(new Date().getDate() / 7)) * 7;
+    expect(getDashboardOverview).toHaveBeenLastCalledWith({
+      startDate: result.current.period.startDate,
+      endDate: localDate(0),
+      compareStartDate: result.current.comparison.startDate,
+      compareEndDate: localDate(-shift),
+    });
   });
 
   it("consulta a API com o intervalo do período selecionado", async () => {
@@ -63,22 +75,15 @@ describe("useDashboard", () => {
     await waitFor(() => expect(getDashboardOverview).toHaveBeenCalled());
     act(() => result.current.handleSelectPreset("30d"));
 
+    // A base é o período imediatamente anterior, de mesma duração.
     await waitFor(() =>
       expect(getDashboardOverview).toHaveBeenLastCalledWith({
         startDate: localDate(-29),
         endDate: localDate(0),
+        compareStartDate: localDate(-59),
+        compareEndDate: localDate(-30),
       }),
     );
-  });
-
-  it("resolve o preset de hoje como um único dia", () => {
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
-
-    act(() => result.current.handleSelectPreset("today"));
-
-    expect(result.current.period.startDate).toBe(localDate(0));
-    expect(result.current.period.endDate).toBe(localDate(0));
-    expect(result.current.period.label).toBe("Hoje");
   });
 
   it("aplica o intervalo personalizado com as datas recebidas", () => {
@@ -100,7 +105,7 @@ describe("useDashboard", () => {
     act(() => result.current.handleApplyCustom("2026-01-05", ""));
 
     expect(result.current.periodMode).toBe("preset");
-    expect(result.current.period.label).toBe("Últimos 7 dias");
+    expect(result.current.preset).toBe("month");
   });
 
   it("volta ao preset ao limpar o intervalo personalizado", () => {
@@ -111,6 +116,7 @@ describe("useDashboard", () => {
 
     expect(result.current.periodMode).toBe("preset");
     expect(result.current.customStart).toBe("");
-    expect(result.current.period.startDate).toBe(localDate(-6));
+    expect(result.current.period.endDate).toBe(localDate(0));
+    expect(result.current.period.startDate).toBe(`${localDate(0).slice(0, 8)}01`);
   });
 });

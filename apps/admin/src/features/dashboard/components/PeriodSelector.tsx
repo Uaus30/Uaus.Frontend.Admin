@@ -7,7 +7,7 @@ import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { DateRangePicker, type DateRange } from "@workspace/ui";
 import { cn } from "@workspace/ui";
 import type { PeriodMode, PeriodPreset } from "../types";
-import { PERIOD_PRESETS } from "../utils";
+import { DASHBOARD_PRESETS } from "../utils";
 
 /** Rótulo dos campos de filtro — mesmo padrão da barra de filtros dos logs. */
 const FILTER_LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
@@ -95,7 +95,7 @@ export function PeriodSelector({
               <SelectValue placeholder={periodMode === "custom" ? "Personalizado" : "Selecione"} />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(PERIOD_PRESETS).map(([value, config]) => (
+              {Object.entries(DASHBOARD_PRESETS).map(([value, config]) => (
                 <SelectItem key={value} value={value}>
                   {config.label}
                 </SelectItem>

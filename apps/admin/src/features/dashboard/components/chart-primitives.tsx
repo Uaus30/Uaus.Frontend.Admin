@@ -33,6 +33,15 @@ export const SURFACE_COLOR = "hsl(var(--card))";
 /** Cinza de recuo usado em grades, eixos e séries de contexto. */
 export const MUTED_COLOR = "hsl(var(--muted-foreground))";
 
+/**
+ * Superfície das dicas abertas fora do Recharts (células da matriz, variação dos
+ * cards). O `TooltipContent` do pacote de UI vem laranja (`bg-primary`), pensado
+ * para uma frase curta em branco; aqui as dicas têm rótulos em cinza e números,
+ * que sobre o laranja ficavam ilegíveis. É a mesma superfície do `ChartTooltip`.
+ */
+export const CHART_TOOLTIP_CLASS =
+  "border border-border bg-popover/95 text-popover-foreground shadow-lg backdrop-blur";
+
 /** Espessura máxima das barras: a sobra da faixa é o respiro do gráfico. */
 export const MAX_BAR_SIZE = 24;
 

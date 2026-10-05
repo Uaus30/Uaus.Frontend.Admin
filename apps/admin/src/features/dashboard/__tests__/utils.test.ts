@@ -5,7 +5,11 @@ import {
   formatBrazilianDate,
   formatClock,
   formatSignedPercent,
+  DASHBOARD_PRESETS,
   growth,
+  PERIOD_PRESETS,
+  resolveComparison,
+  resolveCustom,
   resolvePreset,
 } from "../utils";
 
@@ -24,6 +28,23 @@ describe("resolvePreset", () => {
     expect(resolvePreset("today", today)).toMatchObject({
       startDate: "2026-07-25",
       endDate: "2026-07-25",
+      label: "Hoje",
+    });
+  });
+
+  it("resolve o mês corrente do dia 1 até hoje", () => {
+    expect(resolvePreset("month", today)).toEqual({
+      startDate: "2026-07-01",
+      endDate: "2026-07-25",
+      label: "Julho/2026",
+    });
+  });
+
+  it("resolve o mês passado inteiro, atravessando o ano", () => {
+    expect(resolvePreset("lastMonth", new Date(2026, 0, 10))).toEqual({
+      startDate: "2025-12-01",
+      endDate: "2025-12-31",
+      label: "Dezembro/2025",
     });
   });
 
@@ -38,7 +59,65 @@ describe("resolvePreset", () => {
     // Uma data no fim do dia em fuso negativo viraria o dia seguinte via
     // toISOString(); o recorte enviado à API sairia deslocado.
     const lateNight = new Date(2026, 6, 25, 23, 30);
-    expect(resolvePreset("today", lateNight).startDate).toBe("2026-07-25");
+    expect(resolvePreset("7d", lateNight).endDate).toBe("2026-07-25");
+  });
+});
+
+describe("catálogos de presets", () => {
+  it("mantém as telas de BI como eram, com Hoje e sem os meses", () => {
+    // A Curva ABC e os Desempenhos usam este catálogo; a troca para "Este mês"
+    // foi pedida só para a visão geral.
+    expect(Object.keys(PERIOD_PRESETS)).toEqual(["today", "7d", "30d", "90d", "1y"]);
+  });
+
+  it("abre a visão geral com os meses e sem Hoje", () => {
+    expect(Object.keys(DASHBOARD_PRESETS)).toEqual(["month", "lastMonth", "7d", "30d", "90d", "1y"]);
+  });
+});
+
+describe("resolveComparison", () => {
+  it("compara o mês em curso com os mesmos dias da semana quatro semanas antes", () => {
+    // 1 a 3/10/2026 é quinta a sábado; 3 a 5/09 também. O "mesmo dia do mês"
+    // (1 a 3/09, terça a quinta) inflava a alta de +21% para +72%.
+    const period = resolvePreset("month", new Date(2026, 9, 3));
+    expect(resolveComparison("month", period)).toMatchObject({
+      startDate: "2026-09-03",
+      endDate: "2026-09-05",
+      label: "vs 4 semanas antes",
+    });
+  });
+
+  it("recua cinco semanas quando o mês passou de 28 dias, sem sobrepor as janelas", () => {
+    const period = resolvePreset("month", new Date(2026, 9, 30));
+    const comparison = resolveComparison("month", period);
+    expect(comparison).toMatchObject({ startDate: "2026-08-27", endDate: "2026-09-25" });
+    expect(comparison.endDate < period.startDate).toBe(true);
+  });
+
+  it("explica as datas e o motivo na dica", () => {
+    const period = resolvePreset("month", new Date(2026, 9, 3));
+    expect(resolveComparison("month", period).description).toContain("03/09 a 05/09");
+  });
+
+  it("compara o mês passado com o mês anterior inteiro", () => {
+    const period = resolvePreset("lastMonth", new Date(2026, 9, 3));
+    expect(resolveComparison("lastMonth", period)).toMatchObject({
+      startDate: "2026-08-01",
+      endDate: "2026-08-31",
+      label: "vs agosto",
+    });
+  });
+
+  it("compara janela móvel e intervalo livre com o período imediatamente anterior", () => {
+    expect(resolveComparison("7d", resolvePreset("7d", new Date(2026, 6, 25)))).toMatchObject({
+      startDate: "2026-07-12",
+      endDate: "2026-07-18",
+      label: "vs período anterior",
+    });
+    expect(resolveComparison(null, resolveCustom("2026-07-01", "2026-07-31"))).toMatchObject({
+      startDate: "2026-05-31",
+      endDate: "2026-06-30",
+    });
   });
 });
 

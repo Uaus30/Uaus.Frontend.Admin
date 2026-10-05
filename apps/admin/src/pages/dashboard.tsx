@@ -8,10 +8,8 @@ import { useSalesIntelligence } from "@/features/dashboard/hooks/useSalesIntelli
 import { PeriodSelector } from "@/features/dashboard/components/PeriodSelector";
 import { DashboardKpis } from "@/features/dashboard/components/DashboardKpis";
 import { LiveTodayCard } from "@/features/dashboard/components/LiveTodayCard";
-import { RevenueProfitChart } from "@/features/dashboard/components/RevenueProfitChart";
 import { MonthComparisonCard } from "@/features/dashboard/components/MonthComparisonCard";
-import { WeekComparisonCard } from "@/features/dashboard/components/WeekComparisonCard";
-import { useWeekComparison } from "@/features/dashboard/hooks/useWeekComparison";
+import { MonthHeatmap } from "@/features/dashboard/components/MonthHeatmap";
 import { RevenueBreakdownCard } from "@/features/dashboard/components/RevenueBreakdownCard";
 import { TopProductsTable } from "@/features/dashboard/components/TopProductsTable";
 import { PatternsPanel } from "@/features/dashboard/components/PatternsPanel";
@@ -36,7 +34,6 @@ export default function Dashboard() {
   const dashboard = useDashboard();
   const live = useLiveToday();
   const monthly = useMonthlyComparison();
-  const weekComparison = useWeekComparison();
   const patterns = useSalesPatterns();
   const intelligence = useSalesIntelligence();
 
@@ -83,25 +80,25 @@ export default function Dashboard() {
         onRefresh={live.refetch}
       />
 
-      <DashboardKpis overview={dashboard.overview} isLoading={dashboard.isLoading} />
-
-      <RevenueProfitChart
-        series={dashboard.overview?.series ?? []}
-        periodLabel={dashboard.period.label}
+      <DashboardKpis
+        overview={dashboard.overview}
+        comparison={dashboard.comparison}
+        projectedRevenue={
+          dashboard.periodMode === "preset" && dashboard.preset === "month"
+            ? monthly.monthly?.projectedRevenue
+            : undefined
+        }
         isLoading={dashboard.isLoading}
       />
 
-      <WeekComparisonCard
-        days={weekComparison.days}
-        week={weekComparison.week}
-        isLoading={weekComparison.isLoading}
-      />
-
-      <MonthComparisonCard
-        monthly={monthly.monthly}
-        comparison={monthly.comparison}
-        isLoading={monthly.isLoading}
-      />
+      {/* O mês corrente em dois ângulos, sempre o mês de calendário, qualquer que
+          seja o período do seletor: a matriz mostra cada dia e cada semana; a
+          curva, se o mês está à frente do anterior. Substituem o gráfico diário
+          do período e o card de semana x semana, que repetiam o mesmo dado. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_1fr]">
+        <MonthHeatmap monthly={monthly.monthly} isLoading={monthly.isLoading} />
+        <MonthComparisonCard monthly={monthly.monthly} isLoading={monthly.isLoading} />
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <RevenueBreakdownCard

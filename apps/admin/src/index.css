@@ -146,6 +146,30 @@
   --chart-4: 330 92% 40%;
   --chart-5: 189 92% 38%;
 
+  /*
+    Escala da matriz de faturamento diário: um matiz só (verde, que lê como
+    "dinheiro entrando"), interpolada continuamente entre estes pontos (ver
+    HEAT_STOPS em features/dashboard/heatmap.ts). Verde CLARO é o dia fraco e verde
+    ESCURO e saturado é o dia forte — pedido do dono em 04/10/2026, que lê "verde
+    forte" como dia forte; a primeira versão fazia o contrário (mais forte = mais
+    claro, a convenção de tema escuro) e foi revertida.
+
+    Validada em 04/10/2026 contra o card (#0e1525): luminosidade monotônica,
+    degraus visíveis, matiz único, e o tom mais escuro ainda a 3,35:1 do fundo.
+
+    A tinta do número troca em --heat-3/4: verde-escura sobre os tons claros,
+    branca sobre os escuros (contraste mínimo ~3,6:1 no ponto de troca, número em
+    negrito). Trocar um tom exige revalidar a escala inteira.
+  */
+  --heat-0: #d9f3e0;
+  --heat-1: #a8e2b8;
+  --heat-2: #6fcb8a;
+  --heat-3: #3aae63;
+  --heat-4: #1f8f49;
+  --heat-5: #0f7a3a;
+  --heat-ink-light: #f8fafc;
+  --heat-ink-dark: #052e16;
+
   --app-font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: "JetBrains Mono", Menlo, monospace;

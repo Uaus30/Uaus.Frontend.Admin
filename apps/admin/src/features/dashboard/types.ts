@@ -9,8 +9,12 @@
  * - Datas chegam como `"2026-07-25T00:00:00"`, sem fuso: são horário de Brasília.
  */
 
-/** Períodos pré-configurados do seletor. */
-export type PeriodPreset = "today" | "7d" | "30d" | "90d" | "1y";
+/**
+ * Períodos pré-configurados. O catálogo é compartilhado com as telas de BI (Curva
+ * ABC, Desempenho de produtos e de fornecedores); cada tela oferece o seu
+ * subconjunto — ver `PERIOD_PRESETS` e `DASHBOARD_PRESETS`.
+ */
+export type PeriodPreset = "today" | "month" | "lastMonth" | "7d" | "30d" | "90d" | "1y";
 
 /** Modo de seleção de período: pré-configurado ou intervalo livre no calendário. */
 export type PeriodMode = "preset" | "custom";
@@ -20,6 +24,19 @@ export type ResolvedPeriod = {
   startDate: string;
   endDate: string;
   label: string;
+};
+
+/**
+ * Base contra a qual os cards calculam a variação.
+ *
+ * `label` acompanha o percentual no card; `description` vai para a dica que abre
+ * ao passar o mouse, com as datas exatas e o porquê da escolha.
+ */
+export type ComparisonPeriod = {
+  startDate: string;
+  endDate: string;
+  label: string;
+  description: string;
 };
 
 export type PeriodTotals = {
@@ -147,6 +164,29 @@ export type DashboardMonthly = {
   projectedRevenue: number;
   projectedProfit: number;
   history: MonthSummary[];
+  /** Régua do dia "normal", medida nos três meses fechados antes do corrente. */
+  reference: DailyReference;
+};
+
+/** Média de um dia da semana dentro da janela de referência. */
+export type WeekdayReference = {
+  /** 0 é domingo, 6 é sábado — o mesmo de `Date.getDay()`. */
+  dayOfWeek: number;
+  daysWithSales: number;
+  averageRevenue: number;
+};
+
+/**
+ * Faturamento típico de um dia de loja aberta. Só conta dias com venda: domingos
+ * e feriados fechados puxariam a média para baixo e todo dia comum pareceria forte.
+ */
+export type DailyReference = {
+  startDate: string;
+  endDate: string;
+  daysWithSales: number;
+  averageRevenue: number;
+  /** Sempre os sete dias, na ordem de `dayOfWeek`. */
+  weekdays: WeekdayReference[];
 };
 
 export type PatternBucket = {

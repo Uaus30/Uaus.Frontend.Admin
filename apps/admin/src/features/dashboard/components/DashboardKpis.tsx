@@ -2,12 +2,19 @@ import React from "react";
 import { Receipt, ShoppingCart, TrendingUp, Wallet } from "lucide-react";
 import { Skeleton } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
-import type { DashboardOverview } from "../types";
+import type { ComparisonPeriod, DashboardOverview } from "../types";
 import { growth } from "../utils";
 import { StatTile } from "./StatTile";
 
 type DashboardKpisProps = {
   overview?: DashboardOverview;
+  /** Base contra a qual as variações foram calculadas. */
+  comparison: ComparisonPeriod;
+  /**
+   * Projeção do mês pelo ritmo atual. Só vem quando o período é o mês corrente —
+   * em qualquer outro recorte ela não fala do que o card mostra.
+   */
+  projectedRevenue?: number;
   isLoading: boolean;
 };
 
@@ -20,7 +27,7 @@ type DashboardKpisProps = {
  * card — ela é a leitura do lucro, não um indicador independente, e uma fileira de
  * cinco quebra o ritmo da grade em telas médias.
  */
-export function DashboardKpis({ overview, isLoading }: DashboardKpisProps) {
+export function DashboardKpis({ overview, comparison, projectedRevenue, isLoading }: DashboardKpisProps) {
   if (isLoading || !overview) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -32,21 +39,31 @@ export function DashboardKpis({ overview, isLoading }: DashboardKpisProps) {
   }
 
   const { current, previous, series } = overview;
+  const deltaProps = { deltaLabel: comparison.label, deltaTooltip: comparison.description };
+
+  const revenueHint =
+    projectedRevenue !== undefined
+      ? `Projeção do mês: ${formatCurrency(projectedRevenue)}`
+      : current.discount > 0
+        ? `${formatCurrency(current.discount)} em descontos`
+        : undefined;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatTile
         label="Faturamento"
         value={formatCurrency(current.revenue)}
+        {...deltaProps}
         delta={growth(current.revenue, previous.revenue)}
         icon={Wallet}
         trend={series.map((point) => point.revenue)}
         trendColor="hsl(var(--chart-1))"
-        hint={current.discount > 0 ? `${formatCurrency(current.discount)} em descontos` : undefined}
+        hint={revenueHint}
       />
       <StatTile
         label="Lucro"
         value={formatCurrency(current.profit)}
+        {...deltaProps}
         delta={growth(current.profit, previous.profit)}
         icon={TrendingUp}
         trend={series.map((point) => point.profit)}
@@ -56,6 +73,7 @@ export function DashboardKpis({ overview, isLoading }: DashboardKpisProps) {
       <StatTile
         label="Vendas"
         value={current.salesCount.toLocaleString("pt-BR")}
+        {...deltaProps}
         delta={growth(current.salesCount, previous.salesCount)}
         icon={ShoppingCart}
         trend={series.map((point) => point.salesCount)}
@@ -65,6 +83,7 @@ export function DashboardKpis({ overview, isLoading }: DashboardKpisProps) {
       <StatTile
         label="Ticket médio"
         value={formatCurrency(current.averageTicket)}
+        {...deltaProps}
         delta={growth(current.averageTicket, previous.averageTicket)}
         icon={Receipt}
         hint={

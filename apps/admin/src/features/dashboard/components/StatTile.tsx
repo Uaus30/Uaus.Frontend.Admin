@@ -1,8 +1,9 @@
 import React from "react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
-import { Card } from "@workspace/ui";
+import { Card, Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui";
 import { cn } from "@workspace/ui";
 import { formatSignedPercent } from "../utils";
+import { CHART_TOOLTIP_CLASS } from "./chart-primitives";
 
 /**
  * Minigráfico de tendência do próprio card.
@@ -59,6 +60,12 @@ type StatTileProps = {
   delta?: number | null;
   /** Nome do período comparado, exibido junto da variação. */
   deltaLabel?: string;
+  /**
+   * Explicação da base de comparação, aberta ao passar o mouse na variação. Fica
+   * fora da tela de propósito: as datas exatas e o porquê da base interessam a
+   * quem desconfia do número, não a quem só bate o olho.
+   */
+  deltaTooltip?: string;
   /** Linha extra de contexto sob o valor. */
   hint?: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -83,6 +90,7 @@ export function StatTile({
   value,
   delta,
   deltaLabel = "vs período anterior",
+  deltaTooltip,
   hint,
   icon: Icon,
   trend,
@@ -128,7 +136,23 @@ export function StatTile({
               >
                 {formatSignedPercent(delta)}
               </span>
-              <span className="text-xs text-muted-foreground">{deltaLabel}</span>
+              {deltaTooltip ? (
+                <Tooltip delayDuration={150}>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-help text-xs text-muted-foreground underline decoration-dotted underline-offset-2">
+                      {deltaLabel}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    className={cn(CHART_TOOLTIP_CLASS, "max-w-[280px] p-3 text-xs leading-relaxed")}
+                  >
+                    {deltaTooltip}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <span className="text-xs text-muted-foreground">{deltaLabel}</span>
+              )}
             </>
           )}
         </div>
