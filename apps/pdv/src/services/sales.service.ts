@@ -15,7 +15,7 @@ import {
   type SaleItemDto,
   type BackendPagedResult,
 } from "@workspace/api-client-react";
-import { computeSaleTotals } from "@workspace/core";
+import { computeSaleTotals, toLocalTimestamp } from "@workspace/core";
 import {
   checkLocalStock,
   consumeLocalStock,
@@ -202,27 +202,10 @@ export function computeSaleTotal(items: SaleItemInput[], discount: number) {
 }
 
 /**
- * Data e hora no formato que a API espera: horário local da loja, **sem**
- * indicador de fuso — `2026-07-25T17:34:12`.
- *
- * `toISOString()` devolveria UTC (`...T20:34:12Z`), e o backend grava a hora que
- * recebe como horário local: a venda das 17h34 apareceria no painel como 20h34.
- * Toda data do sistema segue esta convenção (ver `ToBrasiliaTime` no backend).
- *
- * O formato também é lexicograficamente ordenável, que é como a fila offline
- * ordena as vendas, e `new Date()` o interpreta como horário local ao ler de
- * volta — sem fuso declarado, a especificação manda tratar como local.
- *
- * @param date Momento a formatar. Por padrão, agora.
+ * Data e hora local sem fuso (`2026-07-25T17:34:12`). Mora no `@workspace/core`
+ * desde 05/10/2026; o reexport mantém os chamadores do PDV como estavam.
  */
-export function toLocalTimestamp(date = new Date()): string {
-  const pad = (value: number) => String(value).padStart(2, "0");
-
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-  );
-}
+export { toLocalTimestamp };
 
 /**
  * Resultado do registro de uma venda pelo PDV.

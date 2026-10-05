@@ -234,8 +234,18 @@ export interface RegisterPdvSaleItemPayload {
  */
 export interface PdvPromotionDto {
   id: number;
-  /** Grupo promovido. Vale para todas as variações ativas dele. */
+  /**
+   * Grupo promovido. Vale para todas as variações ativas dele. **Zero no combo** —
+   * quem diz que grupos entram é `productGroupIds`.
+   */
   productGroupId: number;
+  /**
+   * Os grupos que a promoção alcança: os do combo, ou o grupo único das outras
+   * espécies. Ausente numa API anterior ao combo (29/09/2026).
+   */
+  productGroupIds?: number[] | null;
+  /** Unidades do combo (o "3" de "3 por R$ 20"). A API omite fora do combo. */
+  comboQuantity?: number | null;
   /** Enum PromotionType — chega pelo nome; normalize com `enumCode`. */
   type: EnumValue;
   /** Enum PromotionDiscountType — idem. */

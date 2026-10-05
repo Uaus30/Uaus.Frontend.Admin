@@ -175,11 +175,18 @@ describe("useProductTable Hook", () => {
 
     await waitFor(() => expect(result.current.enrichedProducts).toHaveLength(1));
 
+    // A segunda requisição é a lista de promoções vigentes (05/10/2026): UMA
+    // para a tela inteira, nunca uma por linha — o preço promocional de cada
+    // linha sai dela no navegador.
     const caminhos = caminhosPedidos();
-    expect(caminhos).toHaveLength(1);
-    expect(caminhos[0]).toContain("/Products/table");
-    expect(caminhos[0]).toContain("page=1");
-    expect(caminhos[0]).toContain("size=10");
+    const listagem = caminhos.filter((caminho) => !caminho.startsWith("/api/Pdv/promotions"));
+    expect(
+      caminhos.filter((caminho) => caminho.startsWith("/api/Pdv/promotions")).length,
+    ).toBeLessThanOrEqual(1);
+    expect(listagem).toHaveLength(1);
+    expect(listagem[0]).toContain("/Products/table");
+    expect(listagem[0]).toContain("page=1");
+    expect(listagem[0]).toContain("size=10");
   });
 
   it("exibe o nome do grupo na linha sem perder o nome do produto", async () => {

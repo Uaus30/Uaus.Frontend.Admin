@@ -4,6 +4,7 @@ import type {
   StockControlDisabledReason,
   StockForecastStatus,
 } from "@workspace/api-client-react";
+import type { ShelfPrice } from "@workspace/core";
 import type { StockControlChoice } from "./lib/stockControlChoice";
 
 /** Imagem já associada ao produto representante da linha. */
@@ -63,6 +64,12 @@ export type ProductTableRow = {
   description: string | null;
   barcode: string;
   price: number;
+  /**
+   * O preço da linha como a tela o desenha, com a promoção que vale agora
+   * (05/10/2026). Ausente = o de tabela, sem promoção. `price` continua o de
+   * TABELA: é ele que a edição rápida grava.
+   */
+  shelf?: ShelfPrice;
   costPrice: number;
   stock: number;
   minStock: number;
@@ -114,6 +121,11 @@ export type ProductTableRowVariation = {
   /** Nome COMPOSTO — "CUECA INFANTIL CORES [G, SLIP]" —, montado pelo servidor. */
   name: string;
   price: number;
+  /**
+   * O preço como a tela o desenha, com a promoção que vale agora (05/10/2026).
+   * Ausente = o de tabela, sem promoção.
+   */
+  shelf?: ShelfPrice;
   stock: number;
   /** Enum ProductStatus — pode vir como número ou nome; leia com `enumCode`. */
   status: EnumValue;

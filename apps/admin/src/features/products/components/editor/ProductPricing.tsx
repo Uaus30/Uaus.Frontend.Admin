@@ -5,6 +5,7 @@ import type { useProductEditor } from "../../hooks/useProductEditor";
 import { useProductForEntry } from "../../hooks/useProductForEntry";
 import { resolveMarginBase } from "../../lib/costAndStock";
 import { ProductMarginHint } from "./ProductMarginHint";
+import { ProductPromotionNotice } from "./ProductPromotionNotice";
 
 type ProductPricingProps = {
   editor: ReturnType<typeof useProductEditor>;
@@ -23,7 +24,8 @@ type ProductPricingProps = {
  * olho; hoje moram em "Mais campos", logo abaixo de preço e status.
  *
  * Abaixo do preço, a margem sobre o último custo — ou sobre o da compra, no
- * cadastro que veio dela — ver `ProductMarginHint`.
+ * cadastro que veio dela — ver `ProductMarginHint`. E, com promoção valendo, o
+ * preço que o caixa cobra hoje (`ProductPromotionNotice`, 05/10/2026).
  */
 export function ProductPricing({ editor, validationErrors, setValidationErrors }: ProductPricingProps) {
   const { form, productEditor, setProductEditor, selectableStatusOptions, purchaseContext } = editor;
@@ -56,6 +58,11 @@ export function ProductPricing({ editor, validationErrors, setValidationErrors }
         )}
         <ProductMarginHint
           base={resolveMarginBase(product?.costPrice, purchaseContext)}
+          price={typedPrice ?? productEditor.price}
+        />
+        {/* O campo é o preço de TABELA; o aviso diz o que o caixa cobra hoje. */}
+        <ProductPromotionNotice
+          productGroupId={editor.editingGroupId}
           price={typedPrice ?? productEditor.price}
         />
       </div>

@@ -11,6 +11,8 @@
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiDelete, apiGetOrThrow, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
+import { STALE_TIME } from "../query-client";
+import { getPdvPromotions, type PdvPromotionDto } from "./pdv";
 import type {
   BackendPagedResult,
   PromotionDetailsDto,
@@ -85,6 +87,46 @@ export function useGetPromotions(
       });
       return mapPagedResult(result);
     },
+    ...options?.query,
+  });
+}
+
+/**
+ * Chave de cache das promoções VIGENTES (e dos próximos dias), como regra.
+ *
+ * Mora SOB o prefixo da listagem de propósito: salvar, encerrar ou excluir uma
+ * promoção já invalida `getGetPromotionsQueryKey()`, e o casamento por prefixo
+ * leva esta junto — o preço da listagem de produtos e da etiqueta muda na hora,
+ * sem cada mutação precisar lembrar de mais uma chave.
+ */
+export const getGetCurrentPromotionsQueryKey = (): QueryKey => [...getGetPromotionsQueryKey(), "current"];
+
+/**
+ * As promoções vigentes e as dos próximos dias, como REGRA (grupo, desconto,
+ * janela) — a mesma lista que o balcão baixa (`GET /Pdv/promotions`).
+ *
+ * É a fonte do preço promocional que o admin MOSTRA fora da tela de promoções:
+ * listagem e detalhe de produtos, etiqueta de gôndola e catálogo. A conta sai do
+ * `@workspace/core` (`resolveShelfPromotion` e `shelfPrice`), a mesma do PDV; a
+ * vigência é conferida na hora de desenhar, contra o relógio local — por isso a
+ * lista inclui as que começam nos próximos dias, e a releitura de 5 minutos
+ * acompanha a relâmpago que começa com a tela aberta.
+ *
+ * Uma consulta para a tela inteira, e não um campo em cada DTO de produto: a
+ * lista é pequena (um punhado por semana), e o mesmo resultado serve às quatro
+ * telas que a usam.
+ */
+export function useGetCurrentPromotions(options?: {
+  query?: Omit<
+    UseQueryOptions<PdvPromotionDto[], ApiError, PdvPromotionDto[], QueryKey>,
+    "queryKey" | "queryFn"
+  >;
+}) {
+  return useQuery<PdvPromotionDto[], ApiError, PdvPromotionDto[], QueryKey>({
+    queryKey: getGetCurrentPromotionsQueryKey(),
+    queryFn: getPdvPromotions,
+    staleTime: STALE_TIME.catalogo,
+    refetchInterval: STALE_TIME.catalogo,
     ...options?.query,
   });
 }

@@ -33,6 +33,16 @@ A referência do modo offline (IndexedDB, fila, snapshot) é `apps/pdv/docs/offl
 
 ## Regras de Negócio
 
+### Preço promocional já na busca (05/10/2026)
+
+A linha da busca mostra o preço com a promoção, como o carrinho vai cobrar:
+relâmpago e Dia a Dia com o de tabela riscado acima e o selo do tipo (com o
+limite por cliente); combo com o preço normal e o resumo no selo
+(`PdvSearchResultPrice`). A regra de anúncio é a do `@workspace/core`, com a
+mesma conta de unidade e a mesma precedência do carrinho; a lista e o relógio são
+os da venda em curso, quando há uma (`useSearchResultPrice`) — senão a busca
+anunciaria um preço e o carrinho cobraria outro na virada de uma relâmpago.
+
 ### 1. A venda tem dois caminhos, e o cupom não sabe qual foi
 
 Com conexão, a venda vai inteira para a API numa requisição atômica e sai com número definitivo. Sem conexão, entra na fila local e o cupom sai com número provisório (`OFF-n`), carimbado como pendente de sincronização. **Os dois caminhos debitam o estoque local**, então a venda seguinte já enxerga o saldo certo.

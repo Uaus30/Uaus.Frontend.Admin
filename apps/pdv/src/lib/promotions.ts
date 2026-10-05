@@ -1,5 +1,5 @@
-import { round2 } from "@workspace/core";
-import { PROMOTION_DISCOUNT_TYPE, PROMOTION_TYPE } from "@workspace/api-client-react";
+import { promotionDiscountKindFromCode, promotionalUnitPrice, round2 } from "@workspace/core";
+import { PROMOTION_TYPE } from "@workspace/api-client-react";
 import type { LocalPromotion } from "@/offline";
 import type { PdvItem } from "@/stores/pdv-cart";
 import {
@@ -70,15 +70,13 @@ export function resolvePromotion(
  * aqui é como a tela promete um preço e o cupom imprime outro.
  */
 export function promotionalPrice(price: number, promotion: LocalPromotion): number {
-  if (promotion.discountType === PROMOTION_DISCOUNT_TYPE.Percentage) {
-    return Math.max(0, round2(price * (1 - promotion.discountValue / 100)));
-  }
-
-  if (promotion.discountType === PROMOTION_DISCOUNT_TYPE.FinalPrice) {
-    return Math.max(0, round2(promotion.discountValue));
-  }
-
-  return price;
+  // A conta mora no `@workspace/core` desde 05/10/2026: a etiqueta, a listagem
+  // do admin e a busca daqui anunciam o mesmo preço que este carrinho cobra.
+  return promotionalUnitPrice(
+    price,
+    promotionDiscountKindFromCode(promotion.discountType),
+    promotion.discountValue,
+  );
 }
 
 /** O que a alocação precisa saber de cada linha, sem conhecer o carrinho inteiro. */

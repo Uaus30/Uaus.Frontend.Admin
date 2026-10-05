@@ -17,6 +17,7 @@ import {
   type EnumOptionDto,
 } from "@workspace/api-client-react";
 import { useAllCategories, useAllDepartments, CATALOG_KEYS, RESOURCE_KEYS } from "@/hooks/use-catalog";
+import { useShelfPrice } from "@/hooks/use-shelf-price";
 import { mapProductTableRow } from "./mapProductTableRow";
 import type { ProductTableRow } from "../types";
 
@@ -150,9 +151,25 @@ export function useProductTable() {
    * recebem por prop; o que mudou é a origem — antes era o cruzamento de cinco
    * consultas no navegador, agora é a resposta do servidor.
    */
+  const { shelfPriceOf } = useShelfPrice();
+
   const enrichedProducts = useMemo<ProductTableRow[]>(
-    () => (tablePage?.data ?? []).map(mapProductTableRow),
-    [tablePage?.data],
+    () =>
+      (tablePage?.data ?? []).map((dto) => {
+        const row = mapProductTableRow(dto);
+        // O preço com a promoção que vale agora (pedido do dono, 05/10/2026). A
+        // promoção é do GRUPO, e o percentual dá um preço por variação — por
+        // isso cada variação tem o seu.
+        return {
+          ...row,
+          shelf: shelfPriceOf(row.productGroupId, row.price),
+          variations: row.variations.map((variation) => ({
+            ...variation,
+            shelf: shelfPriceOf(row.productGroupId, variation.price),
+          })),
+        };
+      }),
+    [tablePage?.data, shelfPriceOf],
   );
 
   const totalPages = Math.max(1, Math.ceil((tablePage?.total || 0) / limit));

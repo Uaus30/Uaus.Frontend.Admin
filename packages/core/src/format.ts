@@ -55,6 +55,34 @@ export function toDateKey(date: Date): string {
 }
 
 /**
+ * Data e hora no formato que a API espera: horário local da loja, **sem**
+ * indicador de fuso — `2026-07-25T17:34:12`.
+ *
+ * `toISOString()` devolveria UTC (`...T20:34:12Z`), e o backend grava a hora que
+ * recebe como horário local: a venda das 17h34 apareceria no painel como 20h34.
+ * Toda data do sistema segue esta convenção (ver `ToBrasiliaTime` no backend).
+ *
+ * O formato também é lexicograficamente ordenável, que é como a fila offline
+ * ordena as vendas e como a vigência de uma promoção é conferida
+ * (`isPromotionInWindow`), e `new Date()` o interpreta como horário local ao ler
+ * de volta — sem fuso declarado, a especificação manda tratar como local.
+ *
+ * Morava no PDV (`services/sales.service.ts`, que ainda o reexporta) e subiu
+ * para cá em 05/10/2026, quando o admin passou a conferir a vigência das
+ * promoções — a armadilha 5 do CLAUDE.md pedia exatamente isso, e não uma cópia.
+ *
+ * @param date Momento a formatar. Por padrão, agora.
+ */
+export function toLocalTimestamp(date = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  );
+}
+
+/**
  * Data e hora completas no formato pt-BR no fuso horário de Brasília (UTC-3) — "15/08/2026 às 14:30:00".
  *
  * Utiliza explicitamente o fuso `America/Sao_Paulo` para garantir exibição correta

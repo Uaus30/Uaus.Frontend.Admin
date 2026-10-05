@@ -132,11 +132,6 @@
       "count": 1
     }
   },
-  "apps/admin/src/features/products/components/ProductTable.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "apps/admin/src/features/products/components/editor/ProductVariationsManager.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1

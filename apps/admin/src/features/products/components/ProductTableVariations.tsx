@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
+import { ShelfPriceView } from "@/components/shelf-price";
 import { PRODUCT_STATUS, enumCode, type EnumOptionDto } from "@workspace/api-client-react";
 import type { ProductTableRowVariation } from "../types";
 import { ProductStockCell } from "./ProductStockCell";
@@ -62,7 +62,10 @@ export function ProductTableVariations({
                 <tr key={variation.id} className="border-b border-border/30 last:border-0">
                   <td className="px-4 py-2 font-medium text-foreground">{variation.name}</td>
                   <td className="hidden px-4 py-2 text-muted-foreground md:table-cell">{departmentName}</td>
-                  <td className="px-4 py-2 font-medium text-orange-500">{formatCurrency(variation.price)}</td>
+                  <td className="px-4 py-2 font-medium text-orange-500">
+                    {/* O percentual dá um preço promocional por variação. */}
+                    <ShelfPriceView shelf={variation.shelf ?? { kind: "regular", price: variation.price }} />
+                  </td>
                   <td className="px-4 py-2">
                     {/* A mesma célula da linha de cima: quem lê a listagem inteira
                         não pode precisar de duas regras de cor para "está acabando". */}

@@ -3,11 +3,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Pencil, Search, X } from "lucide-react";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 import { Button, Input, ScrollArea } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
 import { Hint } from "@/components/hint";
 import { adminBaseUrl, adminProductEditUrl, openInNewTab } from "@/lib/admin-links";
 import type { ProductSearchState } from "../hooks/use-product-search";
+import { useSearchResultPrice } from "../hooks/use-search-result-price";
 import { PdvCartItemImage } from "./pdv-cart-item-image";
+import { PdvSearchResultPrice } from "./pdv-search-result-price";
 
 /** Moldura da miniatura na lista: um quadrado de 48px, como sempre foi. */
 const RESULT_FRAME_CLASS =
@@ -44,11 +45,19 @@ type PdvSearchPanelProps = {
  *
  * Busca sem resultado também fica **aqui**, no lugar do primeiro item, e não num
  * toast: o operador está olhando para a lista, não para o canto da tela.
+ *
+ * **O preço da linha já vem com a promoção** (05/10/2026): "De R$ 12,90 / por R$
+ * 9,90" com o selo do tipo, ou o selo do combo embaixo do preço normal — ver
+ * `PdvSearchResultPrice`. Antes o preço promocional só aparecia depois de o item
+ * entrar no carrinho, e o operador respondia ao cliente com o preço de tabela.
  */
 export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvSearchPanelProps) {
   // O lápis some quando não há como saber onde o admin está: abrir outra aba do
   // próprio PDV parece que o painel quebrou. Ver `lib/admin-links`.
   const adminDisponivel = adminBaseUrl() !== null;
+  // O preço da lista é o que o carrinho vai cobrar: promoção aplicada, com a
+  // lista e o relógio da venda em curso (ver `useSearchResultPrice`).
+  const priceOf = useSearchResultPrice();
 
   return (
     <div className="flex-1 flex flex-col relative border-r border-border/50 bg-background/50">
@@ -224,9 +233,7 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <div className={`text-right ${outOfStock ? "opacity-50" : ""}`}>
-                            <p className="text-xl font-mono font-bold text-primary">
-                              {formatCurrency(product.price)}
-                            </p>
+                            <PdvSearchResultPrice shelf={priceOf(product)} />
                             <p className="text-[10px] text-muted-foreground uppercase font-bold group-hover:text-primary transition-colors">
                               {outOfStock ? "Sem estoque" : "Clique para adicionar"}
                             </p>

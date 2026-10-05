@@ -22,5 +22,6 @@ export * from "./loyalty";
 export * from "./mask";
 export * from "./money";
 export * from "./pricing";
+export * from "./promotion";
 export * from "./search";
 export * from "./text";

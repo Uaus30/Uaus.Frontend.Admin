@@ -11,9 +11,7 @@ import {
 import { Badge } from "@workspace/ui";
 import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
 import { Button } from "@workspace/ui";
-import { Input } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
 import { buildPublicImageUrl } from "@/services/core";
 import {
   Edit2,
@@ -32,10 +30,12 @@ import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-c
 import type { ProductTableRow } from "../types";
 import { productDetailPathname } from "../product-detail-route";
 import { canCountStock } from "../hooks/useProductListStockCount";
+import { ShelfPriceView } from "@/components/shelf-price";
+import { ProductPriceCell } from "./ProductPriceCell";
 import { ProductStockCell } from "./ProductStockCell";
 import { ProductTableFilters } from "./ProductTableFilters";
 import { ProductTableVariations } from "./ProductTableVariations";
-import React, { useState } from "react";
+import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { ImageHoverZoom } from "@workspace/ui";
 import { Dialog, DialogContent, DialogTitle } from "@workspace/ui";
@@ -74,65 +74,6 @@ type ProductTableProps = {
   updatingPriceId?: number | null;
   onSearchInternetImage?: (product: ProductTableRow) => void;
 };
-
-function CurrencyInputInline({
-  value,
-  onSave,
-  disabled,
-}: {
-  value: number;
-  onSave: (val: number) => void;
-  disabled?: boolean;
-}) {
-  const [focused, setFocused] = useState(false);
-  const [localValue, setLocalValue] = useState(value.toFixed(2).replace(".", ","));
-
-  // Sync value when it changes from outside
-  React.useEffect(() => {
-    if (!focused) {
-      setLocalValue(value.toFixed(2).replace(".", ","));
-    }
-  }, [value, focused]);
-
-  const handleBlurOrEnter = () => {
-    setFocused(false);
-    const numericValue = Number(localValue.replace(",", "."));
-    if (!isNaN(numericValue) && numericValue !== value) {
-      onSave(numericValue);
-    } else {
-      setLocalValue(value.toFixed(2).replace(".", ","));
-    }
-  };
-
-  return (
-    <Input
-      type="text"
-      inputMode="decimal"
-      value={focused ? localValue : value.toFixed(2).replace(".", ",")}
-      disabled={disabled}
-      onChange={(e) => {
-        let val = e.target.value;
-        val = val.replace(/\./g, ",");
-        val = val.replace(/[^\d,]/g, "");
-        const parts = val.split(",");
-        if (parts.length > 2) {
-          val = parts[0] + "," + parts.slice(1).join("");
-        }
-        setLocalValue(val);
-      }}
-      onFocus={() => {
-        setFocused(true);
-      }}
-      onBlur={handleBlurOrEnter}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.currentTarget.blur();
-        }
-      }}
-      className="h-8 w-20 bg-transparent border-transparent hover:border-border/50 focus:bg-background focus:border-border px-1.5 font-medium text-orange-500 text-left shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
-    />
-  );
-}
 
 /** Colunas da tabela — o `colSpan` da linha aninhada precisa cobrir todas. */
 const COLUNAS_DA_TABELA = 9;
@@ -329,9 +270,10 @@ export function ProductTable({
                               preço é só leitura — a edição rápida fica no
                               computador e no detalhe do produto. */}
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-normal md:hidden">
-                            <span className="font-semibold text-orange-500">
-                              {formatCurrency(product.price)}
-                            </span>
+                            <ShelfPriceView
+                              shelf={product.shelf ?? { kind: "regular", price: product.price }}
+                              priceClassName="font-semibold text-orange-500"
+                            />
                             <ProductStockCell
                               variant="text"
                               stock={product.stock}
@@ -363,31 +305,24 @@ export function ProductTable({
                           {product.category?.name || "-"}
                         </td>
                         <td className="hidden px-3 py-3 font-medium text-orange-500 md:table-cell md:px-6 md:py-4">
-                          {product.productGroup?.hasVariations ? (
-                            <div className="flex flex-col">
-                              <span className="font-medium text-orange-500">
-                                {formatCurrency(product.price)}
-                              </span>
-                              {/* O preço da linha é o de UMA das variações (a de
-                                  maior id). O rótulo avisa disso e, desde
-                                  12/09/2026, abre a lista com o de cada uma. */}
+                          {/* O preço da linha é o de UMA das variações (a de
+                              maior id); o rótulo avisa disso e, desde
+                              12/09/2026, abre a lista com o de cada uma. Desde
+                              05/10/2026 ele já vem com a promoção que vale
+                              agora — ver `ProductPriceCell`. */}
+                          <ProductPriceCell
+                            product={product}
+                            onUpdatePrice={onUpdatePrice}
+                            updatingPriceId={updatingPriceId}
+                            variationsToggle={
                               <BotaoVariacoes
                                 aberto={aberto}
                                 quantidade={product.variationCount}
                                 onToggle={() => alternarVariacoes(product.productGroupId)}
                                 className="text-orange-500"
                               />
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <span className="text-orange-500 font-semibold">R$</span>
-                              <CurrencyInputInline
-                                value={product.price}
-                                onSave={(newPrice) => onUpdatePrice?.(product, newPrice)}
-                                disabled={updatingPriceId === product.id}
-                              />
-                            </div>
-                          )}
+                            }
+                          />
                         </td>
                         {/*
                           Somente leitura desde 31/08/2026: estoque nasce de

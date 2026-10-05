@@ -42,6 +42,21 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 
 ## ⚙️ Regras de Negócio Importantes
 
+### Preço promocional na listagem e no detalhe (05/10/2026)
+
+Com promoção valendo, a listagem mostra o promocional no lugar do preço, o de
+tabela riscado acima ("De") e o selo do tipo embaixo; no combo, o preço normal
+com o resumo da oferta no selo. A regra é a do `@workspace/core` (`shelfPrice`),
+a lista vem de `useShelfPrice` (`@/hooks/use-shelf-price`) — uma consulta para a
+tela inteira — e `useProductTable` anexa `shelf` a cada linha e variação.
+
+- **A edição rápida continua editando o preço de TABELA** (`ProductPriceCell`):
+  com promoção, o campo vai para a linha do "De", menor e riscado. O promocional é
+  derivado dele; gravar o promocional ali baixaria o preço para sempre.
+- **No detalhe**, o campo continua o preço de tabela e um aviso abaixo dele
+  (`ProductPromotionNotice`) diz o que o caixa cobra hoje — sem ele, quem abre o
+  cadastro no sábado "corrige" o preço achando que a etiqueta está errada.
+
 ### 0. A listagem é UMA requisição — e precisa continuar sendo
 
 A página da tabela vem pronta de `GET /Products/table` (hook `useGetProductTable`, no `packages/api-client`): grupo, categoria, departamento, produto representante, etiquetas e imagens numa resposta só. A ordenação padrão é por **ID decrescente** (mais recentes primeiro), e por padrão a tela inicializa filtrada por **Status: Ativo** (`PRODUCT_STATUS.Active = 2`). Todos os selects de filtro (Departamento, Categoria e Status) exibem as opções em ordem alfabética.

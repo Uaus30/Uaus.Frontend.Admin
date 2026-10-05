@@ -1,7 +1,9 @@
 import { createRef } from "react";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
+import type { LocalPromotion } from "@/offline";
+import { usePdvStore } from "@/stores/use-pdv-store";
 import { PdvSearchPanel } from "../pdv-search-panel";
 import type { ProductSearchState } from "../../hooks/use-product-search";
 import { renderWithHints } from "@/test/render-with-hints";
@@ -12,8 +14,28 @@ const PRODUTO: ProductPdvSearchDto = {
   barcode: "7891000100103",
   price: 10,
   stock: 5,
+  productGroupId: 3,
   imageUrl: null,
 };
+
+/** Relâmpago de preço final R$ 7,50 no grupo do produto, valendo agora. */
+const RELAMPAGO: LocalPromotion = {
+  id: 11,
+  productGroupId: 3,
+  productGroupIds: [3],
+  comboQuantity: null,
+  type: 2,
+  discountType: 2,
+  discountValue: 7.5,
+  validFrom: "2000-01-01T00:00:00",
+  validUntil: "2999-12-31T23:59:59",
+  maxQuantityPerSale: 6,
+};
+
+/** Texto sem o espaço inquebrável que o `Intl` põe depois do "R$". */
+function texto(elemento: HTMLElement): string {
+  return (elemento.textContent ?? "").replace(/\u00a0/g, " ");
+}
 
 function makeSearch(overrides: Partial<ProductSearchState> = {}): ProductSearchState {
   return {
@@ -38,6 +60,15 @@ function renderPanel(search = makeSearch()) {
 }
 
 describe("PdvSearchPanel", () => {
+  afterEach(() => {
+    usePdvStore.setState({
+      promotions: [],
+      salePromotions: null,
+      promotionInstant: null,
+      editingSaleId: null,
+    });
+  });
+
   it("devolve o cursor ao campo de busca depois de escolher um produto na lista", () => {
     // O card é uma div: o mousedown nela tirava o cursor do campo, e o próximo
     // bipe do leitor não entrava em lugar nenhum. Aqui o campo é tirado do foco
@@ -84,5 +115,64 @@ describe("PdvSearchPanel", () => {
 
     expect(onPickProduct).not.toHaveBeenCalled();
     expect(search.clear).not.toHaveBeenCalled();
+  });
+
+  describe("preço promocional na lista (05/10/2026)", () => {
+    it("mostra o promocional, o de tabela riscado e o selo do tipo com o limite", () => {
+      usePdvStore.setState({ promotions: [RELAMPAGO] });
+      renderPanel();
+
+      const linha = texto(screen.getByTestId("search-result"));
+      expect(linha).toContain("De R$ 10,00");
+      expect(linha).toContain("por R$ 7,50");
+      expect(linha).toContain("Relâmpago · até 6");
+    });
+
+    it("no combo, o preço normal continua o principal e a oferta vai no selo", () => {
+      usePdvStore.setState({
+        promotions: [
+          { ...RELAMPAGO, type: 3, discountType: 3, discountValue: 20, comboQuantity: 3, productGroupId: 0 },
+        ],
+      });
+      renderPanel();
+
+      const linha = texto(screen.getByTestId("search-result"));
+      expect(linha).toContain("R$ 10,00");
+      expect(linha).toContain("3 por R$ 20,00");
+      expect(linha).not.toContain("De ");
+    });
+
+    it("com venda em curso, anuncia o que o carrinho vai cobrar: a lista e o relógio congelados", () => {
+      // A lista viva já não tem a relâmpago (acabou, ou foi encerrada no
+      // admin), mas a venda começou com ela: o carrinho ainda a aplica, e a
+      // busca não pode dizer o contrário.
+      usePdvStore.setState({
+        promotions: [],
+        salePromotions: [{ ...RELAMPAGO, validUntil: "2026-10-11T18:00:00" }],
+        promotionInstant: "2026-10-11T17:59:00",
+      });
+      renderPanel();
+
+      expect(texto(screen.getByTestId("search-result"))).toContain("por R$ 7,50");
+    });
+
+    it("na reedição de uma venda, a busca não anuncia promoção — o carrinho não aplica", () => {
+      usePdvStore.setState({ promotions: [RELAMPAGO], editingSaleId: 123 });
+      renderPanel();
+
+      const linha = texto(screen.getByTestId("search-result"));
+      expect(linha).toContain("R$ 10,00");
+      expect(linha).not.toContain("por R$ 7,50");
+      expect(linha).not.toContain("Relâmpago");
+    });
+
+    it("sem promoção para o grupo, é o preço de tabela, sem selo", () => {
+      usePdvStore.setState({ promotions: [{ ...RELAMPAGO, productGroupId: 99, productGroupIds: [99] }] });
+      renderPanel();
+
+      const linha = texto(screen.getByTestId("search-result"));
+      expect(linha).toContain("R$ 10,00");
+      expect(linha).not.toContain("Relâmpago");
+    });
   });
 });

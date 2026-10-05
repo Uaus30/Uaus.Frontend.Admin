@@ -7,6 +7,7 @@ import { ProductCostAndStock } from "../editor/ProductCostAndStock";
 import { ProductImageGallery } from "../editor/ProductImageGallery";
 import { ProductOptionalFields } from "../editor/ProductOptionalFields";
 import { ProductVariationsManager } from "../editor/ProductVariationsManager";
+import { ProductPromotionNotice } from "../editor/ProductPromotionNotice";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 import type { BarcodeInputResolution } from "@workspace/core";
 import type { VariationDraft } from "../../types";
@@ -104,6 +105,10 @@ export function ProductGeneralTab({
           <ProductImageGallery editor={editor} setSearchModalOpen={setSearchModalOpen} />
         </div>
       </div>
+
+      {/* No grupo com variações o preço é de cada uma, na tabela abaixo; o aviso
+          da promoção fala da regra que vale para todas. */}
+      {form.hasVariations && <ProductPromotionNotice productGroupId={editor.editingGroupId} price={null} />}
 
       <ProductVariationsManager
         editor={editor}
