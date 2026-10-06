@@ -112,11 +112,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    // Em rota `fullBleed` o provider segue a altura do PAI (`h-full min-h-0`) em
-    // vez do `min-h-svh` padrão: a raiz do App já é `h-screen` com as faixas do
-    // topo em cima, e 100svh aqui estouraria exatamente pela altura da faixa de
-    // ambiente — foi o que empurrava a barra horizontal do quadro para fora da tela.
-    <SidebarProvider style={style as CSSProperties} className={fullBleed ? "h-full min-h-0" : undefined}>
+    // O provider segue a altura do PAI (`h-full min-h-0`) em vez do `min-h-svh`
+    // padrão, em TODA rota: a raiz do App já é `h-dvh` com as faixas do topo em
+    // cima, e 100svh aqui estoura exatamente pela altura das faixas. Primeiro
+    // apareceu no quadro de Tarefas (a barra horizontal fora da tela); em
+    // 06/10/2026, no celular, cortava os 32px de baixo de toda tela em dev (e os
+    // 40px com a faixa "sem conexão" em produção) — o rodapé fixo do detalhe de
+    // produto ficava pela metade.
+    <SidebarProvider style={style as CSSProperties} className="h-full min-h-0">
       <CloseMobileMenuOnNavigate location={location} />
       <div className="flex h-full w-full bg-background text-foreground overflow-hidden">
         <Sidebar className="border-r border-border/50 bg-card">

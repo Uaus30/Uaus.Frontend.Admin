@@ -52,6 +52,16 @@ describe("EditSaleHeaderModal — corrigir a venda registrada (06/10/2026)", () 
     expect(screen.queryByText(/passa para a data nova/)).toBeNull();
   });
 
+  it("o corpo que rola é posicionado, para o select escondido do Radix não fazer o diálogo inteiro rolar", () => {
+    // Sem ancestral posicionado, o <select> escondido (absolute) se ancorava no
+    // diálogo, fora da área que rola, e o diálogo rolava 42px no celular.
+    renderModal();
+
+    const form = document.getElementById("edit-sale-form");
+    expect(form?.className.split(" ")).toContain("relative");
+    expect(form?.querySelector("select")).not.toBeNull();
+  });
+
   it("a forma desativada que a venda usa continua no select, marcada", () => {
     // Fora da lista, o select abria em branco e o dono entenderia que a forma se perdeu.
     renderModal();

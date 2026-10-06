@@ -14,6 +14,7 @@ import type { SaleDto } from "@workspace/api-client-react";
 import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
 import { useEditSaleHeader } from "../hooks/useEditSaleHeader";
 import type { PaymentMethodOption } from "../lib/payment-method-options";
+import { SALE_DIALOG_BODY } from "../lib/sale-dialog";
 import { REDATED_SALE_NOTICE } from "../lib/sale-when";
 import { CustomerPicker } from "./CustomerPicker";
 import { SalePaymentsEditor } from "./SalePaymentsEditor";
@@ -80,7 +81,7 @@ function EditSaleHeaderForm({
           void edit.submit();
         }}
         onKeyDown={blockImplicitSubmit}
-        className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-6"
+        className={SALE_DIALOG_BODY}
       >
         <SaleWhenField
           value={edit.when}

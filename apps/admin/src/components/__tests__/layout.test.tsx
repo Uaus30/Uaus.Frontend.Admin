@@ -69,6 +69,30 @@ describe("AppLayout header version", () => {
     expect(versionBlock.textContent).toContain("Atualizado em 22/08/2026 às 12:45:12");
   });
 
+  it("em rota comum o layout segue a altura do pai, e não 100svh (06/10/2026)", () => {
+    // Com 100svh o layout estourava a raiz pela altura das faixas do topo (a de
+    // ambiente em dev, a de "sem conexão" em produção), e o fim da tela — o
+    // rodapé fixo do detalhe de produto — ficava cortado.
+    const { hook } = memoryLocation({ path: "/produtos" });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <Router hook={hook}>
+          <AppLayout>
+            <div>Conteúdo Principal</div>
+          </AppLayout>
+        </Router>
+      </QueryClientProvider>,
+    );
+
+    const wrapper = container.querySelector<HTMLElement>('[data-slot="sidebar-wrapper"]');
+    expect(wrapper?.className).toContain("h-full");
+    expect(wrapper?.className).toContain("min-h-0");
+  });
+
   describe("no celular", () => {
     const larguraOriginal = window.innerWidth;
 

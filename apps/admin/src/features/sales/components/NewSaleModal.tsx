@@ -14,6 +14,7 @@ import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
 import type { useNewSaleDraft } from "../hooks/useNewSaleDraft";
 import type { PaymentMethodOption } from "../lib/payment-method-options";
+import { SALE_DIALOG_BODY } from "../lib/sale-dialog";
 import { BACKDATED_SALE_NOTICE } from "../lib/sale-when";
 import { CustomerPicker } from "./CustomerPicker";
 import { SaleItemsEditor } from "./SaleItemsEditor";
@@ -55,7 +56,7 @@ export function NewSaleModal({ open, onOpenChange, draft, customers, paymentMeth
             void draft.submit();
           }}
           onKeyDown={blockImplicitSubmit}
-          className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-6"
+          className={SALE_DIALOG_BODY}
         >
           <SaleWhenField
             value={draft.when}
