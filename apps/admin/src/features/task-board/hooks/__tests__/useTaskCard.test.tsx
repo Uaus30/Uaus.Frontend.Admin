@@ -2,7 +2,7 @@ import React from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { TaskCardDto } from "@workspace/api-client-react";
+import { getGetTaskCardQueryKey, type TaskCardDto } from "@workspace/api-client-react";
 
 const mocks = vi.hoisted(() => ({
   useGetTaskCard: vi.fn(),
@@ -53,7 +53,7 @@ function setup() {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return renderHook(() => useTaskCard(7), { wrapper });
+  return { ...renderHook(() => useTaskCard(7), { wrapper }), queryClient };
 }
 
 /**
@@ -148,5 +148,167 @@ describe("useTaskCard — descrição e solução", () => {
 
     await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalled());
     expect(mocks.updateTaskCard.mock.calls[0][1]).not.toHaveProperty("solution");
+  });
+});
+
+const ETIQUETAS = [
+  { id: 1, name: "Bug", color: "red", priority: "Urgent", createdAt: "2026-10-01T00:00:00" },
+  { id: 2, name: "Ideia", color: "sky", priority: "Low", createdAt: "2026-10-01T00:00:00" },
+];
+const USUARIOS = [{ userId: 5, firstName: "Ana", fullName: "Ana Souza" }];
+
+/** Um PUT que só responde quando o teste manda — o servidor "lento". */
+function putsControlados() {
+  const respostas: Array<() => void> = [];
+  const recusas: Array<() => void> = [];
+  mocks.updateTaskCard.mockImplementation(
+    () =>
+      new Promise((resolve, reject) => {
+        respostas.push(() => resolve(card));
+        recusas.push(() => reject(new Error("A descrição excede 20000 caracteres!")));
+      }),
+  );
+  return {
+    /** Recusa o PUT de número `indice`, como o servidor faz com texto longo demais. */
+    recusar: async (indice: number) => {
+      await waitFor(() => expect(recusas[indice]).toBeDefined());
+      await act(async () => recusas[indice]());
+    },
+    /** Responde o PUT de número `indice` — depois de ele sair, que é assíncrono. */
+    responder: async (indice: number) => {
+      await waitFor(() => expect(respostas[indice]).toBeDefined());
+      await act(async () => respostas[indice]());
+    },
+  };
+}
+
+/**
+ * O defeito: cada PUT manda etiquetas e membros INTEIROS, montados do cartão em
+ * cache. Marcar a etiqueta A e logo a B, antes de o cartão ser relido, mandava
+ * o segundo PUT sem a A — e a A se perdia.
+ */
+describe("useTaskCard — gravações seguidas não se atropelam", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useGetTaskCard.mockReturnValue({ data: card, isLoading: false, isError: false });
+    mocks.useGetTaskLabels.mockReturnValue({ data: ETIQUETAS });
+    mocks.useGetTaskBoardMembers.mockReturnValue({ data: USUARIOS });
+  });
+
+  it("duas etiquetas marcadas em seguida: o segundo PUT leva as duas", async () => {
+    const servidor = putsControlados();
+    const { result } = setup();
+
+    act(() => result.current.toggleLabel(1));
+    act(() => result.current.toggleLabel(2));
+
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(1));
+    expect(mocks.updateTaskCard.mock.calls[0][1].labelIds).toEqual([1]);
+
+    // Em fila: o segundo só sai depois da resposta do primeiro, e chega ao
+    // servidor na ordem em que foi feito.
+    await servidor.responder(0);
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(2));
+    expect(mocks.updateTaskCard.mock.calls[1][1].labelIds).toEqual([1, 2]);
+    await servidor.responder(1);
+  });
+
+  it("etiqueta seguida de membro: o PUT do membro não desfaz a etiqueta", async () => {
+    const servidor = putsControlados();
+    const { result } = setup();
+
+    act(() => result.current.toggleLabel(1));
+    act(() => result.current.toggleMember(5));
+
+    await servidor.responder(0);
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(2));
+    expect(mocks.updateTaskCard.mock.calls[1][1]).toMatchObject({ labelIds: [1], memberIds: [5] });
+    await servidor.responder(1);
+  });
+
+  it("a marca aparece na hora, e o cartão só é relido depois do último PUT da fila", async () => {
+    const servidor = putsControlados();
+    const { result, queryClient } = setup();
+    const releitura = vi.spyOn(queryClient, "invalidateQueries");
+
+    act(() => result.current.toggleLabel(1));
+    act(() => result.current.toggleLabel(2));
+
+    const noCache = () =>
+      queryClient
+        .getQueryData<TaskCardDto>([...getGetTaskCardQueryKey(), { id: 7 }])
+        ?.labels.map((l) => l.id);
+    expect(noCache()).toEqual([1, 2]);
+
+    // Reler aqui traria do servidor o cartão sem a B, e a marca sumiria.
+    await servidor.responder(0);
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(2));
+    expect(releitura).not.toHaveBeenCalled();
+
+    await servidor.responder(1);
+    await waitFor(() => expect(releitura).toHaveBeenCalledTimes(1));
+  });
+
+  // O campo de texto remonta quando a descrição do cartão muda (`key`). Pôr o
+  // texto no cache antes da resposta fechava o editor na hora e, com a recusa,
+  // o rascunho sumia.
+  it("descrição recusada não entra no cartão nem vai de carona no PUT seguinte", async () => {
+    const servidor = putsControlados();
+    const { result, queryClient } = setup();
+    const descricaoNoCache = () =>
+      queryClient.getQueryData<TaskCardDto>([...getGetTaskCardQueryKey(), { id: 7 }])?.description;
+
+    let gravacao: Promise<unknown> = Promise.resolve();
+    act(() => {
+      gravacao = result.current.saveDescription("<p>texto longo demais</p>");
+    });
+    act(() => result.current.toggleLabel(1));
+    expect(descricaoNoCache()).not.toBe("<p>texto longo demais</p>");
+
+    const recusa = expect(gravacao).rejects.toThrow();
+    await servidor.recusar(0);
+    await recusa;
+
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(2));
+    expect(mocks.updateTaskCard.mock.calls[1][1]).toMatchObject({
+      description: card.description,
+      labelIds: [1],
+    });
+    await servidor.responder(1);
+  });
+
+  it("descrição aceita entra no cartão só depois da resposta", async () => {
+    const servidor = putsControlados();
+    const { result, queryClient } = setup();
+    const descricaoNoCache = () =>
+      queryClient.getQueryData<TaskCardDto>([...getGetTaskCardQueryKey(), { id: 7 }])?.description;
+
+    act(() => result.current.toggleLabel(1));
+    act(() => {
+      void result.current.saveDescription("<p>Nova</p>");
+    });
+    expect(descricaoNoCache()).toBe(card.description);
+
+    await servidor.responder(0);
+    await servidor.responder(1);
+    await waitFor(() => expect(descricaoNoCache()).toBe("<p>Nova</p>"));
+    // O PUT da descrição levou a etiqueta marcada antes dele.
+    expect(mocks.updateTaskCard.mock.calls[1][1]).toMatchObject({
+      description: "<p>Nova</p>",
+      labelIds: [1],
+    });
+  });
+
+  it("desmarcar a que acabou de marcar volta ao cartão sem ela", async () => {
+    const servidor = putsControlados();
+    const { result } = setup();
+
+    act(() => result.current.toggleLabel(1));
+    act(() => result.current.toggleLabel(1));
+
+    await servidor.responder(0);
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(2));
+    expect(mocks.updateTaskCard.mock.calls[1][1].labelIds).toEqual([]);
+    await servidor.responder(1);
   });
 });

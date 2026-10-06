@@ -3,6 +3,7 @@ import {
   addTaskChecklistItem,
   deleteTaskCardAttachment,
   deleteTaskChecklistItem,
+  getGetTaskCardQueryKey,
   saveTaskCardSolution,
   TASK_CARDS_QUERY_KEY,
   updateTaskCard,
@@ -14,6 +15,8 @@ import {
   type SaveTaskCardPayload,
   type TaskCardChecklistItemDto,
   type TaskCardDto,
+  type TaskCardMemberDto,
+  type TaskLabelDto,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
@@ -27,6 +30,29 @@ function payloadFrom(card: TaskCardDto, overrides: Partial<SaveTaskCardPayload>)
     labelIds: card.labels.map((l) => l.id),
     memberIds: card.members.map((m) => m.userId),
     ...overrides,
+  };
+}
+
+/** Etiquetas e membros escolhidos num clique — a parte do PUT que a modal antecipa. */
+type Selection = Pick<Partial<SaveTaskCardPayload>, "labelIds" | "memberIds">;
+
+/**
+ * O cartão com a seleção nova de etiquetas e membros — o que a modal mostra
+ * enquanto o PUT viaja. Etiqueta e membro saem do próprio cartão ou das listas
+ * completas; id que nenhuma das duas conhece some, como sumiria no servidor.
+ */
+function withSelection(
+  card: TaskCardDto,
+  selection: Selection,
+  labels: TaskLabelDto[],
+  users: TaskCardMemberDto[],
+): TaskCardDto {
+  const labelById = new Map([...labels, ...card.labels].map((l) => [l.id, l]));
+  const memberById = new Map([...users, ...card.members].map((m) => [m.userId, m]));
+  return {
+    ...card,
+    labels: selection.labelIds?.flatMap((id) => labelById.get(id) ?? []) ?? card.labels,
+    members: selection.memberIds?.flatMap((id) => memberById.get(id) ?? []) ?? card.members,
   };
 }
 
@@ -44,6 +70,26 @@ function payloadFrom(card: TaskCardDto, overrides: Partial<SaveTaskCardPayload>)
  * cartão podem desfazer uma a etiqueta da outra. Aceito: o quadro é de uma
  * loja, não de uma equipe de cinquenta. O custo real é que toda mutação
  * invalida o prefixo dos cartões, e o quadro atrás da modal acompanha.
+ *
+ * **Duas gravações seguidas na MESMA modal não se atropelam** (06/10/2026).
+ * Antes, marcar a etiqueta A e logo a B mandava dois PUTs montados do cartão
+ * ainda sem a A — o segundo levava só a B, e a A se perdia; o mesmo valia para
+ * etiqueta seguida de membro ou de título. Agora:
+ *
+ * - os PUTs do cartão fazem fila (`scope`) e chegam ao servidor na ordem em que
+ *   foram feitos;
+ * - cada PUT é montado na hora de SAIR da fila, a partir do cartão do cache —
+ *   a gravação anterior já respondeu;
+ * - etiqueta e membro entram no cache no clique (a marca aparece na hora, e o
+ *   clique seguinte parte dela); título e descrição, só depois de gravados;
+ * - o cartão só é relido depois do último PUT da fila: reler no meio traria do
+ *   servidor o estado sem a gravação seguinte e apagaria a marca.
+ *
+ * Título e descrição não são antecipados porque o campo de texto da modal
+ * remonta quando o valor do cartão muda (`key`): antecipar fechava o editor na
+ * hora e, se o servidor recusasse (descrição longa demais, rede), o rascunho
+ * sumia — o defeito que `CardRichTextField.finishWith` já tinha corrigido. Montar
+ * o PUT na saída também impede que um texto recusado vá de carona no seguinte.
  */
 export function useTaskCard(cardId: number | null) {
   const queryClient = useQueryClient();
@@ -59,12 +105,58 @@ export function useTaskCard(cardId: number | null) {
   const fail = (title: string) => (error: unknown) =>
     toast({ title, description: describeApiError(error), error, variant: "destructive" });
 
+  const cardKey = [...getGetTaskCardQueryKey(), { id: cardId }];
+  const saveKey = ["task-card-save", cardId];
+
+  /**
+   * O cartão como está AGORA, com as marcas ainda em voo. Lido do cache, e não
+   * do `card` da última renderização: dois cliques no mesmo instante ainda não
+   * renderizaram o primeiro.
+   */
+  function currentCard(): TaskCardDto | undefined {
+    return queryClient.getQueryData<TaskCardDto>(cardKey) ?? card;
+  }
+
   const saveMutation = useMutation({
-    mutationFn: (overrides: Partial<SaveTaskCardPayload>) =>
-      updateTaskCard(card!.id, payloadFrom(card!, overrides)),
-    onSuccess: invalidate,
+    mutationKey: saveKey,
+    scope: { id: `task-card-save-${cardId}` },
+    // Montado na SAÍDA da fila: o cache já tem o que a gravação anterior gravou
+    // — ou não tem, se ela falhou, e o texto recusado não vai de carona nesta.
+    mutationFn: (overrides: Partial<SaveTaskCardPayload>) => {
+      const current = currentCard();
+      if (!current) throw new Error("O cartão ainda não foi carregado.");
+      return updateTaskCard(cardId!, payloadFrom(current, overrides));
+    },
+    onSuccess: (_data, { title, description }) => {
+      if (title === undefined && description === undefined) return;
+      queryClient.setQueryData<TaskCardDto>(
+        cardKey,
+        (now) =>
+          now && {
+            ...now,
+            ...(title !== undefined && { title }),
+            ...(description !== undefined && { description }),
+          },
+      );
+    },
     onError: fail("Erro ao salvar o cartão"),
+    // Esta gravação ainda conta como pendente aqui; 1 é "sou a última da fila".
+    // Com erro também relê: a marca que não gravou some.
+    onSettled: () => (queryClient.isMutating({ mutationKey: saveKey }) <= 1 ? invalidate() : undefined),
   });
+
+  /** Mostra a marca na hora e põe o PUT na fila. */
+  function saveSelection(selection: Selection) {
+    const now = currentCard();
+    if (!now) return;
+    // Uma releitura em voo responderia com o cartão de antes deste clique.
+    void queryClient.cancelQueries({ queryKey: cardKey });
+    queryClient.setQueryData<TaskCardDto>(
+      cardKey,
+      withSelection(now, selection, labels ?? [], members ?? []),
+    );
+    saveMutation.mutate(selection);
+  }
 
   // Rota própria, fora do PUT do cartão: ver `saveTaskCardSolution`.
   const solutionMutation = useMutation({
@@ -116,27 +208,30 @@ export function useTaskCard(cardId: number | null) {
 
   /** Liga/desliga uma etiqueta no cartão. */
   function toggleLabel(labelId: number) {
-    if (!card) return;
-    const current = card.labels.map((l) => l.id);
+    const now = currentCard();
+    if (!now) return;
+    const current = now.labels.map((l) => l.id);
     const labelIds = current.includes(labelId)
       ? current.filter((id) => id !== labelId)
       : [...current, labelId];
-    saveMutation.mutate({ labelIds });
+    saveSelection({ labelIds });
   }
 
   /** Liga/desliga um membro no cartão. */
   function toggleMember(userId: number) {
-    if (!card) return;
-    const current = card.members.map((m) => m.userId);
+    const now = currentCard();
+    if (!now) return;
+    const current = now.members.map((m) => m.userId);
     const memberIds = current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId];
-    saveMutation.mutate({ memberIds });
+    saveSelection({ memberIds });
   }
 
   /** Salva o título se mudou e não ficou vazio (vazio é recusado pelo servidor; nem manda). */
   function saveTitle(title: string) {
-    if (!card) return;
+    const now = currentCard();
+    if (!now) return;
     const trimmed = title.trim();
-    if (!trimmed || trimmed === card.title) return;
+    if (!trimmed || trimmed === now.title) return;
     saveMutation.mutate({ title: trimmed });
   }
 
@@ -145,9 +240,10 @@ export function useTaskCard(cardId: number | null) {
    * da gravação (rejeita se falhar) para o campo só fechar depois de gravado.
    */
   function saveDescription(description: string): Promise<unknown> {
-    if (!card) return Promise.resolve();
+    const now = currentCard();
+    if (!now) return Promise.resolve();
     const next = isBlankRichText(description) ? null : description.trim();
-    if (next === (card.description ?? null)) return Promise.resolve();
+    if (next === (now.description ?? null)) return Promise.resolve();
     return saveMutation.mutateAsync({ description: next });
   }
 

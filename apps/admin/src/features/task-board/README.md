@@ -39,6 +39,14 @@ A regra transversal (o que o backend garante e o PDV não vê) está em
   para a menos. Excluir uma etiqueta a tira de todos os cartões.
 - **Membros** são os usuários do sistema. O quadro mostra só o primeiro nome
   (pedido do dono); o nome completo fica no tooltip do avatar.
+- **Cliques seguidos na modal não se atropelam** (06/10/2026). O PUT do cartão
+  manda título, descrição, etiquetas e membros inteiros; montado do cartão
+  ainda não relido, o segundo clique desfazia o primeiro (marcar A e logo B
+  gravava só B). Agora os PUTs do cartão fazem fila, cada um é montado do
+  cartão do cache na hora de sair, etiqueta e membro aparecem marcados no
+  clique, e o cartão só é relido depois do último PUT. Título e descrição só
+  entram no cartão depois de gravados: o campo de texto remonta quando o valor
+  muda, e antecipar perdia o rascunho de uma gravação recusada. Ver `useTaskCard`.
 - **Anexos** vão para o S3, em pasta própria por cartão dentro da pasta pública
   (`…/tarefas/{id}/`). Até 10 MB; imagens, PDF, Office, CSV, TXT, ZIP, vídeo e
   áudio. A URL é pública como a das fotos de produto.
