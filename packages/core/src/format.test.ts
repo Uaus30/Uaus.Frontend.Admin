@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   formatBrasiliaDateTime,
   formatDate,
@@ -73,6 +73,35 @@ describe("formatBrasiliaDateTime", () => {
 
   it("devolve string vazia em caso de data inválida", () => {
     expect(formatBrasiliaDateTime("invalid-date")).toBe("");
+  });
+});
+
+describe("formatBrasiliaDateTime com a data da API (Brasília, sem fuso declarado)", () => {
+  // O CI do GitHub roda em UTC e a máquina de quem desenvolve, em Brasília: um
+  // teste que passa só num dos dois deixou a `main` vermelha de 05 a 06/10/2026.
+  // Aqui o fuso do processo é trocado de propósito, para o defeito aparecer em
+  // qualquer máquina, e não só no CI ou no celular de quem está fora de Brasília.
+  const originalTimeZone = process.env.TZ;
+  afterEach(() => {
+    if (originalTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimeZone;
+  });
+
+  it.each([
+    ["UTC", 0],
+    ["America/Manaus", 240],
+    ["Asia/Tokyo", -540],
+    ["America/Sao_Paulo", 180],
+  ])("mostra a hora que a API mandou, com o aparelho em %s", (timeZone, offsetMinutes) => {
+    process.env.TZ = timeZone;
+    // Prova de que a troca de fuso pegou: sem ela o teste passaria à toa.
+    expect(new Date(2026, 9, 5, 14, 32).getTimezoneOffset()).toBe(offsetMinutes);
+
+    expect(formatBrasiliaDateTime("2026-10-05T14:32:10")).toBe("05/10/2026 às 14:32:10");
+    // Logo depois da meia-noite: lida no fuso do aparelho, voltava para o dia anterior.
+    expect(formatBrasiliaDateTime("2026-10-06T00:30:00")).toBe("06/10/2026 às 00:30:00");
+    // O .NET manda até sete casas de fração de segundo.
+    expect(formatBrasiliaDateTime("2026-10-05T23:59:59.1234567")).toBe("05/10/2026 às 23:59:59");
   });
 });
 

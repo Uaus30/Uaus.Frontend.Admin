@@ -83,19 +83,32 @@ export function toLocalTimestamp(date = new Date()): string {
 }
 
 /**
+ * Data e hora como a API as devolve: horário de Brasília SEM fuso declarado
+ * (`2026-10-05T14:32:10`, às vezes com fração de segundo) — a convenção de
+ * `toLocalTimestamp` e de toda data gravada pelo backend.
+ */
+const API_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
+
+/**
  * Data e hora completas no formato pt-BR no fuso horário de Brasília (UTC-3) — "15/08/2026 às 14:30:00".
  *
- * Utiliza explicitamente o fuso `America/Sao_Paulo` para garantir exibição correta
- * em qualquer navegador ou ambiente, independente do fuso local da máquina.
+ * Instante com fuso declarado (`...Z`, `...-03:00`, `Date`, timestamp numérico) é
+ * convertido para `America/Sao_Paulo`. String SEM fuso é a data da API e já está
+ * no horário de Brasília: sai como veio. Lida pelo `new Date()`, ela seria tomada
+ * como hora do APARELHO e a conversão deslocaria o relógio em qualquer máquina
+ * fora de Brasília — o fato das 14h32 aparecia às 11h32 no CI (UTC) e às 15h32
+ * num celular em Manaus. Por isso ela é lida e escrita em UTC: nenhum fuso entra
+ * no caminho e a hora de parede passa intacta.
  *
  * @param dateInput Instância de Date, string ISO ou timestamp numérico.
  */
 export function formatBrasiliaDateTime(dateInput: Date | string | number): string {
-  const date = typeof dateInput === "object" ? dateInput : new Date(dateInput);
+  const wallClock = typeof dateInput === "string" && API_TIMESTAMP.test(dateInput);
+  const date = typeof dateInput === "object" ? dateInput : new Date(wallClock ? `${dateInput}Z` : dateInput);
   if (Number.isNaN(date.getTime())) return "";
 
   const formatter = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
+    timeZone: wallClock ? "UTC" : "America/Sao_Paulo",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

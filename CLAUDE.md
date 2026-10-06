@@ -308,11 +308,11 @@ gigante, risco de regressão e zero valor para a loja.
 O caminho feliz raramente quebra. Quando a borda **fizer sentido no domínio**,
 cubra-a — e neste repositório ela já cobrou o preço três vezes:
 
-| Borda                            | O que já aconteceu aqui                                                                                   |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| divisor zero / lista vazia       | a primeira compra pendente **sem custo** derrubou a listagem de Compras (09/09/2026)                      |
-| campo vazio vs. valor inválido   | `parseAmount` devolve `NaN`; `parseAmountOrNull` separa "não informou" de "digitou bobagem" (armadilha 3) |
-| virada de fuso e fim de vigência | `toISOString()` joga o dia para trás no Brasil (armadilhas 2, 5 e 6)                                      |
+| Borda                            | O que já aconteceu aqui                                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| divisor zero / lista vazia       | a primeira compra pendente **sem custo** derrubou a listagem de Compras (09/09/2026)                                             |
+| campo vazio vs. valor inválido   | `parseAmount` devolve `NaN`; `parseAmountOrNull` separa "não informou" de "digitou bobagem" (armadilha 3)                        |
+| virada de fuso e fim de vigência | `toISOString()` joga o dia para trás no Brasil (armadilhas 2, 5 e 6); a hora da API, lida no fuso do aparelho, sai deslocada (8) |
 
 Outras que costumam valer o teste: zero e negativo, primeiro e último item da
 paginação, duplicata, arredondamento no meio (`.005`), coleção com um elemento
@@ -423,10 +423,9 @@ complexidade acoplada — o que a seção 6 pede para evitar.
    `DATABASE_VERSION` se o esquema realmente mudou — acrescentar campo a um
    objeto não muda. Ver `apps/pdv/docs/offline.md`.
 5. **`toISOString()` também estraga instante com hora.** A armadilha 2 vale para
-   data de calendário; para "23:59:59 do dia escolhido" não existe helper no
-   `packages/core` ainda — o único conversor do repo é o `toLocalTimestamp` de
-   `apps/pdv/src/services/sales.service.ts`, preso dentro do PDV. Precisando de
-   instante local no admin, mova esse helper para o `core` antes; não copie.
+   data de calendário; para "23:59:59 do dia escolhido" use `toLocalTimestamp`
+   do `packages/core`, que subiu do PDV em 05/10/2026 (o `sales.service.ts` do
+   PDV ainda o reexporta). Não copie.
 6. **Data de fim de vigência é o caso clássico:** gravar `2026-09-30T23:59:59`
    como UTC faz a validade acabar às 20:59 do dia 30 no Brasil, e a recusa cita
    uma hora que o cliente não tem como conferir.
@@ -441,6 +440,18 @@ complexidade acoplada — o que a seção 6 pede para evitar.
    `<div className="min-h-0 flex-1 overflow-y-auto">`. O `ScrollArea` continua
    certo onde a cadeia de altura é definida — o carrinho e a busca do PDV, que
    descendem de `h-screen`.
+8. **Data da API sem fuso já é Brasília — e o CI roda em UTC.** A API devolve
+   `2026-10-05T14:32:10`, sem `Z`. `new Date()` lê isso no fuso do **aparelho**;
+   somado a `timeZone: "America/Sao_Paulo"`, desloca a hora em toda máquina
+   fora de Brasília. Na máquina de quem desenvolve os dois erros se anulam e o
+   teste passa; no CI (`ubuntu-latest`, UTC) a hora cai 3 h e a `main` fica
+   vermelha — de 05 a 06/10/2026 foi assim, com o quadro de Tarefas. Para
+   exibir, `formatBrasiliaDateTime` do `core` passa a hora da API intacta.
+   Reproduza o CI com `TZ=UTC npx vitest run <arquivo>`; teste que depende de
+   fuso troca `process.env.TZ` dentro dele (modelo em
+   `packages/core/src/format.test.ts`). Fixar o fuso do Vitest em Brasília
+   **esconderia** o defeito: o celular fora do fuso continuaria vendo a hora
+   errada.
 
 > Duas coisas que **deixaram de valer** e estão registradas aqui para ninguém
 > orçar ou refazer por engano:
