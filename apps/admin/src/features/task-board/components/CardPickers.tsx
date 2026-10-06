@@ -16,10 +16,18 @@ interface LabelsPickerProps {
  * Seletor de etiquetas do cartão: cada linha liga/desliga na hora (sem botão
  * "aplicar"), e o link do rodapé abre o cadastro para criar uma que falta sem
  * sair do cartão.
+ *
+ * **Os dois seletores daqui são `modal`** (06/10/2026): moram na lateral do
+ * cartão, que é um diálogo, e a lista vai para um portal fora dele. O diálogo
+ * trava a rolagem de tudo o que está fora da caixa dele, e a roda do mouse
+ * morria na lista — a mesma falha da busca de produto da compra. Modal, o
+ * seletor vira a trava mais recente, e a rolagem vale dentro dele.
  */
 export function LabelsPicker({ labels, selectedIds, onToggle, onManage, disabled }: LabelsPickerProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -68,7 +76,19 @@ export function LabelsPicker({ labels, selectedIds, onToggle, onManage, disabled
             })}
           </ul>
         )}
-        <Button type="button" variant="ghost" size="sm" className="mt-2 w-full" onClick={onManage}>
+        {/* Fecha antes de abrir o cadastro. Não modal, o seletor se fechava sozinho
+            quando o foco ia para o diálogo de etiquetas; modal, ele segura o foco
+            e ficaria aberto por baixo, reaparecendo ao fechar o cadastro. */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mt-2 w-full"
+          onClick={() => {
+            setOpen(false);
+            onManage();
+          }}
+        >
           Gerenciar etiquetas
         </Button>
       </PopoverContent>
@@ -90,7 +110,7 @@ export function MembersPicker({ users, selectedIds, onToggle, disabled }: Member
   const visible = users.filter((u) => !term || u.fullName.toLowerCase().includes(term));
 
   return (
-    <Popover>
+    <Popover modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
