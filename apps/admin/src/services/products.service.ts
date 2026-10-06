@@ -45,10 +45,13 @@ export async function getProductsPage(params?: {
   productGroupId?: number;
   page?: number;
   limit?: number;
+  /** Sem o inativo — a busca da Nova venda (decisão do dono, 06/10/2026). */
+  excludeInactive?: boolean;
 }) {
   return getPaged<ProductDto>("/Products", {
     search: params?.search,
     productGroupId: params?.productGroupId,
+    excludeInactive: params?.excludeInactive || undefined,
     page: params?.page ?? 1,
     size: params?.limit ?? 20,
   });

@@ -182,4 +182,26 @@ describe("ProductSearchPicker", () => {
     );
     expect(screen.queryByText(COM_FOTO.name)).toBeNull();
   });
+
+  it("a compra busca todos; a Nova venda pede ao servidor sem o inativo", async () => {
+    // Inativo não se vende pelo painel (decisão do dono, 06/10/2026), mas a compra
+    // continua enxergando — repor estoque de um inativo é como ele volta.
+    renderNoDialogo();
+    await abrirBusca();
+    expect(mocks.getProductsPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ excludeInactive: false }),
+    );
+    cleanup();
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProductSearchPicker onSelect={vi.fn()} selectedIds={[]} excludeInactive />
+      </QueryClientProvider>,
+    );
+    await abrirBusca();
+    expect(mocks.getProductsPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ excludeInactive: true }),
+    );
+  });
 });

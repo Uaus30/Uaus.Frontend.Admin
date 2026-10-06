@@ -33,6 +33,9 @@ export function SaleItemsEditor({ items, onAdd, onUpdate, onRemove }: SaleItemsE
         // Marca na lista o que já está na venda; escolher de novo soma uma unidade.
         selectedIds={items.map((item) => item.productId)}
         placeholder="Buscar produto por nome ou código..."
+        // Inativo não se vende pelo painel (decisão do dono, 06/10/2026); o
+        // servidor também recusa.
+        excludeInactive
       />
 
       {items.length === 0 ? (

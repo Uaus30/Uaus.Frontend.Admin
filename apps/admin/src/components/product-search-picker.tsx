@@ -22,6 +22,11 @@ type ProductSearchPickerProps = {
   disabled?: boolean;
   /** Texto do gatilho quando nada foi escolhido ainda. */
   placeholder?: string;
+  /**
+   * Deixa o produto inativo de fora, no servidor: a Nova venda (o dono decidiu em
+   * 06/10/2026 que inativo não se vende pelo painel). Compra e baixa enxergam todos.
+   */
+  excludeInactive?: boolean;
 };
 
 /**
@@ -42,15 +47,17 @@ export function ProductSearchPicker({
   selectedIds,
   disabled,
   placeholder = "Buscar produto por nome ou código de barras...",
+  excludeInactive = false,
 }: ProductSearchPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: productsPage, isFetching } = useQuery({
-    queryKey: ["products-search", debouncedSearch],
+    queryKey: ["products-search", debouncedSearch, excludeInactive],
     enabled: open,
-    queryFn: () => getProductsPage({ search: debouncedSearch.trim() || undefined, limit: SEARCH_LIMIT }),
+    queryFn: () =>
+      getProductsPage({ search: debouncedSearch.trim() || undefined, limit: SEARCH_LIMIT, excludeInactive }),
   });
 
   const options: ProductSearchOption[] = (productsPage?.data ?? []).map(toProductSearchOption);
