@@ -85,9 +85,46 @@ const VIEWPORT_MARGIN = 8;
 interface FloatingCalendarPortalProps {
   /** Retângulo do gatilho, medido no momento da abertura. */
   anchor: DOMRect;
+  /**
+   * O próprio gatilho, para o painel acompanhá-lo quando algo rolar com ele
+   * aberto. Sem isto vale só o `anchor` da abertura.
+   */
+  anchorRef?: React.RefObject<HTMLElement | null>;
   /** Chamado ao clicar fora do painel ou pressionar Esc. */
   onClose: () => void;
   children: React.ReactNode;
+}
+
+/**
+ * Remede o gatilho a cada rolagem — de QUALQUER elemento, por isso a escuta é na
+ * fase de captura (o evento `scroll` não borbulha). No admin quem rola é o
+ * `<main>`, não a janela: o `window.scrollY` do cálculo abaixo fica em zero, e o
+ * painel medido só na abertura ficava parado enquanto o campo subia com a
+ * página — no celular, onde se rola com o calendário aberto, ele "se soltava".
+ */
+function useLiveAnchor(anchor: DOMRect, anchorRef?: React.RefObject<HTMLElement | null>): DOMRect {
+  const [live, setLive] = useState(anchor);
+
+  useEffect(() => {
+    if (!anchorRef) return;
+    let frame = 0;
+    const remeasure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = anchorRef.current?.getBoundingClientRect();
+        if (rect) setLive(rect);
+      });
+    };
+    window.addEventListener("scroll", remeasure, true);
+    window.addEventListener("resize", remeasure);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", remeasure, true);
+      window.removeEventListener("resize", remeasure);
+    };
+  }, [anchorRef]);
+
+  return anchorRef ? live : anchor;
 }
 
 /**
@@ -102,9 +139,15 @@ interface FloatingCalendarPortalProps {
  * nenhum dia aceita clique, e o `mousedown` que vaza para o `body` ainda fecha o
  * painel. Era o que acontecia em todo formulário com data dentro de modal.
  */
-export function FloatingCalendarPortal({ anchor, onClose, children }: FloatingCalendarPortalProps) {
+export function FloatingCalendarPortal({
+  anchor: initialAnchor,
+  anchorRef,
+  onClose,
+  children,
+}: FloatingCalendarPortalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const anchor = useLiveAnchor(initialAnchor, anchorRef);
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
@@ -184,7 +227,7 @@ export interface DateFieldTriggerProps {
   disabled?: boolean;
   /** Abre/fecha o painel. */
   onToggle: () => void;
-  /** Quando informado, exibe o "x" de limpar no hover. */
+  /** Quando informado, exibe o "x" de limpar (no hover com mouse; sempre no toque). */
   onClear?: (e: React.MouseEvent | React.KeyboardEvent) => void;
   /** Descrição do que está sendo limpo, para leitores de tela. */
   clearLabel?: string;
@@ -243,13 +286,17 @@ export function DateFieldTrigger({
         {label}
       </span>
       {hasValue && onClear && (
+        // Some só onde existe mouse: no Tailwind 4 o `hover:` vale apenas com
+        // `(hover: hover)`, e o `opacity-0` puro deixava o "x" invisível — e sem
+        // como limpar a data — em todo celular. A margem negativa estica a área
+        // de toque para 28px sem mexer no tamanho do gatilho.
         <span
           role="button"
           tabIndex={0}
           onClick={onClear}
           onKeyDown={(e) => e.key === "Enter" && onClear(e)}
           aria-label={clearLabel}
-          className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+          className="-m-1.5 rounded p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
         >
           <X className="h-3 w-3" />
         </span>

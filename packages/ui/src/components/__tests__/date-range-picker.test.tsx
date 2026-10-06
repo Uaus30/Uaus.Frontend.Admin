@@ -1,6 +1,16 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { DateRangePicker } from "../date-range-picker";
+import { CALENDAR_PORTAL_ATTRIBUTE } from "../date-field";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+/** Retângulo do gatilho como o navegador mediria, só com o que o cálculo usa. */
+function rectAt(top: number): DOMRect {
+  return { top, bottom: top + 36, left: 10, right: 210, width: 200, height: 36, x: 10, y: top } as DOMRect;
+}
 
 describe("DateRangePicker", () => {
   it("exibe o placeholder quando não há período", () => {
@@ -36,5 +46,29 @@ describe("DateRangePicker", () => {
     fireEvent.click(screen.getByRole("button", { name: "Limpar período" }));
 
     expect(onChange).toHaveBeenCalledWith({ from: undefined, to: undefined });
+  });
+
+  it("acompanha o campo quando a página rola com o calendário aberto", async () => {
+    // No admin quem rola é o <main>, não a janela: o painel medido só na
+    // abertura ficava parado enquanto o campo subia.
+    let triggerTop = 300;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => rectAt(triggerTop));
+
+    render(
+      <div data-testid="rolavel" style={{ overflowY: "auto" }}>
+        <DateRangePicker value={{ from: new Date(2026, 6, 18), to: undefined }} />
+      </div>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /18\/07\/2026/i }));
+
+    const panel = document.querySelector<HTMLElement>(`[${CALENDAR_PORTAL_ATTRIBUTE}]`)!;
+    // O jsdom não tem altura de janela, então o painel abre para cima do campo:
+    // topo do campo − respiro de 6px − altura medida (0 no jsdom).
+    expect(panel.style.top).toBe("294px");
+
+    triggerTop = 120;
+    fireEvent.scroll(screen.getByTestId("rolavel"));
+
+    await waitFor(() => expect(panel.style.top).toBe("114px"));
   });
 });

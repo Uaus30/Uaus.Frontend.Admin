@@ -11,8 +11,16 @@ const TabsList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
+    // Rola de lado quando as abas não cabem, em vez de alargar a página: as cinco
+    // abas do cadastro de produto pediam ~420px e empurravam a tela inteira para
+    // o lado no celular. `justify-start` porque, centralizada, a sobra sairia
+    // pelos DOIS lados e a primeira aba ficaria inalcançável. A aba tocada entra
+    // na vista sozinha (o Radix foca o gatilho, e o navegador rola até ele).
+    // Altura MÍNIMA, não fixa: com o `overflow-x-auto` o eixo vertical também
+    // deixa de transbordar, e com a fonte do Android aumentada o gatilho seria
+    // cortado em vez de a faixa crescer.
     className={cn(
-      "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+      "inline-flex min-h-10 max-w-full items-center justify-start overflow-x-auto rounded-lg bg-muted p-1 text-muted-foreground [scrollbar-width:none] md:min-h-9 [&::-webkit-scrollbar]:hidden",
       className,
     )}
     {...props}
@@ -27,7 +35,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 md:py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
       className,
     )}
     {...props}

@@ -17,6 +17,7 @@ import {
   SidebarMenuSubButton,
   Button,
   cn,
+  useSidebar,
 } from "@workspace/ui";
 import { ChevronDown, ExternalLink, Loader2, LogOut, Store } from "lucide-react";
 import { STALE_TIME, useGetMe, useLogout } from "@workspace/api-client-react";
@@ -36,6 +37,21 @@ import { formatUpdatedAt, formatVersion } from "@workspace/core";
  * Enquanto eram duas listas mantidas a mao em sincronia, elas divergiam: a tela
  * de formas de pagamento respondia em dois caminhos e so um aparecia aqui.
  */
+
+/**
+ * No celular o menu é uma gaveta por cima da tela, e escolher uma tela nele não
+ * a fechava: a tela nova abria escondida atrás do menu, e era preciso achar o
+ * fundo para tocar. Fecha a cada troca de endereço — e não no clique do item —
+ * para valer também para os atalhos da Início, o voltar do navegador e os links
+ * de dentro das telas. No computador a barra fixa não usa este estado.
+ */
+function CloseMobileMenuOnNavigate({ location }: { location: string }) {
+  const { setOpenMobile } = useSidebar();
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [location, setOpenMobile]);
+  return null;
+}
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -101,6 +117,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     // topo em cima, e 100svh aqui estouraria exatamente pela altura da faixa de
     // ambiente — foi o que empurrava a barra horizontal do quadro para fora da tela.
     <SidebarProvider style={style as CSSProperties} className={fullBleed ? "h-full min-h-0" : undefined}>
+      <CloseMobileMenuOnNavigate location={location} />
       <div className="flex h-full w-full bg-background text-foreground overflow-hidden">
         <Sidebar className="border-r border-border/50 bg-card">
           <SidebarHeader className="p-6">
@@ -232,8 +249,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             teto a página cresceria com o conteúdo do quadro e a barra horizontal
             iria parar abaixo da tela. */}
         <div className={cn("flex flex-col flex-1 min-w-0", fullBleed && "h-full min-h-0 overflow-hidden")}>
-          <header className="h-16 flex items-center px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-            <SidebarTrigger className="hover-elevate mr-4" />
+          <header className="h-16 flex items-center px-3 sm:px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            {/* 40px no celular, onde é o único caminho para o menu; 28px no computador, como antes. */}
+            <SidebarTrigger className="hover-elevate mr-3 h-10 w-10 md:mr-4 md:h-7 md:w-7" />
             <div className="flex flex-col justify-center select-none" data-testid="header-version">
               <span className="text-xs text-muted-foreground leading-tight">
                 {formatVersion(import.meta.env.VITE_APP_VERSION)}
@@ -265,7 +283,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             // preenche a área útil e cuida da própria rolagem (ver `AppRoute.fullBleed`).
             <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
           ) : (
-            <main className="flex-1 overflow-y-auto p-6 md:p-8">
+            // `p-3` no celular: os 24px de cada lado somados ao respiro dos
+            // cartões deixavam ~280px de conteúdo numa tela de 375.
+            <main className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8">
               <div className="max-w-7xl mx-auto">{children}</div>
             </main>
           )}

@@ -184,6 +184,25 @@ classe, para servir igual a input, select, textarea. `ChoiceChips` é a escolha
 única em botões lado a lado, para listas curtas (sexo, faixa de idade): um toque
 em vez de abrir e escolher, e tocar de novo no escolhido volta ao vazio.
 
+## Diálogo no celular: tela cheia (06/10/2026)
+
+Abaixo de `sm` (640px), o `DialogContent` ocupa a tela inteira — decisão do dono,
+para o admin usado pelo celular. Em toda largura ele tem teto `max-h-dvh` e rola
+por dentro. As classes do celular levam o prefixo `max-sm:` de propósito: não
+brigam no `tailwind-merge` com as do chamador (`max-w-3xl`, `max-h-[90vh]`,
+`rounded-2xl`), que continuam valendo do `sm` para cima.
+
+- **`fullScreenOnMobile={false}`** mantém a caixa centralizada. É para o que não
+  é formulário — hoje só a foto ampliada da loja.
+- **O X é `fixed` no celular**, com 40px, e só fica no lugar porque o diálogo
+  leva `translate-none`: qualquer `translate` o torna bloco de referência do
+  `fixed`, e o X rolaria junto com o conteúdo.
+- **O `AlertDialog` não vira tela cheia** (confirmação é curta), mas tem o mesmo
+  teto com rolagem.
+- O `TabsList` rola de lado quando as abas não cabem, alinhado à esquerda — a
+  sobra centralizada sairia pelos dois lados e a primeira aba ficaria
+  inalcançável.
+
 ## Padrão de calendário
 
 Documento próprio, em [`src/components/README.md`](src/components/README.md):

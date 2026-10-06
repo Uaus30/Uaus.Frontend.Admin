@@ -85,7 +85,7 @@ export function DatePicker({
       />
 
       {open && anchorRect && (
-        <FloatingCalendarPortal anchor={anchorRect} onClose={() => setOpen(false)}>
+        <FloatingCalendarPortal anchor={anchorRect} anchorRef={triggerRef} onClose={() => setOpen(false)}>
           <CalendarPanel>
             <DatePickerLib
               selected={value ?? null}

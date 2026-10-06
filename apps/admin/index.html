@@ -24,7 +24,13 @@
       cobrem quem já marcou "traduzir sempre este site" antes disto existir.
     -->
     <meta name="google" content="notranslate" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!--
+      Sem maximum-scale (06/10/2026, decisão do dono): ele bloqueava o zoom com
+      dois dedos no Android. O que ele evitava — o iPhone ampliar a tela ao tocar
+      num campo de fonte menor que 16px — passou para o index.css, que garante
+      16px em todo campo no celular.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Uaus Admin</title>
     <!--
       Instalação no celular como app, com o nome e o logo da Uaus.

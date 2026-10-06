@@ -1,7 +1,9 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Router } from "wouter";
+import { memoryLocation } from "wouter/memory-location";
 import { AppLayout } from "../layout";
 
 const mocks = vi.hoisted(() => ({
@@ -65,5 +67,47 @@ describe("AppLayout header version", () => {
     expect(versionBlock).toBeDefined();
     expect(versionBlock.textContent).toContain("Versão 1.8.9");
     expect(versionBlock.textContent).toContain("Atualizado em 22/08/2026 às 12:45:12");
+  });
+
+  describe("no celular", () => {
+    const larguraOriginal = window.innerWidth;
+
+    beforeEach(() => {
+      // O `useIsMobile` do kit lê a largura da janela: abaixo de 768 o menu é gaveta.
+      Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: 375 });
+    });
+
+    afterEach(() => {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: larguraOriginal,
+      });
+    });
+
+    it("fecha a gaveta do menu quando o endereço muda", () => {
+      const { hook, navigate } = memoryLocation({ path: "/inicio" });
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      });
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <Router hook={hook}>
+            <AppLayout>
+              <div>Conteúdo Principal</div>
+            </AppLayout>
+          </Router>
+        </QueryClientProvider>,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+      expect(screen.getByRole("dialog")).toBeTruthy();
+
+      // Qualquer troca de endereço — item do menu, atalho da Início, voltar.
+      act(() => navigate("/produtos"));
+
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
   });
 });

@@ -277,6 +277,37 @@
   }
 }
 
+/*
+ * Campo com 16px no celular, sempre. O Safari do iPhone amplia a tela ao focar
+ * um campo de fonte menor e não desfaz ao sair, e até 06/10/2026 quem evitava
+ * isso era o `maximum-scale=1` do index.html — que também tirava o zoom com dois
+ * dedos no Android. O Input do kit já é `text-base md:text-sm`, mas o chamador
+ * pode passar `text-sm` ou `text-[13px]` (as buscas de Produtos, Anomalias e
+ * Lucros passavam). Fora de `@layer` de propósito: CSS sem camada vence as
+ * utilidades do Tailwind, então nenhum campo novo precisa lembrar disto.
+ *
+ * - `[contenteditable]` é o editor de texto rico das Tarefas (descrição,
+ *   solução, comentários): para o Safari ele é campo como qualquer outro.
+ * - Quem já é MAIOR que 16px fica de fora (o título do cartão das Tarefas é
+ *   `text-lg`): a regra é um piso, e um valor fixo o encolheria.
+ */
+@media (max-width: 767.98px) {
+  :is(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]),
+    textarea,
+    select,
+    [contenteditable]:not([contenteditable="false"])
+  ):not(
+    [class*="text-lg"],
+    [class*="text-xl"],
+    [class*="text-2xl"],
+    [class*="text-3xl"],
+    [class*="text-4xl"]
+  ) {
+    font-size: 16px;
+  }
+}
+
 /* Glass panel effect */
 .glass-panel {
   background: rgba(255, 255, 255, 0.03);
@@ -459,12 +490,22 @@
     z-index: 999;
   }
 
-  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
+  /* O realce do hover só onde há mouse: no toque o `:hover` fica grudado no
+     botão depois de soltar o dedo, até tocar em outro lugar. */
+  @media (hover: hover) {
+    .hover-elevate:hover:not(.no-default-hover-elevate)::after {
+      background-color: var(--elevate-1);
+    }
+
+    .hover-elevate-2:hover:not(.no-default-hover-elevate)::after {
+      background-color: var(--elevate-2);
+    }
+  }
+
   .active-elevate:active:not(.no-default-active-elevate)::after {
     background-color: var(--elevate-1);
   }
 
-  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
   .active-elevate-2:active:not(.no-default-active-elevate)::after {
     background-color: var(--elevate-2);
   }

@@ -117,7 +117,7 @@ export function DateRangePicker({
       />
 
       {open && anchorRect && (
-        <FloatingCalendarPortal anchor={anchorRect} onClose={handleClose}>
+        <FloatingCalendarPortal anchor={anchorRect} anchorRef={triggerRef} onClose={handleClose}>
           <CalendarPanel>
             <DatePicker
               selected={startDate}

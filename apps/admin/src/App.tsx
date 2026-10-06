@@ -252,7 +252,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SidebarTopOffset height={topBannersHeight} />
-        <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
+        {/* `h-dvh`, não `h-screen`: no Safari do iPhone 100vh é a altura SEM as
+            barras do navegador, e o fim da tela (a paginação) ficava por baixo delas. */}
+        <div className="flex flex-col h-dvh w-full overflow-hidden bg-background">
           <OfflineBanner onOfflineChange={setIsOffline} />
           <DevEnvironmentBanner />
           <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">

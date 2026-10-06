@@ -65,7 +65,12 @@ export function ProductGallery({
       )}
 
       <Dialog open={isLightboxOpen} onOpenChange={onLightboxChange}>
-        <DialogContent className="max-w-3xl border-0 bg-transparent p-0 shadow-none">
+        {/* A foto ampliada fica centralizada também no celular: a tela cheia do
+            kit é para formulário, e aqui deixaria a foto colada no topo. */}
+        <DialogContent
+          fullScreenOnMobile={false}
+          className="max-w-3xl border-0 bg-transparent p-0 shadow-none"
+        >
           <DialogTitle className="sr-only">{product.name}</DialogTitle>
           <ProductImage
             src={selected?.url}
