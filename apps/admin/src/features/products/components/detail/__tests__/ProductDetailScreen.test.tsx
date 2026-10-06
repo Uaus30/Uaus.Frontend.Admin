@@ -236,3 +236,15 @@ describe("ProductDetailScreen — o Enter do leitor de código de barras", () =>
     expect(fireEvent.keyDown(screen.getByLabelText("Quantidade da entrada"), { key: "Enter" })).toBe(true);
   });
 });
+
+describe("ProductDetailScreen — botões do topo", () => {
+  it("não encolhem ao lado de um nome comprido (o Avançar descia de linha)", () => {
+    // Desde 06/10/2026 os botões do topo moram num embrulho que some no celular;
+    // sem `shrink-0` nele, o nome em `text-3xl` espremia os botões no computador.
+    renderScreen();
+
+    const embrulho = screen.getByTestId("product-detail-top-actions");
+    expect(embrulho.className).toContain("shrink-0");
+    expect(embrulho.className).toContain("hidden");
+  });
+});

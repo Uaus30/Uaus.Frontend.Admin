@@ -74,3 +74,26 @@ describe("ProductTableFilters — câmera", () => {
     expect(screen.queryByRole("button", { name: /código de barras, com a câmera/i })).toBeNull();
   });
 });
+
+describe("ProductTableFilters — no celular, os selects atrás do botão Filtros", () => {
+  it("o botão conta os filtros escolhidos — o Ativo padrão não conta", () => {
+    // departamento 4 e categoria 9 escolhidos, situação no padrão (Ativo).
+    renderFilters();
+
+    expect(screen.getByRole("button", { name: "Filtros (2)" })).toBeTruthy();
+  });
+
+  it("abre e fecha os selects", () => {
+    renderFilters();
+    const botao = screen.getByRole("button", { name: /^Filtros/ });
+    const selects = document.getElementById("product-filter-selects")!;
+
+    expect(botao.getAttribute("aria-expanded")).toBe("false");
+    expect(selects.className).toContain("hidden");
+
+    fireEvent.click(botao);
+
+    expect(botao.getAttribute("aria-expanded")).toBe("true");
+    expect(selects.className).not.toMatch(/(^|\s)hidden(\s|$)/);
+  });
+});

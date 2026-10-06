@@ -42,7 +42,7 @@ export function ProductSalesTab({ productId, variationOptions, onSelectProduct }
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-5">
+    <div className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-3 sm:p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -104,20 +104,20 @@ export function ProductSalesTab({ productId, variationOptions, onSelectProduct }
             <TableHeader className="bg-muted/30">
               <TableRow>
                 <TableHead className="px-4 py-3">Data e hora</TableHead>
-                <TableHead className="px-4 py-3 text-right">Quantidade</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right lg:table-cell">Quantidade</TableHead>
                 <TableHead
-                  className="px-4 py-3 text-right"
+                  className="hidden px-4 py-3 text-right lg:table-cell"
                   title="Preço praticado na venda, já com o desconto do item"
                 >
                   Valor unitário
                 </TableHead>
                 <TableHead
-                  className="px-4 py-3 text-right"
+                  className="hidden px-4 py-3 text-right lg:table-cell"
                   title="Total da venda inteira, não só deste produto"
                 >
                   Valor venda
                 </TableHead>
-                <TableHead className="w-24 px-4 py-3 text-right">Ações</TableHead>
+                <TableHead className="w-14 px-2 py-3 text-right lg:w-24 lg:px-4">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -128,8 +128,8 @@ export function ProductSalesTab({ productId, variationOptions, onSelectProduct }
                     key={sale.saleItemId}
                     className={`transition-colors hover:bg-muted/10 ${cancelada ? "text-muted-foreground" : ""}`}
                   >
-                    <TableCell className="px-4 py-3 text-sm">
-                      <span className="flex items-center gap-2">
+                    <TableCell className="px-3 py-3 text-sm lg:px-4">
+                      <span className="flex flex-wrap items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         {formatDate(sale.createdAt)}
                         <span className="text-xs text-muted-foreground">#{sale.saleId}</span>
@@ -139,11 +139,19 @@ export function ProductSalesTab({ productId, variationOptions, onSelectProduct }
                           </Badge>
                         )}
                       </span>
+                      {/* Celular e tablet: quantidade, preço e total da venda vêm
+                          aqui, e as colunas somem — "Valor venda" e o olho ficavam
+                          fora da tela. */}
+                      <p className="mt-1 text-xs text-muted-foreground lg:hidden">
+                        {formatQuantity(sale.quantity)} × {formatCurrency(sale.unitPrice)}
+                        {" · venda "}
+                        <span className="font-semibold text-primary">{formatCurrency(sale.saleTotal)}</span>
+                      </p>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-sm font-semibold">
+                    <TableCell className="hidden px-4 py-3 text-right font-mono text-sm font-semibold lg:table-cell">
                       {formatQuantity(sale.quantity)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-sm">
+                    <TableCell className="hidden px-4 py-3 text-right font-mono text-sm lg:table-cell">
                       {formatCurrency(sale.unitPrice)}
                       {/* Preço de tabela riscado quando houve desconto no item — o
                           mesmo sinal da modal da venda. */}
@@ -155,16 +163,16 @@ export function ProductSalesTab({ productId, variationOptions, onSelectProduct }
                     </TableCell>
                     {/* Total da VENDA, laranja e negrito como o total da tela de Vendas:
                         é o que mostra se o produto puxa venda grande ou sai sozinho. */}
-                    <TableCell className="px-4 py-3 text-right font-mono text-sm font-bold text-primary">
+                    <TableCell className="hidden px-4 py-3 text-right font-mono text-sm font-bold text-primary lg:table-cell">
                       {formatCurrency(sale.saleTotal)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right">
+                    <TableCell className="px-2 py-3 text-right lg:px-4">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         aria-label={`Ver detalhes da venda ${sale.saleId}`}
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        className="h-10 w-10 text-muted-foreground hover:text-foreground lg:h-8 lg:w-8"
                         onClick={() => sales.openSale(sale.saleId)}
                       >
                         <Eye className="h-4 w-4" />

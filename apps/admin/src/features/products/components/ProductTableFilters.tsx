@@ -1,6 +1,15 @@
 import { useState } from "react";
-import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { Search, RotateCcw, ScanBarcode } from "lucide-react";
+import {
+  Input,
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  cn,
+} from "@workspace/ui";
+import { Search, RotateCcw, ScanBarcode, SlidersHorizontal } from "lucide-react";
 import {
   PRODUCT_STATUS,
   type CategoryDto,
@@ -36,6 +45,12 @@ export interface ProductTableFiltersProps {
  * termo só de dígitos como código de barras. A leitura **limpa os outros
  * filtros**, inclusive o "Ativo" padrão (pedido do dono): com o produto na mão,
  * "nenhum produto" porque ele está inativo ou noutra categoria é resposta errada.
+ *
+ * **No celular (abaixo de `sm`) os três selects ficam atrás do botão
+ * "Filtros"** (06/10/2026): empilhados, eles ocupavam ~200px antes do primeiro
+ * produto. O botão conta os filtros em uso, para ninguém estranhar uma lista
+ * curta sem ver por quê. Do `sm` para cima nada muda — o embrulho dos selects é
+ * `sm:contents`, e eles voltam a ser itens da mesma linha de antes.
  */
 export function ProductTableFilters({
   search,
@@ -52,7 +67,13 @@ export function ProductTableFilters({
   onResetFilters,
 }: ProductTableFiltersProps) {
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const cameraAvailable = canUseCamera();
+  // O "Ativo" é o padrão: não conta como filtro escolhido.
+  const activeSelects =
+    Number(departmentId !== undefined) +
+    Number(categoryId !== undefined) +
+    Number(status !== PRODUCT_STATUS.Active);
 
   const isFiltered =
     Boolean(search.trim()) ||
@@ -70,7 +91,7 @@ export function ProductTableFilters({
               placeholder="Buscar produtos..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="bg-background pl-9 h-9 text-sm"
+              className="h-10 bg-background pl-9 text-sm sm:h-9"
             />
           </div>
           {/* Ao lado do campo, e não dentro dele: o `hover-elevate` do botão do
@@ -81,7 +102,7 @@ export function ProductTableFilters({
               type="button"
               size="icon"
               variant="outline"
-              className="h-9 w-9 shrink-0"
+              className="h-10 w-10 shrink-0 sm:h-9 sm:w-9"
               title="Buscar pelo código de barras, com a câmera"
               aria-label="Buscar pelo código de barras, com a câmera"
               onClick={() => setScannerOpen(true)}
@@ -89,69 +110,85 @@ export function ProductTableFilters({
               <ScanBarcode className="h-4 w-4" />
             </Button>
           )}
+          <Button
+            type="button"
+            variant={activeSelects > 0 ? "secondary" : "outline"}
+            className="h-10 shrink-0 gap-1.5 px-3 sm:hidden"
+            aria-expanded={filtersOpen}
+            aria-controls="product-filter-selects"
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtros{activeSelects > 0 ? ` (${activeSelects})` : ""}
+          </Button>
         </div>
 
-        <div className="w-full sm:w-48">
-          <Select
-            value={departmentId !== undefined ? String(departmentId) : "todos"}
-            onValueChange={(val) => {
-              setDepartmentId(val === "todos" ? undefined : Number(val));
-            }}
-          >
-            <SelectTrigger className="bg-background h-9 text-sm">
-              <SelectValue placeholder="Todos os departamentos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os departamentos</SelectItem>
-              {departments.map((dept) => (
-                <SelectItem key={dept.id} value={String(dept.id)}>
-                  {dept.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <div
+          id="product-filter-selects"
+          className={cn("flex-col gap-3 sm:contents", filtersOpen ? "flex" : "hidden")}
+        >
+          <div className="w-full sm:w-48">
+            <Select
+              value={departmentId !== undefined ? String(departmentId) : "todos"}
+              onValueChange={(val) => {
+                setDepartmentId(val === "todos" ? undefined : Number(val));
+              }}
+            >
+              <SelectTrigger className="bg-background h-9 text-sm">
+                <SelectValue placeholder="Todos os departamentos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os departamentos</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={String(dept.id)}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="w-full sm:w-48">
-          <Select
-            value={categoryId !== undefined ? String(categoryId) : "todos"}
-            onValueChange={(val) => {
-              setCategoryId(val === "todos" ? undefined : Number(val));
-            }}
-          >
-            <SelectTrigger className="bg-background h-9 text-sm">
-              <SelectValue placeholder="Todas as categorias" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas as categorias</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={String(cat.id)}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="w-full sm:w-48">
+            <Select
+              value={categoryId !== undefined ? String(categoryId) : "todos"}
+              onValueChange={(val) => {
+                setCategoryId(val === "todos" ? undefined : Number(val));
+              }}
+            >
+              <SelectTrigger className="bg-background h-9 text-sm">
+                <SelectValue placeholder="Todas as categorias" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as categorias</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={String(cat.id)}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="w-full sm:w-40">
-          <Select
-            value={status !== undefined ? String(status) : "todos"}
-            onValueChange={(val) => {
-              setStatus(val === "todos" ? undefined : Number(val));
-            }}
-          >
-            <SelectTrigger className="bg-background h-9 text-sm">
-              <SelectValue placeholder="Todos os status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              {statusOptions.map((opt) => (
-                <SelectItem key={opt.id} value={String(opt.id)}>
-                  {opt.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="w-full sm:w-40">
+            <Select
+              value={status !== undefined ? String(status) : "todos"}
+              onValueChange={(val) => {
+                setStatus(val === "todos" ? undefined : Number(val));
+              }}
+            >
+              <SelectTrigger className="bg-background h-9 text-sm">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os status</SelectItem>
+                {statusOptions.map((opt) => (
+                  <SelectItem key={opt.id} value={String(opt.id)}>
+                    {opt.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

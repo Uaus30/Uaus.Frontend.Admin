@@ -10,17 +10,18 @@ function foto(n: number): LocalImage {
 function renderSection(images: LocalImage[]) {
   const setImages = vi.fn();
   const onSearchWebImage = vi.fn();
+  const reorderProductImage = vi.fn();
   render(
     <ProductImagesSection
       images={images}
       setImages={setImages}
       handleSimpleFileSelection={vi.fn()}
-      reorderProductImage={vi.fn()}
+      reorderProductImage={reorderProductImage}
       productName="CANECA"
       onSearchWebImage={onSearchWebImage}
     />,
   );
-  return { setImages, onSearchWebImage };
+  return { setImages, onSearchWebImage, reorderProductImage };
 }
 
 describe("ProductImagesSection — capa grande e duas menores (04/10/2026)", () => {
@@ -57,5 +58,16 @@ describe("ProductImagesSection — capa grande e duas menores (04/10/2026)", () 
 
     const atualizar = setImages.mock.calls[0][0] as (current: LocalImage[]) => LocalImage[];
     expect(atualizar([foto(1), foto(2), foto(3)]).map((image) => image.imageId)).toEqual([1, 3]);
+  });
+
+  it("a estrela leva a foto para o primeiro lugar — no toque não existe arrasto", () => {
+    const { reorderProductImage } = renderSection([foto(1), foto(2), foto(3)]);
+
+    // A capa não tem estrela: ela já é a principal.
+    expect(screen.queryByLabelText("Tornar a foto 1 a principal")).toBeNull();
+
+    fireEvent.click(screen.getByLabelText("Tornar a foto 3 a principal"));
+
+    expect(reorderProductImage).toHaveBeenCalledWith(2, 0);
   });
 });

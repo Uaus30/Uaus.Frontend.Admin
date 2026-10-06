@@ -10,7 +10,7 @@ import {
 } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
-import { Button } from "@workspace/ui";
+import { Button, cn } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { buildPublicImageUrl } from "@/services/core";
 import {
@@ -30,7 +30,6 @@ import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-c
 import type { ProductTableRow } from "../types";
 import { productDetailPathname } from "../product-detail-route";
 import { canCountStock } from "../hooks/useProductListStockCount";
-import { ShelfPriceView } from "@/components/shelf-price";
 import { ProductPriceCell } from "./ProductPriceCell";
 import { ProductStockCell } from "./ProductStockCell";
 import { ProductTableFilters } from "./ProductTableFilters";
@@ -104,7 +103,10 @@ function BotaoVariacoes({
       onClick={onToggle}
       aria-expanded={aberto}
       title={aberto ? "Ocultar as variações" : `Ver as ${quantidade} variações`}
-      className={`mt-0.5 flex w-max items-center gap-0.5 text-[10px] font-semibold uppercase transition-colors hover:underline ${className}`}
+      className={cn(
+        "mt-0.5 flex w-max items-center gap-0.5 text-[10px] font-semibold uppercase transition-colors hover:underline",
+        className,
+      )}
     >
       {aberto ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
       Variações
@@ -182,13 +184,13 @@ export function ProductTable({
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-3 py-3 md:px-6 md:py-4 w-16">Imagem</th>
-              <th className="px-3 py-3 md:px-6 md:py-4 md:min-w-[250px]">Nome</th>
-              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Departamento</th>
-              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Categoria</th>
-              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Preço</th>
-              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Estoque</th>
-              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Tags</th>
-              <th className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">Status</th>
+              <th className="px-3 py-3 md:px-6 md:py-4 lg:min-w-[250px]">Nome</th>
+              <th className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">Departamento</th>
+              <th className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">Categoria</th>
+              <th className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">Preço</th>
+              <th className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">Estoque</th>
+              <th className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">Tags</th>
+              <th className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">Status</th>
               <th className="px-3 py-3 md:px-6 md:py-4 text-right">Ações</th>
             </tr>
           </thead>
@@ -227,7 +229,8 @@ export function ProductTable({
                                 e.stopPropagation();
                                 onSearchInternetImage?.(product);
                               }}
-                              className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow hover:scale-110 active:scale-95 transition-transform"
+                              aria-label="Buscar imagem na internet"
+                              className="absolute -bottom-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow transition-transform hover:scale-110 active:scale-95 lg:-bottom-1.5 lg:-right-1.5 lg:h-5 lg:w-5"
                               title="Buscar imagem na internet (pelo nome e código de barras)"
                             >
                               <Search className="h-3 w-3" />
@@ -264,16 +267,25 @@ export function ProductTable({
                           >
                             {product.name}
                           </a>
-                          {/* Celular: as colunas de preço, estoque e situação
-                              somem (convenção "esconder coluna, nunca rolar"), e
-                              o essencial delas vem aqui, embaixo do nome. O
-                              preço é só leitura — a edição rápida fica no
-                              computador e no detalhe do produto. */}
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-normal md:hidden">
-                            <ShelfPriceView
-                              shelf={product.shelf ?? { kind: "regular", price: product.price }}
-                              priceClassName="font-semibold text-orange-500"
-                            />
+                          {/* Celular e tablet: as colunas de preço, estoque e
+                              situação somem (convenção "esconder coluna, nunca
+                              rolar"), e o essencial delas vem aqui, embaixo do
+                              nome. O corte é no `lg` desde 06/10/2026: no `md` a
+                              barra lateral já aparece e as nove colunas voltavam
+                              a rolar de lado — no tablet e no celular deitado. O
+                              preço do produto simples se edita aqui também, a
+                              mesma célula da coluna: é o que o dono mais corrige
+                              pelo celular (até 06/10/2026 o resumo era só
+                              leitura, e o corte no `lg` tirava a edição rápida
+                              até do tablet). */}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-normal lg:hidden">
+                            <span className="font-semibold text-orange-500">
+                              <ProductPriceCell
+                                product={product}
+                                onUpdatePrice={onUpdatePrice}
+                                updatingPriceId={updatingPriceId}
+                              />
+                            </span>
                             <ProductStockCell
                               variant="text"
                               stock={product.stock}
@@ -293,18 +305,20 @@ export function ProductTable({
                                 aberto={aberto}
                                 quantidade={product.variationCount}
                                 onToggle={() => alternarVariacoes(product.productGroupId)}
-                                className="mt-0 text-orange-500"
+                                // Pílula de 28px no toque: o rótulo de 10px era o
+                                // único jeito de abrir as variações no celular.
+                                className="mt-0 rounded-full border border-orange-500/40 px-2.5 py-1 text-[11px] text-orange-500"
                               />
                             )}
                           </div>
                         </td>
-                        <td className="hidden px-3 py-3 text-muted-foreground md:table-cell md:px-6 md:py-4">
+                        <td className="hidden px-3 py-3 text-muted-foreground lg:table-cell md:px-6 md:py-4">
                           {product.department?.name || "-"}
                         </td>
-                        <td className="hidden px-3 py-3 text-muted-foreground md:table-cell md:px-6 md:py-4">
+                        <td className="hidden px-3 py-3 text-muted-foreground lg:table-cell md:px-6 md:py-4">
                           {product.category?.name || "-"}
                         </td>
-                        <td className="hidden px-3 py-3 font-medium text-orange-500 md:table-cell md:px-6 md:py-4">
+                        <td className="hidden px-3 py-3 font-medium text-orange-500 lg:table-cell md:px-6 md:py-4">
                           {/* O preço da linha é o de UMA das variações (a de
                               maior id); o rótulo avisa disso e, desde
                               12/09/2026, abre a lista com o de cada uma. Desde
@@ -331,7 +345,7 @@ export function ProductTable({
                           editável gravava um ajuste herdando o custo do último
                           lote sem avisar.
                         */}
-                        <td className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">
+                        <td className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">
                           <div className="flex flex-col">
                             <ProductStockCell
                               stock={product.stock}
@@ -349,7 +363,7 @@ export function ProductTable({
                             )}
                           </div>
                         </td>
-                        <td className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">
+                        <td className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">
                           <div className="flex flex-wrap gap-1">
                             {product.tags.map((tag) => (
                               <span
@@ -366,7 +380,7 @@ export function ProductTable({
                             ))}
                           </div>
                         </td>
-                        <td className="hidden px-3 py-3 md:table-cell md:px-6 md:py-4">
+                        <td className="hidden px-3 py-3 lg:table-cell md:px-6 md:py-4">
                           <Badge
                             variant={
                               enumCode(product.status, PRODUCT_STATUS) === PRODUCT_STATUS.Active
@@ -386,7 +400,8 @@ export function ProductTable({
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                  aria-label={`Ações de ${product.name}`}
+                                  className="h-10 w-10 text-muted-foreground hover:text-foreground lg:h-8 lg:w-8"
                                 >
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
@@ -559,13 +574,15 @@ export function ProductTable({
         >
           <DialogTitle className="sr-only">Visualizar Imagem</DialogTitle>
           {selectedImage && (
-            <div className="relative w-full h-full flex items-center justify-center p-8">
+            <div className="relative flex h-full w-full items-center justify-center p-4 sm:p-8">
+              {/* No celular a foto cabe na largura da tela; os 500px fixos dentro
+                  do respiro de 32px cortavam os dois lados. */}
               <img
                 loading="lazy"
                 decoding="async"
                 src={buildPublicImageUrl(selectedImage.url)}
                 alt={selectedImage.name}
-                className="max-h-[500px] max-w-[500px] rounded-lg object-contain shadow-2xl w-auto h-auto"
+                className="h-auto max-h-[80dvh] w-auto max-w-full rounded-lg object-contain shadow-2xl sm:max-h-[500px] sm:max-w-[500px]"
               />
             </div>
           )}

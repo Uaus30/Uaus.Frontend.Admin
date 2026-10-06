@@ -1,5 +1,5 @@
 import React from "react";
-import { Globe, HelpCircle, ImagePlus, X } from "lucide-react";
+import { Globe, HelpCircle, ImagePlus, Star, X } from "lucide-react";
 import {
   Button,
   ImageHoverZoom,
@@ -35,6 +35,8 @@ type ProductImagesSectionProps = {
  * produto sem foto (118 vendáveis em produção, 04/10/2026) mostra os três vazios
  * em vez de uma área genérica. Arrastar uma foto sobre outra troca a ordem — a
  * que vai para o primeiro lugar vira a capa da vitrine, do PDV e da listagem.
+ * No celular não há arrasto: a estrela das fotos menores leva a foto para o
+ * primeiro lugar (06/10/2026).
  */
 export function ProductImagesSection({
   images,
@@ -108,14 +110,29 @@ export function ProductImagesSection({
             Principal
           </span>
         )}
+        {/* Botões com 32px: no toque o X de 20px de antes pedia mira. */}
         <button
           type="button"
-          className="absolute right-1.5 top-1.5 cursor-pointer rounded bg-card/90 p-1 text-destructive transition-colors hover:bg-destructive/10"
+          className="absolute right-1 top-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-card/90 text-destructive transition-colors hover:bg-destructive/10"
           onClick={() => remover(index)}
           aria-label={`Remover a foto ${index + 1}`}
         >
-          <X className="h-3 w-3" />
+          <X className="h-4 w-4" />
         </button>
+        {/* O arrasto que troca a ordem não existe no toque (o `draggable` do
+            HTML é só de mouse): sem este botão, no celular não havia como
+            escolher a capa. */}
+        {index > 0 && (
+          <button
+            type="button"
+            className="absolute left-1 top-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-card/90 text-amber-500 transition-colors hover:bg-amber-500/10"
+            onClick={() => reorderProductImage(index, 0)}
+            aria-label={`Tornar a foto ${index + 1} a principal`}
+            title="Tornar a principal"
+          >
+            <Star className="h-4 w-4" />
+          </button>
+        )}
       </div>
     );
   }
@@ -136,8 +153,9 @@ export function ProductImagesSection({
               <TooltipContent className="max-w-xs">
                 <p>
                   A primeira é a capa da vitrine, do PDV e da listagem. Arraste uma foto sobre outra para
-                  trocar a ordem, ou cole (Ctrl+V) uma imagem copiada. Cada produto tem no máximo{" "}
-                  {MAX_PRODUCT_IMAGES} fotos.
+                  trocar a ordem, ou toque na estrela da foto que deve virar a principal. No computador, dá
+                  para colar (Ctrl+V) uma imagem copiada. Cada produto tem no máximo {MAX_PRODUCT_IMAGES}{" "}
+                  fotos.
                 </p>
               </TooltipContent>
             </Tooltip>

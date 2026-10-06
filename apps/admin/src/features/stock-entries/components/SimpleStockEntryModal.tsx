@@ -222,11 +222,13 @@ export function SimpleStockEntryModal({
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-border/40 pt-4 mt-2">
+          {/* No celular o aviso vai em cima e os botões dividem a largura: numa
+              linha só, o texto e os dois botões estouravam a tela. */}
+          <div className="mt-2 flex flex-col gap-3 border-t border-border/40 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">
               (*) Campos obrigatórios. O custo e o preço lançados passam a valer no cadastro.
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 max-sm:[&>button]:flex-1">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>

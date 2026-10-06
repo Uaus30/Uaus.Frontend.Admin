@@ -92,7 +92,7 @@ export function ProductStockTab({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-5">
+    <div className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-3 sm:p-5">
       {entryPrefill && (
         <p
           data-testid="purchase-prefill-banner"
@@ -200,17 +200,17 @@ export function ProductStockTab({
             <TableHeader className="bg-muted/30">
               <TableRow>
                 <TableHead className="px-4 py-3">Data de Entrada</TableHead>
-                <TableHead className="px-4 py-3">Nº da Nota</TableHead>
-                <TableHead className="px-4 py-3">Fornecedor</TableHead>
-                <TableHead className="px-4 py-3 text-right">Qtd. × custo</TableHead>
+                <TableHead className="hidden px-4 py-3 lg:table-cell">Nº da Nota</TableHead>
+                <TableHead className="hidden px-4 py-3 lg:table-cell">Fornecedor</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right lg:table-cell">Qtd. × custo</TableHead>
                 <TableHead
-                  className="px-4 py-3 text-right"
+                  className="hidden px-4 py-3 text-right lg:table-cell"
                   title="Margem que o custo desta entrada dá no preço de venda atual"
                 >
                   Margem
                 </TableHead>
-                <TableHead className="px-4 py-3 text-right">Total da Nota</TableHead>
-                <TableHead className="w-24 px-4 py-3 text-right">Ações</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right lg:table-cell">Total da Nota</TableHead>
+                <TableHead className="w-14 px-2 py-3 text-right lg:w-24 lg:px-4">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -225,13 +225,43 @@ export function ProductStockTab({
                     : null;
                 return (
                   <TableRow key={entry.id} className="transition-colors hover:bg-muted/10">
-                    <TableCell className="px-4 py-3 text-sm">
+                    <TableCell className="px-3 py-3 text-sm lg:px-4">
                       <span className="flex items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         {stock.formatShortDate(entry.entryDate)}
                       </span>
+                      {/* Celular e tablet: as colunas somem (convenção "esconder
+                          coluna, nunca rolar") e o essencial vem aqui. Eram sete
+                          colunas, ~750px, e o olho — o único caminho para o
+                          detalhe da entrada — ficava fora da tela. */}
+                      <div className="mt-1 space-y-0.5 text-xs text-muted-foreground lg:hidden">
+                        <p className="break-words">
+                          {enumCode(entry.type, PURCHASE_ENTRY_TYPE) === PURCHASE_ENTRY_TYPE.ManualAdjustment
+                            ? "Ajuste manual"
+                            : supplier?.name || "Fornecedor não informado"}
+                          {entry.invoiceNumber ? ` · Nota ${entry.invoiceNumber}` : ""}
+                        </p>
+                        <p>
+                          {custoUnitario !== null && (
+                            <>
+                              {formatQuantity(entry.productQuantity ?? 0)} ×{" "}
+                              {stock.formatCurrency(custoUnitario)}
+                              {" · "}
+                            </>
+                          )}
+                          {margem !== null && (
+                            <span className={`font-semibold ${marginToneClass(marginBand(margem))}`}>
+                              {formatPercentage(margem)}
+                              {" · "}
+                            </span>
+                          )}
+                          <span className="font-semibold text-emerald-500">
+                            {stock.formatCurrency(entry.total)}
+                          </span>
+                        </p>
+                      </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 font-mono text-sm">
+                    <TableCell className="hidden px-4 py-3 font-mono text-sm lg:table-cell">
                       {enumCode(entry.type, PURCHASE_ENTRY_TYPE) === PURCHASE_ENTRY_TYPE.ManualAdjustment ? (
                         <Badge variant="outline" className="font-sans font-normal">
                           Ajuste manual
@@ -240,10 +270,10 @@ export function ProductStockTab({
                         entry.invoiceNumber || "-"
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm font-medium">
+                    <TableCell className="hidden px-4 py-3 text-sm font-medium lg:table-cell">
                       {supplier?.name || "Não informado"}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-sm">
+                    <TableCell className="hidden px-4 py-3 text-right font-mono text-sm lg:table-cell">
                       {custoUnitario === null ? (
                         <span className="text-muted-foreground">—</span>
                       ) : (
@@ -254,20 +284,20 @@ export function ProductStockTab({
                       )}
                     </TableCell>
                     <TableCell
-                      className={`px-4 py-3 text-right text-sm font-semibold ${marginToneClass(marginBand(margem))}`}
+                      className={`hidden px-4 py-3 text-right text-sm font-semibold lg:table-cell ${marginToneClass(marginBand(margem))}`}
                     >
                       {margem === null ? "—" : formatPercentage(margem)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right text-sm font-semibold text-emerald-500">
+                    <TableCell className="hidden px-4 py-3 text-right text-sm font-semibold text-emerald-500 lg:table-cell">
                       {stock.formatCurrency(entry.total)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right">
+                    <TableCell className="px-2 py-3 text-right lg:px-4">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         aria-label={`Ver detalhes da entrada ${entry.id}`}
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        className="h-10 w-10 text-muted-foreground hover:text-foreground lg:h-8 lg:w-8"
                         onClick={() => stock.openDetails(entry.id)}
                       >
                         <Eye className="h-4 w-4" />
@@ -282,7 +312,7 @@ export function ProductStockTab({
       )}
 
       {stock.totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"

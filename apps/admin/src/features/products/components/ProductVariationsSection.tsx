@@ -1,12 +1,18 @@
 import React from "react";
-import { Loader2, Trash2 } from "lucide-react";
-import { Input } from "@workspace/ui";
+import { Loader2 } from "lucide-react";
 import { Button } from "@workspace/ui";
-import { formatQuantity, resolveBarcodeInput } from "@workspace/core";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { CurrencyInput } from "./CurrencyInput";
 import { VariationGradeHeader } from "./VariationGradeHeader";
+import { ProductVariationCards } from "./ProductVariationCards";
+import {
+  VariationBarcodeField,
+  VariationDeleteButton,
+  VariationGradeField,
+  VariationPriceField,
+  VariationStatusField,
+  VariationStock,
+} from "./VariationFields";
 import { nomeExibidoDaVariacao } from "../lib/variationNames";
+import { LG_BREAKPOINT, useNarrowerThan } from "@/hooks/use-narrower-than";
 import type { VariationDraft, ProductGrade } from "../types";
 
 type ProductVariationsSectionProps = {
@@ -60,6 +66,9 @@ export function ProductVariationsSection({
   addVariationDraft,
   changeGradeType,
 }: ProductVariationsSectionProps) {
+  // Abaixo do `lg` a tabela (~900px de largura mínima) vira cartões.
+  const emCartoes = useNarrowerThan(LG_BREAKPOINT);
+
   if (variationDrafts.length === 0) return null;
 
   /** O valor que esta variação tem para uma grade, ou vazio. */
@@ -90,7 +99,7 @@ export function ProductVariationsSection({
   return (
     <div
       id="variations-table-container"
-      className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-5 mt-6 animate-in fade-in slide-in-from-bottom-4 transition-all duration-300"
+      className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-3 sm:p-5 mt-6 animate-in fade-in slide-in-from-bottom-4 transition-all duration-300"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -99,33 +108,48 @@ export function ProductVariationsSection({
         {isFetchingGroupProducts ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : null}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border/50 bg-card/80">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-muted/30 text-xs uppercase text-muted-foreground border-b border-border/50">
-            <tr>
-              <th className="px-4 py-3 font-medium w-48 min-w-[11rem] whitespace-nowrap text-center">
-                CÓDIGO
-              </th>
-              {selectedGrades.map((grade) => (
-                <th
-                  key={grade.type}
-                  className="px-2 py-2 font-medium w-32 min-w-[8rem] whitespace-nowrap border-l border-border/30 bg-muted/20 text-foreground"
-                >
-                  <div className="flex items-center gap-1">
-                    <VariationGradeHeader
-                      type={grade.type}
-                      tiposEmUso={selectedGrades.map((outra) => outra.type)}
-                      onChangeType={changeGradeType}
-                    />
-                    <span className="text-red-500">*</span>
-                  </div>
+      {emCartoes ? (
+        <ProductVariationCards
+          variationDrafts={variationDrafts}
+          selectedGrades={selectedGrades}
+          productGroupName={productGroupName}
+          selectableStatusOptions={selectableStatusOptions}
+          validationErrors={validationErrors}
+          updateVariationDraft={updateVariationDraft}
+          setVariationToDelete={setVariationToDelete}
+          handleDeleteVariation={handleDeleteVariation}
+          changeGradeType={changeGradeType}
+          gradeValue={valorDaGrade}
+          setGradeValue={definirValor}
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border/50 bg-card/80">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/30 text-xs uppercase text-muted-foreground border-b border-border/50">
+              <tr>
+                <th className="px-4 py-3 font-medium w-48 min-w-[11rem] whitespace-nowrap text-center">
+                  CÓDIGO
                 </th>
-              ))}
-              <th className="px-4 py-3 font-medium whitespace-nowrap">Variação</th>
-              <th className="px-4 py-3 font-medium w-32 min-w-[8rem] whitespace-nowrap text-center">
-                PREÇO <span className="text-red-500">*</span>
-              </th>
-              {/*
+                {selectedGrades.map((grade) => (
+                  <th
+                    key={grade.type}
+                    className="px-2 py-2 font-medium w-32 min-w-[8rem] whitespace-nowrap border-l border-border/30 bg-muted/20 text-foreground"
+                  >
+                    <div className="flex items-center gap-1">
+                      <VariationGradeHeader
+                        type={grade.type}
+                        tiposEmUso={selectedGrades.map((outra) => outra.type)}
+                        onChangeType={changeGradeType}
+                      />
+                      <span className="text-red-500">*</span>
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Variação</th>
+                <th className="px-4 py-3 font-medium w-32 min-w-[8rem] whitespace-nowrap text-center">
+                  PREÇO <span className="text-red-500">*</span>
+                </th>
+                {/*
                 Somente leitura, e sem asterisco: estoque não se digita aqui —
                 ele é a soma dos LOTES do produto (entrada, venda, baixa e
                 contagem mexem nele). A coluna existe porque, num produto que
@@ -133,64 +157,35 @@ export function ProductVariationsSection({
                 mais antiga: sem ela, o operador via a tabela nova e concluía
                 que o estoque tinha sumido.
               */}
-              <th className="px-4 py-3 font-medium w-28 min-w-[6rem] whitespace-nowrap text-center">
-                ESTOQUE
-              </th>
-              <th className="px-4 py-3 font-medium w-32 min-w-[8rem] whitespace-nowrap text-center">
-                Status <span className="text-red-500">*</span>
-              </th>
-              <th className="px-4 py-3 font-medium text-right w-16 whitespace-nowrap">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/50">
-            {variationDrafts.map((variation) => {
-              // A MESMA regra do campo do produto simples. Sem ela, a linha da
-              // grade imprimia o rascunho digitado (`0020`) enquanto a API
-              // gravava `2000000000206` — etiqueta colada na mercadoria que o
-              // PDV não acha ao bipar, que é justamente o defeito que a
-              // padronização de 21/09/2026 veio fechar.
-              const barcodeInput = resolveBarcodeInput(variation.barcode || "");
-
-              return (
+                <th className="px-4 py-3 font-medium w-28 min-w-[6rem] whitespace-nowrap text-center">
+                  ESTOQUE
+                </th>
+                <th className="px-4 py-3 font-medium w-32 min-w-[8rem] whitespace-nowrap text-center">
+                  Status <span className="text-red-500">*</span>
+                </th>
+                <th className="px-4 py-3 font-medium text-right w-16 whitespace-nowrap">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {variationDrafts.map((variation) => (
                 <tr key={variation.key} className="hover:bg-muted/10 transition-colors">
                   <td className="px-4 py-2 text-center">
-                    <div className="flex items-center gap-1 justify-center">
-                      <Input
-                        value={variation.barcode || ""}
-                        onChange={(e) =>
-                          updateVariationDraft(variation.key, (draft) => ({
-                            ...draft,
-                            barcode: e.target.value,
-                          }))
-                        }
-                        placeholder="Auto"
-                        inputMode="numeric"
-                        aria-invalid={barcodeInput.kind === "invalid"}
-                        title={barcodeInput.error ?? undefined}
-                        className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background font-mono text-xs text-center ${
-                          barcodeInput.kind === "invalid" ? "border-red-500 text-red-600" : ""
-                        }`}
-                      />
-                    </div>
-                    {barcodeInput.kind === "invalid" && (
-                      <p className="mt-1 text-[10px] font-medium text-red-500">
-                        Código inválido — passe o mouse para ver o motivo.
-                      </p>
-                    )}
+                    <VariationBarcodeField
+                      compact
+                      variation={variation}
+                      updateVariationDraft={updateVariationDraft}
+                    />
                   </td>
 
                   {selectedGrades.map((grade) => (
                     <td key={grade.type} className="px-2 py-2 border-l border-border/30 bg-muted/5">
-                      <Input
-                        id={`input-grade-${grade.type}-${variation.key}`}
+                      <VariationGradeField
+                        compact
+                        variation={variation}
+                        grade={grade.type}
                         value={valorDaGrade(variation, grade.type)}
-                        onChange={(e) => definirValor(variation, grade.type, e.target.value)}
-                        placeholder="-"
-                        className={`h-8 text-xs bg-transparent border-transparent hover:border-border focus:bg-background uppercase ${
-                          validationErrors[`grade-${grade.type}-${variation.key}`]
-                            ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
-                            : ""
-                        }`}
+                        onChange={(valor) => definirValor(variation, grade.type, valor)}
+                        invalid={!!validationErrors[`grade-${grade.type}-${variation.key}`]}
                       />
                     </td>
                   ))}
@@ -207,102 +202,49 @@ export function ProductVariationsSection({
                   </td>
 
                   <td className="px-4 py-2 text-center">
-                    <CurrencyInput
-                      id={`input-price-${variation.key}`}
-                      value={variation.price}
-                      onChange={(val) =>
-                        updateVariationDraft(variation.key, (draft) => ({ ...draft, price: val }))
-                      }
-                      className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background cursor-pointer focus:cursor-text text-center ${
-                        validationErrors[`price-${variation.key}`]
-                          ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
-                          : ""
-                      }`}
+                    <VariationPriceField
+                      compact
+                      variation={variation}
+                      updateVariationDraft={updateVariationDraft}
+                      invalid={!!validationErrors[`price-${variation.key}`]}
                     />
-                    {validationErrors[`price-${variation.key}`] && (
-                      <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
-                        Preenchimento obrigatório
-                      </p>
-                    )}
                   </td>
 
-                  {/*
-                  Linha ainda não salva mostra travessão, não "0 un": ela não
-                  existe no banco, então não tem saldo — zero ali seria um dado
-                  inventado. O estoque entra pela aba Estoque, depois de salvar.
-                */}
                   <td className="px-4 py-2 text-center text-xs">
-                    {variation.id ? (
-                      <span className="font-medium text-foreground">
-                        {formatQuantity(variation.stock ?? 0)} un
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                    <VariationStock variation={variation} />
                   </td>
 
                   <td className="px-4 py-2 text-center">
-                    <Select
-                      value={variation.status}
-                      onValueChange={(value) =>
-                        updateVariationDraft(variation.key, (draft) => ({ ...draft, status: value }))
-                      }
-                    >
-                      <SelectTrigger
-                        id={`select-status-${variation.key}`}
-                        className={`h-8 bg-transparent border-transparent hover:border-border focus:bg-background justify-center text-center ${
-                          validationErrors[`status-${variation.key}`]
-                            ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
-                            : ""
-                        }`}
-                      >
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectableStatusOptions.map((status) => (
-                          <SelectItem key={status.id} value={status.id.toString()}>
-                            {status.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {validationErrors[`status-${variation.key}`] && (
-                      <p className="text-[10px] text-red-500 font-medium leading-tight mt-0.5">
-                        Preenchimento obrigatório
-                      </p>
-                    )}
+                    <VariationStatusField
+                      compact
+                      variation={variation}
+                      updateVariationDraft={updateVariationDraft}
+                      options={selectableStatusOptions}
+                      invalid={!!validationErrors[`status-${variation.key}`]}
+                    />
                   </td>
 
                   <td className="px-4 py-2 text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      disabled={variation.id != null && variation.canDelete === false}
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => {
-                        if (variation.id != null) {
-                          setVariationToDelete(variation);
-                        } else {
-                          handleDeleteVariation(variation);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <VariationDeleteButton
+                      variation={variation}
+                      setVariationToDelete={setVariationToDelete}
+                      handleDeleteVariation={handleDeleteVariation}
+                    />
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
-          O nome da variação é montado a partir do nome do produto e dos valores de grade. O título de cada
-          coluna troca o tipo da grade. Para acrescentar valores ou uma grade nova, use{" "}
-          <strong>Configurar Variações</strong>.
+          O nome da variação é montado a partir do nome do produto e dos valores de grade.{" "}
+          {emCartoes
+            ? "O tipo das grades se troca no seletor acima dos cartões."
+            : "O título de cada coluna troca o tipo da grade."}{" "}
+          Para acrescentar valores ou uma grade nova, use <strong>Configurar Variações</strong>.
         </p>
         {/*
           Acrescentar uma linha avulsa evita regerar a matriz só para incluir uma

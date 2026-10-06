@@ -83,9 +83,15 @@ describe("ProductSalesTab", () => {
     respondeCom([vendaPaga]);
     renderTab();
 
-    const total = screen.getByText(/^R\$\s185,50$/);
-    expect(total.closest("td")?.className).toContain("text-primary");
-    expect(total.closest("td")?.className).toContain("font-bold");
+    // Duas vezes desde 06/10/2026: a coluna do computador e o resumo que o
+    // celular mostra embaixo da data (a coluna some abaixo do `lg`).
+    const [coluna, resumo] = screen.getAllByText(/^R\$\s185,50$/);
+    const celula = [coluna, resumo]
+      .map((el) => el.closest("td")!)
+      .find((td) => td.className.includes("lg:table-cell"))!;
+    expect(celula.className).toContain("text-primary");
+    expect(celula.className).toContain("font-bold");
+    expect(screen.getByText(/2 × R\$\s20,00 · venda/)).toBeDefined();
   });
 
   it("marca a venda cancelada em vez de escondê-la", () => {

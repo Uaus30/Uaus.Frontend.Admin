@@ -109,7 +109,9 @@ export function StockCountModal({
           {header}
 
           <div className="rounded-xl border border-border/40 bg-background/40 p-4">
-            <p className="truncate text-sm font-semibold text-foreground" title={productName}>
+            {/* Nome inteiro no celular, que é onde o dono corrige estoque com o
+                produto na mão; uma linha só do `sm` para cima. */}
+            <p className="break-words text-sm font-semibold text-foreground sm:truncate" title={productName}>
               {productName}
             </p>
             <p className="text-xs text-muted-foreground">

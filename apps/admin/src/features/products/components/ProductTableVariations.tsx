@@ -36,6 +36,21 @@ type ProductTableVariationsProps = {
  * ninguém perceber. O cabeçalho também resolve a lista longa, em que o da
  * tabela principal já rolou para fora da tela.
  */
+function StatusBadge({
+  status,
+  statusOptions,
+}: {
+  status: ProductTableRowVariation["status"];
+  statusOptions: EnumOptionDto[];
+}) {
+  const code = enumCode(status, PRODUCT_STATUS);
+  return (
+    <Badge variant={code === PRODUCT_STATUS.Active ? "default" : "outline"}>
+      {statusOptions.find((option) => option.id === code)?.name ?? "—"}
+    </Badge>
+  );
+}
+
 export function ProductTableVariations({
   variations,
   departmentName,
@@ -45,13 +60,38 @@ export function ProductTableVariations({
   return (
     <tr className="border-b border-border/50 bg-muted/10">
       {/* O recuo à esquerda é o que faz a leitura de "está dentro daquela linha". */}
-      <td colSpan={colSpan} className="px-3 py-3 md:px-6 md:pl-16">
-        <div className="overflow-hidden rounded-xl border border-border/50 bg-background/40">
+      <td colSpan={colSpan} className="px-3 py-3 md:px-6 lg:pl-16">
+        {/* Celular e tablet: uma lista empilhada — nome em cima, preço, estoque e
+            situação embaixo. A tabela de quatro colunas, dentro da caixa de
+            borda arredondada (`overflow-hidden`), CORTAVA a coluna de status sem
+            deixar rolar até ela. */}
+        <ul className="divide-y divide-border/30 overflow-hidden rounded-xl border border-border/50 bg-background/40 text-xs lg:hidden">
+          {variations.map((variation) => (
+            <li key={variation.id} className="space-y-1 px-3 py-2">
+              <p className="break-words font-medium text-foreground">{variation.name}</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-medium text-orange-500">
+                  <ShelfPriceView shelf={variation.shelf ?? { kind: "regular", price: variation.price }} />
+                </span>
+                <ProductStockCell
+                  variant="text"
+                  stock={variation.stock}
+                  atMinimumStock={variation.atMinimumStock}
+                  needsRestock={variation.needsRestock}
+                  purchaseInTransit={variation.purchaseInTransit}
+                />
+                <StatusBadge status={variation.status} statusOptions={statusOptions} />
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden overflow-hidden rounded-xl border border-border/50 bg-background/40 lg:block">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-border/50 bg-muted/30 text-[10px] uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 font-medium">Variação</th>
-                <th className="hidden px-4 py-2 font-medium md:table-cell">Departamento</th>
+                <th className="px-4 py-2 font-medium">Departamento</th>
                 <th className="px-4 py-2 font-medium">Preço</th>
                 <th className="px-4 py-2 font-medium">Estoque</th>
                 <th className="px-4 py-2 font-medium">Status</th>
@@ -61,7 +101,7 @@ export function ProductTableVariations({
               {variations.map((variation) => (
                 <tr key={variation.id} className="border-b border-border/30 last:border-0">
                   <td className="px-4 py-2 font-medium text-foreground">{variation.name}</td>
-                  <td className="hidden px-4 py-2 text-muted-foreground md:table-cell">{departmentName}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{departmentName}</td>
                   <td className="px-4 py-2 font-medium text-orange-500">
                     {/* O percentual dá um preço promocional por variação. */}
                     <ShelfPriceView shelf={variation.shelf ?? { kind: "regular", price: variation.price }} />
@@ -77,17 +117,7 @@ export function ProductTableVariations({
                     />
                   </td>
                   <td className="px-4 py-2">
-                    <Badge
-                      variant={
-                        enumCode(variation.status, PRODUCT_STATUS) === PRODUCT_STATUS.Active
-                          ? "default"
-                          : "outline"
-                      }
-                    >
-                      {statusOptions.find(
-                        (option) => option.id === enumCode(variation.status, PRODUCT_STATUS),
-                      )?.name ?? "—"}
-                    </Badge>
+                    <StatusBadge status={variation.status} statusOptions={statusOptions} />
                   </td>
                 </tr>
               ))}

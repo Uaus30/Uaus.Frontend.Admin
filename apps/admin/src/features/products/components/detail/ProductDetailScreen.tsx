@@ -354,7 +354,9 @@ export function ProductDetailScreen({
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="min-w-0">
-              <h1 className="truncate font-display text-3xl font-bold text-foreground">
+              {/* Duas linhas e fonte menor no celular: o `truncate` de uma linha em
+                  `text-3xl` mostrava ~13 letras do nome. */}
+              <h1 className="line-clamp-2 break-words font-display text-xl font-bold text-foreground sm:line-clamp-1 sm:text-3xl">
                 {form.productGroupName || "Novo Produto"}
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -368,12 +370,17 @@ export function ProductDetailScreen({
             </div>
           </div>
 
-          <ProductDetailActions
-            saving={saving}
-            onCancel={fecharTela}
-            onAdvance={avancar}
-            nextTabLabel={proximaAba}
-          />
+          {/* No celular os botões ficam só na barra presa ao pé da tela (abaixo).
+              `shrink-0` no embrulho: o item da linha passou a ser ele, e sem a
+              trava um nome comprido espremia os botões e o Avançar descia. */}
+          <div data-testid="product-detail-top-actions" className="hidden shrink-0 sm:block">
+            <ProductDetailActions
+              saving={saving}
+              onCancel={fecharTela}
+              onAdvance={avancar}
+              nextTabLabel={proximaAba}
+            />
+          </div>
         </div>
 
         {/* Só aparece quando o cadastro está numa conferência ABERTA — é o que
@@ -476,13 +483,17 @@ export function ProductDetailScreen({
           </TabsContent>
         </Tabs>
 
-        {/* Repetidos no rodapé para o cadastro longo não obrigar a voltar ao topo. */}
-        <div className="flex justify-end border-t border-border/40 pt-4">
+        {/* Repetidos no rodapé para o cadastro longo não obrigar a voltar ao topo.
+            No celular a barra fica PRESA ao pé da tela (`sticky`), sempre à mão;
+            o `-mx-3` cobre a margem do `<main>` para o conteúdo não aparecer
+            pelas laterais quando passa por baixo dela. */}
+        <div className="flex justify-end border-t border-border/40 pt-4 max-sm:sticky max-sm:bottom-0 max-sm:z-20 max-sm:-mx-3 max-sm:bg-background/95 max-sm:px-3 max-sm:pb-3 max-sm:pt-3 max-sm:backdrop-blur">
           <ProductDetailActions
             saving={saving}
             onCancel={fecharTela}
             onAdvance={avancar}
             nextTabLabel={proximaAba}
+            className="max-sm:w-full max-sm:flex-nowrap max-sm:[&>button]:flex-1"
           />
         </div>
       </form>

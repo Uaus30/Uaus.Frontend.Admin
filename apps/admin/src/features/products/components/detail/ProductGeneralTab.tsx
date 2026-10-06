@@ -56,7 +56,7 @@ export function ProductGeneralTab({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border/50 bg-background/40 p-5">
+      <div className="rounded-2xl border border-border/50 bg-background/40 p-3 sm:p-5">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -90,7 +90,9 @@ export function ProductGeneralTab({
             >
               <ChevronDown className={`h-4 w-4 transition-transform ${maisCampos ? "rotate-180" : ""}`} />
               {maisCampos ? "Menos campos" : "Mais campos"}
-              <span className="text-xs font-normal">
+              {/* A lista só no computador: no celular ela fazia o botão (que não
+                  quebra linha) medir ~500px e empurrava a página para o lado. */}
+              <span className="hidden text-xs font-normal sm:inline">
                 (descrição, tags, estoque mínimo, controle de estoque, site e observações)
               </span>
             </Button>

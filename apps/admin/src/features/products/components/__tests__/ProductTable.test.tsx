@@ -162,13 +162,15 @@ describe("ProductTable — variações aninhadas", () => {
     fireEvent.click(botoes[0]);
 
     expect(screen.getByRole("columnheader", { name: /^variação$/i })).toBeTruthy();
-    expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toBeTruthy();
-    expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [VERDE]")).toBeTruthy();
+    // Duas vezes cada: na lista empilhada do celular e na tabela do computador
+    // (06/10/2026) — uma das duas some por CSS.
+    expect(screen.getAllByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toHaveLength(2);
+    expect(screen.getAllByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [VERDE]")).toHaveLength(2);
     // O estoque da linha é a soma; o de cada variação vai na sublista.
     // Na coluna e no resumo do celular.
     expect(screen.getAllByText("15 un")).toHaveLength(2);
-    expect(screen.getByText("3 un")).toBeTruthy();
-    expect(screen.getByText("12 un")).toBeTruthy();
+    expect(screen.getAllByText("3 un")).toHaveLength(2);
+    expect(screen.getAllByText("12 un")).toHaveLength(2);
     // Categoria e etiquetas ficaram de fora da sublista a pedido do dono: a
     // categoria repetiria a da linha de cima em toda variação.
     const sublista = screen.getByRole("columnheader", { name: /^variação$/i }).closest("table")!;
@@ -184,10 +186,10 @@ describe("ProductTable — variações aninhadas", () => {
 
     const botao = screen.getAllByRole("button", { name: /variações/i })[1];
     fireEvent.click(botao);
-    expect(screen.getByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toBeTruthy();
+    expect(screen.getAllByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]").length).toBeGreaterThan(0);
 
     fireEvent.click(botao);
-    expect(screen.queryByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toBeNull();
+    expect(screen.queryAllByText("COPO INFANTIL PLÁSTICO COM ESTAMPA [AZUL]")).toHaveLength(0);
   });
 
   it("produto simples não tem o que abrir", () => {
@@ -290,5 +292,34 @@ describe("ProductTable — coluna de estoque (04/10/2026)", () => {
 
     expect(screen.getAllByText("Comprado").length).toBeGreaterThan(0);
     expect(screen.queryByText("Comprar!")).toBeNull();
+  });
+});
+
+describe("ProductTable — preço no resumo do celular (06/10/2026)", () => {
+  afterEach(cleanup);
+
+  it("o preço do produto simples se edita também no resumo embaixo do nome", () => {
+    // Preço é o que o dono mais corrige pelo celular; o resumo era só leitura, e
+    // com o corte no `lg` a edição rápida sumia até do tablet.
+    const onUpdatePrice = vi.fn().mockResolvedValue(undefined);
+    const simples = row({ price: 10, productGroup: { ...row().productGroup, hasVariations: false } });
+    renderTable({ enrichedProducts: [simples], onUpdatePrice });
+
+    // Um campo na coluna (computador) e outro no resumo (celular e tablet).
+    const campos = screen.getAllByLabelText("Preço de venda");
+    expect(campos).toHaveLength(2);
+
+    const doResumo = campos[0].closest("td")!.className.includes("lg:table-cell") ? campos[1] : campos[0];
+    fireEvent.focus(doResumo);
+    fireEvent.change(doResumo, { target: { value: "12,50" } });
+    fireEvent.blur(doResumo);
+
+    expect(onUpdatePrice).toHaveBeenCalledWith(simples, 12.5);
+  });
+
+  it("no grupo com variações o resumo só mostra o preço — cada variação tem o seu", () => {
+    renderTable();
+
+    expect(screen.queryByLabelText("Preço de venda")).toBeNull();
   });
 });

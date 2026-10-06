@@ -876,13 +876,34 @@ a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
   `@/lib/barcode-scanner`). **A leitura limpa os outros filtros**, inclusive o
   "Ativo" padrão — pedido do dono: com o produto na mão, "nenhum produto"
   porque ele está inativo ou noutra categoria é a resposta errada.
-- **Celular** (abaixo de `md`): a tabela fica com Imagem, Nome e Ações, e as
-  outras colunas somem — a convenção "esconder coluna, nunca rolar" da base. O
-  essencial delas vem embaixo do nome: preço (só leitura; a edição rápida fica
-  no computador e no detalhe), estoque, situação quando não é Ativo e o botão
-  Variações. Do `md` para cima a tabela é a mesma de antes. O resumo existe no
-  DOM em toda largura (só some por CSS): teste que procura o preço, o estoque
-  ou o botão Variações acha um a mais.
+- **Celular e tablet** (abaixo de `lg` desde 06/10/2026; era `md`): a tabela
+  fica com Imagem, Nome e Ações, e as outras colunas somem — a convenção
+  "esconder coluna, nunca rolar" da base. O essencial delas vem embaixo do nome:
+  preço (só leitura; a edição rápida fica no computador e no detalhe), estoque,
+  situação quando não é Ativo e o botão Variações (uma pílula de 28px). No `md`
+  a barra lateral já aparece, e as nove colunas voltavam a rolar de lado. O
+  resumo existe no DOM em toda largura (só some por CSS): teste que procura o
+  preço, o estoque ou o botão Variações acha um a mais — e a lista de variações
+  aberta também vem duas vezes (lista empilhada e tabela).
+
+### 8.1. O detalhe no celular (06/10/2026)
+
+O dono mexe pelo celular em preço, nome, foto, correção de estoque e variações.
+
+- **Filtros:** abaixo de `sm`, os três selects ficam atrás do botão "Filtros
+  (n)", que conta os escolhidos (o Ativo padrão não conta).
+- **Barra presa ao pé da tela** com Cancelar, Salvar e Avançar, abaixo de `sm`;
+  os botões do topo somem ali. Continua o mesmo `<form>`: o Salvar é `submit` e
+  o Enter do leitor segue barrado.
+- **Variações em cartões** abaixo de `lg` (`ProductVariationCards`), com os
+  campos de `VariationFields` — os mesmos da tabela. A troca é por JS
+  (`useNarrowerThan`), e não por CSS, porque os campos têm `id` e a validação
+  foca o campo com erro pelo `id`: com as duas formas no DOM o foco cairia na
+  escondida. O tipo da grade se troca no seletor acima dos cartões.
+- **Fotos:** a estrela leva a foto para o primeiro lugar (a capa) — o arrasto é
+  só de mouse.
+- **Abas Estoque e Vendas** e o detalhe da entrada: colunas escondidas com
+  resumo embaixo da data (ou do nome), e o olho com 40px.
 
 ### 9. A coluna de estoque: vermelho no mínimo, "Comprar!" e "Comprado" (04/10/2026)
 

@@ -1,5 +1,5 @@
 import { ArrowRight, Loader2, Save } from "lucide-react";
-import { Button } from "@workspace/ui";
+import { Button, cn } from "@workspace/ui";
 
 type ProductDetailActionsProps = {
   saving: boolean;
@@ -9,6 +9,7 @@ type ProductDetailActionsProps = {
   onAdvance: () => void;
   /** Nome da aba para onde o Avançar leva, para o botão dizer aonde vai. */
   nextTabLabel: string;
+  className?: string;
 };
 
 /**
@@ -26,15 +27,21 @@ type ProductDetailActionsProps = {
  * voltar. **Avançar** grava e vai para a próxima aba — de Dados para Estoque,
  * que é o par que o cadastro de mercadoria nova percorre: cadastrar o item e
  * lançar o que chegou dele, sem sair da tela.
+ *
+ * **No celular (abaixo de `sm`) aparecem uma vez só**, numa barra presa ao pé
+ * da tela (06/10/2026): rolar até uma das pontas de um cadastro com "Mais
+ * campos" e variações abertos, só para salvar, era o que tornava o detalhe
+ * difícil de mexer pelo celular.
  */
 export function ProductDetailActions({
   saving,
   onCancel,
   onAdvance,
   nextTabLabel,
+  className,
 }: ProductDetailActionsProps) {
   return (
-    <div className="flex shrink-0 flex-wrap justify-end gap-2">
+    <div className={cn("flex shrink-0 flex-wrap justify-end gap-2", className)}>
       <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
         Cancelar
       </Button>

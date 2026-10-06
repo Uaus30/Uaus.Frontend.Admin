@@ -123,3 +123,63 @@ describe("ProductVariationsSection — coluna de estoque", () => {
     expect(within(linhas[1]).getByText("—")).toBeTruthy();
   });
 });
+
+describe("ProductVariationsSection — no celular (cartões)", () => {
+  const larguraOriginal = window.innerWidth;
+
+  function naLargura(largura: number) {
+    Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: largura });
+  }
+
+  afterEach(() => naLargura(larguraOriginal));
+
+  it("abaixo do lg cada variação vira um cartão com o nome em cima e os campos rotulados", () => {
+    // A tabela pedia ~900px: no celular eram três telas de rolagem lateral, e no
+    // preço já não se sabia de qual variação era a linha.
+    naLargura(375);
+    renderSection();
+
+    expect(screen.queryByRole("table")).toBeNull();
+    const cartao = screen.getByTestId("variation-card-product-1");
+    expect(within(cartao).getByText(/BACIA COM TAMPA TRITEC.*AZUL/i)).toBeTruthy();
+    expect(within(cartao).getByLabelText(/preço/i)).toBeTruthy();
+    expect(within(cartao).getByLabelText(/status/i)).toBeTruthy();
+    expect(within(cartao).getByLabelText(/modelo/i)).toBeTruthy();
+  });
+
+  it("cada campo existe uma vez só — o foco no erro procura pelo id", () => {
+    naLargura(375);
+    renderSection();
+
+    expect(document.querySelectorAll("#input-price-product-1")).toHaveLength(1);
+    expect(document.querySelectorAll("#select-status-product-1")).toHaveLength(1);
+  });
+
+  it("o tipo da grade continua trocável, num seletor acima dos cartões", () => {
+    naLargura(375);
+    const { changeGradeType } = renderSection();
+
+    fireEvent.click(screen.getByRole("combobox", { name: /trocar o tipo desta grade/i }));
+    fireEvent.click(within(screen.getByRole("listbox")).getByText("Cor"));
+
+    expect(changeGradeType).toHaveBeenCalledWith(GRADE_TYPE.Model, GRADE_TYPE.Color);
+  });
+
+  it("código inválido mostra o motivo por extenso, sem depender do mouse", () => {
+    naLargura(375);
+    renderSection({ variationDrafts: [draft(1, "Azul", "7891234567890")] });
+
+    expect(screen.getByText(/não é um EAN-13 válido/i)).toBeTruthy();
+  });
+
+  it("a lixeira do cartão pede a confirmação da variação já gravada", () => {
+    naLargura(375);
+    const setVariationToDelete = vi.fn();
+    renderSection({ setVariationToDelete });
+
+    const cartao = screen.getByTestId("variation-card-product-2");
+    fireEvent.click(within(cartao).getByRole("button", { name: "Excluir variação" }));
+
+    expect(setVariationToDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
+  });
+});

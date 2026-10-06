@@ -202,25 +202,41 @@ export function StockEntryDetailsModal({
                   <Table>
                     <TableHeader className="bg-muted/40">
                       <TableRow>
-                        <TableHead className="px-4 py-2">Produto</TableHead>
-                        <TableHead className="px-4 py-2">Cód. Barras</TableHead>
-                        <TableHead className="px-4 py-2 text-right">Qtd.</TableHead>
-                        <TableHead className="px-4 py-2 text-right">Custo Unit.</TableHead>
-                        <TableHead className="px-4 py-2 text-right">Preço de Venda</TableHead>
-                        <TableHead className="px-4 py-2 text-right">Custo Total</TableHead>
+                        <TableHead className="px-2 py-2 sm:px-4">Produto</TableHead>
+                        <TableHead className="hidden px-4 py-2 sm:table-cell">Cód. Barras</TableHead>
+                        <TableHead className="px-2 py-2 text-right sm:px-4">Qtd.</TableHead>
+                        <TableHead className="px-2 py-2 text-right sm:px-4">Custo Unit.</TableHead>
+                        <TableHead className="hidden px-4 py-2 text-right sm:table-cell">
+                          Preço de Venda
+                        </TableHead>
+                        <TableHead className="hidden px-4 py-2 text-right sm:table-cell">
+                          Custo Total
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {entryDetails.items.map((item) => (
                         <TableRow key={item.id} className="hover:bg-muted/5">
-                          <TableCell className="px-4 py-2 text-sm font-medium">{item.productName}</TableCell>
-                          <TableCell className="px-4 py-2 text-sm font-mono text-xs">
+                          <TableCell className="px-2 py-2 text-sm font-medium sm:px-4">
+                            {item.productName}
+                            {/* Celular: código, preço e total embaixo do nome, e o
+                                custo — o campo que se corrige aqui — na vista. Eram
+                                seis colunas rolando de lado, com o custo fora. */}
+                            <span className="mt-0.5 block text-xs font-normal text-muted-foreground sm:hidden">
+                              <span className="font-mono">{item.barcode}</span>
+                              {" · venda "}
+                              <span className="text-emerald-500">{formatCurrency(item.productPrice)}</span>
+                              {" · total "}
+                              {formatCurrency(item.totalCost)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="hidden px-4 py-2 font-mono text-xs sm:table-cell">
                             {item.barcode}
                           </TableCell>
-                          <TableCell className="px-4 py-2 text-sm font-semibold text-right">
+                          <TableCell className="px-2 py-2 text-right text-sm font-semibold sm:px-4">
                             {item.quantity}
                           </TableCell>
-                          <TableCell className="px-4 py-2 text-sm text-right">
+                          <TableCell className="px-2 py-2 text-right text-sm sm:px-4">
                             <EntryItemCostCell
                               item={item}
                               formatCurrency={formatCurrency}
@@ -229,10 +245,10 @@ export function StockEntryDetailsModal({
                               onSubmit={(unitCost) => setCustoPendente({ item, unitCost })}
                             />
                           </TableCell>
-                          <TableCell className="px-4 py-2 text-sm text-right text-emerald-500 font-semibold">
+                          <TableCell className="hidden px-4 py-2 text-right text-sm font-semibold text-emerald-500 sm:table-cell">
                             {formatCurrency(item.productPrice)}
                           </TableCell>
-                          <TableCell className="px-4 py-2 text-sm text-right font-semibold">
+                          <TableCell className="hidden px-4 py-2 text-right text-sm font-semibold sm:table-cell">
                             {formatCurrency(item.totalCost)}
                           </TableCell>
                         </TableRow>
@@ -243,7 +259,7 @@ export function StockEntryDetailsModal({
               </div>
             </div>
 
-            <DialogFooter className="mt-4 flex items-center justify-between gap-3 border-t border-border/40 pt-4">
+            <DialogFooter className="mt-4 flex justify-between gap-3 border-t border-border/40 pt-4 sm:items-center">
               {entryDetails.canDelete ? (
                 <Button
                   type="button"
