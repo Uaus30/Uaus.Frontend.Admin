@@ -1,348 +1,142 @@
 import React from "react";
-import { Loader2, Plus, Receipt, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { Input } from "@workspace/ui";
-import { Button } from "@workspace/ui";
+import { Loader2, Receipt } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Textarea,
+} from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
-import type { NewSaleDraftItem, NewSaleDraftPayment } from "../types";
+import { CurrencyInput } from "@/features/products/components/CurrencyInput";
+import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
+import type { useNewSaleDraft } from "../hooks/useNewSaleDraft";
+import type { PaymentMethodOption } from "../lib/payment-method-options";
+import { BACKDATED_SALE_NOTICE } from "../lib/sale-when";
+import { CustomerPicker } from "./CustomerPicker";
+import { SaleItemsEditor } from "./SaleItemsEditor";
+import { SalePaymentsEditor } from "./SalePaymentsEditor";
+import { SaleWhenField } from "./SaleWhenField";
 
 type NewSaleModalProps = {
-  /** Visibility status of the modal */
   open: boolean;
-  /** Callback triggered when visibility status changes */
   onOpenChange: (open: boolean) => void;
-  /** Selected customer ID or null for walk-in */
-  customerId: number | null;
-  /** Callback to update customer ID */
-  setCustomerId: (id: number | null) => void;
-  /** List of customer options */
-  customers: any[];
-  /** List of available products in stock */
-  availableProducts: any[];
-  /** Selected product ID draft */
-  selectedProductId: number | "";
-  /** Callback to update selected product ID */
-  setSelectedProductId: (val: number | "") => void;
-  /** Selected quantity draft */
-  selectedQty: number;
-  /** Callback to update selected quantity draft */
-  setSelectedQty: (qty: number) => void;
-  /** List of items draft currently in the cart */
-  items: NewSaleDraftItem[];
-  /** Payment splits of the sale (a sale may have N payment methods) */
-  payments: NewSaleDraftPayment[];
-  /** Callback to append a payment split filled with the remaining amount */
-  onAddPayment: () => void;
-  /** Callback to drop a payment split by position */
-  onRemovePayment: (index: number) => void;
-  /** Callback to patch a payment split by position */
-  onUpdatePayment: (index: number, patch: Partial<NewSaleDraftPayment>) => void;
-  /** Amount already distributed across payment splits */
-  paidAmount: number;
-  /** Amount still to distribute (negative when overpaid) */
-  remainingAmount: number;
-  /** Payment method options list */
-  paymentMethods: any[];
-  /** Cash discount amount in Reais (R$) */
-  discount: number;
-  /** Callback to update cash discount amount */
-  setDiscount: (val: number) => void;
-  /** Internal transaction notes */
-  notes: string;
-  /** Callback to update internal transaction notes */
-  setNotes: (val: string) => void;
-  /** True if request is saving to API */
-  savingSale: boolean;
-  /** Subtotal sum of items */
-  subtotal: number;
-  /** Total value to pay (subtotal - discount) */
-  total: number;
-  /** Callback to add item to local cart */
-  onAddItem: () => void;
-  /** Callback to remove item from local cart */
-  onRemoveItem: (productId: number) => void;
-  /** Callback triggered on checkout submit */
-  onSubmit: (event: React.FormEvent) => void;
+  draft: ReturnType<typeof useNewSaleDraft>;
+  customers: Array<{ id: number; name: string; document?: string | null; phone?: string | null }>;
+  paymentMethods: PaymentMethodOption[];
 };
 
 /**
- * NewSaleModal
+ * Nova venda pelo painel — refeita em 06/10/2026 para o celular, onde o dono
+ * lança venda ("hoje está muito ruim e difícil de lançar venda pelo Admin").
  *
- * Dialog wizard component supporting live items additions, pay methods, and billing details.
+ * Na ordem de quem lança: quando foi (para a venda de outro dia), quem comprou,
+ * o que levou, desconto e observação, como pagou. O total e o "Registrar venda"
+ * ficam num rodapé que não rola — no celular o diálogo é a tela inteira e o corpo
+ * rola por dentro, com os botões sempre à mão.
  */
-export function NewSaleModal({
-  open,
-  onOpenChange,
-  customerId,
-  setCustomerId,
-  customers,
-  availableProducts,
-  selectedProductId,
-  setSelectedProductId,
-  selectedQty,
-  setSelectedQty,
-  items,
-  payments,
-  onAddPayment,
-  onRemovePayment,
-  onUpdatePayment,
-  paidAmount,
-  remainingAmount,
-  paymentMethods,
-  discount,
-  setDiscount,
-  notes,
-  setNotes,
-  savingSale,
-  subtotal,
-  total,
-  onAddItem,
-  onRemoveItem,
-  onSubmit,
-}: NewSaleModalProps) {
-  const activePaymentMethods = paymentMethods.filter(
-    (option) => option.isActive ?? option.allowSelect ?? true,
-  );
-
+export function NewSaleModal({ open, onOpenChange, draft, customers, paymentMethods }: NewSaleModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col border-border/50 bg-card sm:max-w-[700px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-display">
-            <Receipt className="h-5 w-5 text-primary" /> Registrar Nova Venda
+      <DialogContent className="flex max-h-[92vh] flex-col gap-0 border-border/50 bg-card p-0 sm:max-w-[640px]">
+        <DialogHeader className="border-b border-border/40 px-4 pb-3 pt-4 sm:px-6 sm:pt-6">
+          <DialogTitle className="flex items-center gap-2 font-display text-xl">
+            <Receipt className="h-5 w-5 text-primary" /> Nova venda
           </DialogTitle>
+          <DialogDescription>O estoque baixa dos lotes de hoje, pelo mais antigo.</DialogDescription>
         </DialogHeader>
-        <div className="flex-1 space-y-6 overflow-y-auto py-4 pr-2">
+
+        <form
+          id="new-sale-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void draft.submit();
+          }}
+          onKeyDown={blockImplicitSubmit}
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-6"
+        >
+          <SaleWhenField
+            value={draft.when}
+            onChange={draft.setWhen}
+            notice={draft.isBackdated ? BACKDATED_SALE_NOTICE : null}
+          />
+
           <div className="space-y-2">
-            <label className="text-sm font-medium">Cliente (Opcional)</label>
-            <Select
-              value={customerId?.toString() || "null"}
-              onValueChange={(value) => setCustomerId(value === "null" ? null : Number(value))}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Consumidor Final" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="null">Consumidor Final</SelectItem>
-                {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id.toString()}>
-                    {customer.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <span className="text-sm font-medium">Cliente</span>
+            <CustomerPicker customers={customers} value={draft.customerId} onChange={draft.setCustomerId} />
           </div>
 
-          <div className="space-y-4 rounded-xl border border-border/50 bg-background/50 p-4">
-            <h4 className="text-sm font-semibold">Itens da Venda</h4>
-            <div className="flex items-end gap-2">
-              <div className="flex-1 space-y-1">
-                <label className="text-xs text-muted-foreground">Produto</label>
-                <Select
-                  value={selectedProductId.toString()}
-                  onValueChange={(value) => setSelectedProductId(Number(value))}
-                >
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Selecione um produto..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableProducts.map((product) => (
-                      <SelectItem key={product.id} value={product.id.toString()}>
-                        {product.name} - {formatCurrency(product.price)} (Estoque: {product.stock})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-24 space-y-1">
-                <label className="text-xs text-muted-foreground">Qtd</label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={selectedQty}
-                  onChange={(event) => setSelectedQty(Number(event.target.value))}
-                  className="bg-background"
-                />
-              </div>
-              <Button type="button" onClick={onAddItem} variant="secondary" className="hover-elevate">
-                Adicionar
-              </Button>
-            </div>
+          <SaleItemsEditor
+            items={draft.items}
+            onAdd={draft.addProduct}
+            onUpdate={draft.updateItem}
+            onRemove={draft.removeItem}
+          />
 
-            {items.length > 0 && (
-              <div className="mt-4 overflow-hidden rounded-lg border border-border/50 bg-card">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-border/50 bg-muted/50 text-xs text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2">Item</th>
-                      <th className="px-3 py-2">Qtd</th>
-                      <th className="px-3 py-2">Unitário</th>
-                      <th className="px-3 py-2 text-right">Subtotal</th>
-                      <th className="w-10 px-3 py-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item) => {
-                      const product = availableProducts.find((entry) => entry.id === item.productId);
-                      return (
-                        <tr key={item.productId} className="border-b border-border/50 last:border-0">
-                          <td className="px-3 py-2">{product?.name || `Produto #${item.productId}`}</td>
-                          <td className="px-3 py-2">{item.quantity}</td>
-                          <td className="px-3 py-2">{formatCurrency(item.unitPrice)}</td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            {formatCurrency(item.quantity * item.unitPrice)}
-                          </td>
-                          <td className="px-3 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => onRemoveItem(item.productId)}
-                              className="text-destructive hover:opacity-70"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3 rounded-xl border border-border/50 bg-background/50 p-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold">Formas de Pagamento</h4>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onAddPayment}
-                disabled={payments.length >= activePaymentMethods.length}
-              >
-                <Plus className="mr-1 h-4 w-4" /> Adicionar forma
-              </Button>
-            </div>
-
-            {payments.map((payment, index) => (
-              <div key={index} className="flex items-end gap-2">
-                <div className="flex-1 space-y-1">
-                  {index === 0 && <label className="text-xs text-muted-foreground">Forma</label>}
-                  <Select
-                    value={String(payment.paymentMethodId)}
-                    onValueChange={(value) => onUpdatePayment(index, { paymentMethodId: Number(value) })}
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activePaymentMethods
-                        .filter(
-                          (option) =>
-                            option.id === payment.paymentMethodId ||
-                            !payments.some((entry) => entry.paymentMethodId === option.id),
-                        )
-                        .map((option) => (
-                          <SelectItem key={option.id} value={String(option.id)}>
-                            {option.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="w-36 space-y-1">
-                  {index === 0 && <label className="text-xs text-muted-foreground">Valor (R$)</label>}
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={payment.amount}
-                    disabled={payments.length === 1}
-                    onChange={(event) => onUpdatePayment(index, { amount: Number(event.target.value) })}
-                    className="bg-background"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRemovePayment(index)}
-                  disabled={payments.length === 1}
-                  className="mb-2 text-destructive hover:opacity-70 disabled:opacity-30"
-                  aria-label="Remover forma de pagamento"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-
-            {payments.length > 1 && (
-              <p
-                className={`text-xs ${
-                  Math.abs(remainingAmount) > 0.01 ? "text-destructive" : "text-muted-foreground"
-                }`}
-              >
-                Distribuído: {formatCurrency(paidAmount)} de {formatCurrency(total)}
-                {Math.abs(remainingAmount) > 0.01 &&
-                  (remainingAmount > 0
-                    ? ` — faltam ${formatCurrency(remainingAmount)}`
-                    : ` — ${formatCurrency(Math.abs(remainingAmount))} a mais`)}
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Desconto (R$)</label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={discount}
-                onChange={(event) => setDiscount(Number(event.target.value))}
-                className="bg-background"
+              <label htmlFor="new-sale-discount" className="text-sm font-medium">
+                Desconto
+              </label>
+              <CurrencyInput
+                id="new-sale-discount"
+                value={draft.discount}
+                onChange={draft.setDiscount}
+                className="h-10 bg-background"
               />
             </div>
-            <div className="col-span-2 space-y-2">
-              <label className="text-sm font-medium">Observações</label>
-              <Input
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                className="bg-background"
-                placeholder="Anotações internas..."
+            <div className="space-y-2">
+              <label htmlFor="new-sale-notes" className="text-sm font-medium">
+                Observação
+              </label>
+              <Textarea
+                id="new-sale-notes"
+                value={draft.notes}
+                onChange={(event) => draft.setNotes(event.target.value)}
+                placeholder="Ex.: encomenda, troca, venda pelo WhatsApp..."
+                className="min-h-10 bg-background"
               />
             </div>
           </div>
-        </div>
-        <div className="mt-auto border-t border-border/50 px-2 pt-4">
-          <div className="mb-4 flex items-end justify-between">
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p>Subtotal: {formatCurrency(subtotal)}</p>
-              <p>Desconto: -{formatCurrency(discount)}</p>
-            </div>
-            <div className="text-right">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Total a Pagar
+
+          <SalePaymentsEditor
+            payments={draft.payments}
+            methods={paymentMethods}
+            remainingAmount={draft.remainingAmount}
+            onAdd={draft.addPayment}
+            onRemove={draft.removePayment}
+            onUpdate={draft.updatePayment}
+          />
+        </form>
+
+        <div className="flex flex-col gap-3 border-t border-border/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+          <div className="text-sm">
+            {draft.discount > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {formatCurrency(draft.subtotal)} − {formatCurrency(draft.discount)} de desconto
               </p>
-              <p className="text-3xl font-display font-bold text-primary">{formatCurrency(total)}</p>
-            </div>
+            )}
+            <p className="text-lg font-bold text-primary">Total {formatCurrency(draft.total)}</p>
           </div>
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex gap-2 max-sm:[&>button]:flex-1">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={draft.saving}
+            >
               Cancelar
             </Button>
             <Button
-              onClick={onSubmit}
-              disabled={
-                savingSale || items.length === 0 || payments.length === 0 || Math.abs(remainingAmount) > 0.01
-              }
-              className="hover-elevate"
+              type="submit"
+              form="new-sale-form"
+              disabled={draft.saving}
+              className="bg-primary text-primary-foreground"
             >
-              {savingSale ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Receipt className="mr-2 h-4 w-4" />
-              )}
-              Finalizar Venda
+              {draft.saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Registrar venda
             </Button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useSales } from "@/features/sales/hooks/useSales";
 import { SalesTable } from "@/features/sales/components/SalesTable";
 import { NewSaleModal } from "@/features/sales/components/NewSaleModal";
 import { SaleDetailsModal } from "@/features/sales/components/SaleDetailsModal";
+import { EditSaleHeaderModal } from "@/features/sales/components/EditSaleHeaderModal";
 
 /**
  * Sales Page Component
@@ -37,34 +38,13 @@ export default function Sales() {
     paymentStatuses,
     paymentMethodById,
     saleDetails,
-    customerId,
-    setCustomerId,
-    items,
-    discount,
-    setDiscount,
-    payments,
-    addPayment,
-    removePayment,
-    updatePayment,
-    paidAmount,
-    remainingAmount,
-    notes,
-    setNotes,
-    selectedProductId,
-    setSelectedProductId,
-    selectedQty,
-    setSelectedQty,
-    savingSale,
+    newSale,
+    openNewSale,
+    saleToEdit,
+    setSaleToEdit,
     deletingSaleId,
     printingSaleId,
-    availableProducts,
-    subtotal,
-    total,
     saleToView,
-    resetSaleForm,
-    addItem,
-    removeItem,
-    handleCreateSubmit,
     handleDeleteSale,
     handlePrintReceipt,
   } = useSales();
@@ -77,13 +57,7 @@ export default function Sales() {
             <h1 className="text-3xl font-display font-bold text-foreground">Vendas</h1>
             <p className="mt-1 text-muted-foreground">Histórico e registro de faturamento.</p>
           </div>
-          <Button
-            onClick={() => {
-              resetSaleForm();
-              setCreateModalOpen(true);
-            }}
-            className="bg-primary text-primary-foreground hover-elevate"
-          >
+          <Button onClick={openNewSale} className="bg-primary text-primary-foreground hover-elevate">
             <Plus className="mr-2 h-4 w-4" /> Nova Venda
           </Button>
         </div>
@@ -118,32 +92,9 @@ export default function Sales() {
       <NewSaleModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        customerId={customerId}
-        setCustomerId={setCustomerId}
+        draft={newSale}
         customers={customers}
-        availableProducts={availableProducts}
-        selectedProductId={selectedProductId}
-        setSelectedProductId={setSelectedProductId}
-        selectedQty={selectedQty}
-        setSelectedQty={setSelectedQty}
-        items={items}
-        payments={payments}
-        onAddPayment={addPayment}
-        onRemovePayment={removePayment}
-        onUpdatePayment={updatePayment}
-        paidAmount={paidAmount}
-        remainingAmount={remainingAmount}
         paymentMethods={paymentMethods}
-        discount={discount}
-        setDiscount={setDiscount}
-        notes={notes}
-        setNotes={setNotes}
-        savingSale={savingSale}
-        subtotal={subtotal}
-        total={total}
-        onAddItem={addItem}
-        onRemoveItem={removeItem}
-        onSubmit={handleCreateSubmit}
       />
 
       <SaleDetailsModal
@@ -153,6 +104,19 @@ export default function Sales() {
         paymentMethodById={paymentMethodById}
         onPrintReceipt={handlePrintReceipt}
         printingSaleId={printingSaleId}
+        onEdit={(sale) => {
+          // A correção abre no lugar do detalhe: dois diálogos empilhados no
+          // celular, um em tela cheia sobre o outro, confundem o voltar.
+          setViewSaleId(null);
+          setSaleToEdit(sale);
+        }}
+      />
+
+      <EditSaleHeaderModal
+        sale={saleToEdit}
+        onClose={() => setSaleToEdit(null)}
+        customers={customers}
+        paymentMethods={paymentMethods}
       />
     </>
   );

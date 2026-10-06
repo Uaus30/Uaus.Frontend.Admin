@@ -6,7 +6,8 @@
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { apiGetOrThrow, ApiError, mapPagedResult } from "../client";
+import { apiGetOrThrow, apiPatch, ApiError, mapPagedResult } from "../client";
+import type { SalePaymentPayload } from "./pdv";
 import type {
   BackendPagedResult,
   ProductSaleDto,
@@ -57,6 +58,12 @@ export function useGetSales(
 // A venda pelo painel usa createSaleWithItems, que lanca os itens junto; a do
 // balcao usa POST /Pdv/sales. Tipar `data: unknown` neles seria arrumar codigo morto.
 
+/**
+ * Prefixo da chave do detalhe da venda — quem corrige a venda invalida por ele
+ * (a factory devolve só o prefixo; ver o README do pacote).
+ */
+export const getGetSaleDetailsQueryKey = (): QueryKey => ["sale-details"];
+
 export function useGetSaleDetails(
   id?: number,
   options?: {
@@ -64,7 +71,7 @@ export function useGetSaleDetails(
   },
 ) {
   return useQuery<SaleDto, ApiError, SaleDto, QueryKey>({
-    queryKey: ["sale-details", id ?? 0],
+    queryKey: [...getGetSaleDetailsQueryKey(), id ?? 0],
     queryFn: async () => {
       return await apiGetOrThrow<SaleDto>(`/Sales/${id}`);
     },
@@ -130,4 +137,41 @@ export function useGetProductSales(
     enabled: productId != null && productId > 0,
     ...options?.query,
   });
+}
+
+/**
+ * O cabeçalho da venda que se corrige depois de registrada
+ * (`PATCH /Sales/{id}/header`, 06/10/2026): data, cliente, observação e formas
+ * de pagamento. Vai INTEIRO — o servidor compara com o gravado e só aplica as
+ * travas ao que mudou.
+ *
+ * Itens, quantidades e desconto não mudam por aqui: o total é fixo, e as formas
+ * precisam somá-lo. Para trocar item, cancela e relança.
+ */
+export interface UpdateSaleHeaderPayload {
+  /** Horário da loja e SEM fuso (`toLocalTimestamp`), como em `occurredAt` da criação. */
+  occurredAt: string;
+  /** Cliente cadastrado, ou nulo para consumidor final. */
+  customerId: number | null;
+  notes: string | null;
+  /**
+   * As formas de pagamento. As que não mudaram precisam voltar com as parcelas,
+   * o parcelamento e a taxa que vieram no `SaleDto`: sem eles o servidor entende
+   * que a forma mudou — e recusa a troca quando o caixa da venda já fechou.
+   */
+  payments: SalePaymentPayload[];
+}
+
+/**
+ * Corrige o cabeçalho da venda. As recusas chegam como `ApiError` com a frase
+ * para o usuário: venda cancelada; data de venda de caixa ou com cupom; data que
+ * entra ou sai de período com fechamento financeiro; forma de pagamento de caixa
+ * fechado; cliente de venda com cupom.
+ */
+export async function updateSaleHeader(
+  id: number,
+  payload: UpdateSaleHeaderPayload,
+): Promise<SaleDto | null> {
+  const response = await apiPatch<SaleDto>(`/Sales/${id}/header`, payload);
+  return response.data;
 }

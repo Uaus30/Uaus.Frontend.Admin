@@ -383,6 +383,13 @@ export interface CreateCompleteSalePayload {
   notes?: string | null;
   items: CreateCompleteSaleItemPayload[];
   payments: SalePaymentPayload[];
+  /**
+   * Quando a venda aconteceu, para lançar venda de outro dia (06/10/2026).
+   * Ausente é "agora". No horário da loja e SEM fuso (`2026-10-04T15:20:00`) —
+   * monte com `toLocalTimestamp` do `@workspace/core`, nunca com
+   * `toISOString()`, que converte para UTC e muda a hora (armadilha 5).
+   */
+  occurredAt?: string | null;
 }
 
 /**

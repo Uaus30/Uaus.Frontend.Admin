@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useSales } from "../useSales";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
@@ -10,39 +10,11 @@ vi.mock("@/services/core", () => ({
   getEnumOptions: vi.fn(() => Promise.resolve([{ id: 1, name: "Pix", allowSelect: true }])),
 }));
 
-vi.mock("@/services/mappers", () => ({
-  buildProductCollections: vi.fn(() => ({
-    enrichedProducts: [{ id: 1, name: "Prod 1", price: 100, stock: 10 }],
-  })),
-  buildEnrichedSales: vi.fn(() => []),
-}));
-
-vi.mock("@/services/products.service", () => ({
-  getAllProducts: vi.fn(() => Promise.resolve([])),
-  getAllProductGroups: vi.fn(() => Promise.resolve([])),
-  getAllProductTags: vi.fn(() => Promise.resolve([])),
-  getAllProductGroupImages: vi.fn(() => Promise.resolve([])),
-}));
-
-vi.mock("@/services/categories.service", () => ({
-  getAllCategories: vi.fn(() => Promise.resolve([])),
-  getAllDepartments: vi.fn(() => Promise.resolve([])),
-}));
-
-vi.mock("@/services/tags.service", () => ({
-  getAllTags: vi.fn(() => Promise.resolve([])),
-}));
-
-vi.mock("@/services/images.service", () => ({
-  getAllImages: vi.fn(() => Promise.resolve([])),
-}));
-
 vi.mock("@/services/customers.service", () => ({
   getAllCustomers: vi.fn(() => Promise.resolve([{ id: 10, name: "Cust 10" }])),
 }));
 
 vi.mock("@/services/sales.service", () => ({
-  createSaleWithItems: vi.fn(() => Promise.resolve({ id: 99 })),
   deleteSaleWithItems: vi.fn(() => Promise.resolve()),
 }));
 
@@ -112,10 +84,21 @@ describe("useSales Hook", () => {
     expect(result.current.paymentStatusFilter).toBe("all");
     expect(result.current.createModalOpen).toBe(false);
     expect(result.current.viewSaleId).toBeNull();
-    expect(result.current.items).toEqual([]);
-    expect(result.current.discount).toBe(0);
-    expect(result.current.subtotal).toBe(0);
-    expect(result.current.total).toBe(0);
+    expect(result.current.saleToEdit).toBeNull();
+    // O rascunho da Nova venda mora no useNewSaleDraft (06/10/2026).
+    expect(result.current.newSale.items).toEqual([]);
+    expect(result.current.newSale.total).toBe(0);
+  });
+
+  it("abrir a Nova venda começa um rascunho em branco, com a primeira forma de pagamento", () => {
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openNewSale();
+    });
+
+    expect(result.current.createModalOpen).toBe(true);
+    expect(result.current.newSale.payments).toEqual([{ paymentMethodId: 1, amount: 0 }]);
   });
 
   it("deve enviar o fim do dia LOCAL no endDate para incluir o último dia do período", () => {
@@ -146,100 +129,5 @@ describe("useSales Hook", () => {
     expect(result.current.endDate).toBe("");
     expect(lastParams.endDate).toBeUndefined();
     expect(lastParams.startDate).toBeUndefined();
-  });
-
-  it("should handle cart modifications", async () => {
-    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.setCreateModalOpen(true);
-    });
-
-    // Wait for the async product collections query to load
-    await waitFor(() => expect(result.current.availableProducts.length).toBeGreaterThan(0));
-
-    act(() => {
-      result.current.setSelectedProductId(1);
-      result.current.setSelectedQty(2);
-    });
-
-    act(() => {
-      result.current.addItem();
-    });
-
-    expect(result.current.items).toEqual([{ productId: 1, quantity: 2, unitPrice: 100 }]);
-    expect(result.current.subtotal).toBe(200);
-
-    act(() => {
-      result.current.setDiscount(50);
-    });
-    expect(result.current.total).toBe(150);
-
-    act(() => {
-      result.current.removeItem(1);
-    });
-    expect(result.current.items).toEqual([]);
-    expect(result.current.total).toBe(0);
-  });
-
-  it("should keep a single payment in sync with the sale total", async () => {
-    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.setCreateModalOpen(true);
-    });
-    await waitFor(() => expect(result.current.availableProducts.length).toBeGreaterThan(0));
-
-    act(() => {
-      result.current.resetSaleForm();
-    });
-    await waitFor(() => expect(result.current.payments).toHaveLength(1));
-
-    act(() => {
-      result.current.setSelectedProductId(1);
-      result.current.setSelectedQty(2);
-    });
-    act(() => {
-      result.current.addItem();
-    });
-
-    await waitFor(() => expect(result.current.payments[0].amount).toBe(200));
-    expect(result.current.remainingAmount).toBe(0);
-  });
-
-  it("should not let a lone payment drift away from the total", async () => {
-    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.setCreateModalOpen(true);
-    });
-    await waitFor(() => expect(result.current.availableProducts.length).toBeGreaterThan(0));
-
-    act(() => {
-      result.current.resetSaleForm();
-    });
-    await waitFor(() => expect(result.current.payments).toHaveLength(1));
-
-    act(() => {
-      result.current.setSelectedProductId(1);
-      result.current.setSelectedQty(1);
-    });
-    act(() => {
-      result.current.addItem();
-    });
-    await waitFor(() => expect(result.current.payments[0].amount).toBe(100));
-
-    // Com uma única forma, o valor sempre volta a acompanhar o total da venda.
-    act(() => {
-      result.current.updatePayment(0, { amount: 60 });
-    });
-    await waitFor(() => expect(result.current.payments[0].amount).toBe(100));
-    expect(result.current.remainingAmount).toBe(0);
-
-    // O mock só tem uma forma de pagamento cadastrada, então não há o que dividir.
-    act(() => {
-      result.current.addPayment();
-    });
-    expect(result.current.payments).toHaveLength(1);
   });
 });

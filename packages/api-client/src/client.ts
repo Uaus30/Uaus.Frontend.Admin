@@ -491,6 +491,19 @@ export async function apiPut<T>(
   return result;
 }
 
+export async function apiPatch<T>(
+  path: string,
+  body?: unknown,
+  options?: { auth?: boolean; headers?: HeadersInit },
+) {
+  const result = await apiRequest<T>("PATCH", path, {
+    body,
+    auth: options?.auth,
+    headers: options?.headers,
+  });
+  return result;
+}
+
 export async function apiDelete<T>(path: string, options?: { auth?: boolean; headers?: HeadersInit }) {
   const result = await apiRequest<T>("DELETE", path, {
     auth: options?.auth,

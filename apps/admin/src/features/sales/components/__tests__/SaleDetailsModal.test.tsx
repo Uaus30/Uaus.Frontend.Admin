@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SaleItemDto } from "@workspace/api-client-react";
 import { SaleDetailsModal } from "../SaleDetailsModal";
@@ -47,7 +47,7 @@ const ITEM: SaleItemDto = {
   profit: 10,
 };
 
-function renderModal(sale: EnrichedSale, items: SaleItemDto[]) {
+function renderModal(sale: EnrichedSale, items: SaleItemDto[], onEdit?: (sale: unknown) => void) {
   // O detalhe da API é quem traz os itens; a lista da tela vem sem eles.
   mocks.useGetSaleDetails.mockReturnValue({
     data: {
@@ -77,6 +77,7 @@ function renderModal(sale: EnrichedSale, items: SaleItemDto[]) {
       paymentMethodById={{ 1: "Dinheiro" }}
       onPrintReceipt={vi.fn()}
       printingSaleId={null}
+      onEdit={onEdit}
     />,
   );
 }
@@ -138,5 +139,21 @@ describe("SaleDetailsModal", () => {
     expect(screen.queryByText(/line-through/)).toBeNull();
     // Subtotal Itens continua sendo a soma dos itens.
     expect(screen.getAllByText(/^R\$\s20,00$/).length).toBeGreaterThan(0);
+  });
+
+  it("'Corrigir venda' entrega a venda COMPLETA da API — as formas com parcelas e taxa", () => {
+    const onEdit = vi.fn();
+    renderModal(SALE, [ITEM], onEdit);
+
+    fireEvent.click(screen.getByRole("button", { name: /corrigir venda/i }));
+
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ id: SALE.id, payments: [expect.objectContaining({ installments: 1 })] }),
+    );
+  });
+
+  it("venda cancelada não oferece correção, e fora da tela de Vendas o botão não existe", () => {
+    renderModal({ ...SALE, paymentStatus: 5 }, [ITEM], vi.fn());
+    expect(screen.queryByRole("button", { name: /corrigir venda/i })).toBeNull();
   });
 });

@@ -163,11 +163,6 @@
       "count": 1
     }
   },
-  "apps/admin/src/features/sales/components/NewSaleModal.tsx": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 3
-    }
-  },
   "apps/admin/src/features/sales/components/SalesTable.tsx": {
     "@typescript-eslint/no-explicit-any": {
       "count": 2
@@ -175,7 +170,7 @@
   },
   "apps/admin/src/features/sales/hooks/useSales.ts": {
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "apps/admin/src/features/sales/types.ts": {

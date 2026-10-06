@@ -1,10 +1,10 @@
 import React from "react";
-import { Loader2, Printer, Receipt } from "lucide-react";
+import { Loader2, Pencil, Printer, Receipt } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { computeSaleDiscountTotal, formatCurrency, formatDate, round2 } from "@workspace/core";
-import { useGetSaleDetails } from "@workspace/api-client-react";
+import { PAYMENT_STATUS, enumCode, useGetSaleDetails, type SaleDto } from "@workspace/api-client-react";
 
 /**
  * Um item da venda no recorte que o modal lê, seja qual for a origem: o detalhe
@@ -92,6 +92,12 @@ type SaleDetailsModalProps = {
   onPrintReceipt?: (id: number) => void;
   /** Active sale ID having its receipt printed, or null */
   printingSaleId?: number | null;
+  /**
+   * Abre a correção da venda (data, cliente, observação e pagamento, 06/10/2026).
+   * Opcional: só a tela de Vendas corrige. Recebe a venda COMPLETA da API — as
+   * formas de pagamento precisam voltar com parcelas e taxa.
+   */
+  onEdit?: (sale: SaleDto) => void;
 };
 
 /** Sem forma cadastrada em mãos, o nome vem da própria venda. */
@@ -110,6 +116,7 @@ export function SaleDetailsModal({
   paymentMethodById = SEM_FORMAS,
   onPrintReceipt,
   printingSaleId = null,
+  onEdit,
 }: SaleDetailsModalProps) {
   const id = saleToView?.id ?? saleId ?? null;
   const { data: saleDetails, isLoading: loadingDetails } = useGetSaleDetails(open && id ? id : undefined);
@@ -339,22 +346,32 @@ export function SaleDetailsModal({
           </div>
         )}
         <DialogFooter className="gap-2 sm:justify-between">
-          {onPrintReceipt ? (
-            <Button
-              variant="outline"
-              disabled={!sale || printingSaleId === sale.id}
-              onClick={() => sale && onPrintReceipt(sale.id)}
-            >
-              {sale && printingSaleId === sale.id ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Printer className="mr-2 h-4 w-4" />
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            {onEdit &&
+              saleDetails &&
+              enumCode(saleDetails.paymentStatus, PAYMENT_STATUS) !== PAYMENT_STATUS.Cancelled && (
+                <Button variant="outline" onClick={() => onEdit(saleDetails)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Corrigir venda
+                </Button>
               )}
-              Imprimir cupom
-            </Button>
-          ) : (
-            <span />
-          )}
+            {onPrintReceipt ? (
+              <Button
+                variant="outline"
+                disabled={!sale || printingSaleId === sale.id}
+                onClick={() => sale && onPrintReceipt(sale.id)}
+              >
+                {sale && printingSaleId === sale.id ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Printer className="mr-2 h-4 w-4" />
+                )}
+                Imprimir cupom
+              </Button>
+            ) : (
+              <span />
+            )}
+          </div>
           <Button onClick={() => onOpenChange(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>

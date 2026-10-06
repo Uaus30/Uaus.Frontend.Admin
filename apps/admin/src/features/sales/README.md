@@ -50,3 +50,36 @@ período, forma e situação ficam atrás de "Filtros (n)" (`SalesFilters`).
 Selecionar texto da linha com o mouse não abre a venda. No detalhe, quantidade,
 preço e custo de cada item vêm embaixo do nome: as cinco colunas cortavam o
 Subtotal sem deixar rolar.
+
+### 7. Nova venda e correção da venda (06/10/2026)
+
+Pedido do dono: lançar venda pelo celular, inclusive de outro dia, e corrigir a
+venda depois de registrada (data e forma de pagamento). O mapa de impactos e as
+decisões estão no histórico da base (`historico/2026-10-06-venda-retroativa-e-correcao.md`).
+
+- **`useNewSaleDraft`** é o rascunho; **`usePaymentSplits`** as formas de
+  pagamento (da nova e da correção). Com UMA forma o valor é o total, derivado na
+  hora — sem efeito copiando o total para o estado.
+- **Produto pela busca do servidor** (`ProductSearchPicker`, a da compra), e não
+  o catálogo inteiro carregado ao abrir. Escolher de novo soma uma unidade.
+- **Data e hora** (`lib/sale-when.ts`): sem mexer, a venda vai sem `occurredAt`
+  e é "agora" no servidor. A leitura da data da API corta a string, sem
+  `new Date()` (armadilha 8); o envio é `yyyy-MM-ddTHH:mm:00`, sem fuso.
+- **Corrigir venda** (`EditSaleHeaderModal`, aberta pelo detalhe): data, cliente,
+  observação e formas, com o total fixo. As formas voltam com parcelas,
+  parcelamento e taxa do `SaleDto` — sem eles o servidor entende que mudaram e
+  recusa em caixa fechado. O formulário é montado com `key` da venda. Salvou?
+  O detalhe da venda é DESCARTADO do cache, não só invalidado: reaberto com a
+  versão velha, "Corrigir venda" nela desfaria a correção.
+- **Os avisos da data são dois** (`lib/sale-when.ts`): a venda NOVA de outro dia
+  avisa de caixa e estoque; a correção, só quando a data foi mexida, avisa que
+  só os relatórios mudam — ela não baixa estoque nem mexe em caixa.
+- **Forma desativada** (`lib/payment-method-options.ts`): a lista da API traz as
+  desativadas junto. A forma padrão e a acrescentada são sempre ativas; a
+  desativada que a venda já usa continua no select, marcada "(desativada)" — fora
+  dele, o select abria em branco.
+- **As travas são do servidor** (`PATCH /Sales/{id}/header`): cancelada, data de
+  venda de caixa ou com cupom, período com fechamento, forma em caixa fechado. A
+  tela mostra a frase dele no toast.
+- **Enter num campo não registra a venda** (`lib/block-implicit-submit.ts`): o
+  "Ir" do teclado do celular, no preço de um item, gravaria a venda pela metade.

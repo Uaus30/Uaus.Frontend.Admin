@@ -1,6 +1,7 @@
 import { Lock, Package, ShoppingCart, X } from "lucide-react";
 import { Button, Input, Textarea, cn, uppercaseKeepingCaret } from "@workspace/ui";
 import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
+import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
@@ -26,26 +27,6 @@ type PurchaseEditorModalProps = {
   suppliers: SupplierDto[];
   departments: DepartmentDto[];
 };
-
-/**
- * Enter num campo NÃO grava a compra: gravar é só o clique no botão.
- *
- * O campo de código (24/09/2026) trouxe o leitor de código de barras para esta
- * modal, e o leitor termina o bipe com um Enter — que num formulário é o envio
- * implícito do navegador. Sem isto, o bipe gravava a compra ANTES da consulta ao
- * catálogo: como produto novo, com o código de um produto que já existe. É a
- * regra do cadastro de produto (23/09/2026, `impedirEnvioPeloEnter`), e vale para
- * o formulário inteiro porque o bipe cai no campo que estiver com o foco.
- *
- * Só para o que está DENTRO do form no DOM: a busca de produto e os diálogos são
- * portais, e o evento deles também chega aqui, pela árvore do React.
- */
-function blockImplicitSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
-  if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;
-  if (!event.currentTarget.contains(event.target)) return;
-
-  event.preventDefault();
-}
 
 /**
  * Formulário da compra.
