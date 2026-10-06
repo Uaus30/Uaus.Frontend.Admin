@@ -3,10 +3,10 @@
   "geradoEm": "2026-10-06",
   "origem": {
     "repositorio": "Uaus.Backend.Api",
-    "commit": "1e40176ac6247de476842c50cde82e01f76a8f34",
-    "commitData": "2026-10-06T10:56:49-03:00",
+    "commit": "6921f667ba6b7850c85be433a2d9c8dab70b28cc",
+    "commitData": "2026-10-06T20:31:18-03:00",
     "pastas": ["Uaus.Application/DTOs"],
-    "arquivos": 111
+    "arquivos": 112
   },
   "serializacao": {
     "ignoreCondition": "WhenWritingNull",
@@ -23002,6 +23002,19 @@
           "linha": 40
         },
         {
+          "nome": "fromPdv",
+          "nomeCSharp": "FromPdv",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 47
+        },
+        {
           "nome": "total",
           "nomeCSharp": "Total",
           "tipo": "decimal",
@@ -23012,7 +23025,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 42
+          "linha": 49
         },
         {
           "nome": "discount",
@@ -23025,7 +23038,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 45
+          "linha": 52
         },
         {
           "nome": "couponDiscount",
@@ -23038,7 +23051,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 52
+          "linha": 59
         },
         {
           "nome": "couponCode",
@@ -23051,7 +23064,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 62
+          "linha": 69
         },
         {
           "nome": "couponDescription",
@@ -23064,7 +23077,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 65
+          "linha": 72
         },
         {
           "nome": "couponDiscountType",
@@ -23077,7 +23090,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 68
+          "linha": 75
         },
         {
           "nome": "couponDiscountValue",
@@ -23090,7 +23103,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 74
+          "linha": 81
         },
         {
           "nome": "paymentMethodId",
@@ -23103,7 +23116,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 76
+          "linha": 83
         },
         {
           "nome": "paymentMethodInstallmentId",
@@ -23116,7 +23129,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 77
+          "linha": 84
         },
         {
           "nome": "paymentMethodName",
@@ -23129,7 +23142,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 78
+          "linha": 85
         },
         {
           "nome": "installments",
@@ -23142,7 +23155,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 79
+          "linha": 86
         },
         {
           "nome": "transactionFee",
@@ -23155,7 +23168,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 80
+          "linha": 87
         },
         {
           "nome": "paymentStatus",
@@ -23168,7 +23181,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 81
+          "linha": 88
         },
         {
           "nome": "notes",
@@ -23181,7 +23194,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 82
+          "linha": 89
         },
         {
           "nome": "payments",
@@ -23194,7 +23207,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 83
+          "linha": 90
         },
         {
           "nome": "items",
@@ -23207,7 +23220,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 84
+          "linha": 91
         }
       ]
     },
@@ -24557,6 +24570,42 @@
           "nuloPerdoado": false,
           "somenteLeitura": false,
           "linha": 20
+        }
+      ]
+    },
+    {
+      "nome": "StockCorrectionDto",
+      "arquivo": "Uaus.Application/DTOs/Inventory/StockCorrectionDto.cs",
+      "linha": 7,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "productId",
+          "nomeCSharp": "ProductId",
+          "tipo": "long",
+          "tipoBase": "long",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 9
+        },
+        {
+          "nome": "lastCorrectedAt",
+          "nomeCSharp": "LastCorrectedAt",
+          "tipo": "DateTime",
+          "tipoBase": "DateTime",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 12
         }
       ]
     },
