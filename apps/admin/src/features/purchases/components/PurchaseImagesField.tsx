@@ -146,9 +146,9 @@ export function PurchaseImagesField({
                 type="button"
                 onClick={() => onRemove(image.imageId)}
                 aria-label="Remover foto"
-                className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
+                className="absolute right-0.5 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>

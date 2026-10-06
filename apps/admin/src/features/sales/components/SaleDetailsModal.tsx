@@ -223,11 +223,11 @@ export function SaleDetailsModal({
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted/30 text-xs text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-2">Item</th>
-                    <th className="px-4 py-2 text-center">Qtd</th>
-                    <th className="px-4 py-2 text-right">Unitário</th>
-                    <th className="px-4 py-2 text-right">Custo un.</th>
-                    <th className="px-4 py-2 text-right">Subtotal</th>
+                    <th className="px-3 py-2 sm:px-4">Item</th>
+                    <th className="hidden px-4 py-2 text-center sm:table-cell">Qtd</th>
+                    <th className="hidden px-4 py-2 text-right sm:table-cell">Unitário</th>
+                    <th className="hidden px-4 py-2 text-right sm:table-cell">Custo un.</th>
+                    <th className="px-3 py-2 text-right sm:px-4">Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -246,8 +246,20 @@ export function SaleDetailsModal({
                   ) : (
                     items.map((item) => (
                       <tr key={item.id} className="border-b border-border/50 last:border-0">
-                        <td className="px-4 py-3 font-medium">
+                        <td className="px-3 py-3 font-medium sm:px-4">
                           {item.productName || item.product?.name || `Produto #${item.productId}`}
+                          {/* Celular: quantidade, preço e custo embaixo do nome. As
+                              cinco colunas, dentro da caixa `overflow-hidden`,
+                              CORTAVAM o Subtotal sem deixar rolar até ele. */}
+                          <p className="mt-0.5 text-xs font-normal text-muted-foreground sm:hidden">
+                            {item.quantity} × {formatCurrency(item.unitPrice)}
+                            {(item.discount ?? 0) > 0 && (
+                              <span className="ml-1 line-through">
+                                {formatCurrency(round2(item.unitPrice + (item.discount ?? 0)))}
+                              </span>
+                            )}
+                            {item.unitCost != null && <> · custo {formatCurrency(item.unitCost)}</>}
+                          </p>
                           {/* Âmbar, o "atenção" da casa: a linha tem cobrança
                               além do produto. Nunca cor sozinha — o rótulo e o
                               motivo escrito pelo operador vêm junto, que é o que
@@ -259,8 +271,8 @@ export function SaleDetailsModal({
                             </p>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center">{item.quantity}</td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="hidden px-4 py-3 text-center sm:table-cell">{item.quantity}</td>
+                        <td className="hidden px-4 py-3 text-right sm:table-cell">
                           {formatCurrency(item.unitPrice)}
                           {/* Preço de tabela riscado quando houve desconto no item: é o
                               mesmo sinal que o carrinho do PDV dá, e sem ele o desconto
@@ -271,10 +283,12 @@ export function SaleDetailsModal({
                             </p>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right text-muted-foreground">
+                        <td className="hidden px-4 py-3 text-right text-muted-foreground sm:table-cell">
                           {item.unitCost != null ? formatCurrency(item.unitCost) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                        <td className="px-3 py-3 text-right font-medium sm:px-4">
+                          {formatCurrency(item.subtotal)}
+                        </td>
                       </tr>
                     ))
                   )}

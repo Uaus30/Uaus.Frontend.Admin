@@ -85,9 +85,9 @@ export function PurchaseVariationsGrid({
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="h-9 text-xs">Variação</TableHead>
-              <TableHead className="h-9 w-24 text-right text-xs">Estoque</TableHead>
-              <TableHead className="h-9 w-28 text-right text-xs">Qtd.</TableHead>
-              <TableHead className="h-9 w-36 text-right text-xs">
+              <TableHead className="hidden h-9 w-24 text-right text-xs sm:table-cell">Estoque</TableHead>
+              <TableHead className="h-9 w-20 text-right text-xs sm:w-28">Qtd.</TableHead>
+              <TableHead className="h-9 w-28 text-right text-xs sm:w-36">
                 {costSplitManual ? "Custo desta variação" : "Fatia do custo"}
               </TableHead>
             </TableRow>
@@ -103,10 +103,18 @@ export function PurchaseVariationsGrid({
             {items.map((item) => (
               <TableRow key={item.productId} className={item.quantity > 0 ? "" : "opacity-60"}>
                 <TableCell className="py-2">
-                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="break-words text-sm font-medium">{item.name}</p>
                   <p className="font-mono text-2xs text-muted-foreground">{item.barcode || "Sem código"}</p>
+                  {/* Celular: o estoque vem embaixo do nome. As larguras fixas das
+                      colunas somavam 352px e o custo ficava meio fora da tela. */}
+                  <p className="text-2xs text-muted-foreground sm:hidden">
+                    Estoque{" "}
+                    {item.quantity > 0
+                      ? `${formatQuantity(item.stock)} → ${formatQuantity(item.stock + item.quantity)}`
+                      : formatQuantity(item.stock)}
+                  </p>
                 </TableCell>
-                <TableCell className="py-2 text-right text-sm text-muted-foreground">
+                <TableCell className="hidden py-2 text-right text-sm text-muted-foreground sm:table-cell">
                   {/* "2 → 5" só aparece na linha comprada: nas outras o operador
                       não pediu previsão nenhuma. */}
                   {item.quantity > 0

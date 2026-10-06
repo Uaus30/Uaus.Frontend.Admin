@@ -78,7 +78,11 @@ export function ProductSearchPicker({
           disabled={disabled}
           className="w-full justify-between bg-background font-normal"
         >
-          <span className="text-muted-foreground">{placeholder}</span>
+          {/* `truncate` + `min-w-0`: o botão do kit não quebra linha, e o texto
+              de ~85 letras do recebimento ("Veio uma variação que não estava no
+              pedido?...") vazava ~250px no celular, fazendo o diálogo inteiro
+              deslizar de lado. */}
+          <span className="min-w-0 truncate text-muted-foreground">{placeholder}</span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

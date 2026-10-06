@@ -1,5 +1,6 @@
 import { AlertTriangle, PackageCheck, Pencil } from "lucide-react";
-import { Button, Input, Textarea } from "@workspace/ui";
+import { Button, Input, Textarea, cn } from "@workspace/ui";
+import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
@@ -208,7 +209,12 @@ export function PurchaseReceiveDialog({
               </p>
             )}
 
-            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
+            <div
+              className={cn(
+                "mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4",
+                MOBILE_STICKY_FOOTER,
+              )}
+            >
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancelar
               </Button>

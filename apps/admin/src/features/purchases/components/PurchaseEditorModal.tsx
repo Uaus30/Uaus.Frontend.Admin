@@ -1,5 +1,6 @@
 import { Lock, Package, ShoppingCart, X } from "lucide-react";
-import { Button, Input, Textarea, uppercaseKeepingCaret } from "@workspace/ui";
+import { Button, Input, Textarea, cn, uppercaseKeepingCaret } from "@workspace/ui";
+import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
@@ -511,7 +512,12 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
             onSearchWeb={() => form.setImageSearchOpen(true)}
           />
 
-          <div className="mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
+          <div
+            className={cn(
+              "mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4",
+              MOBILE_STICKY_FOOTER,
+            )}
+          >
             <Button type="button" variant="outline" onClick={form.requestClose}>
               {readOnly ? "Fechar" : "Cancelar"}
             </Button>

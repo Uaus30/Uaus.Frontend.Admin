@@ -94,8 +94,10 @@ describe("SaleDetailsModal", () => {
     expect(screen.getByText("Desconto")).toBeDefined();
     expect(screen.getByText(/^-R\$\s2,00$/)).toBeDefined();
     // Subtotal Itens a preço de tabela (22,00) e o preço de tabela riscado na
-    // linha do item: 22,00 − 2,00 = 20,00.
-    expect(screen.getAllByText(/^R\$\s22,00$/)).toHaveLength(2);
+    // linha do item: 22,00 − 2,00 = 20,00. O riscado vem duas vezes desde
+    // 06/10/2026: na coluna e no resumo que o celular mostra embaixo do nome.
+    expect(screen.getAllByText(/^R\$\s22,00$/)).toHaveLength(3);
+    expect(screen.getByText(/^R\$\s22,00$/, { selector: "span.line-through" })).toBeDefined();
     expect(screen.getByText(/^R\$\s22,00$/, { selector: "p" }).className).toContain("line-through");
   });
 

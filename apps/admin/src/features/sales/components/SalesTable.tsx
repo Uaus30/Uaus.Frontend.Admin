@@ -1,18 +1,16 @@
 import React from "react";
-import { Eye, Loader2, Printer, Search, Trash2 } from "lucide-react";
-import { Button } from "@workspace/ui";
+import { Loader2 } from "lucide-react";
 import { Badge } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
-import { Input } from "@workspace/ui";
-import { Label } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
-import { DateRangePicker, type DateRange } from "@workspace/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { type DateRange } from "@workspace/ui";
 import { TablePagination } from "@workspace/ui";
 import { formatCurrency, formatDate } from "@workspace/core";
 import type { SaleDto, UiPagedResult } from "@workspace/api-client-react";
 import { SALES_PAGE_SIZE } from "../hooks/useSales";
 import type { EnrichedSale } from "../types";
+import { SalesFilters } from "./SalesFilters";
+import { SaleRowActions } from "./SaleRowActions";
 
 type SalesTableProps = {
   /** True if list of transactions is loading */
@@ -66,8 +64,33 @@ type SalesTableProps = {
   paymentStatuses: any[];
 };
 
-/** Rótulo dos campos de filtro — mesmo padrão da barra de filtros dos logs. */
-const FILTER_LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+/** As formas de pagamento da venda — na coluna (computador) e embaixo do cliente (celular). */
+function PaymentBadges({
+  sale,
+  paymentMethodById,
+}: {
+  sale: EnrichedSale;
+  paymentMethodById: Record<number, string>;
+}) {
+  if ((sale.payments?.length ?? 0) > 0) {
+    return (
+      <>
+        {sale.payments!.map((payment) => (
+          <Badge key={payment.id} variant="outline" className="border-border/50 font-normal">
+            {payment.paymentMethodName || paymentMethodById[payment.paymentMethodId] || "—"}
+          </Badge>
+        ))}
+      </>
+    );
+  }
+  return (
+    <Badge variant="outline" className="border-border/50 font-normal">
+      {sale.paymentMethodName ||
+        (sale.paymentMethodId ? paymentMethodById[sale.paymentMethodId] : null) ||
+        "Não informado"}
+    </Badge>
+  );
+}
 
 /**
  * SalesTable
@@ -120,93 +143,39 @@ export function SalesTable({
 
   return (
     <div className="space-y-4">
-      {/* Filter toolbar */}
-      <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
-        <div className="flex flex-wrap items-end gap-3">
-          {/* Campo de Busca */}
-          <div className="flex flex-col gap-1.5 flex-1 min-w-[260px]">
-            <Label className={FILTER_LABEL_CLASS}>Busca</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por cliente, produto ou observação..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-9 bg-background"
-              />
-            </div>
-          </div>
-
-          {/* Período de Datas */}
-          <div className="flex flex-col gap-1.5 w-64">
-            <Label className={FILTER_LABEL_CLASS}>Período</Label>
-            <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
-          </div>
-
-          {/* Forma de Pagamento */}
-          <div className="flex flex-col gap-1.5 w-[190px]">
-            <Label className={FILTER_LABEL_CLASS}>Forma de Pagamento</Label>
-            <Select
-              value={paymentMethodFilter}
-              onValueChange={(val) => {
-                setPaymentMethodFilter(val);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Forma de Pagamento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Formas Pagto</SelectItem>
-                {paymentMethods.map((pm) => (
-                  <SelectItem key={pm.id} value={String(pm.id)}>
-                    {pm.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Status Pagamento */}
-          <div className="flex flex-col gap-1.5 w-[160px]">
-            <Label className={FILTER_LABEL_CLASS}>Status Pagamento</Label>
-            <Select
-              value={paymentStatusFilter}
-              onValueChange={(val) => {
-                setPaymentStatusFilter(val);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Status Pagamento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                {paymentStatuses.map((ps) => (
-                  <SelectItem key={ps.id} value={String(ps.id)}>
-                    {ps.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+      <SalesFilters
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        dateRange={dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        paymentMethodFilter={paymentMethodFilter}
+        onPaymentMethodChange={(value) => {
+          setPaymentMethodFilter(value);
+          setPage(1);
+        }}
+        paymentStatusFilter={paymentStatusFilter}
+        onPaymentStatusChange={(value) => {
+          setPaymentStatusFilter(value);
+          setPage(1);
+        }}
+        paymentMethods={paymentMethods}
+        paymentStatuses={paymentStatuses}
+      />
 
       <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg shadow-black/5">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4">Data</th>
-                <th className="px-6 py-4">Cliente</th>
-                <th className="px-6 py-4">Pagamento</th>
-                <th className="px-6 py-4">Total</th>
-                <th className="px-6 py-4 text-right">Ações</th>
+                <th className="hidden px-6 py-4 lg:table-cell">ID</th>
+                <th className="hidden px-6 py-4 lg:table-cell">Data</th>
+                <th className="px-3 py-3 lg:px-6 lg:py-4">Cliente</th>
+                <th className="hidden px-6 py-4 lg:table-cell">Pagamento</th>
+                <th className="px-3 py-3 lg:px-6 lg:py-4">Total</th>
+                <th className="px-2 py-3 text-right lg:px-6 lg:py-4">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -224,15 +193,39 @@ export function SalesTable({
                 </tr>
               ) : (
                 saleDetails.map((sale) => (
-                  <tr key={sale.id} className="border-b border-border/50 transition-colors hover:bg-muted/20">
-                    <td className="px-6 py-4 font-mono font-medium text-muted-foreground">
+                  // A linha inteira abre a venda: no celular o olho era o único
+                  // caminho, e ficava além da borda direita da tela.
+                  <tr
+                    key={sale.id}
+                    onClick={() => {
+                      // Quem arrasta o mouse para copiar o nome ou o CPF não quer
+                      // abrir a venda: o `mouseup` da seleção também é um clique.
+                      if (window.getSelection()?.toString()) return;
+                      onViewDetails(sale.id);
+                    }}
+                    className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/20"
+                  >
+                    <td className="hidden px-6 py-4 font-mono font-medium text-muted-foreground lg:table-cell">
                       #{sale.id.toString().padStart(4, "0")}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{formatDate(sale.createdAt)}</td>
-                    <td className="px-6 py-4 font-medium">
+                    <td className="hidden whitespace-nowrap px-6 py-4 lg:table-cell">
+                      {formatDate(sale.createdAt)}
+                    </td>
+                    <td className="px-3 py-3 font-medium lg:px-6 lg:py-4">
+                      {/* Celular e tablet: número e data em cima do cliente, e as
+                          formas de pagamento embaixo — as colunas somem
+                          (convenção "esconder coluna, nunca rolar"). */}
+                      <p className="mb-0.5 font-mono text-xs font-normal text-muted-foreground lg:hidden">
+                        #{sale.id.toString().padStart(4, "0")} · {formatDate(sale.createdAt)}
+                      </p>
                       {sale.customerName || sale.customer?.name ? (
                         <div className="min-w-0">
-                          <p className="truncate">{sale.customerName || sale.customer?.name}</p>
+                          <p
+                            className="break-words lg:max-w-[16rem] lg:truncate"
+                            title={sale.customerName || sale.customer?.name || undefined}
+                          >
+                            {sale.customerName || sale.customer?.name}
+                          </p>
                           {sale.customerDocument && (
                             <p className="truncate font-mono text-xs text-muted-foreground">
                               {sale.customerDocument}
@@ -242,66 +235,27 @@ export function SalesTable({
                       ) : (
                         <span className="text-muted-foreground">Consumidor Final</span>
                       )}
+                      <div className="mt-1 flex flex-wrap gap-1 lg:hidden">
+                        <PaymentBadges sale={sale} paymentMethodById={paymentMethodById} />
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden px-6 py-4 lg:table-cell">
                       <div className="flex flex-wrap gap-1">
-                        {(sale.payments?.length ?? 0) > 0 ? (
-                          sale.payments!.map((payment) => (
-                            <Badge
-                              key={payment.id}
-                              variant="outline"
-                              className="border-border/50 font-normal"
-                            >
-                              {payment.paymentMethodName || paymentMethodById[payment.paymentMethodId] || "—"}
-                            </Badge>
-                          ))
-                        ) : (
-                          <Badge variant="outline" className="border-border/50 font-normal">
-                            {sale.paymentMethodName ||
-                              (sale.paymentMethodId ? paymentMethodById[sale.paymentMethodId] : null) ||
-                              "Não informado"}
-                          </Badge>
-                        )}
+                        <PaymentBadges sale={sale} paymentMethodById={paymentMethodById} />
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-primary">{formatCurrency(sale.total)}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
-                          onClick={() => onViewDetails(sale.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary hover-elevate"
-                          onClick={() => onPrintReceipt(sale.id)}
-                          disabled={printingSaleId === sale.id}
-                          title="Reimprimir cupom"
-                        >
-                          {printingSaleId === sale.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Printer className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover-elevate"
-                          onClick={() => setSaleToDelete(sale)}
-                        >
-                          {deletingSaleId === sale.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+                    <td className="whitespace-nowrap px-3 py-3 font-medium text-primary lg:px-6 lg:py-4">
+                      {formatCurrency(sale.total)}
+                    </td>
+                    <td className="px-2 py-3 text-right lg:px-6 lg:py-4">
+                      <SaleRowActions
+                        saleId={sale.id}
+                        printing={printingSaleId === sale.id}
+                        deleting={deletingSaleId === sale.id}
+                        onView={() => onViewDetails(sale.id)}
+                        onPrint={() => onPrintReceipt(sale.id)}
+                        onDelete={() => setSaleToDelete(sale)}
+                      />
                     </td>
                   </tr>
                 ))

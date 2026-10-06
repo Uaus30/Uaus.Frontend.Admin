@@ -86,7 +86,7 @@ export function PurchasesTable({
   mutatingId,
 }: PurchasesTableProps) {
   return (
-    <div className="space-y-4 rounded-2xl border border-border/50 bg-card/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-border/50 bg-card/50 p-3 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -128,14 +128,14 @@ export function PurchasesTable({
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead className="px-4 py-3">Produto</TableHead>
-                <TableHead className="px-4 py-3">Fornecedor</TableHead>
-                <TableHead className="px-4 py-3 text-right">Qtd.</TableHead>
+                <TableHead className="px-3 py-3 lg:px-4">Produto</TableHead>
+                <TableHead className="hidden px-4 py-3 lg:table-cell">Fornecedor</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right lg:table-cell">Qtd.</TableHead>
                 <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Unit. final</TableHead>
                 <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Margem</TableHead>
-                <TableHead className="px-4 py-3">Situação</TableHead>
+                <TableHead className="hidden px-4 py-3 lg:table-cell">Situação</TableHead>
                 <TableHead className="hidden px-4 py-3 2xl:table-cell">Data da compra</TableHead>
-                <TableHead className="w-16 px-4 py-3 text-right">Ações</TableHead>
+                <TableHead className="w-12 px-2 py-3 text-right lg:w-16 lg:px-4">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -169,7 +169,7 @@ export function PurchasesTable({
                     aria-label={`Abrir a compra de ${purchase.productName}`}
                     className="cursor-pointer"
                   >
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="px-3 py-3 lg:px-4">
                       <div className="flex items-center gap-3">
                         {cover ? (
                           <ImageHoverZoom
@@ -195,8 +195,14 @@ export function PurchasesTable({
                             abre esta compra, como o resto da linha. O cadastro está
                             no menu de opções, que é onde se procura por "ir para
                             outro lugar". */}
-                        <div className="min-w-0 max-w-[20rem]">
-                          <p className="truncate font-medium text-foreground" title={purchase.productName}>
+                        <div className="min-w-0 lg:max-w-[20rem]">
+                          {/* No celular o nome quebra linha (a coluna é a tela
+                              inteira); o teto e o `truncate` valem do `lg` para
+                              cima, onde as outras colunas disputam a largura. */}
+                          <p
+                            className="break-words font-medium text-foreground lg:truncate"
+                            title={purchase.productName}
+                          >
                             {purchase.productName}
                             {!purchase.productGroupId && (
                               <span className="text-xs font-normal text-muted-foreground">
@@ -215,11 +221,22 @@ export function PurchasesTable({
                               (purchase.productBarcode ?? purchase.details ?? "")
                             )}
                           </p>
+                          {/* Celular e tablet: fornecedor, quantidade e situação
+                              embaixo do nome. Eram cinco colunas rolando de lado,
+                              com a situação e o menu (receber, a caminho,
+                              excluir) fora da tela. */}
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground lg:hidden">
+                            <span>{purchase.supplierName}</span>
+                            <span>· {purchase.quantity} un</span>
+                            <PurchaseStatusBadge status={purchase.status} />
+                          </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm">{purchase.supplierName}</TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-sm">
+                    <TableCell className="hidden px-4 py-3 text-sm lg:table-cell">
+                      {purchase.supplierName}
+                    </TableCell>
+                    <TableCell className="hidden px-4 py-3 text-right font-mono text-sm lg:table-cell">
                       {purchase.quantity}
                     </TableCell>
                     <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
@@ -263,7 +280,7 @@ export function PurchasesTable({
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="hidden px-4 py-3 lg:table-cell">
                       <PurchaseStatusBadge status={purchase.status} />
                     </TableCell>
                     {/* E a data da COMPRA, que e por onde a listagem tambem ordena — nao a de
@@ -276,7 +293,7 @@ export function PurchasesTable({
                     <TableCell className="hidden px-4 py-3 text-sm text-muted-foreground 2xl:table-cell">
                       {formatShortDate(purchase.purchaseDate || purchase.createdAt)}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right">
+                    <TableCell className="px-2 py-3 text-right lg:px-4">
                       <div className="flex items-center justify-end gap-1">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -284,7 +301,7 @@ export function PurchasesTable({
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-10 w-10 lg:h-8 lg:w-8"
                               aria-label={`Opções da compra ${purchase.id}`}
                               disabled={busy}
                               onClick={(event) => event.stopPropagation()}
@@ -311,7 +328,17 @@ export function PurchasesTable({
                                     : undefined
                                 }
                               >
-                                <PackageCheck className="mr-2 h-4 w-4 text-emerald-600" /> Lançar recebimento
+                                <PackageCheck className="mr-2 h-4 w-4 shrink-0 text-emerald-600" />
+                                <span>
+                                  Lançar recebimento
+                                  {/* Por extenso, e não só no `title`: no toque o
+                                      item cinza não dizia por que estava travado. */}
+                                  {pending && (
+                                    <span className="block text-xs text-muted-foreground">
+                                      Marque como a caminho antes
+                                    </span>
+                                  )}
+                                </span>
                               </DropdownMenuItem>
                             )}
                             {/* O cadastro do produto: o destino que o nome da linha
@@ -371,7 +398,7 @@ export function PurchasesTable({
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"

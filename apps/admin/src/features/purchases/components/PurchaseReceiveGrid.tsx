@@ -67,15 +67,15 @@ export function PurchaseReceiveGrid({
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="h-9 text-xs">Variação</TableHead>
-              <TableHead className="h-9 w-28 text-right text-xs">Qtd.</TableHead>
-              <TableHead className="h-9 w-36 text-right text-xs">Custo</TableHead>
+              <TableHead className="h-9 w-20 text-right text-xs sm:w-28">Qtd.</TableHead>
+              <TableHead className="h-9 w-28 text-right text-xs sm:w-36">Custo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.productId} className={item.quantity > 0 ? "" : "opacity-60"}>
                 <TableCell className="py-2">
-                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="break-words text-sm font-medium">{item.name}</p>
                   <p className="font-mono text-2xs text-muted-foreground">{item.barcode || "Sem código"}</p>
                 </TableCell>
                 <TableCell className="py-2">
@@ -130,7 +130,7 @@ export function PurchaseReceiveGrid({
             type="button"
             variant="outline"
             size="sm"
-            className="h-7 text-2xs"
+            className="h-9 text-xs sm:h-7 sm:text-2xs"
             onClick={() => onUseSum(soma)}
           >
             Usar {formatCurrency(soma)} como total pago

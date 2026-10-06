@@ -486,8 +486,10 @@ export function ProductDetailScreen({
         {/* Repetidos no rodapé para o cadastro longo não obrigar a voltar ao topo.
             No celular a barra fica PRESA ao pé da tela (`sticky`), sempre à mão;
             o `-mx-3` cobre a margem do `<main>` para o conteúdo não aparecer
-            pelas laterais quando passa por baixo dela. */}
-        <div className="flex justify-end border-t border-border/40 pt-4 max-sm:sticky max-sm:bottom-0 max-sm:z-20 max-sm:-mx-3 max-sm:bg-background/95 max-sm:px-3 max-sm:pb-3 max-sm:pt-3 max-sm:backdrop-blur">
+            pelas laterais quando passa por baixo dela. E `-bottom-3`/`-mb-3`,
+            não `bottom-0`: o sticky mede o `bottom` a partir da borda interna do
+            `p-3` de quem rola, e com zero a barra ficava 12px acima do pé. */}
+        <div className="flex justify-end border-t border-border/40 pt-4 max-sm:sticky max-sm:-bottom-3 max-sm:z-20 max-sm:-mx-3 max-sm:-mb-3 max-sm:bg-background/95 max-sm:px-3 max-sm:pb-3 max-sm:pt-3 max-sm:backdrop-blur">
           <ProductDetailActions
             saving={saving}
             onCancel={fecharTela}
