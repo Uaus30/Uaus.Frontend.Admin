@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useDebounce } from "@workspace/ui";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { Button } from "@workspace/ui";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui";
+import { Command, CommandEmpty, CommandInput, CommandList } from "@workspace/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui";
-import { formatQuantity } from "@workspace/core";
 import { getProductsPage } from "@/services/products.service";
 import { toProductSearchOption, type ProductSearchOption } from "./product-search-option";
+import { ProductSearchResults } from "./product-search-results";
 
 export type { ProductSearchOption };
 
@@ -34,6 +34,8 @@ type ProductSearchPickerProps = {
  * Mora em `components/` e não numa feature porque baixa e entrada de estoque
  * fazem a mesma pergunta ao mesmo endpoint; duas cópias divergiriam no dia em
  * que uma delas ganhasse filtro por status ou por grupo.
+ *
+ * As linhas (foto, preço, estoque) são do `ProductSearchResults`.
  */
 export function ProductSearchPicker({
   onSelect,
@@ -60,7 +62,13 @@ export function ProductSearchPicker({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // `modal`: as três telas que usam a busca (compra, recebimento e baixa) a
+    // abrem DENTRO de um diálogo, e a lista vai para um portal fora dele. O
+    // diálogo trava a rolagem de tudo o que está fora da caixa dele, e a roda
+    // do mouse morria na lista — a barra aparecia, mas só andava arrastada
+    // (relatado pelo dono em 06/10/2026). Modal, a busca vira a trava mais
+    // recente, e a rolagem vale dentro dela.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -77,28 +85,11 @@ export function ProductSearchPicker({
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command shouldFilter={false}>
           <CommandInput value={search} onValueChange={setSearch} placeholder="Buscar produto..." />
-          <CommandList>
+          {/* Mais alta que os 300px do kit: com a miniatura a linha cresce, e
+              cinco produtos por vez é pouco para comparar parecidos. */}
+          <CommandList className="max-h-[360px]">
             <CommandEmpty>{isFetching ? "Buscando produtos..." : "Nenhum produto encontrado."}</CommandEmpty>
-            <CommandGroup>
-              {options.map((product) => (
-                <CommandItem key={product.id} onSelect={() => handleSelect(product)}>
-                  <Check
-                    className={`h-4 w-4 ${selectedIds.includes(product.id) ? "opacity-100" : "opacity-0"}`}
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate">{product.name}</span>
-                    {product.barcode ? (
-                      <span className="truncate font-mono text-xs text-muted-foreground">
-                        {product.barcode}
-                      </span>
-                    ) : null}
-                  </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    Estoque: {formatQuantity(product.stock)}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            <ProductSearchResults options={options} selectedIds={selectedIds} onSelect={handleSelect} />
           </CommandList>
         </Command>
       </PopoverContent>

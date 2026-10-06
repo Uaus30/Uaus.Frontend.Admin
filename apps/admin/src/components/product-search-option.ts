@@ -22,6 +22,14 @@ export type ProductSearchOption = {
   price: number;
   /** Último custo apurado pelo backend a partir dos lotes. */
   costPrice: number;
+  /**
+   * Caminho da capa do grupo, ou nulo sem foto. É a miniatura da lista: o
+   * catálogo tem muito nome parecido, e a foto separa dois "CABO CARREGADOR"
+   * mais rápido do que o código de barras. Relativo — passe por
+   * `buildPublicImageUrl` antes de usar como `src`. Opcional como no `ProductDto`:
+   * só a lista desenha a foto, e quem escolhe o produto não precisa dela.
+   */
+  imageUrl?: string | null;
 };
 
 /**
@@ -41,5 +49,7 @@ export function toProductSearchOption(product: ProductDto): ProductSearchOption 
     stock: product.stock,
     price: product.price,
     costPrice: product.costPrice,
+    // A API omite o campo quando não há foto (`WhenWritingNull`).
+    imageUrl: product.imageUrl ?? null,
   };
 }

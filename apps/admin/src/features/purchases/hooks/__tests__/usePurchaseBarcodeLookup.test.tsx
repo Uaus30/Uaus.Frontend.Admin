@@ -88,6 +88,7 @@ describe("usePurchaseBarcodeLookup", () => {
         stock: 7,
         price: 39.9,
         costPrice: 18.4,
+        imageUrl: null,
       },
       EAN,
     );
