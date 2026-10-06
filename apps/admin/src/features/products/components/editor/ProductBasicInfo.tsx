@@ -1,5 +1,5 @@
 import React from "react";
-import { Input } from "@workspace/ui";
+import { Input, uppercaseKeepingCaret } from "@workspace/ui";
 import { Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui";
@@ -116,7 +116,8 @@ export function ProductBasicInfo({
           id="input-name"
           value={form.productGroupName}
           onChange={(event) => {
-            const value = event.target.value.toUpperCase();
+            // Sem perder o cursor: digitar no meio do nome o jogava para o fim.
+            const value = uppercaseKeepingCaret(event.target);
             setForm((current) => ({ ...current, productGroupName: value }));
             setProductEditor((current) => ({ ...current, name: value }));
             if (validationErrors.name) setValidationErrors((prev) => ({ ...prev, name: false }));

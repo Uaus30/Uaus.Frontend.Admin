@@ -1,5 +1,5 @@
 import { Lock, Package, ShoppingCart, X } from "lucide-react";
-import { Button, Input, Textarea } from "@workspace/ui";
+import { Button, Input, Textarea, uppercaseKeepingCaret } from "@workspace/ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { ConfirmDialog } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
@@ -280,9 +280,11 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
                   produto é sempre em maiúsculas, e o backend grava assim de qualquer
                   jeito (`ProductDisplayName.Normalize`). Ver o que vai ser gravado
                   evita a surpresa de salvar "Carrinho" e ver "CARRINHO" na lista. */}
+              {/* `uppercaseKeepingCaret`: converter com `toUpperCase` no `onChange`
+                  jogava o cursor para o fim a cada letra digitada no meio. */}
               <Input
                 value={values.productName}
-                onChange={(event) => update("productName", event.target.value.toUpperCase())}
+                onChange={(event) => update("productName", uppercaseKeepingCaret(event.target))}
                 placeholder="COMO VAI SE CHAMAR NO CADASTRO"
                 className="h-10 bg-background uppercase"
                 maxLength={150}

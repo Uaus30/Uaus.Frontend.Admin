@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
   Switch,
+  uppercaseKeepingCaret,
 } from "@workspace/ui";
 import {
   COUPON_DISCOUNT_TYPE,
@@ -100,7 +101,7 @@ export function CouponEditorModal({
                 id="cp-code"
                 placeholder="Ex: VERAO26"
                 value={form.code}
-                onChange={(e) => alterar({ code: e.target.value.toUpperCase() })}
+                onChange={(e) => alterar({ code: uppercaseKeepingCaret(e.target) })}
                 disabled={codigoTravado || premioPendente}
                 maxLength={30}
                 required
