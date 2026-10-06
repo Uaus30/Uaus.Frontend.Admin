@@ -3,7 +3,7 @@ import { useSales } from "../useSales";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useGetSales } from "@workspace/api-client-react";
+import { useGetFinancialClosings, useGetSales } from "@workspace/api-client-react";
 
 // Mock the services
 vi.mock("@/services/core", () => ({
@@ -149,6 +149,27 @@ describe("useSales Hook", () => {
     expect(queryClient.getQueryData(["sale-details", 2117])).toBeUndefined();
     expect(result.current.saleToCancel).toBeNull();
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Venda cancelada." }));
+  });
+
+  it("cancelar venda de mês fechado avisa antes e no toast; de mês aberto, não (06/10/2026)", async () => {
+    vi.mocked(useGetFinancialClosings).mockReturnValue({
+      data: { data: [{ id: 3, periodStart: "2026-09-01T00:00:00", periodEnd: "2026-09-30T00:00:00" }] },
+    } as unknown as ReturnType<typeof useGetFinancialClosings>);
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    act(() => result.current.setSaleToCancel({ id: 2114, createdAt: "2026-10-01T20:58:00", total: 15 }));
+    expect(result.current.cancelClosedPeriodNotice).toBeNull();
+
+    act(() => result.current.setSaleToCancel({ id: 2117, createdAt: "2026-09-28T19:01:00", total: 1 }));
+    expect(result.current.cancelClosedPeriodNotice).toContain("de 01/09/2026 a 30/09/2026");
+
+    await act(() => result.current.handleCancelSale("lançada em duplicidade"));
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Venda cancelada.",
+        description: expect.stringContaining("desatualizado"),
+      }),
+    );
   });
 
   it("recusa do servidor no cancelamento vira toast, e o diálogo fica aberto", async () => {

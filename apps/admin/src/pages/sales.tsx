@@ -45,6 +45,7 @@ export default function Sales() {
     setSaleToEdit,
     saleToCancel,
     setSaleToCancel,
+    cancelClosedPeriodNotice,
     cancellingSaleId,
     printingSaleId,
     saleToView,
@@ -123,6 +124,7 @@ export default function Sales() {
       <CancelSaleDialog
         sale={saleToCancel}
         cancelling={cancellingSaleId !== null}
+        closedPeriodNotice={cancelClosedPeriodNotice}
         onClose={() => setSaleToCancel(null)}
         onConfirm={(reason) => void handleCancelSale(reason)}
       />

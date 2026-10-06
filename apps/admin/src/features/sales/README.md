@@ -97,6 +97,8 @@ decisões estão no histórico da base (`historico/2026-10-06-venda-retroativa-e
     (`CancelSaleDialog`): "Cancelar venda" na linha e no detalhe, motivo de pelo
     menos 3 letras. A cancelada fica na lista, riscada e marcada. A API não tem
     mais rota de exclusão; o antigo `deleteSaleWithItems` saiu de
-    `services/sales.service.ts`.
+    `services/sales.service.ts`. Venda de mês com fechamento avisa no diálogo e no
+    toast que o fechamento fica desatualizado (a receita sai do mês). A troca de
+    forma de pagamento não avisa: o fechamento não usa forma nem taxa.
 - **Enter num campo não registra a venda** (`lib/block-implicit-submit.ts`): o
   "Ir" do teclado do celular, no preço de um item, gravaria a venda pela metade.

@@ -20,6 +20,8 @@ type CancelSaleDialogProps = {
   /** A venda a cancelar; nulo fecha o diálogo. */
   sale: SaleToCancel | null;
   cancelling: boolean;
+  /** Aviso de que a venda é de um mês com fechamento financeiro, que fica desatualizado. */
+  closedPeriodNotice?: string | null;
   onClose: () => void;
   onConfirm: (reason: string) => void;
 };
@@ -33,7 +35,13 @@ type CancelSaleDialogProps = {
  * que o cancelamento faz — a venda fica, marcada; o estoque volta; sai do
  * faturamento —, para ninguém cancelar achando que apaga.
  */
-export function CancelSaleDialog({ sale, cancelling, onClose, onConfirm }: CancelSaleDialogProps) {
+export function CancelSaleDialog({
+  sale,
+  cancelling,
+  closedPeriodNotice,
+  onClose,
+  onConfirm,
+}: CancelSaleDialogProps) {
   return (
     <Dialog open={sale !== null} onOpenChange={(open) => !open && !cancelling && onClose()}>
       <DialogContent className="sm:max-w-[480px]">
@@ -43,6 +51,7 @@ export function CancelSaleDialog({ sale, cancelling, onClose, onConfirm }: Cance
             key={sale.id}
             sale={sale}
             cancelling={cancelling}
+            closedPeriodNotice={closedPeriodNotice}
             onClose={onClose}
             onConfirm={onConfirm}
           />
@@ -55,6 +64,7 @@ export function CancelSaleDialog({ sale, cancelling, onClose, onConfirm }: Cance
 function CancelSaleForm({
   sale,
   cancelling,
+  closedPeriodNotice,
   onClose,
   onConfirm,
 }: Omit<CancelSaleDialogProps, "sale"> & { sale: SaleToCancel }) {
@@ -81,6 +91,13 @@ function CancelSaleForm({
           fidelidade, se houver, são estornados. Não dá para desfazer.
         </DialogDescription>
       </DialogHeader>
+
+      {closedPeriodNotice && (
+        // Âmbar, o "atenção" da casa, como o aviso da data.
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+          {closedPeriodNotice}
+        </p>
+      )}
 
       <div className="space-y-2">
         <label htmlFor="cancel-sale-reason" className="text-sm font-medium">

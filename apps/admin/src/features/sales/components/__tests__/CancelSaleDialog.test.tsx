@@ -38,6 +38,20 @@ describe("CancelSaleDialog — cancelar com motivo (06/10/2026)", () => {
     expect(onConfirm).toHaveBeenCalledWith("lançada em duplicidade");
   });
 
+  it("venda de mês fechado: o diálogo avisa que o fechamento fica desatualizado", () => {
+    render(
+      <CancelSaleDialog
+        sale={venda}
+        cancelling={false}
+        closedPeriodNotice="Esta venda é do período do fechamento financeiro de 01/09/2026 a 30/09/2026: desatualizado"
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/fechamento financeiro de 01\/09\/2026 a 30\/09\/2026/)).toBeTruthy();
+  });
+
   it("diz que a venda continua no histórico, marcada — cancelar não é apagar", () => {
     renderDialog();
 

@@ -34,6 +34,19 @@ export function closedPeriodNotice(closing: ClosedPeriod): string {
   );
 }
 
+/**
+ * O aviso do CANCELAMENTO de venda de período fechado: cancelada, ela sai da
+ * receita, e o fechamento fica desatualizado (decisão do dono, 06/10/2026). A
+ * troca de forma de pagamento não avisa — o fechamento não usa forma nem taxa.
+ */
+export function cancelClosedPeriodNotice(closing: ClosedPeriod): string {
+  return (
+    `Esta venda é do período do fechamento financeiro de ${brDate(closing.periodStart)} a ` +
+    `${brDate(closing.periodEnd)}: cancelada, ela sai dos relatórios, mas o fechamento fica desatualizado — ` +
+    `refaça-o em Financeiro › Fechamentos Mensais.`
+  );
+}
+
 /** A frase do toast depois de gravar, quando a data mexeu num período fechado. */
 export function closedPeriodToast(closing: ClosedPeriod): string {
   return `O fechamento financeiro de ${brDate(closing.periodStart)} a ${brDate(closing.periodEnd)} ficou desatualizado — refaça-o.`;

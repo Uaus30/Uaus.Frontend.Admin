@@ -22,6 +22,8 @@ import { orderCatalogByName } from "@/lib/select-options";
 import { getSaleItems } from "@/services/sales.service";
 import type { EnrichedSale, SaleToCancel } from "../types";
 import { useAllCustomers } from "@/hooks/use-catalog";
+import { cancelClosedPeriodNotice, closedPeriodToast } from "../lib/closed-periods";
+import { useClosingFor } from "./useClosingFor";
 import { useNewSaleDraft } from "./useNewSaleDraft";
 
 /**
@@ -117,6 +119,10 @@ export function useSales() {
   // A venda aberta para cancelar (com motivo) — venda registrada não se exclui.
   const [saleToCancel, setSaleToCancel] = useState<SaleToCancel | null>(null);
   const [cancellingSaleId, setCancellingSaleId] = useState<number | null>(null);
+  // Venda de mês com fechamento: cancelar o deixa desatualizado — avisa antes e
+  // depois (decisão do dono, 06/10/2026). A data da API é cortada da string.
+  const closingFor = useClosingFor();
+  const cancelClosing = saleToCancel ? closingFor(saleToCancel.createdAt.slice(0, 10)) : null;
   const [printingSaleId, setPrintingSaleId] = useState<number | null>(null);
   // A venda aberta para correção (a venda COMPLETA da API, com as formas).
   const [saleToEdit, setSaleToEdit] = useState<SaleDto | null>(null);
@@ -193,7 +199,12 @@ export function useSales() {
         queryClient.invalidateQueries({ queryKey: getGetSalesQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetProductSalesQueryKey() }),
       ]);
-      toast({ title: "Venda cancelada.", description: "O estoque dos itens voltou." });
+      toast({
+        title: "Venda cancelada.",
+        description: cancelClosing
+          ? `O estoque dos itens voltou. ${closedPeriodToast(cancelClosing)}`
+          : "O estoque dos itens voltou.",
+      });
       setSaleToCancel(null);
     } catch (error) {
       toast({
@@ -237,6 +248,7 @@ export function useSales() {
     setSaleToEdit,
     saleToCancel,
     setSaleToCancel,
+    cancelClosedPeriodNotice: cancelClosing ? cancelClosedPeriodNotice(cancelClosing) : null,
     cancellingSaleId,
     printingSaleId,
     saleToView,
