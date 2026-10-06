@@ -389,3 +389,14 @@ como a caminho primeiro, o que já exige o custo de que a entrada precisa.
 - Busca e filtro voltam para a página 1 nos próprios setters, não em efeito.
 - Invalidar o prefixo `["purchases"]` alcança lista e itens; o recebimento
   invalida também `products`, porque mexe em estoque e custo do produto.
+
+## No celular (06/10/2026)
+
+- **Listagem:** fornecedor, quantidade e situação embaixo do nome, que quebra
+  linha; o "Lançar recebimento" travado diz o motivo dentro do item.
+- **Registrar e lançar recebimento:** botões presos ao pé da tela
+  (`MOBILE_STICKY_FOOTER`, em `components/mobile-footer.ts`). O `bottom` do
+  sticky é NEGATIVO, igual ao `p-6` do diálogo: ele conta a partir da borda
+  interna do respiro, e com `bottom-0` a barra grudava 24px acima do pé.
+- As grades de variação estreitam as colunas no celular e põem o estoque
+  embaixo do nome; o texto do campo de busca de produto não vaza mais.

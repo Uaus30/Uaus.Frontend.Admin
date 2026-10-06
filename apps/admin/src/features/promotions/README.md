@@ -259,3 +259,12 @@ está em `Uaus.Docs/dominio/promocoes.md`.
 - **Etiqueta, de/por e banner na vitrine** — fase 4.
 - **Geração da imagem pela IA dentro do admin** — decisão do §13 do plano: o
   prompt é sugerido, a arte é feita fora e volta por upload.
+
+## No celular (06/10/2026)
+
+- **Listagem:** abaixo do `lg` fica o produto, com tipo, desconto, preço,
+  vigência e situação embaixo do nome, e as ações num menu ⋮ com os nomes por
+  extenso — os três ícones só se explicavam pelo `title`, que o toque não tem.
+- **Editor:** o Salvar sai do topo (onde espremia o título em ~170px) e fica
+  numa barra presa ao pé da tela. Na prévia de preço, o preço de antes vai para
+  baixo do nome da variação, para a Margem — a decisão — ficar na vista.

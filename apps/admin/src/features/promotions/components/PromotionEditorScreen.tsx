@@ -91,7 +91,7 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onBack} title="Voltar para a listagem">
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -107,8 +107,11 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
           </div>
         </div>
 
+        {/* No celular o Salvar fica só na barra presa ao pé da tela (no fim da
+            tela): aqui ele espremia o título e a explicação em ~170px, e o
+            formulário empilhado tem duas a três telas de altura. */}
         {aba === "cadastro" && (
-          <Button onClick={handleSubmit} disabled={isSaving} className="gap-2">
+          <Button onClick={handleSubmit} disabled={isSaving} className="hidden shrink-0 gap-2 sm:inline-flex">
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Salvar
           </Button>
@@ -396,6 +399,19 @@ export function PromotionEditorScreen({ promotionId, onBack, onSaved }: Promotio
 
       {/* Confirmação NOMEANDO a variação: num grupo de oito, o alerta da coluna
           da direita não compete com o botão Salvar do alto da esquerda. */}
+      {/* Celular: o Salvar preso ao pé da tela, sempre à mão — o formulário e a
+          prévia empilhados passam de duas telas. O `-bottom-3` (e não
+          `bottom-0`) é porque o sticky conta a partir da borda interna do `p-3`
+          do <main>: com zero a barra ficava 12px acima do pé. */}
+      {aba === "cadastro" && (
+        <div className="sticky -bottom-3 z-20 -mx-3 -mb-3 border-t border-border/40 bg-background/95 px-3 py-3 backdrop-blur sm:hidden">
+          <Button onClick={handleSubmit} disabled={isSaving} className="w-full gap-2">
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Salvar
+          </Button>
+        </div>
+      )}
+
       <ConfirmDialog
         open={confirmingBelowCost}
         title="Vender abaixo do custo?"

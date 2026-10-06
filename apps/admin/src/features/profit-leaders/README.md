@@ -159,3 +159,11 @@ Não distingue **queda sazonal de queda estrutural**. A primeira venda do sistem
 é de 05/03/2026 e não existe o mesmo período do ano anterior. A camiseta da Copa
 depois da Copa e um produto que perdeu a graça desenham o mesmo gráfico — só o
 calendário da loja separa os dois.
+
+## No celular (06/10/2026)
+
+Abaixo de `sm` a coluna da direita (lucro, peças, vendas, estoque) e o gráfico
+da linha saem, e o lucro com o estoque vêm numa linha logo embaixo do nome.
+Com a coluna (`w-24`) e a posição (`w-9`), sobravam ~93px para o nome numa tela
+de 375, e o gráfico de 132px invadia a coluna do lucro. O estoque nunca some:
+o teste confere que ele aparece em toda largura, numa forma ou na outra.

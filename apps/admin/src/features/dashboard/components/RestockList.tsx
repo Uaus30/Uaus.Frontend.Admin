@@ -72,16 +72,19 @@ export function RestockList({ items, lookbackDays }: RestockListProps) {
 
   return (
     <div className="-mx-1 overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-sm">
+      {/* Abaixo do `lg`, sem largura mínima: ficam o produto (com o resumo
+          embaixo) e o "Comprar" — que era a última de oito colunas rolando de
+          lado no celular. */}
+      <table className="w-full text-left text-sm lg:min-w-[720px]">
         <thead>
           <tr className="border-b border-border/60 text-[11px] uppercase tracking-wide text-muted-foreground">
             <th className="px-2 pb-2 font-medium">Produto</th>
-            <th className="px-2 pb-2 font-medium">Urgência</th>
-            <th className="px-2 pb-2 text-right font-medium">Estoque</th>
-            <th className="px-2 pb-2 text-right font-medium">Cobertura</th>
-            <th className="px-2 pb-2 text-right font-medium">Venda/dia</th>
-            <th className="px-2 pb-2 text-right font-medium">Margem</th>
-            <th className="px-2 pb-2 text-right font-medium">Lucro em risco</th>
+            <th className="hidden lg:table-cell px-2 pb-2 font-medium">Urgência</th>
+            <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Estoque</th>
+            <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Cobertura</th>
+            <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Venda/dia</th>
+            <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Margem</th>
+            <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Lucro em risco</th>
             <th className="px-2 pb-2 text-right font-medium">Comprar</th>
           </tr>
         </thead>
@@ -91,34 +94,45 @@ export function RestockList({ items, lookbackDays }: RestockListProps) {
               key={item.productId}
               className="border-b border-border/40 transition-colors last:border-0 hover:bg-muted/30"
             >
-              <td className="max-w-[240px] px-2 py-3">
-                <p className="truncate font-medium text-foreground" title={item.productName}>
+              <td className="px-2 py-3 lg:max-w-[240px]">
+                <p className="break-words font-medium text-foreground lg:truncate" title={item.productName}>
                   {item.productName}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {item.categoryName}
                   {item.supplierName && ` · ${item.supplierName}`}
                 </p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] tabular-nums text-muted-foreground lg:hidden">
+                  <UrgencyBadge urgency={item.urgency} />
+                  <span>
+                    estoque {item.stock}
+                    {item.minStock > 0 && ` / ${item.minStock}`}
+                  </span>
+                  <span>· dura {formatCoverage(item.daysOfCover)}</span>
+                  <span>· {item.averageDailySales.toFixed(2).replace(".", ",")} por dia</span>
+                  <span>· margem {item.marginPercentage.toFixed(1).replace(".", ",")}%</span>
+                  <span>· {formatCurrency(item.score)} em risco</span>
+                </div>
               </td>
-              <td className="px-2 py-3">
+              <td className="hidden lg:table-cell px-2 py-3">
                 <UrgencyBadge urgency={item.urgency} />
               </td>
-              <td className="px-2 py-3 text-right tabular-nums">
+              <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums">
                 {item.stock}
                 {item.minStock > 0 && (
                   <span className="text-xs text-muted-foreground"> / {item.minStock}</span>
                 )}
               </td>
-              <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">
+              <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums text-muted-foreground">
                 {formatCoverage(item.daysOfCover)}
               </td>
-              <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">
+              <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums text-muted-foreground">
                 {item.averageDailySales.toFixed(2).replace(".", ",")}
               </td>
-              <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">
+              <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums text-muted-foreground">
                 {item.marginPercentage.toFixed(1).replace(".", ",")}%
               </td>
-              <td className="px-2 py-3 text-right font-medium tabular-nums text-foreground">
+              <td className="hidden lg:table-cell px-2 py-3 text-right font-medium tabular-nums text-foreground">
                 {formatCurrency(item.score)}
               </td>
               <td className="px-2 py-3 text-right">

@@ -148,3 +148,15 @@ inventário: o pedido era cabeçalho formatado, e CSV não carrega formato nenhu
   que é o que a tela edita; o item traz `productGroupId` para isso.
 - Busca, teto de saldo, mínimo de vendas e ordenação voltam para a página 1 nos
   próprios setters, não em efeito.
+
+## No celular (06/10/2026)
+
+Abaixo do `lg` a tabela fica só com a coluna do produto, sem largura mínima. O
+saldo / mínimo, o fornecedor, as vendas de 30 dias, a duração e as ações
+("Comprar" e o menu) vêm embaixo do nome (`LowStockRowSummary`). Antes a tabela
+tinha 44rem de largura mínima e, no celular, o "Comprar" só aparecia depois de
+rolar ~450px de lado — e o saldo, a pergunta do relatório, nem aparecia abaixo
+de `2xl`. A ordenação por vendas de 30 dias, que mora no cabeçalho, ganha um
+botão na barra (`lg:hidden`). As ações existem duas vezes no DOM (coluna e
+resumo); uma some por CSS. As funções de duração ficam em `lib/duracao.ts`,
+para a coluna e o resumo dizerem a mesma coisa.

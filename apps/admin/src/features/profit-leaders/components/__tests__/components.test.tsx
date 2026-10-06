@@ -377,22 +377,42 @@ describe("ProfitRow", () => {
     }
   });
 
+  /**
+   * Visível em toda largura = uma das cópias aparece abaixo do `sm` e a outra do
+   * `sm` para cima. RTL/jsdom não aplicam CSS: um `hidden sm:block` esquecido
+   * passaria pelo `getByText` do mesmo jeito, então a asserção olha a CLASSE —
+   * do elemento e dos ancestrais até a linha. Desde 06/10/2026 o estoque vem
+   * embaixo do nome no celular (a coluna da direita espremia o nome em ~93px)
+   * e na coluna da direita no computador.
+   */
+  function larguraEmQueAparece(elemento: HTMLElement): "celular" | "computador" | "sempre" {
+    let atual: HTMLElement | null = elemento;
+    while (atual && atual.tagName !== "LI") {
+      const classes = atual.className.split(/\s+/);
+      if (classes.includes("sm:hidden")) return "celular";
+      if (classes.includes("hidden") && classes.includes("sm:block")) return "computador";
+      expect(classes).not.toContain("hidden");
+      atual = atual.parentElement;
+    }
+    return "sempre";
+  }
+
   it("o estoque fica visivel em qualquer tela, nao so a partir do breakpoint sm", () => {
-    // RTL/jsdom não aplicam CSS: um `hidden sm:block` esquecido aqui passaria
-    // pelo `getByText` do mesmo jeito, porque a arvore continua tendo o nó. A
-    // asserção precisa olhar a CLASSE — é exatamente o defeito que a coluna
-    // inteira tinha antes: no celular ela sumia junto com peças e vendas.
     renderRow(liderDeTeste({ stock: 24 }));
 
-    const estoque = screen.getByText(/24 em casa/);
-    expect(estoque.className.split(/\s+/)).not.toContain("hidden");
+    const larguras = screen.getAllByText(/24 em casa/).map(larguraEmQueAparece);
+    expect(
+      larguras.includes("sempre") || (larguras.includes("celular") && larguras.includes("computador")),
+    ).toBe(true);
   });
 
   it("sem estoque tambem fica visivel em qualquer tela", () => {
     renderRow(liderDeTeste({ stock: 0 }));
 
-    const estoque = screen.getByText("sem estoque");
-    expect(estoque.className.split(/\s+/)).not.toContain("hidden");
+    const larguras = screen.getAllByText(/sem estoque/).map(larguraEmQueAparece);
+    expect(
+      larguras.includes("sempre") || (larguras.includes("celular") && larguras.includes("computador")),
+    ).toBe(true);
   });
 });
 

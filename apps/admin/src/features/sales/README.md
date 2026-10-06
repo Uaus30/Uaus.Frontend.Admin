@@ -40,3 +40,13 @@ Este módulo gerencia o histórico de faturamento e registro de novas vendas (Ch
 - A API grava o item com `unitPrice` **líquido** e o desconto unitário à parte (`discount`); o `discount` do cabeçalho da venda não inclui esse abatimento. Por isso o rodapé do `SaleDetailsModal` soma os dois com `computeSaleDiscountTotal` do `@workspace/core` — a mesma conta do histórico e do cupom do PDV. Antes o modal dizia "sem desconto" para a venda remarcada só no item.
 - Para a conta fechar de cima para baixo, o "Subtotal Itens" sai a preço de **tabela** (`unitPrice + discount`, vezes a quantidade): `22,00 − 2,00 = 20,00`. Na tabela, o item com desconto mostra o preço de tabela riscado abaixo do praticado, como o carrinho do PDV faz.
 - O lucro continua sendo o subtotal líquido menos o custo: é a semântica do backend (`Profit = Subtotal − TotalCost`), bruta de desconto de cabeçalho.
+
+### 6. No celular (06/10/2026)
+
+A linha inteira abre a venda (no celular o olho ficava além da borda). Número,
+data e forma de pagamento vêm junto do cliente; as ações viram um menu ⋮ com os
+nomes por extenso (`SaleRowActions`, que para o clique antes de chegar à linha);
+período, forma e situação ficam atrás de "Filtros (n)" (`SalesFilters`).
+Selecionar texto da linha com o mouse não abre a venda. No detalhe, quantidade,
+preço e custo de cada item vêm embaixo do nome: as cinco colunas cortavam o
+Subtotal sem deixar rolar.

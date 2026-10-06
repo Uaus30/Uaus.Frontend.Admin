@@ -8,6 +8,8 @@ import type { LowStockScope, LowStockSort } from "@workspace/api-client-react";
 import { outOfControlLabel } from "@/lib/stock-control";
 import type { LowStockItem } from "../types";
 import { LowStockRowActions } from "./LowStockRowActions";
+import { LowStockRowSummary } from "./LowStockRowSummary";
+import { duracaoLegivel, duracaoTone, tituloDaDuracao } from "../lib/duracao";
 
 type LowStockTableProps = {
   /** Qual lista está aberta: muda o botão da linha e o texto do vazio. */
@@ -56,45 +58,6 @@ function productDetailHref(productGroupId: number): string {
   return `/produtos/${productGroupId}/detalhes`;
 }
 
-/**
- * Quanto tempo o saldo dura, em texto curto.
- *
- * Vira "acaba hoje" abaixo de um dia e ganha o mês quando passa de sessenta:
- * "92 dias" é preciso e ilegível para quem só quer saber se dá para esperar a
- * próxima compra.
- */
-function duracaoLegivel(days: number | null | undefined, stock: number): string {
-  // Saldo zero e passado, nao previsao: "acaba hoje" para quem ja acabou manda
-  // a pessoa conferir uma data que nao existe mais.
-  if (stock <= 0) return "esgotado";
-  if (days == null) return "—";
-  if (days < 1) return "acaba hoje";
-  if (days <= 60) return `${Math.round(days)} dias`;
-  return `${Math.round(days / 30)} meses`;
-}
-
-/**
- * O título da coluna "Dura" mostra a conta inteira: "0,13 un./dia" sozinho não
- * diz de onde saiu, e é esta coluna que decide a ordem da lista.
- */
-function tituloDaDuracao(item: LowStockItem): string {
-  const porMes = ((item.dailyDemand ?? 0) * 30).toFixed(1).replace(".", ",");
-  const mediana =
-    item.monthlySalesMedian != null
-      ? ` — mediana de ${String(item.monthlySalesMedian).replace(".", ",")}/mês`
-      : "";
-  return `Demanda prevista de ${porMes} un./mês (${item.averageDailySales ?? 0} por dia)${mediana}`;
-}
-
-/** Cor da previsão: vermelho até uma semana, âmbar até três, neutro depois. */
-function duracaoTone(days: number | null | undefined, stock: number): string {
-  if (stock <= 0) return "font-semibold text-red-600 dark:text-red-400";
-  if (days == null) return "text-muted-foreground";
-  if (days <= 7) return "font-semibold text-red-600 dark:text-red-400";
-  if (days <= 21) return "text-amber-600 dark:text-amber-400";
-  return "text-foreground";
-}
-
 /** O texto de rodapé do vazio: o que entra em cada lista. */
 function explicacaoDoVazio(scope: LowStockScope, filtrado: boolean): string {
   if (filtrado) return "Os dois filtros só estreitam a lista; apague-os para ver tudo.";
@@ -136,7 +99,7 @@ export function LowStockTable({
   mutatingProductId,
 }: LowStockTableProps) {
   return (
-    <div className="space-y-4 rounded-2xl border border-border/50 bg-card/50 p-5">
+    <div className="space-y-4 rounded-2xl border border-border/50 bg-card/50 p-3 sm:p-5">
       {/* Uma linha só no monitor; em tela estreita, a busca em cima e as quantidades embaixo. */}
       <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap lg:justify-between">
         <div className="relative order-1 min-w-0 flex-1 lg:max-w-sm lg:flex-none lg:basis-80">
@@ -188,6 +151,25 @@ export function LowStockTable({
             />
             em 30d
           </label>
+          {/* No celular a coluna "Vendas 30d" some, e com ela o cabeçalho que
+              ordena: o mesmo controle vem para cá. */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 lg:hidden"
+            onClick={onToggleSalesSort}
+            aria-label="Ordenar por vendas dos últimos 30 dias"
+          >
+            Vendas 30d
+            {sort === "RecentSalesDesc" ? (
+              <ArrowDown className="h-3.5 w-3.5 text-primary" />
+            ) : sort === "RecentSalesAsc" ? (
+              <ArrowUp className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+            )}
+          </Button>
         </div>
       </div>
 
@@ -206,15 +188,16 @@ export function LowStockTable({
       ) : (
         // Largura minima + rolagem: sem ela o navegador espreme as colunas para
         // caber, e a ultima — a das acoes — e a que perde espaco, deixando o
-        // "Comprar" cortado. Com a largura minima a tela estreita ganha barra
-        // horizontal, que e o comportamento previsivel. A largura minima cai
-        // junto com as colunas escondidas: exigir 64rem de quatro colunas
-        // devolveria a barra de rolagem que esconde-las veio tirar.
+        // "Comprar" cortado. A largura minima cai junto com as colunas
+        // escondidas: exigir 64rem de quatro colunas devolveria a barra de
+        // rolagem que esconde-las veio tirar. Abaixo do `lg` (06/10/2026) nao
+        // ha largura minima nenhuma: fica so a coluna do produto, com o resumo
+        // e as acoes embaixo do nome (`LowStockRowSummary`).
         <div className="overflow-x-auto rounded-xl border border-border/40">
-          <Table className="min-w-[44rem] 2xl:min-w-[64rem]">
+          <Table className="lg:min-w-[44rem] 2xl:min-w-[64rem]">
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead className="px-4 py-3">Produto</TableHead>
+                <TableHead className="px-3 py-3 lg:px-4">Produto</TableHead>
                 {/*
                   Abaixo de `2xl` saem fornecedor, saldo/mínimo e última venda —
                   mesmo tratamento da tela de Compras, e pela mesma razão: com as
@@ -233,7 +216,7 @@ export function LowStockTable({
                 >
                   Última venda
                 </TableHead>
-                <TableHead className="px-1 py-1 text-right">
+                <TableHead className="hidden px-1 py-1 text-right lg:table-cell">
                   {/*
                     Cabeçalho clicável, e não um select de ordenação à parte: a
                     coluna é o próprio controle, que é onde a pessoa já está
@@ -257,20 +240,36 @@ export function LowStockTable({
                   </button>
                 </TableHead>
                 <TableHead
-                  className="px-4 py-3 text-right"
+                  className="hidden px-4 py-3 text-right lg:table-cell"
                   title="Previsão de duração do saldo na demanda prevista — média ponderada dos três últimos meses"
                 >
                   Dura
                 </TableHead>
-                <TableHead className="w-px whitespace-nowrap px-4 py-3 text-right">Ações</TableHead>
+                <TableHead className="hidden w-px whitespace-nowrap px-4 py-3 text-right lg:table-cell">
+                  Ações
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((item) => {
                 const mutating = mutatingProductId === item.productId;
+                // Uma marcação, dois lugares: a coluna do computador e o resumo
+                // do celular (uma das duas some por CSS).
+                const actions = (
+                  <LowStockRowActions
+                    item={item}
+                    scope={scope}
+                    mutating={mutating}
+                    productHref={productDetailHref(item.productGroupId)}
+                    onComprar={onComprar}
+                    onDisableStockControl={onDisableStockControl}
+                    onEnableStockControl={onEnableStockControl}
+                    onInactivate={onInactivate}
+                  />
+                );
                 return (
                   <TableRow key={item.productId} data-testid="low-stock-row">
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="px-3 py-3 lg:px-4">
                       <div className="flex items-center gap-3">
                         {item.imageUrl ? (
                           <ImageHoverZoom
@@ -304,6 +303,7 @@ export function LowStockTable({
                               {outOfControlLabel(item)}
                             </p>
                           )}
+                          <LowStockRowSummary item={item} actions={actions} />
                         </div>
                       </div>
                     </TableCell>
@@ -327,7 +327,7 @@ export function LowStockTable({
                         <span className="text-muted-foreground">Nunca vendeu</span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-sm">
+                    <TableCell className="hidden px-4 py-3 text-right font-mono text-sm lg:table-cell">
                       {item.recentSales > 0 ? (
                         <span className="font-semibold text-foreground">{item.recentSales}</span>
                       ) : (
@@ -337,7 +337,7 @@ export function LowStockTable({
                       )}
                     </TableCell>
                     <TableCell
-                      className={`px-4 py-3 text-right text-sm ${duracaoTone(item.daysOfCover, item.stock)}`}
+                      className={`hidden px-4 py-3 text-right text-sm lg:table-cell ${duracaoTone(item.daysOfCover, item.stock)}`}
                     >
                       {/*
                         O título mostra a conta INTEIRA, e não só a média: "0,13
@@ -348,17 +348,8 @@ export function LowStockTable({
                         {duracaoLegivel(item.daysOfCover, item.stock)}
                       </span>
                     </TableCell>
-                    <TableCell className="w-px whitespace-nowrap px-4 py-3 text-right">
-                      <LowStockRowActions
-                        item={item}
-                        scope={scope}
-                        mutating={mutating}
-                        productHref={productDetailHref(item.productGroupId)}
-                        onComprar={onComprar}
-                        onDisableStockControl={onDisableStockControl}
-                        onEnableStockControl={onEnableStockControl}
-                        onInactivate={onInactivate}
-                      />
+                    <TableCell className="hidden w-px whitespace-nowrap px-4 py-3 text-right lg:table-cell">
+                      {actions}
                     </TableCell>
                   </TableRow>
                 );
@@ -369,7 +360,7 @@ export function LowStockTable({
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LowStockItemDto } from "@workspace/api-client-react";
 
@@ -98,7 +98,8 @@ describe("LowStockTable", () => {
     const { props } = renderTable();
 
     fireEvent.pointerDown(
-      screen.getByLabelText("Opções de BEXIGA [AZUL]"),
+      // As ações existem duas vezes (coluna e resumo do celular); a primeira basta.
+      screen.getAllByLabelText("Opções de BEXIGA [AZUL]")[0],
       new PointerEvent("pointerdown", { ctrlKey: false, button: 0 }),
     );
 
@@ -108,7 +109,7 @@ describe("LowStockTable", () => {
     expect(props.onDisableStockControl).not.toHaveBeenCalled();
   });
 
-  it("esconde fornecedor, saldo e última venda abaixo de 2xl", () => {
+  it("esconde fornecedor, saldo e última venda abaixo de 2xl, e o resto abaixo de lg", () => {
     // Com as sete colunas a tabela passa de 1.200px e empurra para fora da tela
     // justamente o botão "Comprar" e o menu. O contrato é o mesmo da tela de
     // Compras: `hidden` + `2xl:table-cell`.
@@ -120,9 +121,15 @@ describe("LowStockTable", () => {
       expect(coluna?.className).toContain("2xl:table-cell");
     }
 
-    // As que decidem a compra ficam em qualquer largura.
+    // Abaixo do `lg` (06/10/2026) só fica o produto: vendas, duração e ações
+    // descem para o resumo embaixo do nome. A tabela tinha largura mínima de
+    // 44rem e, no celular, o "Comprar" só aparecia depois de rolar ~450px.
     expect(screen.getByText("Produto").closest("th")?.className).not.toContain("hidden");
-    expect(screen.getByText("Dura").closest("th")?.className).not.toContain("hidden");
+    for (const rotulo of ["Dura", "Ações"]) {
+      const coluna = screen.getByText(rotulo).closest("th");
+      expect(coluna?.className).toContain("hidden");
+      expect(coluna?.className).toContain("lg:table-cell");
+    }
   });
 
   it("diz 'esgotado' em vez de 'acaba hoje' para saldo zero", () => {
@@ -130,8 +137,9 @@ describe("LowStockTable", () => {
     // conferir uma data que passou confunde quem decide o que comprar hoje.
     renderTable();
 
-    expect(screen.getByText("esgotado")).toBeTruthy();
-    expect(screen.getByText("24 dias")).toBeTruthy();
+    // Na coluna e no resumo do celular.
+    expect(screen.getAllByText("esgotado")).toHaveLength(2);
+    expect(screen.getAllByText("24 dias")).toHaveLength(2);
   });
 
   it("explica o critério do relatório quando a lista vem vazia", () => {
@@ -153,7 +161,7 @@ describe("LowStockTable", () => {
     const { props } = renderTable();
 
     fireEvent.pointerDown(
-      screen.getByLabelText("Opções de VELA"),
+      screen.getAllByLabelText("Opções de VELA")[0],
       new PointerEvent("pointerdown", { ctrlKey: false, button: 0 }),
     );
     fireEvent.click(await screen.findByText("Desligar controle de estoque"));
@@ -170,8 +178,9 @@ describe("LowStockTable", () => {
 
     // Só o desligado à mão tem Religar: o de giro baixo já está com a chave
     // ligada e volta sozinho quando voltar a vender.
+    // Duas vezes a mesma linha: a coluna e o resumo do celular.
     const religar = screen.getAllByText("Religar");
-    expect(religar).toHaveLength(1);
+    expect(religar).toHaveLength(2);
     fireEvent.click(religar[0]);
     expect(props.onEnableStockControl).toHaveBeenCalledWith(desligado);
   });
@@ -180,5 +189,27 @@ describe("LowStockTable", () => {
     renderTable({ scope: "OutOfControl", items: [] });
 
     expect(screen.getByText("Todo produto está no controle de estoque.")).toBeTruthy();
+  });
+
+  it("no celular o resumo traz saldo, fornecedor, vendas e duração, com as ações embaixo", () => {
+    renderTable({ items: [acabando] });
+
+    const linha = screen.getByTestId("low-stock-row");
+    const resumo = within(linha)
+      .getByText(/^Estoque/)
+      .closest("div")!;
+    expect(resumo.className).toContain("lg:hidden");
+    expect(within(resumo).getByRole("button", { name: /opções de vela/i })).toBeTruthy();
+  });
+
+  it("no celular a ordenação por vendas de 30 dias fica num botão — o cabeçalho some", () => {
+    const { props } = renderTable();
+
+    const botoes = screen.getAllByRole("button", { name: "Ordenar por vendas dos últimos 30 dias" });
+    // O cabeçalho (computador) e o botão da barra (celular).
+    expect(botoes).toHaveLength(2);
+    fireEvent.click(botoes.find((botao) => botao.className.includes("lg:hidden"))!);
+
+    expect(props.onToggleSalesSort).toHaveBeenCalled();
   });
 });

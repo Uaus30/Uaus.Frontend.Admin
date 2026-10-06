@@ -49,7 +49,9 @@ export function AnomalyFilters({
   return (
     <Card className="flex flex-col gap-3 border-border/60 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 sm:max-w-72">
+        {/* Linha própria no celular: dividindo a linha com o interruptor e o
+            botão, a busca ficava com 15 a 45px de largura (06/10/2026). */}
+        <div className="relative w-full min-w-0 sm:w-auto sm:max-w-72 sm:flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -94,7 +96,7 @@ export function AnomalyFilters({
             onClick={onClearType}
             aria-pressed={type === null}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors sm:py-1",
               type === null
                 ? "border-foreground/30 bg-foreground/10 text-foreground"
                 : BI_TONE_PILL.neutro + " hover:bg-muted/60",
@@ -116,7 +118,7 @@ export function AnomalyFilters({
                 onClick={() => onToggleType(valor)}
                 aria-pressed={ativo}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors",
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors sm:py-1",
                   ativo ? "border-foreground/30 bg-foreground/10 text-foreground" : BI_TONE_PILL[meta.tone],
                 )}
               >

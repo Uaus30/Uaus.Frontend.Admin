@@ -126,3 +126,10 @@ usa outro número ensinaria errado sem ninguém perceber.
   sem saldo, pode ter sido queima de estoque, e a próxima entrada já pede o preço
   e mostra a margem. Em produção, a única ocorrência (JARRA MARACATU 1,560ML) está
   sem saldo e saiu da lista.
+
+## No celular (06/10/2026)
+
+A busca ganha linha própria (dividindo a linha com o interruptor e o botão,
+ficava com 15 a 45px), o nome do produto quebra linha em vez de cortar (o fim é
+a variação, que distingue duas linhas iguais) e o link para o cadastro tem área
+de toque maior que o ícone de 14px.

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { Skeleton, Tooltip, TooltipContent, TooltipTrigger, cn, formatDateInput } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { DashboardMonthly } from "../types";
@@ -10,12 +11,13 @@ import {
   type HeatCell,
   type HeatWeek,
 } from "../heatmap";
-import { formatBrazilianDate, formatSignedPercent, growth, monthLabel } from "../utils";
+import { formatSignedPercent, monthLabel } from "../utils";
 import { CHART_TOOLTIP_CLASS, ChartCard, ChartEmptyState } from "./chart-primitives";
+import { HeatDayDetails, HeatWeekLine } from "./HeatDayDetails";
+import { dayTitle } from "../heat-labels";
+import { useNarrowerThan } from "@/hooks/use-narrower-than";
 
 const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"] as const;
-const WEEKDAY_PLURAL = ["domingos", "segundas", "terças", "quartas", "quintas", "sextas", "sábados"] as const;
-const WEEKDAY_LONG = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"] as const;
 
 /** "julho" a partir de uma data da API (`2026-07-01T00:00:00`). */
 function monthName(value: string): string {
@@ -59,17 +61,19 @@ function heatStyle(position: number | null): React.CSSProperties | undefined {
   };
 }
 
-function TooltipRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-6 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium tabular-nums text-foreground">{value}</span>
-    </div>
-  );
-}
+/** Abaixo de `sm` o calendário perde a coluna "Semana" e o valor escrito na célula. */
+const COMPACT_BELOW = 640;
 
-function DayCell({ cell }: { cell: HeatCell }) {
-  const title = `${WEEKDAY_LONG[cell.dayOfWeek]}, ${formatBrazilianDate(cell.date).slice(0, 5)}`;
+function DayCell({
+  cell,
+  selected,
+  onSelect,
+}: {
+  cell: HeatCell;
+  selected: boolean;
+  onSelect: (date: string) => void;
+}) {
+  const title = dayTitle(cell);
 
   if (!cell.hasHappened) {
     return (
@@ -82,20 +86,26 @@ function DayCell({ cell }: { cell: HeatCell }) {
     );
   }
 
-  const vsWeekday = growth(cell.revenue, cell.weekdayAverage);
-
   return (
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
-        <div
-          role="img"
+        {/* Botão, e não só imagem: no celular a dica do Radix não abre, e tocar
+            no dia é o que mostra o detalhe dele, no painel embaixo do
+            calendário (06/10/2026). */}
+        <button
+          type="button"
           aria-label={`${title}: ${formatCurrency(cell.revenue)}`}
+          aria-pressed={selected}
+          onClick={() => onSelect(cell.date)}
           style={heatStyle(cell.position)}
           className={cn(
-            "relative flex h-14 cursor-default flex-col justify-between rounded-md p-1.5 transition-transform hover:scale-[1.04]",
+            "relative flex h-14 cursor-pointer flex-col justify-between rounded-md p-1.5 text-left transition-transform hover:scale-[1.04]",
             cell.position === null && "bg-muted/40 text-muted-foreground",
             "ring-1 ring-inset ring-black/10",
             cell.isToday && "ring-2 ring-primary ring-offset-2 ring-offset-card",
+            // O anel de "hoje" (o da legenda) prevalece: no celular hoje já abre
+            // escolhido, e trocar a cor dele confundiria a leitura.
+            selected && !cell.isToday && "ring-2 ring-foreground",
           )}
         >
           <div className="flex items-start justify-between">
@@ -106,32 +116,14 @@ function DayCell({ cell }: { cell: HeatCell }) {
               </span>
             )}
           </div>
-          <span className="truncate text-xs font-semibold tabular-nums leading-none">
+          {/* Do `sm` para cima: numa célula de ~40px o valor virava "R…". */}
+          <span className="hidden truncate text-xs font-semibold tabular-nums leading-none sm:block">
             {cell.revenue > 0 ? cellMoney(cell.revenue) : "—"}
           </span>
-        </div>
+        </button>
       </TooltipTrigger>
-      <TooltipContent side="top" className={cn(CHART_TOOLTIP_CLASS, "min-w-[200px] space-y-1 p-3")}>
-        <p className="mb-1.5 text-xs font-semibold text-foreground">
-          {title}
-          {cell.isToday && <span className="font-normal text-muted-foreground"> · em andamento</span>}
-        </p>
-        {cell.salesCount === 0 ? (
-          <p className="text-xs text-muted-foreground">Sem venda neste dia.</p>
-        ) : (
-          <>
-            <TooltipRow label="Faturamento" value={formatCurrency(cell.revenue)} />
-            <TooltipRow label="Lucro" value={formatCurrency(cell.profit)} />
-            <TooltipRow label="Vendas" value={String(cell.salesCount)} />
-            <TooltipRow label="Ticket médio" value={formatCurrency(cell.revenue / cell.salesCount)} />
-            {cell.weekdayAverage > 0 && vsWeekday !== null && !cell.isToday && (
-              <p className="pt-1 text-[11px] text-muted-foreground">
-                {formatSignedPercent(vsWeekday)} contra a média das {WEEKDAY_PLURAL[cell.dayOfWeek]} (
-                {formatCurrency(cell.weekdayAverage)})
-              </p>
-            )}
-          </>
-        )}
+      <TooltipContent side="top" className={cn(CHART_TOOLTIP_CLASS, "min-w-[200px] p-3")}>
+        <HeatDayDetails cell={cell} />
       </TooltipContent>
     </Tooltip>
   );
@@ -219,6 +211,10 @@ type MonthHeatmapProps = {
  */
 export function MonthHeatmap({ monthly, isLoading }: MonthHeatmapProps) {
   const [showPrevious, setShowPrevious] = useState(false);
+  const compact = useNarrowerThan(COMPACT_BELOW);
+  // O dia tocado. Sem escolha, no celular o painel abre no dia de hoje — senão o
+  // calendário compacto (sem o valor nas células) não mostraria número nenhum.
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const view = useMemo(() => {
     if (!monthly) return null;
@@ -255,7 +251,10 @@ export function MonthHeatmap({ monthly, isLoading }: MonthHeatmapProps) {
           <button
             key={item.label}
             type="button"
-            onClick={() => setShowPrevious(index === 0)}
+            onClick={() => {
+              setShowPrevious(index === 0);
+              setSelectedDate(null);
+            }}
             className={cn(
               "rounded-md px-2.5 py-1 transition-colors",
               active
@@ -271,7 +270,17 @@ export function MonthHeatmap({ monthly, isLoading }: MonthHeatmapProps) {
   );
 
   const hasSales = month.days.some((day) => day.hasHappened && day.salesCount > 0);
-  const template = `repeat(${grid.columns.length}, minmax(0, 1fr)) minmax(68px, 0.9fr)`;
+  const template = compact
+    ? `repeat(${grid.columns.length}, minmax(0, 1fr))`
+    : `repeat(${grid.columns.length}, minmax(0, 1fr)) minmax(68px, 0.9fr)`;
+
+  const todayDate = grid.weeks.flatMap((week) => week.cells).find((cell) => cell?.isToday)?.date ?? null;
+  const shownDate = selectedDate ?? (compact ? todayDate : null);
+  const shownWeek = shownDate
+    ? grid.weeks.find((week) => week.cells.some((cell) => cell?.date === shownDate))
+    : undefined;
+  const shownCell = shownWeek?.cells.find((cell) => cell?.date === shownDate) ?? null;
+  const toggleDay = (date: string) => setSelectedDate((current) => (current === date ? null : date));
 
   return (
     <ChartCard title={`Faturamento por dia · ${month.label}`} description={description} action={switcher}>
@@ -288,7 +297,9 @@ export function MonthHeatmap({ monthly, isLoading }: MonthHeatmapProps) {
                 {WEEKDAY_SHORT[dayOfWeek]}
               </span>
             ))}
-            <span className="pb-0.5 text-right text-[11px] font-medium text-muted-foreground">Semana</span>
+            {!compact && (
+              <span className="pb-0.5 text-right text-[11px] font-medium text-muted-foreground">Semana</span>
+            )}
 
             {grid.weeks.map((week, weekIndex) => {
               const isCurrent = week.cells.some((cell) => cell?.isToday);
@@ -296,16 +307,46 @@ export function MonthHeatmap({ monthly, isLoading }: MonthHeatmapProps) {
                 <React.Fragment key={weekIndex}>
                   {week.cells.map((cell, column) =>
                     cell ? (
-                      <DayCell key={cell.date} cell={cell} />
+                      <DayCell
+                        key={cell.date}
+                        cell={cell}
+                        selected={cell.date === selectedDate}
+                        onSelect={toggleDay}
+                      />
                     ) : (
                       <div key={`empty-${column}`} className="h-14" />
                     ),
                   )}
-                  <WeekTotal week={week} isCurrent={isCurrent} />
+                  {!compact && <WeekTotal week={week} isCurrent={isCurrent} />}
                 </React.Fragment>
               );
             })}
           </div>
+          {shownCell && shownWeek ? (
+            <div
+              className="relative rounded-lg border border-border/60 bg-muted/20 p-3"
+              data-testid="heat-day-panel"
+            >
+              {selectedDate !== null && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(null)}
+                  aria-label="Fechar o detalhe do dia"
+                  className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              <HeatDayDetails cell={shownCell} />
+              {compact && <HeatWeekLine week={shownWeek} />}
+            </div>
+          ) : (
+            compact && (
+              <p className="text-xs text-muted-foreground">
+                Toque num dia para ver o faturamento, o lucro e as vendas dele.
+              </p>
+            )
+          )}
           <Legend referenceRevenue={referenceRevenue} />
         </div>
       )}

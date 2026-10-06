@@ -1,6 +1,10 @@
 import {
   Button,
   ConfirmDialog,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   ImageHoverZoom,
   Table,
   TableBody,
@@ -17,7 +21,7 @@ import {
   enumCode,
 } from "@workspace/api-client-react";
 import { formatCurrency } from "@workspace/core";
-import { CopyPlus, Layers, PowerOff, Tag, Trash2, Zap } from "lucide-react";
+import { CopyPlus, Layers, MoreVertical, PowerOff, Tag, Trash2, Zap } from "lucide-react";
 import { useState } from "react";
 import { PromotionSituationBadge } from "./PromotionSituationBadge";
 import type { PromotionDto, PromotionRow } from "../types";
@@ -92,6 +96,12 @@ interface PromotionsTableProps {
  * Em tela estreita as colunas saem por prioridade (`hidden 2xl:table-cell`), e
  * nunca viram rolagem horizontal: o que a barra empurra para fora é a ponta
  * direita, onde moram a situação e as ações.
+ *
+ * **Celular e tablet (abaixo de `lg`, 06/10/2026):** ainda sobravam oito
+ * colunas, e a tabela rolava de lado com a situação e as ações fora da tela. Lá
+ * fica o produto, com tipo, desconto, preço, vigência e situação num resumo
+ * embaixo do nome, e as ações num menu ⋮ com os nomes por extenso — os três
+ * ícones só se distinguiam pelo desenho, porque o nome estava no `title`.
  */
 export function PromotionsTable({
   items,
@@ -128,18 +138,18 @@ export function PromotionsTable({
           <TableHeader>
             <TableRow className="bg-muted/40">
               <TableHead>Produto</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Desconto</TableHead>
+              <TableHead className="hidden lg:table-cell">Tipo</TableHead>
+              <TableHead className="hidden lg:table-cell">Desconto</TableHead>
               <TableHead className="hidden 2xl:table-cell">De</TableHead>
-              <TableHead>Por</TableHead>
+              <TableHead className="hidden lg:table-cell">Por</TableHead>
               <TableHead className="hidden 2xl:table-cell">Limite</TableHead>
               {/* Ao lado da situação, e NÃO dentro de uma nota: a nota mede
                   movimento ("funcionou?") e mora na aba Performance; o
                   investimento mede preço ("quanto custou?"). Fundir os dois faria
                   uma nota baixa virar ambígua — não vendeu, ou vendeu caro? */}
-              <TableHead className="text-right">Investimento</TableHead>
-              <TableHead>Vigência</TableHead>
-              <TableHead>Situação</TableHead>
+              <TableHead className="hidden text-right lg:table-cell">Investimento</TableHead>
+              <TableHead className="hidden lg:table-cell">Vigência</TableHead>
+              <TableHead className="hidden lg:table-cell">Situação</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -151,7 +161,7 @@ export function PromotionsTable({
 
               return (
                 <TableRow key={item.id} className="cursor-pointer hover-elevate" onClick={() => onOpen(item)}>
-                  <TableCell className="max-w-[20rem]">
+                  <TableCell className="lg:max-w-[20rem]">
                     <div className="flex items-center gap-2">
                       {item.productGroupImageUrl ? (
                         <ImageHoverZoom
@@ -162,13 +172,35 @@ export function PromotionsTable({
                       ) : (
                         <div className="h-10 w-10 rounded bg-muted" />
                       )}
-                      <span className="truncate font-medium" title={item.productGroupName}>
-                        {item.productGroupName}
-                      </span>
+                      <div className="min-w-0">
+                        <span
+                          className="block break-words font-medium lg:truncate"
+                          title={item.productGroupName}
+                        >
+                          {item.productGroupName}
+                        </span>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground lg:hidden">
+                          <span>{PROMOTION_TYPE_LABEL[enumCode(item.type, PROMOTION_TYPE) ?? 0] ?? "—"}</span>
+                          <span>· {formatDiscount(item)}</span>
+                          <span className="font-medium text-foreground">
+                            · por {formatPriceRange(item.promotionalPriceMin, item.promotionalPriceMax)}
+                          </span>
+                          <span>· {formatWindow(item)}</span>
+                          {/* O investimento mora ao lado da situação de propósito (ver
+                              o cabeçalho): no celular ele vem junto, no resumo. */}
+                          <span>
+                            ·{" "}
+                            {item.investment > 0
+                              ? `${formatCurrency(item.investment)} investidos`
+                              : "sem investimento"}
+                          </span>
+                          <PromotionSituationBadge situation={item.situation} />
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <span className="inline-flex items-center gap-1">
                       {isFlash ? (
                         <Zap className="h-3.5 w-3.5 text-amber-500" />
@@ -181,13 +213,13 @@ export function PromotionsTable({
                     </span>
                   </TableCell>
 
-                  <TableCell>{formatDiscount(item)}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{formatDiscount(item)}</TableCell>
 
                   <TableCell className="hidden 2xl:table-cell text-muted-foreground line-through">
                     {formatPriceRange(item.referencePriceMin, item.referencePriceMax)}
                   </TableCell>
 
-                  <TableCell className="font-medium">
+                  <TableCell className="hidden font-medium lg:table-cell">
                     {formatPriceRange(item.promotionalPriceMin, item.promotionalPriceMax)}
                   </TableCell>
 
@@ -195,7 +227,7 @@ export function PromotionsTable({
                     {item.maxQuantityPerSale == null ? "—" : `${item.maxQuantityPerSale} un`}
                   </TableCell>
 
-                  <TableCell className="text-right font-mono text-sm">
+                  <TableCell className="hidden text-right font-mono text-sm lg:table-cell">
                     {/* Zero aparece como traço: "R$ 0,00" numa promoção que ainda
                         não vendeu parece medida, e é ausência dela. */}
                     {item.investment > 0 ? (
@@ -205,14 +237,45 @@ export function PromotionsTable({
                     )}
                   </TableCell>
 
-                  <TableCell className="text-sm text-muted-foreground">{formatWindow(item)}</TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+                    {formatWindow(item)}
+                  </TableCell>
 
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <PromotionSituationBadge situation={item.situation} />
                   </TableCell>
 
                   <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
-                    <div className="flex justify-end gap-1">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={isBusy}
+                          aria-label={`Opções da promoção de ${item.productGroupName}`}
+                          className="h-10 w-10 lg:hidden"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                        {podeEncerrar && (
+                          <DropdownMenuItem onClick={() => setPendente({ acao: "encerrar", item })}>
+                            <PowerOff className="mr-2 h-4 w-4" /> Encerrar agora
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => onRepeat(item)}>
+                          <CopyPlus className="mr-2 h-4 w-4" /> Repetir promoção
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setPendente({ acao: "excluir", item })}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <div className="hidden justify-end gap-1 lg:flex">
                       {podeEncerrar && (
                         <Button
                           variant="ghost"

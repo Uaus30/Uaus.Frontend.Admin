@@ -101,3 +101,15 @@ A paleta categórica vive em `--chart-1..5` (`src/index.css`) e é atribuída **
 A matriz diária usa a escala verde `--heat-0..5`, do **verde claro (dia fraco) ao verde escuro e saturado (dia forte)** — a leitura que o dono pediu em 04/10/2026; a primeira versão seguia a convenção de tema escuro (mais forte = mais claro) e foi invertida. A cor intermediária sai de `color-mix` em OKLab. A escala foi validada contra o fundo do card (o tom mais escuro fica a 3,35:1 dele); a tinta do número é verde-escura sobre os tons claros e branca a partir do meio entre `--heat-3` e `--heat-4`.
 
 Quebras nominais (categoria, forma de pagamento) usam **um único matiz** com o nome ao lado — colorir cada linha de um jeito gastaria o canal de cor para repetir o que o comprimento da barra já diz.
+
+### 6. No celular (06/10/2026)
+
+- **Matriz diária:** abaixo de 640px saem a coluna "Semana" e o valor escrito
+  na célula (numa célula de ~40px ele virava "R…"). A dica do hover não abre no
+  toque, então a célula é um botão: tocar no dia abre, embaixo do calendário, o
+  mesmo detalhe da dica (`HeatDayDetails`) e o total da semana. No celular o
+  painel já abre no dia de hoje — senão o calendário compacto não mostraria
+  número nenhum. No computador nada abre sozinho; clicar num dia abre o painel.
+- **Campeões e reposição:** sem a largura mínima de 720px abaixo do `lg`; ficam
+  o produto e o número que decide (lucro, ou o "Comprar"), e o resto vem embaixo
+  do nome.

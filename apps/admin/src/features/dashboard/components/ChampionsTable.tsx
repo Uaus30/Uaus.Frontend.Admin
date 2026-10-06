@@ -133,16 +133,19 @@ export function ChampionsTable({
         <ChartEmptyState message="Nenhum produto vendido nos últimos 30 dias." />
       ) : (
         <div className={cn("-mx-1 overflow-x-auto transition-opacity", isFetching && "opacity-70")}>
-          <table className="w-full min-w-[720px] text-left text-sm">
+          {/* Abaixo do `lg`, sem largura mínima: ficam posição, produto e lucro,
+              e o resto vem embaixo do nome. Com 720px fixos a tabela rolava de
+              lado no celular, e o estoque — o alerta — era a última coluna. */}
+          <table className="w-full text-left text-sm lg:min-w-[720px]">
             <thead>
               <tr className="border-b border-border/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <th className="w-16 px-2 pb-2 font-medium">#</th>
+                <th className="w-10 px-2 pb-2 font-medium lg:w-16">#</th>
                 <th className="px-2 pb-2 font-medium">Produto</th>
                 <th className="px-2 pb-2 text-right font-medium">Lucro</th>
-                <th className="px-2 pb-2 text-right font-medium">Faturamento</th>
-                <th className="px-2 pb-2 text-right font-medium">Margem</th>
-                <th className="px-2 pb-2 text-right font-medium">Vendidos</th>
-                <th className="px-2 pb-2 text-right font-medium">Estoque</th>
+                <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Faturamento</th>
+                <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Margem</th>
+                <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Vendidos</th>
+                <th className="hidden lg:table-cell px-2 pb-2 text-right font-medium">Estoque</th>
               </tr>
             </thead>
             <tbody>
@@ -154,21 +157,27 @@ export function ChampionsTable({
                   <td className="px-2 py-3">
                     <RankCell champion={product} />
                   </td>
-                  <td className="max-w-[260px] px-2 py-3">
+                  <td className="px-2 py-3 lg:max-w-[260px]">
                     {product.productGroupId ? (
                       <Link
                         href={`/produtos/${product.productGroupId}/detalhes`}
-                        className="block truncate font-medium text-foreground hover:text-primary hover:underline"
+                        className="block break-words font-medium text-foreground hover:text-primary hover:underline lg:truncate"
                         title={product.name}
                       >
                         {product.name}
                       </Link>
                     ) : (
-                      <p className="truncate font-medium text-foreground" title={product.name}>
+                      <p className="break-words font-medium text-foreground lg:truncate" title={product.name}>
                         {product.name}
                       </p>
                     )}
                     <p className="truncate text-xs text-muted-foreground">{product.categoryName}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] tabular-nums text-muted-foreground lg:hidden">
+                      <span>{formatCurrency(product.revenue)} faturados</span>
+                      <span>· margem {percent(product.marginPercentage)}</span>
+                      <span>· {product.quantitySold} vendidos</span>
+                      <StockCell champion={product} />
+                    </div>
                   </td>
                   <td className="px-2 py-3 text-right">
                     <p className="font-semibold tabular-nums text-foreground">
@@ -178,12 +187,16 @@ export function ChampionsTable({
                       {percent(product.profitShare)} do lucro
                     </p>
                   </td>
-                  <td className="px-2 py-3 text-right tabular-nums">{formatCurrency(product.revenue)}</td>
-                  <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">
+                  <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums">
+                    {formatCurrency(product.revenue)}
+                  </td>
+                  <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums text-muted-foreground">
                     {percent(product.marginPercentage)}
                   </td>
-                  <td className="px-2 py-3 text-right tabular-nums">{product.quantitySold}</td>
-                  <td className="px-2 py-3 text-right">
+                  <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums">
+                    {product.quantitySold}
+                  </td>
+                  <td className="hidden lg:table-cell px-2 py-3 text-right">
                     <StockCell champion={product} />
                   </td>
                 </tr>

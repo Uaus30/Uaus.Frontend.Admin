@@ -35,7 +35,9 @@ function NewTabLink({
       {...adminNewTabProps()}
       aria-label={label}
       title={title}
-      className="inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+      // A margem negativa estica a área de toque (o ícone sozinho tinha 14px)
+      // sem mexer no desenho da linha.
+      className="-m-1.5 inline-flex shrink-0 items-center gap-1 p-1.5 text-muted-foreground transition-colors hover:text-foreground"
     >
       {children}
     </a>
@@ -105,7 +107,9 @@ export function AnomalyRow({ row }: { row: ProductAnomalyRowDto }) {
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="truncate text-[14px] font-semibold leading-snug" title={row.name}>
+              {/* Inteiro no celular: o fim do nome é a variação, que é o que
+                  distingue duas linhas iguais. */}
+              <p className="break-words text-[14px] font-semibold leading-snug sm:truncate" title={row.name}>
                 {row.name}
               </p>
               <NewTabLink
