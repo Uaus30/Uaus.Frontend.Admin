@@ -339,3 +339,49 @@ export async function registerStockCount(
   if (!response.data) throw new Error("Não foi possível registrar a contagem.");
   return response.data;
 }
+
+/** Um produto que teve o estoque corrigido por contagem depois de uma data. */
+export interface StockCorrectionDto {
+  productId: number;
+  /** A correção mais recente depois da data, no horário da loja, sem fuso. */
+  lastCorrectedAt: string;
+}
+
+export const getGetStockCorrectionsQueryKey = (): QueryKey => [
+  ...getGetInventoryCountsQueryKey(),
+  "corrections",
+];
+
+/**
+ * Quais destes produtos tiveram o estoque corrigido por contagem DEPOIS da data
+ * (`GET /InventoryCounts/corrections`): baixa de inventário ou entrada de ajuste.
+ *
+ * É o aviso da venda lançada para outro dia (decisão do dono, 06/10/2026): a
+ * contagem posterior já pode ter descontado a peça vendida, e a venda desconta
+ * de novo. Só consulta com data e com produto.
+ *
+ * @param since A data da venda no horário da loja, sem fuso (`2026-09-28T19:01:00`).
+ */
+export function useGetStockCorrections(
+  productIds: number[],
+  since: string | null,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<StockCorrectionDto[], ApiError, StockCorrectionDto[], QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  // Ordenados: o mesmo carrinho em outra ordem é a mesma pergunta, e a mesma chave.
+  const ids = [...new Set(productIds)].sort((a, b) => a - b);
+  return useQuery<StockCorrectionDto[], ApiError, StockCorrectionDto[], QueryKey>({
+    queryKey: [...getGetStockCorrectionsQueryKey(), ids.join(","), since ?? ""],
+    queryFn: async () =>
+      (await apiGetOrThrow<StockCorrectionDto[]>("/InventoryCounts/corrections", {
+        productIds: ids.join(","),
+        since,
+      })) ?? [],
+    enabled: since !== null && ids.length > 0,
+    ...options?.query,
+  });
+}

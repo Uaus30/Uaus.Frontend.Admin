@@ -15,7 +15,7 @@ import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
 import { useEditSaleHeader } from "../hooks/useEditSaleHeader";
 import type { PaymentMethodOption } from "../lib/payment-method-options";
 import { SALE_DIALOG_BODY } from "../lib/sale-dialog";
-import { REDATED_SALE_NOTICE } from "../lib/sale-when";
+import { PDV_SALE_NOTICE, REDATED_SALE_NOTICE } from "../lib/sale-when";
 import { CustomerPicker } from "./CustomerPicker";
 import { SalePaymentsEditor } from "./SalePaymentsEditor";
 import { SaleWhenField } from "./SaleWhenField";
@@ -83,10 +83,19 @@ function EditSaleHeaderForm({
         onKeyDown={blockImplicitSubmit}
         className={SALE_DIALOG_BODY}
       >
+        {sale.fromPdv && (
+          // Decisão do dono (06/10/2026): a venda do PDV continua corrigível no que
+          // o caixa permite, e a tela diz o caminho para o resto.
+          <p className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs text-sky-800 dark:text-sky-200">
+            {PDV_SALE_NOTICE}
+          </p>
+        )}
+
         <SaleWhenField
           value={edit.when}
           onChange={edit.setWhen}
-          notice={edit.dateChanged ? REDATED_SALE_NOTICE : null}
+          disabled={sale.fromPdv}
+          notices={[edit.dateChanged ? REDATED_SALE_NOTICE : null, ...edit.closedPeriodNotices]}
         />
 
         <div className="space-y-2">

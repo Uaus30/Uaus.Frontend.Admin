@@ -8,11 +8,13 @@ import { useEditSaleHeader } from "../useEditSaleHeader";
 const mocks = vi.hoisted(() => ({
   updateSaleHeader: vi.fn(() => Promise.resolve(null)),
   toast: vi.fn(),
+  closings: [] as Array<{ id: number; periodStart: string; periodEnd: string }>,
 }));
 
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   updateSaleHeader: mocks.updateSaleHeader,
+  useGetFinancialClosings: () => ({ data: { data: mocks.closings } }),
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -43,19 +45,23 @@ const venda = {
   ],
 } as unknown as SaleDto;
 
-function renderEdit(methods: Array<{ id: number; isActive?: boolean }> = [{ id: 4 }, { id: 5 }]) {
+function renderEdit(
+  methods: Array<{ id: number; isActive?: boolean }> = [{ id: 4 }, { id: 5 }],
+  sale = venda,
+) {
   const onSaved = vi.fn();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const view = renderHook(() => useEditSaleHeader(venda, methods, onSaved), { wrapper });
+  const view = renderHook(() => useEditSaleHeader(sale, methods, onSaved), { wrapper });
   return { ...view, onSaved, client };
 }
 
 afterEach(() => {
   vi.useRealTimers();
   vi.clearAllMocks();
+  mocks.closings = [];
 });
 
 describe("useEditSaleHeader — corrigir a venda registrada (06/10/2026)", () => {
@@ -96,6 +102,49 @@ describe("useEditSaleHeader — corrigir a venda registrada (06/10/2026)", () =>
     // Descartado, e não só invalidado: ao reabrir, o detalhe não pode mostrar a
     // versão velha — "Corrigir venda" nela desfaria a correção.
     expect(client.getQueryData(["sale-details", 1945])).toBeUndefined();
+  });
+
+  it("levar a data para um mês fechado avisa; andar dentro do mesmo mês fechado, não", async () => {
+    // Decisão do dono (06/10/2026, opção b). Dentro do mesmo período o total dele
+    // não muda, e o fechamento continua certo.
+    mocks.closings = [{ id: 3, periodStart: "2026-09-01T00:00:00", periodEnd: "2026-09-30T00:00:00" }];
+    const { result } = renderEdit();
+    await waitFor(() => expect(result.current.payments).toHaveLength(1));
+
+    act(() => result.current.setWhen({ date: "2026-09-20", time: "10:00" }));
+    expect(result.current.closedPeriodNotices).toEqual([
+      expect.stringContaining("de 01/09/2026 a 30/09/2026"),
+    ]);
+
+    await act(() => result.current.submit());
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Venda corrigida.",
+        description: expect.stringContaining("desatualizado"),
+      }),
+    );
+  });
+
+  it("de um mês fechado para outro mês fechado, o aviso e o toast citam os dois fechamentos", async () => {
+    // A receita sai de setembro e entra em agosto: os dois ficam desatualizados,
+    // e avisar só um faria o dono refazer só um.
+    mocks.closings = [
+      { id: 3, periodStart: "2026-09-01T00:00:00", periodEnd: "2026-09-30T00:00:00" },
+      { id: 2, periodStart: "2026-08-01T00:00:00", periodEnd: "2026-08-31T00:00:00" },
+    ];
+    const { result } = renderEdit(undefined, { ...venda, createdAt: "2026-09-01T10:00:00" } as SaleDto);
+    await waitFor(() => expect(result.current.payments).toHaveLength(1));
+
+    act(() => result.current.setWhen({ date: "2026-08-31", time: "10:00" }));
+    expect(result.current.closedPeriodNotices).toEqual([
+      expect.stringContaining("de 01/08/2026 a 31/08/2026"),
+      expect.stringContaining("de 01/09/2026 a 30/09/2026"),
+    ]);
+
+    await act(() => result.current.submit());
+    const toastDaCorrecao = mocks.toast.mock.calls.find(([arg]) => arg.title === "Venda corrigida.")?.[0];
+    expect(toastDaCorrecao?.description).toContain("01/08/2026 a 31/08/2026");
+    expect(toastDaCorrecao?.description).toContain("01/09/2026 a 30/09/2026");
   });
 
   it("dividir em outra forma escolhe uma ATIVA, nunca a desativada", async () => {

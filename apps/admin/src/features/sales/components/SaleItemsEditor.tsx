@@ -7,12 +7,18 @@ import { ProductSearchPicker } from "@/components/product-search-picker";
 import type { ProductSearchOption } from "@/components/product-search-option";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import type { DraftItem } from "../hooks/useNewSaleDraft";
+import { formatStoreDay } from "../lib/sale-when";
 
 type SaleItemsEditorProps = {
   items: DraftItem[];
   onAdd: (option: ProductSearchOption) => void;
   onUpdate: (productId: number, patch: Partial<Pick<DraftItem, "quantity" | "unitPrice">>) => void;
   onRemove: (productId: number) => void;
+  /**
+   * Produto → quando o estoque dele foi corrigido por contagem DEPOIS da data da
+   * venda (só na venda de outro dia). A contagem já pode ter descontado a peça.
+   */
+  stockCorrections?: Record<number, string>;
 };
 
 /**
@@ -24,7 +30,13 @@ type SaleItemsEditorProps = {
  * `overflow-hidden`, que no celular cortava o X de remover — e o produto era um
  * select com o catálogo inteiro.
  */
-export function SaleItemsEditor({ items, onAdd, onUpdate, onRemove }: SaleItemsEditorProps) {
+export function SaleItemsEditor({
+  items,
+  onAdd,
+  onUpdate,
+  onRemove,
+  stockCorrections = {},
+}: SaleItemsEditorProps) {
   return (
     <div className="space-y-3">
       <span className="text-sm font-medium">Produtos</span>
@@ -69,6 +81,14 @@ export function SaleItemsEditor({ items, onAdd, onUpdate, onRemove }: SaleItemsE
                     >
                       {semSaldo ? `Só ${item.stock} em estoque` : `${item.stock} em estoque`}
                     </p>
+                    {stockCorrections[item.productId] && (
+                      // Âmbar, o "atenção" da casa: o aviso é deste produto, com a data.
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                        Estoque corrigido por contagem em {formatStoreDay(stockCorrections[item.productId])},
+                        depois da data da venda — a contagem já pode ter descontado esta peça. Confira o
+                        saldo.
+                      </p>
+                    )}
                   </div>
                   <Button
                     type="button"

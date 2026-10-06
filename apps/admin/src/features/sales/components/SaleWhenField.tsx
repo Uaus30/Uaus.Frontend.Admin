@@ -5,8 +5,13 @@ import type { SaleWhen } from "../lib/sale-when";
 type SaleWhenFieldProps = {
   value: SaleWhen;
   onChange: (value: SaleWhen) => void;
-  /** O que a data escolhida muda — a venda nova e a correção têm avisos diferentes. */
-  notice?: string | null;
+  /**
+   * O que a data escolhida muda — a venda nova e a correção têm avisos
+   * diferentes, e o mês com fechamento financeiro soma o dele.
+   */
+  notices?: Array<string | null>;
+  /** Data que não muda (a venda do PDV): mostra, sem deixar mexer. */
+  disabled?: boolean;
 };
 
 /**
@@ -14,7 +19,7 @@ type SaleWhenFieldProps = {
  * `<input type="date">` do navegador, ver o README do kit); a hora é um campo de
  * hora simples, que no celular abre o seletor do próprio aparelho.
  */
-export function SaleWhenField({ value, onChange, notice }: SaleWhenFieldProps) {
+export function SaleWhenField({ value, onChange, notices = [], disabled }: SaleWhenFieldProps) {
   return (
     <div className="space-y-2">
       <span className="text-sm font-medium">Quando foi a venda</span>
@@ -24,6 +29,7 @@ export function SaleWhenField({ value, onChange, notice }: SaleWhenFieldProps) {
           onChange={(date) => date && onChange({ ...value, date: formatDateInput(date) })}
           maxDate={new Date()}
           clearable={false}
+          disabled={disabled}
           className="h-10"
         />
         <Input
@@ -31,15 +37,21 @@ export function SaleWhenField({ value, onChange, notice }: SaleWhenFieldProps) {
           value={value.time}
           onChange={(event) => onChange({ ...value, time: event.target.value })}
           aria-label="Hora da venda"
+          disabled={disabled}
           className="h-10 bg-background"
         />
       </div>
-      {notice && (
-        // Âmbar, o "atenção" da casa, com o texto dizendo o que muda.
-        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-          {notice}
-        </p>
-      )}
+      {notices
+        .filter((notice): notice is string => Boolean(notice))
+        .map((notice) => (
+          // Âmbar, o "atenção" da casa, com o texto dizendo o que muda.
+          <p
+            key={notice}
+            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200"
+          >
+            {notice}
+          </p>
+        ))}
     </div>
   );
 }

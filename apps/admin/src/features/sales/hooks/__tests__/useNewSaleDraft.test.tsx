@@ -8,11 +8,17 @@ import { useNewSaleDraft } from "../useNewSaleDraft";
 const mocks = vi.hoisted(() => ({
   createCompleteSale: vi.fn(() => Promise.resolve(99)),
   toast: vi.fn(),
+  closings: [] as Array<{ id: number; periodStart: string; periodEnd: string }>,
+  useGetStockCorrections: vi.fn((_ids: number[], _since: string | null) => ({
+    data: undefined as Array<{ productId: number; lastCorrectedAt: string }> | undefined,
+  })),
 }));
 
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   createCompleteSale: mocks.createCompleteSale,
+  useGetFinancialClosings: () => ({ data: { data: mocks.closings } }),
+  useGetStockCorrections: mocks.useGetStockCorrections,
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -44,6 +50,46 @@ describe("useNewSaleDraft — a Nova venda do painel (06/10/2026)", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    mocks.closings = [];
+  });
+
+  it("produto contado depois da data escolhida vem marcado; sem mexer na data, nem pergunta", () => {
+    // Decisão do dono (06/10/2026): o aviso é do produto, com a data da contagem.
+    mocks.useGetStockCorrections.mockImplementation((_ids, since) => ({
+      data: since ? [{ productId: 1, lastCorrectedAt: "2026-10-05T09:00:00" }] : undefined,
+    }));
+    const { result } = renderDraft();
+    act(() => result.current.addProduct(produto(1, 10)));
+
+    expect(mocks.useGetStockCorrections).toHaveBeenLastCalledWith([1], null);
+    expect(result.current.stockCorrections).toEqual({});
+
+    act(() => result.current.setWhen({ date: "2026-10-04", time: "15:20" }));
+    expect(mocks.useGetStockCorrections).toHaveBeenLastCalledWith([1], "2026-10-04T15:20:00");
+    expect(result.current.stockCorrections).toEqual({ 1: "2026-10-05T09:00:00" });
+  });
+
+  it("data em mês com fechamento financeiro é aceita, com aviso antes e depois de gravar", async () => {
+    // Decisão do dono (06/10/2026, opção b): permitir e avisar que o fechamento
+    // fica desatualizado. Até então a venda era recusada.
+    mocks.closings = [{ id: 3, periodStart: "2026-09-01T00:00:00", periodEnd: "2026-09-30T00:00:00" }];
+    const { result } = renderDraft();
+    act(() => result.current.addProduct(produto(1, 10)));
+
+    expect(result.current.closedPeriodNotice).toBeNull();
+    act(() => result.current.setWhen({ date: "2026-09-30", time: "18:00" }));
+    expect(result.current.closedPeriodNotice).toContain("de 01/09/2026 a 30/09/2026");
+
+    await act(() => result.current.submit());
+    expect(mocks.createCompleteSale).toHaveBeenCalledWith(
+      expect.objectContaining({ occurredAt: "2026-09-30T18:00:00" }),
+    );
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Venda registrada.",
+        description: expect.stringContaining("desatualizado"),
+      }),
+    );
   });
 
   it("o mesmo produto de novo soma uma unidade; total com desconto; tirar o item zera", () => {

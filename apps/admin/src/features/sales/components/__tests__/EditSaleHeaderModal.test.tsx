@@ -5,6 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SaleDto } from "@workspace/api-client-react";
 import { EditSaleHeaderModal } from "../EditSaleHeaderModal";
 
+vi.mock("@workspace/api-client-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
+  useGetFinancialClosings: () => ({ data: { data: [] } }),
+}));
+
 /**
  * Venda de 03/10 paga em cheque — forma desativada depois. O dono abre a correção
  * em 06/10 só para trocar a observação.
@@ -25,11 +30,11 @@ const formas = [
   { id: 9, name: "Cheque", isActive: false },
 ];
 
-function renderModal() {
+function renderModal(sale: SaleDto = venda) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <EditSaleHeaderModal sale={venda} onClose={vi.fn()} customers={[]} paymentMethods={formas} />
+      <EditSaleHeaderModal sale={sale} onClose={vi.fn()} customers={[]} paymentMethods={formas} />
     </QueryClientProvider>,
   );
 }
@@ -60,6 +65,21 @@ describe("EditSaleHeaderModal — corrigir a venda registrada (06/10/2026)", () 
     const form = document.getElementById("edit-sale-form");
     expect(form?.className.split(" ")).toContain("relative");
     expect(form?.querySelector("select")).not.toBeNull();
+  });
+
+  it("venda do PDV: a data aparece travada, e a tela diz para cancelar e registrar de novo pelo Admin", () => {
+    // Decisão do dono (06/10/2026): manter as travas e mostrar o caminho.
+    renderModal({ ...venda, fromPdv: true } as SaleDto);
+
+    expect(screen.getByText(/Venda do PDV: .*cancele a venda e registre de novo pelo Admin/)).toBeTruthy();
+    expect((screen.getByLabelText("Hora da venda") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("venda do painel: a data é editável e não há a mensagem do PDV", () => {
+    renderModal();
+
+    expect(screen.queryByText(/Venda do PDV/)).toBeNull();
+    expect((screen.getByLabelText("Hora da venda") as HTMLInputElement).disabled).toBe(false);
   });
 
   it("a forma desativada que a venda usa continua no select, marcada", () => {

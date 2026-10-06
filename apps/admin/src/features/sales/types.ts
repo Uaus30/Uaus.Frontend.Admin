@@ -137,3 +137,6 @@ export type NewSaleDraftPayment = {
   /** Valor atribuído a esta forma */
   amount: number;
 };
+
+/** O mínimo da venda que o cancelamento mostra para conferir que é a certa. */
+export type SaleToCancel = Pick<Sale, "id" | "createdAt" | "total">;

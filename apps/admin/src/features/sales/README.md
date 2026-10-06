@@ -78,8 +78,25 @@ decisões estão no histórico da base (`historico/2026-10-06-venda-retroativa-e
   desativadas junto. A forma padrão e a acrescentada são sempre ativas; a
   desativada que a venda já usa continua no select, marcada "(desativada)" — fora
   dele, o select abria em branco.
-- **As travas são do servidor** (`PATCH /Sales/{id}/header`): cancelada, data de
-  venda de caixa ou com cupom, período com fechamento, forma em caixa fechado. A
-  tela mostra a frase dele no toast.
+- **As travas são do servidor** (`PATCH /Sales/{id}/header`): cancelada; data de
+  venda do PDV, com cupom ou de caixa já fechado; forma em caixa fechado. A tela
+  mostra a frase dele no toast.
+- **Decisões do dono (06/10/2026, à noite):**
+  - **Mês com fechamento financeiro** é permitido e avisado
+    (`lib/closed-periods.ts`, `hooks/useClosingFor.ts`): antes de gravar, no
+    campo da data, e depois, no toast. Na correção, andar dentro do MESMO período
+    fechado não avisa — os totais dele não mudam.
+  - **Venda do PDV** (`SaleDto.fromPdv`, só no detalhe): a data aparece travada e
+    a tela diz para cancelar e registrar de novo pelo Admin.
+  - **Venda do painel no caixa aberto** muda de data; ao ir para outro dia, o
+    servidor a tira do caixa.
+  - **Produto contado depois da data** (`useGetStockCorrections`, só com a data
+    mexida): o aviso é no item, com a data da contagem. O aviso geral da venda de
+    outro dia não fala mais de contagem.
+  - **Venda não se exclui — no máximo se cancela, com motivo**
+    (`CancelSaleDialog`): "Cancelar venda" na linha e no detalhe, motivo de pelo
+    menos 3 letras. A cancelada fica na lista, riscada e marcada. A API não tem
+    mais rota de exclusão; o antigo `deleteSaleWithItems` saiu de
+    `services/sales.service.ts`.
 - **Enter num campo não registra a venda** (`lib/block-implicit-submit.ts`): o
   "Ir" do teclado do celular, no preço de um item, gravaria a venda pela metade.

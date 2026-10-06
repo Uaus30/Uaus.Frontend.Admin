@@ -61,7 +61,7 @@ export function NewSaleModal({ open, onOpenChange, draft, customers, paymentMeth
           <SaleWhenField
             value={draft.when}
             onChange={draft.setWhen}
-            notice={draft.isBackdated ? BACKDATED_SALE_NOTICE : null}
+            notices={[draft.isBackdated ? BACKDATED_SALE_NOTICE : null, draft.closedPeriodNotice]}
           />
 
           <div className="space-y-2">
@@ -74,6 +74,7 @@ export function NewSaleModal({ open, onOpenChange, draft, customers, paymentMeth
             onAdd={draft.addProduct}
             onUpdate={draft.updateItem}
             onRemove={draft.removeItem}
+            stockCorrections={draft.stockCorrections}
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">

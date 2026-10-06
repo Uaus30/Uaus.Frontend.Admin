@@ -24,9 +24,9 @@ function renderTable(overrides: Partial<React.ComponentProps<typeof SalesTable>>
     setPage: vi.fn(),
     salesPage: undefined,
     onViewDetails: vi.fn(),
-    onDelete: vi.fn(),
+    onCancel: vi.fn(),
     onPrintReceipt: vi.fn(),
-    deletingSaleId: null,
+    cancellingSaleId: null,
     printingSaleId: null,
     search: "",
     setSearch: vi.fn(),
@@ -72,14 +72,23 @@ describe("SalesTable — no celular (06/10/2026)", () => {
     expect(props.onViewDetails).not.toHaveBeenCalled();
   });
 
-  it("remover pelo menu pede a confirmação, sem apagar direto", () => {
+  it("o menu oferece CANCELAR a venda, e não remover — venda registrada não se exclui", () => {
     const props = renderTable();
 
     abrirMenuDaLinha();
-    fireEvent.click(screen.getByRole("menuitem", { name: /remover venda/i }));
+    expect(screen.queryByRole("menuitem", { name: /remover/i })).toBeNull();
+    fireEvent.click(screen.getByRole("menuitem", { name: /cancelar venda/i }));
 
-    expect(screen.getByRole("alertdialog")).toBeTruthy();
-    expect(props.onDelete).not.toHaveBeenCalled();
+    expect(props.onCancel).toHaveBeenCalledWith(expect.objectContaining({ id: 12 }));
+    expect(props.onViewDetails).not.toHaveBeenCalled();
+  });
+
+  it("venda cancelada fica na lista, riscada e marcada, sem oferecer cancelar de novo", () => {
+    renderTable({ saleDetails: [{ ...venda(), paymentStatus: 5 } as unknown as EnrichedSale] });
+
+    expect(screen.getByText("Cancelada")).toBeTruthy();
+    abrirMenuDaLinha();
+    expect(screen.queryByRole("menuitem", { name: /cancelar venda/i })).toBeNull();
   });
 
   it("número, data e forma de pagamento vêm embaixo do cliente", () => {

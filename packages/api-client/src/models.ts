@@ -843,6 +843,12 @@ export interface SaleDto {
   userName?: string | null;
   /** Sessão de caixa da venda. Nulo nas vendas migradas e fora do PDV. */
   cashRegisterSessionId?: number | null;
+  /**
+   * Venda registrada pelo PDV. A correção do painel não muda a data dela — para
+   * mudar, cancela e registra de novo pelo Admin (decisão do dono, 06/10/2026).
+   * Só o detalhe (`GET /Sales/{id}`) a preenche.
+   */
+  fromPdv?: boolean;
   total: number;
   /** Desconto TOTAL da venda. Quando há cupom, ele JÁ ESTÁ incluído aqui. */
   discount: number;

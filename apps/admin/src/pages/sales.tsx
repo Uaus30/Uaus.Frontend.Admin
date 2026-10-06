@@ -6,6 +6,7 @@ import { SalesTable } from "@/features/sales/components/SalesTable";
 import { NewSaleModal } from "@/features/sales/components/NewSaleModal";
 import { SaleDetailsModal } from "@/features/sales/components/SaleDetailsModal";
 import { EditSaleHeaderModal } from "@/features/sales/components/EditSaleHeaderModal";
+import { CancelSaleDialog } from "@/features/sales/components/CancelSaleDialog";
 
 /**
  * Sales Page Component
@@ -42,10 +43,12 @@ export default function Sales() {
     openNewSale,
     saleToEdit,
     setSaleToEdit,
-    deletingSaleId,
+    saleToCancel,
+    setSaleToCancel,
+    cancellingSaleId,
     printingSaleId,
     saleToView,
-    handleDeleteSale,
+    handleCancelSale,
     handlePrintReceipt,
   } = useSales();
 
@@ -70,9 +73,9 @@ export default function Sales() {
           setPage={setPage}
           salesPage={salesPage}
           onViewDetails={setViewSaleId}
-          onDelete={handleDeleteSale}
+          onCancel={setSaleToCancel}
           onPrintReceipt={handlePrintReceipt}
-          deletingSaleId={deletingSaleId}
+          cancellingSaleId={cancellingSaleId}
           printingSaleId={printingSaleId}
           search={search}
           setSearch={setSearch}
@@ -110,6 +113,18 @@ export default function Sales() {
           setViewSaleId(null);
           setSaleToEdit(sale);
         }}
+        onCancelSale={(sale) => {
+          // Mesmo motivo: no celular, um diálogo por vez.
+          setViewSaleId(null);
+          setSaleToCancel(sale);
+        }}
+      />
+
+      <CancelSaleDialog
+        sale={saleToCancel}
+        cancelling={cancellingSaleId !== null}
+        onClose={() => setSaleToCancel(null)}
+        onConfirm={(reason) => void handleCancelSale(reason)}
       />
 
       <EditSaleHeaderModal

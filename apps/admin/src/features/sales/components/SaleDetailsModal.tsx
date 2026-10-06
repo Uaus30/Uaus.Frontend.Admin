@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, Pencil, Printer, Receipt } from "lucide-react";
+import { Ban, Loader2, Pencil, Printer, Receipt } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
 import { Badge } from "@workspace/ui";
 import { Button } from "@workspace/ui";
@@ -98,6 +98,11 @@ type SaleDetailsModalProps = {
    * formas de pagamento precisam voltar com parcelas e taxa.
    */
   onEdit?: (sale: SaleDto) => void;
+  /**
+   * Abre o cancelamento (com motivo) — venda registrada não se exclui, no máximo
+   * se cancela (06/10/2026). Opcional como a correção.
+   */
+  onCancelSale?: (sale: SaleDto) => void;
 };
 
 /** Sem forma cadastrada em mãos, o nome vem da própria venda. */
@@ -117,6 +122,7 @@ export function SaleDetailsModal({
   onPrintReceipt,
   printingSaleId = null,
   onEdit,
+  onCancelSale,
 }: SaleDetailsModalProps) {
   const id = saleToView?.id ?? saleId ?? null;
   const { data: saleDetails, isLoading: loadingDetails } = useGetSaleDetails(open && id ? id : undefined);
@@ -160,6 +166,9 @@ export function SaleDetailsModal({
    * É a mesma conta do histórico e do cupom do PDV.
    */
   const discountTotal = computeSaleDiscountTotal({ discount: sale?.discount ?? 0, items });
+  const cancelled = saleDetails
+    ? enumCode(saleDetails.paymentStatus, PAYMENT_STATUS) === PAYMENT_STATUS.Cancelled
+    : false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -347,14 +356,22 @@ export function SaleDetailsModal({
         )}
         <DialogFooter className="gap-2 sm:justify-between">
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            {onEdit &&
-              saleDetails &&
-              enumCode(saleDetails.paymentStatus, PAYMENT_STATUS) !== PAYMENT_STATUS.Cancelled && (
-                <Button variant="outline" onClick={() => onEdit(saleDetails)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Corrigir venda
-                </Button>
-              )}
+            {onCancelSale && saleDetails && !cancelled && (
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onCancelSale(saleDetails)}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Cancelar venda
+              </Button>
+            )}
+            {onEdit && saleDetails && !cancelled && (
+              <Button variant="outline" onClick={() => onEdit(saleDetails)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Corrigir venda
+              </Button>
+            )}
             {onPrintReceipt ? (
               <Button
                 variant="outline"

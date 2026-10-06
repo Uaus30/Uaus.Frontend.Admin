@@ -9,7 +9,9 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
+import { closedPeriodNotice, closedPeriodToast, type ClosedPeriod } from "../lib/closed-periods";
 import { isSaleInFuture, joinSaleWhen, splitApiDateTime, type SaleWhen } from "../lib/sale-when";
+import { useClosingFor } from "./useClosingFor";
 import { paymentsProblem, usePaymentSplits } from "./usePaymentSplits";
 
 /**
@@ -39,6 +41,18 @@ export function useEditSaleHeader(
   const [recorded] = useState<SaleWhen>(() => splitApiDateTime(sale.createdAt));
   const [when, setWhen] = useState<SaleWhen>(recorded);
   const dateChanged = when.date !== recorded.date || when.time !== recorded.time;
+  // A data que entra num mês fechado, ou sai de um, deixa o fechamento
+  // desatualizado: permitido, com aviso (decisão do dono, 06/10/2026).
+  // Mudar dentro do MESMO período fechado não mexe nos totais dele: sem aviso.
+  // De um período fechado para OUTRO, os dois ficam desatualizados — a receita
+  // sai de um e entra no outro —, e o aviso cita os dois.
+  const closingFor = useClosingFor();
+  const closingBefore = closingFor(recorded.date);
+  const closingAfter = closingFor(when.date);
+  const closings =
+    dateChanged && closingBefore?.id !== closingAfter?.id
+      ? [closingAfter, closingBefore].filter((closing): closing is ClosedPeriod => closing !== null)
+      : [];
   const [customerId, setCustomerId] = useState<number | null>(sale.customerId ?? null);
   const [notes, setNotes] = useState(sale.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -86,7 +100,10 @@ export function useEditSaleHeader(
         queryClient.invalidateQueries({ queryKey: getGetSalesQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetProductSalesQueryKey() }),
       ]);
-      toast({ title: "Venda corrigida." });
+      toast({
+        title: "Venda corrigida.",
+        description: closings.length > 0 ? closings.map(closedPeriodToast).join(" ") : undefined,
+      });
       onSaved();
     } catch (error) {
       toast({
@@ -104,6 +121,8 @@ export function useEditSaleHeader(
     when,
     setWhen,
     dateChanged,
+    /** Um aviso por fechamento que a data nova deixa desatualizado (zero, um ou dois). */
+    closedPeriodNotices: closings.map(closedPeriodNotice),
     customerId,
     setCustomerId,
     notes,

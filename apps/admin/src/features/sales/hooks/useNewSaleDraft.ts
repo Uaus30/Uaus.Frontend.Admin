@@ -4,13 +4,16 @@ import {
   createCompleteSale,
   getGetProductSalesQueryKey,
   getGetSalesQueryKey,
+  useGetStockCorrections,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { computeSaleTotals, describeApiError } from "@workspace/core";
 import type { ProductSearchOption } from "@/components/product-search-option";
 import { CATALOG_KEYS } from "@/hooks/use-catalog";
+import { closedPeriodNotice, closedPeriodToast } from "../lib/closed-periods";
 import { isSelectableMethod } from "../lib/payment-method-options";
 import { isSaleInFuture, isSaleToday, joinSaleWhen, nowSaleWhen, type SaleWhen } from "../lib/sale-when";
+import { useClosingFor } from "./useClosingFor";
 import { paymentsProblem, usePaymentSplits } from "./usePaymentSplits";
 
 /** Um item do rascunho: o que a busca de produto trouxe, mais quantidade e preço. */
@@ -60,6 +63,19 @@ export function useNewSaleDraft(
     [items, discount],
   );
   const splits = usePaymentSplits(totals.total, paymentMethods);
+  // Data em mês com fechamento: permitido, com aviso (decisão do dono, 06/10/2026).
+  const closing = useClosingFor()(when.date);
+
+  // Produto contado depois da data escolhida: aviso no próprio item (decisão do
+  // dono, 06/10/2026). Só com a data mexida — "agora" não tem contagem depois.
+  const { data: corrections } = useGetStockCorrections(
+    items.map((item) => item.productId),
+    whenTouched ? joinSaleWhen(when) : null,
+  );
+  const stockCorrections = useMemo(
+    () => Object.fromEntries((corrections ?? []).map((item) => [item.productId, item.lastCorrectedAt])),
+    [corrections],
+  );
 
   function reset() {
     setWhenState(nowSaleWhen());
@@ -146,7 +162,7 @@ export function useNewSaleDraft(
         queryClient.invalidateQueries({ queryKey: getGetProductSalesQueryKey() }),
         queryClient.invalidateQueries({ queryKey: CATALOG_KEYS.customers }),
       ]);
-      toast({ title: "Venda registrada." });
+      toast({ title: "Venda registrada.", description: closing ? closedPeriodToast(closing) : undefined });
       onSaved();
     } catch (error) {
       toast({
@@ -164,6 +180,9 @@ export function useNewSaleDraft(
     when,
     setWhen,
     isBackdated: !isSaleToday(when),
+    closedPeriodNotice: closing ? closedPeriodNotice(closing) : null,
+    /** Produto → quando o estoque dele foi corrigido por contagem DEPOIS da data da venda. */
+    stockCorrections: stockCorrections as Record<number, string>,
     customerId,
     setCustomerId,
     items,

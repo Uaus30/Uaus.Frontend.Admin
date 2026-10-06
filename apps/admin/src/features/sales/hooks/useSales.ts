@@ -5,6 +5,9 @@ import {
   useGetSales,
   useGetPaymentMethods,
   useGetCompanySettings,
+  cancelSale,
+  getGetProductSalesQueryKey,
+  getGetSaleDetailsQueryKey,
   getGetSalesQueryKey,
   PAYMENT_STATUS,
   enumCode,
@@ -16,8 +19,8 @@ import { describeApiError } from "@workspace/core";
 import { getEnumOptions } from "@/services/core";
 import { orderCatalogByName } from "@/lib/select-options";
 
-import { deleteSaleWithItems, getSaleItems } from "@/services/sales.service";
-import type { EnrichedSale } from "../types";
+import { getSaleItems } from "@/services/sales.service";
+import type { EnrichedSale, SaleToCancel } from "../types";
 import { useAllCustomers } from "@/hooks/use-catalog";
 import { useNewSaleDraft } from "./useNewSaleDraft";
 
@@ -34,7 +37,7 @@ export const SALES_PAGE_SIZE = 15;
  * useSales
  *
  * Hook customizado para gerenciar a listagem, detalhamento de vendas,
- * a reimpressão e a remoção. O rascunho da Nova venda mora no `useNewSaleDraft`
+ * a reimpressão e o cancelamento. O rascunho da Nova venda mora no `useNewSaleDraft`
  * (06/10/2026), e a correção da venda no `useEditSaleHeader`.
  */
 export function useSales() {
@@ -111,7 +114,9 @@ export function useSales() {
     })) as EnrichedSale[];
   }, [customers, salesPage]);
 
-  const [deletingSaleId, setDeletingSaleId] = useState<number | null>(null);
+  // A venda aberta para cancelar (com motivo) — venda registrada não se exclui.
+  const [saleToCancel, setSaleToCancel] = useState<SaleToCancel | null>(null);
+  const [cancellingSaleId, setCancellingSaleId] = useState<number | null>(null);
   const [printingSaleId, setPrintingSaleId] = useState<number | null>(null);
   // A venda aberta para correção (a venda COMPLETA da API, com as formas).
   const [saleToEdit, setSaleToEdit] = useState<SaleDto | null>(null);
@@ -167,23 +172,38 @@ export function useSales() {
   }
 
   /**
-   * Exclui uma venda e seus itens associados.
+   * Cancela a venda aberta em `saleToCancel`, com o motivo (obrigatório).
+   *
+   * Substitui a exclusão (06/10/2026): a venda fica no histórico, marcada como
+   * cancelada; o servidor devolve o estoque e estorna cupom e carimbo numa
+   * transação só. A exclusão antiga apagava os itens um a um e depois a venda —
+   * recusada no fim (cupom, carimbo), sobrava uma venda vazia no faturamento.
    */
-  async function handleDeleteSale(saleId: number) {
-    setDeletingSaleId(saleId);
+  async function handleCancelSale(reason: string) {
+    if (!saleToCancel) return;
+    const saleId = saleToCancel.id;
+
+    setCancellingSaleId(saleId);
     try {
-      await deleteSaleWithItems(saleId);
-      await queryClient.invalidateQueries({ queryKey: getGetSalesQueryKey() });
-      toast({ title: "Venda removida." });
+      await cancelSale(saleId, reason);
+      // O detalhe é descartado, e não só invalidado: fechado, ele reabriria com a
+      // venda ainda paga até a releitura chegar.
+      queryClient.removeQueries({ queryKey: [...getGetSaleDetailsQueryKey(), saleId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetSalesQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetProductSalesQueryKey() }),
+      ]);
+      toast({ title: "Venda cancelada.", description: "O estoque dos itens voltou." });
+      setSaleToCancel(null);
     } catch (error) {
       toast({
-        title: "Erro ao remover venda",
+        title: "Não foi possível cancelar a venda",
         description: describeApiError(error, "Tente novamente."),
         error,
         variant: "destructive",
       });
     } finally {
-      setDeletingSaleId(null);
+      setCancellingSaleId(null);
     }
   }
 
@@ -215,10 +235,12 @@ export function useSales() {
     openNewSale,
     saleToEdit,
     setSaleToEdit,
-    deletingSaleId,
+    saleToCancel,
+    setSaleToCancel,
+    cancellingSaleId,
     printingSaleId,
     saleToView,
-    handleDeleteSale,
+    handleCancelSale,
     handlePrintReceipt,
   };
 }

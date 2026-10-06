@@ -15,8 +15,10 @@ vi.mock("@/services/customers.service", () => ({
 }));
 
 vi.mock("@/services/sales.service", () => ({
-  deleteSaleWithItems: vi.fn(() => Promise.resolve()),
+  getSaleItems: vi.fn(() => Promise.resolve([])),
 }));
+
+const cancelSaleMock = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
 // Mock api client react queries
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
@@ -43,6 +45,9 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   // Identidade da loja para o cupom reimpresso; sem dado, o cupom cai no padrão.
   useGetCompanySettings: vi.fn(() => ({ data: undefined, isLoading: false })),
   getGetSalesQueryKey: () => ["sales-page"],
+  useGetFinancialClosings: vi.fn(() => ({ data: { data: [] } })),
+  useGetStockCorrections: vi.fn(() => ({ data: undefined })),
+  cancelSale: cancelSaleMock,
   PRODUCT_STATUS: { None: 0, Draft: 1, Active: 2, OutOfStock: 3, Inactive: 4 },
   enumCode: (value: unknown) => (typeof value === "number" ? value : 0),
 }));
@@ -55,8 +60,9 @@ vi.mock("@workspace/ui", async (importOriginal) => ({
 }));
 
 // Helper wrapper for React Query
+let queryClient: QueryClient;
 const createWrapper = () => {
-  const queryClient = new QueryClient({
+  queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         retry: false,
@@ -129,5 +135,30 @@ describe("useSales Hook", () => {
     expect(result.current.endDate).toBe("");
     expect(lastParams.endDate).toBeUndefined();
     expect(lastParams.startDate).toBeUndefined();
+  });
+
+  it("cancelar manda o motivo, descarta o detalhe da venda e fecha o diálogo (06/10/2026)", async () => {
+    // Venda registrada não se exclui: no máximo se cancela, com motivo.
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+    queryClient.setQueryData(["sale-details", 2117], { id: 2117 });
+
+    act(() => result.current.setSaleToCancel({ id: 2117, createdAt: "2026-09-28T19:01:00", total: 1 }));
+    await act(() => result.current.handleCancelSale("lançada em duplicidade"));
+
+    expect(cancelSaleMock).toHaveBeenCalledWith(2117, "lançada em duplicidade");
+    expect(queryClient.getQueryData(["sale-details", 2117])).toBeUndefined();
+    expect(result.current.saleToCancel).toBeNull();
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Venda cancelada." }));
+  });
+
+  it("recusa do servidor no cancelamento vira toast, e o diálogo fica aberto", async () => {
+    cancelSaleMock.mockRejectedValueOnce(new Error("Esta venda já está cancelada!"));
+    const { result } = renderHook(() => useSales(), { wrapper: createWrapper() });
+
+    act(() => result.current.setSaleToCancel({ id: 2117, createdAt: "2026-09-28T19:01:00", total: 1 }));
+    await act(() => result.current.handleCancelSale("cliente desistiu"));
+
+    expect(result.current.saleToCancel).not.toBeNull();
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
   });
 });

@@ -47,7 +47,12 @@ const ITEM: SaleItemDto = {
   profit: 10,
 };
 
-function renderModal(sale: EnrichedSale, items: SaleItemDto[], onEdit?: (sale: unknown) => void) {
+function renderModal(
+  sale: EnrichedSale,
+  items: SaleItemDto[],
+  onEdit?: (sale: unknown) => void,
+  onCancelSale?: (sale: unknown) => void,
+) {
   // O detalhe da API é quem traz os itens; a lista da tela vem sem eles.
   mocks.useGetSaleDetails.mockReturnValue({
     data: {
@@ -78,6 +83,7 @@ function renderModal(sale: EnrichedSale, items: SaleItemDto[], onEdit?: (sale: u
       onPrintReceipt={vi.fn()}
       printingSaleId={null}
       onEdit={onEdit}
+      onCancelSale={onCancelSale}
     />,
   );
 }
@@ -153,7 +159,18 @@ describe("SaleDetailsModal", () => {
   });
 
   it("venda cancelada não oferece correção, e fora da tela de Vendas o botão não existe", () => {
-    renderModal({ ...SALE, paymentStatus: 5 }, [ITEM], vi.fn());
+    renderModal({ ...SALE, paymentStatus: 5 }, [ITEM], vi.fn(), vi.fn());
     expect(screen.queryByRole("button", { name: /corrigir venda/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /cancelar venda/i })).toBeNull();
+  });
+
+  it("'Cancelar venda' no detalhe entrega a venda para o cancelamento com motivo (06/10/2026)", () => {
+    // Venda registrada não se exclui; no celular o detalhe é o caminho mais curto.
+    const onCancelSale = vi.fn();
+    renderModal(SALE, [ITEM], vi.fn(), onCancelSale);
+
+    fireEvent.click(screen.getByRole("button", { name: /cancelar venda/i }));
+
+    expect(onCancelSale).toHaveBeenCalledWith(expect.objectContaining({ id: SALE.id }));
   });
 });

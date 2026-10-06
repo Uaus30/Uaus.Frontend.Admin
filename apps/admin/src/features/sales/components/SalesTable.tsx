@@ -1,12 +1,11 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@workspace/ui";
-import { ConfirmDialog } from "@workspace/ui";
 import { formatDateInput, parseDateInput } from "@workspace/ui";
 import { type DateRange } from "@workspace/ui";
 import { TablePagination } from "@workspace/ui";
 import { formatCurrency, formatDate } from "@workspace/core";
-import type { SaleDto, UiPagedResult } from "@workspace/api-client-react";
+import { PAYMENT_STATUS, enumCode, type SaleDto, type UiPagedResult } from "@workspace/api-client-react";
 import { SALES_PAGE_SIZE } from "../hooks/useSales";
 import type { EnrichedSale } from "../types";
 import { SalesFilters } from "./SalesFilters";
@@ -30,12 +29,12 @@ type SalesTableProps = {
   salesPage: UiPagedResult<SaleDto> | undefined;
   /** Callback to view specific sale detail by ID */
   onViewDetails: (id: number) => void;
-  /** Callback to delete specific sale by ID */
-  onDelete: (id: number) => void;
+  /** Abre o cancelamento (com motivo) da venda — venda registrada não se exclui. */
+  onCancel: (sale: EnrichedSale) => void;
   /** Callback to reprint the receipt of a specific sale by ID */
   onPrintReceipt: (id: number) => void;
-  /** Active sale ID being deleted, or null */
-  deletingSaleId: number | null;
+  /** Venda sendo cancelada agora, ou nulo. */
+  cancellingSaleId: number | null;
   /** Active sale ID having its receipt printed, or null */
   printingSaleId: number | null;
   /** Search string */
@@ -92,6 +91,11 @@ function PaymentBadges({
   );
 }
 
+/** A venda foi cancelada? Ela continua na lista — venda não se exclui. */
+function isCancelled(sale: EnrichedSale): boolean {
+  return enumCode(sale.paymentStatus, PAYMENT_STATUS) === PAYMENT_STATUS.Cancelled;
+}
+
 /**
  * SalesTable
  *
@@ -105,9 +109,9 @@ export function SalesTable({
   setPage,
   salesPage,
   onViewDetails,
-  onDelete,
+  onCancel,
   onPrintReceipt,
-  deletingSaleId,
+  cancellingSaleId,
   printingSaleId,
   search,
   setSearch,
@@ -122,11 +126,6 @@ export function SalesTable({
   paymentMethods,
   paymentStatuses,
 }: SalesTableProps) {
-  // Guarda a venda inteira: o diálogo precisa do número, do valor e da
-  // quantidade de itens para o operador conferir que é a linha certa antes de
-  // apagar um lançamento que os relatórios do período já contam.
-  const [saleToDelete, setSaleToDelete] = React.useState<EnrichedSale | null>(null);
-
   // O filtro trafega as datas como string (yyyy-MM-dd) até a API; o calendário
   // trabalha com Date. A conversão fica na borda, sem mexer no hook.
   const dateRange: DateRange = {
@@ -245,16 +244,33 @@ export function SalesTable({
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 font-medium text-primary lg:px-6 lg:py-4">
-                      {formatCurrency(sale.total)}
+                      {isCancelled(sale) ? (
+                        // Cancelada fica na lista (não se exclui mais), riscada e com
+                        // o nome: só a cor não diria que ela saiu do faturamento.
+                        <span className="flex flex-col items-start gap-1">
+                          <span className="text-muted-foreground line-through">
+                            {formatCurrency(sale.total)}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="border-destructive/40 font-normal text-destructive"
+                          >
+                            Cancelada
+                          </Badge>
+                        </span>
+                      ) : (
+                        formatCurrency(sale.total)
+                      )}
                     </td>
                     <td className="px-2 py-3 text-right lg:px-6 lg:py-4">
                       <SaleRowActions
                         saleId={sale.id}
                         printing={printingSaleId === sale.id}
-                        deleting={deletingSaleId === sale.id}
+                        cancelling={cancellingSaleId === sale.id}
+                        cancelled={isCancelled(sale)}
                         onView={() => onViewDetails(sale.id)}
                         onPrint={() => onPrintReceipt(sale.id)}
-                        onDelete={() => setSaleToDelete(sale)}
+                        onCancel={() => onCancel(sale)}
                       />
                     </td>
                   </tr>
@@ -275,24 +291,6 @@ export function SalesTable({
           total={salesPage?.total ?? 0}
           onPageChange={setPage}
           itemLabel={{ singular: "venda", plural: "vendas" }}
-        />
-
-        <ConfirmDialog
-          open={saleToDelete !== null}
-          onOpenChange={(open) => !open && setSaleToDelete(null)}
-          title="Remover esta venda e seus itens?"
-          itemName={
-            saleToDelete
-              ? `Venda #${saleToDelete.id} — ${formatDate(saleToDelete.createdAt)} — ${formatCurrency(saleToDelete.total)}`
-              : undefined
-          }
-          description={`A venda sai do histórico junto com ${saleToDelete?.items.length ?? 0} ${saleToDelete?.items.length === 1 ? "item" : "itens"}. Ela deixa de contar no faturamento, no lucro e nos relatórios do período. A ação não pode ser desfeita.`}
-          confirmLabel="Sim, remover venda"
-          destructive
-          loading={saleToDelete !== null && deletingSaleId === saleToDelete.id}
-          onConfirm={() => {
-            if (saleToDelete) onDelete(saleToDelete.id);
-          }}
         />
       </div>
     </div>
