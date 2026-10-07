@@ -170,6 +170,16 @@ Com o cliente identificado, internet e o programa ligado, o PDV busca o cartão 
 
 Até 07/10/2026 as Preferências ofereciam dois rodapés: o estendido, com desconto, cupom, pausar, cancelar e o botão Cliente sempre à vista (e as três caixas do programa de fidelidade), e o compacto, com tudo isso atrás da engrenagem. O estendido saiu a pedido do dono, junto com o PDV no celular: a altura que as três faixas de botões custavam é a que falta na lista de itens, e no celular deitado ela é a mais curta de todas. Terminal que estava no estendido abre no compacto; a chave `pdv-cart-layout` que ficou no navegador não é mais lida.
 
+### 17. O PDV no celular: três formas de tela (07/10/2026)
+
+Para a contingência — queda de luz e de internet, venda fora de hora — o PDV roda no celular com o mesmo login do caixa. `usePdvScreen` (`src/hooks/use-pdv-screen.ts`) decide a forma pelo tamanho da janela, e troca a cada giro:
+
+- **Balcão** (`desk`): o que sempre foi. O monitor do caixa (1366×768) e o tablet continuam aqui.
+- **Celular deitado** (`phone-landscape`, altura até 500px) — a forma preferida do dono. Continua em duas colunas, porque largura há; falta altura (~390px). Cabeçalho de 48px numa linha só (caixa, espera, offline, tela cheia e menu; operador e calculadora vão para o menu), busca de 44px, carrinho sem a faixa "Resumo da Venda" e linhas compactas.
+- **Celular em pé** (`phone-portrait`, largura até 767px): uma coluna. A busca e o carrinho são vistas separadas (`usePhoneCartView`), e a barra do pé (`PdvPhoneCartBar`) mostra itens e total e leva ao carrinho. Bipar não troca de vista: o operador adiciona vários itens seguidos, e o pulso do contador, com uma vibração curta, confirma cada um. Carrinho que esvazia (venda finalizada, pausada ou cancelada) volta para a busca.
+
+Uma forma por vez no DOM, nunca as duas: o campo de busca é um só (`searchInputRef`), e é para ele que o cursor volta. No celular, os botões da linha do carrinho têm o tamanho do dedo e o preço tem letra de 16px (abaixo disso o iPhone amplia a tela ao tocar). O manifesto deixou de travar o app instalado deitado (`orientation: "any"`).
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

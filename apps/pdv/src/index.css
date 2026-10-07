@@ -583,3 +583,28 @@ html.light {
   opacity: 0;
   animation: pdv-item-pulse 1400ms ease-out 1;
 }
+
+/* ──────────────────────────────────────────────────────────────
+   O mesmo "deu certo" no contador da barra do pé do celular em pé
+   (`PdvPhoneCartBar`): lá a linha do carrinho não está à vista, e o
+   contador cresce e brilha no mesmo verde. A `key` do nó reinicia a
+   animação a cada item, como no realce da linha.
+   ────────────────────────────────────────────────────────────── */
+@keyframes pdv-count-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0);
+  }
+  30% {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 4px rgb(16 185 129 / 0.55);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0);
+  }
+}
+
+.pdv-count-pulse {
+  animation: pdv-count-pulse 600ms ease-out 1;
+}

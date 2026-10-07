@@ -192,6 +192,25 @@ describe("cliente e cartão no carrinho", () => {
     expect(container.textContent).not.toMatch(/carimbo/);
   });
 
+  it("cadastro feito sem internet aparece escrito, e não só na dica do mouse", () => {
+    // No celular não há mouse para abrir a dica, e é na contingência que o
+    // cadastro rápido vai junto com a venda.
+    mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, programActive: false });
+    usePdvStore.setState({
+      coupon: null,
+      consumer: {
+        customerId: null,
+        name: "Maria Souza",
+        phone: "44999990002",
+        document: "",
+        newCustomer: { name: "Maria Souza", phone: "44999990002" },
+      },
+    });
+    const { container } = renderCard();
+
+    expect(container.textContent).toContain("Cadastro sobe com a venda");
+  });
+
   it("sem cliente, não ocupa linha nenhuma: o botão Cliente mora na engrenagem", () => {
     usePdvStore.setState({ consumer: { customerId: null, name: "", document: "" } });
     const { container } = renderCard();

@@ -40,7 +40,11 @@ export default defineConfig({
         lang: "pt-BR",
         // Tela cheia sem barra de navegador: o caixa é um terminal, não um site.
         display: "standalone",
-        orientation: "landscape",
+        // `any`, e não `landscape`: instalado no celular, `landscape` TRAVA o app
+        // deitado. O dono usa o PDV no celular nas duas orientações, com
+        // preferência pelo deitado (07/10/2026), e o layout se ajusta a cada
+        // giro (`usePdvScreen`). No computador a orientação não muda nada.
+        orientation: "any",
         background_color: "#0b0b0f",
         theme_color: "#0b0b0f",
         start_url: ".",

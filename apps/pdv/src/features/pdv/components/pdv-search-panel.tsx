@@ -22,6 +22,11 @@ type PdvSearchPanelProps = {
   online: boolean;
   /** Produto escolhido na lista de resultados. */
   onPickProduct: (product: ProductPdvSearchDto) => void;
+  /**
+   * Celular (deitado ou em pé): menos respiro, campo e linhas menores, sem o
+   * título da lista e sem o lápis do admin. Ver "No celular" abaixo.
+   */
+  compact?: boolean;
 };
 
 /**
@@ -50,18 +55,33 @@ type PdvSearchPanelProps = {
  * 9,90" com o selo do tipo, ou o selo do combo embaixo do preço normal — ver
  * `PdvSearchResultPrice`. Antes o preço promocional só aparecia depois de o item
  * entrar no carrinho, e o operador respondia ao cliente com o preço de tabela.
+ *
+ * ## No celular (07/10/2026)
+ *
+ * Deitado, a altura é ~390px e o balcão gastava 104px só com o campo de busca.
+ * No `compact` o campo tem 44px (com letra de 16px, senão o iPhone amplia a
+ * tela ao tocar), as linhas da lista encolhem, o título "Resultados da Busca"
+ * sai (a lista se explica sozinha) e o lápis do admin também: no app instalado
+ * ele abriria o navegador por cima da venda.
  */
-export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvSearchPanelProps) {
+export function PdvSearchPanel({
+  search,
+  inputRef,
+  online,
+  onPickProduct,
+  compact = false,
+}: PdvSearchPanelProps) {
   // O lápis some quando não há como saber onde o admin está: abrir outra aba do
-  // próprio PDV parece que o painel quebrou. Ver `lib/admin-links`.
-  const adminDisponivel = adminBaseUrl() !== null;
+  // próprio PDV parece que o painel quebrou. Ver `lib/admin-links`. No celular
+  // ele some sempre (ver acima).
+  const adminDisponivel = !compact && adminBaseUrl() !== null;
   // O preço da lista é o que o carrinho vai cobrar: promoção aplicada, com a
   // lista e o relógio da venda em curso (ver `useSearchResultPrice`).
   const priceOf = useSearchResultPrice();
 
   return (
-    <div className="flex-1 flex flex-col relative border-r border-border/50 bg-background/50">
-      <div className="p-6 border-b border-border/50 bg-card z-20">
+    <div className="flex-1 min-w-0 flex flex-col relative border-r border-border/50 bg-background/50">
+      <div className={`${compact ? "p-2" : "p-6"} border-b border-border/50 bg-card z-20`}>
         {/* O formulário continua existindo sem botão de buscar: a digitação já
             dispara sozinha a partir de 3 caracteres, mas o Enter é a única saída
             para um termo mais curto que isso ("oi", "kg"). Um botão que só
@@ -73,7 +93,9 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
           }}
           className="relative"
         >
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search
+            className={`absolute ${compact ? "left-3" : "left-4"} top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground`}
+          />
           <Input
             ref={inputRef}
             value={search.query}
@@ -86,8 +108,9 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
               event.preventDefault();
               search.clear();
             }}
-            placeholder="Código de barras ou nome do produto..."
-            className={`h-14 text-lg font-medium bg-background border-primary/20 focus-visible:ring-primary shadow-inner pl-12 ${
+            placeholder={compact ? "Código ou nome do produto" : "Código de barras ou nome do produto..."}
+            enterKeyHint="search"
+            className={`${compact ? "h-11 text-base pl-10" : "h-14 text-lg pl-12"} font-medium bg-background border-primary/20 focus-visible:ring-primary shadow-inner ${
               search.query ? "pr-20" : ""
             }`}
           />
@@ -131,11 +154,13 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 flex flex-col p-6"
+              className={`absolute inset-0 flex flex-col ${compact ? "p-2" : "p-6"}`}
             >
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
-                Resultados da Busca
-              </h3>
+              {!compact && (
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
+                  Resultados da Busca
+                </h3>
+              )}
               {/* O `-mx-3` + `px-3` alarga a área de rolagem para fora e devolve
                   as linhas para a posição original. Sem essa folga de 12px, a
                   linha que cresce 1% no hover encosta na borda do viewport e é
@@ -170,7 +195,7 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                         key={product.id}
                         data-testid="search-result"
                         whileHover={outOfStock ? undefined : { scale: 1.01 }}
-                        className={`flex items-center justify-between gap-3 p-4 rounded-xl border bg-card group transition-all ${
+                        className={`flex items-center justify-between gap-3 ${compact ? "p-2.5" : "p-4"} rounded-xl border bg-card group transition-all ${
                           outOfStock
                             ? "border-border/30 cursor-not-allowed"
                             : "border-border/50 cursor-pointer hover:border-primary/40"
@@ -204,7 +229,9 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                         {/* `items-start` porque o nome agora quebra em várias
                             linhas: centralizado, a miniatura descia junto e o
                             card ficava desalinhado com o preço da direita. */}
-                        <div className={`flex items-start gap-4 min-w-0 ${outOfStock ? "opacity-50" : ""}`}>
+                        <div
+                          className={`flex items-start ${compact ? "gap-2.5" : "gap-4"} min-w-0 ${outOfStock ? "opacity-50" : ""}`}
+                        >
                           {/* O embrulho segura o clique da ampliação para ele não
                               subir até o onClick da linha e adicionar o produto. */}
                           <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
@@ -225,7 +252,11 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                               via dois resultados idênticos e tinha que adivinhar.
                               Card mais alto é preço barato por isso.
                             */}
-                            <h4 className="font-bold text-lg leading-tight break-words">{product.name}</h4>
+                            <h4
+                              className={`font-bold ${compact ? "text-sm" : "text-lg"} leading-tight break-words`}
+                            >
+                              {product.name}
+                            </h4>
                             <p className="text-xs text-muted-foreground font-mono">
                               {product.barcode} · Estoque: {product.stock}
                             </p>
@@ -234,9 +265,13 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
                         <div className="flex items-center gap-3 shrink-0">
                           <div className={`text-right ${outOfStock ? "opacity-50" : ""}`}>
                             <PdvSearchResultPrice shelf={priceOf(product)} />
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold group-hover:text-primary transition-colors">
-                              {outOfStock ? "Sem estoque" : "Clique para adicionar"}
-                            </p>
+                            {/* No celular, só o "Sem estoque": "toque para adicionar"
+                                em toda linha é o que o operador já sabe. */}
+                            {(!compact || outOfStock) && (
+                              <p className="text-[10px] text-muted-foreground uppercase font-bold group-hover:text-primary transition-colors">
+                                {outOfStock ? "Sem estoque" : "Clique para adicionar"}
+                              </p>
+                            )}
                           </div>
                           {/* Atalho para corrigir o cadastro sem sair do caixa —
                               preço errado e estoque furado aparecem justamente
@@ -269,11 +304,13 @@ export function PdvSearchPanel({ search, inputRef, online, onPickProduct }: PdvS
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
-              className="absolute inset-0 flex flex-col items-center justify-center text-center p-12"
+              className={`absolute inset-0 flex flex-col items-center justify-center text-center ${compact ? "p-4" : "p-12"}`}
             >
               {/* Um degrau menor que o original: na escala de fonte maior ele
                   encostava nas bordas do painel. */}
-              <h2 className="text-6xl font-display font-bold text-foreground/20 uppercase tracking-widest">
+              <h2
+                className={`${compact ? "text-3xl" : "text-6xl"} font-display font-bold text-foreground/20 uppercase tracking-widest`}
+              >
                 Caixa Livre
               </h2>
             </motion.div>

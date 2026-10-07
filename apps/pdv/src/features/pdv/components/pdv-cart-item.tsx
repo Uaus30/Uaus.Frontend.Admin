@@ -21,7 +21,13 @@ type PdvCartItemProps = {
    * o painel, uma vez para a lista inteira.
    */
   promotion?: PromotionLineInfo;
+  /** Celular: linha mais baixa e botões do tamanho do dedo. Ver "No celular". */
+  compact?: boolean;
 };
+
+/** Coluna da foto no celular: 48px, em vez dos 84px do balcão. */
+const COMPACT_IMAGE_FRAME =
+  "relative flex w-12 shrink-0 items-center justify-center self-stretch overflow-hidden rounded-md border border-border/50";
 
 /**
  * Uma linha do carrinho: quantidade, preço unitário editável e o total do item.
@@ -53,8 +59,17 @@ type PdvCartItemProps = {
  * rápida o operador via um aviso empilhado sobre o outro e não sabia qual linha
  * tinha acabado de entrar. O contorno pulsa UMA vez na própria linha — a
  * confirmação acontece onde o item foi parar.
+ *
+ * ## No celular (07/10/2026)
+ *
+ * Os botões de quantidade e a lixeira tinham 24px — menos que a ponta do dedo,
+ * e o toque errado na lixeira tira o item da venda. No `compact` eles têm 36px
+ * (a lixeira, 32px, com margem negativa para não esticar a linha do nome),
+ * o campo de preço tem letra de 16px (abaixo disso o iPhone amplia a tela ao
+ * tocar e não desfaz) e os rótulos "Quantidade" e "Valor Unitário" saem: no
+ * celular deitado cada linha de texto é altura tirada da lista.
  */
-export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
+export function PdvCartItem({ item, promotion, compact = false }: PdvCartItemProps) {
   const { toast } = useToast();
   const removeItem = usePdvStore((state) => state.removeItem);
   const updateQuantity = usePdvStore((state) => state.updateQuantity);
@@ -237,7 +252,7 @@ export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative flex items-stretch gap-3 p-3 rounded-lg border border-border/40 bg-background/50 group"
+      className={`relative flex items-stretch ${compact ? "gap-2 p-2" : "gap-3 p-3"} rounded-lg border border-border/40 bg-background/50 group`}
     >
       {/* O contorno é uma camada por cima, não a borda da linha: animar a borda
           empurraria o conteúdo meio pixel e a lista inteira tremeria.
@@ -263,10 +278,15 @@ export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
           não uma miniatura no meio do texto: assim a foto acompanha o card
           quando o nome quebra em duas linhas, e quantidade, preço e total ficam
           SEMPRE à direita dela, na mesma coluna, em todas as linhas do carrinho. */}
-      <PdvCartItemImage name={item.name} barcode={item.barcode} imageUrl={item.imageUrl} />
+      <PdvCartItemImage
+        name={item.name}
+        barcode={item.barcode}
+        imageUrl={item.imageUrl}
+        frameClassName={compact ? COMPACT_IMAGE_FRAME : undefined}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex justify-between items-start gap-2 mb-2">
+        <div className={`flex justify-between items-start gap-2 ${compact ? "mb-1" : "mb-2"}`}>
           <div className="min-w-0 flex-1">
             {/* Nome INTEIRO, quebrando em quantas linhas precisar: é a mesma regra
               da lista de busca. O fim do nome é o que separa duas variações do
@@ -282,30 +302,39 @@ export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            aria-label={`Tirar ${item.name} do carrinho`}
+            // No celular, 32px de toque com margem negativa: a lixeira não pode
+            // ditar a altura da linha do nome, que é a de uma linha de texto.
+            className={`${compact ? "-my-1.5 -mr-1.5 h-8 w-8" : "h-6 w-6"} text-muted-foreground hover:text-destructive`}
             onClick={() => removeItem(item.id)}
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className={compact ? "h-4 w-4" : "w-3 h-3"} />
           </Button>
         </div>
 
-        <div className="flex items-end justify-between">
+        <div className="flex items-end justify-between gap-2">
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground">Quantidade:</span>
-            <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-1 border border-border/30">
+            {!compact && <span className="text-[10px] font-semibold text-muted-foreground">Quantidade:</span>}
+            <div
+              className={`flex items-center ${compact ? "gap-0.5 p-0.5" : "gap-2 p-1"} bg-muted/30 rounded-lg border border-border/30`}
+            >
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                aria-label="Diminuir a quantidade"
+                className={compact ? "h-9 w-9" : "h-6 w-6"}
                 onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
               >
-                <Minus className="w-2 h-2" />
+                <Minus className={compact ? "h-3.5 w-3.5" : "w-2 h-2"} />
               </Button>
-              <span className="font-mono text-xs font-bold w-4 text-center">{item.quantity}</span>
+              <span className={`font-mono font-bold text-center ${compact ? "w-6 text-sm" : "w-4 text-xs"}`}>
+                {item.quantity}
+              </span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                aria-label="Aumentar a quantidade"
+                className={compact ? "h-9 w-9" : "h-6 w-6"}
                 onClick={() => {
                   // O saldo é o do momento em que o item entrou no carrinho: vender
                   // acima dele quebraria a venda offline na conferência local.
@@ -320,18 +349,24 @@ export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
                   updateQuantity(item.id, item.quantity + 1);
                 }}
               >
-                <Plus className="w-2 h-2" />
+                <Plus className={compact ? "h-3.5 w-3.5" : "w-2 h-2"} />
               </Button>
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground">Valor Unitário:</span>
+            {!compact && (
+              <span className="text-[10px] font-semibold text-muted-foreground">Valor Unitário:</span>
+            )}
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-muted-foreground font-semibold">R$</span>
               <Input
                 type="text"
-                className="w-16 h-7 text-xs font-mono font-bold px-1.5 py-0 text-center bg-background border-border focus-visible:ring-primary shadow-sm"
+                // Teclado numérico no celular, com a vírgula: o campo é o preço
+                // combinado, e o teclado de letras escondia os números.
+                inputMode="decimal"
+                aria-label={`Valor unitário de ${item.name}`}
+                className={`${compact ? "w-20 h-9 text-base" : "w-16 h-7 text-xs"} font-mono font-bold px-1.5 py-0 text-center bg-background border-border focus-visible:ring-primary shadow-sm`}
                 // A `key` força o campo a remontar quando o valor muda por fora
                 // (diálogo de desconto, acréscimo confirmado, cancelamento), já
                 // que ele é não controlado.
@@ -348,7 +383,9 @@ export function PdvCartItem({ item, promotion }: PdvCartItemProps) {
             </div>
           </div>
 
-          <div className="text-right flex flex-col justify-end items-end h-[52px]">
+          <div
+            className={`text-right flex flex-col justify-end items-end ${compact ? "min-h-9" : "h-[52px]"}`}
+          >
             <div className="flex flex-col">
               {/* O riscado é o preço ANTES do desconto, e ele inclui o acréscimo:
                   o desconto foi negociado sobre o que a linha custava de fato.

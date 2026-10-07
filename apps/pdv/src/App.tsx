@@ -76,7 +76,10 @@ function OfflineBanner() {
   if (!connectionChecked || online) return null;
 
   return (
-    <div className="z-[9999] flex h-10 shrink-0 items-center justify-center gap-2 bg-amber-500 px-4 text-center text-xs font-medium text-amber-950 shadow-md sm:text-sm">
+    // Mais baixa no celular deitado (`max-height: 500px`): lá a altura é o que
+    // falta, e a faixa é justamente da contingência — quando ela aparece, o
+    // celular está vendendo. O aviso fica; só ocupa menos.
+    <div className="z-[9999] flex h-10 shrink-0 items-center justify-center gap-2 bg-amber-500 px-4 text-center text-xs font-medium text-amber-950 shadow-md sm:text-sm [@media(max-height:500px)]:h-7 [@media(max-height:500px)]:text-xs">
       <CloudOff className="h-4 w-4" />
       <span>
         Sem conexão com o servidor — o PDV está vendendo com a base local.
@@ -95,11 +98,23 @@ function OfflineBanner() {
 function Shell() {
   useConnectivity();
 
+  // `h-dvh`, e não `h-screen`: no navegador do celular, `100vh` conta a área
+  // atrás da barra de endereço, e o pé do PDV — o FINALIZAR, a barra do
+  // carrinho — ficava escondido embaixo dela. No computador as duas medidas são
+  // a mesma. O `h-screen` fica de reserva para navegador sem `dvh` (iOS antes
+  // do 15.4, Chrome antes do 108): sem ele a altura seria descartada e o PDV
+  // inteiro encolheria — e o celular da contingência pode ser um aparelho velho.
+  //
+  // O recuo lateral é a área segura: o `index.html` pede `viewport-fit=cover`
+  // (para a barra do pé do iPhone em pé), e com ele a página vai até a borda.
+  // Deitado — a forma preferida do dono —, o entalhe do iPhone fica numa das
+  // laterais e cobriria a foto e o nome na busca, ou o valor das linhas do
+  // carrinho. No computador o `env()` vale zero.
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background supports-[height:100dvh]:h-dvh">
       <OfflineBanner />
       <DevEnvironmentBanner />
-      <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
         </WouterRouter>

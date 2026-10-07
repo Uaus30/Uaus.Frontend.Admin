@@ -16,15 +16,15 @@ import { describe, expect, it } from "vitest";
  * varia entre rodar a suíte do app e a do monorepo, então os dois caminhos são
  * tentados.
  */
-function lerIndexHtml(app: string): string {
-  const candidatos = [resolve(process.cwd(), "index.html"), resolve(process.cwd(), `apps/${app}/index.html`)];
+function lerArquivo(app: string, caminho: string): string {
+  const candidatos = [resolve(process.cwd(), caminho), resolve(process.cwd(), `apps/${app}/${caminho}`)];
   const encontrado = candidatos.find(existsSync);
 
-  if (!encontrado) throw new Error(`index.html não encontrado em: ${candidatos.join(", ")}`);
+  if (!encontrado) throw new Error(`${caminho} não encontrado em: ${candidatos.join(", ")}`);
   return readFileSync(encontrado, "utf-8");
 }
 
-const html = lerIndexHtml("pdv");
+const html = lerArquivo("pdv", "index.html");
 
 describe("index.html do PDV", () => {
   it("declara o idioma real do conteúdo", () => {
@@ -36,5 +36,15 @@ describe("index.html do PDV", () => {
   it("recusa tradução automática, inclusive para quem já marcou 'traduzir sempre'", () => {
     expect(html).toMatch(/<html[^>]*\btranslate="no"/);
     expect(html).toMatch(/<meta\s+name="google"\s+content="notranslate"/);
+  });
+
+  it("com viewport-fit=cover, a casca recua das laterais para o entalhe do celular deitado", () => {
+    // O `cover` faz a página ir até a borda. Sem o recuo lateral, no iPhone
+    // deitado o entalhe cobre a foto da busca ou o valor das linhas do carrinho
+    // (revisão de 07/10/2026). O Shell mora no App.tsx, lido do disco como o html.
+    expect(html).toMatch(/viewport-fit=cover/);
+    const app = lerArquivo("pdv", "src/App.tsx");
+    expect(app).toContain("pl-[env(safe-area-inset-left)]");
+    expect(app).toContain("pr-[env(safe-area-inset-right)]");
   });
 });

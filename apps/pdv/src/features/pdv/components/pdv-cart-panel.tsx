@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ShoppingCart } from "lucide-react";
+import { ChevronLeft, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@workspace/ui";
+import type { PdvScreen } from "@/hooks/use-pdv-screen";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { toLocalTimestamp } from "@/services/sales.service";
 import { describePromotions } from "@/lib/promotions";
@@ -28,6 +29,10 @@ type PdvCartPanelProps = {
   onApplyGlobalDiscount: () => void;
   /** Guarda a venda em espera e libera o caixa. */
   onHoldSale: () => void;
+  /** Forma da tela (ver `usePdvScreen`). */
+  screen?: PdvScreen;
+  /** Celular em pé: volta para a busca de produtos. */
+  onBack?: () => void;
 };
 
 /**
@@ -42,6 +47,16 @@ type PdvCartPanelProps = {
  * estendido, com os botões sempre à vista, escolhido nas Preferências; ele saiu
  * a pedido do dono, junto com o PDV no celular — as três faixas de botões
  * custavam a altura da lista de itens, que no celular é a mais curta de todas.
+ *
+ * ## No celular (07/10/2026)
+ *
+ * - **Deitado**, continua coluna da direita, mas sem a faixa "Resumo da Venda"
+ *   (60px de uma tela de ~390): a reedição, que era o único aviso dela, vira
+ *   uma tira fina só quando acontece.
+ * - **Em pé**, é a tela inteira, com "‹ Produtos" no topo para voltar à busca.
+ * - Nos dois, as linhas são as compactas (`PdvCartItem`), e o rodapé é o mesmo
+ *   do balcão: a gaveta da engrenagem mede a altura dele, e encolhê-lo cortaria
+ *   PAUSAR e CANCELAR.
  */
 export function PdvCartPanel({
   subtotal,
@@ -49,7 +64,10 @@ export function PdvCartPanel({
   checkoutBlocked,
   onApplyGlobalDiscount,
   onHoldSale,
+  screen = "desk",
+  onBack,
 }: PdvCartPanelProps) {
+  const phone = screen !== "desk";
   const items = usePdvStore((state) => state.items);
   const editingSaleId = usePdvStore((state) => state.editingSaleId);
   const promotions = usePdvStore((state) => state.promotions);
@@ -107,26 +125,61 @@ export function PdvCartPanel({
     // e uma coluna fixa em pixel ficava estreita demais para o conteúdo maior —
     // era o que espremia a linha do item e obrigava a rolar. O teto em `vw`
     // impede que, na escala máxima, o resumo coma o espaço da busca.
-    <div className="w-[31.25rem] max-w-[45vw] flex flex-col bg-card shrink-0 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.3)] z-20 relative">
-      <div className="px-5 py-4 border-b border-border/50 bg-muted/10 flex items-center justify-between shrink-0">
-        <h2 className="text-xl font-display font-bold flex items-center gap-2 uppercase">
-          <ShoppingCart className="w-5 h-5 text-primary" /> Resumo da Venda
-        </h2>
-        {editingSaleId && (
-          <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full font-bold uppercase">
-            Editando #{editingSaleId}
-          </span>
-        )}
-      </div>
+    // Em pé o carrinho é a tela inteira (`w-full`), e não uma coluna.
+    <div
+      className={`${screen === "phone-portrait" ? "w-full" : "w-[31.25rem] max-w-[45vw]"} flex flex-col bg-card shrink-0 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.3)] z-20 relative`}
+    >
+      {screen === "desk" && (
+        <div className="px-5 py-4 border-b border-border/50 bg-muted/10 flex items-center justify-between shrink-0">
+          <h2 className="text-xl font-display font-bold flex items-center gap-2 uppercase">
+            <ShoppingCart className="w-5 h-5 text-primary" /> Resumo da Venda
+          </h2>
+          {editingSaleId && (
+            <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full font-bold uppercase">
+              Editando #{editingSaleId}
+            </span>
+          )}
+        </div>
+      )}
 
-      <ScrollArea className="flex-1 min-h-0 px-3 py-2">
-        <div className="space-y-2">
+      {screen === "phone-portrait" && (
+        <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border/50 bg-muted/10 px-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-10 items-center gap-0.5 rounded-lg px-2 text-sm font-bold uppercase tracking-wider text-primary cursor-pointer active:bg-primary/10"
+          >
+            <ChevronLeft className="h-5 w-5" /> Produtos
+          </button>
+          {editingSaleId && (
+            <span className="mr-2 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full font-bold uppercase">
+              Editando #{editingSaleId}
+            </span>
+          )}
+        </div>
+      )}
+
+      {screen === "phone-landscape" && editingSaleId && (
+        <div className="shrink-0 bg-amber-500/15 px-3 py-1 text-center text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">
+          Editando a venda #{editingSaleId}
+        </div>
+      )}
+
+      <ScrollArea className={`flex-1 min-h-0 ${phone ? "px-2 py-1.5" : "px-3 py-2"}`}>
+        <div className={phone ? "space-y-1.5" : "space-y-2"}>
           <AnimatePresence>
             {items.length === 0 ? (
-              <div className="py-20 text-center text-muted-foreground uppercase">Carrinho vazio</div>
+              <div className={`${phone ? "py-8" : "py-20"} text-center text-muted-foreground uppercase`}>
+                Carrinho vazio
+              </div>
             ) : (
               items.map((item) => (
-                <PdvCartItem key={item.id} item={item} promotion={promotionByItem.get(item.id)} />
+                <PdvCartItem
+                  key={item.id}
+                  item={item}
+                  promotion={promotionByItem.get(item.id)}
+                  compact={phone}
+                />
               ))
             )}
           </AnimatePresence>
@@ -141,7 +194,14 @@ export function PdvCartPanel({
         `relative` e `overflow-hidden` são o palco da gaveta da engrenagem: ela
         se posiciona contra este bloco e desliza de fora dele para dentro.
       */}
-      <div className="shrink-0 relative overflow-hidden p-3 bg-muted/5 border-t border-border/50 space-y-2">
+      {/* No celular, o respiro de baixo cresce até a barra do sistema do iPhone
+          (a de deslizar, que fica no pé em pé E deitado), senão o FINALIZAR
+          fica sob ela. */}
+      <div
+        className={`shrink-0 relative overflow-hidden p-3 bg-muted/5 border-t border-border/50 space-y-2 ${
+          phone ? "pb-[max(0.75rem,env(safe-area-inset-bottom))]" : ""
+        }`}
+      >
         <PdvCartCustomerCompact />
         <PdvCartTotals subtotal={subtotal} total={total} />
         <PdvCartActionsCompact {...actions} />

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
+  Calculator as CalculatorIcon,
   ExternalLink,
   History,
   LayoutDashboard,
@@ -31,6 +32,11 @@ type PdvMainMenuProps = {
   onHeldSales: () => void;
   onPreferences: () => void;
   onExit: () => void;
+  /**
+   * No celular, o cabeçalho não tem lugar para a calculadora nem para o nome do
+   * operador: os dois moram aqui. Ausente no balcão, onde estão à vista.
+   */
+  phone?: { operatorName: string; onCalculator: () => void };
 };
 
 /** Classe compartilhada por todo item do menu. */
@@ -81,6 +87,7 @@ export function PdvMainMenu({
   onHeldSales,
   onPreferences,
   onExit,
+  phone,
 }: PdvMainMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -138,6 +145,7 @@ export function PdvMainMenu({
         variant="ghost"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Menu"
         className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all active:scale-90 cursor-pointer"
       >
         <MenuIcon className="w-5 h-5" />
@@ -150,8 +158,25 @@ export function PdvMainMenu({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover p-2 shadow-xl z-40"
+            // Teto de altura com rolagem: no celular deitado (~390px) os nove
+            // itens e o rodapé da versão passavam do fim da tela, e "Sair" ficava
+            // inalcançável. Os 8rem descontam o que fica ACIMA do menu: o
+            // cabeçalho e as faixas do topo (offline, ambiente de dev), que
+            // aparecem justamente na contingência.
+            className="absolute right-0 mt-2 max-h-[calc(100dvh-8rem)] w-56 overflow-y-auto rounded-xl border border-border bg-popover p-2 shadow-xl z-40"
           >
+            {phone && (
+              <>
+                <p className="truncate px-3 pb-1.5 pt-1 text-xs font-bold text-primary">
+                  {phone.operatorName}
+                </p>
+                <button onClick={run(phone.onCalculator)} className={ITEM_CLASS}>
+                  <CalculatorIcon className="w-4 h-4 text-primary" />
+                  Calculadora
+                </button>
+              </>
+            )}
+
             {/* Sem controle de caixa não há turno para encerrar; o item some em
                   vez de ficar desabilitado para sempre. */}
             {usesCashRegister && (

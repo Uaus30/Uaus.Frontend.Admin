@@ -1,4 +1,4 @@
-import { Gift, ScrollText, Star, UserCheck, X } from "lucide-react";
+import { CloudOff, Gift, ScrollText, Star, UserCheck, X } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { formatPhone } from "@workspace/core";
 import { Hint } from "@/components/hint";
@@ -78,6 +78,15 @@ export function PdvCartCustomerCompact() {
           {status}
         </button>
       </Hint>
+
+      {/* Escrito na tela, e não só na dica: no celular não há mouse para abrir a
+          dica, e é justamente na contingência — sem internet — que este caso
+          acontece. Diz ao operador que o cadastro ainda não existe no servidor. */}
+      {consumer.newCustomer && (
+        <span className={`${chip} border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300`}>
+          <CloudOff className="h-3.5 w-3.5" aria-hidden /> Cadastro sobe com a venda
+        </span>
+      )}
 
       {loyalty?.prizeApplied && (
         // Abaixo do mínimo do prêmio, o chip fica apagado e a explicação vai para a

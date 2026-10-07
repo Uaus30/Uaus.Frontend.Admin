@@ -7,6 +7,7 @@ import { FontSizeControl } from "@/components/font-size-control";
 import { Hint } from "@/components/hint";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { OfflineStatus } from "@/components/offline-status";
+import type { PdvScreen } from "@/hooks/use-pdv-screen";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
 
@@ -22,6 +23,8 @@ type PdvHeaderProps = {
   onSynced: () => Promise<void> | void;
   /** Menu sanduíche, montado pela tela porque as ações são dela. */
   menu: ReactNode;
+  /** Forma da tela: no celular o cabeçalho encolhe (ver `usePdvScreen`). */
+  screen?: PdvScreen;
 };
 
 /**
@@ -31,6 +34,15 @@ type PdvHeaderProps = {
  * O centro é o lugar de tudo que **interrompe** a venda — vendas em espera,
  * fila offline, hora. É onde o olho do operador cai quando ele levanta a cabeça
  * do balcão.
+ *
+ * ## No celular (07/10/2026)
+ *
+ * Deitado, a tela tem ~390px de altura, e os 80px do cabeçalho do balcão eram
+ * um quinto dela. Lá ele tem 48px e uma linha só: o logo, o número do caixa,
+ * o que interrompe a venda (espera e offline — é a contingência, o chip do
+ * offline é o que mais importa) e o menu. O tamanho da letra sai (o celular tem
+ * o dele), o nome do operador e a calculadora vão para o menu, e a tela cheia
+ * fica só deitado, onde a barra do navegador mais pesa.
  */
 export function PdvHeader({
   session,
@@ -39,9 +51,54 @@ export function PdvHeader({
   onOpenHeldSales,
   onSynced,
   menu,
+  screen = "desk",
 }: PdvHeaderProps) {
   const heldSalesCount = usePdvStore((state) => state.heldSales.length);
   const toggleCalculator = useCalculatorStore((state) => state.toggleOpen);
+
+  if (screen !== "desk") {
+    return (
+      <header className="relative z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/50 bg-card/50 px-3 backdrop-blur-md">
+        <img
+          loading="lazy"
+          decoding="async"
+          src="/images/logo-icon.png"
+          alt="Logo"
+          className="h-8 w-8 shrink-0 object-contain"
+        />
+        <div className="min-w-0 flex-1">
+          {session ? (
+            <p className="truncate font-mono text-[11px] text-muted-foreground">
+              Caixa #{session.id}
+              {isSessionFromCache && (
+                <span className="text-amber-600 dark:text-amber-400"> · base local</span>
+              )}
+            </p>
+          ) : (
+            <p className="truncate font-display text-sm font-bold">Uaus! PDV</p>
+          )}
+        </div>
+
+        {heldSalesCount > 0 && (
+          <button
+            type="button"
+            onClick={onOpenHeldSales}
+            aria-label={`Vendas em espera: ${heldSalesCount}`}
+            className="flex h-9 shrink-0 items-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/15 px-2.5 font-mono text-xs font-bold text-amber-600 dark:text-amber-400 cursor-pointer"
+          >
+            <PauseCircle className="h-4 w-4" />
+            {heldSalesCount}
+          </button>
+        )}
+
+        <OfflineStatus sessionId={session?.id ?? null} onSynced={onSynced} />
+
+        {screen === "phone-landscape" && <FullscreenToggle />}
+
+        {menu}
+      </header>
+    );
+  }
 
   return (
     <header className="relative h-20 border-b border-border/50 bg-card/50 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-30">

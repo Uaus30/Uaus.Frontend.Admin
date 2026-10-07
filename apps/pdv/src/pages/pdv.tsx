@@ -5,13 +5,16 @@ import { useCashRegister } from "@/hooks/use-cash-register";
 import { useCheckout } from "@/hooks/use-checkout";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflinePdv } from "@/hooks/use-offline-pdv";
+import { usePdvScreen } from "@/hooks/use-pdv-screen";
 import { useStockFreeze } from "@/hooks/use-stock-freeze";
 import { StockFreezeBanner } from "@/features/pdv/components/stock-freeze-banner";
+import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { PdvCartPanel } from "@/features/pdv/components/pdv-cart-panel";
 import { PdvDialogs } from "@/features/pdv/components/pdv-dialogs";
 import { PdvHeader } from "@/features/pdv/components/pdv-header";
 import { PdvMainMenu } from "@/features/pdv/components/pdv-main-menu";
+import { PdvPhoneCartBar } from "@/features/pdv/components/pdv-phone-cart-bar";
 import { PdvSearchPanel } from "@/features/pdv/components/pdv-search-panel";
 import { TrocaSenhaPrimeiroAcesso } from "@/features/pdv/components/troca-senha-primeiro-acesso";
 import { usePdvCounter } from "@/features/pdv/hooks/use-pdv-counter";
@@ -19,6 +22,7 @@ import { usePdvDialogs } from "@/features/pdv/hooks/use-pdv-dialogs";
 import { usePdvOperator } from "@/features/pdv/hooks/use-pdv-operator";
 import { usePdvPaymentMethods } from "@/features/pdv/hooks/use-pdv-payment-methods";
 import { usePdvSessionActions } from "@/features/pdv/hooks/use-pdv-session-actions";
+import { usePhoneCartView } from "@/features/pdv/hooks/use-phone-cart-view";
 import { usePromotions } from "@/features/pdv/hooks/use-promotions";
 import { useSaleCheckout } from "@/features/pdv/hooks/use-sale-checkout";
 import { useSaleHistoryActions } from "@/features/pdv/hooks/use-sale-history-actions";
@@ -95,6 +99,17 @@ export default function Pdv() {
   // seja o valor, e não o carrinho.
   const subtotal = usePdvStore((state) => state.getSubtotal());
   const total = usePdvStore((state) => state.getTotal());
+
+  /**
+   * Balcão, celular deitado ou celular em pé (07/10/2026). Em pé a busca e o
+   * carrinho viram vistas que se alternam, com a barra do pé entre elas.
+   */
+  const screen = usePdvScreen();
+  const lineCount = usePdvStore((state) => state.items.length);
+  const units = usePdvStore((state) => state.items.reduce((sum, item) => sum + item.quantity, 0));
+  const lastAddedSeq = usePdvStore((state) => state.lastAddedSeq);
+  const phoneView = usePhoneCartView(lineCount);
+  const toggleCalculator = useCalculatorStore((state) => state.toggleOpen);
 
   // Com caixa, o turno de quem está no balcão; sem, o dia da loja.
   const periodSales = mode.requiresOpenSession ? sessionSales : todaySales;
@@ -207,6 +222,31 @@ export default function Pdv() {
   // novo, então "quem vendeu" não significaria nada.
   if (deveTrocarSenha) return <TrocaSenhaPrimeiroAcesso operatorName={operatorName} />;
 
+  const phone = screen !== "desk";
+  const checkoutBlocked = (mode.saleRequiresSession && !sessionId) || salesPaused;
+
+  const searchPanel = (
+    <PdvSearchPanel
+      search={counter.search}
+      inputRef={counter.searchInputRef}
+      online={online}
+      onPickProduct={counter.addProductToCart}
+      compact={phone}
+    />
+  );
+
+  const cartPanel = (
+    <PdvCartPanel
+      subtotal={subtotal}
+      total={total}
+      checkoutBlocked={checkoutBlocked}
+      onApplyGlobalDiscount={dialogs.discount.show}
+      onHoldSale={counter.holdSale}
+      screen={screen}
+      onBack={phoneView.openProducts}
+    />
+  );
+
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden selection:bg-primary/30">
       <StockFreezeBanner salesPaused={salesPaused} />
@@ -216,6 +256,7 @@ export default function Pdv() {
         operatorName={operatorName}
         onOpenHeldSales={dialogs.heldSales.show}
         onSynced={refreshSales}
+        screen={screen}
         menu={
           <PdvMainMenu
             usesCashRegister={mode.requiresOpenSession}
@@ -228,25 +269,34 @@ export default function Pdv() {
             onHeldSales={dialogs.heldSales.show}
             onPreferences={dialogs.preferences.show}
             onExit={exit}
+            phone={phone ? { operatorName, onCalculator: toggleCalculator } : undefined}
           />
         }
       />
 
-      <main className="flex-1 flex overflow-hidden">
-        <PdvSearchPanel
-          search={counter.search}
-          inputRef={counter.searchInputRef}
-          online={online}
-          onPickProduct={counter.addProductToCart}
-        />
-
-        <PdvCartPanel
-          subtotal={subtotal}
-          total={total}
-          checkoutBlocked={(mode.saleRequiresSession && !sessionId) || salesPaused}
-          onApplyGlobalDiscount={dialogs.discount.show}
-          onHoldSale={counter.holdSale}
-        />
+      {/* Uma forma por vez, e nunca as duas montadas: o campo de busca é um só
+          (`searchInputRef`), e é para ele que o cursor volta depois da venda. */}
+      <main className="flex-1 flex min-h-0 overflow-hidden">
+        {screen === "phone-portrait" ? (
+          phoneView.view === "cart" ? (
+            cartPanel
+          ) : (
+            <div className="flex min-w-0 flex-1 flex-col">
+              {searchPanel}
+              <PdvPhoneCartBar
+                units={units}
+                total={total}
+                pulseKey={lastAddedSeq}
+                onOpenCart={phoneView.openCart}
+              />
+            </div>
+          )
+        ) : (
+          <>
+            {searchPanel}
+            {cartPanel}
+          </>
+        )}
       </main>
 
       <PdvDialogs

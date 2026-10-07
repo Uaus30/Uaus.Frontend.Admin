@@ -147,4 +147,23 @@ describe("PdvMainMenu", () => {
 
     await waitFor(() => expect(screen.queryByRole("button", { name: /Preferências/i })).toBeNull());
   });
+
+  it("no celular, traz o operador e a calculadora, que saíram do cabeçalho", () => {
+    const onCalculator = vi.fn();
+    render(<PdvMainMenu {...defaultProps} phone={{ operatorName: "Wagner Barbosa", onCalculator }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+
+    expect(screen.getByText("Wagner Barbosa")).toBeDefined();
+    expect(itensDoMenu()[0]).toBe("Calculadora");
+
+    fireEvent.click(screen.getByRole("button", { name: /Calculadora/ }));
+    expect(onCalculator).toHaveBeenCalledTimes(1);
+  });
+
+  it("no balcão, nem operador nem calculadora no menu", () => {
+    render(<PdvMainMenu {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.queryByRole("button", { name: /Calculadora/ })).toBeNull();
+  });
 });

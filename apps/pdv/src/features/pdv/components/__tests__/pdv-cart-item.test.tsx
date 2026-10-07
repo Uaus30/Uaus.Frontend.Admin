@@ -204,4 +204,36 @@ describe("PdvCartItem", () => {
     expect(document.body.textContent?.replace(/\s/g, " ")).toContain("R$ 20,00");
     expect(document.body.textContent?.replace(/\s/g, " ")).not.toContain("R$ 20,01");
   });
+
+  describe("no celular (compact)", () => {
+    it("tira os rótulos e dá ao preço letra de 16px e teclado numérico", () => {
+      renderWithHints(<PdvCartItem item={ITEM} compact />);
+
+      expect(screen.queryByText("Quantidade:")).toBeNull();
+      expect(screen.queryByText("Valor Unitário:")).toBeNull();
+      const preco = screen.getByLabelText(`Valor unitário de ${ITEM.name}`);
+      // Abaixo de 16px o iPhone amplia a tela ao tocar no campo e não desfaz.
+      expect(preco.className).toContain("text-base");
+      expect(preco.getAttribute("inputmode")).toBe("decimal");
+    });
+
+    it("botões de quantidade e lixeira do tamanho do dedo, e funcionando", () => {
+      renderWithHints(<PdvCartItem item={ITEM} compact />);
+
+      const mais = screen.getByRole("button", { name: "Aumentar a quantidade" });
+      const lixeira = screen.getByRole("button", { name: `Tirar ${ITEM.name} do carrinho` });
+      expect(mais.className).toContain("h-9");
+      expect(lixeira.className).toContain("h-8");
+
+      fireEvent.click(mais);
+      expect(usePdvStore.getState().items[0].quantity).toBe(2);
+    });
+
+    it("no balcão os rótulos continuam", () => {
+      renderWithHints(<PdvCartItem item={ITEM} />);
+
+      expect(screen.getByText("Quantidade:")).toBeDefined();
+      expect(screen.getByText("Valor Unitário:")).toBeDefined();
+    });
+  });
 });
