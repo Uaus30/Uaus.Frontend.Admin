@@ -136,6 +136,34 @@ describe("useLabelProductSearch", () => {
     expect(result.current.hasSearched).toBe(false);
   });
 
+  it("clear esvazia o campo e a lista na hora", async () => {
+    mocks.searchPdvProducts.mockResolvedValue([CAFE]);
+    const { result } = render();
+
+    await act(async () => result.current.setSearch("caf"));
+    await passarODebounce();
+    expect(result.current.results).toEqual([CAFE]);
+
+    await act(async () => result.current.clear());
+
+    expect(result.current.search).toBe("");
+    expect(result.current.results).toEqual([]);
+    expect(result.current.hasSearched).toBe(false);
+  });
+
+  it("clear antes do debounce vencer não deixa a busca digitada sair", async () => {
+    // O "x" logo depois de digitar: a busca agendada não pode chegar depois e
+    // encher a lista de um termo que já não está no campo.
+    const { result } = render();
+
+    await act(async () => result.current.setSearch("caf"));
+    await act(async () => result.current.clear());
+    await passarODebounce();
+
+    expect(mocks.searchPdvProducts).not.toHaveBeenCalled();
+    expect(result.current.hasSearched).toBe(false);
+  });
+
   it("separa a falha da busca de um resultado vazio", async () => {
     // Regressão vista no smoke test: com a API fora do ar a tela dizia "Nenhum
     // produto encontrado", que manda procurar outro termo quando o problema é

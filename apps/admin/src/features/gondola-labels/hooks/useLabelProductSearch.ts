@@ -32,6 +32,12 @@ export interface LabelProductSearchState {
    * lido serve a mais de um produto: a escolha fica com a pessoa, na lista.
    */
   searchNow: (term: string) => void;
+  /**
+   * Esvazia o campo e descarta a busca na hora — o "x" do campo e o produto que
+   * acabou de entrar no lote. A digitação pendente morre junto: sem termo, o
+   * debounce não tem o que promover.
+   */
+  clear: () => void;
   /** Produtos da busca corrente. Vazio enquanto ninguém buscou. */
   results: ProductPdvSearchDto[];
   isSearching: boolean;
@@ -113,6 +119,8 @@ export function useLabelProductSearch(): LabelProductSearchState {
     setActiveTerm(term.trim());
   }, []);
 
+  const clear = useCallback(() => updateSearch(""), [updateSearch]);
+
   const { data, isFetching, isError } = useQuery({
     queryKey: ["gondola-labels-product-search", activeTerm],
     queryFn: () => searchPdvProducts(activeTerm, SEARCH_LIMIT),
@@ -126,6 +134,7 @@ export function useLabelProductSearch(): LabelProductSearchState {
     setSearch: updateSearch,
     submit,
     searchNow,
+    clear,
     results: hasSearched ? (data ?? []) : [],
     isSearching: hasSearched && isFetching,
     hasFailed: hasSearched && isError,

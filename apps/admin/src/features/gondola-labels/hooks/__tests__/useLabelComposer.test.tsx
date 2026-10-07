@@ -157,6 +157,30 @@ describe("useLabelComposer", () => {
     expect(result.current.totalLabels).toBe(1);
   });
 
+  it("o + de um resultado da busca adiciona e esvazia o campo para a próxima busca", async () => {
+    const { result } = await renderComposer();
+
+    act(() => result.current.setSearch("caneca"));
+    act(() => result.current.addFromSearch(product(5)));
+
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.search).toBe("");
+    expect(result.current.hasSearched).toBe(false);
+  });
+
+  it("o + não esvazia o campo enquanto a lista não aceita alteração", async () => {
+    // Rascunho ainda sendo lido: o produto não entra, e apagar o termo faria a
+    // pessoa perder a busca sem nada ter sido adicionado.
+    mocks.getProductLabelDraft.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useLabelComposer(), { wrapper: createWrapper() });
+
+    act(() => result.current.setSearch("caneca"));
+    act(() => result.current.addFromSearch(product(5)));
+
+    expect(result.current.items).toHaveLength(0);
+    expect(result.current.search).toBe("caneca");
+  });
+
   it("soma uma cópia ao adicionar o mesmo produto de novo no tipo Normal", async () => {
     const { result } = await renderComposer();
 

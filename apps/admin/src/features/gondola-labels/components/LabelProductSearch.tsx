@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ImageIcon, Pencil, Plus, ScanBarcode, Search } from "lucide-react";
+import { useRef, useState } from "react";
+import { ImageIcon, Pencil, Plus, ScanBarcode, Search, X } from "lucide-react";
 import { Button, ImageHoverZoom } from "@workspace/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui";
 import { Input } from "@workspace/ui";
@@ -16,6 +16,8 @@ interface LabelProductSearchProps {
   setSearch: (value: string) => void;
   /** Dispara a busca na hora — o Enter do campo. */
   onSubmit: () => void;
+  /** Esvazia o campo e a lista — o "x" do campo. */
+  onClear: () => void;
   results: ProductPdvSearchDto[];
   isLoading: boolean;
   /** Existe busca em vigor. Separa "ainda não procurei" de "não achei". */
@@ -53,11 +55,17 @@ interface LabelProductSearchProps {
  * cada produto encontrado — para o próximo, toca-se no botão de novo (pedido do
  * dono depois do primeiro uso na loja). O botão só aparece onde o navegador
  * oferece câmera.
+ *
+ * O "+" esvazia o campo (quem esvazia é o `onAdd`), e o "x" à direita esvazia
+ * à mão — a saída de uma busca que não achou nada (07/10/2026). Ele só existe
+ * com texto no campo: um "x" que não limpa nada só ocupa espaço. Nos dois
+ * casos o foco volta ao campo, para a próxima busca ser só digitar.
  */
 export function LabelProductSearch({
   search,
   setSearch,
   onSubmit,
+  onClear,
   results,
   isLoading,
   hasSearched,
@@ -69,6 +77,7 @@ export function LabelProductSearch({
 }: LabelProductSearchProps) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const cameraAvailable = canUseCamera();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Card className="border-border/50 shadow-lg shadow-black/5">
@@ -89,11 +98,28 @@ export function LabelProductSearch({
           >
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              ref={inputRef}
               placeholder="Buscar produtos..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="bg-background pl-9"
+              className="bg-background pl-9 pr-9"
             />
+            {search && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Limpar busca"
+                aria-label="Limpar busca"
+                className="absolute right-0.5 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  onClear();
+                  inputRef.current?.focus();
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </form>
           {cameraAvailable && (
             <Button
@@ -184,7 +210,10 @@ export function LabelProductSearch({
                   disabled={disabled}
                   title="Adicionar ao lote"
                   aria-label={`Adicionar ${product.name} ao lote`}
-                  onClick={() => onAdd(product)}
+                  onClick={() => {
+                    onAdd(product);
+                    inputRef.current?.focus();
+                  }}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>

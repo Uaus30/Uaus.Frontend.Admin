@@ -38,11 +38,12 @@ export default function GondolaLabels() {
                 search={composer.search}
                 setSearch={composer.setSearch}
                 onSubmit={composer.submitSearch}
+                onClear={composer.clearSearch}
                 results={composer.searchResults}
                 isLoading={composer.isSearching}
                 hasSearched={composer.hasSearched}
                 hasFailed={composer.searchFailed}
-                onAdd={composer.addProduct}
+                onAdd={composer.addFromSearch}
                 onScanCode={composer.addByBarcode}
                 disabled={!composer.canEdit}
                 priceOf={composer.searchResultShelf}

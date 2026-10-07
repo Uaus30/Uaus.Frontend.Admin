@@ -192,6 +192,18 @@ export function useLabelComposer() {
   };
 
   /**
+   * O "+" de um resultado da busca: adiciona e esvazia o campo para a próxima
+   * busca (pedido do dono, 07/10/2026). Antes o termo e a lista ficavam na tela,
+   * e cada produto novo começava apagando o anterior à mão. A câmera não passa
+   * por aqui — ela não usa o campo.
+   */
+  const addFromSearch = (product: ProductPdvSearchDto) => {
+    if (!canEdit) return;
+    addProduct(product);
+    productSearch.clear();
+  };
+
+  /**
    * Adiciona pelo código lido na câmera, sem passar pela lista de resultados.
    *
    * Só entra sozinho o produto cujo código é EXATAMENTE o lido. Mais de um
@@ -377,6 +389,7 @@ export function useLabelComposer() {
     search: productSearch.search,
     setSearch: productSearch.setSearch,
     submitSearch: productSearch.submit,
+    clearSearch: productSearch.clear,
     searchResults: productSearch.results,
     isSearching: productSearch.isSearching,
     hasSearched: productSearch.hasSearched,
@@ -386,6 +399,7 @@ export function useLabelComposer() {
     items,
     previewLabels,
     addProduct,
+    addFromSearch,
     addByBarcode,
     updateItem,
     removeItem,

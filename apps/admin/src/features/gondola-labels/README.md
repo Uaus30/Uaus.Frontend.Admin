@@ -30,6 +30,13 @@ e centralizadas na folha), com histórico de lotes e reimpressão.
   é a única saída para termo mais curto que isso). Antes ela abria com os 8
   primeiros produtos do catálogo — uma lista que não responde pergunta nenhuma
   e faz parecer que já há um filtro aplicado.
+- **O "+" esvazia a busca, e o campo tem um "x"** (07/10/2026, pedido do
+  dono). Depois de o produto entrar no lote, o campo e a lista se esvaziam e o
+  foco volta ao campo: o próximo produto é só digitar. Antes o termo ficava, e
+  cada busca nova começava apagando a anterior à mão. O "x" à direita do campo
+  limpa à mão (a saída da busca que não achou nada) e só aparece com texto. A
+  câmera não mexe no campo. Se a lista ainda não aceita alteração (o rascunho
+  está sendo lido), o "+" não adiciona e o termo fica.
 - **Por que `/Pdv/products/search` e não `/Products`**: interpreta o termo com
   a mesma regra (só dígitos = código de barras) e já devolve a URL da primeira
   imagem — que é a miniatura da lista.
