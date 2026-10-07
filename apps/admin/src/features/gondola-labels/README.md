@@ -1,8 +1,8 @@
 # Etiquetas de Gôndola
 
 Geração e impressão de etiquetas de preço para fixar na gôndola, em folha A4
-com duas colunas (20 etiquetas por página, ~95mm × 24mm), com histórico de lotes e
-reimpressão.
+com duas colunas (20 etiquetas por página, 95mm × 24mm, coladas umas nas outras
+e centralizadas na folha), com histórico de lotes e reimpressão.
 
 > Não confundir com a feature `tags` (rota `/etiquetas`), que classifica
 > produtos para análise. Aqui a etiqueta é o papel impresso com preço e código
@@ -159,6 +159,26 @@ baixo) e a grade de duas colunas só entra no `lg`. Mexeu no layout? Confira em
   jeito — sobrava rebarba de fora da linha. A prévia em tela
   (`LabelPreviewCard`) usa o mesmo contorno, senão ela deixa de valer como
   prévia.
+- **Coladas, como células do Excel, e centralizadas na folha** (07/10/2026,
+  pedido do dono para facilitar o recorte). Até aqui havia um vão de 3mm × 4mm
+  entre as etiquetas: cada uma pedia quatro cortes e sobrava uma tira de papel
+  entre vizinhas. Agora não há vão, e vizinhas dividem **uma** linha só — cada
+  etiqueta desenha a borda da direita e a de baixo, e a grade, a de cima e a da
+  esquerda (borda inteira nas duas sairia como linha dupla). Um corte reto
+  separa as duas.
+  - **A paginação é do `print.ts`, não do navegador**: folhas de 20
+    (`LABELS_PER_PAGE`), cada uma numa `.page` com o bloco centralizado na
+    horizontal e na vertical — a última também, mesmo com poucas etiquetas.
+    Deixando a quebra para o navegador, a borda de cima da folha seguinte
+    ficaria na anterior, e sem o vão cabem 11 linhas: a folha sairia com 22,
+    encostada no topo.
+  - A `.page` tem 280mm: a área útil (297mm − 2 × 8mm de margem) menos 1mm de
+    folga, porque no limite exato o arredondamento empurra folha em branco
+    entre as outras.
+  - Folha com **uma** etiqueta só usa uma coluna: em duas, a borda de cima da
+    grade passaria sobre a célula vazia.
+  - Conferido em 07/10/2026 imprimindo em PDF pelo Edge (23 etiquetas: folha
+    de 20 e folha de 3, as duas centralizadas, sem traço na célula vazia).
 - **Código reto, mais largo e com número maior** (21/09/2026). Três decisões que
   se puxam e por isso vivem juntas em `print.ts`:
   - **desenho reto** (`flat: true`): o EAN-13 padrão sai com barras de guarda
