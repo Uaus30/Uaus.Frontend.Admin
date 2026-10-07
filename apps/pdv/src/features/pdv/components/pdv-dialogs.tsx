@@ -27,6 +27,7 @@ import { LoyaltyStatementDialog } from "./loyalty-statement-dialog";
 import { useLoyaltySync } from "../hooks/use-loyalty";
 import type { IdentifiedSalesCount } from "../lib/identified-sales";
 import { PreferencesDialog } from "./preferences-dialog";
+import { ReceiptShareDialog } from "./receipt-share-dialog";
 
 type PdvDialogsProps = {
   /** Devolve o cursor à busca de produto quando o cartão digital fecha. */
@@ -70,6 +71,8 @@ type PdvDialogsProps = {
   onHeldSaleResumed: Parameters<typeof HeldSalesDialog>[0]["onResumed"];
   /** O store pausou uma venda para abrir espaço na fila. */
   onHeldToMakeRoom: () => void;
+  /** Celular: o checkout ganha a barra de confirmar presa ao pé. */
+  compact?: boolean;
 };
 
 /**
@@ -95,6 +98,7 @@ export function PdvDialogs({
   report,
   onHeldSaleResumed,
   onHeldToMakeRoom,
+  compact = false,
 }: PdvDialogsProps) {
   const queryClient = useQueryClient();
 
@@ -129,7 +133,12 @@ export function PdvDialogs({
         checkout={checkout}
         savingSale={savingSale}
         onConfirmPayment={onConfirmPayment}
+        compact={compact}
       />
+
+      {/* O comprovante no celular, pelo WhatsApp: aberto por `useReceiptPrinter`
+          onde o balcão imprimiria. */}
+      <ReceiptShareDialog />
 
       <DiscountDialog
         open={dialogs.discount.open}

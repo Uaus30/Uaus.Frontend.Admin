@@ -37,25 +37,32 @@ export function LoyaltyResultDialog({ onClosed }: { onClosed?: () => void }) {
   const close = () => setLastResult(null);
   const { rows, earnedCount } = outcome ? describeLoyaltyResult(outcome) : { rows: [], earnedCount: 0 };
 
+  // No celular estes dois oferecem o WhatsApp em vez de imprimir, direto para o
+  // telefone do cliente (ver `useReceiptPrinter`).
+  const output = { customerPhone: result?.customerPhone ?? null };
+
   const printReceipt = () => {
-    if (result) void sendReceiptToPrinter(result.receipt);
+    if (result) void sendReceiptToPrinter(result.receipt, output);
   };
 
   const printWithBalance = () => {
     if (!result || !card) return;
-    void sendReceiptToPrinter({
-      ...result.receipt,
-      loyalty: {
-        stamped: outcome!.stamped,
-        reason: outcome!.reason,
-        stamps: card.stamps,
-        stampsRequired: card.stampsRequired,
-        toNextReward: stampsToNextReward(card.stamps, card.nextRewardAt),
-        nextRewardLabel: describeLoyaltyPrize(card.nextRewardType, card.nextRewardValue),
-        expiresAt: card.expiresAt,
-        cardCompleted: outcome!.cardCompleted,
+    void sendReceiptToPrinter(
+      {
+        ...result.receipt,
+        loyalty: {
+          stamped: outcome!.stamped,
+          reason: outcome!.reason,
+          stamps: card.stamps,
+          stampsRequired: card.stampsRequired,
+          toNextReward: stampsToNextReward(card.stamps, card.nextRewardAt),
+          nextRewardLabel: describeLoyaltyPrize(card.nextRewardType, card.nextRewardValue),
+          expiresAt: card.expiresAt,
+          cardCompleted: outcome!.cardCompleted,
+        },
       },
-    });
+      output,
+    );
   };
 
   const toNext = card ? stampsToNextReward(card.stamps, card.nextRewardAt) : 0;

@@ -184,6 +184,14 @@ Uma forma por vez no DOM, nunca as duas: o campo de busca é um só (`searchInpu
 
 **No celular o cursor não volta sozinho para a busca** (`autoFocus` de `usePdvCounter`): sem leitor de mão para recebê-lo, focar o campo só abria o teclado virtual por cima da tela no fim de cada venda. Escolher um produto da lista fecha o teclado. A regra 7 continua valendo no balcão. Campos de dinheiro abrem o teclado numérico (`inputMode="decimal"`), e todo campo tem no mínimo 16px no celular (`index.css`).
 
+### 18. No celular, o comprovante vai pelo WhatsApp (07/10/2026)
+
+Decisão do dono: no celular não há impressora, e o comprovante sai **só pelo WhatsApp**. Os três lugares que imprimem — o fim da venda, o cartão digital da fidelidade ("Comprovante" e "Com saldo do cartão") e a reimpressão do histórico — passam por `useReceiptPrinter`, e é lá que a escolha acontece: no balcão imprime como sempre; no celular abre o `ReceiptShareDialog`, com "Enviar pelo WhatsApp" e "Agora não". Nada é mandado sozinho: nem toda venda quer comprovante, mas na entrega (o cliente não está ali) ele é o único que o cliente recebe. O extrato da fidelidade e o relatório do caixa não passam por ali e continuam indo para a impressora — são do balcão.
+
+O texto é `buildReceiptText` (`@workspace/receipt`), a mesma conta do papel linha por linha, com o negrito do WhatsApp. Com o telefone do cliente da venda, a conversa abre direto com ele (`wa.me/55…`, `lib/whatsapp.ts`); sem telefone ou com número sem DDD, o WhatsApp pergunta o contato — mandar para um número incompleto seria mandar para outra pessoa. Sem internet o WhatsApp abre do mesmo jeito e envia quando a conexão voltar.
+
+**O checkout no celular** tem o total e o "Confirmar Pagamento" numa barra presa ao pé (`CheckoutDialog` com `compact`): deitado, o diálogo tem ~370px, e o confirmar ficava depois do troco, só rolando. O valor recebido não ganha foco sozinho, para o teclado não cobrir as formas de pagamento antes da escolha.
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

@@ -277,6 +277,7 @@ export function useSaleCheckout({
           outcome: saved.loyalty,
           customerId: consumer.customerId,
           customerName: consumer.name,
+          customerPhone: consumer.phone ?? null,
           receipt,
         });
       }
@@ -301,7 +302,10 @@ export function useSaleCheckout({
       // saiu das Preferências em 01/09/2026. Ela duplicava a decisão: quem não
       // quer o papel já fecha a caixa de diálogo do navegador, e o desligado
       // deixava o operador achando que a impressora tinha falhado.
-      void sendReceiptToPrinter(receipt).then(focusSearch);
+      //
+      // No celular não há impressora: o mesmo pedido oferece o WhatsApp, com o
+      // telefone do cliente da venda (ver `useReceiptPrinter`).
+      void sendReceiptToPrinter(receipt, { customerPhone: consumer.phone ?? null }).then(focusSearch);
     } catch (error) {
       // A venda offline foi recusada pela conferência da base local. A mesma regra
       // vale no servidor, então deixar passar só adiaria o "não" para a

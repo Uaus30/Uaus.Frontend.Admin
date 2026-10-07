@@ -134,7 +134,7 @@ export function SalesHistoryDialog({
                 return (
                   <div
                     key={sale.id}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    className={`flex items-center justify-between gap-2 p-3 sm:p-4 rounded-xl border transition-all ${
                       isCancelled
                         ? "bg-destructive/5 border-destructive/20 opacity-70"
                         : "bg-background/50 border-border/40 hover:border-primary/20"
@@ -163,8 +163,11 @@ export function SalesHistoryDialog({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-12">
-                      <div className="text-right min-w-[100px]">
+                    {/* `gap-3` no celular em pé: com os 48px do balcão a linha
+                        passava 42px da tela de 390, e o menu de editar e
+                        cancelar ficava fora dela (07/10/2026). */}
+                    <div className="flex items-center gap-3 sm:gap-12">
+                      <div className="text-right sm:min-w-[100px]">
                         <p className="text-xs text-muted-foreground uppercase font-bold">Valor Total</p>
                         <p
                           className={`font-mono text-lg font-bold ${
@@ -200,6 +203,7 @@ export function SalesHistoryDialog({
                           className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
                           onClick={() => setActiveRowMenuId(activeRowMenuId === sale.id ? null : sale.id)}
                           disabled={isCancelled || busySaleId === sale.id || !podeAlterar}
+                          aria-label={`Editar ou cancelar a venda #${sale.id}`}
                           // `title` nativo, e não o `Hint`: esta dica só existe
                           // quando o botão está DESABILITADO, e botão desabilitado
                           // não dispara evento de ponteiro — o tooltip do Radix

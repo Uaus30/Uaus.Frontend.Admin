@@ -96,4 +96,12 @@ describe("SalesHistoryDialog", () => {
     expect(screen.getByText(/R\$\s20,00/)).toBeDefined();
     expect(screen.queryByText(/Desconto/)).toBeNull();
   });
+
+  it("o menu de editar e cancelar tem nome, e não só o ícone de três pontos", () => {
+    // No celular não há dica de mouse: o nome é o que o leitor de tela (e o
+    // operador que procura "cancelar") encontra (07/10/2026).
+    renderDialog([makeSale()]);
+
+    expect(screen.getByRole("button", { name: "Editar ou cancelar a venda #1945" })).toBeDefined();
+  });
 });

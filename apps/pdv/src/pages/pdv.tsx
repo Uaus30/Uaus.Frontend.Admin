@@ -334,6 +334,7 @@ export default function Pdv() {
         report={report}
         onHeldSaleResumed={counter.handleHeldSaleResumed}
         onHeldToMakeRoom={counter.resetCheckoutFields}
+        compact={phone}
       />
 
       <Calculator />

@@ -21,6 +21,11 @@ export interface LoyaltyResult {
   outcome: LoyaltySaleOutcomeDto;
   customerId: number;
   customerName: string;
+  /**
+   * Telefone do cliente: no celular, o comprovante pedido pelo cartão digital
+   * vai pelo WhatsApp direto para ele (07/10/2026).
+   */
+  customerPhone?: string | null;
   /** O comprovante da venda, para sair de novo com o saldo se o cliente pedir. */
   receipt: ReceiptData;
 }
