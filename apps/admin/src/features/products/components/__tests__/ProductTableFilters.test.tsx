@@ -14,14 +14,15 @@ const scanner = vi.hoisted(() => ({
   canUseCamera: vi.fn(() => true),
 }));
 
-vi.mock("@/components/barcode-scanner-dialog", () => ({
+// O leitor mora no kit desde 07/10/2026: dubla só ele, o resto do kit é o real.
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
   BarcodeScannerDialog: (props: { open: boolean; onDetected: (code: string) => unknown }) => {
     scanner.onDetected = props.open ? props.onDetected : null;
     return null;
   },
+  canUseCamera: scanner.canUseCamera,
 }));
-
-vi.mock("@/lib/barcode-scanner", () => ({ canUseCamera: scanner.canUseCamera }));
 
 const { ProductTableFilters } = await import("../ProductTableFilters");
 

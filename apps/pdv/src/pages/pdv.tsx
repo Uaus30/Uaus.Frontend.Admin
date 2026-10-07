@@ -22,6 +22,7 @@ import { usePdvDialogs } from "@/features/pdv/hooks/use-pdv-dialogs";
 import { usePdvOperator } from "@/features/pdv/hooks/use-pdv-operator";
 import { usePdvPaymentMethods } from "@/features/pdv/hooks/use-pdv-payment-methods";
 import { usePdvSessionActions } from "@/features/pdv/hooks/use-pdv-session-actions";
+import { useCameraScan } from "@/features/pdv/hooks/use-camera-scan";
 import { usePhoneCartView } from "@/features/pdv/hooks/use-phone-cart-view";
 import { usePromotions } from "@/features/pdv/hooks/use-promotions";
 import { useSaleCheckout } from "@/features/pdv/hooks/use-sale-checkout";
@@ -123,7 +124,12 @@ export default function Pdv() {
   const dialogs = usePdvDialogs();
 
   /** O balcão: busca, entrada no carrinho, foco do leitor, pausar e retomar. */
-  const counter = usePdvCounter({ online, sessionId, checkout });
+  // No celular o cursor não volta sozinho para a busca: abriria o teclado por
+  // cima da tela a cada venda (ver `autoFocus` em `usePdvCounter`).
+  const counter = usePdvCounter({ online, sessionId, checkout, autoFocus: screen === "desk" });
+
+  /** O código lido pela câmera do celular vira item no carrinho. */
+  const scanCode = useCameraScan({ online, addProductToCart: counter.addProductToCart });
 
   // Conferência de estoque aberta: o balcão fica impedido de vender (23/09/2026).
   const { salesPaused } = useStockFreeze();
@@ -232,6 +238,7 @@ export default function Pdv() {
       online={online}
       onPickProduct={counter.addProductToCart}
       compact={phone}
+      onScanCode={scanCode}
     />
   );
 
@@ -277,26 +284,25 @@ export default function Pdv() {
       {/* Uma forma por vez, e nunca as duas montadas: o campo de busca é um só
           (`searchInputRef`), e é para ele que o cursor volta depois da venda. */}
       <main className="flex-1 flex min-h-0 overflow-hidden">
-        {screen === "phone-portrait" ? (
-          phoneView.view === "cart" ? (
-            cartPanel
-          ) : (
-            <div className="flex min-w-0 flex-1 flex-col">
-              {searchPanel}
+        {screen === "phone-portrait" && phoneView.view === "cart" ? (
+          cartPanel
+        ) : (
+          // A busca fica na MESMA posição da árvore em todas as formas — o
+          // embrulho só troca de `contents` para coluna. Girar o celular não a
+          // remonta, e a câmera aberta no meio de uma sequência não fecha.
+          <div className={screen === "phone-portrait" ? "flex min-w-0 flex-1 flex-col" : "contents"}>
+            {searchPanel}
+            {screen === "phone-portrait" && (
               <PdvPhoneCartBar
                 units={units}
                 total={total}
                 pulseKey={lastAddedSeq}
                 onOpenCart={phoneView.openCart}
               />
-            </div>
-          )
-        ) : (
-          <>
-            {searchPanel}
-            {cartPanel}
-          </>
+            )}
+          </div>
         )}
+        {screen !== "phone-portrait" && cartPanel}
       </main>
 
       <PdvDialogs

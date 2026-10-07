@@ -48,7 +48,9 @@ bater com o total enviado à API nem com o subtotal impresso no cupom.
 3. **Campo de dinheiro vazio vale zero, texto ilegível vale `null`.**
    `parseAmount` devolve `NaN` para os dois casos, e quem chamava direto mandava
    `NaN` para a API. `parseAmountOrNull` separa "não informou" de "digitou
-   bobagem".
+   bobagem". E o ponto só é milhar com três dígitos depois dele: "10.50" é dez
+   e cinquenta (07/10/2026) — o teclado numérico do celular fora da região
+   Brasil só tem o ponto, e antes isso virava 1050.
 
 4. **Máscara de telefone é progressiva.** Fechar parênteses e hífen antes da
    hora faz o cursor pular no meio da digitação. E ela é idempotente: o campo

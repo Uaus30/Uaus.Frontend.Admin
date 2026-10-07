@@ -1,9 +1,11 @@
 /**
  * Leitura de código de barras pela câmera — o motor, sem tela.
  *
- * Usado pela busca da tela de Etiquetas (a lista montada olhando a prateleira)
- * e pela listagem de Produtos. Mora no `lib` do app, e não numa feature, porque
- * as duas consomem o mesmo leitor (CLAUDE.md, seção 6).
+ * Usado no admin pela busca da tela de Etiquetas (a lista montada olhando a
+ * prateleira) e pela listagem de Produtos, e no PDV pela busca do balcão no
+ * celular, onde não há leitor de mão. Morava no `lib` do admin; desceu para o
+ * `@workspace/ui` em 07/10/2026, quando o PDV passou a precisar do MESMO leitor —
+ * uma cópia no PDV divergiria na primeira correção (CLAUDE.md, seção 6).
  *
  * **Dois leitores, uma interface.** O Chrome do Android traz o `BarcodeDetector`
  * nativo; o Safari do iPhone e o Chrome de computador, não. Sem o nativo entra o

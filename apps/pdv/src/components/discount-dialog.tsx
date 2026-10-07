@@ -124,6 +124,8 @@ export function DiscountDialog({
             <Label>Quanto de desconto?</Label>
             <Input
               type="text"
+              // Teclado numérico com vírgula no celular (07/10/2026).
+              inputMode="decimal"
               placeholder={discountType === "value" ? "R$ 0,00" : "0 %"}
               className="h-12 text-lg font-mono"
               value={discountValue}

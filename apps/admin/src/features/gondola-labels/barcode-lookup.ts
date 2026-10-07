@@ -1,5 +1,5 @@
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
-import type { ScanFeedback } from "@/components/barcode-scanner-dialog";
+import type { ScanFeedback } from "@workspace/ui";
 
 /** O que a leitura de um código pela câmera deu. */
 export type BarcodeScanOutcome =

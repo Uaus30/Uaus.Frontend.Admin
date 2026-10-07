@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const camera = vi.hoisted(() => ({ onCode: null as null | ((code: string) => Promise<void> | void) }));
 
-vi.mock("@/hooks/use-camera-barcode-scanner", () => ({
+vi.mock("../../hooks/use-camera-barcode-scanner", () => ({
   useCameraBarcodeScanner: (_video: unknown, onCode: (code: string) => Promise<void> | void) => {
     camera.onCode = onCode;
     return { status: "scanning", error: null };

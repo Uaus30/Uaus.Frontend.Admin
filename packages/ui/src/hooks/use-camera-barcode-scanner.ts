@@ -5,7 +5,7 @@ import {
   type ScanGate,
   scanRegion,
   tuneCameraTrack,
-} from "@/lib/barcode-scanner";
+} from "../lib/barcode-scanner";
 
 /**
  * Pausa entre duas leituras. Curta porque a leitura em si já é aguardada — não

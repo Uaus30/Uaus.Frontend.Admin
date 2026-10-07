@@ -1,8 +1,15 @@
-import type { RefObject } from "react";
+import { useState, type RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Pencil, Search, X } from "lucide-react";
+import { Loader2, Pencil, ScanBarcode, Search, X } from "lucide-react";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
-import { Button, Input, ScrollArea } from "@workspace/ui";
+import {
+  BarcodeScannerDialog,
+  Button,
+  Input,
+  ScrollArea,
+  canUseCamera,
+  type ScanFeedback,
+} from "@workspace/ui";
 import { Hint } from "@/components/hint";
 import { adminBaseUrl, adminProductEditUrl, openInNewTab } from "@/lib/admin-links";
 import type { ProductSearchState } from "../hooks/use-product-search";
@@ -27,6 +34,11 @@ type PdvSearchPanelProps = {
    * título da lista e sem o lápis do admin. Ver "No celular" abaixo.
    */
   compact?: boolean;
+  /**
+   * Recebe cada código lido pela câmera e responde o aviso. Só no celular
+   * (`compact`), onde não há leitor de mão — ver `useCameraScan`.
+   */
+  onScanCode?: (code: string) => Promise<ScanFeedback> | ScanFeedback;
 };
 
 /**
@@ -63,6 +75,12 @@ type PdvSearchPanelProps = {
  * tela ao tocar), as linhas da lista encolhem, o título "Resultados da Busca"
  * sai (a lista se explica sozinha) e o lápis do admin também: no app instalado
  * ele abriria o navegador por cima da venda.
+ *
+ * Ao lado do campo fica a **câmera**, que faz o papel do leitor de mão (só com
+ * câmera utilizável: HTTPS e permissão — `canUseCamera`). E escolher um produto
+ * da lista **fecha o teclado** em vez de devolver o cursor: no balcão o cursor
+ * volta para o próximo bipe; no celular ele reabriria o teclado por cima do
+ * produto que acabou de entrar.
  */
 export function PdvSearchPanel({
   search,
@@ -70,7 +88,10 @@ export function PdvSearchPanel({
   online,
   onPickProduct,
   compact = false,
+  onScanCode,
 }: PdvSearchPanelProps) {
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const cameraAvailable = compact && onScanCode !== undefined && canUseCamera();
   // O lápis some quando não há como saber onde o admin está: abrir outra aba do
   // próprio PDV parece que o painel quebrou. Ver `lib/admin-links`. No celular
   // ele some sempre (ver acima).
@@ -86,60 +107,85 @@ export function PdvSearchPanel({
             dispara sozinha a partir de 3 caracteres, mas o Enter é a única saída
             para um termo mais curto que isso ("oi", "kg"). Um botão que só
             repete o que o debounce acabou de fazer ocupava um terço do campo. */}
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void search.search(search.query);
-          }}
-          className="relative"
-        >
-          <Search
-            className={`absolute ${compact ? "left-3" : "left-4"} top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground`}
-          />
-          <Input
-            ref={inputRef}
-            value={search.query}
-            onChange={(e) => search.setQuery(e.target.value)}
-            // Esc limpa igual ao "x". O balcão trabalha sem tirar a mão do
-            // teclado: sem isso, recomeçar a busca é apagar tecla a tecla ou
-            // largar o leitor para pegar o mouse.
-            onKeyDown={(event) => {
-              if (event.key !== "Escape") return;
+        <div className="flex items-center gap-2">
+          <form
+            onSubmit={(event) => {
               event.preventDefault();
-              search.clear();
+              void search.search(search.query);
             }}
-            placeholder={compact ? "Código ou nome do produto" : "Código de barras ou nome do produto..."}
-            enterKeyHint="search"
-            className={`${compact ? "h-11 text-base pl-10" : "h-14 text-lg pl-12"} font-medium bg-background border-primary/20 focus-visible:ring-primary shadow-inner ${
-              search.query ? "pr-20" : ""
-            }`}
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {search.isSearching && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
-            {/* Some com o campo vazio: um "x" que não limpa nada só ocupa espaço
+            className="relative min-w-0 flex-1"
+          >
+            <Search
+              className={`absolute ${compact ? "left-3" : "left-4"} top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground`}
+            />
+            <Input
+              ref={inputRef}
+              value={search.query}
+              onChange={(e) => search.setQuery(e.target.value)}
+              // Esc limpa igual ao "x". O balcão trabalha sem tirar a mão do
+              // teclado: sem isso, recomeçar a busca é apagar tecla a tecla ou
+              // largar o leitor para pegar o mouse.
+              onKeyDown={(event) => {
+                if (event.key !== "Escape") return;
+                event.preventDefault();
+                search.clear();
+              }}
+              placeholder={compact ? "Código ou nome do produto" : "Código de barras ou nome do produto..."}
+              enterKeyHint="search"
+              className={`${compact ? "h-11 text-base pl-10" : "h-14 text-lg pl-12"} font-medium bg-background border-primary/20 focus-visible:ring-primary shadow-inner ${
+                search.query ? "pr-20" : ""
+              }`}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {search.isSearching && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
+              {/* Some com o campo vazio: um "x" que não limpa nada só ocupa espaço
                 e faz o operador conferir se clicou. O foco volta para o campo
                 porque o balcão trabalha sem tirar a mão do teclado — perder o
                 cursor aqui obriga a clicar antes de bipar o próximo produto. */}
-            {search.query && (
-              <Hint label="Limpar busca (Esc)" side="bottom">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    search.clear();
-                    inputRef.current?.focus();
-                  }}
-                  aria-label="Limpar busca"
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </Hint>
-            )}
-          </div>
-        </form>
+              {search.query && (
+                <Hint label="Limpar busca (Esc)" side="bottom">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      search.clear();
+                      inputRef.current?.focus();
+                    }}
+                    aria-label="Limpar busca"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </Hint>
+              )}
+            </div>
+          </form>
+
+          {cameraAvailable && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setScannerOpen(true)}
+              aria-label="Ler o código de barras pela câmera"
+              className="h-11 w-11 shrink-0 border-primary/30 text-primary"
+            >
+              <ScanBarcode className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
       </div>
+
+      {cameraAvailable && onScanCode && (
+        <BarcodeScannerDialog
+          open={scannerOpen}
+          onOpenChange={setScannerOpen}
+          title="Ler pela câmera"
+          description="Aponte para o código de barras. Cada produto lido entra no carrinho."
+          onDetected={onScanCode}
+        />
+      )}
 
       {/* `data-calculator-anchor`: é ESTE retângulo — o espaço do "Caixa Livre" —
           que a calculadora flutuante mede para nascer no canto superior direito
@@ -218,7 +264,9 @@ export function PdvSearchPanel({
                           // quantidade ou o preço de uma linha (ver
                           // `usePdvCounter`). O caminho do leitor nunca perde o
                           // cursor: ele entra pelo Enter do próprio campo.
-                          inputRef.current?.focus();
+                          // No celular é o contrário: fecha o teclado (ver acima).
+                          if (compact) inputRef.current?.blur();
+                          else inputRef.current?.focus();
                         }}
                       >
                         {/* O esmaecido do produto zerado mora AQUI, e não na

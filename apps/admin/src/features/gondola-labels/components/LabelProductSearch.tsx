@@ -8,8 +8,7 @@ import type { ShelfPrice } from "@workspace/core";
 import { ShelfPriceView } from "@/components/shelf-price";
 import { buildPublicImageUrl, type ProductPdvSearchDto } from "@workspace/api-client-react";
 import { openProductEditTab } from "@/features/products/product-edit-link";
-import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
-import { canUseCamera } from "@/lib/barcode-scanner";
+import { BarcodeScannerDialog, canUseCamera } from "@workspace/ui";
 import { scanFeedbackOf, type BarcodeScanOutcome } from "../barcode-lookup";
 
 interface LabelProductSearchProps {

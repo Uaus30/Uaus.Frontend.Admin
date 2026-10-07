@@ -119,7 +119,7 @@ continuar depois até imprimir. Uma lista só por usuário, não N listas.
 
 ## Leitura pela câmera (30/09/2026)
 
-- O botão ao lado da busca abre `@/components/barcode-scanner-dialog` (o mesmo
+- O botão ao lado da busca abre o `BarcodeScannerDialog` do `@workspace/ui` (o mesmo
   da listagem de Produtos). **Cada produto encontrado vibra o aparelho e fecha
   a câmera** — para o próximo, toca-se no botão de novo (pedido do dono depois
   do primeiro uso na loja; a primeira versão deixava a câmera aberta). O aviso
@@ -134,7 +134,8 @@ continuar depois até imprimir. Uma lista só por usuário, não N listas.
   de ser lida, ela não entra de novo como segunda cópia enquanto estiver na
   mira (achado da revisão depois que a câmera passou a fechar a cada produto). O motor
   (leitor nativo ou ZXing, recorte da mira, foco e zoom) está em
-  `@/lib/barcode-scanner.ts`.
+  `packages/ui/src/lib/barcode-scanner.ts` (desceu do admin em 07/10/2026, quando o
+  PDV passou a usar o mesmo leitor no celular).
 - **Serve para a etiqueta antiga colada na prateleira**: desde a padronização
   de 21/09/2026 o código do cadastro pode não ser o da embalagem de fábrica,
   mas é o da etiqueta de gôndola.

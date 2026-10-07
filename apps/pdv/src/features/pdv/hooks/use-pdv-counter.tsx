@@ -12,6 +12,13 @@ export interface UsePdvCounterParams {
   sessionId: number | null;
   /** Estado do checkout, zerado ao pausar ou retomar uma venda. */
   checkout: CheckoutState;
+  /**
+   * Devolver o cursor à busca sozinho. Ligado no balcão, desligado no celular
+   * (07/10/2026): lá não há leitor de mão para receber o cursor, e focar o campo
+   * abre o teclado virtual, que cobre metade da tela — no fim de cada venda o
+   * operador via o teclado em vez do caixa livre.
+   */
+  autoFocus?: boolean;
 }
 
 /**
@@ -22,15 +29,20 @@ export interface UsePdvCounterParams {
  * para outro lugar, o próximo bipe some (ou pior, entra num campo de preço). Por
  * isso todo caminho que encerra uma venda passa por aqui e devolve o cursor.
  */
-export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterParams) {
+export function usePdvCounter({ online, sessionId, checkout, autoFocus = true }: UsePdvCounterParams) {
   const { toast } = useToast();
   const addItem = usePdvStore((state) => state.addItem);
   const holdSaleInStore = usePdvStore((state) => state.holdSale);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  /** Devolve o cursor para a busca de produtos, onde o leitor de código digita. */
-  const focusSearch = useCallback(() => searchInputRef.current?.focus(), []);
+  /**
+   * Devolve o cursor para a busca de produtos, onde o leitor de código digita.
+   * No celular não faz nada — ver `autoFocus`.
+   */
+  const focusSearch = useCallback(() => {
+    if (autoFocus) searchInputRef.current?.focus();
+  }, [autoFocus]);
 
   /**
    * Adiciona o produto ao carrinho recusando produto zerado ou quantidade
@@ -38,16 +50,20 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
    *
    * O saldo consultado é o do **store**, e não o do render: entre a busca e o
    * clique o operador pode ter adicionado o mesmo produto pelo leitor.
+   *
+   * @returns Se o produto entrou. A leitura pela câmera usa a resposta para o
+   *   aviso embaixo do vídeo — a recusa já sai num toast, mas o toast fica atrás
+   *   do diálogo da câmera.
    */
   const addProductToCart = useCallback(
-    (product: ProductPdvSearchDto) => {
+    (product: ProductPdvSearchDto): boolean => {
       if (product.stock <= 0) {
         toast({
           title: "Produto sem estoque",
           description: `${product.name} está zerado no estoque e não pode ser vendido.`,
           variant: "destructive",
         });
-        return;
+        return false;
       }
 
       const inCart = usePdvStore.getState().items.find((i) => i.productId === product.id);
@@ -57,7 +73,7 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
           description: `Só há ${product.stock} unidade(s) de ${product.name}.`,
           variant: "destructive",
         });
-        return;
+        return false;
       }
 
       // A confirmação de que o item entrou é o realce pulsando na própria linha
@@ -80,6 +96,7 @@ export function usePdvCounter({ online, sessionId, checkout }: UsePdvCounterPara
         availableStock: product.stock,
         imageUrl: product.imageUrl,
       });
+      return true;
     },
     [addItem, toast],
   );

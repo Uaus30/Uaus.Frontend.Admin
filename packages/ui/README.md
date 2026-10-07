@@ -203,6 +203,23 @@ brigam no `tailwind-merge` com as do chamador (`max-w-3xl`, `max-h-[90vh]`,
   sobra centralizada sairia pelos dois lados e a primeira aba ficaria
   inalcançável.
 
+## Leitor de código de barras pela câmera (desde 07/10/2026 aqui)
+
+`BarcodeScannerDialog` (o diálogo), `useCameraBarcodeScanner` (liga a câmera e
+lê) e `lib/barcode-scanner.ts` (o motor: leitor nativo do Android ou ZXing em
+WebAssembly, recorte da mira, foco, zoom e o filtro de repetição). Nasceram no
+admin, para Etiquetas e Produtos, e desceram para cá quando o PDV passou a
+precisar do mesmo leitor no celular, onde não há leitor de mão. Do barrel saem
+só o diálogo (com `ScanFeedback`) e `canUseCamera`; quem decide o que fazer com
+o código é o chamador, pelo `onDetected`.
+
+- `barcode-detector` e `zxing-wasm` são dependências **deste** pacote. O `.wasm`
+  (~1 MB) só é baixado quando a câmera abre num aparelho sem leitor nativo; o
+  `?url` dele tem declaração em `src/assets.d.ts`, pelo mesmo motivo do `*.png`.
+- **O PDV guarda o `.wasm` no service worker** (`globPatterns` do
+  `apps/pdv/vite.config.ts`): sem isso a câmera não abriria no iPhone sem
+  internet, que é justamente a situação para a qual o PDV no celular existe.
+
 ## Padrão de calendário
 
 Documento próprio, em [`src/components/README.md`](src/components/README.md):

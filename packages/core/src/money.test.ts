@@ -79,6 +79,23 @@ describe("parseAmount", () => {
     expect(parseAmount("")).toBeNaN();
     expect(parseAmount("abc")).toBeNaN();
   });
+
+  it("ponto com um ou dois dígitos depois é decimal, não milhar", () => {
+    // O teclado numérico do celular fora da região Brasil só tem o ponto: no
+    // valor recebido do PDV, "10.50" virava R$ 1.050,00 (07/10/2026).
+    expect(parseAmount("10.50")).toBe(10.5);
+    expect(parseAmount("10.5")).toBe(10.5);
+    expect(parseAmount("29.9")).toBe(29.9);
+    expect(parseAmount("0.99")).toBe(0.99);
+  });
+
+  it("ponto com três dígitos depois continua milhar", () => {
+    expect(parseAmount("1.234")).toBe(1234);
+    expect(parseAmount("1.000")).toBe(1000);
+    expect(parseAmount("1.234.567")).toBe(1234567);
+    // Com vírgula, o ponto é sempre milhar, como sempre foi.
+    expect(parseAmount("1.25,00")).toBe(125);
+  });
 });
 
 describe("parseAmountOrNull", () => {

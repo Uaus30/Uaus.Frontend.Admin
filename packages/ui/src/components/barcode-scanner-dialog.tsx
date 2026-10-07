@@ -1,16 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import { CheckCircle2, CircleAlert, ScanBarcode } from "lucide-react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  Spinner,
-} from "@workspace/ui";
-import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
-import { createScanGate, type ScanGate } from "@/lib/barcode-scanner";
+import { useCameraBarcodeScanner } from "../hooks/use-camera-barcode-scanner";
+import { createScanGate, type ScanGate } from "../lib/barcode-scanner";
+import { Button } from "./button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog";
+import { Spinner } from "./spinner";
 
 /** Retorno de quem recebe o código, mostrado embaixo do vídeo. */
 export interface ScanFeedback {

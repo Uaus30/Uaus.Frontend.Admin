@@ -16,8 +16,7 @@ import {
   type DepartmentDto,
   type EnumOptionDto,
 } from "@workspace/api-client-react";
-import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
-import { canUseCamera } from "@/lib/barcode-scanner";
+import { BarcodeScannerDialog, canUseCamera } from "@workspace/ui";
 
 export interface ProductTableFiltersProps {
   search: string;

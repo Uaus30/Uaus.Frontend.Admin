@@ -872,8 +872,8 @@ a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
 
 - **Câmera ao lado da busca** (`ProductTableFilters`): o código lido vai para a
   caixa de pesquisa e o diálogo fecha. O diálogo e o motor são os mesmos da
-  tela de Etiquetas (`@/components/barcode-scanner-dialog`,
-  `@/lib/barcode-scanner`). **A leitura limpa os outros filtros**, inclusive o
+  tela de Etiquetas (`BarcodeScannerDialog` e `lib/barcode-scanner.ts`, no
+  `@workspace/ui`). **A leitura limpa os outros filtros**, inclusive o
   "Ativo" padrão — pedido do dono: com o produto na mão, "nenhum produto"
   porque ele está inativo ou noutra categoria é a resposta errada.
 - **Celular e tablet** (abaixo de `lg` desde 06/10/2026; era `md`): a tabela

@@ -8,6 +8,24 @@ import { PdvSearchPanel } from "../pdv-search-panel";
 import type { ProductSearchState } from "../../hooks/use-product-search";
 import { renderWithHints } from "@/test/render-with-hints";
 
+/**
+ * A câmera é dublada no kit: o diálogo real liga a câmera do aparelho, e o que
+ * importa aqui é QUANDO o botão aparece e o que ele entrega ao diálogo.
+ */
+const camera = vi.hoisted(() => ({
+  canUseCamera: vi.fn(() => true),
+  dialog: null as null | { open: boolean; onDetected: (code: string) => unknown },
+}));
+
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
+  canUseCamera: camera.canUseCamera,
+  BarcodeScannerDialog: (props: { open: boolean; onDetected: (code: string) => unknown }) => {
+    camera.dialog = props;
+    return null;
+  },
+}));
+
 const PRODUTO: ProductPdvSearchDto = {
   id: 7,
   name: "COCA-COLA 350ML",
@@ -173,6 +191,62 @@ describe("PdvSearchPanel", () => {
       const linha = texto(screen.getByTestId("search-result"));
       expect(linha).toContain("R$ 10,00");
       expect(linha).not.toContain("Relâmpago");
+    });
+  });
+
+  describe("no celular (compact)", () => {
+    function renderPhone(onScanCode = vi.fn()) {
+      const inputRef = createRef<HTMLInputElement>();
+      const onPickProduct = vi.fn();
+      renderWithHints(
+        <PdvSearchPanel
+          search={makeSearch()}
+          inputRef={inputRef}
+          online
+          onPickProduct={onPickProduct}
+          compact
+          onScanCode={onScanCode}
+        />,
+      );
+      return { inputRef, onPickProduct, onScanCode };
+    }
+
+    afterEach(() => {
+      camera.canUseCamera.mockReturnValue(true);
+      camera.dialog = null;
+    });
+
+    it("a câmera ao lado do campo abre o leitor, e cada código vai para quem soma no carrinho", async () => {
+      const { onScanCode } = renderPhone();
+
+      fireEvent.click(screen.getByRole("button", { name: "Ler o código de barras pela câmera" }));
+
+      expect(camera.dialog?.open).toBe(true);
+      await camera.dialog?.onDetected("7891000100103");
+      expect(onScanCode).toHaveBeenCalledWith("7891000100103");
+    });
+
+    it("sem câmera utilizável (sem HTTPS ou sem permissão), nenhum botão que não funcionaria", () => {
+      camera.canUseCamera.mockReturnValue(false);
+      renderPhone();
+
+      expect(screen.queryByRole("button", { name: /câmera/ })).toBeNull();
+    });
+
+    it("no balcão não há câmera: lá o leitor é o de mão", () => {
+      renderPanel();
+
+      expect(screen.queryByRole("button", { name: /câmera/ })).toBeNull();
+    });
+
+    it("escolher um produto fecha o teclado em vez de devolver o cursor", () => {
+      const { inputRef, onPickProduct } = renderPhone();
+      inputRef.current!.focus();
+
+      fireEvent.click(screen.getByTestId("search-result"));
+
+      expect(onPickProduct).toHaveBeenCalledWith(PRODUTO);
+      expect(document.activeElement).not.toBe(inputRef.current);
     });
   });
 });

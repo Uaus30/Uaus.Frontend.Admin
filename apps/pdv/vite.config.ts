@@ -71,7 +71,12 @@ export default defineConfig({
       },
       workbox: {
         // Tudo que o app precisa para subir fica em cache na instalação.
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        //
+        // `wasm` é o leitor de código de barras pela câmera (ZXing, ~1 MB), que
+        // o iPhone usa por não ter leitor nativo: sem ele no cache, a câmera do
+        // PDV no celular não abriria sem internet — e é sem internet que o PDV
+        // no celular existe. Cabe no teto de 2 MB por arquivo do Workbox.
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,wasm}"],
 
         // Navegação sempre cai no index cacheado: o PDV é uma SPA, e sem isso um
         // recarregamento offline daria 404.
@@ -124,6 +129,13 @@ export default defineConfig({
           // faria uma correção no packages/core invalidar o chunk das
           // bibliotecas, que é justamente o que este agrupamento evita.
           if (id.includes("@workspace")) return undefined;
+
+          // O leitor de código pela câmera é carregado sob demanda (import
+          // dinâmico em `packages/ui/src/lib/barcode-scanner.ts`): só o celular
+          // sem leitor nativo o usa. Jogá-lo no `vendor` o faria baixar na
+          // abertura de todo caixa. Sem nome, o Rollup lhe dá um chunk próprio —
+          // que o service worker guarda do mesmo jeito.
+          if (id.includes("barcode-detector") || id.includes("zxing-wasm")) return undefined;
 
           if (id.includes("react-dom") || /node_modules\/react\//.test(id)) return "vendor-react";
           if (id.includes("@tanstack")) return "vendor-query";

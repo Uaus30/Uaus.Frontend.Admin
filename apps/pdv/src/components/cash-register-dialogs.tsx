@@ -83,6 +83,8 @@ export function OpenCashRegisterDialog({
             <Input
               id="aberturaValor"
               type="text"
+              // Teclado numérico com vírgula no celular (07/10/2026).
+              inputMode="decimal"
               placeholder="R$ 0,00"
               className="h-12 text-lg font-mono"
               value={aberturaValor}
@@ -243,6 +245,7 @@ export function CloseCashRegisterDialog({
               <Input
                 id="fechamentoDinheiro"
                 type="text"
+                inputMode="decimal"
                 placeholder="R$ 0,00"
                 className="h-12 text-lg font-mono"
                 value={fechamentoDinheiro}

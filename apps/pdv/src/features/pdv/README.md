@@ -180,6 +180,10 @@ Para a contingência — queda de luz e de internet, venda fora de hora — o PD
 
 Uma forma por vez no DOM, nunca as duas: o campo de busca é um só (`searchInputRef`), e é para ele que o cursor volta. No celular, os botões da linha do carrinho têm o tamanho do dedo e o preço tem letra de 16px (abaixo disso o iPhone amplia a tela ao tocar). O manifesto deixou de travar o app instalado deitado (`orientation: "any"`).
 
+**A câmera é o leitor de mão do celular.** Ao lado da busca, só no celular e só com câmera utilizável (`canUseCamera`: HTTPS e permissão), ela abre o `BarcodeScannerDialog` do `@workspace/ui` — o mesmo leitor das Etiquetas e de Produtos do admin. `useCameraScan` procura o código lido pela mesma busca do balcão (servidor ou base local: sem internet a câmera continua achando o produto) e só põe no carrinho o produto de código **exato e único**, como o leitor de mão; o resto vira aviso embaixo do vídeo. A câmera fica aberta entre um produto e outro — passa-se a compra inteira, como no balcão. O `.wasm` do leitor (o iPhone não tem leitor nativo) está no cache do service worker.
+
+**No celular o cursor não volta sozinho para a busca** (`autoFocus` de `usePdvCounter`): sem leitor de mão para recebê-lo, focar o campo só abria o teclado virtual por cima da tela no fim de cada venda. Escolher um produto da lista fecha o teclado. A regra 7 continua valendo no balcão. Campos de dinheiro abrem o teclado numérico (`inputMode="decimal"`), e todo campo tem no mínimo 16px no celular (`index.css`).
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

@@ -266,6 +266,33 @@ html.light {
   }
 }
 
+/*
+ * Campo com 16px no celular, sempre — a mesma regra do admin (06/10/2026). O
+ * Safari do iPhone amplia a tela ao focar um campo de fonte menor e não desfaz
+ * ao sair; no PDV isso deixava o carrinho fora do lugar no meio da venda. Fora
+ * de `@layer` de propósito: CSS sem camada vence as utilidades do Tailwind, e o
+ * `text-xs` que um campo passe não derruba a regra.
+ *
+ * Os cortes são os do `usePdvScreen`: em pé (largura) E deitado (altura) — o
+ * celular deitado tem 844px de largura e escaparia de uma regra só de largura.
+ * Quem já é MAIOR que 16px fica de fora: a regra é um piso.
+ */
+@media (max-width: 767.98px), (max-height: 500px) {
+  :is(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]),
+    textarea,
+    select
+  ):not(
+    [class*="text-lg"],
+    [class*="text-xl"],
+    [class*="text-2xl"],
+    [class*="text-3xl"],
+    [class*="text-4xl"]
+  ) {
+    font-size: 16px;
+  }
+}
+
 /* Glass panel effect */
 .glass-panel {
   background: rgba(255, 255, 255, 0.03);

@@ -26,10 +26,19 @@ export function round2(value: number): number {
 /**
  * Converte um valor digitado no formato pt-BR ("1.234,50") para número.
  *
+ * **Ponto seguido de um ou dois dígitos, sem vírgula, é decimal** ("10.50",
+ * "29.9"): agrupamento de milhar sempre tem três dígitos, então "10.50" não tem
+ * como ser milhar. Até 07/10/2026 ele virava 1050. O caso ficou real com o PDV
+ * no celular: o teclado numérico (`inputMode="decimal"`) de aparelho fora da
+ * região Brasil mostra só o ponto, e "10.50" no valor recebido ou no fechamento
+ * do caixa gravava R$ 1.050,00. Três dígitos depois do ponto continuam milhar
+ * ("1.234" é 1234), como sempre.
+ *
  * @param value Texto como o operador digitou.
  * @returns O número, ou `NaN` quando o texto não representa um valor.
  */
 export function parseAmount(value: string): number {
+  if (!value.includes(",") && /^[^.]*\.\d{1,2}$/.test(value.trim())) return parseFloat(value);
   return parseFloat(value.replace(/\./g, "").replace(",", "."));
 }
 

@@ -1,6 +1,7 @@
 export * from "./components/alert-dialog";
 export * from "./components/alert";
 export * from "./components/badge";
+export * from "./components/barcode-scanner-dialog";
 export * from "./components/button";
 export * from "./components/calendar";
 export * from "./components/card";
@@ -43,6 +44,7 @@ export * from "./components/toast";
 export * from "./components/toaster";
 export * from "./components/toggle";
 export * from "./components/tooltip";
+export { canUseCamera } from "./lib/barcode-scanner";
 export * from "./lib/chunk-reload";
 export * from "./lib/environment";
 export * from "./lib/filled-field";

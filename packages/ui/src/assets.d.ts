@@ -11,3 +11,13 @@ declare module "*.png" {
   const src: string;
   export default src;
 }
+
+/**
+ * O endereço do `.wasm` do leitor de código de barras (`lib/barcode-scanner.ts`):
+ * o Vite troca o `?url` pelo caminho do arquivo no build. Mesma razão da
+ * declaração acima — o typecheck do pacote não carrega os tipos do Vite.
+ */
+declare module "*.wasm?url" {
+  const src: string;
+  export default src;
+}
