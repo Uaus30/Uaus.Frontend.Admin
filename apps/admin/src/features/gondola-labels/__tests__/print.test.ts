@@ -16,6 +16,7 @@ import {
   LABEL_BARCODE_BOTTOM_MARGIN,
   LABEL_BARCODE_FONT_SIZE,
   LABEL_BARCODE_MODULE_WIDTH,
+  LABELS_PER_PAGE,
   buildLabelSheetHtml,
   escapeHtml,
   formatLabelPrice,
@@ -136,7 +137,7 @@ describe("buildLabelSheetHtml", () => {
     const html = buildLabelSheetHtml([label()], stubBarcode);
 
     expect(html).toContain("size: A4 portrait");
-    expect(html).toContain("repeat(2, 1fr)");
+    expect(html).toContain("repeat(2, 95mm)");
     expect(html).toContain("height: 24mm;");
     expect(html).toContain("print-color-adjust: exact");
   });
@@ -144,8 +145,44 @@ describe("buildLabelSheetHtml", () => {
   it("contorna a etiqueta com retângulo de canto vivo, que é a linha do recorte", () => {
     const html = buildLabelSheetHtml([label()], stubBarcode);
 
-    expect(html).toContain("border: 0.35mm solid #9a9a9a;");
+    expect(html).toContain("border-right: 0.35mm solid #9a9a9a;");
+    expect(html).toContain("border-bottom: 0.35mm solid #9a9a9a;");
     expect(html).not.toContain("border-radius");
+  });
+
+  it("cola as etiquetas como células: sem vão, e uma linha só entre vizinhas", () => {
+    const html = buildLabelSheetHtml([label({ quantity: 4 })], stubBarcode);
+    const sheetRule = html.match(/\.sheet \{[^}]*\}/)?.[0] ?? "";
+    const labelRule = html.match(/\.label \{[^}]*\}/)?.[0] ?? "";
+
+    expect(sheetRule).not.toContain("gap");
+    // A grade fecha em cima e à esquerda; cada etiqueta, à direita e embaixo.
+    // Borda inteira nas duas vizinhas sairia como linha dupla.
+    expect(sheetRule).toContain("border-top: 0.35mm solid #9a9a9a;");
+    expect(sheetRule).toContain("border-left: 0.35mm solid #9a9a9a;");
+    expect(labelRule).not.toMatch(/border(-top|-left)?:/);
+  });
+
+  it("quebra em folhas de 20, cada uma com o bloco centralizado na página", () => {
+    const html = buildLabelSheetHtml([label({ quantity: 15 }), label({ quantity: 10 })], stubBarcode);
+    const pages = html.split('<div class="page">').slice(1);
+    const pageRule = html.match(/\.page \{[^}]*\}/)?.[0] ?? "";
+
+    expect(LABELS_PER_PAGE).toBe(20);
+    expect(pages).toHaveLength(2);
+    expect(pages[0]?.match(/class="label"/g)).toHaveLength(20);
+    expect(pages[1]?.match(/class="label"/g)).toHaveLength(5);
+    expect(pageRule).toContain("align-items: center;");
+    expect(pageRule).toContain("justify-content: center;");
+    expect(pageRule).toContain("break-after: page;");
+  });
+
+  it("folha com uma etiqueta só usa uma coluna, sem traço sobre a célula vazia", () => {
+    const html = buildLabelSheetHtml([label({ quantity: 21 })], stubBarcode);
+
+    expect(html.match(/class="sheet"/g)).toHaveLength(1);
+    expect(html.match(/class="sheet single"/g)).toHaveLength(1);
+    expect(html.indexOf('class="sheet single"')).toBeGreaterThan(html.indexOf('class="sheet"'));
   });
 
   it("alinha preço e barras pelo centro, e não pela base", () => {

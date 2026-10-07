@@ -14,6 +14,12 @@ import { getLabelTypeInfo, type PrintableLabel } from "./types";
  */
 const LABEL_BARCODE_HEIGHT_MM = 12.6;
 
+/** Etiquetas por folha A4: 10 linhas × 2 colunas. */
+export const LABELS_PER_PAGE = 20;
+
+/** A linha de corte: o contorno cinza que a tesoura segue. */
+const CUT_LINE = "0.35mm solid #9a9a9a";
+
 /**
  * Folha A4 com as etiquetas em duas colunas (20 por página, 10 linhas × 2 colunas).
  * As medidas são absolutas em milímetros para o layout não depender do viewport
@@ -24,6 +30,21 @@ const LABEL_BARCODE_HEIGHT_MM = 12.6;
  * linha de corte. A folha sai da impressora e alguém recorta com tesoura, e
  * canto arredondado não dá para seguir — a mão corta reto e sobra rebarba de um
  * lado da curva.
+ *
+ * **Coladas, como células do Excel** (07/10/2026): sem vão entre as etiquetas,
+ * e vizinhas dividem UMA linha só — cada etiqueta desenha a borda da direita e
+ * a de baixo, e a grade desenha a de cima e a da esquerda. Um corte reto separa
+ * as duas; com o vão de 3mm × 4mm que existia antes, cada etiqueta pedia quatro
+ * cortes e sobrava uma tira de papel entre elas. Duas bordas inteiras encostadas
+ * sairiam como linha dupla, de 0.7mm.
+ *
+ * **Cada folha é uma `.page` com o bloco centralizado** nos dois sentidos. A
+ * paginação é feita aqui, e não pela quebra natural do navegador, por dois
+ * motivos: a linha de cima da folha seguinte ficaria na folha anterior (é a
+ * borda de baixo da última linha de lá), e sem o vão cabem 11 linhas na área
+ * útil — a folha sairia com 22, encostada no topo. A altura da `.page` é a área
+ * útil (297mm − 2 × 8mm de margem) menos 1mm de folga: no limite exato, o
+ * arredondamento do navegador empurra uma folha em branco entre as outras.
  *
  * A linha de baixo alinha pelo **centro**: o preço fica na meia-altura das
  * barras, e não apoiado na mesma base. Com `flex-end`, o "R$ 1,75" descia até a
@@ -39,15 +60,34 @@ const SHEET_STYLES = `
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  .page {
+    height: 280mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    break-after: page;
+    page-break-after: always;
+  }
+  .page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
   .sheet {
-    width: 194mm;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 3mm 4mm;
+    grid-template-columns: repeat(2, 95mm);
+    grid-auto-rows: 24mm;
+    border-top: ${CUT_LINE};
+    border-left: ${CUT_LINE};
+  }
+  /* Folha com uma etiqueta só: em duas colunas, a borda de cima da grade
+     passaria por cima da célula vazia, e sobraria um traço sem etiqueta. */
+  .sheet.single {
+    grid-template-columns: 95mm;
   }
   .label {
     height: 24mm;
-    border: 0.35mm solid #9a9a9a;
+    border-right: ${CUT_LINE};
+    border-bottom: ${CUT_LINE};
     padding: 1.5mm 3.5mm;
     display: flex;
     flex-direction: column;
@@ -232,7 +272,8 @@ export { escapeHtml };
 
 /**
  * Monta o documento A4 do lote. Cada item vira `quantity` células idênticas,
- * preenchendo a grade de duas colunas na ordem da lista.
+ * preenchendo a grade de duas colunas na ordem da lista, em folhas de
+ * {@link LABELS_PER_PAGE} com o bloco centralizado (ver `SHEET_STYLES`).
  *
  * @param labels Etiquetas com os valores que saem no papel.
  * @param buildBarcode Injetável nos testes; o padrão gera SVG com a jsbarcode local.
@@ -274,6 +315,13 @@ export function buildLabelSheetHtml(
     return Array.from({ length: Math.max(1, label.quantity) }, () => cell);
   });
 
+  const pages: string[] = [];
+  for (let start = 0; start < cells.length; start += LABELS_PER_PAGE) {
+    const pageCells = cells.slice(start, start + LABELS_PER_PAGE);
+    const sheetClass = pageCells.length === 1 ? "sheet single" : "sheet";
+    pages.push(`<div class="page"><div class="${sheetClass}">${pageCells.join("")}</div></div>`);
+  }
+
   return [
     "<!DOCTYPE html>",
     '<html lang="pt-BR">',
@@ -283,7 +331,7 @@ export function buildLabelSheetHtml(
     `<style>${SHEET_STYLES}</style>`,
     "</head>",
     "<body>",
-    `<div class="sheet">${cells.join("")}</div>`,
+    pages.join(""),
     "</body>",
     "</html>",
   ].join("");
