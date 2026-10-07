@@ -8,6 +8,7 @@ import { useOfflinePdv } from "@/hooks/use-offline-pdv";
 import { usePdvScreen } from "@/hooks/use-pdv-screen";
 import { useStockFreeze } from "@/hooks/use-stock-freeze";
 import { StockFreezeBanner } from "@/features/pdv/components/stock-freeze-banner";
+import { StaleLocalDataBanner } from "@/features/pdv/components/stale-local-data-banner";
 import { useCalculatorStore } from "@/stores/use-calculator-store";
 import { usePdvStore } from "@/stores/use-pdv-store";
 import { PdvCartPanel } from "@/features/pdv/components/pdv-cart-panel";
@@ -24,6 +25,7 @@ import { usePdvPaymentMethods } from "@/features/pdv/hooks/use-pdv-payment-metho
 import { usePdvSessionActions } from "@/features/pdv/hooks/use-pdv-session-actions";
 import { useCameraScan } from "@/features/pdv/hooks/use-camera-scan";
 import { usePhoneCartView } from "@/features/pdv/hooks/use-phone-cart-view";
+import { useStaleLocalData } from "@/features/pdv/hooks/use-stale-local-data";
 import { usePromotions } from "@/features/pdv/hooks/use-promotions";
 import { useSaleCheckout } from "@/features/pdv/hooks/use-sale-checkout";
 import { useSaleHistoryActions } from "@/features/pdv/hooks/use-sale-history-actions";
@@ -133,6 +135,10 @@ export default function Pdv() {
 
   // Conferência de estoque aberta: o balcão fica impedido de vender (23/09/2026).
   const { salesPaused } = useStockFreeze();
+
+  // Sem internet com o caixa ou a base de outro dia: o aviso vermelho do topo.
+  // Só avisa, não bloqueia (decisão do dono, 07/10/2026).
+  const staleSince = useStaleLocalData({ online, session, isSessionFromCache });
 
   /**
    * Gravação da venda. O hook cuida da inicialização do checkout, das validações
@@ -257,6 +263,7 @@ export default function Pdv() {
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden selection:bg-primary/30">
       <StockFreezeBanner salesPaused={salesPaused} />
+      <StaleLocalDataBanner since={staleSince} compact={screen === "phone-landscape"} />
       <PdvHeader
         session={session}
         isSessionFromCache={isSessionFromCache}

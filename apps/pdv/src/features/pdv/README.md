@@ -192,6 +192,12 @@ O texto é `buildReceiptText` (`@workspace/receipt`), a mesma conta do papel lin
 
 **O checkout no celular** tem o total e o "Confirmar Pagamento" numa barra presa ao pé (`CheckoutDialog` com `compact`): deitado, o diálogo tem ~370px, e o confirmar ficava depois do troco, só rolando. O valor recebido não ganha foco sozinho, para o teclado não cobrir as formas de pagamento antes da escolha.
 
+### 19. O celular de contingência avisa quando está com o caixa de outro dia (07/10/2026)
+
+A cópia local da sessão de caixa não tem validade. Um celular que não abriu o PDV com internet desde ontem, sem internet hoje, vende na sessão de ontem — que o computador pode já ter fechado — e cada venda dele é recusada quando a fila sobe, com preço e estoque de ontem. Sem internet, se a sessão em uso veio da cópia local e é de outro dia, ou a base local foi baixada em outro dia, o topo mostra o aviso vermelho com a data (`StaleLocalDataBanner`, regra em `lib/stale-local-data.ts`). Decisão do dono: **só avisar**, sem bloquear a venda. No celular deitado a faixa fica numa linha de 28px, com texto curto, como a do offline: as duas aparecem juntas, e com duas linhas comiam a lista do carrinho e cortavam o FINALIZAR num Android de 360px de altura. A hora da API vem sem fuso e já é a de Brasília, então o dia da sessão é o que está escrito; o da base, gravado pelo PDV com fuso, é o dia do aparelho.
+
+O fechamento de caixa lembra de subir a fila do celular antes de fechar: ele confere só a fila do aparelho em que é feito. O roteiro de operação do celular de contingência está na base de conhecimento (`operacao/pdv-no-celular.md`).
+
 ## Ponto de extensão: CRUD de Cupom
 
 O cupom é montado por `lib/build-sale-receipt.ts` — função **pura**, que recebe a venda gravada (`SavedSale`) e o carrinho, e devolve o `ReceiptData` que vai para a impressora. Ela é chamada de um ponto único e explicitamente marcado em `use-sale-checkout.ts`, depois de a venda já existir.

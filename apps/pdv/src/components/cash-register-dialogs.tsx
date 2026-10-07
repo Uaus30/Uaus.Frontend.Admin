@@ -237,6 +237,15 @@ export function CloseCashRegisterDialog({
             )}
           </div>
 
+          {/* O fechamento confere só a fila DESTE aparelho. Venda feita no
+              celular de contingência e ainda presa nele seria recusada ao subir
+              depois do fechamento (o servidor não aceita venda em caixa
+              fechado) — 07/10/2026. */}
+          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+            Vendeu pelo celular? Antes de fechar, abra o PDV nele com internet e espere a fila subir: venda
+            que ficar presa lá é recusada depois do fechamento.
+          </p>
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fechamentoDinheiro" className="text-sm font-semibold flex items-center gap-1.5">
