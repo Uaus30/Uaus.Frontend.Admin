@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { Baseline, Link } from "lucide-react";
 import { Button, Input, Popover, PopoverContent, PopoverTrigger, cn } from "@workspace/ui";
@@ -8,6 +8,33 @@ import { RICH_TEXT_COLORS } from "./extensions";
 /** O "A" da barra: a paleta de cores do texto, com "Padrão" para tirar a cor. */
 export function ColorPicker({ editor, current }: { editor: Editor; current: string | null }) {
   const [open, setOpen] = useState(false);
+
+  /**
+   * Esc no editor com a paleta aberta é da paleta: fecha só ela.
+   *
+   * A paleta é o único seletor da barra que deixa o foco no editor (para a cor
+   * agir sobre a seleção), então o Esc nasce no texto — dentro da área de
+   * edição, que o leria como "cancelar" e levaria o rascunho. O `stopEscape` do
+   * Radix segura a tecla, mas só quando o Radix considera a paleta a camada mais
+   * alta; com outra camada aberta por cima, ou antes de a dele terminar de se
+   * registrar, a tecla passava. O teste do quadro de Tarefas falhava assim, às
+   * vezes, na suíte cheia (07/10/2026).
+   *
+   * Por isso a escuta também fica no próprio editor, enquanto a paleta está
+   * aberta: no alvo, antes de a tecla subir até a área (o React escuta na raiz).
+   * Quando o Radix já tratou, a tecla nem chega aqui.
+   */
+  useEffect(() => {
+    if (!open || editor.isDestroyed) return;
+    const dom = editor.view.dom;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
+    };
+    dom.addEventListener("keydown", closeOnEscape);
+    return () => dom.removeEventListener("keydown", closeOnEscape);
+  }, [open, editor]);
 
   function apply(color: string | null) {
     const chain = editor.chain().focus();
