@@ -1,6 +1,6 @@
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { PdvCartActionsCompact, PdvCartActionsExtended } from "../pdv-cart-actions";
+import { PdvCartActionsCompact } from "../pdv-cart-actions";
 import { renderWithHints } from "@/test/render-with-hints";
 
 function props(overrides: Partial<Parameters<typeof PdvCartActionsCompact>[0]> = {}) {
@@ -13,6 +13,7 @@ function props(overrides: Partial<Parameters<typeof PdvCartActionsCompact>[0]> =
     onCoupon: vi.fn(),
     onHoldSale: vi.fn(),
     onCancelSale: vi.fn(),
+    onCustomer: vi.fn(),
     ...overrides,
   };
 }
@@ -25,33 +26,17 @@ function openDrawer() {
   return gear;
 }
 
-describe("FINALIZAR travado", () => {
-  it.each([
-    ["PdvCartActionsExtended", PdvCartActionsExtended],
-    ["PdvCartActionsCompact", PdvCartActionsCompact],
-  ])("%s trava o FINALIZAR com a venda bloqueada (caixa fechado ou conferência de estoque)", (_, Actions) => {
+describe("PdvCartActionsCompact", () => {
+  it("trava o FINALIZAR com a venda bloqueada (caixa fechado ou conferência de estoque)", () => {
     const onCheckout = vi.fn();
-    renderWithHints(<Actions {...props({ checkoutBlocked: true, onCheckout })} />);
+    renderWithHints(<PdvCartActionsCompact {...props({ checkoutBlocked: true, onCheckout })} />);
 
     const finalizar = screen.getByRole("button", { name: /FINALIZAR/ });
     expect(finalizar).toHaveProperty("disabled", true);
     fireEvent.click(finalizar);
     expect(onCheckout).not.toHaveBeenCalled();
   });
-});
 
-describe("PdvCartActionsExtended", () => {
-  it("deve mostrar os quatro botões secundários sem nenhum clique", () => {
-    renderWithHints(<PdvCartActionsExtended {...props()} />);
-
-    expect(screen.getByRole("button", { name: "DESCONTO" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "CUPOM" })).toBeDefined();
-    expect(screen.getByRole("button", { name: /PAUSAR/ })).toBeDefined();
-    expect(screen.getByRole("button", { name: "CANCELAR VENDA" })).toBeDefined();
-  });
-});
-
-describe("PdvCartActionsCompact", () => {
   it("deve oferecer o Cliente na engrenagem, e trocar depois de identificado", () => {
     const onCustomer = vi.fn();
     const { unmount } = renderWithHints(<PdvCartActionsCompact {...props({ onCustomer })} />);

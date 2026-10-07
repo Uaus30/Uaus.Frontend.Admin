@@ -10,9 +10,8 @@ import {
 } from "./use-loyalty";
 
 /**
- * O estado do programa de fidelidade no carrinho, para o card estendido
- * (`pdv-loyalty-card.tsx`) e a linha do carrinho compacto
- * (`pdv-cart-customer-compact.tsx`) contarem a mesma coisa.
+ * O estado do programa de fidelidade no carrinho, que a linha do cliente
+ * (`pdv-cart-customer-compact.tsx`) conta.
  *
  * O mínimo conta a compra antes do prêmio — subtotal menos o desconto manual e
  * menos o cupom pelo código, a mesma base do servidor (`loyaltyStampBase`): a

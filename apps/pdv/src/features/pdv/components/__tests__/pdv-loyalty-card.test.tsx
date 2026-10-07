@@ -11,7 +11,6 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   getCustomerLoyalty: mocks.getCustomerLoyalty,
 }));
 
-const { PdvLoyaltyCard } = await import("../pdv-loyalty-card");
 const { PdvCartCustomerCompact } = await import("../pdv-cart-customer-compact");
 const { usePdvStore } = await import("@/stores/use-pdv-store");
 const { useOfflineStore } = await import("@/stores/use-offline-store");
@@ -70,16 +69,18 @@ const CODE_COUPON = {
   answers: [],
 };
 
-function renderCard(compact = false) {
+function renderCard() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <TooltipProvider>{compact ? <PdvCartCustomerCompact /> : <PdvLoyaltyCard />}</TooltipProvider>
+      <TooltipProvider>
+        <PdvCartCustomerCompact />
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }
 
-describe.each([false, true])("o programa no carrinho (compacto: %s)", (compact) => {
+describe("o programa no carrinho", () => {
   beforeEach(() => {
     mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
     useOfflineStore.setState({ online: true });
@@ -95,7 +96,7 @@ describe.each([false, true])("o programa no carrinho (compacto: %s)", (compact) 
   it("o cupom do panfleto conta como desconto da compra, como no servidor", async () => {
     // R$ 11 com 10% de panfleto = R$ 9,90: abaixo do mínimo de R$ 10.
     usePdvStore.setState({ coupon: CODE_COUPON });
-    renderCard(compact);
+    renderCard();
 
     expect(await screen.findByText(/faltam/i)).toBeTruthy();
     expect(screen.queryByText(/ganhar 1 carimbo/)).toBeNull();
@@ -107,7 +108,7 @@ describe.each([false, true])("o programa no carrinho (compacto: %s)", (compact) 
   });
 
   it("o prêmio tirado pelo X do cupom pode voltar para a venda", async () => {
-    renderCard(compact);
+    renderCard();
     const button = await screen.findByRole("button", { name: /Usar o prêmio de/ });
 
     fireEvent.click(button);
@@ -117,7 +118,7 @@ describe.each([false, true])("o programa no carrinho (compacto: %s)", (compact) 
 
   it("guardar para a próxima tira o prêmio e o deixa à mão", async () => {
     act(() => usePdvStore.setState({ coupon: rewardToCoupon(STATUS.availableRewards[0]) }));
-    renderCard(compact);
+    renderCard();
 
     fireEvent.click(await screen.findByRole("button", { name: "Guardar para a próxima" }));
 
@@ -125,28 +126,7 @@ describe.each([false, true])("o programa no carrinho (compacto: %s)", (compact) 
   });
 });
 
-describe("card do programa no carrinho estendido", () => {
-  beforeEach(() => {
-    mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
-    useOfflineStore.setState({ online: true });
-    usePdvStore.setState({
-      items: [ITEM],
-      globalDiscount: 0,
-      coupon: null,
-      consumer: { customerId: 7, name: "Ana", document: "" },
-    });
-  });
-
-  it("some com o programa desligado", async () => {
-    mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, programActive: false });
-    const { container } = renderCard();
-
-    await vi.waitFor(() => expect(mocks.getCustomerLoyalty).toHaveBeenCalled());
-    expect(container.textContent).toBe("");
-  });
-});
-
-describe("cliente e cartão no carrinho compacto", () => {
+describe("cliente e cartão no carrinho", () => {
   beforeEach(() => {
     mocks.getCustomerLoyalty.mockResolvedValue(STATUS);
     useOfflineStore.setState({ online: true });
@@ -160,7 +140,7 @@ describe("cliente e cartão no carrinho compacto", () => {
   });
 
   it('diz numa linha quem é o cliente e o que a compra rende: "Wagner vai ganhar 1 carimbo"', async () => {
-    const { container } = renderCard(true);
+    const { container } = renderCard();
 
     await screen.findByRole("button", { name: "Guardar para a próxima" });
     const row = container.firstElementChild as HTMLElement;
@@ -173,24 +153,17 @@ describe("cliente e cartão no carrinho compacto", () => {
   it('na compra que completa o cartão, avisa: "Wagner vai completar o cartão!"', async () => {
     // 9 de 10: o carimbo desta compra fecha o cartão (e o novo nasce com o extra).
     mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, card: { ...STATUS.card!, stamps: 9 } });
-    const { container } = renderCard(true);
+    const { container } = renderCard();
 
     await screen.findByRole("button", { name: "Guardar para a próxima" });
     expect(container.textContent).toContain("Wagner vai completar o cartão!");
     expect(container.textContent).not.toContain("vai ganhar 1 carimbo");
   });
 
-  it("no estendido, a caixa dourada diz o mesmo", async () => {
-    mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, card: { ...STATUS.card!, stamps: 9 } });
-    renderCard();
-
-    expect(await screen.findByText(/Esta compra vai completar o cartão!/)).toBeTruthy();
-  });
-
   it("abaixo do mínimo, diz quanto falta com o nome e não escreve o aviso que quebraria a linha", async () => {
     // R$ 6,00: abaixo dos R$ 10 do carimbo e do prêmio — ele fica suspenso.
     usePdvStore.setState({ items: [{ ...ITEM, price: 6 }] });
-    const { container } = renderCard(true);
+    const { container } = renderCard();
 
     await screen.findByRole("button", { name: "Guardar para a próxima" });
     const row = container.firstElementChild as HTMLElement;
@@ -201,7 +174,7 @@ describe("cliente e cartão no carrinho compacto", () => {
 
   it("sem itens, mostra o nome e o cartão; o X tira o cliente", async () => {
     usePdvStore.setState({ items: [], coupon: null });
-    const { container } = renderCard(true);
+    const { container } = renderCard();
 
     expect(await screen.findByText(/7\/10/)).toBeTruthy();
     expect(container.textContent).toContain("Wagner");
@@ -212,7 +185,7 @@ describe("cliente e cartão no carrinho compacto", () => {
   it("com o programa desligado, ainda diz de quem é a venda", async () => {
     mocks.getCustomerLoyalty.mockResolvedValue({ ...STATUS, programActive: false });
     usePdvStore.setState({ coupon: null });
-    const { container } = renderCard(true);
+    const { container } = renderCard();
 
     await vi.waitFor(() => expect(mocks.getCustomerLoyalty).toHaveBeenCalled());
     expect(container.textContent).toContain("Wagner");
@@ -221,7 +194,7 @@ describe("cliente e cartão no carrinho compacto", () => {
 
   it("sem cliente, não ocupa linha nenhuma: o botão Cliente mora na engrenagem", () => {
     usePdvStore.setState({ consumer: { customerId: null, name: "", document: "" } });
-    const { container } = renderCard(true);
+    const { container } = renderCard();
 
     expect(container.textContent).toBe("");
   });

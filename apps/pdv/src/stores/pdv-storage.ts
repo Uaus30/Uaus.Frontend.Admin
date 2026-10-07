@@ -16,7 +16,6 @@ import type { AppliedCoupon, HeldSale, PdvConsumer, PdvItem } from "./pdv-cart";
 
 const HELD_SALES_STORAGE_KEY = "pdv-held-sales";
 const FONT_SCALE_STORAGE_KEY = "pdv-font-scale-index";
-const CART_LAYOUT_STORAGE_KEY = "pdv-cart-layout";
 const CURRENT_SALE_STORAGE_KEY = "pdv-current-sale";
 
 /**
@@ -32,18 +31,6 @@ export const FONT_SCALES = [0.85, 0.925, 1, 1.1, 1.2] as const;
 
 /** Índice da escala 1x, usada como padrão. */
 export const DEFAULT_FONT_SCALE_INDEX = 2;
-
-/**
- * Como o resumo da venda apresenta as ações secundárias.
- *
- * - `extended`: os quatro botões (desconto, cupom, pausar, cancelar) ficam
- *   sempre visíveis no rodapé, do jeito que o PDV nasceu.
- * - `compact`: eles saem do rodapé e passam a viver atrás da engrenagem ao lado
- *   do finalizar, devolvendo altura para a lista de itens.
- *
- * É preferência DA MÁQUINA, como o tema — não do operador que sentou no caixa.
- */
-export type CartLayout = "extended" | "compact";
 
 /**
  * Formato da venda em andamento guardada no navegador.
@@ -72,23 +59,6 @@ export interface PersistedSale {
 }
 
 const CURRENT_SALE_VERSION = 1;
-
-/**
- * Lê o layout do resumo da venda salvo no navegador.
- *
- * Qualquer valor que não seja exatamente `extended` cai no compacto, que virou o
- * padrão em 01/09/2026 depois do teste no balcão: as três faixas de botões do
- * rodapé estendido custavam a altura que falta na lista de itens. Só quem pediu
- * o estendido de propósito o recebe.
- */
-export function readCartLayout(): CartLayout {
-  return localStorage.getItem(CART_LAYOUT_STORAGE_KEY) === "extended" ? "extended" : "compact";
-}
-
-/** Grava o layout escolhido para o resumo da venda. */
-export function persistCartLayout(layout: CartLayout) {
-  localStorage.setItem(CART_LAYOUT_STORAGE_KEY, layout);
-}
 
 /**
  * Recupera as vendas em espera gravadas no navegador.

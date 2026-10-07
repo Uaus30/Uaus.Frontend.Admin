@@ -13,12 +13,6 @@ type PdvCartTotalsProps = {
 /**
  * A conta da venda: subtotal, os abatimentos aplicados e o total final.
  *
- * Vive fora do painel porque os dois layouts do resumo (estendido e compacto)
- * mostram a MESMA conta — o que muda entre eles é só onde ficam os botões. Com a
- * conta duplicada nos dois, uma linha nova de abatimento entraria em um e
- * faltaria no outro, e o operador leria totais diferentes conforme a
- * preferência do terminal.
- *
  * Lê o store direto em vez de receber tudo por prop: remover um desconto é
  * assunto desta caixa, e passar os removedores de fora só faria o painel
  * renderizar junto.

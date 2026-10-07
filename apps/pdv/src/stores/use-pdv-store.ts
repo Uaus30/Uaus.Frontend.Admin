@@ -16,15 +16,12 @@ import {
   DEFAULT_FONT_SCALE_INDEX,
   FONT_SCALES,
   applyFontScale,
-  persistCartLayout,
   persistCurrentSale,
   persistFontScaleIndex,
   persistHeldSales,
-  readCartLayout,
   readCurrentSale,
   readFontScaleIndex,
   readHeldSales,
-  type CartLayout,
 } from "./pdv-storage";
 
 /**
@@ -50,12 +47,10 @@ export type { AppliedCoupon, CouponAnswer, HeldSale, PdvConsumer, PdvItem } from
  * A borda com o `localStorage` mora em `./pdv-storage`: nomes de chave, formato
  * gravado e o descarte do valor corrompido. Aqui fica só a máquina de estado.
  *
- * `FONT_SCALES` e `CartLayout` são REEXPORTADOS pelo mesmo motivo dos tipos do
- * carrinho: o repo inteiro os importa de `@/stores/use-pdv-store`, e a divisão é
- * interna.
+ * `FONT_SCALES` é REEXPORTADO pelo mesmo motivo dos tipos do carrinho: o repo
+ * inteiro o importa de `@/stores/use-pdv-store`, e a divisão é interna.
  */
 export { FONT_SCALES } from "./pdv-storage";
-export type { CartLayout } from "./pdv-storage";
 
 /**
  * Estado local do PDV: carrinho, desconto da venda, vendas em espera e
@@ -121,8 +116,6 @@ interface PdvState {
    */
   coupon: AppliedCoupon | null;
   theme: "light" | "dark";
-  /** Como o rodapé do resumo da venda apresenta as ações secundárias. */
-  cartLayout: CartLayout;
   /** Linha do carrinho que acabou de receber o bipe, ou `null`. */
   lastAddedItemId: string | null;
   /**
@@ -234,8 +227,6 @@ interface PdvState {
 
   /** Troca o tema e persiste a escolha no navegador. */
   setTheme: (theme: "light" | "dark") => void;
-  /** Troca o layout do resumo da venda e persiste a escolha no navegador. */
-  setCartLayout: (layout: CartLayout) => void;
   /** Move a escala de fonte um degrau para cima (+1) ou para baixo (-1). */
   stepFontScale: (direction: 1 | -1) => void;
   /** Volta a fonte ao tamanho padrão. */
@@ -321,7 +312,6 @@ const currentTotals = (
 const generateId = () => Math.random().toString(36).slice(2, 11);
 
 const restoredSale = readCurrentSale();
-const initialCartLayout = readCartLayout();
 
 const initialFontScaleIndex = readFontScaleIndex();
 
@@ -356,7 +346,6 @@ export const usePdvStore = create<PdvState>((set, get) => ({
   editingSaleId: restoredSale?.editingSaleId ?? null,
   saleClientReference: restoredSale?.saleClientReference ?? null,
   theme: initialTheme,
-  cartLayout: initialCartLayout,
   lastAddedItemId: null,
   lastAddedSeq: 0,
   fontScaleIndex: initialFontScaleIndex,
@@ -608,11 +597,6 @@ export const usePdvStore = create<PdvState>((set, get) => ({
       document.documentElement.classList.toggle("dark", theme !== "light");
     }
     set(() => ({ theme }));
-  },
-
-  setCartLayout: (layout) => {
-    persistCartLayout(layout);
-    set(() => ({ cartLayout: layout }));
   },
 
   stepFontScale: (direction) => {

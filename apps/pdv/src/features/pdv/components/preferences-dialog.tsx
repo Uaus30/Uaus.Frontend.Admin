@@ -1,4 +1,4 @@
-import { Maximize2, Minimize2, Moon, Settings, Sun } from "lucide-react";
+import { Moon, Settings, Sun } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogDescription, DialogTitle, Label } from "@workspace/ui";
 import { usePdvStore } from "@/stores/use-pdv-store";
 
@@ -8,7 +8,8 @@ type PreferencesDialogProps = {
 };
 
 /**
- * Preferências do terminal: tema e layout do resumo da venda.
+ * Preferências do terminal: o tema. O layout do resumo da venda saiu daqui em
+ * 07/10/2026, quando o estendido deixou de existir (ver `PdvCartPanel`).
  *
  * São preferências **da máquina**, não do operador: ficam no `localStorage` (via
  * store) e valem para quem sentar no caixa depois. É o que se espera de um
@@ -21,8 +22,6 @@ type PreferencesDialogProps = {
 export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps) {
   const theme = usePdvStore((state) => state.theme);
   const setTheme = usePdvStore((state) => state.setTheme);
-  const cartLayout = usePdvStore((state) => state.cartLayout);
-  const setCartLayout = usePdvStore((state) => state.setCartLayout);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,40 +64,6 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
                 <Moon className="w-4 h-4" /> Escuro
               </Button>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              Resumo da Venda
-            </Label>
-            <div className="flex gap-2">
-              <Button
-                variant={cartLayout === "extended" ? "default" : "outline"}
-                className={`flex-1 gap-2 h-14 font-semibold cursor-pointer ${
-                  cartLayout === "extended"
-                    ? "bg-primary text-primary-foreground border-none"
-                    : "border-border/50 text-foreground"
-                }`}
-                onClick={() => setCartLayout("extended")}
-              >
-                <Maximize2 className="w-4 h-4" /> Estendido
-              </Button>
-              <Button
-                variant={cartLayout === "compact" ? "default" : "outline"}
-                className={`flex-1 gap-2 h-14 font-semibold cursor-pointer ${
-                  cartLayout === "compact"
-                    ? "bg-primary text-primary-foreground border-none"
-                    : "border-border/50 text-foreground"
-                }`}
-                onClick={() => setCartLayout("compact")}
-              >
-                <Minimize2 className="w-4 h-4" /> Compacto
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              No compacto, desconto, cupom, pausar e cancelar saem do rodapé e ficam na engrenagem ao lado do
-              FINALIZAR — sobra altura para a lista de itens.
-            </p>
           </div>
 
           <div className="flex justify-end pt-2">

@@ -8,10 +8,8 @@ import { describePromotions } from "@/lib/promotions";
 import { useCouponDialog } from "../hooks/use-coupon";
 import { useCustomerDialog } from "../hooks/use-customer-dialog";
 import { ConfirmActionDialog } from "./confirm-action-dialog";
-import { PdvCartActionsCompact, PdvCartActionsExtended } from "./pdv-cart-actions";
-import { PdvCartCustomer } from "./pdv-cart-customer";
+import { PdvCartActionsCompact } from "./pdv-cart-actions";
 import { PdvCartCustomerCompact } from "./pdv-cart-customer-compact";
-import { PdvLoyaltyCard } from "./pdv-loyalty-card";
 import { PdvCartItem } from "./pdv-cart-item";
 import { PdvCartTotals } from "./pdv-cart-totals";
 
@@ -39,9 +37,11 @@ type PdvCartPanelProps = {
  * O total aparece em corpo grande porque é o número que o operador dita para o
  * cliente — ele precisa ser legível de pé, a um metro da tela.
  *
- * O rodapé tem dois layouts, escolhidos nas Preferências do terminal: o
- * estendido, com os quatro botões secundários à vista, e o compacto, que os
- * guarda atrás de uma engrenagem. Ver `CartLayout` no store.
+ * O rodapé é o compacto: só o FINALIZAR à vista, e cliente, desconto, cupom,
+ * pausar e cancelar atrás da engrenagem. Até 07/10/2026 havia também o
+ * estendido, com os botões sempre à vista, escolhido nas Preferências; ele saiu
+ * a pedido do dono, junto com o PDV no celular — as três faixas de botões
+ * custavam a altura da lista de itens, que no celular é a mais curta de todas.
  */
 export function PdvCartPanel({
   subtotal,
@@ -60,15 +60,14 @@ export function PdvCartPanel({
   const salePromotions = usePdvStore((state) => state.salePromotions);
   const promotionInstant = usePdvStore((state) => state.promotionInstant);
   const releasedPromotions = usePdvStore((state) => state.releasedPromotions);
-  const cartLayout = usePdvStore((state) => state.cartLayout);
   const setCheckout = usePdvStore((state) => state.setCheckout);
   const cancelSale = usePdvStore((state) => state.cancelSale);
   const showCouponDialog = useCouponDialog((state) => state.show);
   const showCustomerDialog = useCustomerDialog((state) => state.show);
   const customerName = usePdvStore((state) => (state.consumer.name.trim() ? state.consumer.name : null));
 
-  // A confirmação vive AQUI, e não em cada layout: os dois disparam o mesmo
-  // cancelamento, e duplicar o estado faria a pergunta divergir entre eles.
+  // A confirmação vive AQUI, e não na gaveta: ela fecha antes de agir, e a
+  // pergunta precisa sobreviver a isso.
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
   /**
@@ -139,30 +138,17 @@ export function PdvCartPanel({
         propósito: cada rem que ele economiza é um item a mais visível na lista
         quando o operador aumenta a fonte.
 
-        `relative` e `overflow-hidden` são o palco da gaveta do layout compacto:
-        ela se posiciona contra este bloco e desliza de fora dele para dentro.
+        `relative` e `overflow-hidden` são o palco da gaveta da engrenagem: ela
+        se posiciona contra este bloco e desliza de fora dele para dentro.
       */}
       <div className="shrink-0 relative overflow-hidden p-3 bg-muted/5 border-t border-border/50 space-y-2">
-        {cartLayout === "compact" ? (
-          <PdvCartCustomerCompact />
-        ) : (
-          <>
-            <PdvCartCustomer />
-            <PdvLoyaltyCard />
-          </>
-        )}
-
+        <PdvCartCustomerCompact />
         <PdvCartTotals subtotal={subtotal} total={total} />
-
-        {cartLayout === "compact" ? (
-          <PdvCartActionsCompact {...actions} />
-        ) : (
-          <PdvCartActionsExtended {...actions} />
-        )}
+        <PdvCartActionsCompact {...actions} />
       </div>
 
       {/* Cancelar apaga a venda em andamento sem desfazer possível — vale a
-          pergunta, nos dois layouts. */}
+          pergunta. */}
       <ConfirmActionDialog
         open={confirmCancelOpen}
         onOpenChange={setConfirmCancelOpen}
