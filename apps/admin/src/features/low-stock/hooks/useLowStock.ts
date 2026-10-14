@@ -2,28 +2,26 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useDebounce, useToast } from "@workspace/ui";
-import { describeApiError, toDateKey } from "@workspace/core";
+import { describeApiError } from "@workspace/core";
 import {
-  apiGetOrThrow,
   disableStockControl,
   enableStockControl,
   getGetLowStockQueryKey,
   inactivateProduct,
   useGetLowStock,
+  useGetLowStockSummary,
   type LowStockScope,
   type LowStockSort,
   type StockControlDisabledReason,
 } from "@workspace/api-client-react";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { newPurchaseForProductPath } from "@/features/purchases/purchases-route";
-import { exportLowStockToXlsx } from "../lib/export-low-stock";
+import { positiveIntegerFilter, supplierQuery } from "../lib/low-stock-params";
 import type { LowStockItem } from "../types";
+import { useLowStockExport } from "./useLowStockExport";
 
 /** Linhas por página do relatório. */
 export const PAGE_SIZE = 20;
-
-/** Teto de linhas que a exportação baixa de uma vez. */
-const EXPORT_PAGE_SIZE = 1000;
 
 /**
  * As ações do menu que mexem no cadastro. Desligar e inativar perguntam antes;
@@ -63,6 +61,18 @@ export interface LowStockState {
   sort: LowStockSort;
   /** Clique no cabeçalho de "Vendas 30d": mais vendido → menos vendido → padrão. */
   toggleSalesSort: () => void;
+  /**
+   * A caixa "Incluir os com compra a caminho" da aba "Para repor" (14/10/2026).
+   * Desmarcada por padrão: quem já tem compra A caminho fica fora da lista e da
+   * contagem, como no alerta. A compra Pendente não tira ninguém.
+   */
+  includePurchasesInTransit: boolean;
+  setIncludePurchasesInTransit: (value: boolean) => void;
+  /**
+   * Quantos precisam de reposição mas ficaram de fora por já terem compra A
+   * caminho — o "+ M com compra a caminho" ao lado do total. Sem filtro.
+   */
+  withPurchaseInTransit: number;
   page: number;
   setPage: (value: number) => void;
   totalPages: number;
@@ -129,20 +139,29 @@ export function useLowStock(): LowStockState {
   const debouncedMinRecentSales = useDebounce(minRecentSales, 400);
 
   const [sort, setSortState] = useState<LowStockSort>("Default");
+  const [includePurchasesInTransit, setIncludePurchasesInTransitState] = useState(false);
   const [page, setPage] = useState(1);
   const [confirm, setConfirm] = useState<LowStockConfirm | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+  const exporter = useLowStockExport();
 
   const listParams = {
     search: debouncedSearch || undefined,
-    maxStock: filtroInteiro(debouncedMaxStock),
-    minRecentSales: filtroInteiro(debouncedMinRecentSales),
+    maxStock: positiveIntegerFilter(debouncedMaxStock),
+    minRecentSales: positiveIntegerFilter(debouncedMinRecentSales),
     sort: sort === "Default" ? undefined : sort,
     scope: scope === "Restock" ? undefined : scope,
+    // Só vai marcado, e só na aba "Para repor": falso é o padrão do backend, e
+    // na aba "Fora do controle" a caixa não existe — mandá-lo lá criaria uma
+    // chave de cache diferente para a mesma consulta.
+    includePurchasesInTransit: scope === "Restock" && includePurchasesInTransit ? true : undefined,
   };
 
   const list = useGetLowStock({ ...listParams, page, limit: PAGE_SIZE });
   useApiErrorToast(list.isError, list.error);
+
+  // A MESMA consulta do alerta do painel (mesma chave): o "+ M com compra a
+  // caminho" sai do cache dela, sem ida a mais à rede.
+  const summary = useGetLowStockSummary();
 
   /** Troca de aba volta à primeira página; os filtros continuam valendo. */
   function setScope(value: LowStockScope) {
@@ -162,6 +181,11 @@ export function useLowStock(): LowStockState {
 
   function setMinRecentSales(value: string) {
     setMinRecentSalesState(value);
+    setPage(1);
+  }
+
+  function setIncludePurchasesInTransit(value: boolean) {
+    setIncludePurchasesInTransitState(value);
     setPage(1);
   }
 
@@ -232,46 +256,12 @@ export function useLowStock(): LowStockState {
   }
 
   /**
-   * Baixa a aba inteira (com os filtros da tela) e gera o XLSX. Refaz a consulta
-   * em vez de usar a página em memória: ninguém exporta um relatório para
-   * receber as vinte linhas da página corrente.
+   * Baixa a aba inteira com os filtros da tela — a caixa da compra a caminho
+   * inclusive — e gera o XLSX (`useLowStockExport`).
    */
-  async function exportToXlsx() {
-    setIsExporting(true);
-    try {
-      const result = await apiGetOrThrow<{ items?: LowStockItem[] }>("/LowStock", {
-        search: listParams.search,
-        maxStock: listParams.maxStock,
-        minRecentSales: listParams.minRecentSales,
-        sort: listParams.sort,
-        scope: listParams.scope,
-        page: 1,
-        size: EXPORT_PAGE_SIZE,
-      });
-
-      const items = result.items ?? [];
-      if (items.length === 0) {
-        toast({
-          title: "Nada para exportar",
-          description: "Nenhum produto corresponde aos filtros desta tela.",
-          variant: "warning",
-        });
-        return;
-      }
-
-      const nome = scope === "OutOfControl" ? "fora-do-controle" : "estoque-baixo";
-      await exportLowStockToXlsx(items, `${nome}-${toDateKey(new Date())}.xlsx`);
-      toast({ title: "Planilha gerada", description: `${items.length} produto(s) exportado(s).` });
-    } catch (error) {
-      toast({
-        title: "Erro ao exportar",
-        description: describeApiError(error, "Tente novamente."),
-        error,
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
+  function exportToXlsx() {
+    const nome = scope === "OutOfControl" ? "fora-do-controle" : "estoque-baixo";
+    void exporter.exportToXlsx(listParams, nome);
   }
 
   const mutatingProductId = confirmMutation.isPending
@@ -289,6 +279,16 @@ export function useLowStock(): LowStockState {
     setMinRecentSales,
     sort,
     toggleSalesSort,
+    includePurchasesInTransit,
+    setIncludePurchasesInTransit,
+    // O número do summary é do relatório SEM filtro: com busca, teto de saldo
+    // ou mínimo de vendas, ele não diria quantos a caixa traria de volta para
+    // ESTA lista — e somado ao total filtrado ao lado, enganaria. Com filtro, a
+    // barra mostra só o total e a caixa.
+    withPurchaseInTransit:
+      listParams.search || listParams.maxStock || listParams.minRecentSales
+        ? 0
+        : (summary.data?.withPurchaseInTransit ?? 0),
     page,
     setPage,
     totalPages: list.data?.totalPages ?? 1,
@@ -306,8 +306,8 @@ export function useLowStock(): LowStockState {
     confirmAction,
     isConfirming: confirmMutation.isPending,
     mutatingProductId,
-    exportToXlsx: () => void exportToXlsx(),
-    isExporting,
+    exportToXlsx,
+    isExporting: exporter.isExporting,
   };
 }
 
@@ -333,18 +333,3 @@ const TITULO_DE_ERRO: Record<LowStockAction, string> = {
   "disable-control": "Erro ao desligar o controle de estoque",
   "enable-control": "Erro ao religar o controle de estoque",
 };
-
-/**
- * O texto digitado vira filtro só se for inteiro positivo: campo vazio, zero e
- * lixo digitado voltam ao relatório inteiro, e um dígito errado não pode
- * esvaziar a tela.
- */
-function filtroInteiro(texto: string): number | undefined {
-  const numero = Number(texto);
-  return texto.trim() && Number.isInteger(numero) && numero > 0 ? numero : undefined;
-}
-
-/** Fornecedor do último lote na URL da compra, quando o produto tem um. */
-function supplierQuery(item: LowStockItem): string {
-  return item.supplierId ? `&fornecedor=${item.supplierId}` : "";
-}

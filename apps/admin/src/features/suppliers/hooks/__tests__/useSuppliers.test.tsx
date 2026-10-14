@@ -4,6 +4,7 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getGetSuppliersQueryKey, type SupplierDto } from "@workspace/api-client-react";
 import { useSuppliers } from "../useSuppliers";
+import type { SupplierForm } from "../../types";
 
 /**
  * Dublê do api-client, só do que fala com a rede. `useGetSuppliers` recebe os
@@ -56,6 +57,7 @@ const SUPPLIER_10: SupplierDto = {
   description: null,
   isRecurring: false,
   isMarketplace: false,
+  type: "Wholesale",
 };
 
 /** Wrapper com o QueryClient REAL — o teste de invalidação depende do cache de verdade. */
@@ -166,7 +168,7 @@ describe("useSuppliers Hook", () => {
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useSuppliers(), { wrapper });
 
-    const newSupplier = {
+    const newSupplier: SupplierForm = {
       name: "Supplier B",
       corporateName: "Supplier Corp",
       document: "123",
@@ -180,7 +182,7 @@ describe("useSuppliers Hook", () => {
       avatarColor: "#6366f1",
       description: "Test description",
       isRecurring: true,
-      isMarketplace: true,
+      type: "Marketplace",
     };
 
     await act(async () => {
@@ -201,12 +203,103 @@ describe("useSuppliers Hook", () => {
         state: "PR",
         avatarColor: "#6366f1",
         description: "Test description",
-        // As duas marcas do cadastro precisam chegar ao servidor: a de
-        // marketplace decide se a COMPRA vai exigir o link do anúncio, e perdê-la
-        // aqui liberaria a regra em silêncio.
+        // A marca e o tipo precisam chegar ao servidor: o tipo Marketplace
+        // decide se a COMPRA vai exigir o link do anúncio, e perdê-lo aqui
+        // liberaria a regra em silêncio. `isMarketplace` não vai mais: virou
+        // derivado do tipo no servidor (14/10/2026).
         isRecurring: true,
-        isMarketplace: true,
+        type: "Marketplace",
       },
+    });
+  });
+
+  describe("tipo do fornecedor (14/10/2026)", () => {
+    /** O corpo da última edição enviada — o dublê não declara parâmetros, daí o cast. */
+    function ultimaEdicao() {
+      const chamada = mocks.updateSupplier.mock.calls.at(-1) as unknown[] | undefined;
+      return chamada?.[0] as { data: Record<string, unknown> };
+    }
+
+    /** O formulário do cadastro novo como a modal o devolve, com o tipo escolhido ou não. */
+    function formulario(type: SupplierForm["type"]): SupplierForm {
+      return {
+        name: "Master",
+        corporateName: "",
+        document: "",
+        salesRepresentative: "",
+        phone: "",
+        email: "",
+        minimumPurchaseValue: "0",
+        status: "1",
+        city: "Maringá",
+        state: "PR",
+        avatarColor: "#6366f1",
+        description: "",
+        isRecurring: false,
+        type,
+      };
+    }
+
+    it("o cadastro novo nasce sem tipo pré-escolhido", () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => result.current.handleOpenModal());
+
+      // Um padrão seria aceito sem ler — e o tipo muda regra de compra e de estoque.
+      expect(result.current.form.type).toBe("");
+    });
+
+    it("não cadastra sem tipo: avisa em português antes de ir à rede", async () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => result.current.handleOpenModal());
+      await act(async () => {
+        await result.current.handleSubmitSupplier(formulario(""));
+      });
+
+      // Sem o aviso daqui, a recusa 400 da API chegaria como toast genérico.
+      expect(mocks.createSupplier).not.toHaveBeenCalled();
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Escolha o tipo do fornecedor", variant: "destructive" }),
+      );
+    });
+
+    it("a edição carrega o tipo gravado e o manda de volta", async () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => result.current.handleOpenModal(SUPPLIER_10));
+      expect(result.current.form.type).toBe("Wholesale");
+
+      await act(async () => {
+        await result.current.handleSubmitSupplier(result.current.form);
+      });
+
+      expect(mocks.updateSupplier).toHaveBeenCalledWith({
+        id: 10,
+        data: expect.objectContaining({ type: "Wholesale" }),
+      });
+      const enviado = ultimaEdicao();
+      expect(enviado.data).not.toHaveProperty("isMarketplace");
+    });
+
+    it("editar fornecedor sem tipo (backend anterior) não manda o campo — o servidor mantém o gravado", async () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSuppliers(), { wrapper });
+      const { type: _semTipo, ...antigo } = SUPPLIER_10;
+
+      act(() => result.current.handleOpenModal(antigo));
+      expect(result.current.form.type).toBe("");
+
+      await act(async () => {
+        await result.current.handleSubmitSupplier(result.current.form);
+      });
+
+      // A edição não exige tipo: exigir travaria o Salvar de todo fornecedor antigo.
+      const enviado = ultimaEdicao();
+      expect(enviado.data).not.toHaveProperty("type");
     });
   });
 

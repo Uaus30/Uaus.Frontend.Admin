@@ -9,7 +9,7 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { apiDelete, apiGetOrThrow, apiPost, apiPut, ApiError, mapPagedResult } from "../client";
 import type { BackendPagedResult, EnumValue, QueryKey, UiPagedResult } from "../models";
-import type { ReactivatedProductDto } from "./purchases";
+import type { PlanTripProductDto, ReactivatedProductDto } from "./purchases";
 
 /** Foto da compra, já com a URL para a tela (passe por `buildPublicImageUrl`). */
 export interface PurchaseImageDto {
@@ -63,6 +63,11 @@ export interface PurchaseDto {
    * `receive`; em qualquer outra leitura a API omite o campo.
    */
   reactivatedProducts?: ReactivatedProductDto[];
+  /**
+   * Produtos cujo controle de estoque o RECEBIMENTO desligou com "Planejar
+   * viagem" (14/10/2026). Só na resposta do `receive`; omitido quando vazio.
+   */
+  planTripProducts?: PlanTripProductDto[];
   /**
    * Preço de venda vigente do produto vinculado. Ausente em produto novo e em
    * compra com VARIAÇÕES, onde o cabeçalho não aponta para nenhuma delas.

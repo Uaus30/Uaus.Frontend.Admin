@@ -10,12 +10,16 @@ type StockSettingsCardProps = {
   /** Corte da nota de reposição (0 a 100); zero desliga a rotina. */
   restockScoreCutoff: number;
   onRestockScoreCutoffChange: (value: number) => void;
+  /** Compra pequena de atacado e varejo (0 a 100); zero desliga a regra. */
+  smallPurchaseMaxQuantity: number;
+  onSmallPurchaseMaxQuantityChange: (value: number) => void;
   isSaving: boolean;
 };
 
 /**
- * O cartão Estoque das Configurações: o mínimo padrão e, desde 04/10/2026, a
- * nota de corte que tira do controle o produto que chega ao mínimo vendendo mal.
+ * O cartão Estoque das Configurações: o mínimo padrão, desde 04/10/2026 a nota
+ * de corte que tira do controle o produto que chega ao mínimo vendendo mal e,
+ * desde 14/10/2026, o limite da compra pequena de atacado e varejo.
  *
  * O texto da nota de corte é longo de propósito (pedido do dono: "explicação
  * clara sobre o que a configuração faz"). O efeito acontece longe daqui — na
@@ -27,6 +31,8 @@ export function StockSettingsCard({
   onDefaultMinStockChange,
   restockScoreCutoff,
   onRestockScoreCutoffChange,
+  smallPurchaseMaxQuantity,
+  onSmallPurchaseMaxQuantityChange,
   isSaving,
 }: StockSettingsCardProps) {
   return (
@@ -92,6 +98,36 @@ export function StockSettingsCard({
             step={1}
             value={restockScoreCutoff}
             onChange={(e) => onRestockScoreCutoffChange(Number(e.target.value))}
+            disabled={isSaving}
+            className="w-24 text-right"
+          />
+        </div>
+
+        <div className="flex items-start justify-between gap-6 rounded-xl border border-border/50 bg-background/50 p-4">
+          <div className="space-y-2">
+            <Label htmlFor="small-purchase-max-quantity" className="text-sm font-medium">
+              Compra pequena de atacado e varejo (unidades)
+            </Label>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Uma entrada de compra de fornecedor <strong>Atacado</strong> ou <strong>Varejo</strong> com até
+              este número de unidades de um produto desliga o controle de estoque dele com o motivo
+              &quot;Planejar viagem&quot;. É a compra de variedade em pouca quantidade (Master, Nossa Casa):
+              repor exige ir até lá, então o produto sai do relatório de estoque baixo e aparece na{" "}
+              <strong>Lista de Compras</strong> quando tiver boa saída.
+            </p>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Uma entrada acima do limite, ou de outro tipo de fornecedor, religa o controle sozinha. O tipo
+              se escolhe no cadastro do fornecedor. <strong>Zero desliga a regra.</strong>
+            </p>
+          </div>
+          <Input
+            id="small-purchase-max-quantity"
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={smallPurchaseMaxQuantity}
+            onChange={(e) => onSmallPurchaseMaxQuantityChange(Number(e.target.value))}
             disabled={isSaving}
             className="w-24 text-right"
           />

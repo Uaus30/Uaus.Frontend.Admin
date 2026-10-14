@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PRODUCTS_MATCH_PATH } from "@/features/products/product-detail-route";
-import { LOW_STOCK_REPORT_PATH } from "@/features/low-stock/low-stock-route";
+import { LOW_STOCK_REPORT_PATH, SHOPPING_LIST_REPORT_PATH } from "@/features/low-stock/low-stock-route";
 import { PURCHASES_PATH } from "@/features/purchases/purchases-route";
 import { PROMOTIONS_MATCH_PATH, PROMOTIONS_PATH } from "@/features/promotions/promotion-route";
 import { HOME_PATH } from "@/features/home/home-route";
@@ -88,6 +88,7 @@ const Purchases = lazy(() => import("@/pages/purchases"));
 const StockWriteOffs = lazy(() => import("@/pages/stock-write-offs"));
 const Inventory = lazy(() => import("@/pages/inventory"));
 const LowStock = lazy(() => import("@/pages/low-stock"));
+const ShoppingList = lazy(() => import("@/pages/shopping-list"));
 const Images = lazy(() => import("@/pages/images"));
 const Customers = lazy(() => import("@/pages/customers"));
 const CompanySettings = lazy(() => import("@/pages/settings"));
@@ -289,6 +290,14 @@ export const ROUTES: AppRoute[] = [
   // Relatório, e não tela de Estoque: ele só LÊ o saldo. O alerta vermelho do
   // painel e da listagem de produtos aponta para cá.
   { path: LOW_STOCK_REPORT_PATH, label: "Estoque baixo", group: "Relatórios", component: LowStock },
+  // Logo depois do estoque baixo (14/10/2026): o que vale comprar na próxima
+  // viagem ou pedido, por fornecedor ou pela cidade dele.
+  {
+    path: SHOPPING_LIST_REPORT_PATH,
+    label: "Lista de Compras",
+    group: "Relatórios",
+    component: ShoppingList,
+  },
 
   // O menu do grupo segue a ordem DESTA lista, e no BI ela é ALFABÉTICA. As
   // telas de BI não têm sequência de trabalho entre si — nenhuma é "a próxima"

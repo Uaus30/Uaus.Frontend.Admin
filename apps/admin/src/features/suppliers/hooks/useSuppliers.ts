@@ -13,7 +13,7 @@ import {
   useUpdateSupplier,
   type SupplierDto,
 } from "@workspace/api-client-react";
-import { normalizeStatusName, randomColor } from "../constants";
+import { emptySupplierForm, normalizeStatusName, randomColor } from "../constants";
 import type { SupplierForm } from "../types";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 
@@ -48,22 +48,7 @@ export function useSuppliers() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const [form, setForm] = useState<SupplierForm>({
-    name: "",
-    corporateName: "",
-    document: "",
-    salesRepresentative: "",
-    phone: "",
-    email: "",
-    minimumPurchaseValue: "",
-    status: "",
-    city: "",
-    state: "PR",
-    avatarColor: randomColor(),
-    description: "",
-    isRecurring: false,
-    isMarketplace: false,
-  });
+  const [form, setForm] = useState<SupplierForm>(() => emptySupplierForm(""));
 
   // Reseta a página ao buscar
   useEffect(() => {
@@ -172,26 +157,13 @@ export function useSuppliers() {
         avatarColor: supplier.avatarColor || randomColor(),
         description: supplier.description || "",
         isRecurring: supplier.isRecurring,
-        isMarketplace: supplier.isMarketplace,
+        // Ausente só num backend anterior ao tipo: o formulário fica sem tipo e
+        // a edição não o manda — o servidor mantém o que tem.
+        type: supplier.type ?? "",
       });
     } else {
       setEditingId(null);
-      setForm({
-        name: "",
-        corporateName: "",
-        document: "",
-        salesRepresentative: "",
-        phone: "",
-        email: "",
-        minimumPurchaseValue: "",
-        status: activeStatusValue,
-        city: "",
-        state: "PR",
-        avatarColor: randomColor(),
-        description: "",
-        isRecurring: false,
-        isMarketplace: false,
-      });
+      setForm(emptySupplierForm(activeStatusValue));
     }
 
     setModalOpen(true);
@@ -213,6 +185,19 @@ export function useSuppliers() {
       toast({
         title: "Preencha os campos obrigatórios",
         description: "Informe o nome do fornecedor e o valor mínimo de compra.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // O tipo é obrigatório no cadastro NOVO (14/10/2026) — sem ele a API responde
+    // 400, e a recusa chegaria como toast genérico. Na edição ele é opcional:
+    // ausente, o servidor mantém o gravado.
+    if (!editingId && !formData.type) {
+      toast({
+        title: "Escolha o tipo do fornecedor",
+        description:
+          "Atacado, Distribuidor, Fábrica, Marketplace, Varejo ou Outros — ele muda regras de compra e de estoque.",
         variant: "destructive",
       });
       return;
@@ -243,14 +228,16 @@ export function useSuppliers() {
         avatarColor: formData.avatarColor,
         description: formData.description.trim() || null,
         isRecurring: formData.isRecurring,
-        isMarketplace: formData.isMarketplace,
       };
 
       if (editingId) {
-        await updateSupplier.mutateAsync({ id: editingId, data });
+        await updateSupplier.mutateAsync({
+          id: editingId,
+          data: formData.type ? { ...data, type: formData.type } : data,
+        });
         toast({ title: "Fornecedor atualizado." });
-      } else {
-        await createSupplier.mutateAsync({ data });
+      } else if (formData.type) {
+        await createSupplier.mutateAsync({ data: { ...data, type: formData.type } });
         toast({ title: "Fornecedor cadastrado." });
       }
 

@@ -8,6 +8,12 @@ const mocks = vi.hoisted(() => ({
   receivePurchase: vi.fn(),
   navigate: vi.fn(),
   useGetStockFreezeStatus: vi.fn(() => ({ data: { salesPaused: false } })),
+  toast: vi.fn(),
+}));
+
+vi.mock("@workspace/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/ui")>()),
+  useToast: () => ({ toast: mocks.toast }),
 }));
 
 vi.mock("wouter", async (importOriginal) => ({
@@ -213,6 +219,55 @@ describe("usePurchases — recebimento que reativa o produto", () => {
     await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith(productStockTabPathname(805, 963)));
     cancelar();
     expect(ouvinte).toHaveBeenCalledWith(reativados);
+  });
+});
+
+describe("usePurchases — recebimento que tira o produto do controle (14/10/2026)", () => {
+  beforeEach(() => {
+    mocks.navigate.mockClear();
+    mocks.toast.mockClear();
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+  });
+
+  it("avisa quem ficou fora do controle de estoque com Planejar viagem", async () => {
+    // Compra de 3 unidades no atacado: o backend desliga o controle do produto e
+    // diz quem. Sem o aviso, quem lançou só descobriria procurando no relatório.
+    mocks.receivePurchase.mockResolvedValue(
+      compra({
+        productId: 963,
+        productGroupId: 805,
+        status: "Received",
+        planTripProducts: [{ productId: 963, productName: "SACOLA [CACHORRO]" }],
+      }),
+    );
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(compra({ productId: 963, productGroupId: 805 })));
+    act(() => result.current.confirmReceive());
+
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "1 produto ficou fora do controle de estoque",
+          description: expect.stringContaining("SACOLA [CACHORRO]"),
+          variant: "warning",
+        }),
+      ),
+    );
+  });
+
+  it("sem a lista — a API omite quando ninguém saiu —, só o aviso de sempre", async () => {
+    mocks.receivePurchase.mockResolvedValue(
+      compra({ productId: 963, productGroupId: 805, status: "Received" }),
+    );
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(compra({ productId: 963, productGroupId: 805 })));
+    act(() => result.current.confirmReceive());
+
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
+    expect(mocks.toast).toHaveBeenCalledTimes(1);
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Compra lançada no estoque" }));
   });
 });
 

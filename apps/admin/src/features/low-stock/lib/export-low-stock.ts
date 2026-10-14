@@ -17,6 +17,9 @@ const COLUNAS: Coluna[] = [
   { header: "Código de barras", width: 18, value: (item) => item.barcode },
   { header: "Categoria", width: 22, value: (item) => item.categoryName },
   { header: "Fornecedor", width: 22, value: (item) => item.supplierName ?? "" },
+  // A cidade e a última compra entraram com a Lista de Compras (14/10/2026): é
+  // por elas que se planeja a viagem, e a planilha é o que vai junto nela.
+  { header: "Cidade do fornecedor", width: 20, value: (item) => item.supplierCity ?? "" },
   { header: "Estoque", width: 10, value: (item) => item.stock, numFmt: "0" },
   { header: "Mínimo", width: 10, value: (item) => item.effectiveMinStock ?? item.minStock, numFmt: "0" },
   { header: "Preço", width: 12, value: (item) => item.price, numFmt: '"R$" #,##0.00' },
@@ -30,6 +33,18 @@ const COLUNAS: Coluna[] = [
     value: (item) => (item.lastSaleAt ? formatShortDate(item.lastSaleAt) : "Nunca vendido"),
   },
   { header: "Vendas 30d", width: 12, value: (item) => item.recentSales ?? 0, numFmt: "0" },
+  {
+    header: "Última compra (un.)",
+    width: 18,
+    value: (item) => item.lastPurchaseQuantity ?? null,
+    numFmt: "0",
+  },
+  {
+    header: "Data da última compra",
+    width: 20,
+    // Texto, pelo mesmo motivo da "Última venda".
+    value: (item) => (item.lastPurchaseDate ? formatShortDate(item.lastPurchaseDate) : ""),
+  },
   {
     header: "Demanda/dia",
     width: 13,
@@ -61,6 +76,12 @@ const COLUNAS: Coluna[] = [
 ];
 
 /**
+ * Coluna do saldo (base 1), achada pelo cabeçalho: o índice fixo pintava de
+ * vermelho a coluna errada assim que uma coluna nova entrasse antes dela.
+ */
+const STOCK_COLUMN = COLUNAS.findIndex((coluna) => coluna.header === "Estoque") + 1;
+
+/**
  * Exporta o relatório de estoque baixo em XLSX, com cabeçalho formatado.
  *
  * XLSX de verdade (ExcelJS), e não CSV renomeado como o inventário faz: o
@@ -74,15 +95,21 @@ const COLUNAS: Coluna[] = [
  * O cabeçalho é negrito sobre fundo escuro, com painel congelado e autofiltro:
  * a planilha abre pronta para filtrar e ordenar, que é o que se faz com um
  * relatório de reposição.
+ *
+ * Serve às duas telas da feature; a Lista de Compras passa o nome da aba.
  */
-export async function exportLowStockToXlsx(items: LowStockItem[], fileName: string): Promise<void> {
+export async function exportLowStockToXlsx(
+  items: LowStockItem[],
+  fileName: string,
+  sheetName = "Estoque baixo",
+): Promise<void> {
   const ExcelJS = await import("exceljs");
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Uaus Admin";
   workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet("Estoque baixo", {
+  const sheet = workbook.addWorksheet(sheetName, {
     views: [{ state: "frozen", ySplit: 1 }],
   });
 
@@ -104,7 +131,7 @@ export async function exportLowStockToXlsx(items: LowStockItem[], fileName: stri
     // O que já está no mínimo sai com o saldo em vermelho — a planilha é lida de
     // cima a baixo, e a cor é o que separa urgência de contexto.
     if (item.stock <= (item.effectiveMinStock ?? item.minStock)) {
-      row.getCell(5).font = { color: { argb: "FFB91C1C" }, bold: true };
+      row.getCell(STOCK_COLUMN).font = { color: { argb: "FFB91C1C" }, bold: true };
     }
   }
 

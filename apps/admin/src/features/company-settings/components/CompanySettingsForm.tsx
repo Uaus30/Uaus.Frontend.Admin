@@ -24,6 +24,9 @@ type CompanySettingsFormProps = {
   /** Corte da nota de reposição (04/10/2026). */
   restockScoreCutoff: number;
   onRestockScoreCutoffChange: (value: number) => void;
+  /** Compra pequena de atacado e varejo (14/10/2026). */
+  smallPurchaseMaxQuantity: number;
+  onSmallPurchaseMaxQuantityChange: (value: number) => void;
   /** DDD do telefone de cliente digitado sem ele. */
   defaultAreaCode: number;
   onDefaultAreaCodeChange: (value: number) => void;
@@ -84,6 +87,8 @@ export function CompanySettingsForm({
   onDefaultMinStockChange,
   restockScoreCutoff,
   onRestockScoreCutoffChange,
+  smallPurchaseMaxQuantity,
+  onSmallPurchaseMaxQuantityChange,
   defaultAreaCode,
   onDefaultAreaCodeChange,
   isDirty,
@@ -207,6 +212,8 @@ export function CompanySettingsForm({
         onDefaultMinStockChange={onDefaultMinStockChange}
         restockScoreCutoff={restockScoreCutoff}
         onRestockScoreCutoffChange={onRestockScoreCutoffChange}
+        smallPurchaseMaxQuantity={smallPurchaseMaxQuantity}
+        onSmallPurchaseMaxQuantityChange={onSmallPurchaseMaxQuantityChange}
         isSaving={isSaving}
       />
 

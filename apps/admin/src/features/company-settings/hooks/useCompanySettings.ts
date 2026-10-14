@@ -10,6 +10,7 @@ import { describeApiError } from "@workspace/core";
 import {
   STANDARD_DEFAULT_MIN_STOCK,
   STANDARD_RESTOCK_SCORE_CUTOFF,
+  STANDARD_SMALL_PURCHASE_MAX_QUANTITY,
   STOCK_SETTINGS_ANCHOR,
 } from "@/lib/stock-control";
 
@@ -91,6 +92,9 @@ export function useCompanySettings() {
   const [site, setSite] = useState<SiteOptionsFields>(DEFAULT_SITE_OPTIONS);
   const [defaultMinStock, setDefaultMinStockState] = useState(STANDARD_DEFAULT_MIN_STOCK);
   const [restockScoreCutoff, setRestockScoreCutoffState] = useState(STANDARD_RESTOCK_SCORE_CUTOFF);
+  const [smallPurchaseMaxQuantity, setSmallPurchaseMaxQuantityState] = useState(
+    STANDARD_SMALL_PURCHASE_MAX_QUANTITY,
+  );
   const [defaultAreaCode, setDefaultAreaCode] = useState(STANDARD_AREA_CODE);
 
   const serverValue = settings?.usesCashRegister;
@@ -117,6 +121,9 @@ export function useCompanySettings() {
   const serverAreaCode = settings ? (settings.defaultAreaCode ?? STANDARD_AREA_CODE) : undefined;
   const serverRestockScoreCutoff = settings
     ? (settings.restockScoreCutoff ?? STANDARD_RESTOCK_SCORE_CUTOFF)
+    : undefined;
+  const serverSmallPurchaseMaxQuantity = settings
+    ? (settings.smallPurchaseMaxQuantity ?? STANDARD_SMALL_PURCHASE_MAX_QUANTITY)
     : undefined;
 
   // A sincronia depende dos valores, não do objeto devolvido pela query: um
@@ -173,6 +180,13 @@ export function useCompanySettings() {
     setRestockScoreCutoffState(serverRestockScoreCutoff);
   }
 
+  // E para a compra pequena de atacado e varejo (14/10/2026).
+  const [smallPurchaseSyncedFrom, setSmallPurchaseSyncedFrom] = useState<number | null>(null);
+  if (serverSmallPurchaseMaxQuantity != null && smallPurchaseSyncedFrom !== serverSmallPurchaseMaxQuantity) {
+    setSmallPurchaseSyncedFrom(serverSmallPurchaseMaxQuantity);
+    setSmallPurchaseMaxQuantityState(serverSmallPurchaseMaxQuantity);
+  }
+
   // E para o DDD padrão do telefone de cliente (01/10/2026).
   const [areaCodeSyncedFrom, setAreaCodeSyncedFrom] = useState<number | null>(null);
   if (serverAreaCode != null && areaCodeSyncedFrom !== serverAreaCode) {
@@ -196,6 +210,11 @@ export function useCompanySettings() {
   /** Altera a nota de corte da reposição. Campo vazio ou lixo vira zero, e a validação segura no salvar. */
   function setRestockScoreCutoff(value: number) {
     setRestockScoreCutoffState(Number.isFinite(value) ? value : 0);
+  }
+
+  /** Altera a compra pequena de atacado e varejo. Campo vazio ou lixo vira zero, e a validação segura no salvar. */
+  function setSmallPurchaseMaxQuantity(value: number) {
+    setSmallPurchaseMaxQuantityState(Number.isFinite(value) ? value : 0);
   }
 
   /** Altera um campo da identidade sem tocar nos demais. */
@@ -226,6 +245,7 @@ export function useCompanySettings() {
   const isDirty =
     (serverDefaultMinStock != null && serverDefaultMinStock !== defaultMinStock) ||
     (serverRestockScoreCutoff != null && serverRestockScoreCutoff !== restockScoreCutoff) ||
+    (serverSmallPurchaseMaxQuantity != null && serverSmallPurchaseMaxQuantity !== smallPurchaseMaxQuantity) ||
     (serverAreaCode != null && serverAreaCode !== defaultAreaCode) ||
     (serverValue != null && serverValue !== usesCashRegister) ||
     isIdentityDirty ||
@@ -248,6 +268,7 @@ export function useCompanySettings() {
         siteNewProductsCount: site.newProductsCount,
         defaultMinStock,
         restockScoreCutoff,
+        smallPurchaseMaxQuantity,
         defaultAreaCode,
       }),
     onSuccess: async () => {
@@ -314,6 +335,19 @@ export function useCompanySettings() {
       return;
     }
 
+    if (
+      !Number.isInteger(smallPurchaseMaxQuantity) ||
+      smallPurchaseMaxQuantity < 0 ||
+      smallPurchaseMaxQuantity > 100
+    ) {
+      toast({
+        title: "Compra pequena de atacado e varejo inválida",
+        description: "Informe um número inteiro entre 0 (regra desligada) e 100 unidades.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Não existe DDD terminado em zero, e o telefone sem DDD ganharia um que
     // nenhum número tem.
     if (
@@ -344,6 +378,8 @@ export function useCompanySettings() {
     setDefaultMinStock,
     restockScoreCutoff,
     setRestockScoreCutoff,
+    smallPurchaseMaxQuantity,
+    setSmallPurchaseMaxQuantity,
     defaultAreaCode,
     setDefaultAreaCode,
     isDirty,

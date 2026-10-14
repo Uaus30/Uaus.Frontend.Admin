@@ -48,6 +48,15 @@ Opções de operação e identidade da loja (`company_settings` no backend, uma 
   o efeito acontece longe daqui, no relatório de estoque baixo e na listagem.
 - Ausente num backend anterior, vale 50; omitido na gravação, o servidor
   mantém o gravado (o PDV salva sem conhecer o campo).
+- **Compra pequena de atacado e varejo** (`smallPurchaseMaxQuantity`, 0 a 100,
+  5 de fábrica, 14/10/2026): a entrada de compra de fornecedor Atacado ou Varejo
+  com até N unidades de um produto desliga o controle de estoque dele com o
+  motivo "Planejar viagem" — ele sai do relatório de estoque baixo e aparece na
+  Lista de Compras quando tiver boa saída. Uma entrada acima do limite, ou de
+  outro tipo de fornecedor, religa. Zero desliga a regra. Mesmo padrão da nota
+  de corte: constante de fábrica em `lib/stock-control.ts`
+  (`STANDARD_SMALL_PURCHASE_MAX_QUANTITY`), sincronia durante o render, faixa
+  conferida no `handleSubmit`, ausente/nulo na gravação mantém o gravado.
 
 ### 5. Sincronia com o servidor
 

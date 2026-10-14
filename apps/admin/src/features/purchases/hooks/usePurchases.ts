@@ -7,6 +7,7 @@ import {
   PURCHASE_STATUS,
   deletePurchase,
   enumCode,
+  getGetLowStockQueryKey,
   getGetPurchasesQueryKey,
   receivePurchase,
   updatePurchaseStatus,
@@ -18,6 +19,7 @@ import {
 import { RESOURCE_KEYS, useAllCategories, useAllDepartments, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { announceReactivatedProducts } from "@/lib/product-reactivation";
+import { planTripNotice } from "@/lib/stock-control";
 import { productStockTabPathname } from "@/features/products/product-detail-route";
 import { productFromPurchasePath } from "../purchases-route";
 import type { PurchaseFormItem, ReceiveForm } from "../types";
@@ -158,6 +160,10 @@ export function usePurchases() {
     return Promise.all([
       queryClient.invalidateQueries({ queryKey: getGetPurchasesQueryKey() }),
       queryClient.invalidateQueries({ queryKey: RESOURCE_KEYS.products }),
+      // A compra que vai para A caminho sai do relatório e do alerta de estoque
+      // baixo (14/10/2026); sem isso, o vermelho do painel ficaria até um
+      // minuto com o número velho.
+      queryClient.invalidateQueries({ queryKey: getGetLowStockQueryKey() }),
     ]);
   }
 
@@ -236,6 +242,12 @@ export function usePurchases() {
         description: `${purchase.quantity} un. de ${purchase.productName} entraram no estoque.`,
       });
       announceReactivatedProducts(purchase.reactivatedProducts);
+      // Compra pequena de atacado ou varejo (14/10/2026): o produto saiu do
+      // controle de estoque. Com um toast por vez na tela, este SUBSTITUI o
+      // "Compra lançada" de propósito — é o que surpreende; a entrada gravada a
+      // pessoa vê na aba Estoque, para onde a tela vai agora.
+      const planTrip = planTripNotice(purchase.planTripProducts);
+      if (planTrip) toast({ ...planTrip, variant: "warning" });
       // Na aba de Estoque: a entrada que este recebimento acabou de gravar e o
       // que a pessoa veio conferir.
       if (purchase.productGroupId)

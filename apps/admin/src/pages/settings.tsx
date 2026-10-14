@@ -17,6 +17,8 @@ export default function CompanySettings() {
     setDefaultMinStock,
     restockScoreCutoff,
     setRestockScoreCutoff,
+    smallPurchaseMaxQuantity,
+    setSmallPurchaseMaxQuantity,
     defaultAreaCode,
     setDefaultAreaCode,
     isDirty,
@@ -49,6 +51,8 @@ export default function CompanySettings() {
         onDefaultMinStockChange={setDefaultMinStock}
         restockScoreCutoff={restockScoreCutoff}
         onRestockScoreCutoffChange={setRestockScoreCutoff}
+        smallPurchaseMaxQuantity={smallPurchaseMaxQuantity}
+        onSmallPurchaseMaxQuantityChange={setSmallPurchaseMaxQuantity}
         defaultAreaCode={defaultAreaCode}
         onDefaultAreaCodeChange={setDefaultAreaCode}
         isDirty={isDirty}

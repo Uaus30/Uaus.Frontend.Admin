@@ -1,15 +1,11 @@
 import * as React from "react";
-import { Badge } from "@workspace/ui";
-import { Button } from "@workspace/ui";
-import { ConfirmDialog } from "@workspace/ui";
-import { Input } from "@workspace/ui";
+import { Badge, Button, ConfirmDialog, Input, Spinner } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { Spinner } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
-import { formatPhone } from "@workspace/core";
+import { formatCurrency, formatPhone } from "@workspace/core";
 import type { ApiError, SupplierDto, UiPagedResult } from "@workspace/api-client-react";
 import { Edit2, Search, Trash2 } from "lucide-react";
 import { whatsappUrl } from "../constants";
+import { SupplierTypeBadge } from "./SupplierTypeBadge";
 import type { EnumOption } from "../types";
 
 /**
@@ -197,6 +193,7 @@ export function SuppliersTable({
                       <SupplierAvatar name={supplier.name} color={supplier.avatarColor} size="sm" />
                       <div>
                         <p className="leading-tight font-medium text-foreground">{supplier.name}</p>
+                        <SupplierTypeBadge type={supplier.type} />
                         {supplier.corporateName && (
                           <p className="mt-0.5 text-xs text-muted-foreground">{supplier.corporateName}</p>
                         )}

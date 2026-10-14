@@ -1,4 +1,6 @@
 import { normalizeSearchText } from "@workspace/core";
+import type { SupplierType } from "@workspace/api-client-react";
+import type { SupplierForm } from "./types";
 
 /**
  * Catálogos e funções puras da tela de fornecedores.
@@ -90,3 +92,56 @@ export function whatsappUrl(phone: string): string {
   const number = digits.startsWith("55") ? digits : `55${digits}`;
   return `https://wa.me/${number}`;
 }
+
+/**
+ * O formulário em branco do cadastro novo, com o status escolhido.
+ *
+ * Saiu do hook (14/10/2026), onde o mesmo literal aparecia duas vezes — no
+ * estado inicial e no "Novo fornecedor" —, e um campo acrescentado em um só dos
+ * dois nasceria indefinido no outro.
+ */
+export function emptySupplierForm(status: string): SupplierForm {
+  return {
+    name: "",
+    corporateName: "",
+    document: "",
+    salesRepresentative: "",
+    phone: "",
+    email: "",
+    minimumPurchaseValue: "",
+    status,
+    city: "",
+    state: "PR",
+    avatarColor: randomColor(),
+    description: "",
+    isRecurring: false,
+    type: "",
+  };
+}
+
+/**
+ * O que cada tipo de fornecedor muda fora desta tela (14/10/2026), na frase que
+ * aparece embaixo do seletor.
+ *
+ * Fica escrito porque nenhum efeito é visível aqui: um seletor sem consequência
+ * aparente é escolhido sem ler, e o tipo errado liga ou desliga regra de compra
+ * e de estoque sem ninguém perceber.
+ */
+export const SUPPLIER_TYPE_HINTS: Record<SupplierType, string> = {
+  Marketplace:
+    "Plataforma com vários vendedores (Shopee, Mercado Livre, Amazon). As compras deste fornecedor " +
+    "exigem o link do anúncio para sair de Pendente — sem ele não há como reencontrar o item depois.",
+  Wholesale:
+    "Compras de poucas unidades de um produto (limite em Configurações › Estoque) deixam o controle de " +
+    'estoque dele desligado com o motivo "Planejar viagem" — repor exige ir até lá. Ele aparece na ' +
+    "Lista de Compras quando tiver boa saída.",
+  Retail:
+    "Compras de poucas unidades de um produto (limite em Configurações › Estoque) deixam o controle de " +
+    'estoque dele desligado com o motivo "Planejar viagem" — repor exige ir até lá. Ele aparece na ' +
+    "Lista de Compras quando tiver boa saída.",
+  Factory:
+    "Compra direta da fábrica (pedido por WhatsApp, entrega por transportadora). Fica fora da regra da " +
+    "compra pequena: o produto continua no relatório de estoque baixo.",
+  Distributor: "Sem efeito em outras telas.",
+  Other: "Sem efeito em outras telas.",
+};

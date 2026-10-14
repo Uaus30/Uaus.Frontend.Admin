@@ -23,6 +23,10 @@ type LowStockAlertProps = {
  * controle sozinho, esse ruído não chega mais à lista, e dois números para a
  * mesma pergunta só confundiam. Quem define o critério é o backend.
  *
+ * Desde 14/10/2026 o backend tira da conta quem já tem compra A caminho — o
+ * mesmo critério do selo "Comprado" da listagem —, e o alerta segue igual à aba
+ * "Para repor" com a caixa "Incluir os com compra a caminho" desmarcada.
+ *
  * É um componente com query, e não uma prop da página, de propósito: ele mora
  * em duas telas (painel e produtos) e as duas mostrariam exatamente o mesmo
  * dado. Repetir a query em cada hook de página seria a duplicata que diverge.

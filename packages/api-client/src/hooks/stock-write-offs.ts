@@ -250,6 +250,14 @@ export interface CompanySettingsDto {
    */
   restockScoreCutoff?: number;
   /**
+   * Compra pequena de atacado e varejo (0 a 100; 5 de fábrica, 14/10/2026): a
+   * entrada de compra de fornecedor Atacado ou Varejo com até este número de
+   * unidades de um produto desliga o controle de estoque dele com o motivo
+   * "Planejar viagem". Zero desliga a regra. Ausente num backend anterior;
+   * omitido (ou nulo) na gravação, o servidor mantém o gravado.
+   */
+  smallPurchaseMaxQuantity?: number;
+  /**
    * DDD que vale para o telefone de cliente digitado sem ele (44 de fábrica).
    * O PDV o guarda na cópia local para cadastrar e buscar sem internet. Ausente
    * num backend anterior a 01/10/2026; omitido na gravação, o servidor mantém.

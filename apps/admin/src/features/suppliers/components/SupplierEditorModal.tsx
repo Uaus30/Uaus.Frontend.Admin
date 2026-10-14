@@ -7,6 +7,7 @@ import { cleanPhone, formatPhone } from "@workspace/core";
 import { UF_LIST, randomColor } from "../constants";
 import type { EnumOption, SupplierForm } from "../types";
 import { SupplierFlagsFields } from "./SupplierFlagsFields";
+import { SupplierTypeField } from "./SupplierTypeField";
 
 /**
  * Retorna as iniciais de um nome para exibição no avatar.
@@ -83,7 +84,7 @@ export function SupplierEditorModal({
   const [avatarColor, setAvatarColor] = useState(initialForm.avatarColor || "");
 
   const [isRecurring, setIsRecurring] = useState(initialForm.isRecurring);
-  const [isMarketplace, setIsMarketplace] = useState(initialForm.isMarketplace);
+  const [type, setType] = useState(initialForm.type);
 
   useEffect(() => {
     if (open) {
@@ -92,7 +93,7 @@ export function SupplierEditorModal({
       setState(initialForm.state || "");
       setAvatarColor(initialForm.avatarColor || "");
       setIsRecurring(initialForm.isRecurring);
-      setIsMarketplace(initialForm.isMarketplace);
+      setType(initialForm.type);
     }
   }, [open, initialForm]);
 
@@ -121,7 +122,7 @@ export function SupplierEditorModal({
       avatarColor,
       description: descriptionRef.current?.value || "",
       isRecurring,
-      isMarketplace,
+      type,
     });
   };
 
@@ -236,6 +237,9 @@ export function SupplierEditorModal({
                 />
               </div>
             </div>
+            <div className="mt-4">
+              <SupplierTypeField value={type} onChange={setType} />
+            </div>
           </div>
 
           <fieldset className="space-y-4 rounded-xl border border-border/40 p-4">
@@ -308,12 +312,7 @@ export function SupplierEditorModal({
                 />
               </div>
 
-              <SupplierFlagsFields
-                isRecurring={isRecurring}
-                onIsRecurringChange={setIsRecurring}
-                isMarketplace={isMarketplace}
-                onIsMarketplaceChange={setIsMarketplace}
-              />
+              <SupplierFlagsFields isRecurring={isRecurring} onIsRecurringChange={setIsRecurring} />
             </div>
           </fieldset>
 

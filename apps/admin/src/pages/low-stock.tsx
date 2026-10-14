@@ -4,6 +4,7 @@ import { useLowStock } from "@/features/low-stock/hooks/useLowStock";
 import { LowStockTable } from "@/features/low-stock/components/LowStockTable";
 import { LowStockConfirmDialog } from "@/features/low-stock/components/LowStockConfirmDialog";
 import { LowStockScopeTabs } from "@/features/low-stock/components/LowStockScopeTabs";
+import { ReportTotalBar } from "@/features/low-stock/components/ReportTotalBar";
 
 /**
  * Relatório de estoque baixo.
@@ -13,7 +14,9 @@ import { LowStockScopeTabs } from "@/features/low-stock/components/LowStockScope
  *
  * Os dois cards de contagem (pendentes e resolvidos) saíram em 06/09/2026: eles
  * repetiam, em números grandes, o que a própria lista mostra logo abaixo — e o
- * alerta que traz a pessoa até aqui já disse quantos são.
+ * alerta que traz a pessoa até aqui já disse quantos são. O total que voltou em
+ * 14/10/2026 é uma linha só, com a caixa da compra a caminho ao lado — é ela
+ * que muda o número, e os dois precisam estar juntos.
  */
 export default function LowStock() {
   const report = useLowStock();
@@ -30,7 +33,9 @@ export default function LowStock() {
               prevista e os que <strong>chegaram ao estoque mínimo</strong>. Todo produto é controlado, menos
               os que vendem menos de 1 por mês e os que alguém desligou — esses ficam em{" "}
               <strong>Fora do controle</strong>, de onde se religa. <strong>Comprar</strong> abre o pedido de
-              reposição já preenchido; uma entrada de estoque tira o produto daqui sozinha.
+              reposição já preenchido; uma entrada de estoque tira o produto daqui sozinha. Quem já tem compra{" "}
+              <strong>A caminho</strong> fica fora da lista e do alerta — marque &quot;Incluir os com compra a
+              caminho&quot; para ver tudo.
             </p>
           </div>
           <Button
@@ -48,6 +53,17 @@ export default function LowStock() {
         </div>
 
         <LowStockScopeTabs scope={report.scope} onChange={report.setScope} />
+
+        {report.scope === "Restock" && (
+          <ReportTotalBar
+            total={report.total}
+            suffix="para repor"
+            isLoading={report.isLoading}
+            includePurchasesInTransit={report.includePurchasesInTransit}
+            onIncludePurchasesInTransitChange={report.setIncludePurchasesInTransit}
+            excludedWithPurchaseInTransit={report.withPurchaseInTransit}
+          />
+        )}
 
         <LowStockTable
           scope={report.scope}

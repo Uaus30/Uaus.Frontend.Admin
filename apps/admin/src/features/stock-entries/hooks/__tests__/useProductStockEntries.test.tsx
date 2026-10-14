@@ -261,6 +261,34 @@ describe("useProductStockEntries", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: RESOURCE_KEYS.products });
   });
 
+  it("avisa quem a entrada tirou do controle de estoque com Planejar viagem (14/10/2026)", async () => {
+    renderHook(() => useProductStockEntries(201), { wrapper: createWrapper() });
+
+    await act(async () =>
+      receiveOptions().mutation.onSuccess({
+        id: 77,
+        planTripProducts: [
+          { productId: 201, productName: "COPO [AZUL]" },
+          { productId: 202, productName: "COPO [VERDE]" },
+        ],
+      }),
+    );
+
+    expect(mockToast).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: "2 produtos ficaram fora do controle de estoque",
+        description: expect.stringContaining("COPO [AZUL], COPO [VERDE]"),
+        variant: "warning",
+      }),
+    );
+
+    // Entrada comum: a API omite o campo, e o único aviso é o de sucesso.
+    mockToast.mockClear();
+    await act(async () => receiveOptions().mutation.onSuccess({ id: 78 }));
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: "warning" }));
+  });
+
   it("anuncia quem a entrada reativou — o aviso e o formulário do produto escutam", async () => {
     dismissReactivatedProducts();
     const reativados = [{ productId: 201, productName: "BALDE [PRETO]", previousStatus: "OutOfStock" }];

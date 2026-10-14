@@ -48,6 +48,7 @@ const serverSettings = {
   siteNewProductsCount: 20,
   defaultMinStock: 3,
   restockScoreCutoff: 60,
+  smallPurchaseMaxQuantity: 4,
   defaultAreaCode: 44,
 };
 
@@ -412,6 +413,66 @@ describe("useCompanySettings — nota de corte da reposição (04/10/2026)", () 
     expect(mocks.updateCompanySettings).not.toHaveBeenCalled();
     expect(mocks.toast).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Nota de corte da reposição inválida", variant: "destructive" }),
+    );
+  });
+});
+
+describe("useCompanySettings — compra pequena de atacado e varejo (14/10/2026)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useGetCompanySettings.mockReturnValue({ data: { ...serverSettings }, isLoading: false });
+    mocks.updateCompanySettings.mockResolvedValue({ ...serverSettings });
+  });
+
+  it("assume 5 de fábrica quando o backend não conhece o campo", async () => {
+    const { smallPurchaseMaxQuantity: _ignorado, ...semOCampo } = serverSettings;
+    mocks.useGetCompanySettings.mockReturnValue({ data: semOCampo, isLoading: false });
+
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.defaultMinStock).toBe(3));
+    expect(result.current.smallPurchaseMaxQuantity).toBe(5);
+    // O padrão local não pode contar como alteração: o botão nasceria habilitado.
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it("assume o valor do servidor e grava o valor editado, inclusive o zero que desliga a regra", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.smallPurchaseMaxQuantity).toBe(4));
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => result.current.setSmallPurchaseMaxQuantity(0));
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => {
+      result.current.handleSubmit(submitEvent);
+    });
+
+    await waitFor(() =>
+      expect(mocks.updateCompanySettings).toHaveBeenCalledWith(
+        expect.objectContaining({ smallPurchaseMaxQuantity: 0 }),
+      ),
+    );
+  });
+
+  it("não grava fora de 0 a 100 nem fracionado, e avisa", async () => {
+    const { result } = renderHook(() => useCompanySettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.smallPurchaseMaxQuantity).toBe(4));
+    for (const invalida of [-1, 101, 2.5]) {
+      act(() => result.current.setSmallPurchaseMaxQuantity(invalida));
+      await act(async () => {
+        result.current.handleSubmit(submitEvent);
+      });
+    }
+
+    expect(mocks.updateCompanySettings).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Compra pequena de atacado e varejo inválida",
+        variant: "destructive",
+      }),
     );
   });
 });

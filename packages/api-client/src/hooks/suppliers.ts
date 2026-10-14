@@ -17,10 +17,33 @@ import {
   mapPagedResult,
   fetchAllPages,
 } from "../client";
-import type { BackendPagedResult, EnumOptionDto, QueryKey, SupplierDto, UiPagedResult } from "../models";
+import type {
+  BackendPagedResult,
+  EnumOptionDto,
+  QueryKey,
+  SupplierDto,
+  SupplierType,
+  UiPagedResult,
+} from "../models";
 
-export type CreateSupplierPayload = Omit<SupplierDto, "id" | "createdAt" | "updatedAt">;
-export type UpdateSupplierPayload = CreateSupplierPayload;
+/**
+ * Corpo do `POST /Suppliers`.
+ *
+ * Sem `isMarketplace` desde 14/10/2026: ele virou derivado do `type` no
+ * servidor. O `type` é OBRIGATÓRIO na criação — sem ele a API responde 400.
+ */
+export type CreateSupplierPayload = Omit<
+  SupplierDto,
+  "id" | "createdAt" | "updatedAt" | "isMarketplace" | "type"
+> & {
+  type: SupplierType;
+};
+
+/**
+ * Corpo do `PUT /Suppliers`. O `type` é opcional: ausente, o servidor mantém o
+ * gravado — é o que deixa editar um fornecedor antigo sem escolher o tipo dele.
+ */
+export type UpdateSupplierPayload = Omit<CreateSupplierPayload, "type"> & { type?: SupplierType };
 
 /** Filtros da listagem paginada de fornecedores. */
 export interface SuppliersPageParams {

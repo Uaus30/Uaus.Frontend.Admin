@@ -1,3 +1,5 @@
+import type { SupplierType } from "@workspace/api-client-react";
+
 /**
  * Interface que representa os campos do formulário de Fornecedores.
  */
@@ -17,10 +19,13 @@ export interface SupplierForm {
   /** Compra recorrente — filtro da tela de desempenho de fornecedores. */
   isRecurring: boolean;
   /**
-   * Plataforma com vários vendedores (Shopee, Mercado Livre). Passa a EXIGIR o
-   * link do anúncio na compra fora de Pendente.
+   * Tipo do fornecedor (14/10/2026), que substituiu a chave "É um marketplace".
+   * Vazio é "não escolhido": o cadastro novo não nasce com tipo pré-escolhido,
+   * porque um padrão seria aceito sem ler — e o tipo muda regra de outras telas
+   * (link obrigatório na compra, compra pequena que desliga o controle de
+   * estoque).
    */
-  isMarketplace: boolean;
+  type: SupplierType | "";
 }
 
 // O DTO já existe no contrato — redeclará-lo aqui criava duas verdades sobre a

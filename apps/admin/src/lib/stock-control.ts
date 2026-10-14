@@ -1,4 +1,8 @@
-import type { StockControlDisabledReason, StockForecastStatus } from "@workspace/api-client-react";
+import type {
+  PlanTripProductDto,
+  StockControlDisabledReason,
+  StockForecastStatus,
+} from "@workspace/api-client-react";
 
 /**
  * Vocabulário do controle de estoque (29/09/2026), usado pelo relatório de
@@ -14,6 +18,13 @@ export const STANDARD_DEFAULT_MIN_STOCK = 2;
 
 /** Nota de corte da reposição de fábrica (04/10/2026) — a mesma do backend e do DEFAULT da coluna. */
 export const STANDARD_RESTOCK_SCORE_CUTOFF = 50;
+
+/**
+ * Compra pequena de atacado e varejo de fábrica (14/10/2026) — o mesmo número do
+ * backend e do DEFAULT da coluna: entrada de até 5 unidades de um produto, de
+ * fornecedor Atacado ou Varejo, desliga o controle dele com "Planejar viagem".
+ */
+export const STANDARD_SMALL_PURCHASE_MAX_QUANTITY = 5;
 
 /** Onde se muda o estoque mínimo padrão: a seção Estoque das Configurações. */
 export const STOCK_SETTINGS_PATH = "/configuracoes#estoque";
@@ -31,6 +42,14 @@ export const STOCK_CONTROL_DISABLED_REASONS: ReadonlyArray<{
     value: "EndOfLine",
     label: "Fim de linha",
     hint: "Sem fornecedor para repor. Se entrar mercadoria dele, o controle volta sozinho.",
+  },
+  {
+    value: "PlanTrip",
+    label: "Planejar viagem",
+    hint:
+      "Produto de atacado ou varejo que só se repõe com viagem até o fornecedor. Fica na Lista de Compras " +
+      "quando tiver boa saída. Uma entrada de compra acima do limite das Configurações, ou de outro tipo de " +
+      "fornecedor, religa o controle sozinha.",
   },
   { value: "InternalUse", label: "Brinde ou uso interno", hint: "Não é para vender nem repor." },
   { value: "Seasonal", label: "Sazonal", hint: "Só se compra na temporada." },
@@ -108,4 +127,42 @@ export function suggestedRestockQuantity(product: {
   const pelaDemanda = Math.ceil((product.dailyDemand ?? 0) * RESTOCK_COVER_DAYS) - saldo;
   const peloMinimo = (product.minStock ?? 0) - saldo;
   return Math.max(1, pelaDemanda, peloMinimo);
+}
+
+/** Quantos nomes o aviso de "Planejar viagem" cita antes de resumir em "e mais N". */
+const PLAN_TRIP_NAMES_SHOWN = 3;
+
+/**
+ * O aviso depois de uma entrada de compra que desligou o controle de estoque de
+ * alguém com "Planejar viagem" (14/10/2026); `null` quando ninguém saiu — o
+ * caso comum, em que a API omite o campo.
+ *
+ * Existe porque o efeito é silencioso e acontece longe da tela: a compra de 3
+ * unidades no atacado tira o produto do relatório de estoque baixo, e sem o
+ * aviso quem lançou a entrada só descobriria ao procurar o produto lá.
+ *
+ * Mora aqui, e não num hook, porque duas features lançam entrada de compra — o
+ * recebimento de compra e a aba Estoque do produto — e o texto tem de ser um só.
+ */
+export function planTripNotice(
+  products: PlanTripProductDto[] | null | undefined,
+): { title: string; description: string } | null {
+  if (!products || products.length === 0) return null;
+
+  const total = products.length;
+  const nomes = products
+    .slice(0, PLAN_TRIP_NAMES_SHOWN)
+    .map((product) => product.productName)
+    .join(", ");
+  const resto = total > PLAN_TRIP_NAMES_SHOWN ? ` e mais ${total - PLAN_TRIP_NAMES_SHOWN}` : "";
+
+  return {
+    title:
+      total === 1
+        ? "1 produto ficou fora do controle de estoque"
+        : `${total} produtos ficaram fora do controle de estoque`,
+    description:
+      `${nomes}${resto}: motivo Planejar viagem — ` +
+      `${total === 1 ? "aparece" : "aparecem"} na Lista de Compras quando ${total === 1 ? "tiver" : "tiverem"} boa saída.`,
+  };
 }

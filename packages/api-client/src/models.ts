@@ -519,9 +519,12 @@ export interface UpdatePaymentMethodRequest {
  * quando entra mercadoria do produto. `PoorPerformance` (04/10/2026) só a
  * rotina diária grava — nota de reposição abaixo do corte das Configurações —
  * e também religa sozinho com a entrada de compra; não vai no seletor.
+ * `PlanTrip` (14/10/2026) é o produto de atacado ou varejo que só se repõe com
+ * viagem: a entrada de compra pequena desses fornecedores o grava sozinha, e
+ * também se escolhe à mão. Fica na Lista de Compras quando tem boa saída.
  */
 export type StockControlDisabledReason =
-  "EndOfLine" | "InternalUse" | "Seasonal" | "Other" | "PoorPerformance";
+  "EndOfLine" | "InternalUse" | "Seasonal" | "Other" | "PoorPerformance" | "PlanTrip";
 
 /**
  * Como a rotina diária classificou o produto: `Controlled` vende o bastante
@@ -821,8 +824,48 @@ export interface SupplierDto {
    * O "fornecedor" é uma plataforma com vários vendedores (Shopee, Mercado
    * Livre). Exige o link na compra fora de Pendente e dispensa a leitura de
    * risco por concentração de faturamento.
+   *
+   * Desde 14/10/2026 é DERIVADO de `type === "Marketplace"` no servidor: continua
+   * na resposta para quem já o lê (compras, desempenho de fornecedores), mas não
+   * vai mais no cadastro — quem grava é o `type`.
    */
   isMarketplace: boolean;
+  /**
+   * Tipo do fornecedor (14/10/2026), pelo NOME do enum. Opcional por segurança
+   * de versão: um backend anterior responde sem ele, e a tela trata como "não
+   * informado".
+   */
+  type?: SupplierType;
+}
+
+/**
+ * Tipo do fornecedor (14/10/2026). O backend serializa pelo NOME.
+ *
+ * - `Marketplace`: plataforma com vários vendedores — a compra exige o link.
+ * - `Wholesale` (atacado) e `Retail` (varejo): a entrada de compra com poucas
+ *   unidades de um produto (limite em Configurações › Estoque) desliga o
+ *   controle de estoque dele com o motivo `PlanTrip`.
+ * - `Factory`: compra direta da fábrica, fora da regra acima.
+ * - `Distributor` e `Other`: sem efeito em outras telas.
+ */
+export type SupplierType = "Wholesale" | "Distributor" | "Factory" | "Marketplace" | "Retail" | "Other";
+
+/**
+ * Os tipos na ordem do seletor, com o rótulo de tela: alfabética, com "Outros"
+ * por último — "Outros" no meio do alfabeto esconderia a opção de escape.
+ */
+export const SUPPLIER_TYPE_OPTIONS: ReadonlyArray<{ value: SupplierType; label: string }> = [
+  { value: "Wholesale", label: "Atacado" },
+  { value: "Distributor", label: "Distribuidor" },
+  { value: "Factory", label: "Fábrica" },
+  { value: "Marketplace", label: "Marketplace" },
+  { value: "Retail", label: "Varejo" },
+  { value: "Other", label: "Outros" },
+];
+
+/** Rótulo do tipo; vazio quando o backend não o mandou. */
+export function supplierTypeLabel(type: SupplierType | null | undefined): string {
+  return SUPPLIER_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? "";
 }
 
 export interface SaleDto {

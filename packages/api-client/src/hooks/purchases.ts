@@ -87,6 +87,18 @@ export interface ReactivatedProductDto {
   previousStatus: string;
 }
 
+/**
+ * Produto cujo controle de estoque a entrada DESLIGOU com o motivo "Planejar
+ * viagem" (14/10/2026): compra de poucas unidades (até o limite de
+ * Configurações › Estoque) de fornecedor Atacado ou Varejo. Ele sai do
+ * relatório de estoque baixo e aparece na Lista de Compras quando tiver boa saída.
+ */
+export interface PlanTripProductDto {
+  productId: number;
+  /** Nome composto da variação ("BALDE 5L [PRETO]"). */
+  productName: string;
+}
+
 export interface ReceivedPurchaseEntryDto {
   id: number;
   createdAt: string;
@@ -116,6 +128,11 @@ export interface ReceivedPurchaseEntryDto {
    * qualquer outra leitura a API omite o campo.
    */
   reactivatedProducts?: ReactivatedProductDto[];
+  /**
+   * Só na resposta do `receive`, e só quando a entrada desligou o controle de
+   * estoque de alguém com "Planejar viagem" (14/10/2026). Omitido quando vazio.
+   */
+  planTripProducts?: PlanTripProductDto[];
 }
 
 export interface ReceivePurchaseEntryItemRequest {

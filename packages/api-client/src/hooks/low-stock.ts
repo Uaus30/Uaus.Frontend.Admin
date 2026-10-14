@@ -32,6 +32,19 @@ export interface LowStockItemDto {
   supplierName?: string | null;
   /** Id do mesmo fornecedor — a compra de reposição abre já com ele escolhido. */
   supplierId?: number | null;
+  /**
+   * Cidade do mesmo fornecedor (14/10/2026) — é por ela que a Lista de Compras
+   * agrupa a viagem. Omitida sem lote ou sem cidade no cadastro.
+   */
+  supplierCity?: string | null;
+  /**
+   * Quantidade da última ENTRADA DE COMPRA do produto (14/10/2026): o "comprei
+   * 3" que explica por que um produto de atacado ficou fora do controle. Omitida
+   * sem compra.
+   */
+  lastPurchaseQuantity?: number | null;
+  /** Data dessa entrada, sem fuso (`yyyy-MM-ddT00:00:00`). Omitida sem compra. */
+  lastPurchaseDate?: string | null;
   /** Caminho relativo da foto principal; passe por `buildPublicImageUrl`. Ausente sem foto. */
   imageUrl?: string | null;
   stock: number;
@@ -93,8 +106,20 @@ export interface LowStockSummaryDto {
    * Quantos produtos precisam de reposição — o MESMO número do relatório sem
    * filtro (29/09/2026). Até ali o alerta era um subconjunto; com o giro baixo
    * saindo do controle sozinho, dois números para a mesma pergunta só confundiam.
+   *
+   * Desde 14/10/2026 NÃO conta quem já tem compra **A caminho** (`InTransit`):
+   * a mercadoria está vindo, e o alerta vermelho por ela só ensinava a ignorar
+   * o alerta. É o mesmo critério do selo "Comprado" da listagem de produtos
+   * (04/10/2026). Compra **Pendente** continua contando — é anotação de "preciso
+   * comprar", o pedido ainda não saiu. É o mesmo número da aba "Para repor" sem
+   * a caixa "Incluir os com compra a caminho".
    */
   restock: number;
+  /**
+   * Quantos precisam de reposição mas já têm compra A caminho (14/10/2026) — o
+   * que ficou FORA de `restock`. Opcional por segurança de versão.
+   */
+  withPurchaseInTransit?: number;
 }
 
 /**
@@ -120,8 +145,13 @@ export type LowStockSort = "Default" | "RecentSalesDesc" | "RecentSalesAsc";
  * Qual lista: o que precisa de reposição (`Restock`, o padrão) ou o que está
  * fora do controle — desligado à mão ou ignorado por giro baixo — de onde se
  * religa (`OutOfControl`).
+ *
+ * `ShoppingList` (14/10/2026) é a Lista de Compras: os produtos com boa saída
+ * que merecem reposição — os controlados que entrariam em `Restock` e também os
+ * que ficaram fora do controle com o motivo `PlanTrip` —, filtráveis por
+ * fornecedor ou pela cidade dele, para planejar a viagem ou o pedido.
  */
-export type LowStockScope = "Restock" | "OutOfControl";
+export type LowStockScope = "Restock" | "OutOfControl" | "ShoppingList";
 
 export interface LowStockParams {
   /** Mesma busca das demais telas de produto (nome, descrição, código, grade). */
@@ -141,8 +171,46 @@ export interface LowStockParams {
   sort?: LowStockSort;
   /** Qual lista. Ausente vale `Restock`. */
   scope?: LowStockScope;
+  /** Só os produtos cujo lote mais recente é deste fornecedor (14/10/2026). */
+  supplierId?: number;
+  /**
+   * Só os produtos de fornecedor desta cidade (14/10/2026). Vai como foi
+   * mostrado no seletor: o backend compara sem acento e sem caixa.
+   */
+  city?: string;
+  /**
+   * Inclui quem já tem compra A caminho (14/10/2026). Ausente vale falso: em
+   * `Restock` e `ShoppingList` quem tem mercadoria vindo fica fora da lista e
+   * da contagem. A compra Pendente não tira ninguém — ela continua na lista,
+   * com o "Compra em aberto" no lugar do botão (`hasOpenPurchase`).
+   */
+  includePurchasesInTransit?: boolean;
   page?: number;
   limit?: number;
+}
+
+/**
+ * Uma página do relatório, fora do React Query.
+ *
+ * É a mesma leitura do {@link useGetLowStock}; existe separada para a
+ * exportação, que pede a lista inteira de uma vez com os filtros da tela. Antes
+ * a exportação montava o `/LowStock` à mão na feature — o caminho do recurso
+ * em dois lugares.
+ */
+export async function getLowStockPage(params?: LowStockParams): Promise<UiPagedResult<LowStockItemDto>> {
+  const result = await apiGetOrThrow<BackendPagedResult<LowStockItemDto>>("/LowStock", {
+    search: params?.search,
+    maxStock: params?.maxStock,
+    minRecentSales: params?.minRecentSales,
+    sort: params?.sort,
+    scope: params?.scope,
+    supplierId: params?.supplierId,
+    city: params?.city,
+    includePurchasesInTransit: params?.includePurchasesInTransit,
+    page: params?.page ?? 1,
+    size: params?.limit ?? 20,
+  });
+  return mapPagedResult(result);
 }
 
 /** Página do relatório: esgotados primeiro, depois do que dura menos para o que dura mais. */
@@ -157,18 +225,7 @@ export function useGetLowStock(
 ) {
   return useQuery<UiPagedResult<LowStockItemDto>, ApiError, UiPagedResult<LowStockItemDto>, QueryKey>({
     queryKey: [...getGetLowStockQueryKey(), "page", params ?? {}],
-    queryFn: async () => {
-      const result = await apiGetOrThrow<BackendPagedResult<LowStockItemDto>>("/LowStock", {
-        search: params?.search,
-        maxStock: params?.maxStock,
-        minRecentSales: params?.minRecentSales,
-        sort: params?.sort,
-        scope: params?.scope,
-        page: params?.page ?? 1,
-        size: params?.limit ?? 20,
-      });
-      return mapPagedResult(result);
-    },
+    queryFn: () => getLowStockPage(params),
     ...options?.query,
   });
 }

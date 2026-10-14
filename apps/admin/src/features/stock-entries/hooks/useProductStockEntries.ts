@@ -16,6 +16,7 @@ import { getProductById } from "@/services/products.service";
 import { RESOURCE_KEYS, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { announceReactivatedProducts, reactivationBetween } from "@/lib/product-reactivation";
+import { planTripNotice } from "@/lib/stock-control";
 import type { StockEntryPrefill } from "../types";
 
 export type UseProductStockEntriesOptions = {
@@ -149,6 +150,11 @@ export function useProductStockEntries(
         await invalidateAfterEntry();
         const after = queryClient.getQueryData<ProductDto>(["product-for-entry", productId]);
         announceReactivatedProducts(entry.reactivatedProducts ?? reactivationBetween(before, after));
+        // Compra pequena de atacado ou varejo (14/10/2026): o produto saiu do
+        // controle de estoque. Substitui o "Sucesso" (um toast por vez) — a
+        // entrada gravada já aparece na lista logo abaixo.
+        const planTrip = planTripNotice(entry.planTripProducts);
+        if (planTrip) toast({ ...planTrip, variant: "warning" });
         onEntrySaved?.(entry.id);
       },
       onError: (err: unknown) => {

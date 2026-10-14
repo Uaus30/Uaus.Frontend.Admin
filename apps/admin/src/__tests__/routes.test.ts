@@ -215,9 +215,11 @@ describe("buildMenu", () => {
     const menu = buildMenu();
 
     const relatorios = menu.find((item) => item.name === "Relatórios");
+    // A Lista de Compras (14/10/2026) vem logo depois do estoque baixo.
     expect(relatorios?.items?.map((s) => s.href)).toEqual([
       "/estoque/inventario",
       "/relatorios/estoque-baixo",
+      "/relatorios/lista-de-compras",
     ]);
 
     const estoque = menu.find((item) => item.name === "Estoque");

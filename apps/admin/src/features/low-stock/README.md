@@ -1,7 +1,8 @@
 # Estoque baixo (`features/low-stock`)
 
-Relatório dos produtos que precisam de reposição e o alerta vermelho que
-aparece no painel e no topo da listagem de produtos.
+Relatório dos produtos que precisam de reposição, o alerta vermelho que
+aparece no painel e no topo da listagem de produtos e, desde 14/10/2026, a
+**Lista de Compras** (seção própria no fim deste arquivo).
 
 É uma tela **sem estado próprio**: ela responde "o que comprar hoje?" a cada
 consulta e não guarda nada sobre o que já foi tratado — isso vive nas compras e
@@ -50,8 +51,12 @@ nas entradas de estoque.
     **lançada** não conta: ela já virou entrada.
 - **O menu da linha.**
   - **Desligar controle de estoque** (com confirmação e motivo opcional: Fim de
-    linha, Brinde ou uso interno, Sazonal, Outro). Não mexe no mínimo. Fim de
-    linha **religa sozinho** quando entra compra do produto. Até 29/09/2026 a
+    linha, Planejar viagem, Brinde ou uso interno, Sazonal, Outro). Não mexe no
+    mínimo. Fim de linha **religa sozinho** quando entra compra do produto.
+    **Planejar viagem** (14/10/2026) é o produto de atacado ou varejo que só se
+    repõe com viagem: sai daqui e fica na Lista de Compras quando tiver boa
+    saída; uma entrada de compra acima do limite das Configurações, ou de outro
+    tipo de fornecedor, religa sozinha. Até 29/09/2026 a
     ação só zerava o mínimo, e o produto que acabava pelo ritmo de venda
     continuava na lista — o botão não fazia o que dizia.
   - **Religar controle de estoque**, sem confirmação: o mesmo menu desfaz.
@@ -63,6 +68,25 @@ nas entradas de estoque.
   29/09/2026 era um subconjunto (só quem vendeu no mês), porque a lista trazia o
   parado que estava acabando; com o giro baixo saindo sozinho, dois números para
   a mesma pergunta só confundiam. Com zero, o alerta some.
+- **Compra A caminho fica de fora por padrão (14/10/2026).** Produto com compra
+  **A caminho** (`InTransit`) não entra na aba "Para repor" nem no
+  `summary.restock` — logo, nem no alerta do painel e da listagem de produtos,
+  que não precisaram mudar. É o critério do selo "Comprado" da listagem de
+  produtos (04/10/2026): a mercadoria está vindo, e contá-la só ensinava a
+  ignorar o alerta. Compra **Pendente** continua contando — é anotação, o
+  pedido ainda não saiu —, com o "Compra em aberto" no lugar do botão.
+  - Na aba "Para repor", o **totalizador** ("N produtos para repor") e a caixa
+    **"Incluir os com compra a caminho"**, desmarcada, ficam juntos
+    (`ReportTotalBar`): a caixa muda o número. Marcada, a consulta leva
+    `includePurchasesInTransit=true` e traz tudo; desmarcada, com
+    `summary.withPurchaseInTransit` acima de zero, o total ganha
+    "+ M com compra a caminho" para o número menor não parecer perda. O "+ M" é
+    sem filtro (sai da contagem do alerta, mesma chave de cache), e por isso só
+    aparece com a tela sem filtro: com busca, teto de saldo ou mínimo de vendas,
+    ele não diria quantos a caixa traz de volta para ESTA lista (revisão de
+    14/10/2026). O total é sempre o da lista com os filtros da tela.
+  - A exportação respeita a caixa. Na aba "Fora do controle" ela não existe, e
+    o parâmetro não vai.
 - **A tela abre no critério do relatório, sem filtro semeado (12/09/2026).**
 
 ## Giro do produto (06/09/2026)
@@ -107,7 +131,12 @@ inventário: o pedido era cabeçalho formatado, e CSV não carrega formato nenhu
 
 - A exportação **refaz a consulta** com os filtros da tela (até mil linhas), em
   vez de usar a página em memória: ninguém exporta um relatório para receber as
-  vinte linhas da página corrente.
+  vinte linhas da página corrente. Desde 14/10/2026 ela mora em
+  `useLowStockExport`, que as duas telas usam, e a consulta é a
+  `getLowStockPage` do api-client — antes a feature montava o `/LowStock` à mão.
+- A planilha ganhou a **cidade do fornecedor** e a **última compra**
+  (quantidade e data) em 14/10/2026, que é o que se leva na viagem. O saldo em
+  vermelho acha a coluna pelo cabeçalho, não por índice fixo.
 - O ExcelJS entra por `import()` dinâmico **e** tem chunk próprio no
   `vite.config.ts` (`vendor-xlsx`). Sem a segunda parte o `manualChunks` o
   puxaria para o vendor comum, que todo mundo baixa no primeiro paint — foram
@@ -160,3 +189,45 @@ de `2xl`. A ordenação por vendas de 30 dias, que mora no cabeçalho, ganha um
 botão na barra (`lg:hidden`). As ações existem duas vezes no DOM (coluna e
 resumo); uma some por CSS. As funções de duração ficam em `lib/duracao.ts`,
 para a coluna e o resumo dizerem a mesma coisa.
+
+## Lista de Compras (14/10/2026)
+
+Relatório em `/relatorios/lista-de-compras` (`SHOPPING_LIST_REPORT_PATH`),
+logo depois de "Estoque baixo" no grupo Relatórios. Responde "o que vale
+comprar na próxima viagem ou pedido?".
+
+- **Por que existe.** Compra de variedade em pouca quantidade no atacado ou no
+  varejo (Master, Nossa Casa) não se repõe pelo pedido de sempre: exige ir até
+  Maringá ou Umuarama. A entrada de compra de fornecedor **Atacado** ou
+  **Varejo** com até N unidades de um produto (Configurações › Estoque, 5 de
+  fábrica; zero desliga) desliga o controle de estoque dele com o motivo
+  **"Planejar viagem"** — ele sai do relatório de estoque baixo, que é o do dia
+  a dia, e passa a aparecer aqui quando tiver boa saída. Quem decide é o
+  backend; a tela avisa com um toast na hora da entrada (`planTripNotice`, em
+  `src/lib/stock-control.ts`), no recebimento de compra e na aba Estoque do
+  produto.
+- **Quem entra.** `GET /LowStock?scope=ShoppingList`: produtos com boa saída
+  que esgotaram, duram menos de 30 dias ou chegaram ao mínimo — os controlados
+  **e** os fora do controle por "Planejar viagem". A linha destes leva o selo
+  âmbar **Planejar viagem**.
+- **Filtros.** Fornecedor (todos, Shopee primeiro como todo select de
+  fornecedor) e **cidade do fornecedor** — as cidades cadastradas, uma vez cada:
+  "Maringa", "MARINGÁ" e " Maringá " viram uma opção só (sem caixa, acento e
+  espaço sobrando), mostrada na grafia mais usada, a acentuada no empate. A
+  tela manda o **nome mostrado**; o backend compara sem acento e sem caixa.
+  Mais a busca, "Vendeu ao menos N em 30d" e a mesma caixa "Incluir os com
+  compra a caminho". Todo filtro volta à página 1 no próprio setter.
+- **Colunas.** Produto, Fornecedor (com a cidade embaixo), Estoque, Última
+  compra ("3 un. em 25/09/26", com o ano, lida do texto da API, sem `new Date` — armadilha 8),
+  Vendas 30d, Dura (`lib/duracao.ts`) e a ação. A ação é **Comprar**, a mesma
+  navegação do relatório (produto e último fornecedor na URL), ou o aviso
+  "Compra em aberto" quando já há compra (`hasOpenPurchase`, Pendente ou A caminho) — o texto do relatório, e não "Comprado", que na listagem de produtos é só A caminho.
+  Mesmo layout responsivo do relatório: abaixo do `lg`, só o produto com o
+  resumo embaixo; do `lg` ao `xl`, sem saldo e última compra.
+- **Exportação** em `lista-de-compras-<data>.xlsx`, aba "Lista de Compras",
+  com as mesmas colunas da planilha do relatório.
+- **Na mesma feature, e não numa nova**: é o mesmo recurso da API, e uma
+  feature nova teria de importar desta (duração, exportação) — import cruzado é
+  proibido. Hook, componentes e página próprios (`useShoppingList`,
+  `ShoppingListFilters`, `ShoppingListTable`, `pages/shopping-list.tsx`); o
+  `useLowStock`, que já passava de 300 linhas, não cresceu com ela.

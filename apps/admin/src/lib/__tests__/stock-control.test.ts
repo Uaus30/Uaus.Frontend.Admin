@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   forecastStatusLabel,
   outOfControlLabel,
+  planTripNotice,
   STOCK_CONTROL_DISABLED_REASONS,
   stockControlReasonLabel,
   suggestedRestockQuantity,
@@ -51,5 +52,54 @@ describe("rótulos do controle de estoque", () => {
       "Giro baixo",
     );
     expect(outOfControlLabel({ stockControlEnabled: true, forecastStatus: "Controlled" })).toBe("");
+  });
+});
+
+describe("motivo Planejar viagem (14/10/2026)", () => {
+  it("é escolhível à mão, logo depois de Fim de linha, e tem nome", () => {
+    const valores = STOCK_CONTROL_DISABLED_REASONS.map((item) => item.value);
+    expect(valores.indexOf("PlanTrip")).toBe(valores.indexOf("EndOfLine") + 1);
+    expect(stockControlReasonLabel("PlanTrip")).toBe("Planejar viagem");
+    expect(outOfControlLabel({ stockControlEnabled: false, stockControlDisabledReason: "PlanTrip" })).toBe(
+      "Desligado · Planejar viagem",
+    );
+  });
+});
+
+describe("planTripNotice", () => {
+  const produto = (productId: number, productName: string) => ({ productId, productName });
+
+  it("não avisa nada quando a entrada não desligou ninguém — a API omite o campo", () => {
+    expect(planTripNotice(undefined)).toBeNull();
+    expect(planTripNotice(null)).toBeNull();
+    expect(planTripNotice([])).toBeNull();
+  });
+
+  it("fala no singular com um produto só", () => {
+    expect(planTripNotice([produto(1, "BALDE 5L [PRETO]")])).toEqual({
+      title: "1 produto ficou fora do controle de estoque",
+      description:
+        "BALDE 5L [PRETO]: motivo Planejar viagem — aparece na Lista de Compras quando tiver boa saída.",
+    });
+  });
+
+  it("cita até três nomes e resume o resto", () => {
+    const aviso = planTripNotice([
+      produto(1, "BALDE"),
+      produto(2, "BACIA"),
+      produto(3, "COPO"),
+      produto(4, "PRATO"),
+      produto(5, "JARRA"),
+    ]);
+
+    expect(aviso?.title).toBe("5 produtos ficaram fora do controle de estoque");
+    expect(aviso?.description).toBe(
+      "BALDE, BACIA, COPO e mais 2: motivo Planejar viagem — aparecem na Lista de Compras quando tiverem boa saída.",
+    );
+  });
+
+  it("com exatamente três, cita os três sem o resumo", () => {
+    const aviso = planTripNotice([produto(1, "BALDE"), produto(2, "BACIA"), produto(3, "COPO")]);
+    expect(aviso?.description.startsWith("BALDE, BACIA, COPO: ")).toBe(true);
   });
 });

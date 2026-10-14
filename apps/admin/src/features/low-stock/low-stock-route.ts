@@ -14,3 +14,10 @@
  * ordena pelo que acaba antes.
  */
 export const LOW_STOCK_REPORT_PATH = "/relatorios/estoque-baixo";
+
+/**
+ * Caminho da Lista de Compras (14/10/2026), no grupo Relatórios logo depois do
+ * estoque baixo. Mora ao lado do caminho do relatório pelo mesmo motivo: é a
+ * única string dele.
+ */
+export const SHOPPING_LIST_REPORT_PATH = "/relatorios/lista-de-compras";

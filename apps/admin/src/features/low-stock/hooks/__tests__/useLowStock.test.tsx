@@ -9,7 +9,8 @@ const mocks = vi.hoisted(() => ({
   disableStockControl: vi.fn(),
   enableStockControl: vi.fn(),
   inactivateProduct: vi.fn(),
-  apiGetOrThrow: vi.fn(),
+  getLowStockPage: vi.fn(),
+  useGetLowStockSummary: vi.fn(),
   toast: vi.fn(),
   navigate: vi.fn(),
   exportLowStockToXlsx: vi.fn(),
@@ -22,7 +23,8 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   disableStockControl: mocks.disableStockControl,
   enableStockControl: mocks.enableStockControl,
   inactivateProduct: mocks.inactivateProduct,
-  apiGetOrThrow: mocks.apiGetOrThrow,
+  getLowStockPage: mocks.getLowStockPage,
+  useGetLowStockSummary: mocks.useGetLowStockSummary,
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -97,7 +99,14 @@ describe("useLowStock", () => {
     mocks.disableStockControl.mockResolvedValue({ ...bexiga, stockControlEnabled: false });
     mocks.enableStockControl.mockResolvedValue(bexiga);
     mocks.inactivateProduct.mockResolvedValue(bexiga);
-    mocks.apiGetOrThrow.mockResolvedValue({ items: [bexiga] });
+    mocks.getLowStockPage.mockResolvedValue({
+      data: [bexiga],
+      page: 1,
+      limit: 1000,
+      total: 1,
+      totalPages: 1,
+    });
+    mocks.useGetLowStockSummary.mockReturnValue({ data: { restock: 7, withPurchaseInTransit: 3 } });
     mocks.exportLowStockToXlsx.mockResolvedValue(undefined);
   });
 
@@ -324,14 +333,13 @@ describe("useLowStock", () => {
     });
 
     await waitFor(() =>
-      expect(mocks.apiGetOrThrow).toHaveBeenCalledWith(
-        "/LowStock",
+      expect(mocks.getLowStockPage).toHaveBeenCalledWith(
         expect.objectContaining({
           maxStock: 5,
           minRecentSales: 3,
           sort: "RecentSalesDesc",
           page: 1,
-          size: 1000,
+          limit: 1000,
         }),
       ),
     );
@@ -339,7 +347,7 @@ describe("useLowStock", () => {
   });
 
   it("avisa quando não há nada para exportar", async () => {
-    mocks.apiGetOrThrow.mockResolvedValueOnce({ items: [] });
+    mocks.getLowStockPage.mockResolvedValueOnce({ data: [], page: 1, limit: 1000, total: 0, totalPages: 1 });
     const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
 
     await act(async () => {
@@ -366,6 +374,93 @@ describe("useLowStock", () => {
     await waitFor(() =>
       expect(mocks.toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Erro ao desligar o controle de estoque", variant: "destructive" }),
+      ),
+    );
+  });
+});
+
+describe("useLowStock — compra a caminho (14/10/2026)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    givenList([bexiga]);
+    mocks.getLowStockPage.mockResolvedValue({
+      data: [bexiga],
+      page: 1,
+      limit: 1000,
+      total: 1,
+      totalPages: 1,
+    });
+    mocks.exportLowStockToXlsx.mockResolvedValue(undefined);
+    mocks.useGetLowStockSummary.mockReturnValue({ data: { restock: 7, withPurchaseInTransit: 3 } });
+  });
+
+  it("abre sem os com compra a caminho, e diz quantos ficaram de fora", () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    expect(result.current.includePurchasesInTransit).toBe(false);
+    // Falso é o padrão do backend: não vai na requisição.
+    expect(lastListParams()).toMatchObject({ includePurchasesInTransit: undefined });
+    expect(result.current.withPurchaseInTransit).toBe(3);
+  });
+
+  it("com filtro na tela não diz quantos ficaram de fora — o número do alerta é sem filtro", async () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.setMinRecentSales("10"));
+    await waitFor(() => expect(lastListParams()).toMatchObject({ minRecentSales: 10 }));
+
+    expect(result.current.withPurchaseInTransit).toBe(0);
+
+    act(() => result.current.setMinRecentSales(""));
+    await waitFor(() => expect(lastListParams()).toMatchObject({ minRecentSales: undefined }));
+
+    expect(result.current.withPurchaseInTransit).toBe(3);
+  });
+
+  it("um backend sem o campo novo conta zero de fora, em vez de quebrar", () => {
+    mocks.useGetLowStockSummary.mockReturnValue({ data: { restock: 7 } });
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    expect(result.current.withPurchaseInTransit).toBe(0);
+  });
+
+  it("marcar a caixa pede a lista com eles e volta à primeira página", () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.setPage(2));
+    act(() => result.current.setIncludePurchasesInTransit(true));
+
+    expect(result.current.page).toBe(1);
+    expect(lastListParams()).toMatchObject({ includePurchasesInTransit: true, page: 1 });
+  });
+
+  it("na aba Fora do controle a caixa não vale — a consulta não leva o parâmetro", () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.setIncludePurchasesInTransit(true));
+    act(() => result.current.setScope("OutOfControl"));
+
+    expect(lastListParams()).toMatchObject({ scope: "OutOfControl", includePurchasesInTransit: undefined });
+  });
+
+  it("a exportação respeita a caixa", async () => {
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() => result.current.setIncludePurchasesInTransit(true));
+    await act(async () => {
+      result.current.exportToXlsx();
+    });
+
+    await waitFor(() =>
+      expect(mocks.getLowStockPage).toHaveBeenCalledWith(
+        expect.objectContaining({ includePurchasesInTransit: true, limit: 1000 }),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.exportLowStockToXlsx).toHaveBeenCalledWith(
+        [bexiga],
+        expect.stringMatching(/^estoque-baixo-\d{4}-\d{2}-\d{2}\.xlsx$/),
+        undefined,
       ),
     );
   });
