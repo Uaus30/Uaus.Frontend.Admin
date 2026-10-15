@@ -9,7 +9,10 @@ import { createImageFromFile } from "@/services/images.service";
 
 const mocks = vi.hoisted(() => ({
   saveProductGroupWithProducts: vi.fn(() =>
-    Promise.resolve({ group: { id: 1 }, products: [{ id: 10, canDelete: true }] }),
+    Promise.resolve({
+      group: { id: 1 } as { id: number; stockPerVariation?: boolean },
+      products: [{ id: 10, canDelete: true }],
+    }),
   ),
   markPurchaseReceived: vi.fn(() => Promise.resolve({})),
   /** A página de produtos do grupo aberto — a que hidrata a tabela de variações. */
@@ -550,6 +553,73 @@ describe("useProductEditor Hook", () => {
     // lista inteira, a foto fica — e a que a lupa pôs em outra aba também.
     expect(syncProductGroupImages).not.toHaveBeenCalled();
     expect(result.current.galleryImages.map((image) => image.imageId)).toEqual([483]);
+  });
+
+  it("o Controlar estoque por variação abre como gravado e só vai ao salvar quando a pessoa mexe", async () => {
+    // Como o "Exibir no site" (15/10/2026): aberto com o valor antigo, o editor
+    // desfaria o que outra aba ligou.
+    mocks.saveProductGroupWithProducts.mockResolvedValue({
+      // O servidor manteve o gravado (ligado): o primeiro salvar não manda a flag.
+      group: { id: 1, stockPerVariation: true },
+      products: [
+        { id: 10, canDelete: true },
+        { id: 11, canDelete: true },
+      ],
+    });
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail({
+        id: 10,
+        name: "CUECA BOXER INFANTIL",
+        description: "",
+        price: 12,
+        stock: 3,
+        minStock: 0,
+        status: 2,
+        barcode: "789",
+        department: { id: 2 },
+        category: { id: 5 },
+        productGroup: {
+          id: 1,
+          name: "CUECA BOXER INFANTIL",
+          description: "",
+          hasVariations: true,
+          stockPerVariation: true,
+          showOnSite: true,
+        },
+        tags: [],
+        images: [],
+        variationValues: [{ gradeType: 1, value: "P" }],
+      });
+    });
+    act(() => {
+      result.current.addVariationDraft({
+        status: "2",
+        barcode: "790",
+        price: 12,
+        values: [{ gradeType: 1, value: "M" }],
+      });
+    });
+
+    expect(result.current.form.stockPerVariation).toBe(true);
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(
+      (mocks.saveProductGroupWithProducts.mock.lastCall as unknown as [{ stockPerVariation?: boolean }])[0]
+        .stockPerVariation,
+    ).toBeUndefined();
+
+    act(() => result.current.setForm((current) => ({ ...current, stockPerVariation: false })));
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(
+      (mocks.saveProductGroupWithProducts.mock.lastCall as unknown as [{ stockPerVariation?: boolean }])[0]
+        .stockPerVariation,
+    ).toBe(false);
   });
 
   it("deve gravar a imagem anexada em grupo COM variações, na galeria do GRUPO", async () => {

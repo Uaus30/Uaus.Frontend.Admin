@@ -144,10 +144,16 @@ export function useSuppliers() {
       // A API manda o status pelo NOME ("Inactive") e as opções do select são
       // códigos ("1", "2"). Sem o `enumCode`, o inativo não casava com opção
       // nenhuma, caía em Ativo — e o próximo Salvar reativava o fornecedor.
-      const supplierStatus = String(enumCode(supplier.status, SUPPLIER_STATUS));
-      const statusIsAllowed = selectableSupplierStatusOptions.some(
-        (item) => String(item.id) === supplierStatus,
-      );
+      const statusCode = enumCode(supplier.status, SUPPLIER_STATUS);
+      const supplierStatus = String(statusCode);
+      // Com o catálogo de status ainda carregando não há opção para conferir.
+      // Cair no padrão aqui deixava o status vazio, o efeito acima o trocava
+      // por Ativo quando as opções chegavam — e salvar reativava o inativo.
+      // Status conhecido fica como veio do servidor; o efeito confere depois.
+      const statusIsAllowed =
+        selectableSupplierStatusOptions.length > 0
+          ? selectableSupplierStatusOptions.some((item) => String(item.id) === supplierStatus)
+          : statusCode === SUPPLIER_STATUS.Active || statusCode === SUPPLIER_STATUS.Inactive;
 
       setForm({
         name: supplier.name || "",

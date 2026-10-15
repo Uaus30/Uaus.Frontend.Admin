@@ -47,6 +47,8 @@ const { useLowStock, PAGE_SIZE } = await import("../useLowStock");
 const bexiga: LowStockItemDto = {
   productId: 10,
   productGroupId: 1,
+  isGroup: false,
+  variationCount: 0,
   productName: "BEXIGA [AZUL]",
   barcode: "789000000010",
   categoryName: "Balões",
@@ -248,6 +250,26 @@ describe("useLowStock", () => {
     expect(mocks.navigate).toHaveBeenCalledWith("/estoque/compras?produto=10&fornecedor=13");
     expect(result.current.confirm).toBeNull();
     expect(mocks.toast).not.toHaveBeenCalled();
+  });
+
+  it("Comprar da linha do produto julgado pelo total leva a quantidade do PRODUTO", () => {
+    // A tela de Compras abre pela variação que representa o grupo; sugerir pelo
+    // saldo dela compraria para uma cor só (15/10/2026). 1 em casa, 0,4 por dia:
+    // 60 dias de demanda são 24, menos o 1 que já está em casa.
+    const { result } = renderHook(() => useLowStock(), { wrapper: createWrapper() });
+
+    act(() =>
+      result.current.comprar({
+        ...bexiga,
+        isGroup: true,
+        variationCount: 3,
+        stock: 1,
+        minStock: 0,
+        dailyDemand: 0.4,
+      }),
+    );
+
+    expect(mocks.navigate).toHaveBeenCalledWith("/estoque/compras?produto=10&fornecedor=13&quantidade=23");
   });
 
   it("desligar o controle de estoque pergunta antes, leva o motivo e chama a API", async () => {

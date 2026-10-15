@@ -18,11 +18,24 @@ import type {
 
 /** Uma linha do relatório: o produto, o saldo contra o mínimo e o estado do alerta. */
 export interface LowStockItemDto {
+  /**
+   * O produto da linha. Na linha do produto inteiro (`isGroup`), a variação que
+   * o representa — é por ela que o "Comprar" e as ações chegam ao grupo.
+   */
   productId: number;
   /** Id do GRUPO — é ele que abre a tela de detalhe do produto. */
   productGroupId: number;
-  /** Nome composto (grupo + grades). */
+  /**
+   * A linha é o produto com variações INTEIRO, com saldo, mínimo e venda
+   * somados (15/10/2026): a flag "Controlar estoque por variação" está
+   * desligada. As ações do menu valem para todas as variações.
+   */
+  isGroup: boolean;
+  /** Quantas variações vendáveis formam o total; zero fora da linha de grupo. */
+  variationCount: number;
+  /** Nome composto (grupo + grades); na linha de grupo, o nome do produto. */
   productName: string;
+  /** Vazio na linha de grupo, que tem um código por variação. */
   barcode: string;
   categoryName: string;
   /**

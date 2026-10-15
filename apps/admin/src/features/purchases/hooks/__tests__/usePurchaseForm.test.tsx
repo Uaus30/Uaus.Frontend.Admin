@@ -1299,6 +1299,78 @@ describe("usePurchaseForm — compra em sequência (24/09/2026)", () => {
     expect(result.current.form).toMatchObject({ grossTotal: 105, finalTotal: 105 });
   });
 
+  it("a reposição do produto INTEIRO se reparte na grade, primeiro em quem tem menos", async () => {
+    // O "Comprar" da linha de grupo do estoque baixo (15/10/2026) manda 9
+    // sacolas pela variação de menor id. Sem a repartição, as 9 caíam nela.
+    vi.mocked(getProductsPage).mockImplementation(
+      (params) =>
+        Promise.resolve(
+          params?.productGroupId === 5
+            ? {
+                data: [
+                  {
+                    id: 41,
+                    productGroupId: 5,
+                    name: "SACOLA",
+                    displayName: "SACOLA [FLORES]",
+                    stock: 0,
+                    status: "Active",
+                  },
+                  {
+                    id: 42,
+                    productGroupId: 5,
+                    name: "SACOLA",
+                    displayName: "SACOLA [LISA]",
+                    stock: 5,
+                    status: "Active",
+                  },
+                  {
+                    id: 43,
+                    productGroupId: 5,
+                    name: "SACOLA",
+                    displayName: "SACOLA [XADREZ]",
+                    stock: 2,
+                    status: "Active",
+                  },
+                  {
+                    id: 44,
+                    productGroupId: 5,
+                    name: "SACOLA",
+                    displayName: "SACOLA [ZEBRA]",
+                    stock: 0,
+                    status: "Inactive",
+                  },
+                ],
+                total: 4,
+              }
+            : { data: [], total: 0 },
+        ) as unknown as ReturnType<typeof getProductsPage>,
+    );
+    const { result } = renderForm();
+
+    act(() =>
+      result.current.openForRestock({
+        productId: 41,
+        productGroupId: 5,
+        productName: "SACOLA",
+        productBarcode: null,
+        productPrice: 12,
+        supplierId: null,
+        quantity: 9,
+        spreadQuantity: true,
+      }),
+    );
+    await waitFor(() => expect(result.current.form.items).toHaveLength(4));
+
+    expect(result.current.form.items.map((item) => [item.productId, item.quantity])).toEqual([
+      [41, 6],
+      [42, 0],
+      [43, 3],
+      [44, 0],
+    ]);
+    expect(result.current.form.quantity).toBe(9);
+  });
+
   it("passar pelo total final sem mudar o valor não o tira de acompanhar o bruto", () => {
     // O campo de moeda devolve o valor em TODO blur. Um Tab pelo final não é
     // decidir desconto: sem a comparação, corrigir o bruto depois deixava o final

@@ -413,6 +413,11 @@ export interface ProductGroupDto {
   name: string;
   description: string | null;
   hasVariations: boolean;
+  /**
+   * "Controlar estoque por variação" (15/10/2026). Desligada — o padrão —, o
+   * controle de estoque julga o produto pelo total das variações.
+   */
+  stockPerVariation: boolean;
   /** Visibilidade pública do grupo (campo ShowOnSite do backend). */
   showOnSite: boolean;
   /** Observação de uso interno — nunca aparece no site nem no PDV. */
@@ -748,6 +753,8 @@ export interface ProductTableRowDto {
   productGroupName: string;
   productGroupDescription?: string | null;
   hasVariations: boolean;
+  /** "Controlar estoque por variação" do grupo (15/10/2026). */
+  stockPerVariation: boolean;
   showOnSite: boolean;
   /** Observação de uso interno do grupo — nunca aparece no site nem no PDV. */
   productGroupNotes?: string | null;

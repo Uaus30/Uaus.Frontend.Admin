@@ -235,7 +235,15 @@ export type DashboardPatternsRefresh = {
 export type RestockUrgency = "out" | "critical" | "high" | "watch";
 
 export type RestockSuggestion = {
+  /** O produto; na linha de grupo, a variação de menor id que vendeu. */
   productId: number;
+  /** O grupo — é ele que abre o produto no admin. */
+  productGroupId: number;
+  /**
+   * A linha é o produto com variações INTEIRO, com venda e saldo somados
+   * (15/10/2026, controle de estoque pelo grupo).
+   */
+  isGroup: boolean;
   productName: string;
   barcode: string;
   categoryName: string;
@@ -327,6 +335,24 @@ export type DashboardChampion = {
   daysOfCover?: number | null;
   hasOpenPurchase: boolean;
   stockAlert: ChampionStockAlert;
+  /**
+   * A linha é o produto com variações INTEIRO (15/10/2026): venda, lucro e
+   * saldo somados, porque o controle de estoque dele é pelo total.
+   */
+  isGroup: boolean;
+  /** O que cada variação vendeu, do maior lucro para o menor; vazia fora da linha de grupo. */
+  variations: DashboardChampionVariation[];
+};
+
+/** Uma variação dentro da linha de grupo do ranking de campeões. */
+export type DashboardChampionVariation = {
+  id: number;
+  /** Nome composto (grupo + grades). */
+  name: string;
+  quantitySold: number;
+  revenue: number;
+  profit: number;
+  stock: number;
 };
 
 export type DashboardChampions = {

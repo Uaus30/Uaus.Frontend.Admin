@@ -54,6 +54,8 @@ const atacadao = fornecedor(9, "Atacadão", "Umuarama");
 const balde: LowStockItemDto = {
   productId: 30,
   productGroupId: 3,
+  isGroup: false,
+  variationCount: 0,
   productName: "BALDE 5L [PRETO]",
   barcode: "789000000030",
   categoryName: "Utilidades",

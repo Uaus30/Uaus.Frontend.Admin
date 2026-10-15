@@ -1,3 +1,5 @@
+import { suggestedRestockQuantity } from "@/lib/stock-control";
+import { NEW_PURCHASE_QUANTITY_PARAM } from "@/features/purchases/purchases-route";
 import type { LowStockItem } from "../types";
 
 /**
@@ -23,4 +25,18 @@ export function positiveIntegerFilter(text: string): number | undefined {
  */
 export function supplierQuery(item: Pick<LowStockItem, "supplierId">): string {
   return item.supplierId ? `&fornecedor=${item.supplierId}` : "";
+}
+
+/**
+ * Na linha do produto julgado pelo total (15/10/2026), a quantidade sugerida
+ * vai na URL: a tela de Compras abre pela variação que representa o grupo, e
+ * sugerir pelo saldo e pela demanda DELA compraria para uma cor só. Lá, a grade
+ * a reparte entre as variações, primeiro as com menos saldo
+ * (`spreadRestockQuantity`). Fora da linha de grupo, a tela calcula como
+ * sempre.
+ */
+export function quantityQuery(
+  item: Pick<LowStockItem, "isGroup" | "stock" | "minStock" | "dailyDemand">,
+): string {
+  return item.isGroup ? `&${NEW_PURCHASE_QUANTITY_PARAM}=${suggestedRestockQuantity(item)}` : "";
 }

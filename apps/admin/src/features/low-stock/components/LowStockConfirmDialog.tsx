@@ -71,12 +71,14 @@ export function LowStockConfirmDialog({
                 <strong>{confirm.item.productName}</strong> sai deste relatório, do alerta e da venda — o PDV
                 e a loja deixam de oferecê-lo. Ele continua no catálogo, com o saldo e o histórico que tem, e
                 pode ser reativado na tela do produto.
+                {confirm.item.isGroup && <> Vale para todas as {confirm.item.variationCount} variações.</>}
               </>
             ) : (
               <>
                 <strong>{confirm.item.productName}</strong> sai deste relatório e do alerta, mas continua à
                 venda. Ele vai para a aba &quot;Fora do controle&quot;, de onde se religa, e a mudança fica no
                 histórico do produto.
+                {confirm.item.isGroup && <> Vale para todas as variações do produto.</>}
               </>
             )}
           </AlertDialogDescription>

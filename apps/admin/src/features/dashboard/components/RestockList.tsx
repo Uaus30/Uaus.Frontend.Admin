@@ -101,6 +101,7 @@ export function RestockList({ items, lookbackDays }: RestockListProps) {
                 <p className="truncate text-xs text-muted-foreground">
                   {item.categoryName}
                   {item.supplierName && ` · ${item.supplierName}`}
+                  {item.isGroup && " · todas as variações"}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] tabular-nums text-muted-foreground lg:hidden">
                   <UrgencyBadge urgency={item.urgency} />

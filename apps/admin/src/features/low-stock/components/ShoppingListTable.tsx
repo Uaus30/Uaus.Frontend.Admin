@@ -7,6 +7,7 @@ import { buildPublicImageUrl } from "@workspace/api-client-react";
 import type { LowStockItem } from "../types";
 import { duracaoLegivel, duracaoTone, tituloDaDuracao } from "../lib/duracao";
 import { isPlanTrip, lastPurchaseLabel } from "../lib/shopping-list";
+import { LowStockCodeLine } from "./LowStockCodeLine";
 
 type ShoppingListTableProps = {
   items: LowStockItem[];
@@ -190,7 +191,7 @@ export function ShoppingListTable({
                         >
                           {item.productName}
                         </Link>
-                        <p className="font-mono text-xs text-muted-foreground">{item.barcode}</p>
+                        <LowStockCodeLine item={item} />
                         {isPlanTrip(item) && (
                           <span
                             className="mt-1 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400"

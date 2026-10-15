@@ -11,6 +11,8 @@ const { LowStockTable } = await import("../LowStockTable");
 const esgotado: LowStockItemDto = {
   productId: 10,
   productGroupId: 1,
+  isGroup: false,
+  variationCount: 0,
   productName: "BEXIGA [AZUL]",
   barcode: "789000000010",
   categoryName: "Balões",
@@ -107,6 +109,24 @@ describe("LowStockTable", () => {
 
     expect(props.onInactivate).toHaveBeenCalledWith(esgotado);
     expect(props.onDisableStockControl).not.toHaveBeenCalled();
+  });
+
+  it("a linha do produto julgado pelo total diz de quantas variações sai, em vez de um código", () => {
+    // 15/10/2026: o grupo tem um código por variação; mostrar o de uma delas
+    // faria a linha parecer daquela cor.
+    const sacola: LowStockItemDto = {
+      ...esgotado,
+      productId: 30,
+      productGroupId: 2,
+      isGroup: true,
+      variationCount: 2,
+      productName: "SACOLA ESTAMPADA",
+      barcode: "",
+    };
+    renderTable({ items: [sacola] });
+
+    expect(screen.getByText("Total de 2 variações")).toBeTruthy();
+    expect(screen.queryByText("789000000010")).toBeNull();
   });
 
   it("esconde fornecedor, saldo e última venda abaixo de 2xl, e o resto abaixo de lg", () => {

@@ -9,6 +9,7 @@ import { STOCK_SETTINGS_PATH } from "@/lib/stock-control";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 import { useProductForEntry } from "../../hooks/useProductForEntry";
 import { ProductStockControlField } from "./ProductStockControlField";
+import { StockPerVariationField } from "./StockPerVariationField";
 
 type ProductOptionalFieldsProps = {
   editor: ReturnType<typeof useProductEditor>;
@@ -146,6 +147,8 @@ export function ProductOptionalFields({ editor }: ProductOptionalFieldsProps) {
         </div>
 
         <ProductStockControlField stockControl={stockControl} hasVariations={form.hasVariations} />
+
+        <StockPerVariationField form={form} setForm={setForm} />
 
         <div className="space-y-2 sm:col-span-2">
           <div className="flex items-center gap-1">

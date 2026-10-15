@@ -11,22 +11,26 @@ import type { SupplierForm } from "../../types";
  * params para o teste poder afirmar o que foi ao SERVIDOR — é a regressão do
  * filtro de status, que já foi aplicado no cliente sobre a página recortada.
  */
-const mocks = vi.hoisted(() => ({
-  useGetSuppliers: vi.fn(),
-  createSupplier: vi.fn(() => Promise.resolve(null)),
-  updateSupplier: vi.fn(() => Promise.resolve(null)),
-  deleteSupplier: vi.fn(() => Promise.resolve(null)),
-}));
+const mocks = vi.hoisted(() => {
+  const STATUS_OPTIONS = [
+    { id: 1, name: "Ativo", value: "ativo", allowSelect: true },
+    { id: 2, name: "Inativo", value: "inativo", allowSelect: true },
+  ];
+  return {
+    useGetSuppliers: vi.fn(),
+    createSupplier: vi.fn(() => Promise.resolve(null)),
+    updateSupplier: vi.fn(() => Promise.resolve(null)),
+    deleteSupplier: vi.fn(() => Promise.resolve(null)),
+    STATUS_OPTIONS,
+    /** Catálogo de status devolvido pelo dublê; `undefined` = ainda carregando. */
+    statusOptions: STATUS_OPTIONS as typeof STATUS_OPTIONS | undefined,
+  };
+});
 
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetSuppliers: mocks.useGetSuppliers,
-  useGetSupplierStatusOptions: () => ({
-    data: [
-      { id: 1, name: "Ativo", value: "ativo", allowSelect: true },
-      { id: 2, name: "Inativo", value: "inativo", allowSelect: true },
-    ],
-  }),
+  useGetSupplierStatusOptions: () => ({ data: mocks.statusOptions }),
   useCreateSupplier: () => ({ mutateAsync: mocks.createSupplier, isPending: false }),
   useUpdateSupplier: () => ({ mutateAsync: mocks.updateSupplier, isPending: false }),
   useDeleteSupplier: () => ({ mutateAsync: mocks.deleteSupplier, isPending: false }),
@@ -72,6 +76,7 @@ function createWrapper() {
 describe("useSuppliers Hook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.statusOptions = mocks.STATUS_OPTIONS;
     mocks.useGetSuppliers.mockReturnValue({
       data: { data: [SUPPLIER_10], total: 1, page: 1, limit: 20 },
       isLoading: false,
@@ -201,6 +206,57 @@ describe("useSuppliers Hook", () => {
 
       act(() => result.current.handleOpenModal({ ...SUPPLIER_10, status: "Active" }));
 
+      expect(result.current.form.status).toBe("1");
+    });
+  });
+
+  describe("edição aberta antes do catálogo de status (15/10/2026)", () => {
+    // REGRESSÃO: sem opções para conferir, a edição caía no status padrão —
+    // vazio enquanto o catálogo carrega. Quando as opções chegavam, o efeito
+    // trocava o vazio por Ativo, e salvar reativava o fornecedor inativo.
+    const INATIVO: SupplierDto = { ...SUPPLIER_10, status: "Inactive" };
+
+    /** Abre a edição com o catálogo carregando e entrega o catálogo em seguida. */
+    function abrirAntesDoCatalogo() {
+      mocks.statusOptions = undefined;
+      const { wrapper } = createWrapper();
+      const hook = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => hook.result.current.handleOpenModal(INATIVO));
+      mocks.statusOptions = mocks.STATUS_OPTIONS;
+      hook.rerender();
+      return hook;
+    }
+
+    it("mantém Inativo quando o catálogo chega", () => {
+      const { result } = abrirAntesDoCatalogo();
+
+      expect(result.current.form.status).toBe("2");
+    });
+
+    it("salvar depois que o catálogo chega mantém o fornecedor inativo", async () => {
+      const { result } = abrirAntesDoCatalogo();
+
+      await act(async () => {
+        await result.current.handleSubmitSupplier(result.current.form);
+      });
+
+      expect(mocks.updateSupplier).toHaveBeenCalledWith({
+        id: 10,
+        data: expect.objectContaining({ status: 2 }),
+      });
+    });
+
+    it("status desconhecido, com o catálogo carregando, ainda cai em Ativo quando ele chega", () => {
+      mocks.statusOptions = undefined;
+      const { wrapper } = createWrapper();
+      const { result, rerender } = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => result.current.handleOpenModal({ ...SUPPLIER_10, status: null }));
+      mocks.statusOptions = mocks.STATUS_OPTIONS;
+      rerender();
+
+      // Sem status válido não há o que preservar: vale o padrão de sempre.
       expect(result.current.form.status).toBe("1");
     });
   });
