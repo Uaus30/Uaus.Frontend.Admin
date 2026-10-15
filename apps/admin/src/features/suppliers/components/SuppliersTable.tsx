@@ -1,10 +1,11 @@
 import * as React from "react";
-import { Badge, Button, ConfirmDialog, Input, Spinner } from "@workspace/ui";
+import { Button, ConfirmDialog, Input, Spinner } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { formatCurrency, formatPhone } from "@workspace/core";
 import type { ApiError, SupplierDto, UiPagedResult } from "@workspace/api-client-react";
 import { Edit2, Search, Trash2 } from "lucide-react";
 import { whatsappUrl } from "../constants";
+import { SupplierStatusBadge } from "./SupplierStatusBadge";
 import { SupplierTypeBadge } from "./SupplierTypeBadge";
 import type { EnumOption } from "../types";
 
@@ -242,9 +243,7 @@ export function SuppliersTable({
                     {formatCurrency(supplier.minimumPurchaseValue)}
                   </td>
                   <td className="px-6 py-4">
-                    <Badge className="border-0 bg-emerald-500/20 text-emerald-400">
-                      {statusLabelById[supplier.status] ?? (supplier.status ? supplier.status : "Sem status")}
-                    </Badge>
+                    <SupplierStatusBadge status={supplier.status} labels={statusLabelById} />
                   </td>
                   <td
                     className="px-6 py-4 text-xs text-muted-foreground max-w-[200px]"

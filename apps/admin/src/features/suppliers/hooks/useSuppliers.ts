@@ -5,6 +5,8 @@ import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { orderCatalogByName } from "@/lib/select-options";
 import {
+  SUPPLIER_STATUS,
+  enumCode,
   getGetSuppliersQueryKey,
   useCreateSupplier,
   useDeleteSupplier,
@@ -12,6 +14,7 @@ import {
   useGetSupplierStatusOptions,
   useUpdateSupplier,
   type SupplierDto,
+  type SupplierStatusCode,
 } from "@workspace/api-client-react";
 import { emptySupplierForm, normalizeStatusName, randomColor } from "../constants";
 import type { SupplierForm } from "../types";
@@ -138,7 +141,10 @@ export function useSuppliers() {
   function handleOpenModal(supplier?: SupplierDto) {
     if (supplier) {
       setEditingId(supplier.id);
-      const supplierStatus = supplier.status == null ? "" : String(supplier.status);
+      // A API manda o status pelo NOME ("Inactive") e as opções do select são
+      // códigos ("1", "2"). Sem o `enumCode`, o inativo não casava com opção
+      // nenhuma, caía em Ativo — e o próximo Salvar reativava o fornecedor.
+      const supplierStatus = String(enumCode(supplier.status, SUPPLIER_STATUS));
       const statusIsAllowed = selectableSupplierStatusOptions.some(
         (item) => String(item.id) === supplierStatus,
       );
@@ -222,7 +228,7 @@ export function useSuppliers() {
         phone: formData.phone.trim(),
         email: formData.email.trim() || null,
         minimumPurchaseValue,
-        status: Number(statusValue),
+        status: Number(statusValue) as SupplierStatusCode,
         city: formData.city.trim(),
         state: formData.state,
         avatarColor: formData.avatarColor,

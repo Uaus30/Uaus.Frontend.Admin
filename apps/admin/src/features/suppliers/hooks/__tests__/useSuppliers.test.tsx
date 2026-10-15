@@ -164,6 +164,47 @@ describe("useSuppliers Hook", () => {
     expect(result.current.form.minimumPurchaseValue).toBe("100");
   });
 
+  describe("status pelo nome do enum (15/10/2026)", () => {
+    // REGRESSÃO: a API serializa o status pelo NOME (`JsonStringEnumConverter`),
+    // e o dublê antigo mandava `status: 1` — por isso o defeito passou. A modal
+    // procurava "Inactive" entre as opções "1" e "2", caía em Ativo e o próximo
+    // Salvar reativava o fornecedor.
+    const INATIVO: SupplierDto = { ...SUPPLIER_10, status: "Inactive" };
+
+    it("abre a edição de um fornecedor inativo com o status Inativo", () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => result.current.handleOpenModal(INATIVO));
+
+      expect(result.current.form.status).toBe("2");
+    });
+
+    it("salvar sem mexer no status mantém o fornecedor inativo", async () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => result.current.handleOpenModal(INATIVO));
+      await act(async () => {
+        await result.current.handleSubmitSupplier(result.current.form);
+      });
+
+      expect(mocks.updateSupplier).toHaveBeenCalledWith({
+        id: 10,
+        data: expect.objectContaining({ status: 2 }),
+      });
+    });
+
+    it('lê "Active" como Ativo', () => {
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useSuppliers(), { wrapper });
+
+      act(() => result.current.handleOpenModal({ ...SUPPLIER_10, status: "Active" }));
+
+      expect(result.current.form.status).toBe("1");
+    });
+  });
+
   it("deve chamar createSupplier ao submeter formulário no modo de criação", async () => {
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useSuppliers(), { wrapper });

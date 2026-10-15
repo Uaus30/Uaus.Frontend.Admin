@@ -178,6 +178,9 @@ export const SUPPLIER_STATUS = {
   Inactive: 2,
 } as const;
 
+/** Código do status do fornecedor no que é ENVIADO — mesmo motivo do `UserStatusCode`. */
+export type SupplierStatusCode = (typeof SUPPLIER_STATUS)[keyof typeof SUPPLIER_STATUS];
+
 /**
  * Como o cupom calcula o abatimento (enum `CouponDiscountType` do backend).
  *
@@ -829,7 +832,16 @@ export interface SupplierDto {
   phone: string;
   email: string | null;
   minimumPurchaseValue: number;
-  status: number;
+  /**
+   * Enum SupplierStatus — chega pelo NOME (`"Inactive"`); leia com `enumCode` e
+   * `SUPPLIER_STATUS`.
+   *
+   * Declarado `number` até 15/10/2026, e custou o mesmo que custou em
+   * `UserListDto`: a modal de edição procurava `"Inactive"` entre as opções
+   * `"1"` e `"2"`, não achava e caía em Ativo — salvar de novo reativava o
+   * fornecedor sem ninguém ter escolhido isso.
+   */
+  status: EnumValue;
   city: string;
   state: string;
   avatarColor: string;

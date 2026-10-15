@@ -22,6 +22,7 @@ import type {
   EnumOptionDto,
   QueryKey,
   SupplierDto,
+  SupplierStatusCode,
   SupplierType,
   UiPagedResult,
 } from "../models";
@@ -31,12 +32,14 @@ import type {
  *
  * Sem `isMarketplace` desde 14/10/2026: ele virou derivado do `type` no
  * servidor. O `type` é OBRIGATÓRIO na criação — sem ele a API responde 400.
+ * O `status` vai pelo CÓDIGO, fechado: na resposta ele chega pelo nome.
  */
 export type CreateSupplierPayload = Omit<
   SupplierDto,
-  "id" | "createdAt" | "updatedAt" | "isMarketplace" | "type"
+  "id" | "createdAt" | "updatedAt" | "isMarketplace" | "type" | "status"
 > & {
   type: SupplierType;
+  status: SupplierStatusCode;
 };
 
 /**

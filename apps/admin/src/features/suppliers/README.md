@@ -50,6 +50,12 @@ renomear um fornecedor aqui deixava o nome antigo no combo da outra tela.
 - O status escolhido vai para o **servidor**, dentro dos parâmetros da consulta. Filtrar no cliente, sobre a página já recortada, mostrava só os inativos que por acaso caíram nos 20 itens da página corrente — e o contador de páginas continuava contando todos, produzindo páginas vazias no fim da lista.
 - Trocar o filtro volta para a página 1 na própria função que troca, e não num efeito: a página 3 do conjunto anterior pode nem existir no novo.
 
+### 4.1. Status chega pelo nome (15/10/2026)
+
+- A API manda o status pelo **nome** do enum (`"Active"`, `"Inactive"`), e as opções do select são **códigos** (`"1"`, `"2"`). Quem lê passa por `enumCode(status, SUPPLIER_STATUS)`; quem envia manda o código (`SupplierStatusCode`).
+- Sem isso, a modal de um fornecedor inativo abria com **Ativo** — e salvar de novo o reativava sem ninguém ter escolhido. Foi o defeito de 15/10/2026, o mesmo que a tela de usuários já tinha tido.
+- Na listagem, o `SupplierStatusBadge` pinta **Ativo de verde e Inativo de vermelho** (vocabulário de cores do `Uaus.Docs`). Antes o selo era verde para qualquer status.
+
 ### 5. Confirmação de exclusão
 
 - A pergunta é do `ConfirmDialog` do `packages/ui`, renderizado pela `SuppliersTable`. O `window.confirm` que existia no hook travava a thread do navegador, ignorava o tema e obrigava o teste de exclusão a dublar `window.confirm` para chegar até a chamada.
