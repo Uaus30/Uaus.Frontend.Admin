@@ -3095,6 +3095,24 @@ export const CATALOG_THEME = {
   Finds: 4,
   /** A mistura geral, restrita a um departamento. */
   Department: 5,
+  /**
+   * Peça personalizada (15/10/2026): os produtos escolhidos um a um. Só existe
+   * no registro da peça — o sorteio recusa — e não entra no descanso do sorteio.
+   */
+  Custom: 6,
+} as const;
+
+/**
+ * Por que um cadastro não pode entrar numa peça: o critério do sorteio, dito em
+ * voz alta para a escolha à mão. Chega como NOME do enum.
+ */
+export const CATALOG_UNAVAILABLE_REASON = {
+  None: 0,
+  /** Sem "Exibir no site", sem produto ativo ou excluído. */
+  NotOnSite: 1,
+  /** Sem saldo num produto ativo. */
+  OutOfStock: 2,
+  NoPhoto: 3,
 } as const;
 
 /**
@@ -3148,6 +3166,38 @@ export interface CatalogDrawDto {
   items: CatalogItemDto[];
   /** Reservas para o produto cuja foto não carregar. Nunca ofertas. */
   reserves: CatalogItemDto[];
+}
+
+/**
+ * Um resultado da busca da peça personalizada. Lista também quem NÃO pode
+ * entrar, com o motivo (`CATALOG_UNAVAILABLE_REASON`).
+ */
+export interface CatalogSearchItemDto {
+  productGroupId: number;
+  /** O nome do cadastro, o mesmo do card. */
+  name: string;
+  /** A capa, para a miniatura. Ausente sem foto. */
+  imageUrl?: string | null;
+  unavailable: EnumValue;
+  /**
+   * O card do site, só para quem pode entrar. Serve à lista da tela: o preço
+   * impresso é consultado de novo na hora de gerar.
+   */
+  card?: StorefrontProductDto | null;
+}
+
+/** Um cadastro escolhido que deixou de poder entrar, e por quê. */
+export interface CatalogUnavailableDto {
+  productGroupId: number;
+  reason: EnumValue;
+}
+
+/** Os produtos da peça personalizada, prontos para o desenho. */
+export interface CatalogSelectionDto {
+  /** Card e papel de cada escolhido que pode entrar, NA ORDEM PEDIDA. */
+  items: CatalogItemDto[];
+  /** Quem foi escolhido e já não pode entrar (vendeu tudo, saiu do site). */
+  unavailable: CatalogUnavailableDto[];
 }
 
 /** O formato de uma peça. Vai ao servidor como código e volta como NOME. */

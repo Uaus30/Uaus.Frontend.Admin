@@ -1,7 +1,7 @@
 import { ImageIcon, Loader2 } from "lucide-react";
 import type { PieceProgress } from "../lib/buildPiece";
 import type { CatalogFormatOption } from "../lib/formats";
-import type { GeneratorStatus } from "../hooks/useCatalogGenerator";
+import type { GeneratorStatus } from "../hooks/usePieceSession";
 import type { CatalogFormat } from "../types";
 
 interface CatalogPreviewProps {
@@ -19,6 +19,8 @@ interface CatalogPreviewProps {
    */
   busyNoun: string | null;
   errorMessage?: string | null;
+  /** O convite da moldura vazia. Sem ele, o do sorteio ("para o sistema sortear…"). */
+  emptyHint?: string;
 }
 
 /** A proporção da moldura. A do PDF é a de um celular em pé, com as páginas rolando dentro. */
@@ -43,6 +45,7 @@ export function CatalogPreview({
   progress,
   busyNoun,
   errorMessage,
+  emptyHint,
 }: CatalogPreviewProps) {
   const isGenerating = status === "generating";
   const isPdf = format.key === "pdf";
@@ -74,7 +77,8 @@ export function CatalogPreview({
               <p className="text-sm">
                 {status === "error" && errorMessage
                   ? errorMessage
-                  : `Toque em Gerar ${format.noun} para o sistema sortear os produtos e montar ${isPdf ? "o PDF" : "a imagem"}.`}
+                  : (emptyHint ??
+                    `Toque em Gerar ${format.noun} para o sistema sortear os produtos e montar ${isPdf ? "o PDF" : "a imagem"}.`)}
               </p>
             </div>
           )

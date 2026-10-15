@@ -8,10 +8,13 @@ tela não mostra custo, margem nem saldo.
 O contrato completo — decisões, números medidos, regras do sorteio e etapas —
 está em `PLANO-CATALOGO.md`, na raiz do repositório.
 
-**Estado: as quatro etapas.** Três formatos — banner 9:16, banner 4:5 e catálogo
-em PDF —, com escolha de tema e título, sorteio do servidor e troca dos
-produtos marcados; e o histórico das peças que saíram, com o descanso de quem já apareceu
-e a venda antes e depois (rota `/marketing/catalogo/historico`).
+**Estado: as quatro etapas, mais a aba Personalizado (15/10/2026).** Três
+formatos — banner 9:16, banner 4:5 e catálogo em PDF —, com escolha de tema e
+título, sorteio do servidor e troca dos produtos marcados; e o histórico das
+peças que saíram, com o descanso de quem já apareceu e a venda antes e depois
+(rota `/marketing/catalogo/historico`). A tela tem duas abas: **Automático** (o
+sorteio) e **Personalizado** (os produtos escolhidos um a um, só em banner —
+seção própria no fim das regras).
 
 ## Regras de negócio
 
@@ -261,6 +264,45 @@ A conta é toda do servidor (`CatalogPieceRules`); a tela mostra e avisa que é
 **pista, não prova** — ela não separa a divulgação do dia de pagamento ou de uma
 reposição. A queda aparece em âmbar, e não em vermelho, pelo mesmo motivo.
 
+## Aba Personalizado (15/10/2026)
+
+Pedido do dono: montar banners direcionados a um momento (Dia das Crianças,
+Natal) escolhendo os produtos um a um, como na seleção das Etiquetas.
+
+- **Só banner, 9:16 (até 9) e 4:5 (até 6).** O PDF fica no Automático: são 30
+  produtos, só de foto grande, e escolher um a um não é o uso dele.
+- **A busca é por CADASTRO** (`GET /Catalogs/products`), com a regra de busca do
+  balcão (dígitos acham pelo código de barras de qualquer produto do grupo) e os
+  gatilhos das Etiquetas (`useSearchTerm`: 400 ms, 3 letras ou Enter). A câmera
+  põe o código no campo e busca; a escolha fica no "+".
+- **O critério de entrada é o do sorteio**: no site, com saldo e com foto
+  (decisão do dono: bloquear). A busca lista também quem não pode entrar, apagado
+  e com o motivo ("sem saldo", "fora do site", "sem foto") — o produto que some da
+  lista deixaria a pessoa procurando outro termo.
+- **O nome é editável**, como na etiqueta de gôndola: só no banner, o cadastro
+  não muda; vazio volta ao nome do cadastro (o placeholder). O histórico mostra o
+  nome do cadastro.
+- **A ordem é a da lista** (setas ↑↓): o primeiro fica no canto de cima, à
+  esquerda.
+- **O preço é o de agora.** Gerar pede o card de novo (`POST /Catalogs/selection`)
+  e nunca usa o da busca — mesma razão da regra 4.
+- **Sem reservas, nada sai com um a menos.** Quem deixou de poder entrar desde
+  que foi escolhido barra a geração, fica marcado na lista com o motivo, e a
+  marca sai quando ele é tirado. Foto que não carrega também barra, dizendo qual.
+- **Trocar do 9:16 para o 4:5 com mais de 6 não apaga ninguém**: quem passa do
+  teto aparece marcado e o botão diz quantos tirar.
+- **O título é obrigatório**: sem tema, não há o que sugerir.
+- **A lista fica no aparelho** (`localStorage`, decisão do dono): o banner é
+  montado e compartilhado no mesmo celular. Armazenamento bloqueado (aba
+  anônima) só faz a lista não sobreviver ao recarregar.
+- **Histórico**: a peça que sai vai para o histórico como as do sorteio, com o
+  tema **Personalizado**, e tem o antes e depois da venda. Ela **não** põe
+  ninguém no descanso de 7 dias do sorteio automático (decisão do dono: a escolha
+  à mão não tira produto da mistura dos outros dias) e não grava a memória do
+  sorteio — quem filtra é o servidor.
+- **Cada aba tem a sua peça** (`usePieceSession`): os hooks moram na página, e
+  alternar entre as abas não apaga nada.
+
 ## Promoção na peça e a memória do sorteio (05/10/2026)
 
 - O selo de promoção diz **"PROMOÇÃO"** em vermelho com o raio amarelo (era
@@ -373,7 +415,18 @@ os valores sobem para o `packages/core`.
 - `lib/history.ts`: a diferença com sinal e o estado da medição, em texto.
 - `lib/swapPlan.ts`: a troca em lote — os marcados juntos por papel, e cada um
   casado com o seu substituto.
-- `hooks/useCatalogGenerator.ts`: estado e ações da tela.
+- `hooks/usePieceSession.ts`: o ciclo de uma peça na tela — gerar sem a resposta
+  atrasada cobrir a nova, prévia, compartilhar, baixar e registrar. As duas abas
+  usam.
+- `hooks/useCatalogGenerator.ts`: estado e ações da aba Automático.
+- `hooks/useCustomCatalog.ts`, `hooks/useCatalogProductSearch.ts` e
+  `lib/customSelection.ts`: a aba Personalizado — lista, nome impresso, ordem,
+  motivos e o que fica guardado no aparelho.
+- `components/CustomCatalogControls.tsx`, `CatalogProductPicker.tsx` e
+  `CustomSelectionList.tsx`: formato e título, a busca e a lista dos escolhidos
+  (com o botão de gerar no pé).
+- `components/PieceOutput.tsx`: a prévia com Compartilhar e Baixar, igual nas
+  duas abas.
 - `hooks/useCatalogHistory.ts` e `components/CatalogHistoryList.tsx`: a tela de
   histórico.
 - `components/CatalogControls.tsx`: formato, tema, título e os botões de gerar.

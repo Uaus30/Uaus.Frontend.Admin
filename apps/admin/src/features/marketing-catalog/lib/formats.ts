@@ -93,6 +93,18 @@ export const FORMAT_ORDER: readonly CatalogFormat[] = ["story", "feed", "pdf"];
 
 export const DEFAULT_FORMAT: CatalogFormat = "story";
 
+/**
+ * Os formatos da peça personalizada: só os banners (decisão do dono,
+ * 15/10/2026). O PDF continua só no automático — são 30 produtos, só de foto
+ * grande, e escolher um a um não é o uso dele.
+ */
+export const CUSTOM_FORMAT_ORDER: readonly CatalogFormat[] = ["story", "feed"];
+
+/** Quantos produtos a peça comporta — é o teto da escolha à mão. */
+export function formatCapacity(format: CatalogFormatOption): number {
+  return PIECE_SPECS[format.piece].maxProducts;
+}
+
 /** "9 produtos", "até 30 produtos" — o tamanho da peça, para o seletor. */
 export function describeFormatSize(format: CatalogFormatOption): string {
   const perPage = PIECE_SPECS[format.piece].maxProducts;

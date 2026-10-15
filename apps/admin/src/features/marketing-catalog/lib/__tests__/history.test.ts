@@ -78,6 +78,8 @@ describe("rótulos do que a API devolve pelo nome", () => {
     expect(themeLabel("BestSellers")).toBe("Mais vendidos");
     expect(themeLabel("Finds")).toBe("Achados");
     expect(themeLabel("Department", "Brinquedos")).toBe("Brinquedos");
+    // A peça escolhida à mão (15/10/2026).
+    expect(themeLabel("Custom")).toBe("Personalizado");
     // O departamento foi excluído depois: a API omite o nome.
     expect(themeLabel("Department")).toBe("Departamento");
     expect(themeLabel("Sazonal")).toBe("Tema");

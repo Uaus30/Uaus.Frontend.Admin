@@ -3,8 +3,10 @@ import { PIECE_SPECS } from "../../template/geometry";
 import {
   availableProducts,
   CATALOG_FORMATS,
+  CUSTOM_FORMAT_ORDER,
   DEFAULT_FORMAT,
   describeFormatSize,
+  formatCapacity,
   FORMAT_ORDER,
 } from "../formats";
 import { productLink } from "../links";
@@ -20,6 +22,12 @@ const theme: CatalogThemeOption = {
 };
 
 describe("formatos do catálogo", () => {
+  it("o personalizado só oferece os banners, e o teto é o da peça: 9 e 6", () => {
+    expect(CUSTOM_FORMAT_ORDER).toEqual(["story", "feed"]);
+    expect(formatCapacity(CATALOG_FORMATS.story)).toBe(9);
+    expect(formatCapacity(CATALOG_FORMATS.feed)).toBe(6);
+  });
+
   it("o seletor abre no banner 9:16 e oferece os três, com o PDF por último", () => {
     expect(DEFAULT_FORMAT).toBe("story");
     expect(FORMAT_ORDER).toEqual(["story", "feed", "pdf"]);

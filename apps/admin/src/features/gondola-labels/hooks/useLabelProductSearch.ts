@@ -1,21 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { searchPdvProducts, type ProductPdvSearchDto } from "@workspace/api-client-react";
+import { useSearchTerm } from "@/hooks/use-search-term";
 
-/**
- * Espera, em milissegundos, entre a última tecla e a busca.
- *
- * O par 400ms / 3 caracteres é o MESMO da busca do balcão
- * (`apps/pdv/src/features/pdv/hooks/use-debounced-value.ts`, que traz a
- * derivação dos números). Aqui ele foi adotado por pedido explícito: é a mesma
- * pessoa que opera o caixa e monta o lote de etiquetas, e duas buscas de produto
- * que "respondem diferente" no mesmo sistema são uma diferença que ninguém
- * consegue explicar no balcão.
- */
-export const SEARCH_DEBOUNCE_MS = 400;
-
-/** Caracteres mínimos para a digitação disparar a busca sozinha. */
-export const MIN_SEARCH_LENGTH = 3;
+export { MIN_SEARCH_LENGTH, SEARCH_DEBOUNCE_MS } from "@/hooks/use-search-term";
 
 /** Teto de resultados, igual ao da busca do balcão. */
 const SEARCH_LIMIT = 20;
@@ -67,59 +54,17 @@ export interface LabelProductSearchState {
  * pediu, em ordem que não significa nada, e que ainda gastava uma requisição a
  * cada vez que a aba era aberta. Aqui nenhuma requisição sai sem termo.
  *
- * **Dois gatilhos, como no balcão.** A digitação dispara sozinha a partir de
- * {@link MIN_SEARCH_LENGTH} caracteres, depois de {@link SEARCH_DEBOUNCE_MS} sem
- * teclar; o Enter dispara na hora e é a única saída para um termo mais curto que
- * isso ("kg", "chá").
+ * **Dois gatilhos, como no balcão** — os de `useSearchTerm`, que o catálogo
+ * personalizado também usa.
  *
  * **A busca é a do balcão** (`GET /Pdv/products/search`) e não a listagem
  * paginada do cadastro. Os motivos são dois: ela interpreta o termo com a mesma
  * regra (dígitos = código de barras) e já devolve a URL da primeira imagem — que
  * é a miniatura que a lista exibe. De quebra, sai do `src/services/`, que o
  * CLAUDE.md congelou.
- *
- * Termo CURTO não limpa o que já está na tela: quem apaga uma letra para
- * corrigir continua vendo o resultado anterior em vez de uma lista que pisca.
- * Termo VAZIO limpa na hora — manter resultados sem termo nenhum deixaria a tela
- * afirmando uma busca que não existe mais.
  */
 export function useLabelProductSearch(): LabelProductSearchState {
-  const [search, setSearch] = useState("");
-  /** Termo efetivamente consultado. É ele, e não o campo, que aciona a query. */
-  const [activeTerm, setActiveTerm] = useState("");
-
-  // O debounce é um `setTimeout` no efeito, e não o `useDebounce` do kit, pelo
-  // mesmo motivo que no PDV: promover o valor com `setState` SÍNCRONO dentro do
-  // efeito dispara render em cascata, e o lint do repositório trata isso como
-  // erro. Dentro do timer o `setState` é assíncrono e o encadeamento some.
-  useEffect(() => {
-    const termo = search.trim();
-    if (termo.length < MIN_SEARCH_LENGTH) return;
-
-    const timer = setTimeout(() => setActiveTerm(termo), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  /**
-   * Atualiza o campo e, quando ele fica VAZIO, descarta a busca na hora.
-   *
-   * A limpeza mora aqui e não no efeito acima porque o efeito só promove o termo
-   * DEPOIS da espera: esvaziar o campo deixaria a lista antiga na tela por mais
-   * 400ms, tempo de sobra para alguém clicar em "+" no produto errado.
-   */
-  const updateSearch = useCallback((next: string) => {
-    setSearch(next);
-    if (next.trim().length === 0) setActiveTerm("");
-  }, []);
-
-  const submit = useCallback(() => setActiveTerm(search.trim()), [search]);
-
-  const searchNow = useCallback((term: string) => {
-    setSearch(term);
-    setActiveTerm(term.trim());
-  }, []);
-
-  const clear = useCallback(() => updateSearch(""), [updateSearch]);
+  const { search, setSearch, activeTerm, submit, searchNow, clear } = useSearchTerm();
 
   const { data, isFetching, isError } = useQuery({
     queryKey: ["gondola-labels-product-search", activeTerm],
@@ -131,7 +76,7 @@ export function useLabelProductSearch(): LabelProductSearchState {
 
   return {
     search,
-    setSearch: updateSearch,
+    setSearch,
     submit,
     searchNow,
     clear,

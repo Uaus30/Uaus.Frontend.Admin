@@ -37,6 +37,20 @@ const FIXED_THEMES: Record<number, { label: string; title: string }> = {
 export const DEFAULT_THEME_KEY = String(CATALOG_THEME.General);
 
 /**
+ * O "tema" da peça personalizada (15/10/2026). Não está no seletor — a aba
+ * Personalizado não sorteia —, mas é com ele que a peça vai ao histórico. O
+ * título não tem sugestão: a pessoa escreve o dela.
+ */
+export const CUSTOM_THEME: CatalogThemeOption = {
+  key: "custom",
+  theme: CATALOG_THEME.Custom,
+  label: "Personalizado",
+  title: "",
+  products: 0,
+  productsWithLargePhoto: 0,
+};
+
+/**
  * As opções do seletor, na ordem em que a API manda: os temas fixos e depois os
  * departamentos, em ordem alfabética. Tema que esta versão da tela não conhece
  * fica de fora em vez de aparecer sem nome.
@@ -80,6 +94,7 @@ export function themeLabel(theme: EnumValue, departmentName?: string | null): st
   const code = enumCode(theme, CATALOG_THEME);
   if (code === CATALOG_THEME.Department) return departmentName || "Departamento";
   if (code === CATALOG_THEME.General) return "Geral";
+  if (code === CATALOG_THEME.Custom) return CUSTOM_THEME.label;
   return FIXED_THEMES[code]?.label ?? "Tema";
 }
 

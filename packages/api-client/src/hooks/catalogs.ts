@@ -8,12 +8,14 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { apiGetOrThrow, apiPost, ApiError } from "../client";
+import { apiGet, apiGetOrThrow, apiPost, ApiError } from "../client";
 import { STALE_TIME } from "../query-client";
 import type {
   CatalogDrawDto,
   CatalogPieceHistoryDto,
   CatalogPieceRegisteredDto,
+  CatalogSearchItemDto,
+  CatalogSelectionDto,
   CatalogThemeDto,
   QueryKey,
 } from "../models";
@@ -71,6 +73,57 @@ export async function drawCatalog(request: CatalogDrawRequest): Promise<CatalogD
   const response = await apiPost<CatalogDrawDto>("/Catalogs/draw", request);
   if (!response.data) {
     throw new ApiError("O sorteio do catálogo veio sem conteúdo.", 204, null, "POST", "/Catalogs/draw");
+  }
+  return response.data;
+}
+
+/**
+ * Busca de cadastros para a peça personalizada, pelo nome ou pelo código de
+ * barras (a regra de busca do balcão). Devolve também quem não pode entrar, com
+ * o motivo.
+ *
+ * @param term Termo digitado. Vazio devolve lista vazia sem ir à rede — o
+ *   servidor responderia o mesmo.
+ * @param limit Máximo de resultados (padrão 20; o servidor limita a 50).
+ */
+export async function searchCatalogProducts(term: string, limit = 20): Promise<CatalogSearchItemDto[]> {
+  const query = term.trim();
+  if (!query) return [];
+
+  return (await apiGet<CatalogSearchItemDto[]>("/Catalogs/products", { term: query, limit })) ?? [];
+}
+
+/** Prefixo da busca da peça personalizada. Quem consulta acrescenta termo e teto. */
+export const getSearchCatalogProductsQueryKey = (): QueryKey => ["catalog-products-search"];
+
+/**
+ * A busca da peça personalizada, como query. Desligada com termo vazio: nenhuma
+ * requisição sai sem termo.
+ *
+ * `staleTime` de operação: o motivo de não poder entrar ("sem saldo") muda com a
+ * venda do balcão.
+ */
+export function useSearchCatalogProducts(term: string, limit = 20) {
+  const query = term.trim();
+  return useQuery<CatalogSearchItemDto[], ApiError>({
+    queryKey: [...getSearchCatalogProductsQueryKey(), query, limit],
+    queryFn: () => searchCatalogProducts(query, limit),
+    enabled: query.length > 0,
+    staleTime: STALE_TIME.operacao,
+  });
+}
+
+/**
+ * O card de agora e o papel de cada cadastro escolhido à mão, na ordem pedida,
+ * e à parte quem já não pode entrar.
+ *
+ * Função, e não hook de query, pelo mesmo motivo do sorteio: o preço vai
+ * IMPRESSO na peça e tem de ser o do instante em que ela é gerada.
+ */
+export async function getCatalogSelection(productGroupIds: number[]): Promise<CatalogSelectionDto> {
+  const response = await apiPost<CatalogSelectionDto>("/Catalogs/selection", { productGroupIds });
+  if (!response.data) {
+    throw new ApiError("A seleção do catálogo veio sem conteúdo.", 204, null, "POST", "/Catalogs/selection");
   }
   return response.data;
 }

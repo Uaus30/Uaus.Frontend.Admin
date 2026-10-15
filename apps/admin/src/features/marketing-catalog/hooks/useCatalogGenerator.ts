@@ -1,60 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import {
-  drawCatalog,
-  getGetCatalogPiecesQueryKey,
-  registerCatalogPiece,
-  useGetCatalogThemes,
-} from "@workspace/api-client-react";
+import { drawCatalog, useGetCatalogThemes } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
-import { buildPiece, preloadPiece, type PieceProgress } from "../lib/buildPiece";
+import { preloadPiece } from "../lib/buildPiece";
 import { ROLE_CODE, toCatalogProducts } from "../lib/catalogProducts";
-import { CATALOG_FORMATS, DEFAULT_FORMAT, FORMAT_ORDER, type CatalogFormatOption } from "../lib/formats";
-import { newPieceKey, toPieceRecord } from "../lib/pieceRecord";
-import { canShareFile, downloadFile, pieceFileName, shareFile } from "../lib/share";
+import { CATALOG_FORMATS, DEFAULT_FORMAT, FORMAT_ORDER } from "../lib/formats";
 import { groupSwapsByRole, matchReplacements } from "../lib/swapPlan";
-import { buildThemeOptions, DEFAULT_THEME_KEY, type CatalogThemeOption } from "../lib/themes";
+import { buildThemeOptions, DEFAULT_THEME_KEY } from "../lib/themes";
 import { normalizeTitle } from "../template/text";
 import type { CatalogFormat, CatalogProduct } from "../types";
+import { usePieceSession } from "./usePieceSession";
 
-export type GeneratorStatus = "idle" | "generating" | "ready" | "error";
-
-/** A peça pronta: o arquivo, as URLs da prévia, quem saiu nela, com que título e em que formato. */
-export interface GeneratedPiece {
-  /**
-   * A identidade DESTE arquivo no histórico. Trocar um produto ou o título gera
-   * outro arquivo, e portanto outra chave.
-   */
-  key: string;
-  file: File;
-  /** Uma URL por página. No banner, uma só. */
-  previewUrls: string[];
-  products: CatalogProduct[];
-  /** O título impresso — pode já não ser o do campo, se a pessoa mexeu nele. */
-  title: string;
-  /** O tema do sorteio: é dele que sai a troca de produtos. */
-  theme: CatalogThemeOption;
-  /** O formato em que a peça foi desenhada: troca e título redesenham NELE. */
-  format: CatalogFormatOption;
-}
-
-/** O que cada ação devolve ao caminho comum: a peça sem as URLs, mais as páginas da prévia. */
-type DrawnPiece = Omit<GeneratedPiece, "previewUrls"> & { pages: Blob[] };
+export type { GeneratedPiece, GeneratorStatus } from "./usePieceSession";
 
 const FORMATS = FORMAT_ORDER.map((key) => CATALOG_FORMATS[key]);
 
 /**
- * Estado e ações da tela do catálogo de divulgação.
+ * Estado e ações da aba Automático do catálogo de divulgação.
  *
  * A pessoa escolhe o formato e o tema, ajusta o título e gera; o servidor
  * sorteia e o navegador desenha. Depois dá para sortear tudo de novo, trocar os
  * produtos marcados ou reescrever o título — os dois últimos redesenham a MESMA
  * peça, no formato em que ela foi gerada.
+ *
+ * Gerar, prévia, compartilhar e histórico são de `usePieceSession`, o mesmo
+ * caminho da aba Personalizado.
  */
 export function useCatalogGenerator() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const themesQuery = useGetCatalogThemes();
+  const session = usePieceSession();
+  const { piece, run, draw } = session;
 
   const themes = useMemo(() => buildThemeOptions(themesQuery.data ?? []), [themesQuery.data]);
 
@@ -62,13 +37,6 @@ export function useCatalogGenerator() {
   const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY);
   // `null` = a pessoa não mexeu: vale o título sugerido pelo tema.
   const [typedTitle, setTypedTitle] = useState<string | null>(null);
-  const [status, setStatus] = useState<GeneratorStatus>("idle");
-  const [piece, setPiece] = useState<GeneratedPiece | null>(null);
-  const [progress, setProgress] = useState<PieceProgress | null>(null);
-  // O que está sendo desenhado AGORA ("banner" ou "catálogo"): pode não ser o
-  // formato da peça que ainda está na moldura.
-  const [busyNoun, setBusyNoun] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Quem a pessoa marcou na lista para trocar, na ordem dos toques.
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
@@ -76,112 +44,13 @@ export function useCatalogGenerator() {
   const theme = themes.find((option) => option.key === themeKey) ?? themes[0];
   const title = typedTitle ?? theme?.title ?? "";
 
-  // Cada geração tem um número. Quem toca duas vezes só quer a última: a
-  // resposta atrasada da primeira não pode cobrir a segunda.
-  const runRef = useRef(0);
   // Quem já foi trocado nesta peça não volta na troca seguinte.
   const swappedOutRef = useRef<number[]>([]);
-  // As peças que já foram para o histórico: compartilhar e depois baixar o
-  // mesmo arquivo é uma divulgação só.
-  const recordedRef = useRef(new Set<string>());
-
-  // As URLs da prévia seguram os arquivos na memória; soltam ao trocar e ao sair.
-  useEffect(() => {
-    if (!piece) return;
-    return () => piece.previewUrls.forEach((url) => URL.revokeObjectURL(url));
-  }, [piece]);
 
   useEffect(() => {
     // Renderizador, fontes e artes começam a baixar enquanto a pessoa lê a tela.
     preloadPiece();
-
-    // Sair no meio de uma geração a invalida: sem isto ela terminaria depois,
-    // criaria a URL da prévia para uma tela que não existe mais, e ninguém
-    // soltaria esse arquivo da memória.
-    const runs = runRef;
-    return () => {
-      runs.current += 1;
-    };
   }, []);
-
-  /**
-   * O caminho comum das três ações: roda `work`, e só aplica o resultado se
-   * nenhuma outra geração começou depois. O erro vira estado e aviso.
-   *
-   * Devolve `true` quando esta geração terminou sem erro e ainda é a última.
-   */
-  const run = useCallback(
-    async (
-      noun: string,
-      work: (report: (progress: PieceProgress) => void) => Promise<DrawnPiece | null>,
-    ): Promise<boolean> => {
-      const current = ++runRef.current;
-      setStatus("generating");
-      setBusyNoun(noun);
-      setErrorMessage(null);
-      setProgress(null);
-
-      try {
-        const result = await work((value) => {
-          if (current === runRef.current) setProgress(value);
-        });
-        if (current !== runRef.current) return false;
-
-        if (result) {
-          const { pages, ...drawn } = result;
-          setPiece({ ...drawn, previewUrls: pages.map((page) => URL.createObjectURL(page)) });
-        }
-        setStatus("ready");
-        return true;
-      } catch (error) {
-        if (current !== runRef.current) return false;
-
-        const message = error instanceof Error ? error.message : `Erro desconhecido ao gerar o ${noun}.`;
-        setErrorMessage(message);
-        setStatus("error");
-        toast({ variant: "destructive", title: `Não foi possível gerar o ${noun}`, description: message });
-        return false;
-      } finally {
-        if (current === runRef.current) setProgress(null);
-      }
-    },
-    [toast],
-  );
-
-  /** Desenha a peça com exatamente estes produtos (mais as reservas, se houver). */
-  const draw = useCallback(
-    async (
-      target: { theme: CatalogThemeOption; format: CatalogFormatOption },
-      heading: string,
-      products: CatalogProduct[],
-      reserves: CatalogProduct[],
-      report: (progress: PieceProgress) => void,
-    ): Promise<DrawnPiece> => {
-      const date = new Date();
-      const printed = normalizeTitle(heading) || target.theme.title;
-      const result = await buildPiece({
-        format: target.format,
-        title: printed,
-        candidates: [...products, ...reserves],
-        count: products.length,
-        date,
-        onProgress: report,
-      });
-
-      return {
-        key: newPieceKey(),
-        file: new File([result.blob], pieceFileName(printed, date, target.format.extension), {
-          type: target.format.mimeType,
-        }),
-        pages: result.pages,
-        products: result.products,
-        title: printed,
-        theme: target.theme,
-        format: target.format,
-      };
-    },
-    [],
-  );
 
   const selectTheme = useCallback((key: string) => {
     setThemeKey(key);
@@ -314,52 +183,6 @@ export function useCatalogGenerator() {
     await run(piece.format.noun, (report) => draw(piece, title, piece.products, [], report));
   }, [piece, draw, run, title]);
 
-  /**
-   * Avisa o servidor de que a peça SAIU do admin. É o que faz o próximo sorteio
-   * evitar os mesmos produtos e o que alimenta o histórico.
-   *
-   * Só a peça que saiu: a que ficou na tela não foi vista por cliente nenhum, e
-   * "sortear de novo" dez vezes não pode contar como dez divulgações. A falha é
-   * calada de propósito — a pessoa já tem o arquivo, e o registro não é tarefa
-   * dela —, mas a chave volta a ficar livre para a próxima tentativa.
-   */
-  const record = useCallback(
-    (target: GeneratedPiece) => {
-      if (recordedRef.current.has(target.key)) return;
-      recordedRef.current.add(target.key);
-
-      registerCatalogPiece(toPieceRecord(target))
-        .then(() => queryClient.invalidateQueries({ queryKey: [...getGetCatalogPiecesQueryKey()] }))
-        .catch((error: unknown) => {
-          recordedRef.current.delete(target.key);
-          console.warn("Catálogo: não foi possível registrar a peça no histórico.", error);
-        });
-    },
-    [queryClient],
-  );
-
-  const share = useCallback(async () => {
-    if (!piece) return;
-
-    const outcome = await shareFile(piece.file);
-    // Fechar a folha sem escolher nada é desistência: a peça não saiu.
-    if (outcome !== "cancelled") record(piece);
-
-    if (outcome === "downloaded") {
-      toast({
-        title: piece.format.noun === "banner" ? "Banner salvo" : "Catálogo salvo",
-        description: "O arquivo foi para a pasta de downloads deste aparelho.",
-      });
-    }
-  }, [piece, record, toast]);
-
-  const download = useCallback(() => {
-    if (!piece) return;
-
-    downloadFile(piece.file);
-    record(piece);
-  }, [piece, record]);
-
   // A peça na tela é do tema e do formato que estão nos campos? Com outro tema
   // ou outro formato selecionado, o que está nos campos é o PRÓXIMO sorteio.
   const pieceMatchesFields =
@@ -380,16 +203,16 @@ export function useCatalogGenerator() {
     pieceMatchesFormat: piece !== null && format.key === piece.format.key,
     /** O campo diz uma coisa e a peça impressa, outra: falta redesenhar. */
     titleChanged: pieceMatchesFields && (normalizeTitle(title) || piece.theme.title) !== piece.title,
-    status,
+    status: session.status,
     piece,
     /** Em que página o desenho está. Só o catálogo em PDF tem mais de uma. */
-    progress,
+    progress: session.progress,
     /** O nome do que está sendo desenhado, para o aviso da moldura. */
-    busyNoun,
-    errorMessage,
-    isGenerating: status === "generating",
+    busyNoun: session.busyNoun,
+    errorMessage: session.errorMessage,
+    isGenerating: session.isGenerating,
     /** O aparelho abre a folha de compartilhamento com arquivo (celular)? */
-    canShare: piece ? canShareFile(piece.file) : false,
+    canShare: session.canShare,
     generate,
     /** Os produtos da peça marcados para a próxima troca. */
     selectedIds,
@@ -397,7 +220,7 @@ export function useCatalogGenerator() {
     clearSelection,
     swap,
     applyTitle,
-    share,
-    download,
+    share: session.share,
+    download: session.download,
   };
 }
