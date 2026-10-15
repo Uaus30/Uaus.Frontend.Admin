@@ -97,6 +97,8 @@ export type ProductTableRow = {
     name: string;
     description: string | null;
     hasVariations: boolean;
+    /** "Controlar estoque por variação" (15/10/2026). */
+    stockPerVariation: boolean;
     showOnSite: boolean;
     /** Observação de uso interno — nunca aparece no site nem no PDV. */
     notes: string | null;
@@ -168,6 +170,11 @@ export type ProductGroupForm = {
   description: string;
   /** Whether the product group has active variations/SKUs */
   hasVariations: boolean;
+  /**
+   * "Controlar estoque por variação" (15/10/2026). Ausente vale desligado: o
+   * controle de estoque julga o produto pelo total das variações.
+   */
+  stockPerVariation?: boolean;
   /** Visibility status: true to display publically on the site */
   isPublic: boolean;
   /** Internal-use note. Never shown on the storefront or the PDV. */
@@ -235,6 +242,8 @@ export type LocalImage = {
  */
 export type SavedBaseline = {
   showOnSite: boolean;
+  /** "Controlar estoque por variação" como o servidor o tinha; ausente, desligado. */
+  stockPerVariation?: boolean;
   /** Ids do catálogo de imagens, na ordem da galeria. */
   imageIds: number[];
 };

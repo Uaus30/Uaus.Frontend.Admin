@@ -5,7 +5,7 @@ import { useGetLowStock, type LowStockParams, type SupplierDto } from "@workspac
 import { useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { newPurchaseForProductPath } from "@/features/purchases/purchases-route";
-import { positiveIntegerFilter, supplierQuery } from "../lib/low-stock-params";
+import { positiveIntegerFilter, quantityQuery, supplierQuery } from "../lib/low-stock-params";
 import { supplierCityOptions, type CityOption } from "../lib/shopping-list";
 import type { LowStockItem } from "../types";
 import { useLowStockExport } from "./useLowStockExport";
@@ -126,7 +126,8 @@ export function useShoppingList(): ShoppingListState {
     isLoading: list.isLoading,
     isFetching: list.isFetching,
     // A mesma navegação do relatório de estoque baixo: produto e último fornecedor na URL.
-    comprar: (item) => navigate(newPurchaseForProductPath(item.productId) + supplierQuery(item)),
+    comprar: (item) =>
+      navigate(newPurchaseForProductPath(item.productId) + supplierQuery(item) + quantityQuery(item)),
     exportToXlsx: () => void exporter.exportToXlsx(listParams, "lista-de-compras", "Lista de Compras"),
     isExporting: exporter.isExporting,
   };

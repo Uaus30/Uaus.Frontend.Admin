@@ -39,6 +39,7 @@ function simples(shelf?: ShelfPrice): ProductTableRow {
       name: "COPO AMERICANO",
       description: null,
       hasVariations: false,
+      stockPerVariation: false,
       showOnSite: true,
       notes: null,
     },

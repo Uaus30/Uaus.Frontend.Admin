@@ -161,6 +161,17 @@ recebimento dela é o que gera a entrada.
   (CORS). No recebimento de produto novo, as mesmas imagens viram a galeria do
   cadastro sem novo upload.
 
+## A reposição do produto inteiro se reparte na grade (15/10/2026)
+
+O "Comprar" da linha de grupo do relatório de estoque baixo (produto com
+variações julgado pelo total) chega com `&quantidade=` — a do PRODUTO. A
+compra abre pela variação que representa o grupo, e a grade, quando nasce,
+reparte a quantidade (`PurchaseForm.spreadQuantity`, `lib/spread-restock.ts`):
+uma unidade por vez para a variação vendável com menos saldo somado ao que já
+recebeu, com empate na ordem da grade. Inativa e rascunho não recebem. Sem
+isso, `montarGrade` punha tudo na variação da URL — 40 sacolas de uma estampa
+só. Só na primeira montagem: o que o operador digitar depois fica.
+
 ## A galeria da compra É a galeria do produto (13/09/2026)
 
 Com produto vinculado, **as fotos da modal são as do GRUPO**

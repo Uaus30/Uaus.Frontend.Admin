@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Calendar, Eye, Package, Plus, Receipt } from "lucide-react";
 import { Badge, Button } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
@@ -29,6 +30,17 @@ type ProductStockTabProps = {
   barcode: string | null;
   /** Variações gravadas do grupo. Vazio em produto simples — o seletor não aparece. */
   variationOptions: StockTabProductOption[];
+  /**
+   * O saldo de cada variação gravada, para o TOTAL do produto (15/10/2026) — o
+   * número que o controle de estoque pelo grupo julga. Vazio em produto simples.
+   */
+  variationStocks?: Array<{ id: number; stock: number }>;
+  /**
+   * Avisa o saldo fresco da variação aberta — o da leitura que uma entrada
+   * lançada aqui invalida —, para a tela guardar no rascunho e o total não
+   * voltar ao número velho quando se troca de variação.
+   */
+  onFreshStock?: (productId: number, stock: number) => void;
   onSelectProduct: (productId: number) => void;
   /** Entrada pré-preenchida por uma compra de produto novo. A modal abre sozinha com ela. */
   entryPrefill?: StockEntryPrefill | null;
@@ -53,6 +65,8 @@ export function ProductStockTab({
   productName,
   barcode,
   variationOptions,
+  variationStocks = [],
+  onFreshStock,
   onSelectProduct,
   entryPrefill = null,
   onEntrySaved,
@@ -78,6 +92,23 @@ export function ProductStockTab({
    * exigiria um histórico de preço que não existe.
    */
   const precoAtual = stock.product?.price ?? null;
+  const saldoFresco = stock.product?.stock;
+
+  useEffect(() => {
+    if (productId !== null && saldoFresco !== undefined) onFreshStock?.(productId, saldoFresco);
+  }, [productId, saldoFresco, onFreshStock]);
+
+  // O total do produto: a variação aberta vem da leitura fresca (uma entrada
+  // lançada aqui já conta); as outras, do rascunho, que recebe o saldo fresco
+  // de cada uma que já passou por aqui (`onFreshStock`).
+  const totalDoProduto =
+    variationStocks.length > 1
+      ? variationStocks.reduce(
+          (soma, variacao) =>
+            soma + (variacao.id === productId && saldoFresco !== undefined ? saldoFresco : variacao.stock),
+          0,
+        )
+      : null;
 
   if (productId === null) {
     return (
@@ -122,6 +153,13 @@ export function ProductStockTab({
               </>
             )}
           </p>
+          {totalDoProduto !== null && (
+            <p className="text-xs text-muted-foreground" data-testid="total-do-produto">
+              Total do produto:{" "}
+              <span className="font-semibold text-foreground">{formatQuantity(totalDoProduto)}</span> un.
+              somando as {variationStocks.length} variações
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

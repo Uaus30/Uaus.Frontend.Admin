@@ -1,12 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
+import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
 import { getProductsPage } from "@/services/products.service";
 import { applyCostSplit, sumItems } from "../lib/purchase-items";
+import { spreadRestockQuantity } from "../lib/spread-restock";
 import type { PurchaseForm, PurchaseFormItem } from "../types";
+
+/** Nem inativa, nem rascunho: a variação que recebe parte da reposição do produto inteiro. */
+function vendavel(status: Parameters<typeof enumCode>[0]): boolean {
+  const codigo = enumCode(status, PRODUCT_STATUS);
+  return codigo !== PRODUCT_STATUS.Inactive && codigo !== PRODUCT_STATUS.Draft;
+}
 
 /** Teto de variações que a grade carrega. Nenhum grupo do catálogo chega perto. */
 const LIMITE_DE_VARIACOES = 200;
 
-type VariationOption = { productId: number; name: string; barcode: string | null; stock: number };
+type VariationOption = {
+  productId: number;
+  name: string;
+  barcode: string | null;
+  stock: number;
+  /** Nem inativa, nem rascunho — a que recebe parte da reposição do produto inteiro. */
+  sellable: boolean;
+};
 
 type UsePurchaseVariationsParams = {
   form: PurchaseForm;
@@ -61,6 +76,7 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
       name: produto.displayName || produto.name,
       barcode: produto.barcode || null,
       stock: produto.stock,
+      sellable: vendavel(produto.status),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
@@ -161,13 +177,20 @@ function cobreTodas(items: PurchaseFormItem[], variations: VariationOption[]): b
 /** A grade do grupo, preservando o que já foi digitado. */
 function montarGrade(atual: PurchaseForm, variations: VariationOption[]): PurchaseForm {
   const jaDigitado = new Map(atual.items.map((item) => [item.productId, item]));
+  // A reposição do produto INTEIRO (linha de grupo do estoque baixo) se reparte
+  // entre as variações, e só na primeira montagem.
+  const repartida =
+    atual.spreadQuantity && atual.items.length === 0
+      ? spreadRestockQuantity(atual.quantity, variations)
+      : null;
 
-  const items: PurchaseFormItem[] = variations.map((variacao) => {
+  const items: PurchaseFormItem[] = variations.map(({ sellable: _vendavel, ...variacao }) => {
     const anterior = jaDigitado.get(variacao.productId);
     return {
       ...variacao,
       quantity:
         anterior?.quantity ??
+        repartida?.get(variacao.productId) ??
         // A variação escolhida na busca nasce com a quantidade do campo: é a que
         // o operador já tinha em mente quando procurou o produto.
         (variacao.productId === atual.productId ? Math.max(atual.quantity, 1) : 0),
@@ -176,7 +199,7 @@ function montarGrade(atual: PurchaseForm, variations: VariationOption[]): Purcha
     };
   });
 
-  return { ...atual, items };
+  return { ...atual, items, spreadQuantity: false };
 }
 
 /**

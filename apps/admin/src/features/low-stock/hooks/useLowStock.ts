@@ -16,7 +16,7 @@ import {
 } from "@workspace/api-client-react";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
 import { newPurchaseForProductPath } from "@/features/purchases/purchases-route";
-import { positiveIntegerFilter, supplierQuery } from "../lib/low-stock-params";
+import { positiveIntegerFilter, quantityQuery, supplierQuery } from "../lib/low-stock-params";
 import type { LowStockItem } from "../types";
 import { useLowStockExport } from "./useLowStockExport";
 
@@ -246,7 +246,7 @@ export function useLowStock(): LowStockState {
    * da demanda prevista (`suggestedRestockQuantity`, na tela de Compras).
    */
   function comprar(item: LowStockItem) {
-    navigate(newPurchaseForProductPath(item.productId) + supplierQuery(item));
+    navigate(newPurchaseForProductPath(item.productId) + supplierQuery(item) + quantityQuery(item));
   }
 
   function confirmAction() {

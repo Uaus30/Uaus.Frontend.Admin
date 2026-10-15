@@ -48,6 +48,7 @@ export function mapProductTableRow(row: ProductTableRowDto): ProductTableRow {
       name: row.productGroupName,
       description: row.productGroupDescription ?? null,
       hasVariations: row.hasVariations,
+      stockPerVariation: row.stockPerVariation,
       showOnSite: row.showOnSite,
       notes: row.productGroupNotes ?? null,
     },

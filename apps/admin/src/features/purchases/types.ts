@@ -76,6 +76,13 @@ export type PurchaseForm = {
    */
   items: PurchaseFormItem[];
   /**
+   * A quantidade do cabeçalho é do PRODUTO inteiro, e a grade a reparte quando
+   * nascer (`spreadRestockQuantity`). É o "Comprar" da linha de grupo do
+   * relatório de estoque baixo (15/10/2026); sem isso, a quantidade toda caía
+   * na variação que representa o grupo. Consumido na montagem da grade.
+   */
+  spreadQuantity?: boolean;
+  /**
    * `false` (padrão) = rateio: os totais do pedido são digitados e a fatia de
    * cada variação é derivada. `true` = o inverso.
    *

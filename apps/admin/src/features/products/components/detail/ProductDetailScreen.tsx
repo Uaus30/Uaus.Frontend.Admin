@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
-import { useGetStockFreezeStatus } from "@workspace/api-client-react";
+import { PRODUCT_STATUS, useGetStockFreezeStatus } from "@workspace/api-client-react";
 import type { useProductEditor } from "../../hooks/useProductEditor";
 import type { ProductGrade, VariationDraft } from "../../types";
 import { resolveBarcodeInput } from "@workspace/core";
@@ -145,6 +145,8 @@ export function ProductDetailScreen({
     applyGrades,
     purchaseContext,
     completePurchaseReceipt,
+    syncVariationStock,
+    getStatusNumber,
   } = editor;
 
   // Só na montagem: a tela desmonta ao fechar, então cada abertura relê a aba.
@@ -167,7 +169,22 @@ export function ProductDetailScreen({
   // embaixo dele explicam (inválido, faixa interna, gerado ao salvar).
   const barcodeInput = useMemo(() => resolveBarcodeInput(currentBarcode), [currentBarcode]);
 
-  /** Variações JÁ GRAVADAS: só elas têm id, e só id tem entrada de estoque. */
+  /**
+   * O saldo das variações que formam o "Total do produto" da aba Estoque: as já
+   * GRAVADAS (só elas têm saldo) e VENDÁVEIS — o mesmo total que o controle de
+   * estoque pelo grupo julga (15/10/2026). A cor inativada com sobra na
+   * prateleira não é estoque a repor, e somá-la faria a tela discordar do
+   * relatório de estoque baixo.
+   */
+  const variationStocks = useMemo(
+    () =>
+      variationDrafts.flatMap((draft) => {
+        const status = getStatusNumber(draft.status);
+        const vendavel = status !== PRODUCT_STATUS.Inactive && status !== PRODUCT_STATUS.Draft;
+        return draft.id && draft.id > 0 && vendavel ? [{ id: draft.id, stock: draft.stock }] : [];
+      }),
+    [variationDrafts, getStatusNumber],
+  );
   const variationOptions = useMemo(
     () => opcoesDeVariacao(variationDrafts, form.productGroupName),
     [variationDrafts, form.productGroupName],
@@ -433,6 +450,8 @@ export function ProductDetailScreen({
               productName={stockProductName}
               barcode={stockProductBarcode}
               variationOptions={variationOptions}
+              variationStocks={variationStocks}
+              onFreshStock={syncVariationStock}
               onSelectProduct={setPickedStockProductId}
               entryPrefill={
                 purchaseContext

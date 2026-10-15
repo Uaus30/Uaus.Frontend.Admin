@@ -211,6 +211,10 @@ export function useProductSubmit({
       // galeria fica como está — a foto que a lupa pôs em outra aba sobrevive.
       const baseline = editingGroupId ? savedBaseline : null;
       const siteMudou = !baseline || form.isPublic !== baseline.showOnSite;
+      // A mesma regra para "Controlar estoque por variação" (15/10/2026): aberto
+      // com o valor antigo, o editor desfaria o que outra aba ligou.
+      const porVariacao = form.stockPerVariation ?? false;
+      const porVariacaoMudou = !baseline || porVariacao !== (baseline.stockPerVariation ?? false);
       const galeriaMudou = !baseline || !mesmaGaleria(images, baseline.imageIds);
 
       // UMA requisição, uma transação: ou o cadastro inteiro grava, ou nada
@@ -224,6 +228,7 @@ export function useProductSubmit({
         name: form.productGroupName,
         description: form.description,
         hasVariations: form.hasVariations,
+        stockPerVariation: form.hasVariations && porVariacaoMudou ? porVariacao : undefined,
         showOnSite: siteMudou ? form.isPublic : undefined,
         notes: form.notes,
         products: produtos,
@@ -305,8 +310,13 @@ export function useProductSubmit({
       // "não mexida", para o próximo salvar não reenviá-la.
       if (siteGravado !== form.isPublic || escolha)
         setForm((current) => ({ ...current, isPublic: siteGravado, stockControl: null }));
+      const porVariacaoGravado =
+        typeof saved.group.stockPerVariation === "boolean" ? saved.group.stockPerVariation : porVariacao;
+      if (porVariacaoGravado !== porVariacao)
+        setForm((current) => ({ ...current, stockPerVariation: porVariacaoGravado }));
       setSavedBaseline({
         showOnSite: siteGravado,
+        stockPerVariation: porVariacaoGravado,
         imageIds: normalizedImages.flatMap((image) => (image.imageId ? [image.imageId] : [])),
       });
 

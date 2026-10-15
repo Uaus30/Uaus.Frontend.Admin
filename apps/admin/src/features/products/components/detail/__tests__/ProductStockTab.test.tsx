@@ -162,6 +162,48 @@ describe("ProductStockTab — seletor de variação", () => {
   });
 });
 
+describe("ProductStockTab — total do produto", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // A variação aberta (39) acabou de receber entrada: a leitura fresca diz 4,
+    // e o que a tela carregou ainda diz 1.
+    mocks.useProductStockEntries.mockReturnValue(
+      stockEntries({ product: { id: 39, stock: 4, price: 10, costPrice: 5 } }),
+    );
+  });
+
+  it("soma as variações, com o saldo fresco da que está aberta", () => {
+    // 15/10/2026: é o número que o controle de estoque pelo grupo julga.
+    renderTab(vi.fn(), {
+      variationStocks: [
+        { id: 39, stock: 1 },
+        { id: 41, stock: 2 },
+      ],
+    });
+
+    expect(screen.getByTestId("total-do-produto").textContent).toContain("6");
+  });
+
+  it("avisa o saldo fresco da variação aberta, para o total não voltar ao velho na troca", () => {
+    const onFreshStock = vi.fn();
+    renderTab(vi.fn(), {
+      variationStocks: [
+        { id: 39, stock: 1 },
+        { id: 41, stock: 2 },
+      ],
+      onFreshStock,
+    });
+
+    expect(onFreshStock).toHaveBeenCalledWith(39, 4);
+  });
+
+  it("produto simples não mostra total", () => {
+    renderTab(vi.fn(), { variationOptions: [], variationStocks: [] });
+
+    expect(screen.queryByTestId("total-do-produto")).toBeNull();
+  });
+});
+
 describe("ProductStockTab — conferência de estoque aberta", () => {
   beforeEach(() => {
     vi.clearAllMocks();

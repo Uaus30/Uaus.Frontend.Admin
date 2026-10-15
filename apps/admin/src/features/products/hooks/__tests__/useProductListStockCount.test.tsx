@@ -62,6 +62,7 @@ function linha(overrides: Partial<ProductTableRow> = {}): ProductTableRow {
       name: "COPO",
       description: null,
       hasVariations: true,
+      stockPerVariation: false,
       showOnSite: true,
       notes: null,
     },

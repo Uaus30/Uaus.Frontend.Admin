@@ -566,6 +566,8 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     productPrice: number | null;
     supplierId: number | null;
     quantity: number;
+    /** A quantidade é do produto inteiro: a grade a reparte (`PurchaseForm.spreadQuantity`). */
+    spreadQuantity?: boolean;
   }) {
     setDirty(false);
     setEditingId(null);
@@ -582,6 +584,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       productPrice: dados.productPrice,
       supplierId: dados.supplierId ? String(dados.supplierId) : "",
       quantity: dados.quantity,
+      spreadQuantity: dados.spreadQuantity ?? false,
     });
     setOpen(true);
     // Reposição é compra de produto cadastrado: a grade, a categoria e as fotos
