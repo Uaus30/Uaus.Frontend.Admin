@@ -48,7 +48,10 @@ export function describeCostCorrectionImpact(
   const compra =
     purchaseId != null ? ` A compra #${purchaseId} também não muda: os totais dela são o que foi pago.` : "";
 
-  return `O custo do lote e o do cadastro passam a ser este. ${consumo} A quantidade, o preço e o valor das vendas não mudam.${compra}`;
+  // O cadastro pula lote de custo zero desde 15/10/2026 (`ProductCostFromLots`
+  // no backend): corrigir para zero muda o lote, e o cadastro fica com o último
+  // custo diferente de zero.
+  return `O custo do lote e o do cadastro passam a ser este (custo zero não vai para o cadastro, que fica com o último custo diferente de zero). ${consumo} A quantidade, o preço e o valor das vendas não mudam.${compra}`;
 }
 
 /** A margem antes e depois da correção, sobre o preço de venda do cadastro. */

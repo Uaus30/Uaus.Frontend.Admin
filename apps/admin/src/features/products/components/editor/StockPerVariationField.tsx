@@ -11,11 +11,11 @@ type StockPerVariationFieldProps = {
  * "Controlar estoque por variação" (15/10/2026), só no produto com variações.
  *
  * Desligado — o padrão —, o relatório de estoque baixo, o alerta, a previsão, a
- * rotina de desempenho, o "Comprar!" da listagem, a reposição do BI e o ranking
- * de campeões olham o produto INTEIRO, com saldo e venda somados: a sacola de
- * quatro estampas é uma linha, e não quatro de giro baixo. Ligado, cada variação
- * é julgada sozinha — é o caso da roupa íntima, em que acabar o P com o G
- * sobrando é falta de verdade.
+ * rotina de desempenho, o "Comprar!" da listagem e a reposição do BI olham o
+ * produto INTEIRO, com saldo e venda somados: a sacola de quatro estampas é uma
+ * linha, e não quatro de giro baixo. Ligado, cada variação é julgada sozinha — é
+ * o caso da roupa íntima, em que acabar o P com o G sobrando é falta de verdade.
+ * O ranking de campeões soma o produto nos dois casos.
  *
  * Venda, compra e contagem continuam por variação nos dois casos: o caixa
  * confere o saldo do código bipado. O salvar só manda o interruptor quando a

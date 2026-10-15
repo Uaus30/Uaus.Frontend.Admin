@@ -85,7 +85,7 @@ Substituiu o card por categoria, que não se lia: em 04/10/2026, 59 categorias v
 - Janela **fixa de 30 dias**, fora do seletor: no começo do mês o "Este mês" tem poucos dias para um ranking. O card diz a janela no título.
 - Estoque como **alerta ativo**: só o problema ganha cor. A régua é a duração no ritmo de venda (esgotado; menos de 7 dias em vermelho; menos de 15 dias ou no mínimo em âmbar) — em 04/10/2026 os dez campeões tinham `min_stock` zero, e "12 un" não dizia se durava dois dias ou dois meses. Controle de estoque desligado não gera alerta. "A caminho" segue a mesma regra do relatório de estoque baixo (itens da compra em aberto).
 - Mudança de posição contra os 30 dias anteriores ("novo", ▲, ▼) e participação no lucro total. "Ver mais" pede de novo com +10, até 100.
-- **Produto com variações julgado pelo total** (15/10/2026, "Controlar estoque por variação" desligado): UMA linha com venda, lucro e saldo somados ("vendeu 40 sacolas"), e o botão "N variações venderam" abre o que cada uma vendeu, com o saldo de cada (`ChampionVariationsRow`). Com a flag ligada, cada variação é uma linha, como antes. Na **Reposição prioritária**, a linha do grupo diz "todas as variações".
+- **Produto com variações é UMA linha** (15/10/2026): venda, lucro e saldo somados ("vendeu 40 sacolas"), e o botão "N variações venderam" abre o que cada uma vendeu, com o saldo de cada (`ChampionVariationsRow`). Vale também com "Controlar estoque por variação" ligado (decisão do dono: a flag é só para o estoque baixo saber qual tamanho falta). Na **Reposição prioritária**, que é estoque, a flag vale: o produto julgado pelo total é uma linha que diz "todas as variações", e o controlado por variação, uma linha por variação.
 
 ### 4. Três camadas de carregamento
 
