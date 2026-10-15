@@ -55,6 +55,7 @@ renomear um fornecedor aqui deixava o nome antigo no combo da outra tela.
 - A API manda o status pelo **nome** do enum (`"Active"`, `"Inactive"`), e as opções do select são **códigos** (`"1"`, `"2"`). Quem lê passa por `enumCode(status, SUPPLIER_STATUS)`; quem envia manda o código (`SupplierStatusCode`).
 - Sem isso, a modal de um fornecedor inativo abria com **Ativo** — e salvar de novo o reativava sem ninguém ter escolhido. Foi o defeito de 15/10/2026, o mesmo que a tela de usuários já tinha tido.
 - Na listagem, o `SupplierStatusBadge` pinta **Ativo de verde e Inativo de vermelho** (vocabulário de cores do `Uaus.Docs`). Antes o selo era verde para qualquer status.
+- **Edição aberta antes de o catálogo de status carregar:** status conhecido (Ativo ou Inativo) fica como veio do servidor, e o efeito que garante um status válido confere quando as opções chegam. Antes, sem opções para conferir, o formulário ficava vazio e o efeito o trocava por Ativo — o mesmo reativar silencioso por outro caminho. Status desconhecido continua caindo no padrão.
 
 ### 5. Confirmação de exclusão
 
