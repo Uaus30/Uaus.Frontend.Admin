@@ -113,6 +113,7 @@ export async function createOrReuseProductGroup(payload: {
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     hasVariations: payload.hasVariations ?? false,
+    stockPerVariation: false,
     showOnSite: payload.showOnSite ?? true,
     canDelete: true,
   } satisfies ProductGroupDto;
@@ -150,6 +151,7 @@ export async function createProductGroup(payload: {
     name: payload.name.trim(),
     description: payload.description?.trim() || null,
     hasVariations: payload.hasVariations,
+    stockPerVariation: false,
     showOnSite: payload.showOnSite ?? true,
     canDelete: true,
   } satisfies ProductGroupDto;

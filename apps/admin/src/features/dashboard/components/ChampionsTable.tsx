@@ -1,12 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "wouter";
-import { ArrowDown, ArrowUp, Loader2, Trophy, Truck } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Loader2, Trophy, Truck } from "lucide-react";
 import { Button, Skeleton, cn } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { useChampions } from "../hooks/useChampions";
 import type { DashboardChampion } from "../types";
 import { rankChange, stockLabel } from "../breakdowns";
 import { ChartCard, ChartEmptyState } from "./chart-primitives";
+import { ChampionVariationsRow } from "./ChampionVariationsRow";
 
 type ChampionsTableProps = ReturnType<typeof useChampions>;
 
@@ -94,6 +95,9 @@ function StockCell({ champion }: { champion: DashboardChampion }) {
  * Por lucro e não por faturamento, a pedido do dono: é o que mostra quem sustenta
  * a loja. Medido em 04/10/2026, o ranking quase repete o de faturamento, mas sobem
  * os de margem alta (pendrive 55%, taça 58%).
+ *
+ * O produto com variações julgado pelo total (15/10/2026) é UMA linha, com a venda
+ * somada — "vendeu 40 sacolas" —, e abre a lista do que cada variação vendeu.
  */
 export function ChampionsTable({
   champions,
@@ -105,6 +109,15 @@ export function ChampionsTable({
   isFetching,
   isError,
 }: ChampionsTableProps) {
+  // As linhas de grupo abertas — o "abrir por variação" (15/10/2026).
+  const [abertos, setAbertos] = useState<ReadonlySet<number>>(() => new Set());
+  const alternar = (id: number) =>
+    setAbertos((atual) => {
+      const proximo = new Set(atual);
+      if (!proximo.delete(id)) proximo.add(id);
+      return proximo;
+    });
+
   if (isLoading) {
     return <Skeleton className="h-[480px] rounded-xl" />;
   }
@@ -150,56 +163,78 @@ export function ChampionsTable({
             </thead>
             <tbody>
               {products.map((product) => (
-                <tr
-                  key={product.id}
-                  className="border-b border-border/40 transition-colors last:border-0 hover:bg-muted/30"
-                >
-                  <td className="px-2 py-3">
-                    <RankCell champion={product} />
-                  </td>
-                  <td className="px-2 py-3 lg:max-w-[260px]">
-                    {product.productGroupId ? (
-                      <Link
-                        href={`/produtos/${product.productGroupId}/detalhes`}
-                        className="block break-words font-medium text-foreground hover:text-primary hover:underline lg:truncate"
-                        title={product.name}
-                      >
-                        {product.name}
-                      </Link>
-                    ) : (
-                      <p className="break-words font-medium text-foreground lg:truncate" title={product.name}>
-                        {product.name}
+                <React.Fragment key={product.id}>
+                  <tr className="border-b border-border/40 transition-colors last:border-0 hover:bg-muted/30">
+                    <td className="px-2 py-3">
+                      <RankCell champion={product} />
+                    </td>
+                    <td className="px-2 py-3 lg:max-w-[260px]">
+                      {product.productGroupId ? (
+                        <Link
+                          href={`/produtos/${product.productGroupId}/detalhes`}
+                          className="block break-words font-medium text-foreground hover:text-primary hover:underline lg:truncate"
+                          title={product.name}
+                        >
+                          {product.name}
+                        </Link>
+                      ) : (
+                        <p
+                          className="break-words font-medium text-foreground lg:truncate"
+                          title={product.name}
+                        >
+                          {product.name}
+                        </p>
+                      )}
+                      <p className="truncate text-xs text-muted-foreground">{product.categoryName}</p>
+                      {product.isGroup && product.variations.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => alternar(product.id)}
+                          aria-expanded={abertos.has(product.id)}
+                          className="mt-0.5 inline-flex items-center gap-0.5 text-[11px] text-primary hover:underline"
+                        >
+                          {abertos.has(product.id) ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
+                          {product.variations.length === 1
+                            ? "1 variação vendeu"
+                            : `${product.variations.length} variações venderam`}
+                        </button>
+                      )}
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] tabular-nums text-muted-foreground lg:hidden">
+                        <span>{formatCurrency(product.revenue)} faturados</span>
+                        <span>· margem {percent(product.marginPercentage)}</span>
+                        <span>· {product.quantitySold} vendidos</span>
+                        <StockCell champion={product} />
+                      </div>
+                    </td>
+                    <td className="px-2 py-3 text-right">
+                      <p className="font-semibold tabular-nums text-foreground">
+                        {formatCurrency(product.profit)}
                       </p>
-                    )}
-                    <p className="truncate text-xs text-muted-foreground">{product.categoryName}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] tabular-nums text-muted-foreground lg:hidden">
-                      <span>{formatCurrency(product.revenue)} faturados</span>
-                      <span>· margem {percent(product.marginPercentage)}</span>
-                      <span>· {product.quantitySold} vendidos</span>
+                      <p className="text-[11px] tabular-nums text-muted-foreground">
+                        {percent(product.profitShare)} do lucro
+                      </p>
+                    </td>
+                    <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums">
+                      {formatCurrency(product.revenue)}
+                    </td>
+                    <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums text-muted-foreground">
+                      {percent(product.marginPercentage)}
+                    </td>
+                    <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums">
+                      {product.quantitySold}
+                    </td>
+                    <td className="hidden lg:table-cell px-2 py-3 text-right">
                       <StockCell champion={product} />
-                    </div>
-                  </td>
-                  <td className="px-2 py-3 text-right">
-                    <p className="font-semibold tabular-nums text-foreground">
-                      {formatCurrency(product.profit)}
-                    </p>
-                    <p className="text-[11px] tabular-nums text-muted-foreground">
-                      {percent(product.profitShare)} do lucro
-                    </p>
-                  </td>
-                  <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums">
-                    {formatCurrency(product.revenue)}
-                  </td>
-                  <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums text-muted-foreground">
-                    {percent(product.marginPercentage)}
-                  </td>
-                  <td className="hidden lg:table-cell px-2 py-3 text-right tabular-nums">
-                    {product.quantitySold}
-                  </td>
-                  <td className="hidden lg:table-cell px-2 py-3 text-right">
-                    <StockCell champion={product} />
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  {product.isGroup && abertos.has(product.id) && (
+                    <ChampionVariationsRow variations={product.variations} />
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

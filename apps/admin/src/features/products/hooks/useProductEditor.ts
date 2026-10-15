@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProductById, getProductsPage } from "@/services/products.service";
 
@@ -427,6 +427,7 @@ export function useProductEditor() {
         productGroupName: product.productGroup?.name ?? "",
         description: product.productGroup?.description || "",
         hasVariations: product.productGroup?.hasVariations ?? false,
+        stockPerVariation: product.productGroup?.stockPerVariation ?? false,
         isPublic: product.productGroup?.showOnSite ?? true,
         notes: product.productGroup?.notes || "",
       });
@@ -450,6 +451,7 @@ export function useProductEditor() {
       setImages(galeria);
       setSavedBaseline({
         showOnSite: product.productGroup?.showOnSite ?? true,
+        stockPerVariation: product.productGroup?.stockPerVariation ?? false,
         imageIds: galeria.flatMap((image) => (image.imageId ? [image.imageId] : [])),
       });
 
@@ -625,6 +627,23 @@ export function useProductEditor() {
     setLoadedGroupId(editingGroupId);
   }, [editingGroupId, enrichedGroupProducts, form.hasVariations, detailOpen, loadedGroupId]);
 
+  /**
+   * O saldo FRESCO de uma variação gravada, lido na aba Estoque (15/10/2026).
+   * Atualiza o rascunho com o setter cru — o servidor já está assim, e a troca
+   * não pode sujar a tela. Sem isso, o "Total do produto" voltava ao saldo de
+   * quando a tela abriu assim que se trocava de variação depois de uma entrada.
+   * Estável (`useCallback`): a aba o chama num efeito.
+   */
+  const syncVariationStock = useCallback(
+    (productId: number, stock: number) =>
+      setVariationDrafts((current) =>
+        current.some((draft) => draft.id === productId && draft.stock !== stock)
+          ? current.map((draft) => (draft.id === productId ? { ...draft, stock } : draft))
+          : current,
+      ),
+    [],
+  );
+
   return {
     detailOpen,
     setDetailOpen,
@@ -640,6 +659,9 @@ export function useProductEditor() {
       setProductEditor(update);
     },
     variationDrafts,
+    syncVariationStock,
+    /** Código numérico do status de um rascunho (`useProductForm.getStatusNumber`). */
+    getStatusNumber: productForm.getStatusNumber,
     activeVariationKey,
     setActiveVariationKey,
     images,

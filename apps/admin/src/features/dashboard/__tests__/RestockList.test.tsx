@@ -5,6 +5,8 @@ import type { RestockSuggestion } from "../types";
 
 const sugestao: RestockSuggestion = {
   productId: 7,
+  productGroupId: 3,
+  isGroup: false,
   productName: "VELA AROMÁTICA",
   barcode: "789",
   categoryName: "Casa",

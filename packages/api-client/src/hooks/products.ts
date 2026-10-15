@@ -112,6 +112,11 @@ export interface SaveProductGroupWithProductsPayload {
   description?: string | null;
   hasVariations: boolean;
   /**
+   * "Controlar estoque por variação" (15/10/2026). Como `showOnSite`, omitido
+   * na edição mantém o gravado; só vale com variações.
+   */
+  stockPerVariation?: boolean;
+  /**
    * Omitido na edição, o servidor mantém o que está gravado: o editor só o
    * manda quando a pessoa mexeu no interruptor NESTA tela (23/09/2026).
    */

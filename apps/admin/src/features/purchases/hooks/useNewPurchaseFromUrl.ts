@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@workspace/ui";
 import { getProductById } from "@/services/products.service";
-import { NEW_PURCHASE_PRODUCT_PARAM } from "../purchases-route";
+import { NEW_PURCHASE_PRODUCT_PARAM, NEW_PURCHASE_QUANTITY_PARAM } from "../purchases-route";
 import { suggestedRestockQuantity } from "@/lib/stock-control";
 
 /** Parâmetro opcional: fornecedor que já vem escolhido no formulário. */
@@ -15,7 +15,7 @@ function idValido(bruto: string | null): number | null {
 }
 
 /** O que a URL pede. Lido UMA vez: a instrução é de uma vez só. */
-type PedidoDaUrl = { productId: number; supplierId: number | null } | null;
+type PedidoDaUrl = { productId: number; supplierId: number | null; quantity: number | null } | null;
 
 function pedidoInicialDaUrl(): PedidoDaUrl {
   if (typeof window === "undefined") return null;
@@ -24,7 +24,12 @@ function pedidoInicialDaUrl(): PedidoDaUrl {
   const productId = idValido(params.get(NEW_PURCHASE_PRODUCT_PARAM));
   if (productId === null) return null;
 
-  return { productId, supplierId: idValido(params.get(PARAM_FORNECEDOR)) };
+  return {
+    productId,
+    supplierId: idValido(params.get(PARAM_FORNECEDOR)),
+    // Inteiro positivo, como o id: o mesmo validador serve.
+    quantity: idValido(params.get(NEW_PURCHASE_QUANTITY_PARAM)),
+  };
 }
 
 /** Tira os parâmetros da barra de endereços, preservando o resto. */
@@ -32,6 +37,7 @@ function limparUrl(): void {
   const url = new URL(window.location.href);
   url.searchParams.delete(NEW_PURCHASE_PRODUCT_PARAM);
   url.searchParams.delete(PARAM_FORNECEDOR);
+  url.searchParams.delete(NEW_PURCHASE_QUANTITY_PARAM);
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
@@ -45,6 +51,7 @@ type UseNewPurchaseFromUrlParams = {
     productPrice: number | null;
     supplierId: number | null;
     quantity: number;
+    spreadQuantity?: boolean;
   }) => void;
 };
 
@@ -61,6 +68,10 @@ type UseNewPurchaseFromUrlParams = {
  * 29/09/2026). É palpite, não regra: quem compra ajusta. Deixar 1 seria quase
  * sempre errado numa reposição, e deixar vazio jogaria a conta de volta para
  * quem já sabe o que quer.
+ *
+ * O relatório de estoque baixo manda também a quantidade (`quantidade=`) na
+ * linha do produto julgado pelo total (15/10/2026): o produto da URL é a
+ * variação que representa o grupo, e o saldo dela não é o do produto.
  *
  * Os parâmetros saem da barra de endereços assim que são consumidos — o link é
  * instrução de uma vez só; sem isso, fechar o formulário e recarregar reabriria
@@ -102,7 +113,11 @@ export function useNewPurchaseFromUrl({ abrirCompra }: UseNewPurchaseFromUrlPara
           productBarcode: produto.barcode || null,
           productPrice: produto.price ?? null,
           supplierId: pedido.supplierId,
-          quantity: suggestedRestockQuantity(produto),
+          // A linha do produto julgado pelo total manda a quantidade do GRUPO;
+          // sem ela, a sugestão é a desta variação.
+          quantity: pedido.quantity ?? suggestedRestockQuantity(produto),
+          // ...e ela é do produto inteiro: a grade a reparte entre as variações.
+          spreadQuantity: pedido.quantity !== null,
         });
       } catch {
         if (cancelado) return;

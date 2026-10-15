@@ -27,6 +27,12 @@ export function productFromPurchasePath(purchaseId: number): string {
  */
 export const NEW_PURCHASE_PRODUCT_PARAM = "produto";
 
+/**
+ * Quantidade da compra de reposição, quando quem chama já sabe — a linha do
+ * produto julgado pelo total no relatório de estoque baixo (15/10/2026).
+ */
+export const NEW_PURCHASE_QUANTITY_PARAM = "quantidade";
+
 /** Caminho que abre Compras com o pedido de reposição deste produto já começado. */
 export function newPurchaseForProductPath(productId: number): string {
   return `${PURCHASES_PATH}?${NEW_PURCHASE_PRODUCT_PARAM}=${productId}`;

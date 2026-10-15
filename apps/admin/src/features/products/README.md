@@ -827,6 +827,20 @@ mesmo desenho — uma tabela enxuta e um olho por linha.
   Compra, não cancelada (`ProductDto.lastPurchaseQuantity`/`lastPurchaseDate`,
   só no `GET /Products/{id}`), da mesma consulta do "Último custo". Só no
   produto simples — no grupo com variações o mínimo daqui não vale.
+- **"Controlar estoque por variação"** (15/10/2026,
+  `components/editor/StockPerVariationField.tsx`), só no produto com
+  variações, desligado por padrão. Desligado, o relatório de estoque baixo, o
+  alerta, a previsão, a rotina de desempenho, o "Comprar!" da listagem, a
+  reposição do BI e o ranking de campeões olham o produto INTEIRO, com saldo e
+  venda somados; ligado, cada variação é julgada sozinha (roupa íntima). Venda,
+  compra e contagem continuam por variação. Como o "Exibir no site", o salvar só
+  manda o interruptor quando a pessoa mexeu nele nesta tela (`savedBaseline`).
+  O valor chega pela linha da listagem (`ProductTableRowDto.stockPerVariation`)
+  ou pelo `ProductGroupDto` na rota direta.
+- **Total do produto na aba Estoque** (15/10/2026): com variações, "Total do
+  produto: N un. somando as X variações" abaixo do estoque da variação aberta
+  — é o número que o controle pelo grupo julga. A variação aberta entra pela
+  leitura fresca (uma entrada lançada ali já conta).
 
 ### 5. Link direto do PDV (`/produtos?busca=<grupo>&editar=<id>`)
 
@@ -937,3 +951,8 @@ O dono mexe pelo celular em preço, nome, foto, correção de estoque e variaç�
   sem ter uma a caminho.
 - A mesma célula (`ProductStockCell`) serve à linha, à lista de variações e ao
   resumo do celular. Backend anterior às marcas: nada é destacado.
+- **Produto com variações julgado pelo total** (15/10/2026, "Controlar estoque
+  por variação" desligado): o vermelho e o "Comprar!" são do produto e ficam só
+  na linha — as variações abertas não repetem a marca, porque nenhuma cor
+  sozinha é o que precisa de compra. A compra a caminho de qualquer cor dá
+  "Comprado" à linha. A regra é do backend (`StockControlUnits`).

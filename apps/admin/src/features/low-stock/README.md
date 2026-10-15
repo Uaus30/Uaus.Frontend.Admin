@@ -89,6 +89,27 @@ nas entradas de estoque.
     o parâmetro não vai.
 - **A tela abre no critério do relatório, sem filtro semeado (12/09/2026).**
 
+## Produto com variações: uma linha só (15/10/2026)
+
+- Com o "Controlar estoque por variação" **desligado** (o padrão), o produto
+  com variações é UMA linha: saldo, mínimo e venda somados das variações
+  vendáveis, e a previsão do grupo. A sacola de quatro estampas, que eram
+  quatro linhas de giro baixo, vira uma sacola que acaba em 2 dias. Ligado
+  (Cuecas e Calcinhas), cada variação é julgada sozinha, como antes.
+- A linha diz **"Total de N variações"** no lugar do código
+  (`LowStockCodeLine`): o grupo tem um código por variação.
+- A busca acha a linha por qualquer variação (código, cor); a compra a caminho
+  de qualquer variação tira o produto da lista e dá "Compra em aberto".
+- **Comprar** abre a compra pela variação que representa o grupo, com a
+  quantidade do PRODUTO na URL (`&quantidade=`, `quantityQuery`). A tela de
+  Compras a reparte na grade, uma unidade por vez para a variação vendável com
+  menos saldo (`purchases/lib/spread-restock.ts`) — é ponto de partida, e o
+  recebimento confere o que veio. Sem o parâmetro, a sugestão sairia do saldo
+  de uma cor só; sem a repartição, a quantidade inteira cairia nela (revisão de
+  15/10/2026).
+- As ações do menu (desligar, religar, inativar) valem para **todas** as
+  variações, com uma linha só no histórico.
+
 ## Giro do produto (06/09/2026)
 
 Três colunas respondem à pergunta que decide se vale repor — um produto parado

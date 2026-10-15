@@ -9,6 +9,7 @@ import { outOfControlLabel } from "@/lib/stock-control";
 import type { LowStockItem } from "../types";
 import { LowStockRowActions } from "./LowStockRowActions";
 import { LowStockRowSummary } from "./LowStockRowSummary";
+import { LowStockCodeLine } from "./LowStockCodeLine";
 import { duracaoLegivel, duracaoTone, tituloDaDuracao } from "../lib/duracao";
 
 type LowStockTableProps = {
@@ -297,7 +298,7 @@ export function LowStockTable({
                           >
                             {item.productName}
                           </Link>
-                          <p className="font-mono text-xs text-muted-foreground">{item.barcode}</p>
+                          <LowStockCodeLine item={item} />
                           {scope === "OutOfControl" && (
                             <p className="mt-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
                               {outOfControlLabel(item)}
