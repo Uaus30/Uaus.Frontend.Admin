@@ -30,7 +30,23 @@ export type ProductAnomalyTypeName =
   | "DuplicateName"
   | "NeverSold"
   | "NoRecentSales"
-  | "SmallPhoto";
+  | "SmallPhoto"
+  | "Inconsistency";
+
+/**
+ * O motivo de uma `Inconsistency` (14/10/2026): as oito regras de cadastro que o
+ * dono aprovou. As quatro últimas valiam zero em produção nesse dia e ficam de
+ * guarda.
+ */
+export type ProductInconsistencyKindName =
+  | "GenericGradeValue"
+  | "MissingGradeValue"
+  | "SingleVariationGroup"
+  | "StockDiffersFromLots"
+  | "DuplicateCombination"
+  | "SimpleWithGrade"
+  | "InvalidBarcode"
+  | "ZeroPrice";
 
 /** Os números da regra do estoque fantasma — o manual da tela fala com eles. */
 export interface ProductAnomalyRulesDto {
@@ -115,6 +131,19 @@ export interface ProductAnomalyDto {
   photoHeight?: number | null;
   /** Em `SmallPhoto`, as unidades vendidas na janela de `smallPhotoSalesWindowDays`. */
   unitsSold?: number | null;
+  /** Em `Inconsistency`, qual das regras acusou. */
+  inconsistency?: ProductInconsistencyKindName | null;
+  /**
+   * A grade envolvida (valor genérico, grade que falta, valor em produto simples).
+   * Chega como NOME do enum ("Brand"); normalize com `enumCode(valor, GRADE_TYPE)`.
+   */
+  gradeType?: string | null;
+  /** O valor de grade acusado ("CÓPIA 2"). */
+  gradeValue?: string | null;
+  /** Em `StockDiffersFromLots`, a soma do saldo dos lotes. */
+  lotsStock?: number | null;
+  /** Em `InvalidBarcode`, o código gravado. */
+  barcode?: string | null;
 }
 
 /** Uma linha: um cadastro com as anomalias dele. */

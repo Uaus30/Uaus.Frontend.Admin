@@ -53,9 +53,9 @@ describe("trocarTipoDeGrade", () => {
     // grade veio como "Modelo". Desmarcar "Modelo" e marcar "Cor" na modal
     // apagaria a coluna com os valores dentro, e as centenas de variações
     // importadas teriam que ser redigitadas uma a uma.
-    const drafts = [comGrade(GRADE_TYPE.Model, "Azul"), comGrade(GRADE_TYPE.Model, "Preto")];
+    const drafts = [comGrade(GRADE_TYPE.Brand, "Azul"), comGrade(GRADE_TYPE.Brand, "Preto")];
 
-    const trocados = trocarTipoDeGrade(drafts, GRADE_TYPE.Model, GRADE_TYPE.Color);
+    const trocados = trocarTipoDeGrade(drafts, GRADE_TYPE.Brand, GRADE_TYPE.Color);
 
     expect(trocados.map((d) => d.values)).toEqual([
       [{ gradeType: GRADE_TYPE.Color, value: "Azul" }],
@@ -70,13 +70,13 @@ describe("trocarTipoDeGrade", () => {
       {
         key: "k1",
         values: [
-          { gradeType: GRADE_TYPE.Model, value: "Com alça" },
+          { gradeType: GRADE_TYPE.Brand, value: "Com alça" },
           { gradeType: GRADE_TYPE.Color, value: "Azul" },
         ],
       } as VariationDraft,
     ];
 
-    expect(trocarTipoDeGrade(drafts, GRADE_TYPE.Model, GRADE_TYPE.Color)).toBe(drafts);
+    expect(trocarTipoDeGrade(drafts, GRADE_TYPE.Brand, GRADE_TYPE.Color)).toBe(drafts);
   });
 });
 
@@ -145,13 +145,13 @@ describe("aplicarGradesNasLinhas", () => {
   it("ordena as colunas, não a ordem em que foram marcadas", () => {
     const depois = aplicarGradesNasLinhas(
       [gravada(1, "10L", "789")],
-      [GRADE_TYPE.Model, GRADE_TYPE.Size, GRADE_TYPE.Color],
+      [GRADE_TYPE.Brand, GRADE_TYPE.Size, GRADE_TYPE.Color],
     );
 
     expect(depois[0].values.map((value) => value.gradeType)).toEqual([
       GRADE_TYPE.Color,
       GRADE_TYPE.Size,
-      GRADE_TYPE.Model,
+      GRADE_TYPE.Brand,
     ]);
   });
 });

@@ -616,7 +616,7 @@ export interface ProductTagDto {
 }
 
 /**
- * Os três tipos de grade que uma variação pode ter. Espelha o enum `GradeType`
+ * Os tipos de grade que uma variação pode ter. Espelha o enum `GradeType`
  * do backend.
  *
  * A lista é FIXA desde 30/08/2026: não há mais catálogo de grades nem CRUD. O
@@ -624,11 +624,19 @@ export interface ProductTagDto {
  * dev — e ZERO produtos ligados a ele. A grade passou a nascer dentro da
  * variação, e é por isso que "Cor" pode ter duas opções num produto e cinco em
  * outro sem que os dois disputem um cadastro comum.
+ *
+ * "Modelo" deixou de existir em 14/10/2026 (decisão do dono): modelo diferente
+ * é outro produto. O código 3 virou MARCA — na importação, a grade "Modelo"
+ * guardava quase sempre o rótulo de fabricante ("ORIGINAL", "CÓPIA") —, e sabor
+ * e estampa ganharam código próprio. O número é o que o banco grava; não
+ * renumere.
  */
 export const GRADE_TYPE = {
   Size: 1,
   Color: 2,
-  Model: 3,
+  Brand: 3,
+  Flavor: 4,
+  Print: 5,
 } as const;
 
 export type GradeTypeCode = (typeof GRADE_TYPE)[keyof typeof GRADE_TYPE];
@@ -637,8 +645,19 @@ export type GradeTypeCode = (typeof GRADE_TYPE)[keyof typeof GRADE_TYPE];
 export const GRADE_TYPE_LABELS: Record<GradeTypeCode, string> = {
   [GRADE_TYPE.Size]: "Tamanho",
   [GRADE_TYPE.Color]: "Cor",
-  [GRADE_TYPE.Model]: "Modelo",
+  [GRADE_TYPE.Brand]: "Marca",
+  [GRADE_TYPE.Flavor]: "Sabor",
+  [GRADE_TYPE.Print]: "Estampa",
 };
+
+/**
+ * As grades em ORDEM ALFABÉTICA do rótulo — a ordem dos selects e da modal
+ * "Configurar Variações" (pedido do dono, 14/10/2026; é a regra de todo select
+ * do admin, `convencoes-de-interface.md`).
+ */
+export const GRADE_TYPES_ALPHABETICAL: GradeTypeCode[] = (Object.values(GRADE_TYPE) as GradeTypeCode[]).sort(
+  (a, b) => GRADE_TYPE_LABELS[a].localeCompare(GRADE_TYPE_LABELS[b], "pt-BR"),
+);
 
 /** Um valor de grade de uma variação: "Cor = AZUL". */
 export interface ProductVariationValueDto {

@@ -4,7 +4,7 @@ import { GRADE_TYPE } from "@workspace/api-client-react";
 import { ProductVariationsSection } from "../ProductVariationsSection";
 import type { ProductGrade, VariationDraft } from "../../types";
 
-/** Uma variação já gravada, com a grade que a importação trouxe como "Modelo". */
+/** Uma variação já gravada, com a grade que a importação trouxe como "Modelo" — hoje Marca. */
 function draft(id: number, valor: string, barcode: string): VariationDraft {
   return {
     id,
@@ -19,11 +19,11 @@ function draft(id: number, valor: string, barcode: string): VariationDraft {
     barcode,
     images: [],
     canDelete: true,
-    values: [{ gradeType: GRADE_TYPE.Model, value: valor }],
+    values: [{ gradeType: GRADE_TYPE.Brand, value: valor }],
   };
 }
 
-const GRADES: ProductGrade[] = [{ type: GRADE_TYPE.Model, values: ["Azul", "Preto"] }];
+const GRADES: ProductGrade[] = [{ type: GRADE_TYPE.Brand, values: ["Azul", "Preto"] }];
 
 function renderSection(overrides: Partial<React.ComponentProps<typeof ProductVariationsSection>> = {}) {
   const changeGradeType = vi.fn();
@@ -58,7 +58,7 @@ describe("ProductVariationsSection", () => {
 
     const titulo = screen.getByRole("combobox", { name: /trocar o tipo desta grade/i });
 
-    expect(titulo.textContent).toContain("Modelo");
+    expect(titulo.textContent).toContain("Marca");
   });
 
   it("escolher outro tipo troca a grade de todas as linhas de uma vez", () => {
@@ -70,7 +70,7 @@ describe("ProductVariationsSection", () => {
     fireEvent.click(screen.getByRole("combobox", { name: /trocar o tipo desta grade/i }));
     fireEvent.click(within(screen.getByRole("listbox")).getByText("Cor"));
 
-    expect(changeGradeType).toHaveBeenCalledWith(GRADE_TYPE.Model, GRADE_TYPE.Color);
+    expect(changeGradeType).toHaveBeenCalledWith(GRADE_TYPE.Brand, GRADE_TYPE.Color);
   });
 
   it("tipo já usado por outra coluna não pode ser escolhido", () => {
@@ -79,16 +79,29 @@ describe("ProductVariationsSection", () => {
     renderSection({
       selectedGrades: [
         { type: GRADE_TYPE.Color, values: ["Azul"] },
-        { type: GRADE_TYPE.Model, values: ["Com alça"] },
+        { type: GRADE_TYPE.Brand, values: ["Com alça"] },
       ],
     });
 
     const [colunaCor] = screen.getAllByRole("combobox", { name: /trocar o tipo desta grade/i });
     fireEvent.click(colunaCor);
 
-    const opcaoModelo = within(screen.getByRole("listbox")).getByRole("option", { name: "Modelo" });
+    const opcaoMarca = within(screen.getByRole("listbox")).getByRole("option", { name: "Marca" });
 
-    expect(opcaoModelo.getAttribute("aria-disabled")).toBe("true");
+    expect(opcaoMarca.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("as opções de grade vêm em ordem alfabética, sem Modelo", () => {
+    // Pedido do dono (14/10/2026): Modelo saiu — modelo diferente é outro
+    // produto — e as opções seguem a regra de todo select do admin.
+    renderSection();
+
+    fireEvent.click(screen.getByRole("combobox", { name: /trocar o tipo desta grade/i }));
+    const opcoes = within(screen.getByRole("listbox"))
+      .getAllByRole("option")
+      .map((opcao) => opcao.textContent);
+
+    expect(opcoes).toEqual(["Cor", "Estampa", "Marca", "Sabor", "Tamanho"]);
   });
 });
 
@@ -144,7 +157,7 @@ describe("ProductVariationsSection — no celular (cartões)", () => {
     expect(within(cartao).getByText(/BACIA COM TAMPA TRITEC.*AZUL/i)).toBeTruthy();
     expect(within(cartao).getByLabelText(/preço/i)).toBeTruthy();
     expect(within(cartao).getByLabelText(/status/i)).toBeTruthy();
-    expect(within(cartao).getByLabelText(/modelo/i)).toBeTruthy();
+    expect(within(cartao).getByLabelText(/marca/i)).toBeTruthy();
   });
 
   it("cada campo existe uma vez só — o foco no erro procura pelo id", () => {
@@ -162,7 +175,7 @@ describe("ProductVariationsSection — no celular (cartões)", () => {
     fireEvent.click(screen.getByRole("combobox", { name: /trocar o tipo desta grade/i }));
     fireEvent.click(within(screen.getByRole("listbox")).getByText("Cor"));
 
-    expect(changeGradeType).toHaveBeenCalledWith(GRADE_TYPE.Model, GRADE_TYPE.Color);
+    expect(changeGradeType).toHaveBeenCalledWith(GRADE_TYPE.Brand, GRADE_TYPE.Color);
   });
 
   it("código inválido mostra o motivo por extenso, sem depender do mouse", () => {

@@ -30,6 +30,18 @@ afterEach(() => {
 });
 
 describe("VariationColumnsForm", () => {
+  it("lista as cinco grades em ordem alfabética, sem Modelo", () => {
+    // Pedido do dono (14/10/2026): Modelo saiu (modelo diferente é outro
+    // produto); Marca, Sabor e Estampa entraram; a ordem é a de todo select.
+    renderForm();
+
+    const rotulos = screen
+      .getAllByRole("checkbox")
+      .map((caixa) => caixa.closest("label")?.textContent?.trim());
+
+    expect(rotulos).toEqual(["Cor", "Estampa", "Marca", "Sabor", "Tamanho"]);
+  });
+
   it("não pede valor nenhum — só marca a grade", () => {
     // É a simplificação de 01/09/2026: em produto já cadastrado a modal não
     // cruza grades, então não tem o que perguntar além de QUAIS colunas existem.

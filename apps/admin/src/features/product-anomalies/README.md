@@ -48,6 +48,16 @@ Cada etiqueta traz **a evidência com os números** (`lib/anomalies.ts`,
 vendas sem ele; no ritmo, seriam ~3" —, porque é uma suspeita estatística e a
 etiqueta sem a conta seria uma acusação sem prova.
 
+**Inconsistência** (14/10/2026, pedido do dono) é a última etiqueta: o cadastro
+que o sistema não consegue interpretar, para filtrar e corrigir um a um. São
+oito motivos, e cada etiqueta diz qual (`lib/inconsistency.ts`): valor de grade
+genérico ("CÓPIA 2", "UNDEFINED", marca só com números — o "ORIGINAL" fica de
+fora, pode ser a marca ORIGINAL LINE), grade que falta numa variação, produto
+com variações e um cadastro só (o editor não salva), estoque que não bate com
+os lotes, combinação repetida, produto simples com valor de grade, código fora
+do EAN-13 e preço zero no que está à venda. As quatro últimas valiam zero em
+produção nesse dia e ficam de guarda.
+
 **Tipo desconhecido não derruba a tela.** A API manda o enum pelo NOME; um tipo
 novo no backend sem entrada aqui cai no `FALLBACK_META` ("Anomalia", neutra, no
 fim da ordem) em vez de estourar a rota pelo ErrorBoundary.

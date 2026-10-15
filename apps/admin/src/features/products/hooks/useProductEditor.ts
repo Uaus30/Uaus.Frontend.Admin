@@ -59,6 +59,8 @@ export function useProductEditor() {
   const [dirty, setDirty] = useState(false);
   /** Espelho de `detailOpen` legível dentro de handlers, sem esperar efeito. */
   const detailOpenRef = useRef(false);
+  /** O grupo aberto, legível depois de um `await` (ver `virarProdutoSimples`). */
+  const editingGroupIdRef = useRef<number | null>(null);
 
   const [images, setImages] = useState<LocalImage[]>([]);
   // A galeria mais recente para o aviso do limite (`applyGalleryUpdate`), que
@@ -102,6 +104,10 @@ export function useProductEditor() {
   useEffect(() => {
     detailOpenRef.current = detailOpen;
   }, [detailOpen]);
+
+  useEffect(() => {
+    editingGroupIdRef.current = editingGroupId;
+  }, [editingGroupId]);
 
   /** Marca a tela como alterada. Ignorado se o detalhe nem está aberto. */
   function markDirty() {
@@ -247,6 +253,7 @@ export function useProductEditor() {
     editingGroupId,
     invalidateProductQueries,
     refetchGroupProducts,
+    onBecameSimple: virarProdutoSimples,
   });
 
   /**
@@ -348,6 +355,46 @@ export function useProductEditor() {
    * de `GET /Products/{id}` completa os quatro campos — pelo setter CRU, porque
    * carregar não é editar. Só aplica se o produto aberto ainda for o mesmo.
    */
+  /**
+   * A tela passa a mostrar como SIMPLES o produto que ficou com uma variação só
+   * (o servidor já o converteu ao excluir a outra, 14/10/2026).
+   *
+   * Não reabre pelo `openDetail`: o `GET /Products/{id}` devolve o produto cru,
+   * sem grupo, categoria, tags nem galeria, e o `openDetail` espera o produto
+   * montado pela listagem — com ele a tela abria em branco e sem foto. Aqui o
+   * que a tela já tem fica (departamento, categoria, galeria, "Exibir no site" e
+   * as edições ainda não salvas da variação que sobrou); do servidor vem só o
+   * NOME novo, que ganhou o valor da grade. A sujeira do formulário também fica:
+   * edição pendente continua pendente.
+   *
+   * Só aplica se o mesmo produto continua aberto — a leitura é assíncrona.
+   */
+  async function virarProdutoSimples(restante: VariationDraft) {
+    const grupoAberto = editingGroupIdRef.current;
+    const dto = await getProductById(restante.id as number).catch(() => null);
+    if (!detailOpenRef.current || editingGroupIdRef.current !== grupoAberto) return;
+
+    const nome = dto?.name ?? restante.name;
+    setForm((atual) => ({ ...atual, productGroupName: nome, hasVariations: false }));
+    setProductEditor({
+      id: restante.id,
+      name: nome,
+      description: restante.description,
+      price: restante.price,
+      stock: restante.stock,
+      minStock: restante.minStock,
+      stockControlEnabled: restante.stockControlEnabled,
+      stockControlDisabledReason: restante.stockControlDisabledReason ?? null,
+      forecastStatus: restante.forecastStatus ?? null,
+      monthlySalesMedian: restante.monthlySalesMedian ?? null,
+      status: restante.status,
+      tagIds: restante.tagIds,
+      barcode: restante.barcode,
+    });
+    setVariationDrafts([]);
+    setActiveVariationKey(null);
+  }
+
   function completarControleDeEstoque(productId: number) {
     void getProductById(productId)
       .then((dto) => {

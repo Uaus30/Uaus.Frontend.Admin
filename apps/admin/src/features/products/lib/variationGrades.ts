@@ -8,7 +8,11 @@ import type { ProductGrade, VariationDraft } from "../types";
  * marcasse Cor antes de Tamanho e "[G, AZUL]" se marcasse na ordem inversa — e
  * o nome mudaria por causa da ordem dos cliques, não do produto.
  */
-const ORDEM_DAS_GRADES: GradeTypeCode[] = [2, 1, 3];
+/**
+ * Cor, Tamanho, Sabor, Estampa e, por último, Marca: "CUECA [AZUL, P, MARCA X]".
+ * A marca fecha o colchete porque é o que menos muda a peça na mão do cliente.
+ */
+const ORDEM_DAS_GRADES: GradeTypeCode[] = [2, 1, 4, 5, 3];
 
 /**
  * As grades de um conjunto de variações já gravadas.

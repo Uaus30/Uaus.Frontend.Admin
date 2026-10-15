@@ -61,7 +61,11 @@ function gravada(id: number, tamanho: string, barcode: string): VariationDraft {
  * precisa realimentar o hook, senão o teste afirmaria o que o próprio dublê
  * devolveu em vez do que a tela passa a mostrar.
  */
-function renderVariations(iniciais: VariationDraft[], produto: ProductEditorForm = PRODUTO) {
+function renderVariations(
+  iniciais: VariationDraft[],
+  produto: ProductEditorForm = PRODUTO,
+  onBecameSimple?: (restante: VariationDraft) => Promise<void>,
+) {
   const estado = { drafts: iniciais };
 
   const view = renderHook(() => {
@@ -80,6 +84,7 @@ function renderVariations(iniciais: VariationDraft[], produto: ProductEditorForm
       editingGroupId: 5,
       invalidateProductQueries: vi.fn().mockResolvedValue(undefined),
       refetchGroupProducts: vi.fn().mockResolvedValue(undefined),
+      onBecameSimple,
     });
   });
 
@@ -142,13 +147,13 @@ describe("applyGrades — produto com a tabela já montada", () => {
     ]);
 
     act(() => {
-      void view.result.current.applyGrades([{ type: GRADE_TYPE.Model, values: [] }]);
+      void view.result.current.applyGrades([{ type: GRADE_TYPE.Brand, values: [] }]);
     });
 
     expect(estado.drafts).toHaveLength(2);
     expect(estado.drafts.map((draft) => draft.values)).toEqual([
-      [{ gradeType: GRADE_TYPE.Model, value: "" }],
-      [{ gradeType: GRADE_TYPE.Model, value: "" }],
+      [{ gradeType: GRADE_TYPE.Brand, value: "" }],
+      [{ gradeType: GRADE_TYPE.Brand, value: "" }],
     ]);
     expect(mocks.deleteProduct).not.toHaveBeenCalled();
   });
@@ -251,12 +256,12 @@ describe("changeGradeType", () => {
     // código de barras iriam para a exclusão.
     const porModelo = [gravada(1, "Azul", "789"), gravada(2, "Preto", "790")].map((draft) => ({
       ...draft,
-      values: [{ gradeType: GRADE_TYPE.Model, value: draft.values[0].value }],
+      values: [{ gradeType: GRADE_TYPE.Brand, value: draft.values[0].value }],
     }));
     const { view, estado } = renderVariations(porModelo);
 
     act(() => {
-      view.result.current.changeGradeType(GRADE_TYPE.Model, GRADE_TYPE.Color);
+      view.result.current.changeGradeType(GRADE_TYPE.Brand, GRADE_TYPE.Color);
     });
 
     expect(estado.drafts.map((draft) => draft.values)).toEqual([
@@ -265,5 +270,66 @@ describe("changeGradeType", () => {
     ]);
     expect(estado.drafts.map((draft) => draft.id)).toEqual([1, 2]);
     expect(estado.drafts.map((draft) => draft.barcode)).toEqual(["789", "790"]);
+  });
+});
+
+describe("handleDeleteVariation — o produto que fica com uma variação só", () => {
+  it("reabre como produto simples quando sobra UMA variação gravada", async () => {
+    // Desde 14/10/2026 o servidor transforma o produto em simples nessa hora; a
+    // tela que continuasse "com variações" recusaria o próximo Salvar (menos de
+    // duas variações).
+    mocks.deleteProduct.mockResolvedValue(undefined);
+    const onBecameSimple = vi.fn().mockResolvedValue(undefined);
+    const { view } = renderVariations(
+      [gravada(1, "10L", "789"), gravada(2, "6L", "790")],
+      PRODUTO,
+      onBecameSimple,
+    );
+
+    await act(async () => {
+      await view.result.current.handleDeleteVariation(gravada(2, "6L", "790"));
+    });
+
+    expect(mocks.deleteProduct).toHaveBeenCalledWith(2);
+    expect(onBecameSimple).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+  });
+
+  it("conta só as GRAVADAS, como o servidor: linha nova não salva não segura as variações", async () => {
+    // Achado da revisão (14/10/2026): com uma linha nova ainda não salva, a tela
+    // continuava "com variações" enquanto o banco já era simples.
+    mocks.deleteProduct.mockResolvedValue(undefined);
+    const onBecameSimple = vi.fn().mockResolvedValue(undefined);
+    const nova: VariationDraft = { ...gravada(0, "", ""), id: null, key: "temp-1" };
+    const { view } = renderVariations(
+      [gravada(1, "10L", "789"), gravada(2, "6L", "790"), nova],
+      PRODUTO,
+      onBecameSimple,
+    );
+
+    await act(async () => {
+      await view.result.current.handleDeleteVariation(gravada(2, "6L", "790"));
+    });
+
+    expect(onBecameSimple).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ description: expect.stringContaining("ainda não salvas foram descartadas") }),
+    );
+  });
+
+  it("com duas ou mais restantes, só tira a linha da tabela", async () => {
+    mocks.deleteProduct.mockResolvedValue(undefined);
+    const onBecameSimple = vi.fn().mockResolvedValue(undefined);
+    const { view, estado } = renderVariations(
+      [gravada(1, "10L", "789"), gravada(2, "6L", "790"), gravada(3, "3,6L", "791")],
+      PRODUTO,
+      onBecameSimple,
+    );
+
+    await act(async () => {
+      await view.result.current.handleDeleteVariation(gravada(3, "3,6L", "791"));
+    });
+
+    expect(onBecameSimple).not.toHaveBeenCalled();
+    expect(estado.drafts.map((draft) => draft.id)).toEqual([1, 2]);
   });
 });

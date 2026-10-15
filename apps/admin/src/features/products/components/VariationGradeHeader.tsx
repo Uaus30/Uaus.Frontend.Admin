@@ -1,10 +1,9 @@
 import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
-import { GRADE_TYPE, GRADE_TYPE_LABELS, type GradeTypeCode } from "@workspace/api-client-react";
+import { GRADE_TYPE_LABELS, GRADE_TYPES_ALPHABETICAL, type GradeTypeCode } from "@workspace/api-client-react";
 
-/** Ordem fixa das opções, a mesma da modal de configuração. */
-/** Cor, Modelo, Tamanho — alfabético, como todo select do admin. */
-const TIPOS_DE_GRADE: GradeTypeCode[] = [GRADE_TYPE.Color, GRADE_TYPE.Model, GRADE_TYPE.Size];
+/** Cor, Estampa, Marca, Sabor, Tamanho — alfabético, como todo select do admin e a modal de configuração. */
+const TIPOS_DE_GRADE: GradeTypeCode[] = GRADE_TYPES_ALPHABETICAL;
 
 type VariationGradeHeaderProps = {
   /** Tipo desta coluna hoje. */
@@ -18,7 +17,7 @@ type VariationGradeHeaderProps = {
  * Cabeçalho de uma coluna de grade, com a troca do TIPO.
  *
  * A importação do sistema anterior trouxe centenas de produtos com a grade
- * "Modelo" onde o valor é cor ou tamanho, e não havia como corrigir sem
+ * "Modelo" (hoje Marca) onde o valor é cor ou tamanho, e não havia como corrigir sem
  * destruir o cadastro: pela modal de configuração, trocar "Modelo" por "Cor"
  * gera combinações que não têm grade nenhuma em comum com as atuais — a matriz
  * nasceria em branco e as variações com código de barras iriam para a exclusão.

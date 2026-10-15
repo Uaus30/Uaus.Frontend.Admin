@@ -51,7 +51,7 @@ describe("opcoesDeVariacao", () => {
       name: "CUECA INFANTIL CORES",
       values: [
         { gradeType: GRADE_TYPE.Size, value: tamanho },
-        { gradeType: GRADE_TYPE.Model, value: modelo },
+        { gradeType: GRADE_TYPE.Brand, value: modelo },
       ],
     }) as VariationDraft;
 

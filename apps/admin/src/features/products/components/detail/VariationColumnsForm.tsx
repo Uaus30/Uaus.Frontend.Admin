@@ -3,11 +3,15 @@ import { AlertTriangle, Grid3X3 } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { Checkbox } from "@workspace/ui";
 import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui";
-import { GRADE_TYPE, GRADE_TYPE_LABELS, type GradeTypeCode } from "@workspace/api-client-react";
+import { GRADE_TYPE_LABELS, GRADE_TYPES_ALPHABETICAL, type GradeTypeCode } from "@workspace/api-client-react";
 import type { ProductGrade } from "../../types";
 
-/** Ordem em que as grades aparecem na modal e no nome composto. */
-const GRADES_DISPONIVEIS: GradeTypeCode[] = [GRADE_TYPE.Color, GRADE_TYPE.Size, GRADE_TYPE.Model];
+/**
+ * As grades da modal, em ordem alfabética (pedido do dono, 14/10/2026): Cor,
+ * Estampa, Marca, Sabor, Tamanho. A ordem do NOME composto é outra, fixa em
+ * `variationGrades.ts`.
+ */
+const GRADES_DISPONIVEIS: GradeTypeCode[] = GRADE_TYPES_ALPHABETICAL;
 
 type VariationColumnsFormProps = {
   selectedGrades: ProductGrade[];

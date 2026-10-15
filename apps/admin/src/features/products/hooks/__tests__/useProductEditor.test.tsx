@@ -240,6 +240,63 @@ describe("useProductEditor Hook", () => {
     expect(result.current.selectedGrades).toEqual([{ type: GRADE_TYPE.Size, values: [] }]);
   });
 
+  it("excluir a penúltima variação deixa a tela como produto simples, sem perder o cadastro", async () => {
+    // Desde 14/10/2026 o servidor converte o produto em simples nessa hora. A
+    // primeira versão reabria pelo `openDetail` com o GET /Products/{id} CRU —
+    // sem grupo, categoria, tags e galeria — e a tela abria em branco, com um
+    // toast falso de erro (achado da revisão adversarial).
+    const variacao = (id: number, cor: string) => ({
+      id,
+      name: "BOLA",
+      description: "",
+      price: 9.9,
+      stock: 3,
+      minStock: 0,
+      status: 2,
+      barcode: `789000000${id}`,
+      productGroupId: 1,
+      variationValues: [{ gradeType: "Color", value: cor, displayOrder: 0 }],
+      canDelete: true,
+    });
+    mocks.getProductsPage.mockResolvedValue({
+      data: [variacao(10, "AZUL"), variacao(11, "VERDE")],
+      total: 2,
+    });
+    // O shape REAL de GET /Products/{id}: o produto, sem grupo nem coleções.
+    mocks.getProductById.mockResolvedValue({
+      ...variacao(10, "AZUL"),
+      name: "BOLA AZUL",
+      variationValues: [],
+    });
+
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail({
+        ...variacao(10, "AZUL"),
+        department: { id: 2 },
+        category: { id: 5 },
+        productGroup: { id: 1, name: "BOLA", hasVariations: true, showOnSite: true },
+        tags: [],
+        images: [],
+      });
+    });
+    await waitFor(() => expect(result.current.variationDrafts).toHaveLength(2));
+
+    const verde = result.current.variationDrafts.find((draft) => draft.id === 11)!;
+    await act(async () => {
+      await result.current.handleDeleteVariation(verde);
+    });
+
+    expect(result.current.form.hasVariations).toBe(false);
+    expect(result.current.form.productGroupName).toBe("BOLA AZUL");
+    expect(result.current.form.categoryId).toBe("5");
+    expect(result.current.variationDrafts).toHaveLength(0);
+    expect(result.current.productEditor.id).toBe(10);
+    expect(result.current.productEditor.name).toBe("BOLA AZUL");
+    expect(result.current.productEditor.barcode).toBe("78900000010");
+  });
+
   it("should reset HasVariations correctly when toggled", () => {
     const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
 

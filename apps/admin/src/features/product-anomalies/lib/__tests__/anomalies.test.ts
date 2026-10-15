@@ -137,8 +137,10 @@ describe("foto pequena", () => {
     );
   });
 
-  it("é a última da ordem e cinza: é para olhar, não trava venda nenhuma", () => {
-    expect(ANOMALY_ORDER.at(-1)).toBe("SmallPhoto");
+  it("vem logo antes da Inconsistência e é cinza: é para olhar, não trava venda nenhuma", () => {
+    // Desde 14/10/2026 a Inconsistência fecha a lista: é cadastro para corrigir
+    // um a um, e quase sempre só confunde.
+    expect(ANOMALY_ORDER.at(-2)).toBe("SmallPhoto");
     expect(anomalyMeta("SmallPhoto")).toMatchObject({ label: "Foto pequena", tone: "neutro" });
   });
 

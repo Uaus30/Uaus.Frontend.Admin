@@ -6,6 +6,7 @@ import {
   Copy,
   EyeOff,
   FilePen,
+  FileWarning,
   Ghost,
   Hourglass,
   ImageMinus,
@@ -21,6 +22,7 @@ import type {
   ProductAnomalyTypeName,
 } from "@workspace/api-client-react";
 import type { BiTone } from "@/lib/bi-tone";
+import { describeInconsistency } from "./inconsistency";
 
 /** Tudo que a tela precisa saber de um tipo de anomalia. */
 export type AnomalyMeta = {
@@ -53,6 +55,7 @@ export const ANOMALY_ORDER: ProductAnomalyTypeName[] = [
   "NeverSold",
   "NoRecentSales",
   "SmallPhoto",
+  "Inconsistency",
 ];
 
 /**
@@ -137,6 +140,12 @@ export const ANOMALY_META: Record<ProductAnomalyTypeName, AnomalyMeta> = {
     icon: ImageMinus,
     tone: "neutro",
     fix: "Troque a capa por uma foto maior: a atual fica de fora do catálogo de divulgação em PDF, onde borraria.",
+  },
+  Inconsistency: {
+    label: "Inconsistência",
+    icon: FileWarning,
+    tone: "atencao",
+    fix: "Corrija no cadastro o que a etiqueta aponta: valor de grade genérico, grade faltando, estoque que não bate com os lotes, código ou preço inválido.",
   },
 };
 
@@ -265,6 +274,8 @@ export function describeAnomaly(anomaly: ProductAnomalyDto, row: ProductAnomalyR
       const venda = vendidas > 0 ? `Vendeu ${unidades(vendidas)} no período.` : "Não vendeu no período.";
       return `Capa de ${anomaly.photoWidth ?? 0} × ${anomaly.photoHeight ?? 0} px. ${venda}`;
     }
+    case "Inconsistency":
+      return describeInconsistency(anomaly);
     default:
       return anomalyMeta(anomaly.type).fix;
   }

@@ -18,6 +18,13 @@ export interface UseProductVariationsProps {
   editingGroupId: number | null;
   invalidateProductQueries: (groupId?: number | null) => Promise<void>;
   refetchGroupProducts: () => Promise<unknown>;
+  /**
+   * O produto ficou com UMA variação gravada depois de uma exclusão. O servidor
+   * já o transformou em produto simples (com o valor da grade no nome), e a tela
+   * precisa passar a mostrá-lo assim — senão o editor continua "com variações"
+   * e o próximo Salvar é recusado por ter menos de duas.
+   */
+  onBecameSimple?: (restante: VariationDraft) => Promise<void> | void;
 }
 
 export function useProductVariations({
@@ -32,6 +39,7 @@ export function useProductVariations({
   editingGroupId,
   invalidateProductQueries,
   refetchGroupProducts,
+  onBecameSimple,
 }: UseProductVariationsProps) {
   const { toast } = useToast();
 
@@ -160,6 +168,24 @@ export function useProductVariations({
       await refetchGroupProducts();
 
       const nextDrafts = variationDrafts.filter((item) => item.key !== draft.key);
+
+      // Sobrou UMA variação gravada: o servidor transformou o produto em simples
+      // (ProductService, 14/10/2026). A conta é a do servidor — só as GRAVADAS —,
+      // senão uma linha nova ainda não salva deixaria a tela "com variações"
+      // enquanto o banco já é simples, e o próximo Salvar seria recusado.
+      const gravadas = nextDrafts.filter((item) => item.id != null && item.id > 0);
+      if (gravadas.length === 1 && onBecameSimple) {
+        const descartadas = nextDrafts.length - 1;
+        await onBecameSimple(gravadas[0]);
+        toast({
+          title: "Variação removida.",
+          description:
+            "O produto ficou com uma variação só e voltou a ser produto simples, com o valor da grade no nome." +
+            (descartadas > 0 ? " As linhas novas ainda não salvas foram descartadas." : ""),
+        });
+        return;
+      }
+
       setVariationDrafts(nextDrafts);
       setForm((f) => ({ ...f, hasVariations: nextDrafts.length > 0 }));
       if (activeVariationKey === draft.key) {

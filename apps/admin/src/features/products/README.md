@@ -26,13 +26,13 @@ Este módulo gerencia a visualização, filtragem, criação, edição e control
 - `product-detail-route.ts`: A rota do detalhe (`/produtos/<grupo>/detalhes`), o padrão que a listagem e ela compartilham no `<Switch>` e o parser do caminho.
 - `hooks/useProductDetailFromUrl.ts`: Abertura de quem chega por link — a rota, o `?id=` antigo e o `?editar=` do PDV.
 - `lib/variationGrades.ts`: As grades em si — ordem, reconstrução a partir das variações, colunas de um produto já cadastrado e troca do tipo da grade.
-- `components/detail/VariationGradesModal.tsx`: A modal de variações — escolhe o TIPO da grade (Cor/Tamanho/Modelo), nunca os valores.
+- `components/detail/VariationGradesModal.tsx`: A modal de variações — escolhe o TIPO da grade (Cor, Estampa, Marca, Sabor, Tamanho), nunca os valores.
 - `components/detail/VariationColumnsForm.tsx`: O formulário dentro dela: marca e desmarca coluna. Com a tabela vazia, confirmar cria a primeira linha — o próprio produto.
 - `components/CurrencyInput.tsx`: Componente de entrada controlada formatado para moeda brasileira (R$).
 - `components/ProductImagesSection.tsx`: As fotos do produto na aba Dados — capa grande e duas menores, no máximo 3 (seção 4.10): acrescentar, arrastar para reordenar e remover.
 - `components/ProductImageSearchModal.tsx`: Modal para consulta, seleção, otimização e importação de imagens da internet.
 - `components/ProductVariationsSection.tsx`: Tabela interativa para gerenciar variações do produto (SKUs), preços individuais e associação com grades.
-- `components/VariationGradeHeader.tsx`: Cabeçalho da coluna de grade, com a troca do tipo (Cor/Tamanho/Modelo) para todas as linhas.
+- `components/VariationGradeHeader.tsx`: Cabeçalho da coluna de grade, com a troca do tipo para todas as linhas.
 - `hooks/useProductTable.ts`: Gerencia o carregamento de dados da listagem, controle de paginação, busca e filtros (departamento, categoria, status com padrão Ativo), e a mutation da edição rápida de preço.
 - `hooks/mapProductTableRow.ts`: Traduz a linha que o servidor devolve para a linha que a tela usa.
 - `hooks/useProductEditor.ts`: Centraliza o estado do formulário de criação/edição, as colunas de grade das variações, validações e persistência no banco.
@@ -110,14 +110,30 @@ elas**. As variações existiam mesmo assim, com a grade escrita à mão no nome
 
 Hoje:
 
-- **Os tipos são fixos**: Cor, Tamanho e Modelo (`GRADE_TYPE` no api-client,
-  espelhando o enum `GradeType` do backend). Não há tela de cadastro de grade —
-  o CRUD, os endpoints `/Grades` e as quatro tabelas do banco foram removidos.
+- **Os tipos são fixos**: Cor, Estampa, Marca, Sabor e Tamanho (`GRADE_TYPE` no
+  api-client, espelhando o enum `GradeType` do backend). Não há tela de cadastro
+  de grade — o CRUD, os endpoints `/Grades` e as quatro tabelas do banco foram
+  removidos.
+- **"Modelo" saiu em 14/10/2026** (decisão do dono): modelo diferente é outro
+  produto, com cadastro próprio. O código 3 virou **Marca** — na importação a
+  grade "Modelo" guardava o rótulo de fabricante ("ORIGINAL", "CÓPIA") —, e
+  sabor e estampa ganharam código próprio (o script
+  `2026-10-14_variacoes_grades_marca_sabor_estampa.sql` moveu os valores).
+  Marca é o que distingue a mesma peça de duas fábricas, cada uma com o código
+  de barras da sua embalagem.
+- **A ordem das opções é alfabética** na modal e no cabeçalho da coluna
+  (`GRADE_TYPES_ALPHABETICAL`). A ordem do NOME composto é outra e fixa
+  (`variationGrades.ts`): Cor, Tamanho, Sabor, Estampa e Marca.
+- **Excluir a variação que deixa o produto com uma só o transforma em produto
+  simples** (14/10/2026): o servidor tira a grade e põe o valor no nome ("BOLA
+  [AZUL]" vira "BOLA AZUL"), e a tela reabre o produto pelo servidor
+  (`onBecameSimple`). Antes o grupo ficava "com variações" e uma variação, e o
+  editor — que exige duas — recusava qualquer salvamento.
 - **Os valores pertencem ao produto.** "Cor" pode ter duas opções aqui e cinco
   no produto vizinho, sem que os dois disputem um cadastro comum. É o que o
   desenho antigo não permitia sem criar uma grade por combinação.
-- **A modal `VariationGradesModal`** marca só o **tipo** da grade — Cor, Tamanho
-  ou Modelo. Não há campo de valores: a coluna entra em branco e o valor de cada
+- **A modal `VariationGradesModal`** marca só o **tipo** da grade. Não há campo
+  de valores: a coluna entra em branco e o valor de cada
   variação é digitado na tabela (`aplicarGradesNasLinhas`).
 - **A tabela nasce com o próprio produto** (12/09/2026). Confirmando a modal num
   produto que ainda não tem variação, a primeira linha é o produto da tela — com
