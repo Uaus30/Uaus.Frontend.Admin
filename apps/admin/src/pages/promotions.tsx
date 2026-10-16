@@ -141,7 +141,7 @@ export default function PromotionsPage() {
         onNameChange={banner.setName}
         onCopiesChange={banner.setCopies}
         bannerCount={banner.bannerCount}
-        onPrint={banner.imprimir}
+        onPrint={() => void banner.imprimir()}
       />
     </div>
   );

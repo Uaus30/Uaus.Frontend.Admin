@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useToast } from "@workspace/ui";
+import { waitForScreenToSettle } from "@workspace/receipt";
 import { useGetPromotions } from "@workspace/api-client-react";
 import { buildPromotionBannerSheetHtml, openPromotionBannerTab } from "../banner-print";
 import {
@@ -88,22 +89,52 @@ export function usePromotionBanner() {
   const bannerCount = useMemo(() => items.reduce((total, item) => total + item.copies, 0), [items]);
 
   /**
-   * Abre a folha. Síncrono de ponta a ponta, de propósito: o `window.open` só
-   * escapa do bloqueador de pop-up dentro do clique.
+   * Uma impressão em voo por vez.
+   *
+   * Durante a animação de saída a modal continua montada e o botão clicável;
+   * um duplo clique (hábito de balcão) disparava dois `imprimir`. O primeiro
+   * `window.open` consome a ativação do clique, o segundo volta `null`, e a
+   * modal reaparecia com o aviso de pop-up bloqueado — um diagnóstico falso
+   * (achado da revisão, 16/10/2026). Ref, e não estado: é guarda, não desenho.
    */
-  const imprimir = useCallback(() => {
-    if (items.length === 0) return;
+  const printing = useRef(false);
 
-    if (!openPromotionBannerTab(buildPromotionBannerSheetHtml(items, bannerTitleOf(title)))) {
-      toast({
-        title: "O navegador bloqueou a aba da impressão",
-        description: "Libere as janelas pop-up para este endereço e clique em Imprimir de novo.",
-        variant: "destructive",
-      });
-      return;
+  /**
+   * Fecha a modal, espera a animação de saída terminar e SÓ ENTÃO abre a aba.
+   *
+   * A ordem é correção, não polimento (achado do dono no primeiro uso,
+   * 16/10/2026): a aba nova chama `window.print()` logo que carrega, e isso
+   * congela o processo que ela divide com a aba do admin. Abrindo a aba primeiro,
+   * o congelamento caía no meio da animação de saída da modal e o `Presence` do
+   * Radix nunca recebia o `animationend` — a modal ficava na tela, logicamente
+   * fechada, com o X sem efeito. É o mesmo defeito que o cupom do PDV já teve
+   * (`waitForScreenToSettle`, no pacote do cupom, existe por isso).
+   *
+   * O `window.open` continua dentro da ativação do clique: o Chrome aceita
+   * pop-up por 5 segundos depois do gesto, e a espera tem teto de 400 ms. Se
+   * ainda assim o navegador segurar, a modal volta para a pessoa tentar de novo.
+   */
+  const imprimir = useCallback(async () => {
+    if (items.length === 0 || printing.current) return;
+    printing.current = true;
+
+    try {
+      const html = buildPromotionBannerSheetHtml(items, bannerTitleOf(title));
+
+      setOpen(false);
+      await waitForScreenToSettle();
+
+      if (!openPromotionBannerTab(html)) {
+        setOpen(true);
+        toast({
+          title: "O navegador bloqueou a aba da impressão",
+          description: "Libere as janelas pop-up para este endereço e clique em Imprimir de novo.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      printing.current = false;
     }
-
-    setOpen(false);
   }, [items, title, toast]);
 
   const abrir = useCallback(() => setOpen(true), []);

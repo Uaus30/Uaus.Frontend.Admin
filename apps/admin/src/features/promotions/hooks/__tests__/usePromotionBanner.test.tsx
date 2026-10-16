@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
   buildHtml: vi.fn(() => "<html>folha</html>"),
   openTab: vi.fn(() => true),
+  settle: vi.fn(() => Promise.resolve()),
 }));
 
 // Só o que fala com a rede é dublado; o resto do api-client é o real.
@@ -20,6 +21,13 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
 vi.mock("@workspace/ui", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/ui")>()),
   useToast: () => ({ toast: mocks.toast }),
+}));
+
+// A espera pela animação de saída é do pacote do cupom e tem teste lá; aqui
+// interessa a ORDEM: fechar, esperar, abrir.
+vi.mock("@workspace/receipt", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@workspace/receipt")>()),
+  waitForScreenToSettle: mocks.settle,
 }));
 
 // A folha e a aba são de outro módulo, com teste próprio: aqui interessa O QUE
@@ -97,7 +105,7 @@ describe("usePromotionBanner", () => {
     expect(result.current.candidates.map((row) => row.id)).toEqual([1, 2]);
   });
 
-  it("imprime as marcadas com o nome reescrito e as cópias, e fecha a modal", () => {
+  it("imprime as marcadas com o nome reescrito e as cópias, e fecha a modal", async () => {
     const { result } = renderHook(() => usePromotionBanner(), { wrapper });
     act(() => result.current.abrir());
     const noAr = result.current.candidates[0];
@@ -109,7 +117,7 @@ describe("usePromotionBanner", () => {
     expect(result.current.editOf(noAr)).toEqual({ selected: true, name: "  Copo  ", copies: 2 });
     expect(result.current.bannerCount).toBe(2);
 
-    act(() => result.current.imprimir());
+    await act(() => result.current.imprimir());
 
     expect(mocks.buildHtml).toHaveBeenCalledWith(
       [{ productName: "Copo", lead: "", price: 0.99, copies: 2 }],
@@ -119,34 +127,61 @@ describe("usePromotionBanner", () => {
     expect(result.current.open).toBe(false);
   });
 
-  it("o título digitado vai para a folha; vazio volta para PROMOÇÃO", () => {
+  it("fecha a modal e espera a animação de saída ANTES de abrir a aba", async () => {
+    // Abrir primeiro deixava a modal presa na tela: o print() da aba nova
+    // congelava o processo no meio da animação de saída (achado do dono).
+    const { result } = renderHook(() => usePromotionBanner(), { wrapper });
+    act(() => result.current.abrir());
+    act(() => result.current.toggle(result.current.candidates[0]));
+
+    await act(() => result.current.imprimir());
+
+    expect(mocks.settle).toHaveBeenCalledTimes(1);
+    expect(mocks.settle.mock.invocationCallOrder[0]).toBeLessThan(mocks.openTab.mock.invocationCallOrder[0]);
+  });
+
+  it("duplo clique durante a animação de saída abre UMA aba só, sem aviso falso de pop-up", async () => {
+    // O primeiro window.open consome a ativação do clique; o segundo voltaria
+    // null e a modal reapareceria mandando liberar pop-up (achado da revisão).
+    const { result } = renderHook(() => usePromotionBanner(), { wrapper });
+    act(() => result.current.abrir());
+    act(() => result.current.toggle(result.current.candidates[0]));
+
+    await act(() => Promise.all([result.current.imprimir(), result.current.imprimir()]));
+
+    expect(mocks.openTab).toHaveBeenCalledTimes(1);
+    expect(mocks.toast).not.toHaveBeenCalled();
+    expect(result.current.open).toBe(false);
+  });
+
+  it("o título digitado vai para a folha; vazio volta para PROMOÇÃO", async () => {
     const { result } = renderHook(() => usePromotionBanner(), { wrapper });
     act(() => result.current.abrir());
     act(() => result.current.toggle(result.current.candidates[0]));
     act(() => result.current.setTitle("  Só hoje  "));
 
-    act(() => result.current.imprimir());
+    await act(() => result.current.imprimir());
 
     expect(mocks.buildHtml).toHaveBeenLastCalledWith(expect.any(Array), "Só hoje");
   });
 
-  it("sem nada marcado, Imprimir não abre aba", () => {
+  it("sem nada marcado, Imprimir não abre aba nem fecha a modal", async () => {
     const { result } = renderHook(() => usePromotionBanner(), { wrapper });
     act(() => result.current.abrir());
 
-    act(() => result.current.imprimir());
+    await act(() => result.current.imprimir());
 
     expect(mocks.openTab).not.toHaveBeenCalled();
     expect(result.current.open).toBe(true);
   });
 
-  it("aba bloqueada pelo navegador: avisa e deixa a modal aberta", () => {
+  it("aba bloqueada pelo navegador: avisa e devolve a modal", async () => {
     mocks.openTab.mockReturnValue(false);
     const { result } = renderHook(() => usePromotionBanner(), { wrapper });
     act(() => result.current.abrir());
     act(() => result.current.toggle(result.current.candidates[0]));
 
-    act(() => result.current.imprimir());
+    await act(() => result.current.imprimir());
 
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" }));
     expect(result.current.open).toBe(true);

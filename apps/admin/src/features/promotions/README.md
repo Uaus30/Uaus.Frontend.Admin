@@ -246,6 +246,17 @@ acabou só é descoberto no caixa).
   promocional vem do servidor. O que o banner decide é a frase — "3 por" com o
   preço do kit no combo a cada N, "A partir de N un." no combo a partir de N, e
   "A partir de" quando as variações têm preços diferentes.
+- **A modal fecha ANTES de a aba abrir** (`usePromotionBanner`, achado do dono
+  no primeiro uso): o `print()` da aba nova congela o processo que ela divide
+  com o admin, e abrindo a aba primeiro o congelamento caía no meio da animação
+  de saída da modal — o `Presence` do Radix não recebia o `animationend` e a
+  modal ficava presa na tela, com o X morto (o mesmo defeito do cupom do PDV).
+  Fecha, espera `waitForScreenToSettle` do pacote do cupom (teto de 400 ms) e
+  abre; o Chrome aceita o pop-up por 5 s depois do clique. Pop-up bloqueado
+  devolve a modal. Uma impressão em voo por vez: durante a animação o botão
+  ainda recebe clique, e o duplo clique abriria duas abas ou devolveria a modal
+  com um aviso falso de pop-up (o segundo `window.open` volta `null`, porque o
+  primeiro consome a ativação do clique).
 - **Aba nova por `blob:`, não pelo iframe do cupom** (`banner-print.ts`): o
   documento nasce inteiro, com o `print()` e o botão dentro dele — a folha já
   aberta imprime de novo mesmo com o admin fechado. O que depende do admin é

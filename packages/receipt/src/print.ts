@@ -35,8 +35,13 @@ const SETTLE_TIMEOUT_MS = 400;
  * Animações infinitas (o `animate-spin` do botão que está gravando, o
  * `animate-pulse`) ficam de fora: elas nunca terminam, e esperá-las seria
  * sempre esperar o teto inteiro.
+ *
+ * Exportada (16/10/2026) porque o mesmo congelamento acontece quando a
+ * impressão sai numa ABA nova: o `print()` dela trava o processo compartilhado
+ * com a aba do admin, e a modal que acabou de pedir a impressão ficava na tela
+ * sem fechar. Quem abre a aba fecha a modal, espera isto, e só então abre.
  */
-function waitForScreenToSettle(): Promise<void> {
+export function waitForScreenToSettle(): Promise<void> {
   if (typeof document === "undefined" || typeof document.getAnimations !== "function") {
     return Promise.resolve();
   }
