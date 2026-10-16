@@ -1,10 +1,12 @@
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Button } from "@workspace/ui";
-import { Plus, Zap } from "lucide-react";
+import { Plus, Printer, Zap } from "lucide-react";
 import { PAGE_SIZE, usePromotions } from "@/features/promotions/hooks/usePromotions";
 import { PromotionsFilters } from "@/features/promotions/components/PromotionsFilters";
 import { PromotionsTable } from "@/features/promotions/components/PromotionsTable";
 import { PromotionEditorScreen } from "@/features/promotions/components/PromotionEditorScreen";
+import { usePromotionBanner } from "@/features/promotions/hooks/usePromotionBanner";
+import { PromotionBannerDialog } from "@/features/promotions/components/PromotionBannerDialog";
 
 /**
  * Página de Promoções (rota `/marketing/promocoes`).
@@ -41,6 +43,9 @@ export default function PromotionsPage() {
     tipos,
   } = usePromotions();
 
+  // Antes do `return` da outra tela: hook é hook, e a modal só consulta aberta.
+  const banner = usePromotionBanner();
+
   usePageTitle("Promoções");
 
   if (screen.kind !== "lista") {
@@ -67,9 +72,17 @@ export default function PromotionsPage() {
           </p>
         </div>
 
-        <Button onClick={abrirNova} className="gap-2 hover-elevate">
-          <Plus className="h-4 w-4" /> Nova Promoção
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {/* O banner impresso (16/10/2026): quatro por folha A4, a partir das
+              promoções no ar e programadas. Nada é gravado — a aba aberta é a
+              reimpressão. */}
+          <Button variant="outline" onClick={banner.abrir} className="gap-2 hover-elevate">
+            <Printer className="h-4 w-4" /> Imprimir Banner
+          </Button>
+          <Button onClick={abrirNova} className="gap-2 hover-elevate">
+            <Plus className="h-4 w-4" /> Nova Promoção
+          </Button>
+        </div>
       </div>
 
       <PromotionsFilters
@@ -115,6 +128,21 @@ export default function PromotionsPage() {
           </div>
         </div>
       )}
+
+      <PromotionBannerDialog
+        open={banner.open}
+        onOpenChange={banner.onOpenChange}
+        candidates={banner.candidates}
+        isLoading={banner.isLoading}
+        title={banner.title}
+        onTitleChange={banner.setTitle}
+        editOf={banner.editOf}
+        onToggle={banner.toggle}
+        onNameChange={banner.setName}
+        onCopiesChange={banner.setCopies}
+        bannerCount={banner.bannerCount}
+        onPrint={banner.imprimir}
+      />
     </div>
   );
 }

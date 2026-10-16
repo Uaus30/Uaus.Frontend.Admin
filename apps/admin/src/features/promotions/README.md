@@ -223,6 +223,47 @@ tela avisa que é referência: no caixa o kit fecha no centavo, em R$ 6,67, R$ 6
 e R$ 6,66. A regra do domínio — precedência, centavo, o que fica fora do combo —
 está em `Uaus.Docs/dominio/promocoes.md`.
 
+### 18. O banner impresso: quatro por folha, nada gravado (16/10/2026)
+
+Pedido do dono: o cartaz amarelo da gôndola — faixa vermelha "PROMOÇÃO" em
+Cooper Black com sombra, nome do produto e preço em Arial Black — impresso pelo
+admin, **quatro por folha A4 em pé**, colados uns nos outros e separados por uma
+linha laranja fina, a guia da tesoura. O botão "Imprimir Banner" fica na
+listagem e abre uma modal com as promoções **no ar e programadas** (a de sábado
+é impressa na sexta; a encerrada fica de fora, porque cartaz de promoção que
+acabou só é descoberto no caixa).
+
+- **Nada vai ao banco, e não há histórico** — decisão do dono. A folha abre numa
+  **aba nova** com a caixa de impressão já na frente, e fica aberta: se a
+  impressora falhar, é Ctrl+P ou o botão da própria folha, sem remontar nada. A
+  modal também lembra a seleção depois de fechada, pelo mesmo motivo. É o oposto
+  da etiqueta de gôndola (lote gravado, reimpressão fiel), de propósito: o banner
+  é descartável.
+- **O nome é editável SÓ para o papel** (`PromotionBannerDialog`), como na
+  etiqueta: no cartaz cabe menos texto, e o combo chega com os nomes somados por
+  " + ". Campo vazio volta ao nome do cadastro. O cadastro não muda.
+- **O preço é o da listagem**, não uma conta nova (`bannerPriceOf`): o
+  promocional vem do servidor. O que o banner decide é a frase — "3 por" com o
+  preço do kit no combo a cada N, "A partir de N un." no combo a partir de N, e
+  "A partir de" quando as variações têm preços diferentes.
+- **Aba nova por `blob:`, não pelo iframe do cupom** (`banner-print.ts`): o
+  documento nasce inteiro, com o `print()` e o botão dentro dele — a folha já
+  aberta imprime de novo mesmo com o admin fechado. O que depende do admin é
+  só o F5 nela: o navegador revoga a URL `blob:` quando a aba do admin recarrega
+  ou fecha. O `window.open` acontece no clique, síncrono — fora dele o
+  bloqueador de pop-up segura, e a modal avisa quando isso acontece.
+- **A faixa vermelha toma o topo inteiro**, de borda a borda, com o amarelo só
+  embaixo dela (ajuste do dono no primeiro teste), e tem altura fixa de 22mm.
+  O **título é editável na modal** ("Título do banner", vazio = "PROMOÇÃO"),
+  um para a folha inteira: título mais longo encolhe a fonte para caber numa
+  linha, e a faixa não encolhe junto — quatro faixas de alturas diferentes na
+  mesma folha pareceriam quatro lojas.
+- **A folha copia o desenho das etiquetas** (medidas em mm, vizinhos dividindo
+  UMA linha de corte, paginação por `.page`), e é duplicata consciente: razões
+  de mudar diferentes. Uma diferença de propósito: a grade começa no **canto
+  superior esquerdo**, e não centralizada — com um ou dois banners, eles saem
+  no alto do papel e a sobra fica inteira embaixo.
+
 ## Estrutura
 
 - `promotion-route.ts`: os três caminhos numa entrada de rota só (`matchPath`),
@@ -253,6 +294,13 @@ está em `Uaus.Docs/dominio/promocoes.md`.
 - `components/PromotionArtworkPanel.tsx`: os dois slots, com o botão "Prompt".
 - `components/PromotionPromptDialog.tsx`: o prompt editável, com copiar e a foto
   de capa para anexar.
+- `banner-print.ts`: a folha A4 dos banners (HTML em string, como a etiqueta) e a
+  abertura da aba de impressão.
+- `hooks/promotionBannerRules.ts`: o que vale um banner, a frase do preço, o
+  nome reescrito e as cópias — função pura.
+- `hooks/usePromotionBanner.ts`: a modal "Imprimir Banner" — a consulta (só com
+  ela aberta), a seleção que sobrevive ao fechar e o clique que abre a aba.
+- `components/PromotionBannerDialog.tsx`: a modal, componente puro.
 
 ## O que NÃO está aqui
 
