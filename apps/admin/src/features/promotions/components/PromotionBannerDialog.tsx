@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Button,
   Checkbox,
@@ -16,10 +17,13 @@ import {
   enumCode,
 } from "@workspace/api-client-react";
 import { Printer } from "lucide-react";
-import { BANNERS_PER_PAGE } from "../banner-print";
+import { BANNERS_PER_PAGE, createBannerNameMeasure } from "../banner-print";
 import {
   BANNER_MAX_COPIES,
+  BANNER_NAME_MAX_CHARS,
   DEFAULT_BANNER_TITLE,
+  bannerNameFits,
+  type BannerTextMeasure,
   bannerPriceLabel,
   type PromotionBannerEdit,
 } from "../hooks/promotionBannerRules";
@@ -42,6 +46,11 @@ interface PromotionBannerDialogProps {
   /** Quantos banners saem no papel, somadas as cópias. */
   bannerCount: number;
   onPrint: () => void;
+  /**
+   * A régua do nome, em mm. Ausente, a do canvas do navegador
+   * (`createBannerNameMeasure`); o teste passa a dele.
+   */
+  measureName?: BannerTextMeasure | null;
 }
 
 /**
@@ -70,7 +79,13 @@ export function PromotionBannerDialog({
   onCopiesChange,
   bannerCount,
   onPrint,
+  measureName,
 }: PromotionBannerDialogProps) {
+  const reguaPadrao = useMemo(
+    () => (measureName === undefined ? createBannerNameMeasure() : null),
+    [measureName],
+  );
+  const medirNome = measureName === undefined ? reguaPadrao : measureName;
   const folhas = Math.ceil(bannerCount / BANNERS_PER_PAGE);
   const resumo =
     bannerCount === 0
@@ -129,6 +144,7 @@ export function PromotionBannerDialog({
                   onToggle={() => onToggle(promotion)}
                   onNameChange={(name) => onNameChange(promotion, name)}
                   onCopiesChange={(copies) => onCopiesChange(promotion, copies)}
+                  measureName={medirNome}
                 />
               ))}
             </ul>
@@ -158,17 +174,23 @@ function BannerRow({
   onToggle,
   onNameChange,
   onCopiesChange,
+  measureName,
 }: {
   promotion: PromotionRow;
   edit: PromotionBannerEdit;
   onToggle: () => void;
   onNameChange: (name: string) => void;
   onCopiesChange: (copies: number) => void;
+  measureName: BannerTextMeasure | null;
 }) {
   const checkboxId = `banner-${promotion.id}`;
   const nameId = `banner-name-${promotion.id}`;
   const copiesId = `banner-copies-${promotion.id}`;
   const tipo = PROMOTION_TYPE_LABEL[enumCode(promotion.type, PROMOTION_TYPE)] ?? "—";
+  const nomeNoPapel = edit.name.trim() || promotion.productGroupName;
+  const nomeCortado = measureName
+    ? !bannerNameFits(nomeNoPapel, measureName)
+    : nomeNoPapel.length > BANNER_NAME_MAX_CHARS;
 
   return (
     <li className={`rounded-lg border p-3 ${edit.selected ? "border-primary bg-primary/5" : "bg-card"}`}>
@@ -214,9 +236,21 @@ function BannerRow({
                 <Input
                   id={nameId}
                   value={edit.name}
+                  maxLength={BANNER_NAME_MAX_CHARS}
                   placeholder={promotion.productGroupName}
                   onChange={(event) => onNameChange(event.target.value)}
                 />
+                {/* A terceira linha some no papel: o aviso mede o nome que vai sair
+                    (o digitado, ou o do cadastro com o campo vazio) na fonte do
+                    banner — contar caracteres deixava passar nome que quebra em
+                    três linhas (revisão de 20/10/2026). */}
+                {nomeCortado && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    {edit.name.trim()
+                      ? "Este nome passa de duas linhas no banner e sai cortado: encurte."
+                      : "O nome do cadastro passa de duas linhas no banner e sai cortado: escreva aqui um nome mais curto."}
+                  </p>
+                )}
               </div>
               <div className="w-28 space-y-1">
                 <Label htmlFor={copiesId} className="text-xs">

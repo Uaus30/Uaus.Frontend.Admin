@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BANNERS_PER_PAGE,
+  BANNER_NAME_FONT_PT,
+  BANNER_SIZE_MM,
   CUT_LINE,
   bannerNameStyle,
   bannerTitleFontSizePt,
@@ -28,10 +30,11 @@ describe("splitBannerPrice", () => {
 
 describe("bannerPriceFontSizePt", () => {
   it("encolhe conforme os dígitos inteiros — o ponto de milhar não conta", () => {
-    expect(bannerPriceFontSizePt("9")).toBe(130);
-    expect(bannerPriceFontSizePt("99")).toBe(100);
-    expect(bannerPriceFontSizePt("199")).toBe(80);
-    expect(bannerPriceFontSizePt("1.234")).toBe(62);
+    // A loja vende até R$ 30: um e dois dígitos são os corpos de verdade.
+    expect(bannerPriceFontSizePt("9")).toBe(140);
+    expect(bannerPriceFontSizePt("29")).toBe(108);
+    expect(bannerPriceFontSizePt("199")).toBe(78);
+    expect(bannerPriceFontSizePt("1.234")).toBe(60);
     expect(bannerPriceFontSizePt("12.345")).toBe(50);
   });
 });
@@ -40,41 +43,53 @@ describe("bannerTitleFontSizePt", () => {
   it("'PROMOÇÃO' sai no teto de 34pt, e título mais longo encolhe até o piso", () => {
     expect(bannerTitleFontSizePt("PROMOÇÃO")).toBe(34);
     expect(bannerTitleFontSizePt("OFERTA")).toBe(34);
-    expect(bannerTitleFontSizePt("LIQUIDAÇÃO")).toBe(32);
-    expect(bannerTitleFontSizePt("QUEIMA DE ESTOQUE")).toBe(19);
+    expect(bannerTitleFontSizePt("LIQUIDAÇÃO")).toBe(31);
+    expect(bannerTitleFontSizePt("QUEIMA DE ESTOQUE")).toBe(18);
     expect(bannerTitleFontSizePt("A".repeat(40))).toBe(12);
   });
 });
 
 describe("bannerNameStyle", () => {
-  it("nome longo encolhe e ganha linhas", () => {
-    expect(bannerNameStyle("COPO AMERICANO")).toEqual({ fontSizePt: 22, lines: 2 });
-    expect(bannerNameStyle("NOME DO PRODUTO COMPLETO")).toEqual({ fontSizePt: 18, lines: 3 });
-    expect(bannerNameStyle("CONJUNTO DE POTES DE VIDRO HERMETICO 3 PECAS")).toEqual({
-      fontSizePt: 15,
-      lines: 3,
-    });
-    expect(bannerNameStyle("CONJUNTO DE POTES DE VIDRO HERMETICO RETANGULAR COM TAMPA 3 UNIDADES")).toEqual({
-      fontSizePt: 12.5,
-      lines: 4,
-    });
+  it("um corpo só, em duas linhas, para o nome curto e o longo", () => {
+    // Pedido do dono (20/10/2026): o mesmo tamanho com uma ou duas linhas.
+    for (const nome of [
+      "COPO AMERICANO",
+      "NOME DO PRODUTO COMPLETO",
+      "CONJUNTO DE POTES DE VIDRO HERMETICO 3 PECAS",
+    ]) {
+      expect(bannerNameStyle(nome)).toEqual({ fontSizePt: BANNER_NAME_FONT_PT, lines: 2 });
+    }
   });
 
-  it("palavra única e longa encolhe para caber numa linha, em vez de quebrar no meio", () => {
-    expect(bannerNameStyle("DESENGORDURANTE")).toEqual({ fontSizePt: 20, lines: 2 });
-    expect(bannerNameStyle("SUPERDESENGORDURANTE CONCENTRADO")).toEqual({ fontSizePt: 15, lines: 3 });
+  it("só a palavra que sozinha não cabe numa linha encolhe", () => {
+    expect(bannerNameStyle("DESENGORDURANTE CONCENTRADO")).toEqual({ fontSizePt: 15, lines: 2 });
+    expect(bannerNameStyle("SUPERDESENGORDURANTEPLUS")).toEqual({ fontSizePt: 12, lines: 2 });
   });
 });
 
 describe("buildPromotionBannerSheetHtml", () => {
-  it("repete o banner conforme as cópias e fecha a folha a cada quatro", () => {
+  it("repete o banner conforme as cópias e fecha a folha a cada seis", () => {
     const html = buildPromotionBannerSheetHtml([
-      banner({ copies: 3 }),
-      banner({ productName: "ESMALTE", copies: 2 }),
+      banner({ copies: 4 }),
+      banner({ productName: "ESMALTE", copies: 3 }),
     ]);
 
-    expect(contar(html, 'class="banner"')).toBe(5);
-    expect(contar(html, 'class="page"')).toBe(Math.ceil(5 / BANNERS_PER_PAGE));
+    expect(BANNERS_PER_PAGE).toBe(6);
+    expect(contar(html, 'class="banner"')).toBe(7);
+    expect(contar(html, 'class="page"')).toBe(2);
+  });
+
+  it("o banner é quadrado e a grade de 2 × 3 cabe na área útil da A4", () => {
+    // O comprido (95 × 135mm) parecia, na prateleira, apontar o preço para o
+    // produto de baixo (dono, 20/10/2026).
+    const html = buildPromotionBannerSheetHtml([banner()]);
+
+    expect(html).toMatch(
+      new RegExp(`\\.banner \\{[^}]*width: ${BANNER_SIZE_MM}mm;[^}]*height: ${BANNER_SIZE_MM}mm;`),
+    );
+    expect(html).toContain(`grid-template-columns: repeat(2, ${BANNER_SIZE_MM}mm)`);
+    expect(2 * BANNER_SIZE_MM).toBeLessThanOrEqual(194);
+    expect(3 * BANNER_SIZE_MM).toBeLessThanOrEqual(280);
   });
 
   it("a grade começa no canto superior esquerdo da folha, e não centralizada", () => {
@@ -93,8 +108,21 @@ describe("buildPromotionBannerSheetHtml", () => {
     const html = buildPromotionBannerSheetHtml([banner({ productName: `<Açaí & "Mel">`, price: 9.9 })]);
 
     expect(html).toContain("&lt;Açaí &amp; &quot;Mel&quot;&gt;");
-    expect(html).toContain('<span style="font-size:130pt;">9</span>');
-    expect(html).toContain('<span style="font-size:65pt;">,90</span>');
+    expect(html).toContain('<span style="font-size:140pt;">9</span>');
+    expect(html).toContain('<span style="font-size:70pt;">,90</span>');
+  });
+
+  it("a frase acima do preço começa onde o preço começa, no mesmo bloco", () => {
+    // Pedido do dono (20/10/2026): "3 POR" alinhado à esquerda do número, e não
+    // centrado sobre ele. O bloco é centrado no banner; dentro dele, à esquerda.
+    const doc = new DOMParser().parseFromString(
+      buildPromotionBannerSheetHtml([banner({ lead: "3 por", price: 20 })]),
+      "text/html",
+    );
+    const bloco = doc.querySelector(".banner-price-block")!;
+
+    expect([...bloco.children].map((filho) => filho.className)).toEqual(["banner-lead", "banner-price"]);
+    expect(doc.head.innerHTML).toMatch(/\.banner-price-block \{[^}]*align-items: flex-start;/);
   });
 
   it("a linha acima do preço só sai quando existe", () => {
@@ -109,7 +137,7 @@ describe("buildPromotionBannerSheetHtml", () => {
     // `.page:last-child` nunca casava e toda impressão saía com uma folha em
     // branco no fim (achado da revisão de 16/10/2026).
     const doc = new DOMParser().parseFromString(
-      buildPromotionBannerSheetHtml([banner({ copies: 5 })]),
+      buildPromotionBannerSheetHtml([banner({ copies: 7 })]),
       "text/html",
     );
     const pages = doc.querySelectorAll(".page");

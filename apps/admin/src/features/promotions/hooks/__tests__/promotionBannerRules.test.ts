@@ -5,6 +5,8 @@ import {
   BANNER_MAX_COPIES,
   bannerCandidates,
   bannerItemsOf,
+  bannerNameFits,
+  bannerNameLineCount,
   bannerPriceLabel,
   bannerPriceOf,
   bannerTitleOf,
@@ -156,5 +158,29 @@ describe("bannerItemsOf", () => {
   it("a edição de uma promoção que saiu da lista não vira banner", () => {
     // Encerrou entre uma impressão e outra: a lista é a verdade.
     expect(bannerItemsOf(candidatas, { 99: { selected: true, name: "", copies: 1 } })).toEqual([]);
+  });
+});
+
+describe("bannerNameLineCount e bannerNameFits", () => {
+  // Régua de mentira: 4mm por caractere, ~21 por linha nos 84,7mm.
+  const regua = (texto: string) => texto.length * 4;
+
+  it("quebra entre as palavras, como o papel", () => {
+    expect(bannerNameLineCount("COPO AMERICANO", regua)).toBe(1);
+    expect(bannerNameLineCount("ESMALTE RISQUE CREMOSO", regua)).toBe(2);
+    expect(bannerNameLineCount("", regua)).toBe(0);
+  });
+
+  it("nome de 37 caracteres que quebra em três não cabe (revisão de 20/10/2026)", () => {
+    // "FORMA REDONDA" / "ANTIADERENTE PRETA" / "24CM": o tamanho sumiria.
+    expect(bannerNameLineCount("FORMA REDONDA ANTIADERENTE PRETA 24CM", regua)).toBe(3);
+    expect(bannerNameFits("FORMA REDONDA ANTIADERENTE PRETA 24CM", regua)).toBe(false);
+    expect(bannerNameFits("FORMA REDONDA ANTIADERENTE 24CM", regua)).toBe(true);
+  });
+
+  it("a palavra que sozinha passa da linha é medida no corpo menor em que ela sai", () => {
+    // 24 letras encolhem para 12pt (309 / 24): na escala dela, cabe.
+    expect(bannerNameFits("SUPERDESENGORDURANTEPLUS", regua)).toBe(true);
+    expect(bannerNameLineCount("SUPERDESENGORDURANTEPLUS", regua)).toBe(2);
   });
 });

@@ -41,6 +41,8 @@ function renderDialog(edits: Record<number, PromotionBannerEdit>, bannerCount: n
     onCopiesChange: vi.fn(),
     bannerCount,
     onPrint: vi.fn(),
+    // Régua de mentira: 4mm por caractere, ~21 por linha nos 84,7mm.
+    measureName: (texto: string) => texto.length * 4,
   };
   render(<PromotionBannerDialog {...props} />);
   return props;
@@ -54,6 +56,37 @@ describe("PromotionBannerDialog", () => {
     expect(screen.getByPlaceholderText("ESMALTE RISQUÉ")).toBeTruthy();
   });
 
+  it("o nome no banner para em 44 caracteres", () => {
+    renderDialog({ 1: { selected: true, name: "", copies: 1 } }, 1);
+
+    expect(screen.getByLabelText("Nome no banner").getAttribute("maxLength")).toBe("44");
+  });
+
+  it("avisa pelo número de LINHAS, e não de caracteres: o nome de 37 que quebra em três", () => {
+    // Achado da revisão (20/10/2026): com 37 caracteres a modal calava, e o "24CM"
+    // sumia na terceira linha — as formas de 24, 26 e 28cm saíam com o mesmo nome.
+    renderDialog({ 1: { selected: true, name: "", copies: 1 } }, 1, [
+      promocao({ productGroupName: "FORMA REDONDA ANTIADERENTE PRETA 24CM" }),
+    ]);
+
+    expect(screen.getByText(/nome do cadastro passa de duas linhas/i)).toBeTruthy();
+  });
+
+  it("o nome digitado que não cabe também avisa", () => {
+    renderDialog({ 1: { selected: true, name: "FORMA REDONDA ANTIADERENTE PRETA 24CM", copies: 1 } }, 1);
+
+    expect(screen.getByText(/este nome passa de duas linhas/i)).toBeTruthy();
+  });
+
+  it("nome do cadastro curto, ou reescrito, não mostra o aviso", () => {
+    const longo = "CONJUNTO DE POTES DE VIDRO HERMETICO RETANGULAR COM TAMPA";
+    renderDialog({ 1: { selected: true, name: "POTES DE VIDRO 3 PEÇAS", copies: 1 } }, 1, [
+      promocao({ productGroupName: longo }),
+    ]);
+
+    expect(screen.queryByText(/passa de duas linhas/)).toBeNull();
+  });
+
   it("digitar o nome e as cópias avisa o controlador — nada vai ao cadastro", () => {
     const props = renderDialog({ 1: { selected: true, name: "", copies: 1 } }, 1);
 
@@ -65,13 +98,13 @@ describe("PromotionBannerDialog", () => {
   });
 
   it("marcar chama o toggle, e o botão diz quantos banners e folhas saem", () => {
-    const props = renderDialog({ 1: { selected: true, name: "", copies: 5 } }, 5);
+    const props = renderDialog({ 1: { selected: true, name: "", copies: 7 } }, 7);
 
     fireEvent.click(screen.getByRole("checkbox", { name: /banner de esmalte/i }));
     expect(props.onToggle).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
 
-    expect(screen.getByText("5 banners · 2 folhas")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /imprimir 5 banners/i }));
+    expect(screen.getByText("7 banners · 2 folhas")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /imprimir 7 banners/i }));
     expect(props.onPrint).toHaveBeenCalled();
   });
 

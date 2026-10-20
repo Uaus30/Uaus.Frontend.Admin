@@ -5,7 +5,7 @@ import type { PromotionDto, PromotionRow } from "../types";
 
 /**
  * O banner de promoção impresso (pedido do dono, 16/10/2026): a faixa vermelha
- * "PROMOÇÃO", o nome do produto e o preço, quatro por folha A4 — o cartaz que
+ * "PROMOÇÃO", o nome do produto e o preço, seis quadrados por folha A4 — o cartaz que
  * vai na gôndola ou na porta no sábado.
  *
  * Nada aqui vai ao servidor: a modal escolhe as promoções, reescreve o nome SÓ
@@ -43,6 +43,90 @@ export const DEFAULT_BANNER_TITLE = "PROMOÇÃO";
  */
 export function bannerTitleOf(title: string): string {
   return title.trim() || DEFAULT_BANNER_TITLE;
+}
+
+/**
+ * Teto de caracteres do campo "Nome no banner" (pedido do dono, 20/10/2026:
+ * "limitar o tamanho, por exemplo em 2 linhas (cerca de 44 ou 50 caracteres)").
+ *
+ * É teto, não garantia: o que decide se o nome cabe é a LARGURA. Na revisão de
+ * 20/10/2026, 30 dos 1.013 nomes de produção com até 44 caracteres ocupavam três
+ * linhas a 15pt — "FORMA REDONDA ANTIADERENTE PRETA 24CM" perderia o "24CM" e
+ * as formas de 24, 26 e 28cm sairiam com o mesmo nome. Por isso a modal mede as
+ * linhas de verdade (`bannerNameFits`) e avisa.
+ */
+export const BANNER_NAME_MAX_CHARS = 44;
+
+/**
+ * O corpo do nome, em pt — UM só, com uma ou duas linhas (pedido do dono,
+ * 20/10/2026): nomes de tamanhos diferentes com letras de tamanhos diferentes
+ * deixavam a folha desigual.
+ */
+export const BANNER_NAME_FONT_PT = 15;
+
+/** A largura útil do nome, em mm: o quadrado de 93mm menos 4mm de cada lado e a linha de corte. */
+export const BANNER_NAME_WIDTH_MM = 84.7;
+
+/** A largura de um texto no corpo do nome, em mm. */
+export type BannerTextMeasure = (text: string) => number;
+
+/**
+ * Corpo do nome, em pt, e o máximo de linhas: {@link BANNER_NAME_FONT_PT} em duas
+ * linhas, o mesmo para o nome curto e o longo. Só encolhe a palavra que sozinha
+ * não cabe numa linha — "SUPERDESENGORDURANTEPLUS" quebraria no meio. Medido em
+ * Arial Black caixa alta: ~0,78 em por letra nos 85mm, logo 309 / letras é o
+ * corpo em pt que ainda cabe.
+ */
+export function bannerNameStyle(name: string): { fontSizePt: number; lines: number } {
+  const longestWord = Math.max(
+    1,
+    ...name
+      .trim()
+      .split(/\s+/)
+      .map((word) => word.length),
+  );
+  const cap = Math.max(10, Math.floor(309 / longestWord));
+
+  return { fontSizePt: Math.min(BANNER_NAME_FONT_PT, cap), lines: 2 };
+}
+
+/**
+ * Quantas linhas o nome ocupa no banner, quebrando entre as palavras como o
+ * navegador quebra a caixa alta do papel. A palavra maior que a linha conta as
+ * linhas que ela ocupa sozinha.
+ */
+export function bannerNameLineCount(
+  name: string,
+  measure: BannerTextMeasure,
+  widthMm: number = BANNER_NAME_WIDTH_MM,
+): number {
+  const palavras = name.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  if (palavras.length === 0) return 0;
+
+  let linhas = 1;
+  let atual = "";
+  for (const palavra of palavras) {
+    const tentativa = atual ? `${atual} ${palavra}` : palavra;
+    if (measure(tentativa) <= widthMm) {
+      atual = tentativa;
+      continue;
+    }
+    if (atual) linhas += 1;
+    linhas += Math.max(0, Math.ceil(measure(palavra) / widthMm) - 1);
+    atual = palavra;
+  }
+  return linhas;
+}
+
+/**
+ * O nome cabe nas duas linhas do banner, no corpo em que ele vai sair? A
+ * terceira linha some no papel — é o aviso da modal. `measure` mede no corpo
+ * padrão; a palavra longa que encolhe é medida na escala dela.
+ */
+export function bannerNameFits(name: string, measure: BannerTextMeasure): boolean {
+  const { fontSizePt, lines } = bannerNameStyle(name);
+  const escala = fontSizePt / BANNER_NAME_FONT_PT;
+  return bannerNameLineCount(name, (texto) => measure(texto) * escala) <= lines;
 }
 
 /** Teto de cópias de um banner: cinco folhas do mesmo cartaz já é papel demais. */

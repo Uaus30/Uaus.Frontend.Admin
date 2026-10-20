@@ -73,7 +73,7 @@ export default function PromotionsPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {/* O banner impresso (16/10/2026): quatro por folha A4, a partir das
+          {/* O banner impresso (16/10/2026): seis quadrados por folha A4, a partir das
               promoções no ar e programadas. Nada é gravado — a aba aberta é a
               reimpressão. */}
           <Button variant="outline" onClick={banner.abrir} className="gap-2 hover-elevate">

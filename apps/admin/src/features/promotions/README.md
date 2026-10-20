@@ -223,12 +223,15 @@ tela avisa que é referência: no caixa o kit fecha no centavo, em R$ 6,67, R$ 6
 e R$ 6,66. A regra do domínio — precedência, centavo, o que fica fora do combo —
 está em `Uaus.Docs/dominio/promocoes.md`.
 
-### 18. O banner impresso: quatro por folha, nada gravado (16/10/2026)
+### 18. O banner impresso: seis quadrados por folha, nada gravado (16/10/2026)
 
 Pedido do dono: o cartaz amarelo da gôndola — faixa vermelha "PROMOÇÃO" em
 Cooper Black com sombra, nome do produto e preço em Arial Black — impresso pelo
-admin, **quatro por folha A4 em pé**, colados uns nos outros e separados por uma
-linha laranja fina, a guia da tesoura. O botão "Imprimir Banner" fica na
+admin, colado aos vizinhos e separado por uma linha laranja fina, a guia da
+tesoura. **Quadrado de 93mm, seis por folha A4 em pé** (2 × 3), desde
+20/10/2026: o primeiro era comprido (95 × 135mm, quatro por folha), e na
+prateleira parecia apontar o preço para o produto de baixo (relato do dono).
+Oito por folha exigiriam 70mm, com o preço bem menor. O botão "Imprimir Banner" fica na
 listagem e abre uma modal com as promoções **no ar e programadas** (a de sábado
 é impressa na sexta; a encerrada fica de fora, porque cartaz de promoção que
 acabou só é descoberto no caixa).
@@ -264,11 +267,32 @@ acabou só é descoberto no caixa).
   ou fecha. O `window.open` acontece no clique, síncrono — fora dele o
   bloqueador de pop-up segura, e a modal avisa quando isso acontece.
 - **A faixa vermelha toma o topo inteiro**, de borda a borda, com o amarelo só
-  embaixo dela (ajuste do dono no primeiro teste), e tem altura fixa de 22mm.
+  embaixo dela (ajuste do dono no primeiro teste), e tem altura fixa de 20mm
+  (eram 22mm no banner comprido).
   O **título é editável na modal** ("Título do banner", vazio = "PROMOÇÃO"),
   um para a folha inteira: título mais longo encolhe a fonte para caber numa
-  linha, e a faixa não encolhe junto — quatro faixas de alturas diferentes na
-  mesma folha pareceriam quatro lojas.
+  linha, e a faixa não encolhe junto — seis faixas de alturas diferentes na
+  mesma folha pareceriam seis lojas.
+- **O nome tem um tamanho só, 15pt, com uma ou duas linhas** (pedidos do dono,
+  20/10/2026). O campo "Nome no banner" para em 44 caracteres
+  (`BANNER_NAME_MAX_CHARS`), mas quem decide se o nome cabe é a LARGURA: a modal
+  mede as linhas com o canvas do navegador, na fonte e no corpo do papel
+  (`createBannerNameMeasure` + `bannerNameFits`), e avisa quando o nome que vai
+  sair — o digitado, ou o do cadastro com o campo vazio — passa de duas linhas.
+  A terceira linha some no papel. Contar caracteres não bastava (revisão de
+  20/10/2026): 30 dos 1.013 nomes de produção com até 44 caracteres ocupam três
+  linhas, e "FORMA REDONDA ANTIADERENTE PRETA 24CM" perderia o "24CM". A régua do
+  canvas bateu com a quebra real do navegador nos 501 nomes de produção entre
+  28 e 44 caracteres. Só a palavra que sozinha não cabe numa linha encolhe.
+- **A frase acima do preço começa onde o preço começa** ("3 POR" alinhado à
+  esquerda do número, e não centrado sobre ele), num bloco centrado no banner.
+- **O preço usa o espaço da loja de até R$ 30**: no máximo dois dígitos (mesmo
+  o kit do combo fica abaixo de 100), então os corpos de verdade são 140pt (um
+  dígito) e 108pt (dois) — "29,90" ocupa ~82mm dos 85 úteis. Três dígitos ou
+  mais têm corpos menores só por garantia.
+- Conferido numa folha de amostra no navegador em 20/10/2026: nomes de uma e de
+  duas linhas, um de 57 caracteres (cortado), "3 por", "A partir de" e preços de
+  7,49 a 29,90.
 - **A folha copia o desenho das etiquetas** (medidas em mm, vizinhos dividindo
   UMA linha de corte, paginação por `.page`), e é duplicata consciente: razões
   de mudar diferentes. Uma diferença de propósito: a grade começa no **canto

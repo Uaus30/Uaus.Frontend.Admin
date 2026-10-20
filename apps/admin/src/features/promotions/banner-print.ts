@@ -1,12 +1,25 @@
 import { escapeHtml } from "@workspace/core";
-import { DEFAULT_BANNER_TITLE, type PromotionBannerItem } from "./hooks/promotionBannerRules";
+import {
+  BANNER_NAME_FONT_PT,
+  DEFAULT_BANNER_TITLE,
+  bannerNameStyle,
+  type BannerTextMeasure,
+  type PromotionBannerItem,
+} from "./hooks/promotionBannerRules";
+
+export { BANNER_NAME_FONT_PT, bannerNameStyle };
 
 /**
  * A folha A4 dos banners de promoção (pedido do dono, 16/10/2026), no desenho
  * que ele simulou no Word: a faixa vermelha "PROMOÇÃO" em Cooper Black com
- * sombra, o nome do produto e o preço em Arial Black, quatro por folha em pé,
- * colados uns nos outros e separados por uma linha laranja fina — a guia da
- * tesoura.
+ * sombra, o nome do produto e o preço em Arial Black, colados uns nos outros e
+ * separados por uma linha laranja fina — a guia da tesoura.
+ *
+ * **Quadrado, seis por folha (20/10/2026).** O primeiro banner era comprido, em
+ * pé (95 × 135mm, quatro por folha), e na prateleira parecia apontar o preço
+ * para o produto de baixo (relato do dono). O quadrado de 93mm cabe 2 × 3 na
+ * área útil da A4; oito por folha exigiriam 70mm, com o preço bem menor e uma
+ * faixa de papel sobrando.
  *
  * É o mesmo desenho de folha das etiquetas de gôndola (`gondola-labels/print.ts`):
  * medidas absolutas em milímetros, vizinhos dividindo UMA linha de corte (cada
@@ -21,26 +34,27 @@ import { DEFAULT_BANNER_TITLE, type PromotionBannerItem } from "./hooks/promotio
  * próprio `print()` — nada depende da aba do admin depois de aberta.
  */
 
-/** Banners por folha A4 em pé: 2 colunas × 2 linhas. */
-export const BANNERS_PER_PAGE = 4;
+/** Banners por folha A4 em pé: 2 colunas × 3 linhas. */
+export const BANNERS_PER_PAGE = 6;
 
 /**
- * Medidas do banner. 2 × 95mm e 2 × 135mm cabem nos 194 × 281mm úteis da A4
- * com 8mm de margem, com folga para o arredondamento do navegador não empurrar
+ * O lado do banner quadrado. 2 × 93mm e 3 × 93mm cabem nos 194 × 280mm úteis da
+ * A4 com 8mm de margem, com folga para o arredondamento do navegador não empurrar
  * uma folha em branco entre as outras.
  */
-export const BANNER_WIDTH_MM = 95;
-export const BANNER_HEIGHT_MM = 135;
+export const BANNER_SIZE_MM = 93;
 
 /** A linha de corte: laranja da Uaus, fina — é guia de tesoura, não moldura. */
 export const CUT_LINE = "0.3mm solid #f7931e";
 
 /**
  * Altura da faixa vermelha. Fixa, e não a do texto: o título reescrito encolhe
- * para caber, e a faixa não pode encolher junto — quatro banners na mesma folha
- * com faixas de alturas diferentes pareceriam quatro cartazes de lojas diferentes.
+ * para caber, e a faixa não pode encolher junto — seis banners na mesma folha
+ * com faixas de alturas diferentes pareceriam seis cartazes de lojas diferentes.
+ * Eram 22mm no banner comprido; no quadrado, 20mm deixam ao preço o espaço do
+ * corpo de 130pt.
  */
-export const BANNER_HEAD_HEIGHT_MM = 22;
+export const BANNER_HEAD_HEIGHT_MM = 20;
 
 const SHEET_STYLES = `
   @page { size: A4 portrait; margin: 8mm; }
@@ -72,17 +86,17 @@ const SHEET_STYLES = `
   .pages > .page:last-child { break-after: auto; page-break-after: auto; }
   .sheet {
     display: grid;
-    grid-template-columns: repeat(2, ${BANNER_WIDTH_MM}mm);
-    grid-auto-rows: ${BANNER_HEIGHT_MM}mm;
+    grid-template-columns: repeat(2, ${BANNER_SIZE_MM}mm);
+    grid-auto-rows: ${BANNER_SIZE_MM}mm;
     border-top: ${CUT_LINE};
     border-left: ${CUT_LINE};
   }
   /* Folha com um banner só: em duas colunas, a linha de cima da grade passaria
      por cima da célula vazia, e sobraria um traço sem banner. */
-  .sheet.single { grid-template-columns: ${BANNER_WIDTH_MM}mm; }
+  .sheet.single { grid-template-columns: ${BANNER_SIZE_MM}mm; }
   .banner {
-    width: ${BANNER_WIDTH_MM}mm;
-    height: ${BANNER_HEIGHT_MM}mm;
+    width: ${BANNER_SIZE_MM}mm;
+    height: ${BANNER_SIZE_MM}mm;
     background: #fff100;
     border-right: ${CUT_LINE};
     border-bottom: ${CUT_LINE};
@@ -120,15 +134,15 @@ const SHEET_STYLES = `
     flex: 1;
     min-height: 0;
     width: 100%;
-    padding: 0 5mm 6mm;
+    padding: 0 4mm 4mm;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
   .banner-name {
     width: 100%;
-    margin-top: 7mm;
-    max-height: 25mm;
+    margin-top: 4mm;
+    max-height: 12mm;
     font-weight: 900;
     line-height: 1.1;
     text-transform: uppercase;
@@ -145,10 +159,20 @@ const SHEET_STYLES = `
     align-items: center;
     justify-content: center;
   }
+  /* A frase e o preço formam um bloco da largura do maior dos dois, centrado no
+     banner; dentro dele a frase começa onde o preço começa — "3 POR" alinhado à
+     esquerda do número, e não centrado sobre ele (pedido do dono, 20/10/2026). */
+  .banner-price-block {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
   .banner-lead {
     font-size: 15pt;
     font-weight: 900;
     line-height: 1;
+    text-align: left;
     text-transform: uppercase;
     margin-bottom: 3mm;
   }
@@ -208,39 +232,32 @@ const SHEET_SCRIPT = `
 `;
 
 /**
- * Corpo do título da faixa, em pt: "PROMOÇÃO" sai a 34pt (75mm dos 92mm úteis em
+ * Corpo do título da faixa, em pt: "PROMOÇÃO" sai a 34pt (75mm dos 90mm úteis em
  * Cooper Black); título mais longo encolhe para caber numa linha só. A conta é a
- * largura média de uma letra maiúscula da Cooper Black (~0,8 em) sobre os 92mm,
+ * largura média de uma letra maiúscula da Cooper Black (~0,8 em) sobre os 90mm,
  * com teto de 34pt e piso de 12pt.
  */
 export function bannerTitleFontSizePt(title: string): number {
   const length = Math.max(1, title.trim().length);
-  return Math.max(12, Math.min(34, Math.floor(325 / length)));
+  return Math.max(12, Math.min(34, Math.floor(318 / length)));
 }
 
 /**
- * Corpo do nome, em pt, e quantas linhas cabem nos 25mm do bloco — o nome longo
- * encolhe, como na etiqueta. Os cortes foram estimados para Arial Black caixa
- * alta nos 85mm de largura útil: ~15 letras por linha a 22pt, ~26 a 12,5pt.
+ * A régua do nome no navegador de quem imprime: o canvas mede o texto na mesma
+ * fonte e no mesmo corpo do papel (Arial Black a 15pt), e o resultado sai em mm.
+ * É o mesmo navegador que vai desenhar a folha, então a conta bate com o papel.
+ * Sem canvas (teste, navegador muito antigo), `null` — e a modal volta a contar
+ * caracteres.
  */
-export function bannerNameStyle(name: string): { fontSizePt: number; lines: number } {
-  const texto = name.trim();
-  const tier = nameTierOf(texto.length);
-
-  // A palavra mais longa tem que caber numa linha: "DESENGORDURANTE" (15 letras)
-  // a 22pt passa dos 85mm e quebraria no meio. Medido em Arial Black caixa alta:
-  // ~0,78 em por letra, logo 309 / letras é o corpo em pt que ainda cabe.
-  const longestWord = Math.max(1, ...texto.split(/\s+/).map((word) => word.length));
-  const cap = Math.max(12, Math.floor(309 / longestWord));
-
-  return { fontSizePt: Math.min(tier.fontSizePt, cap), lines: tier.lines };
-}
-
-function nameTierOf(length: number): { fontSizePt: number; lines: number } {
-  if (length <= 16) return { fontSizePt: 22, lines: 2 };
-  if (length <= 30) return { fontSizePt: 18, lines: 3 };
-  if (length <= 48) return { fontSizePt: 15, lines: 3 };
-  return { fontSizePt: 12.5, lines: 4 };
+export function createBannerNameMeasure(): BannerTextMeasure | null {
+  try {
+    const contexto = document.createElement("canvas").getContext("2d");
+    if (!contexto) return null;
+    contexto.font = `900 ${BANNER_NAME_FONT_PT}pt "Arial Black", Arial, Helvetica, sans-serif`;
+    return (texto) => (contexto.measureText(texto).width * 25.4) / 96;
+  } catch {
+    return null;
+  }
 }
 
 /** "1.234,50" dividido em inteiro e centavos, para os centavos saírem menores. */
@@ -256,14 +273,20 @@ export function splitBannerPrice(price: number): { integer: string; cents: strin
 
 /**
  * Corpo do número grande, em pt, pela quantidade de dígitos inteiros: "9" pode
- * ocupar a largura que "199" não teria. Os centavos saem com a metade.
+ * ocupar a largura que "29" não teria. Os centavos saem com a metade.
+ *
+ * A loja é de preço máximo R$ 30 (dono, 20/10/2026): o preço tem no máximo dois
+ * dígitos, e mesmo o kit do combo ("3 por") fica abaixo de 100. Os dois corpos
+ * de verdade são, por isso, os maiores que cabem no quadrado: "29,90" a 108pt
+ * ocupa ~82mm dos 85 úteis, e "9,90" a 140pt, com a frase acima e o nome em duas
+ * linhas, cabe nos 73mm abaixo da faixa. Três dígitos ou mais só por garantia.
  */
 export function bannerPriceFontSizePt(integer: string): number {
   const digits = integer.replace(/\D/g, "").length;
-  if (digits <= 1) return 130;
-  if (digits === 2) return 100;
-  if (digits === 3) return 80;
-  if (digits === 4) return 62;
+  if (digits <= 1) return 140;
+  if (digits === 2) return 108;
+  if (digits === 3) return 78;
+  if (digits === 4) return 60;
   return 50;
 }
 
@@ -280,10 +303,12 @@ function buildBannerCell(item: PromotionBannerItem, title: string): string {
     escapeHtml(item.productName),
     `</div>`,
     `<div class="banner-price-area">`,
+    `<div class="banner-price-block">`,
     item.lead ? `<div class="banner-lead">${escapeHtml(item.lead)}</div>` : "",
     `<div class="banner-price">`,
     `<span style="font-size:${priceFontSize}pt;">${integer}</span>`,
     `<span style="font-size:${priceFontSize / 2}pt;">,${cents}</span>`,
+    `</div>`,
     `</div>`,
     `</div>`,
     `</div>`,
@@ -293,7 +318,7 @@ function buildBannerCell(item: PromotionBannerItem, title: string): string {
 
 /**
  * Monta a folha A4 dos banners. Cada item vira `copies` células idênticas,
- * preenchendo a grade 2 × 2 na ordem da lista, em folhas de
+ * preenchendo a grade 2 × 3 na ordem da lista, em folhas de
  * {@link BANNERS_PER_PAGE} a partir do canto superior esquerdo (ver `SHEET_STYLES`).
  *
  * @param title O texto da faixa vermelha, o mesmo em toda a folha. Já resolvido
