@@ -8,7 +8,12 @@ import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { PurchaseReceiveGrid } from "./PurchaseReceiveGrid";
-import { conferencia, isNewBrandRow, receiveNewBrandProblem } from "../lib/new-brand";
+import {
+  conferencia,
+  currentBrandProblem,
+  needsCurrentBrand,
+  receiveNewBrandProblem,
+} from "../lib/new-brand";
 import type { PurchaseDto, PurchaseFormItem, ReceiveForm } from "../types";
 
 type PurchaseReceiveDialogProps = {
@@ -87,12 +92,10 @@ export function PurchaseReceiveDialog({
   const conferindo = conferencia(form.items);
   // Marca nova em produto simples: o cadastro atual vira a primeira variação e
   // precisa de uma marca. `=== false` porque a API antiga omitia o campo.
-  const pedeMarcaAtual =
-    purchase?.groupHasVariations === false &&
-    form.items.some((item) => isNewBrandRow(item) && item.quantity > 0);
+  const pedeMarcaAtual = purchase?.groupHasVariations === false && needsCurrentBrand(form.items);
   const problemaDaMarca =
     receiveNewBrandProblem(form.items) ??
-    (pedeMarcaAtual && !form.currentBrand.trim() ? "Informe a marca do cadastro atual." : null);
+    (pedeMarcaAtual ? currentBrandProblem(form.items, form.currentBrand) : null);
   const somaDaGrade =
     Math.round(
       form.items.filter((item) => item.quantity > 0).reduce((total, item) => total + item.finalTotal, 0) *

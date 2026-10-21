@@ -204,7 +204,13 @@ estoque pelo grupo (fase 2) julga o produto inteiro.
   ela viraria "produto ainda não cadastrado". Em custo manual os totais voltam a
   ser a soma do que ficou.
 - **Produto simples vira produto com variações.** O diálogo pede a "Marca do
-  cadastro atual", que vira a primeira variação — mesmo id, estoque e vendas.
+  cadastro atual", que vira a primeira variação — mesmo id, estoque e vendas. Não
+  pede quando toda marca nova que veio é recompra do próprio cadastro (o código
+  bipado é o dele), e recusa a marca atual igual à nova.
+- **O mesmo código em duas marcas novas é recusado**, na compra e no
+  recebimento: a segunda cairia na primeira como recompra, e a marca dela
+  sumiria sem aviso. Código bipado que já é de uma variação do produto, de
+  qualquer marca, é recompra dela, e a linha da compra perde a marca digitada.
 - O cadastro nasce no backend (`ProductBrandVariationService`), com o nome do
   grupo, o preço do recebimento e a grade Marca.
 

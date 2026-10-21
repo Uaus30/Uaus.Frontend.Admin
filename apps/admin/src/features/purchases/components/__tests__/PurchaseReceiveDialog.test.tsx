@@ -214,6 +214,38 @@ describe("PurchaseReceiveDialog — marca nova (fase 4)", () => {
     expect(confirmar().disabled).toBe(false);
   });
 
+  it("recompra do próprio produto simples não pede a marca do cadastro atual", () => {
+    // O código bipado é o da SACOLA: nada vira variação, e a marca seria ignorada.
+    comMarcaNova({
+      items: [
+        {
+          productId: 963,
+          name: "SACOLA",
+          barcode: "789",
+          stock: 2,
+          quantity: 10,
+          grossTotal: 45,
+          finalTotal: 45,
+        },
+        {
+          productId: -81,
+          name: "VI",
+          barcode: null,
+          stock: 0,
+          quantity: 10,
+          grossTotal: 45,
+          finalTotal: 45,
+          newBrand: "VI",
+          newBarcode: "789",
+          generateBarcode: false,
+        },
+      ],
+    });
+
+    expect(screen.queryByPlaceholderText("Ex: ORIGINAL")).toBeNull();
+    expect(confirmar().disabled).toBe(false);
+  });
+
   it("o Enter do leitor no código da marca nova não lança o recebimento", () => {
     // O bipe termina num Enter: com o código válido e a grade fechando, o envio
     // implícito do navegador lançaria a entrada antes de a conferência acabar.

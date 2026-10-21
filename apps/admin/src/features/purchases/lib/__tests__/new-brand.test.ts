@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   conferencia,
+  currentBrandProblem,
   isNewBrandRow,
+  needsCurrentBrand,
   newBrandProblem,
   nextNewBrandKey,
   normalizeBrand,
@@ -73,6 +75,42 @@ describe("new-brand — a linha de marca nova da compra (fase 4)", () => {
     // Com "Gerar código" o código da compra não vai, e não pode travar quem gerou.
     expect(
       receiveNewBrandProblem([marca("VI", { newBarcode: "789123456789", generateBarcode: true })]),
+    ).toBeNull();
+  });
+
+  it("o mesmo código em duas marcas novas é recusado, na compra e no recebimento", () => {
+    // No recebimento a segunda cairia na primeira, como recompra (revisão de 21/10/2026).
+    const duas = [marca("VI", { newBarcode: "55" }), marca("MASTER", { productId: -6, newBarcode: "55" })];
+    expect(newBrandProblem(duas)).toMatch(/duas marcas novas/);
+    expect(receiveNewBrandProblem(duas)).toMatch(/duas marcas novas/);
+    // Com "Gerar código" o código do campo não vai, e não conta como repetido.
+    expect(receiveNewBrandProblem([duas[0], { ...duas[1], generateBarcode: true }])).toBeNull();
+  });
+
+  it("a marca do cadastro atual só é pedida quando alguma marca nova vira cadastro", () => {
+    // O código bipado é o do próprio produto simples: é recompra dele, e a marca
+    // pedida seria ignorada.
+    const simples = linha({ barcode: "789" });
+    expect(needsCurrentBrand([simples, marca("VI", { newBarcode: "789" })])).toBe(false);
+    expect(needsCurrentBrand([simples, marca("VI", { newBarcode: "55" })])).toBe(true);
+    expect(needsCurrentBrand([simples, marca("VI", { newBarcode: "789", generateBarcode: true })])).toBe(
+      true,
+    );
+    expect(needsCurrentBrand([simples, marca("VI", { quantity: 0 })])).toBe(false);
+  });
+
+  it("a marca do cadastro atual é obrigatória e diferente da marca nova", () => {
+    expect(currentBrandProblem([marca("VI")], " ")).toMatch(/Informe a marca/);
+    expect(currentBrandProblem([marca("VI")], "vi")).toMatch(/diferente da marca nova \(VI\)/);
+    expect(currentBrandProblem([marca("VI")], "ORIGINAL")).toBeNull();
+    // A VI é recompra do próprio cadastro (o código é o dele): ele É a VI, e só
+    // a MASTER vira cadastro.
+    const simples = linha({ barcode: "789" });
+    expect(
+      currentBrandProblem(
+        [simples, marca("VI", { newBarcode: "789" }), marca("MASTER", { productId: -6, newBarcode: "55" })],
+        "VI",
+      ),
     ).toBeNull();
   });
 

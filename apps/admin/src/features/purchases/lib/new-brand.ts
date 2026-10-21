@@ -39,6 +39,16 @@ export function normalizeBrand(brand: string | null | undefined): string {
   return (brand ?? "").trim().toUpperCase();
 }
 
+/**
+ * O código como a loja o grava — o número curto vira o código interno —, para
+ * comparar dois códigos digitados de jeitos diferentes. Inválido volta como veio.
+ */
+function normalizedBarcode(codigo: string | null | undefined): string | null {
+  const limpo = codigo?.trim();
+  if (!limpo) return null;
+  return resolveBarcodeInput(limpo).code ?? limpo;
+}
+
 /** Tamanho máximo da marca — o da coluna de valor de grade. */
 export const BRAND_MAX_LENGTH = 100;
 
@@ -52,6 +62,8 @@ export const BRAND_MAX_LENGTH = 100;
 export function newBrandProblem(items: PurchaseFormItem[], existingBrands: string[] = []): string | null {
   const novas = items.filter((item) => isNewBrandRow(item) && item.quantity > 0);
   const vistas = new Set(existingBrands.map(normalizeBrand));
+  // O mesmo código em duas marcas: no recebimento a segunda cairia na primeira.
+  const codigos = new Set<string>();
 
   for (const item of novas) {
     const marca = normalizeBrand(item.newBrand);
@@ -65,6 +77,9 @@ export function newBrandProblem(items: PurchaseFormItem[], existingBrands: strin
     if (codigo) {
       const resolvido = resolveBarcodeInput(codigo);
       if (resolvido.kind === "invalid") return resolvido.error;
+      const gravado = resolvido.code ?? codigo;
+      if (codigos.has(gravado)) return `O código ${gravado} está em duas marcas novas da compra.`;
+      codigos.add(gravado);
     }
   }
   return null;
@@ -75,6 +90,7 @@ export function newBrandProblem(items: PurchaseFormItem[], existingBrands: strin
  * obrigatório — bipado ou gerado.
  */
 export function receiveNewBrandProblem(items: PurchaseFormItem[]): string | null {
+  const codigos = new Set<string>();
   for (const item of items.filter((linha) => isNewBrandRow(linha) && linha.quantity > 0)) {
     const codigo = item.newBarcode?.trim();
     if (!codigo && !item.generateBarcode)
@@ -83,8 +99,54 @@ export function receiveNewBrandProblem(items: PurchaseFormItem[]): string | null
     if (codigo && !item.generateBarcode) {
       const resolvido = resolveBarcodeInput(codigo);
       if (resolvido.kind === "invalid") return resolvido.error;
+      // Duas marcas com o mesmo código bipado: a segunda viraria recompra da
+      // primeira, e a marca dela sumiria sem aviso.
+      const gravado = resolvido.code ?? codigo;
+      if (codigos.has(gravado)) return `O código ${gravado} foi bipado para duas marcas novas.`;
+      codigos.add(gravado);
     }
   }
+  return null;
+}
+
+/**
+ * As linhas de marca nova que VIRAM CADASTRO no recebimento: as que vieram e não
+ * são recompra de um cadastro da grade (o código bipado é o dele). "Gerar
+ * código" sempre vira cadastro.
+ */
+function brandsToCreate(items: PurchaseFormItem[]): PurchaseFormItem[] {
+  const cadastrados = new Set(
+    items.filter((item) => !isNewBrandRow(item)).flatMap((item) => normalizedBarcode(item.barcode) ?? []),
+  );
+  return items.filter(
+    (item) =>
+      isNewBrandRow(item) &&
+      item.quantity > 0 &&
+      (item.generateBarcode || !cadastrados.has(normalizedBarcode(item.newBarcode) ?? "")),
+  );
+}
+
+/**
+ * Produto SIMPLES com marca nova: o cadastro atual vira a primeira variação e
+ * precisa de uma marca. Não precisa quando toda marca nova que veio é recompra
+ * de um cadastro da grade, porque aí nada é convertido e a marca pedida seria
+ * ignorada.
+ */
+export function needsCurrentBrand(items: PurchaseFormItem[]): boolean {
+  return brandsToCreate(items).length > 0;
+}
+
+/**
+ * O que falta na marca do cadastro atual, ou `null`. Ela não pode repetir a de
+ * uma marca que vai virar cadastro; a da recompra do próprio cadastro pode — é
+ * ele (achado da revisão de 21/10/2026).
+ */
+export function currentBrandProblem(items: PurchaseFormItem[], currentBrand: string): string | null {
+  const marca = normalizeBrand(currentBrand);
+  if (!marca) return "Informe a marca do cadastro atual.";
+  // A API recusa do mesmo jeito; aqui o aviso vem antes do clique.
+  if (brandsToCreate(items).some((item) => normalizeBrand(item.newBrand) === marca))
+    return `A marca do cadastro atual tem que ser diferente da marca nova (${marca}).`;
   return null;
 }
 
