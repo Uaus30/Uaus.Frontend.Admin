@@ -371,3 +371,89 @@ describe("usePurchases — recebimento com marca nova (fase 4)", () => {
     ]);
   });
 });
+
+describe("usePurchases — produto novo com variações (fase 5)", () => {
+  beforeEach(() => {
+    mocks.navigate.mockClear();
+    mocks.receivePurchase.mockReset();
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+  });
+
+  /** A compra de "CUECA BOXER" em P e M, ainda sem cadastro. */
+  const novaComTamanhos = () =>
+    compra({
+      productId: null,
+      productGroupId: null,
+      newVariationGradeType: "Size",
+      items: [
+        {
+          id: 90,
+          productName: "",
+          quantity: 2,
+          grossTotal: 20,
+          finalTotal: 20,
+          stock: 0,
+          unitFinal: 10,
+          newValue: "P",
+        },
+        {
+          id: 91,
+          productName: "",
+          quantity: 3,
+          grossTotal: 30,
+          finalTotal: 30,
+          stock: 0,
+          unitFinal: 10,
+          newValue: "M",
+          newBarcode: "7891234567895",
+        },
+      ],
+    });
+
+  it("o recebimento é a conferência, e não o cadastro preenchido", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(novaComTamanhos()));
+
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(
+      result.current.receiveForm.items.map((item) => [item.productId, item.newBrand, item.newBarcode]),
+    ).toEqual([
+      [-90, "P", ""],
+      [-91, "M", "7891234567895"],
+    ]);
+  });
+
+  it("manda cada variação com o id do item e o código, e vai ao produto criado", async () => {
+    mocks.receivePurchase.mockResolvedValue(compra({ productGroupId: 900, status: "Received" }));
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(novaComTamanhos()));
+    act(() => result.current.updateReceiveBrand(-90, "generateBarcode", true));
+    act(() => result.current.updateReceiveForm("price", 25));
+    act(() => result.current.confirmReceive());
+
+    await waitFor(() => expect(mocks.receivePurchase).toHaveBeenCalled());
+    const [, corpo] = mocks.receivePurchase.mock.calls[0];
+    expect(corpo.price).toBe(25);
+    expect(corpo.items).toEqual([
+      {
+        productId: null,
+        purchaseItemId: 90,
+        quantity: 2,
+        finalTotal: 20,
+        barcode: null,
+        generateBarcode: true,
+      },
+      {
+        productId: null,
+        purchaseItemId: 91,
+        quantity: 3,
+        finalTotal: 30,
+        barcode: "7891234567895",
+        generateBarcode: false,
+      },
+    ]);
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
+  });
+});

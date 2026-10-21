@@ -214,6 +214,29 @@ estoque pelo grupo (fase 2) julga o produto inteiro.
 - O cadastro nasce no backend (`ProductBrandVariationService`), com o nome do
   grupo, o preço do recebimento e a grade Marca.
 
+## Produto novo já com variações (fase 5, 21/10/2026)
+
+Fase 5 do plano de grupo × variação (14/10/2026). Comprar com variação exigia o
+produto já cadastrado — foi a parte cara cortada em 12/09/2026. Agora a compra
+de produto ainda não cadastrado escolhe, em **"Variações"**, UM tipo de grade
+(decisão do dono: um tipo só cobre roupa íntima por tamanho e a mesma peça de
+dois fabricantes), e o campo de quantidade vira a grade, uma linha por valor.
+
+- **A linha é a da marca nova da fase 4**: sem cadastro, com id negativo, o
+  valor da grade em `newBrand` do formulário (o corpo da API o manda como
+  `newValue`) e o código opcional. Por isso quantidade, custo, rateio e
+  acrescentar ou tirar linha são o `usePurchaseVariations`; o que é da fase 5
+  (escolher o tipo) é o `useNewProductGrid`. São ao menos duas linhas — produto
+  com uma variação só não existe —, e o código de barras do cabeçalho some: é de
+  cada variação.
+- **No recebimento o produto nasce na conferência** (decisão do dono), e não no
+  cadastro preenchido: o "Lançar recebimento" abre o diálogo, cada variação pede
+  o código (bipado ou gerado), o preço é obrigatório e não se acrescenta
+  variação de outro produto. Ao confirmar, o backend cria o grupo com as
+  variações que vieram — nome, categoria, detalhes e fotos da compra — e lança a
+  entrada; a tela vai para o produto, na aba Estoque. Só uma que veio faz
+  produto simples, com o valor no nome quando ele acrescenta informação.
+
 ## A galeria da compra É a galeria do produto (13/09/2026)
 
 Com produto vinculado, **as fotos da modal são as do GRUPO**

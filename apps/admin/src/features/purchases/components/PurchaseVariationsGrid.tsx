@@ -20,6 +20,13 @@ type PurchaseVariationsGridProps = {
   /** O produto aceita marca nova — só simples ou com variações só de Marca. */
   canAddBrand?: boolean;
   onAddBrand?: () => void;
+  /**
+   * Produto NOVO com variações (fase 5): o rótulo da grade ("Tamanho"). Com ele,
+   * a linha sem cadastro é o valor da grade, e não a marca de outro fabricante.
+   */
+  newRowLabel?: string;
+  /** Quantas linhas sem cadastro ficam sem o "tirar" — duas no produto novo. */
+  minNewRows?: number;
 };
 
 /**
@@ -44,6 +51,9 @@ type PurchaseVariationsGridProps = {
  * linha da marca de outro fabricante, ainda sem cadastro. O código é opcional
  * aqui — muitas vezes só aparece com a caixa na mão — e o cadastro nasce no
  * recebimento, com o código bipado ou gerado.
+ *
+ * **Produto novo com variações** (fase 5, 21/10/2026): a mesma linha sem
+ * cadastro, uma por valor da grade escolhida (`newRowLabel`), e ao menos duas.
  */
 export function PurchaseVariationsGrid({
   items,
@@ -57,7 +67,10 @@ export function PurchaseVariationsGrid({
   onRemoveBrand,
   canAddBrand = false,
   onAddBrand,
+  newRowLabel,
+  minNewRows = 0,
 }: PurchaseVariationsGridProps) {
+  const podeTirar = items.filter(isNewBrandRow).length > minNewRows;
   const compradas = items.filter((item) => item.quantity > 0);
   const totalDeUnidades = compradas.reduce((soma, item) => soma + item.quantity, 0);
   const somaDasFatias = compradas.reduce((soma, item) => soma + item.finalTotal, 0);
@@ -127,19 +140,21 @@ export function PurchaseVariationsGrid({
                           onChange={(event) =>
                             onBrandChange?.(item.productId, "newBrand", event.target.value)
                           }
-                          placeholder="Marca nova"
-                          aria-label="Marca da variação nova"
+                          placeholder={newRowLabel ?? "Marca nova"}
+                          aria-label={
+                            newRowLabel ? `${newRowLabel} da variação nova` : "Marca da variação nova"
+                          }
                           maxLength={100}
                           className="h-8 bg-background text-sm font-medium uppercase"
                           readOnly={readOnly}
                         />
-                        {!readOnly && (
+                        {!readOnly && podeTirar && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                            aria-label="Tirar a marca nova"
+                            aria-label={newRowLabel ? "Tirar a variação" : "Tirar a marca nova"}
                             onClick={() => onRemoveBrand?.(item.productId)}
                           >
                             <X className="h-4 w-4" />
@@ -152,7 +167,9 @@ export function PurchaseVariationsGrid({
                           onBrandChange?.(item.productId, "newBarcode", event.target.value)
                         }
                         placeholder="Código (opcional — exigido no recebimento)"
-                        aria-label="Código de barras da marca nova"
+                        aria-label={
+                          newRowLabel ? "Código de barras da variação nova" : "Código de barras da marca nova"
+                        }
                         inputMode="numeric"
                         className="h-7 bg-background font-mono text-2xs"
                         readOnly={readOnly}
@@ -228,7 +245,7 @@ export function PurchaseVariationsGrid({
           className="h-8 gap-1.5 text-xs"
           onClick={onAddBrand}
         >
-          <Plus className="h-3.5 w-3.5" /> Nova variação (marca)
+          <Plus className="h-3.5 w-3.5" /> {newRowLabel ? "Mais uma variação" : "Nova variação (marca)"}
         </Button>
       )}
 

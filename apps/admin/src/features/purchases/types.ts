@@ -34,11 +34,15 @@ export type PurchaseFormItem = {
   grossTotal: number;
   finalTotal: number;
   /**
-   * Linha de MARCA NOVA (fase 4, 14/10/2026): a marca de outro fabricante, ainda
-   * sem cadastro. Só nas linhas de `productId` negativo — ver `lib/new-brand.ts`.
+   * O valor da linha SEM CADASTRO (`productId` negativo — ver `lib/new-brand.ts`):
+   * a marca de outro fabricante de um produto que existe (fase 4, 14/10/2026) ou,
+   * na compra de produto NOVO com variações (fase 5, 21/10/2026), o valor da
+   * grade ("P"). As duas linhas se comportam igual na grade e no recebimento; o
+   * corpo da API é que as distingue (`newBrand` × `newValue`), pelo
+   * `newVariationGradeType` do formulário.
    */
   newBrand?: string;
-  /** Código da marca nova: opcional na compra, obrigatório no recebimento. */
+  /** Código da linha sem cadastro: opcional na compra, obrigatório no recebimento. */
   newBarcode?: string;
   /** "Gerar código" no recebimento: a peça não tem código de barras. */
   generateBarcode?: boolean;
@@ -99,6 +103,12 @@ export type PurchaseForm = {
    * isso que o flag também é gravado no banco.
    */
   costSplitManual: boolean;
+  /**
+   * Produto NOVO comprado já com variações (fase 5): o código do tipo da grade
+   * (`GRADE_TYPE`). Com ele, a grade tem uma linha sem cadastro por valor, e o
+   * produto nasce no recebimento. Nulo em toda outra compra.
+   */
+  newVariationGradeType: number | null;
   productName: string;
   /**
    * Código de barras. Com produto vinculado é o DELE, só para conferência na

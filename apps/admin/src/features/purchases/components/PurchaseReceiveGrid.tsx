@@ -20,6 +20,14 @@ type PurchaseReceiveGridProps = {
   ) => void;
   onAddVariation: (item: PurchaseFormItem) => void;
   onUseSum: (soma: number) => void;
+  /** Como a linha sem cadastro se apresenta: "marca nova" (fase 4) ou "variação nova" (fase 5). */
+  newRowSuffix?: string;
+  /**
+   * Acrescentar variação que veio sem estar no pedido. Não no produto NOVO (fase
+   * 5): as variações dele são as da compra, e um cadastro de outro produto não
+   * entra no recebimento de um produto que ainda vai nascer.
+   */
+  allowAddVariation?: boolean;
 };
 
 /**
@@ -45,6 +53,9 @@ type PurchaseReceiveGridProps = {
  * servidor recusa dizendo qual) ou "Gerar código", só para peça sem código, e
  * quem gera etiqueta as unidades. Zero na quantidade é "não veio", e a marca
  * não é cadastrada.
+ *
+ * **Produto novo com variações** (fase 5): toda linha é assim, e é na
+ * confirmação que o produto nasce, com as variações que vieram.
  */
 export function PurchaseReceiveGrid({
   items,
@@ -53,6 +64,8 @@ export function PurchaseReceiveGrid({
   onBrandChange,
   onAddVariation,
   onUseSum,
+  newRowSuffix = "marca nova",
+  allowAddVariation = true,
 }: PurchaseReceiveGridProps) {
   const recebidas = items.filter((item) => item.quantity > 0);
   const soma = Math.round(recebidas.reduce((total, item) => total + item.finalTotal, 0) * 100) / 100;
@@ -93,7 +106,7 @@ export function PurchaseReceiveGrid({
                     <div className="space-y-1.5">
                       <p className="break-words text-sm font-medium">
                         {item.newBrand}{" "}
-                        <span className="text-2xs font-normal text-primary">(marca nova)</span>
+                        <span className="text-2xs font-normal text-primary">({newRowSuffix})</span>
                       </p>
                       {item.generateBarcode ? (
                         <div className="flex flex-wrap items-center gap-2 text-2xs text-muted-foreground">
@@ -170,11 +183,13 @@ export function PurchaseReceiveGrid({
         </Table>
       </div>
 
-      <ProductSearchPicker
-        onSelect={acrescentar}
-        selectedIds={items.filter((item) => !isNewBrandRow(item)).map((item) => item.productId)}
-        placeholder="Veio uma variação que não estava no pedido? Busque e acrescente..."
-      />
+      {allowAddVariation && (
+        <ProductSearchPicker
+          onSelect={acrescentar}
+          selectedIds={items.filter((item) => !isNewBrandRow(item)).map((item) => item.productId)}
+          placeholder="Veio uma variação que não estava no pedido? Busque e acrescente..."
+        />
+      )}
 
       {fecha ? (
         <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">

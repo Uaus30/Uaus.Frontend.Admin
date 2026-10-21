@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
 import { describeApiError, resolveBarcodeInput, suggestedPrice, toDateKey } from "@workspace/core";
 import {
+  GRADE_TYPE,
   PURCHASE_STATUS,
   buildPublicImageUrl,
   createPurchase,
@@ -19,7 +20,7 @@ import { useSessao } from "@/hooks/use-sessao";
 import { withinImageLimit } from "@/lib/product-images";
 import { syncPurchaseDetailParam } from "../purchases-route";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
-import { isNewBrandRow, newBrandProblem, normalizeBrand } from "../lib/new-brand";
+import { isNewBrandRow, newBrandProblem, newVariationProblem, normalizeBrand } from "../lib/new-brand";
 import {
   applyPurchaseDefaults,
   purchaseDefaultsFromPayload,
@@ -30,6 +31,7 @@ import type { PurchaseForm, PurchaseFormItem } from "../types";
 import { usePurchaseBarcodeLookup } from "./usePurchaseBarcodeLookup";
 import { usePurchaseImages } from "./usePurchaseImages";
 import { usePurchaseVariations } from "./usePurchaseVariations";
+import { useNewProductGrid } from "./useNewProductGrid";
 
 /** Hoje, em `yyyy-MM-dd` — componentes LOCAIS, nunca `toISOString()`. */
 export function todayDateKey(): string {
@@ -51,6 +53,7 @@ export function emptyPurchaseForm(): PurchaseForm {
     departmentId: "",
     items: [],
     costSplitManual: false,
+    newVariationGradeType: null,
     productName: "",
     productBarcode: null,
     invoiceNumber: "",
@@ -116,22 +119,24 @@ export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] 
     //
     // A linha de MARCA NOVA (fase 4) também faz a grade existir, mesmo sozinha:
     // ela não tem cadastro, e o cabeçalho não saberia descrevê-la. Ela ganha o id
-    // do item com o sinal trocado (`lib/new-brand.ts`).
+    // do item com o sinal trocado (`lib/new-brand.ts`). A variação do produto
+    // NOVO (fase 5) é o mesmo tipo de linha, com o valor da grade no lugar da marca.
     items:
       (purchase.items ?? []).length > 1 ||
-      (purchase.items ?? []).some((item) => item.productId == null && item.newBrand)
+      (purchase.items ?? []).some((item) => item.productId == null && (item.newBrand || item.newValue))
         ? (purchase.items ?? []).flatMap<PurchaseFormItem>((item) => {
-            if (item.productId == null && item.newBrand)
+            const semCadastro = item.newBrand || item.newValue;
+            if (item.productId == null && semCadastro)
               return [
                 {
                   productId: -item.id,
-                  name: item.newBrand,
+                  name: semCadastro,
                   barcode: null,
                   stock: 0,
                   quantity: item.quantity,
                   grossTotal: item.grossTotal,
                   finalTotal: item.finalTotal,
-                  newBrand: item.newBrand,
+                  newBrand: semCadastro,
                   newBarcode: item.newBarcode ?? "",
                 },
               ];
@@ -151,6 +156,11 @@ export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] 
           })
         : [],
     costSplitManual: purchase.costSplitManual ?? false,
+    // O backend manda o NOME do enum ("Size"); ausente em toda outra compra.
+    newVariationGradeType:
+      purchase.newVariationGradeType == null
+        ? null
+        : enumCode(purchase.newVariationGradeType, GRADE_TYPE) || null,
     productName: purchase.productName,
     productBarcode: purchase.productBarcode ?? null,
     invoiceNumber: purchase.invoiceNumber ?? "",
@@ -295,8 +305,13 @@ export function validatePurchaseForm(
     return "Informe a quantidade de ao menos uma variação.";
   if (form.items.some((item) => !Number.isInteger(item.quantity) || item.quantity < 0))
     return "A quantidade de cada variação deve ser um inteiro maior ou igual a zero.";
-  const marcaNova = newBrandProblem(form.items, existingBrands);
-  if (marcaNova) return marcaNova;
+  // As linhas sem cadastro são a marca nova (fase 4) ou as variações do produto
+  // novo (fase 5), cada uma com a sua regra.
+  const semCadastro =
+    form.newVariationGradeType !== null
+      ? newVariationProblem(form.items)
+      : newBrandProblem(form.items, existingBrands);
+  if (semCadastro) return semCadastro;
   if (!Number.isInteger(form.quantity) || form.quantity <= 0)
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
@@ -462,6 +477,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setForm: setFormTouched,
   });
   const variations = usePurchaseVariations({ form, setForm, onEdit: markDirty });
+  const newProductGrid = useNewProductGrid({ setForm, onEdit: markDirty });
   /**
    * Compra lançada abre em leitura, e não deixa de abrir.
    *
@@ -726,8 +742,10 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       productName: product.name,
       productBarcode: product.barcode,
       productPrice: product.price,
-      // A grade do grupo anterior não vale para o novo.
-      items: mesmoGrupo ? current.items : [],
+      // A grade do grupo anterior não vale para o novo — nem as variações do
+      // produto novo (fase 5), que deixou de ser novo.
+      items: mesmoGrupo && current.newVariationGradeType === null ? current.items : [],
+      newVariationGradeType: null,
     }));
 
     // Trocar de variação dentro do MESMO grupo não muda foto nem categoria.
@@ -806,6 +824,9 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       productBarcode: null,
       productPrice: null,
       items: [],
+      // Sem grade não há custo por variação; ligado, a grade do produto novo com
+      // variações (fase 5) nasceria zerando os totais digitados.
+      costSplitManual: false,
       images: [],
     }));
   }
@@ -906,11 +927,17 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       // A compra SÓ de marca nova não tem item com cadastro: é pelo grupo que
       // ela diz de que produto é (fase 4).
       productGroupId: form.productGroupId,
+      // Produto novo já com variações (fase 5): o tipo da grade; os valores vão nos itens.
+      newVariationGradeType: form.newVariationGradeType,
       // Com produto vinculado o backend usa a do grupo e ignora esta.
       categoryId: form.categoryId ? Number(form.categoryId) : null,
       productName: form.productName.trim(),
       // Com produto vinculado o código é o do cadastro, e o backend ignora este.
-      productBarcode: purchaseHasProduct(form) ? null : form.productBarcode?.trim() || null,
+      // No produto novo com variações, o código é de cada uma (nos itens).
+      productBarcode:
+        purchaseHasProduct(form) || form.newVariationGradeType !== null
+          ? null
+          : form.productBarcode?.trim() || null,
       invoiceNumber: form.invoiceNumber.trim() || null,
       details: form.details.trim() || null,
       purchaseLink: form.purchaseLink.trim() || null,
@@ -934,7 +961,9 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
           isNewBrandRow(item)
             ? {
                 productId: null,
-                newBrand: normalizeBrand(item.newBrand),
+                ...(form.newVariationGradeType !== null
+                  ? { newValue: normalizeBrand(item.newBrand) }
+                  : { newBrand: normalizeBrand(item.newBrand) }),
                 newBarcode: item.newBarcode?.trim() || null,
                 quantity: item.quantity,
                 grossTotal: item.grossTotal,
@@ -1006,6 +1035,8 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     ...images,
     // Grade de variações: existe só quando o grupo tem mais de uma.
     ...variations,
+    // Produto novo já com variações (fase 5): o tipo da grade.
+    ...newProductGrid,
     submit,
     isSaving: saveMutation.isPending,
   };

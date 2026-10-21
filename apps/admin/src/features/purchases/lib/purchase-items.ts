@@ -1,4 +1,4 @@
-import type { PurchaseFormItem } from "../types";
+import type { PurchaseForm, PurchaseFormItem } from "../types";
 
 /**
  * O rateio do total do pedido entre as variações — a prévia da tela.
@@ -65,4 +65,30 @@ export function applyCostSplit(
 export function sumItems(items: PurchaseFormItem[], campo: "quantity" | "grossTotal" | "finalTotal"): number {
   const total = items.reduce((soma, item) => soma + item[campo], 0);
   return campo === "quantity" ? total : Math.round(total * 100) / 100;
+}
+
+/**
+ * Deixa cabeçalho e grade coerentes depois de qualquer edição.
+ *
+ * A quantidade do cabeçalho é SEMPRE a soma da grade. Os totais dependem do
+ * modo: em manual eles são a soma dos itens; em rateio continuam sendo o que foi
+ * digitado, e quem muda são as fatias.
+ */
+export function recomputeGrid(atual: PurchaseForm): PurchaseForm {
+  if (atual.items.length === 0) return atual;
+
+  if (atual.costSplitManual) {
+    return {
+      ...atual,
+      quantity: sumItems(atual.items, "quantity"),
+      grossTotal: sumItems(atual.items, "grossTotal"),
+      finalTotal: sumItems(atual.items, "finalTotal"),
+    };
+  }
+
+  return {
+    ...atual,
+    quantity: sumItems(atual.items, "quantity"),
+    items: applyCostSplit(atual.items, atual.grossTotal, atual.finalTotal, false),
+  };
 }

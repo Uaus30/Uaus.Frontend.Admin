@@ -2,7 +2,13 @@ import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CategoryDto, PurchaseDto, SupplierDto } from "@workspace/api-client-react";
+import {
+  GRADE_TYPE,
+  type CategoryDto,
+  type PurchaseDto,
+  type SavePurchasePayload,
+  type SupplierDto,
+} from "@workspace/api-client-react";
 
 const mocks = vi.hoisted(() => ({
   createPurchase: vi.fn(),
@@ -1539,5 +1545,118 @@ describe("purchaseToForm — marca nova (fase 4)", () => {
     };
     expect(validatePurchaseForm(form)).toMatch(/Informe a marca/);
     expect(validatePurchaseForm(form, undefined, [])).toMatch(/Informe a marca/);
+  });
+});
+
+describe("compra de produto novo com variações (fase 5)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function renderForm() {
+    return renderHook(
+      () => usePurchaseForm({ onSaved: vi.fn(), suppliers: FORNECEDORES, categories: CATEGORIAS }),
+      { wrapper: createWrapper() },
+    );
+  }
+
+  it("escolher o tipo vira uma grade de duas linhas, e o salvar manda o tipo e os valores", async () => {
+    mocks.updatePurchase.mockResolvedValue(compra);
+    const { result } = renderForm();
+    act(() => result.current.openEdit(compra));
+
+    act(() => result.current.setNewProductGradeType(GRADE_TYPE.Size));
+
+    expect(result.current.hasGrid).toBe(true);
+    // A primeira linha herda a quantidade do campo; a segunda nasce com uma.
+    expect(result.current.form.items.map((item) => item.quantity)).toEqual([3, 1]);
+    const [p, m] = result.current.form.items;
+    act(() => result.current.setNewBrand(p.productId, "newBrand", "p"));
+    act(() => result.current.setNewBrand(m.productId, "newBrand", "m"));
+
+    await act(async () => result.current.submit());
+
+    await waitFor(() => expect(mocks.updatePurchase).toHaveBeenCalled());
+    const corpo = (mocks.updatePurchase.mock.lastCall as unknown as [number, SavePurchasePayload])[1];
+    expect(corpo.newVariationGradeType).toBe(GRADE_TYPE.Size);
+    expect(corpo.productBarcode).toBeNull();
+    expect(corpo.items).toEqual([
+      expect.objectContaining({ productId: null, newValue: "P", quantity: 3 }),
+      expect.objectContaining({ productId: null, newValue: "M", quantity: 1 }),
+    ]);
+    expect(corpo.items[0]).not.toHaveProperty("newBrand");
+  });
+
+  it('"Sem variações" volta ao campo de quantidade com a soma', () => {
+    const { result } = renderForm();
+    act(() => result.current.openEdit(compra));
+    act(() => result.current.setNewProductGradeType(GRADE_TYPE.Color));
+
+    act(() => result.current.setNewProductGradeType(null));
+
+    expect(result.current.form.items).toEqual([]);
+    expect(result.current.form.newVariationGradeType).toBeNull();
+    expect(result.current.form.quantity).toBe(4);
+    expect(result.current.hasGrid).toBe(false);
+  });
+
+  it("a compra gravada volta com o tipo e uma linha sem cadastro por valor", () => {
+    const form = purchaseToForm({
+      ...compra,
+      newVariationGradeType: "Size",
+      items: [
+        {
+          id: 90,
+          productName: "",
+          quantity: 2,
+          grossTotal: 20,
+          finalTotal: 20,
+          stock: 0,
+          unitFinal: 10,
+          newValue: "P",
+        },
+        {
+          id: 91,
+          productName: "",
+          quantity: 3,
+          grossTotal: 30,
+          finalTotal: 30,
+          stock: 0,
+          unitFinal: 10,
+          newValue: "M",
+        },
+      ],
+    } as PurchaseDto);
+
+    expect(form.newVariationGradeType).toBe(GRADE_TYPE.Size);
+    expect(form.items.map((item) => [item.productId, item.newBrand])).toEqual([
+      [-90, "P"],
+      [-91, "M"],
+    ]);
+  });
+
+  it("com uma variação só, não grava: produto com variações tem ao menos duas", () => {
+    const linha = (productId: number, valor: string, quantity: number) => ({
+      productId,
+      name: "",
+      barcode: null,
+      stock: 0,
+      quantity,
+      grossTotal: 0,
+      finalTotal: 0,
+      newBrand: valor,
+    });
+    const form = {
+      ...emptyPurchaseForm(),
+      supplierId: "1",
+      productName: "CUECA",
+      categoryId: "7",
+      newVariationGradeType: GRADE_TYPE.Size,
+      quantity: 2,
+      items: [linha(-1, "P", 2), linha(-2, "M", 0)],
+    };
+
+    expect(validatePurchaseForm(form)).toMatch(/ao menos duas variações/);
+    expect(validatePurchaseForm({ ...form, items: [linha(-1, "P", 2), linha(-2, "p", 1)] })).toMatch(
+      /variação P está em mais de uma linha/,
+    );
   });
 });

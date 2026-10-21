@@ -67,6 +67,11 @@ type PurchaseReceiveDialogProps = {
  * gerado. É no recebimento que o cadastro dela nasce. Em produto SIMPLES o
  * diálogo pede também a marca do cadastro atual, que vira a primeira variação.
  *
+ * **Produto novo com variações** (fase 5, 21/10/2026): a compra de produto
+ * ainda não cadastrado, já em tamanhos ou cores, também vem para cá — e não para
+ * o cadastro preenchido. Cada variação pede o código, o preço é obrigatório, e
+ * ao confirmar o produto nasce com as variações que vieram.
+ *
  * Compra anotada SEM custo (pendente) não se recebe daqui: a entrada gravaria o
  * lote a custo zero em silêncio. O diálogo diz isso e troca o botão de confirmar
  * por "Editar compra" — o backend recusa de qualquer jeito
@@ -90,12 +95,17 @@ export function PurchaseReceiveDialog({
   // Com uma variação só não há conferência a fazer: o que foi pedido é o que
   // chegou, e a grade seria uma tabela de uma linha para não decidir nada.
   const conferindo = conferencia(form.items);
+  // Produto NOVO com variações (fase 5): ele nasce nesta confirmação, então o
+  // preço é obrigatório e não há cadastro atual nem variação de fora a acrescentar.
+  const produtoNovo = purchase?.newVariationGradeType != null;
   // Marca nova em produto simples: o cadastro atual vira a primeira variação e
   // precisa de uma marca. `=== false` porque a API antiga omitia o campo.
-  const pedeMarcaAtual = purchase?.groupHasVariations === false && needsCurrentBrand(form.items);
+  const pedeMarcaAtual =
+    !produtoNovo && purchase?.groupHasVariations === false && needsCurrentBrand(form.items);
   const problemaDaMarca =
-    receiveNewBrandProblem(form.items) ??
-    (pedeMarcaAtual ? currentBrandProblem(form.items, form.currentBrand) : null);
+    receiveNewBrandProblem(form.items, produtoNovo ? "variação" : "marca") ??
+    (pedeMarcaAtual ? currentBrandProblem(form.items, form.currentBrand) : null) ??
+    (produtoNovo && form.price <= 0 ? "Informe o preço de venda: o produto novo nasce com ele." : null);
   const somaDaGrade =
     Math.round(
       form.items.filter((item) => item.quantity > 0).reduce((total, item) => total + item.finalTotal, 0) *
@@ -191,7 +201,7 @@ export function PurchaseReceiveDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-muted-foreground">
-                  Preço de venda
+                  Preço de venda {produtoNovo && <span className="text-red-500">*</span>}
                 </label>
                 <CurrencyInput
                   value={form.price}
@@ -199,9 +209,11 @@ export function PurchaseReceiveDialog({
                   className="h-10 bg-background"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {purchase.suggestedPrice
-                    ? "Veio do preço sugerido na compra. Em branco (zero) mantém o preço atual."
-                    : "Em branco (zero) mantém o preço atual do cadastro."}
+                  {produtoNovo
+                    ? "O preço do produto novo, em todas as variações."
+                    : purchase.suggestedPrice
+                      ? "Veio do preço sugerido na compra. Em branco (zero) mantém o preço atual."
+                      : "Em branco (zero) mantém o preço atual do cadastro."}
                 </p>
               </div>
             </div>
@@ -219,6 +231,8 @@ export function PurchaseReceiveDialog({
                 onItemChange={onItemChange}
                 onBrandChange={onBrandChange}
                 onAddVariation={onAddItem}
+                newRowSuffix={produtoNovo ? "variação nova" : "marca nova"}
+                allowAddVariation={!produtoNovo}
                 onUseSum={(soma) => onChange("finalTotal", soma)}
               />
             )}

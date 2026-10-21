@@ -84,17 +84,20 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
     // nova (fase 4) vem com o código que a compra já sabia, se sabia — o
     // recebimento o exige, bipado ou gerado.
     items: (purchase?.items ?? []).flatMap((item) => {
-      if (item.productId == null && item.newBrand)
+      // A marca nova (fase 4) e a variação do produto novo (fase 5) são a mesma
+      // linha sem cadastro.
+      const semCadastro = item.newBrand || item.newValue;
+      if (item.productId == null && semCadastro)
         return [
           {
             productId: -item.id,
-            name: item.newBrand,
+            name: semCadastro,
             barcode: null,
             stock: 0,
             quantity: item.quantity,
             grossTotal: item.grossTotal,
             finalTotal: item.finalTotal,
-            newBrand: item.newBrand,
+            newBrand: semCadastro,
             newBarcode: item.newBarcode ?? "",
             generateBarcode: false,
           },
@@ -132,6 +135,9 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
  *   abre preenchido (nome, detalhes, fotos, preço sugerido) e, salvo, a aba
  *   Estoque já vem com a entrada da compra pronta. Quem fecha a compra é a
  *   própria entrada, chamando `mark-received` — ver `useProductStockEntries`.
+ * - **Produto novo JÁ com variações** (fase 5, 21/10/2026): o diálogo, como o
+ *   primeiro caminho. O produto nasce na confirmação, com o código de cada
+ *   variação bipado ou gerado, e a tela vai para ele, na aba Estoque.
  */
 export function usePurchases() {
   const queryClient = useQueryClient();
@@ -331,7 +337,9 @@ export function usePurchases() {
       return;
     }
 
-    if (!purchaseHasProduct(purchase)) {
+    // Produto NOVO já com variações (fase 5) não vai ao cadastro: ele nasce na
+    // própria conferência, com o código de cada variação.
+    if (!purchaseHasProduct(purchase) && purchase.newVariationGradeType == null) {
       navigate(productFromPurchasePath(purchase.id));
       return;
     }

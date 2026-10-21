@@ -34,6 +34,21 @@ export function nextNewBrandKey(items: PurchaseFormItem[]): number {
   return Math.min(menor, -1_000_000_000) - 1;
 }
 
+/** Linha sem cadastro em branco: a marca nova (fase 4) ou a variação do produto novo (fase 5). */
+export function emptyNewRow(key: number, quantity: number): PurchaseFormItem {
+  return {
+    productId: key,
+    name: "",
+    barcode: null,
+    stock: 0,
+    quantity,
+    grossTotal: 0,
+    finalTotal: 0,
+    newBrand: "",
+    newBarcode: "",
+  };
+}
+
 /** A marca como será gravada: sem espaço nas pontas e em caixa alta. */
 export function normalizeBrand(brand: string | null | undefined): string {
   return (brand ?? "").trim().toUpperCase();
@@ -89,12 +104,12 @@ export function newBrandProblem(items: PurchaseFormItem[], existingBrands: strin
  * O que falta nas linhas de marca nova para RECEBER, ou `null`: o código é
  * obrigatório — bipado ou gerado.
  */
-export function receiveNewBrandProblem(items: PurchaseFormItem[]): string | null {
+export function receiveNewBrandProblem(items: PurchaseFormItem[], rotulo = "marca"): string | null {
   const codigos = new Set<string>();
   for (const item of items.filter((linha) => isNewBrandRow(linha) && linha.quantity > 0)) {
     const codigo = item.newBarcode?.trim();
     if (!codigo && !item.generateBarcode)
-      return `Informe o código de barras da marca ${normalizeBrand(item.newBrand)}: bipe o da embalagem ou gere um.`;
+      return `Informe o código de barras da ${rotulo} ${normalizeBrand(item.newBrand)}: bipe o da embalagem ou gere um.`;
     // Com "Gerar código" o que estava no campo (o código da compra) não vai.
     if (codigo && !item.generateBarcode) {
       const resolvido = resolveBarcodeInput(codigo);
@@ -147,6 +162,37 @@ export function currentBrandProblem(items: PurchaseFormItem[], currentBrand: str
   // A API recusa do mesmo jeito; aqui o aviso vem antes do clique.
   if (brandsToCreate(items).some((item) => normalizeBrand(item.newBrand) === marca))
     return `A marca do cadastro atual tem que ser diferente da marca nova (${marca}).`;
+  return null;
+}
+
+/**
+ * O que falta na grade do produto NOVO com variações para gravar a compra, ou
+ * `null` (fase 5, 21/10/2026). Um valor por linha, sem repetir, ao menos duas
+ * variações compradas — produto com uma variação só não existe — e o código
+ * opcional pela regra do cadastro. O backend recusa igual.
+ */
+export function newVariationProblem(items: PurchaseFormItem[]): string | null {
+  const compradas = items.filter((item) => isNewBrandRow(item) && item.quantity > 0);
+  if (compradas.length < 2)
+    return 'Produto com variações tem ao menos duas variações compradas. Com uma só, escolha "Sem variações".';
+
+  const vistas = new Set<string>();
+  const codigos = new Set<string>();
+  for (const item of compradas) {
+    const valor = normalizeBrand(item.newBrand);
+    if (!valor) return "Informe o valor de cada variação (ex.: P, M, G).";
+    if (valor.length > BRAND_MAX_LENGTH) return `O valor da variação excede ${BRAND_MAX_LENGTH} caracteres.`;
+    if (vistas.has(valor)) return `A variação ${valor} está em mais de uma linha.`;
+    vistas.add(valor);
+
+    const codigo = item.newBarcode?.trim();
+    if (!codigo) continue;
+    const resolvido = resolveBarcodeInput(codigo);
+    if (resolvido.kind === "invalid") return resolvido.error;
+    const gravado = resolvido.code ?? codigo;
+    if (codigos.has(gravado)) return `O código ${gravado} está em duas variações da compra.`;
+    codigos.add(gravado);
+  }
   return null;
 }
 

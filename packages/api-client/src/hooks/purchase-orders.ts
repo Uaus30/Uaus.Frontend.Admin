@@ -44,6 +44,13 @@ export interface PurchaseDto {
    */
   groupHasVariations?: boolean;
   /**
+   * Produto NOVO comprado já com variações (fase 5, 21/10/2026): o tipo da grade,
+   * como NOME do enum ("Size"). Com ele o "Lançar recebimento" é a conferência que
+   * cria o produto, e não o cadastro preenchido. Omitido nas demais compras e
+   * depois do recebimento.
+   */
+  newVariationGradeType?: string | number | null;
+  /**
    * Categoria do produto: a escolhida na compra (produto ainda não cadastrado)
    * ou a do GRUPO, com produto vinculado. O backend escolhe uma das duas — a
    * compra nunca guarda cópia da do grupo.
@@ -151,8 +158,13 @@ export interface PurchaseItemDto {
    * — aí `productId` já aponta para o cadastro criado.
    */
   newBrand?: string | null;
-  /** O código da marca nova, se já se sabia na compra. */
+  /** O código da marca nova ou da variação do produto novo, se já se sabia na compra. */
   newBarcode?: string | null;
+  /**
+   * O valor da grade da linha na compra de produto NOVO com variações (fase 5):
+   * "P", "AZUL". Ainda sem cadastro até o recebimento; depois fica como registro.
+   */
+  newValue?: string | null;
 }
 
 /** Uma linha da grade, como a tela a envia. */
@@ -161,8 +173,10 @@ export interface SavePurchaseItemPayload {
   productId: number | null;
   /** Marca nova de um produto que existe ("+ Nova variação (marca)"). Só com `productId` nulo. */
   newBrand?: string | null;
-  /** Código da marca nova, se já se sabe. Opcional: o recebimento o exige. */
+  /** Código da marca nova ou da variação do produto novo, se já se sabe. Opcional: o recebimento o exige. */
   newBarcode?: string | null;
+  /** Valor da grade do produto NOVO com variações (fase 5). Só com `productId` nulo. */
+  newValue?: string | null;
   /** Zero é "não comprei esta variação" — o backend descarta a linha. */
   quantity: number;
   /** Ignorados em rateio (o padrão), que é quando o backend os deriva. */
@@ -179,6 +193,11 @@ export interface SavePurchasePayload {
    * produto é; com item vinculado, tem que ser o grupo dele.
    */
   productGroupId?: number | null;
+  /**
+   * Produto NOVO já com variações (fase 5): o código do tipo da grade
+   * (`GRADE_TYPE`), um só. Cada item traz o valor em `newValue`.
+   */
+  newVariationGradeType?: number | null;
   /**
    * Categoria do produto a comprar. **Obrigatória sem produto vinculado** — é
    * ela que o cadastro gerado no recebimento recebe pronto. Com produto

@@ -258,3 +258,74 @@ describe("PurchaseReceiveDialog — marca nova (fase 4)", () => {
     expect(evento.defaultPrevented).toBe(true);
   });
 });
+
+describe("PurchaseReceiveDialog — produto novo com variações (fase 5)", () => {
+  /** A compra de CUECA BOXER em P e M, sem cadastro: o produto nasce nesta confirmação. */
+  function produtoNovo(price: number) {
+    const linha = (productId: number, valor: string, quantity: number, finalTotal: number) => ({
+      productId,
+      name: valor,
+      barcode: null,
+      stock: 0,
+      quantity,
+      grossTotal: finalTotal,
+      finalTotal,
+      newBrand: valor,
+      newBarcode: "",
+      generateBarcode: true,
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <PurchaseReceiveDialog
+          purchase={
+            {
+              ...compra(),
+              productId: null,
+              productGroupId: null,
+              productName: "CUECA BOXER",
+              groupHasVariations: false,
+              newVariationGradeType: "Size",
+            } as PurchaseDto
+          }
+          form={
+            {
+              ...formulario(),
+              price,
+              currentBrand: "",
+              items: [linha(-90, "P", 10, 45), linha(-91, "M", 10, 45)],
+            } as ReceiveForm
+          }
+          onChange={vi.fn()}
+          onItemChange={vi.fn()}
+          onBrandChange={vi.fn()}
+          onAddItem={vi.fn()}
+          onCancel={vi.fn()}
+          onConfirm={vi.fn()}
+          onEditPurchase={vi.fn()}
+          isSaving={false}
+        />
+      </QueryClientProvider>,
+    );
+  }
+
+  function confirmar() {
+    return screen.getByRole("button", { name: /confirmar recebimento/i }) as HTMLButtonElement;
+  }
+
+  it("sem preço não recebe: o produto novo nasce com ele", () => {
+    produtoNovo(0);
+
+    expect(screen.getByText("Informe o preço de venda: o produto novo nasce com ele.")).toBeTruthy();
+    expect(confirmar().disabled).toBe(true);
+  });
+
+  it("não pede a marca do cadastro atual, nem acrescenta variação de outro produto", () => {
+    produtoNovo(25);
+
+    expect(screen.queryByPlaceholderText("Ex: ORIGINAL")).toBeNull();
+    expect(screen.queryByPlaceholderText(/Veio uma variação que não estava no pedido/)).toBeNull();
+    expect(screen.getAllByText("(variação nova)")).toHaveLength(2);
+    expect(confirmar().disabled).toBe(false);
+  });
+});

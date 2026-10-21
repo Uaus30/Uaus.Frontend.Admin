@@ -6,7 +6,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ConfirmDialog } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
-import { PURCHASE_STATUS, type DepartmentDto, type SupplierDto } from "@workspace/api-client-react";
+import {
+  GRADE_TYPE_LABELS,
+  PURCHASE_STATUS,
+  type DepartmentDto,
+  type GradeTypeCode,
+  type SupplierDto,
+} from "@workspace/api-client-react";
 import { formatCurrency } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
@@ -17,6 +23,7 @@ import { purchaseHasProduct } from "../hooks/usePurchaseForm";
 import { PurchaseBarcodeField } from "./PurchaseBarcodeField";
 import { PurchaseDerivedTotals } from "./PurchaseDerivedTotals";
 import { PurchaseVariationsGrid } from "./PurchaseVariationsGrid";
+import { NewProductGradeField } from "./NewProductGradeField";
 import { PurchaseImagesField } from "./PurchaseImagesField";
 import { PurchaseLinkField } from "./PurchaseLinkField";
 import { PurchaseProductLinkDialog } from "./PurchaseProductLinkDialog";
@@ -243,7 +250,8 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
           {/* O código de barras do produto NOVO, acima do nome. Código que já é de
               um produto cadastrado vincula a compra a ele — o campo some junto com
               o nome, porque com produto vinculado os dois são os do cadastro. */}
-          {!temProduto && (
+          {/* No produto novo COM variações (fase 5) o código é de cada uma, na grade. */}
+          {!temProduto && values.newVariationGradeType === null && (
             <PurchaseBarcodeField
               value={values.productBarcode ?? ""}
               readOnly={readOnly}
@@ -273,6 +281,14 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
                 readOnly={readOnly}
               />
             </div>
+          )}
+
+          {!temProduto && (
+            <NewProductGradeField
+              value={values.newVariationGradeType}
+              onChange={form.setNewProductGradeType}
+              readOnly={readOnly}
+            />
           )}
 
           {/* Departamento e categoria do que está sendo comprado.
@@ -346,8 +362,16 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               onToggleManual={form.setCostSplitManual}
               onBrandChange={form.setNewBrand}
               onRemoveBrand={form.removeNewBrand}
-              canAddBrand={form.canAddBrand}
+              canAddBrand={form.canAddBrand || values.newVariationGradeType !== null}
               onAddBrand={form.addNewBrand}
+              // Produto novo com variações (fase 5): a linha sem cadastro é o valor
+              // da grade, e são ao menos duas.
+              newRowLabel={
+                values.newVariationGradeType !== null
+                  ? GRADE_TYPE_LABELS[values.newVariationGradeType as GradeTypeCode]
+                  : undefined
+              }
+              minNewRows={values.newVariationGradeType !== null ? 2 : 0}
             />
           )}
 

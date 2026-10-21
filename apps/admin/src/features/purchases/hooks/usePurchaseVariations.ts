@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { GRADE_TYPE, PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
 import { getProductsPage } from "@/services/products.service";
-import { applyCostSplit, sumItems } from "../lib/purchase-items";
+import { applyCostSplit, recomputeGrid, sumItems } from "../lib/purchase-items";
 import { spreadRestockQuantity } from "../lib/spread-restock";
-import { isNewBrandRow, nextNewBrandKey } from "../lib/new-brand";
+import { emptyNewRow, isNewBrandRow, nextNewBrandKey } from "../lib/new-brand";
 import type { PurchaseForm, PurchaseFormItem } from "../types";
 
 /** Nem inativa, nem rascunho: a variação que recebe parte da reposição do produto inteiro. */
@@ -114,29 +114,19 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
   // operador acabou de digitar. Aqui a condição se desfaz sozinha: depois do
   // ajuste a grade cobre todas as variações e nada mais dispara.
   if (hasGrid && variations.length > 0 && !cobreTodas(form.items, variations)) {
-    setForm((atual) => recompute(montarGrade(atual, variations)));
+    setForm((atual) => recomputeGrid(montarGrade(atual, variations)));
   }
 
   /**
-   * Acrescenta uma linha de marca nova. Em produto simples a grade ainda não
+   * Acrescenta uma linha sem cadastro: a marca nova ou, no produto novo com
+   * variações (fase 5), mais uma variação. Em produto simples a grade ainda não
    * existe: ela nasce com o cadastro atual (a quantidade do campo) e a linha nova.
    */
   function addNewBrand() {
     onEdit();
     setForm((atual) => {
       const base = atual.items.length > 0 ? atual : montarGrade({ ...atual, items: [] }, variations);
-      const linha: PurchaseFormItem = {
-        productId: nextNewBrandKey(base.items),
-        name: "",
-        barcode: null,
-        stock: 0,
-        quantity: 1,
-        grossTotal: 0,
-        finalTotal: 0,
-        newBrand: "",
-        newBarcode: "",
-      };
-      return recompute({ ...base, items: [...base.items, linha] });
+      return recomputeGrid({ ...base, items: [...base.items, emptyNewRow(nextNewBrandKey(base.items), 1)] });
     });
   }
 
@@ -181,14 +171,14 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
           costSplitManual: false,
         };
       }
-      return recompute({ ...atual, items });
+      return recomputeGrid({ ...atual, items });
     });
   }
 
   function setItemQuantity(productId: number, quantity: number) {
     onEdit();
     setForm((atual) =>
-      recompute({
+      recomputeGrid({
         ...atual,
         items: atual.items.map((item) =>
           item.productId === productId
@@ -215,7 +205,7 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
   function setItemCost(productId: number, valor: number) {
     onEdit();
     setForm((atual) =>
-      recompute({
+      recomputeGrid({
         ...atual,
         items: atual.items.map((item) => {
           if (item.productId !== productId) return item;
@@ -239,14 +229,14 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
       const comFatias = manual
         ? applyCostSplit(atual.items, atual.grossTotal, atual.finalTotal, false)
         : atual.items;
-      return recompute({ ...atual, costSplitManual: manual, items: comFatias });
+      return recomputeGrid({ ...atual, costSplitManual: manual, items: comFatias });
     });
   }
 
   /** Recalcula as fatias quando o operador mexe nos totais do pedido. */
   function refreshSplit(grossTotal: number, finalTotal: number) {
     onEdit();
-    setForm((atual) => recompute({ ...atual, grossTotal, finalTotal }));
+    setForm((atual) => recomputeGrid({ ...atual, grossTotal, finalTotal }));
   }
 
   return {
@@ -302,30 +292,4 @@ function montarGrade(atual: PurchaseForm, variations: VariationOption[]): Purcha
   );
 
   return { ...atual, items: [...items, ...atual.items.filter(isNewBrandRow)], spreadQuantity: false };
-}
-
-/**
- * Deixa cabeçalho e grade coerentes depois de qualquer edição.
- *
- * A quantidade do cabeçalho é SEMPRE a soma da grade. Os totais dependem do
- * modo: em manual eles são a soma dos itens; em rateio continuam sendo o que foi
- * digitado, e quem muda são as fatias.
- */
-function recompute(atual: PurchaseForm): PurchaseForm {
-  if (atual.items.length === 0) return atual;
-
-  if (atual.costSplitManual) {
-    return {
-      ...atual,
-      quantity: sumItems(atual.items, "quantity"),
-      grossTotal: sumItems(atual.items, "grossTotal"),
-      finalTotal: sumItems(atual.items, "finalTotal"),
-    };
-  }
-
-  return {
-    ...atual,
-    quantity: sumItems(atual.items, "quantity"),
-    items: applyCostSplit(atual.items, atual.grossTotal, atual.finalTotal, false),
-  };
 }
