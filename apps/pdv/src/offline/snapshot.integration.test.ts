@@ -7,7 +7,7 @@ import { putAll } from "./idb";
 import { readLocalDatabaseState, readMeta, writeMeta } from "./meta";
 import { listPendingSales, savePendingSale } from "./pending-sales";
 import { savePendingWriteOff } from "./pending-write-offs";
-import { clearLocalCatalog, installSnapshot } from "./snapshot";
+import { clearLocalCatalog, installSnapshot, refreshLocalStock } from "./snapshot";
 import type { LocalProduct, PdvSnapshot, PendingSale, PendingWriteOff } from "./types";
 
 /**
@@ -273,5 +273,26 @@ describe("clearLocalCatalog", () => {
       generatedAt: null,
       schemaVersion: null,
     });
+  });
+});
+
+describe("refreshLocalStock: a volta do Corrigir estoque (20/10/2026)", () => {
+  it("põe o saldo do servidor na base local, descontando o que a fila já debitou", async () => {
+    // O servidor corrigiu o Café para 20, mas ainda não conhece a venda de 3 na
+    // fila: aceitar o 20 como veio devolveria ao caixa 3 unidades que já saíram.
+    await installSnapshot(snapshot());
+    await savePendingSale(pendingSale("checkout-1", 3));
+
+    await refreshLocalStock([{ productId: 1, stock: 20 }]);
+
+    expect(await localStock(1)).toBe(17);
+  });
+
+  it("produto fora da base local fica de fora — quem o põe lá é o snapshot", async () => {
+    await installSnapshot(snapshot());
+
+    await refreshLocalStock([{ productId: 42, stock: 5 }]);
+
+    expect((await listLocalProducts()).map((product) => product.id)).toEqual([1]);
   });
 });

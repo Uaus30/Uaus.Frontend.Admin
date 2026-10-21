@@ -38,16 +38,15 @@ function emptyForm(): StockCountForm {
  * vira lote. Deixados em branco, o servidor herda o fornecedor do lote mais
  * recente e o custo atual do produto.
  *
- * `defaultNotes` é a observação gravada quando a pessoa não escreve nenhuma. Sem
- * ela, o servidor grava "Contagem física da conferência de produtos." — e quem
- * investigar depois uma contagem feita pela listagem de produtos procuraria uma
- * conferência que não existiu.
+ * **A justificativa é obrigatória quando há diferença** (pedido do dono,
+ * 14/10/2026): sobra e falta viram documento, e é ela que explica, meses depois,
+ * por que o estoque andou sem venda nem compra. Contagem igual ao sistema não
+ * grava nada e não a pede. O servidor recusa do mesmo jeito; aqui o botão só
+ * trava antes, para a pessoa não descobrir pelo erro. O texto automático de
+ * antes ("Contagem de estoque pela listagem de produtos.") saiu: não explicava
+ * nada.
  */
-export function useStockCount(
-  productId: number | null,
-  currentStock: number | null,
-  options: { defaultNotes?: string } = {},
-) {
+export function useStockCount(productId: number | null, currentStock: number | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -58,6 +57,9 @@ export function useStockCount(
   const countedIsValid = counted !== null && Number.isInteger(counted) && counted >= 0;
   /** Positivo é sobra, negativo é falta. `null` enquanto não há número válido. */
   const difference = countedIsValid && currentStock !== null ? counted - currentStock : null;
+  /** Sobra ou falta: vai virar documento, e o documento precisa do porquê. */
+  const notesRequired = difference !== null && difference !== 0;
+  const canSubmit = countedIsValid && (!notesRequired || form.notes.trim() !== "");
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -65,7 +67,7 @@ export function useStockCount(
         countedQuantity: counted!,
         supplierId: form.supplierId ? Number(form.supplierId) : null,
         unitCost: form.unitCost.trim() !== "" ? Number(form.unitCost) : null,
-        notes: form.notes.trim() || options.defaultNotes || null,
+        notes: form.notes.trim() || null,
         // O saldo que a modal MOSTROU: o servidor recusa se o de agora for outro.
         expectedStock: currentStock,
       }),
@@ -130,8 +132,14 @@ export function useStockCount(
     counted,
     countedIsValid,
     difference,
+    /** Há sobra ou falta: a justificativa passa a ser exigida. */
+    notesRequired,
+    /** Número válido e, havendo diferença, justificativa escrita. */
+    canSubmit,
     isSaving: mutation.isPending,
-    submit: () => mutation.mutate(),
+    submit: () => {
+      if (canSubmit) mutation.mutate();
+    },
   };
 }
 

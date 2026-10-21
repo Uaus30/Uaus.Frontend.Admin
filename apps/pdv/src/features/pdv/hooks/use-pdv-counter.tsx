@@ -5,6 +5,8 @@ import { useToast } from "@workspace/ui";
 import { usePdvStore, type HeldSale } from "@/stores/use-pdv-store";
 import type { CheckoutState } from "@/hooks/use-checkout";
 import { useProductSearch } from "./use-product-search";
+import { useStockCorrectionReturn } from "./use-stock-correction-return";
+import { stockCorrectionToastAction } from "../lib/stock-correction-action";
 
 export interface UsePdvCounterParams {
   online: boolean;
@@ -57,11 +59,17 @@ export function usePdvCounter({ online, sessionId, checkout, autoFocus = true }:
    */
   const addProductToCart = useCallback(
     (product: ProductPdvSearchDto): boolean => {
+      // A recusa leva o atalho "Corrigir estoque" (fase 3, 14/10/2026): no bipe
+      // o campo já foi limpo, e o aviso é o único lugar que o operador olha.
+      const corrigir = () =>
+        stockCorrectionToastAction({ id: product.id, name: product.name, barcode: product.barcode }, online);
+
       if (product.stock <= 0) {
         toast({
           title: "Produto sem estoque",
           description: `${product.name} está zerado no estoque e não pode ser vendido.`,
           variant: "destructive",
+          action: corrigir(),
         });
         return false;
       }
@@ -72,6 +80,7 @@ export function usePdvCounter({ online, sessionId, checkout, autoFocus = true }:
           title: "Estoque insuficiente",
           description: `Só há ${product.stock} unidade(s) de ${product.name}.`,
           variant: "destructive",
+          action: corrigir(),
         });
         return false;
       }
@@ -98,7 +107,7 @@ export function usePdvCounter({ online, sessionId, checkout, autoFocus = true }:
       });
       return true;
     },
-    [addItem, toast],
+    [addItem, online, toast],
   );
 
   /**
@@ -114,6 +123,11 @@ export function usePdvCounter({ online, sessionId, checkout, autoFocus = true }:
     online,
     onExactBarcodeMatch: addProductToCart,
   });
+
+  // A volta do admin depois do "Corrigir estoque": carrinho e base local o hook
+  // acerta sozinho; a lista da busca, só quem a tem.
+  const { applyStock } = search;
+  useStockCorrectionReturn({ online, onRefreshed: applyStock });
 
   /**
    * Foco no campo de busca só ao abrir o PDV — e, no fim de cada venda, pelos

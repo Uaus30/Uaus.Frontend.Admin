@@ -26,7 +26,7 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   registerStockCount: mocks.registerStockCount,
 }));
 
-const { useProductListStockCount, stockCountTargetId, canCountStock, LIST_STOCK_COUNT_NOTE } =
+const { useProductListStockCount, stockCountTargetId, canCountStock } =
   await import("../useProductListStockCount");
 
 const createWrapper = () => {
@@ -151,9 +151,9 @@ describe("useProductListStockCount", () => {
     expect(result.current.count.form.counted).toBe("");
   });
 
-  it("sem observação, o documento diz que veio da listagem", async () => {
-    // Sem isto o servidor grava "da conferência de produtos", e quem investigar
-    // depois procura uma conferência que não existiu.
+  it("manda a justificativa digitada — o texto automático da listagem saiu", async () => {
+    // Desde 14/10/2026 a justificativa é obrigatória na sobra e na falta, e é
+    // ela que explica o documento, não "contagem pela listagem".
     mocks.registerStockCount.mockResolvedValue({
       productId: 986,
       productName: "COPO [AZUL]",
@@ -166,13 +166,13 @@ describe("useProductListStockCount", () => {
 
     act(() => result.current.openFor(linha({ variations: [azul] })));
     await waitFor(() => expect(result.current.ready).toBe(true));
-    act(() => result.current.count.updateForm({ counted: "4" }));
+    act(() => result.current.count.updateForm({ counted: "4", notes: "vendido sem bipar" }));
     act(() => result.current.count.submit());
 
     await waitFor(() => expect(mocks.registerStockCount).toHaveBeenCalled());
     expect(mocks.registerStockCount).toHaveBeenCalledWith(
       986,
-      expect.objectContaining({ countedQuantity: 4, notes: LIST_STOCK_COUNT_NOTE }),
+      expect.objectContaining({ countedQuantity: 4, notes: "vendido sem bipar" }),
     );
   });
 });

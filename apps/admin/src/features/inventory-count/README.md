@@ -20,9 +20,9 @@ O desenho do servidor está em `docs/conferencia-de-produtos.md`, no repositóri
 - `hooks/useInventoryCount.ts`: o estado da aba — conferência aberta, filtros,
   paginação, as três mutações (iniciar, encerrar, marcar) e a navegação para o
   produto.
-- `hooks/useStockCount.ts`: a contagem física de uma variação, usada pelo item
-  **Corrigir estoque** do menu da listagem de produtos — desde 23/09/2026, o
-  único lugar dela (o botão da aba Estoque do produto saiu).
+- `hooks/useStockCount.ts`: a contagem física de uma variação, usada pelo
+  **Corrigir estoque** do menu da listagem de produtos (23/09/2026) e, desde
+  20/10/2026, também pelo da aba Estoque do produto.
 - `components/InventoryCountPanel.tsx`: a aba inteira; escolhe entre o convite a
   começar e a conferência em andamento.
 - `components/InventoryCountStart.tsx`: o convite, com o que a conferência faz e
@@ -106,14 +106,19 @@ O servidor trava o estoque do produto, relê o saldo e recusa se ele mudou:
 duas contagens do mesmo SKU, ou o reenvio de uma resposta perdida, lançavam a
 diferença duas vezes. Recusada, a modal relê o produto e mostra o saldo novo.
 
+**A justificativa é obrigatória quando há sobra ou falta** (20/10/2026, plano do
+dono de 14/10/2026): é ela que explica, meses depois, por que o estoque andou
+sem venda nem compra. O Registrar trava sem ela (`canSubmit`), e o servidor
+recusa do mesmo jeito. Contagem igual ao sistema não grava documento e não a
+pede.
+
 **A mesma modal abre pela listagem de produtos** (23/09/2026), no menu da linha.
 Ali a linha é um GRUPO, então a modal ganha por cima a
 escolha da variação (`picker`) e fica travada (`ready = false`) até haver um SKU
-escolhido e o saldo dele chegar do servidor. A observação em branco vira
-"Contagem de estoque pela listagem de produtos." (`defaultNotes`): sem ela, o
-servidor grava "da conferência de produtos", e quem investigar o documento depois
-procuraria uma conferência que não existiu. O desenho está em
-`features/products/README.md`, seção 7.
+escolhido e o saldo dele chegar do servidor. O desenho está em
+`features/products/README.md`, seção 7. A observação automática que a listagem
+gravava ("Contagem de estoque pela listagem de produtos.") saiu com a
+justificativa obrigatória.
 
 **Sobra que reativa o produto é anunciada.** A sobra é uma entrada, e entrada em
 produto Inativo ou "Sem estoque" o devolve a Ativo (23/09/2026). O resultado da

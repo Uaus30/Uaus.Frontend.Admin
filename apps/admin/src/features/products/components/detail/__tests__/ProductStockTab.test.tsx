@@ -17,6 +17,13 @@ vi.mock("@/features/stock-entries/hooks/useProductStockEntries", () => ({
   useProductStockEntries: mocks.useProductStockEntries,
 }));
 
+// O "Corrigir estoque" relê o produto ao abrir; aqui ninguém abre, mas a
+// consulta monta junto com a aba e não pode ir à rede.
+vi.mock("@/services/products.service", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/services/products.service")>()),
+  getProductById: vi.fn(async (id: number) => ({ id, stock: 4 })),
+}));
+
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
   useGetStockFreezeStatus: mocks.useGetStockFreezeStatus,

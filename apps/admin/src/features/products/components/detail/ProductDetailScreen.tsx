@@ -33,6 +33,13 @@ type ProductDetailScreenProps = {
    * pela própria aba.
    */
   initialStockProductId?: number | null;
+  /**
+   * Abre o "Corrigir estoque" da aba Estoque sozinho, uma vez — o atalho do PDV
+   * para o produto sem estoque (`?corrigir=1`). Só na variação pedida: se ela
+   * não for do grupo, a aba cai na padrão e a contagem NÃO abre, porque contar
+   * na variação errada lança sobra numa e falta noutra.
+   */
+  initialStockCount?: boolean;
   /** Pediu para sair (voltar, cancelar) — a página decide se confirma antes. */
   onRequestClose: () => void;
 };
@@ -122,6 +129,7 @@ export function ProductDetailScreen({
   editor,
   initialTab,
   initialStockProductId,
+  initialStockCount = false,
   onRequestClose,
 }: ProductDetailScreenProps) {
   const { toast } = useToast();
@@ -163,6 +171,9 @@ export function ProductDetailScreen({
   const [pickedStockProductId, setPickedStockProductId] = useState<number | null>(
     initialStockProductId ?? null,
   );
+  // Pedido de uma vez só: consumido quando a contagem abre, para trocar de aba
+  // e voltar não reabrir a modal de quem já corrigiu.
+  const [pendingStockCount, setPendingStockCount] = useState(initialStockCount);
 
   const currentBarcode = productEditor.barcode || "";
   // O que a API vai GRAVAR a partir do que está no campo — é o que os avisos
@@ -453,6 +464,12 @@ export function ProductDetailScreen({
               variationStocks={variationStocks}
               onFreshStock={syncVariationStock}
               onSelectProduct={setPickedStockProductId}
+              autoOpenStockCount={
+                pendingStockCount &&
+                stockProductId !== null &&
+                (initialStockProductId == null || stockProductId === initialStockProductId)
+              }
+              onAutoOpenedStockCount={() => setPendingStockCount(false)}
               entryPrefill={
                 purchaseContext
                   ? {

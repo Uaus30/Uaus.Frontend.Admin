@@ -64,6 +64,7 @@ function makeSearch(overrides: Partial<ProductSearchState> = {}): ProductSearchS
     isSearching: false,
     search: vi.fn(),
     clear: vi.fn(),
+    applyStock: vi.fn(),
     ...overrides,
   };
 }
@@ -248,5 +249,62 @@ describe("PdvSearchPanel", () => {
       expect(onPickProduct).toHaveBeenCalledWith(PRODUTO);
       expect(document.activeElement).not.toBe(inputRef.current);
     });
+  });
+});
+
+describe("PdvSearchPanel — Corrigir estoque no produto zerado (20/10/2026)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  function renderZerado(props: { online?: boolean; compact?: boolean } = {}) {
+    vi.stubEnv("VITE_ADMIN_URL", "https://admin-dev.uaus.com.br");
+    const onPickProduct = vi.fn();
+    renderWithHints(
+      <PdvSearchPanel
+        search={makeSearch({ results: [{ ...PRODUTO, stock: 0 }] })}
+        inputRef={createRef<HTMLInputElement>()}
+        online={props.online ?? true}
+        onPickProduct={onPickProduct}
+        compact={props.compact}
+      />,
+    );
+    return { onPickProduct };
+  }
+
+  const nomeDoAtalho = /Corrigir o estoque de COCA-COLA 350ML/;
+
+  it("no balcão, o ícone abre o admin na aba Estoque da variação e não vende", () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const { onPickProduct } = renderZerado();
+
+    fireEvent.click(screen.getByRole("button", { name: nomeDoAtalho }));
+
+    expect(open).toHaveBeenCalledWith(
+      `https://admin-dev.uaus.com.br/produtos?editar=${PRODUTO.id}&aba=estoque&variacao=${PRODUTO.id}&corrigir=1`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    expect(onPickProduct).not.toHaveBeenCalled();
+  });
+
+  it("no celular aparece também, com o texto no botão — no toque não há dica", () => {
+    renderZerado({ compact: true });
+
+    expect(screen.getByRole("button", { name: nomeDoAtalho }).textContent).toContain("Corrigir");
+  });
+
+  it("produto com saldo não tem o atalho", () => {
+    vi.stubEnv("VITE_ADMIN_URL", "https://admin-dev.uaus.com.br");
+    renderPanel();
+
+    expect(screen.queryByRole("button", { name: /Corrigir o estoque/ })).toBeNull();
+  });
+
+  it("sem internet o atalho some: o admin não abriria", () => {
+    renderZerado({ online: false });
+
+    expect(screen.queryByRole("button", { name: nomeDoAtalho })).toBeNull();
   });
 });

@@ -6,7 +6,11 @@ import { useProductTable } from "@/features/products/hooks/useProductTable";
 import { useProductEditor } from "@/features/products/hooks/useProductEditor";
 import { useProductDetailFromUrl } from "@/features/products/hooks/useProductDetailFromUrl";
 import { useProductDetailHistory } from "@/features/products/hooks/useProductDetailHistory";
-import { detailTabFromUrl, stockProductIdFromUrl } from "@/features/products/product-detail-route";
+import {
+  detailTabFromUrl,
+  stockCountFromUrl,
+  stockProductIdFromUrl,
+} from "@/features/products/product-detail-route";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductDetailScreen } from "@/features/products/components/detail/ProductDetailScreen";
 import { ProductDetailDiscardDialog } from "@/features/products/components/detail/ProductDetailDiscardDialog";
@@ -60,12 +64,15 @@ export default function Products() {
   const [detailInitialTab, setDetailInitialTab] = useState<"dados" | "estoque">(detailTabFromUrl);
   // Variação que a aba de Estoque abre, quando a URL diz qual.
   const [detailStockProductId, setDetailStockProductId] = useState<number | null>(stockProductIdFromUrl);
+  // O atalho "Corrigir estoque" do PDV abre a contagem junto (`?corrigir=1`).
+  const [detailOpenStockCount, setDetailOpenStockCount] = useState<boolean>(stockCountFromUrl);
 
   function abrirDetalhe(product?: ProductTableRow, aba: "dados" | "estoque" = "dados") {
     setDetailInitialTab(aba);
     // Abrir OUTRO produto pela listagem apaga a variação que veio da URL: ela
     // valia para o produto daquele link, não para este.
     setDetailStockProductId(null);
+    setDetailOpenStockCount(false);
     editor.openDetail(product);
   }
 
@@ -124,6 +131,7 @@ export default function Products() {
           editor={editor}
           initialTab={detailInitialTab}
           initialStockProductId={detailStockProductId}
+          initialStockCount={detailOpenStockCount && detailInitialTab === "estoque"}
           onRequestClose={pedirParaFechar}
         />
         <ProductDetailDiscardDialog

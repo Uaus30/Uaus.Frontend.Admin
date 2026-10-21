@@ -171,6 +171,16 @@ interface PdvState {
   removeItem: (id: string) => void;
   /** Define a quantidade da linha. A validação de estoque fica na tela. */
   updateQuantity: (id: string, quantity: number) => void;
+  /**
+   * Troca o saldo disponível das linhas destes produtos pelo do servidor — a
+   * volta do "Corrigir estoque" do admin (20/10/2026). Sem isso, o "+" da linha
+   * continuaria recusando com o saldo de quando o item entrou no carrinho.
+   *
+   * Na **reedição de venda** não mexe: lá o disponível é o saldo de hoje MAIS
+   * as unidades da própria venda (`use-sale-history-actions`), e só o saldo do
+   * servidor faria o "+" recusar o que a venda já levava.
+   */
+  refreshAvailableStock: (fresh: Array<{ productId: number; stock: number }>) => void;
   /** Aplica desconto por unidade na linha; zero restaura o preço de tabela. */
   applyItemDiscount: (id: string, discount: number) => void;
   /**
@@ -417,6 +427,17 @@ export const usePdvStore = create<PdvState>((set, get) => ({
     set((state) => ({
       items: state.items.map((i) => (i.id === id ? { ...i, quantity } : i)),
     })),
+
+  refreshAvailableStock: (fresh) =>
+    set((state) => {
+      if (state.editingSaleId !== null || fresh.length === 0) return {};
+      const stockById = new Map(fresh.map((item) => [item.productId, item.stock]));
+      return {
+        items: state.items.map((i) =>
+          stockById.has(i.productId) ? { ...i, availableStock: stockById.get(i.productId)! } : i,
+        ),
+      };
+    }),
 
   applyItemDiscount: (id, discount) =>
     set((state) => ({

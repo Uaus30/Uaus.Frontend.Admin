@@ -94,3 +94,26 @@ describe("BarcodeScannerDialog", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
+
+describe("BarcodeScannerDialog — o botão do aviso (20/10/2026)", () => {
+  beforeEach(() => {
+    camera.onCode = null;
+  });
+
+  it("mostra o botão ao lado do aviso; tocar nele fecha a câmera e chama a ação", async () => {
+    const onClick = vi.fn();
+    const { onOpenChange } = renderDialog(() => ({
+      tone: "error",
+      message: "CANECA: sem estoque.",
+      action: { label: "Corrigir estoque", onClick },
+    }));
+
+    await act(async () => {
+      await camera.onCode?.("789");
+    });
+    act(() => screen.getByRole("button", { name: "Corrigir estoque" }).click());
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});

@@ -827,3 +827,36 @@ describe("usePdvStore", () => {
     });
   });
 });
+
+describe("usePdvStore — refreshAvailableStock, a volta do Corrigir estoque", () => {
+  beforeEach(() => usePdvStore.getState().cancelSale());
+  afterEach(() => usePdvStore.getState().cancelSale());
+
+  it("troca o saldo disponível das linhas do produto pelo do servidor", () => {
+    usePdvStore.getState().addItem(product({ productId: 7, availableStock: 1 }));
+    usePdvStore.getState().addItem(product({ productId: 8, availableStock: 3 }));
+
+    usePdvStore.getState().refreshAvailableStock([{ productId: 7, stock: 12 }]);
+
+    const porProduto = new Map(
+      usePdvStore.getState().items.map((item) => [item.productId, item.availableStock]),
+    );
+    expect(porProduto.get(7)).toBe(12);
+    expect(porProduto.get(8)).toBe(3);
+  });
+
+  it("na reedição de venda não mexe: lá o disponível soma as unidades da própria venda", () => {
+    usePdvStore
+      .getState()
+      .loadSaleForEditing(
+        55,
+        [{ ...product({ productId: 7, quantity: 2, availableStock: 5 }), id: "1" }],
+        0,
+        EMPTY_CONSUMER,
+      );
+
+    usePdvStore.getState().refreshAvailableStock([{ productId: 7, stock: 3 }]);
+
+    expect(usePdvStore.getState().items[0].availableStock).toBe(5);
+  });
+});

@@ -108,6 +108,33 @@ export function adminProductEditUrl(produto: ProdutoParaEditar): string | null {
 }
 
 /**
+ * URL que abre o produto no admin já na aba **Estoque**, na variação certa e
+ * com o "Corrigir estoque" aberto (fase 3 do plano de 14/10/2026).
+ *
+ * É o atalho do produto que o caixa recusou por "sem estoque" ou "estoque
+ * insuficiente": a prateleira tem a mercadoria e o sistema não. `variacao` é o
+ * próprio id porque o balcão vende o SKU — sem ele a aba abriria na primeira
+ * variação do grupo, e contar na errada lança sobra numa e falta noutra.
+ * `corrigir=1` abre a contagem sozinha: quem clicou quer corrigir, não ler a
+ * lista de entradas com o cliente esperando.
+ *
+ * @param produto Produto recusado no balcão.
+ * @returns A URL, ou `null` quando o admin não é alcançável.
+ */
+export function adminStockCorrectionUrl(produto: { id: number }): string | null {
+  const base = adminBaseUrl();
+  if (base === null) return null;
+
+  const query = new URLSearchParams({
+    editar: String(produto.id),
+    aba: "estoque",
+    variacao: String(produto.id),
+    corrigir: "1",
+  });
+  return `${base}/produtos?${query}`;
+}
+
+/**
  * Abre uma URL em nova aba com segurança. `null` não abre nada.
  *
  * `noopener` é o que importa: sem ele a página aberta recebe `window.opener` e

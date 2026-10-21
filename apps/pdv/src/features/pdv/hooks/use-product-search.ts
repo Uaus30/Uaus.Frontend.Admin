@@ -46,6 +46,14 @@ export interface ProductSearchState {
   search: (query: string) => Promise<void>;
   /** Esvazia campo e resultados — depois de escolher um produto ou fechar a venda. */
   clear: () => void;
+  /**
+   * Troca o saldo dos produtos da lista pelo lido agora, sem buscar de novo — a
+   * volta do "Corrigir estoque" (20/10/2026). Buscar de novo poderia cair no
+   * caminho do bipe e mandar o produto sozinho para o carrinho; aqui a lista só
+   * deixa de dizer "Sem estoque" para quem já tem saldo. A posição não muda: a
+   * linha que o operador está olhando não pula de lugar.
+   */
+  applyStock: (fresh: Array<{ productId: number; stock: number }>) => void;
 }
 
 /**
@@ -211,5 +219,16 @@ export function useProductSearch(options: UseProductSearchOptions): ProductSearc
     return () => clearTimeout(timer);
   }, [enabled, query, search]);
 
-  return { query, setQuery: updateQuery, results, notFound, isSearching, search, clear };
+  const applyStock = useCallback((fresh: Array<{ productId: number; stock: number }>) => {
+    const stockById = new Map(fresh.map((item) => [item.productId, item.stock]));
+    setResults((current) =>
+      current.some((product) => stockById.has(product.id))
+        ? current.map((product) =>
+            stockById.has(product.id) ? { ...product, stock: stockById.get(product.id)! } : product,
+          )
+        : current,
+    );
+  }, []);
+
+  return { query, setQuery: updateQuery, results, notFound, isSearching, search, clear, applyStock };
 }

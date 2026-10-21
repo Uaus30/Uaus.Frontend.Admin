@@ -1,6 +1,6 @@
 import { useState, type RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Pencil, ScanBarcode, Search, X } from "lucide-react";
+import { ClipboardList, Loader2, Pencil, ScanBarcode, Search, X } from "lucide-react";
 import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 import {
   BarcodeScannerDialog,
@@ -12,6 +12,7 @@ import {
 } from "@workspace/ui";
 import { Hint } from "@/components/hint";
 import { adminBaseUrl, adminProductEditUrl, openInNewTab } from "@/lib/admin-links";
+import { canCorrectStock, openStockCorrection } from "../lib/stock-correction";
 import type { ProductSearchState } from "../hooks/use-product-search";
 import { useSearchResultPrice } from "../hooks/use-search-result-price";
 import { PdvCartItemImage } from "./pdv-cart-item-image";
@@ -68,6 +69,13 @@ type PdvSearchPanelProps = {
  * `PdvSearchResultPrice`. Antes o preço promocional só aparecia depois de o item
  * entrar no carrinho, e o operador respondia ao cliente com o preço de tabela.
  *
+ * **O produto zerado ganha o atalho "Corrigir estoque"** (fase 3, 20/10/2026):
+ * abre o admin na aba Estoque daquela variação, com a contagem aberta. No balcão
+ * é um ícone com a dica "Corrigir estoque", ao lado do lápis; no celular, onde
+ * não há dica ao passar o mouse, é um botão com o texto — e ele aparece lá
+ * também, a pedido do dono, mesmo abrindo o navegador por cima do app. Sem
+ * internet o atalho some: o admin não abriria.
+ *
  * ## No celular (07/10/2026)
  *
  * Deitado, a altura é ~390px e o balcão gastava 104px só com o campo de busca.
@@ -96,6 +104,8 @@ export function PdvSearchPanel({
   // próprio PDV parece que o painel quebrou. Ver `lib/admin-links`. No celular
   // ele some sempre (ver acima).
   const adminDisponivel = !compact && adminBaseUrl() !== null;
+  // O "Corrigir estoque" aparece também no celular (pedido do dono, 20/10/2026).
+  const correcaoDisponivel = canCorrectStock(online);
   // O preço da lista é o que o carrinho vai cobrar: promoção aplicada, com a
   // lista e o relógio da venda em curso (ver `useSearchResultPrice`).
   const priceOf = useSearchResultPrice();
@@ -321,6 +331,40 @@ export function PdvSearchPanel({
                               </p>
                             )}
                           </div>
+                          {/* Celular: botão com texto, de 36px, que o dedo acerta e
+                              que se explica sem a dica do mouse. O stopPropagation
+                              é o mesmo do lápis. */}
+                          {outOfStock && correcaoDisponivel && compact && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openStockCorrection(product);
+                              }}
+                              aria-label={`Corrigir o estoque de ${product.name} no painel administrativo`}
+                              className="h-9 shrink-0 gap-1.5 border-primary/40 px-2.5 text-xs text-primary"
+                            >
+                              <ClipboardList className="h-4 w-4" />
+                              Corrigir
+                            </Button>
+                          )}
+                          {outOfStock && correcaoDisponivel && !compact && (
+                            <Hint label="Corrigir estoque" side="left">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openStockCorrection(product);
+                                }}
+                                aria-label={`Corrigir o estoque de ${product.name} no painel administrativo`}
+                                className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
+                              >
+                                <ClipboardList className="w-4 h-4" />
+                              </button>
+                            </Hint>
+                          )}
                           {/* Atalho para corrigir o cadastro sem sair do caixa —
                               preço errado e estoque furado aparecem justamente
                               aqui, na hora de vender. O stopPropagation impede

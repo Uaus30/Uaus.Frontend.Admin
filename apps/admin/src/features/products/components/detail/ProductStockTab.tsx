@@ -12,6 +12,7 @@ import { useEntryCostCorrection } from "@/features/stock-entries/hooks/useEntryC
 import { StockEntryDetailsModal } from "@/features/stock-entries/components/StockEntryDetailsModal";
 import { SimpleStockEntryModal } from "@/features/stock-entries/components/SimpleStockEntryModal";
 import type { StockEntryPrefill } from "@/features/stock-entries/types";
+import { ProductStockCountButton } from "./ProductStockCountButton";
 
 /** Uma variação já gravada, para o seletor de qual SKU a aba está mostrando. */
 export type StockTabProductOption = {
@@ -46,6 +47,10 @@ type ProductStockTabProps = {
   entryPrefill?: StockEntryPrefill | null;
   /** Chamado com o id da entrada gravada — fecha a compra que originou o cadastro. */
   onEntrySaved?: (entryId: number) => void;
+  /** Abre o "Corrigir estoque" sozinho na montagem — o atalho do PDV (`?corrigir=1`). */
+  autoOpenStockCount?: boolean;
+  /** Avisa que a abertura automática aconteceu, para ela não se repetir. */
+  onAutoOpenedStockCount?: () => void;
 };
 
 /**
@@ -70,6 +75,8 @@ export function ProductStockTab({
   onSelectProduct,
   entryPrefill = null,
   onEntrySaved,
+  autoOpenStockCount = false,
+  onAutoOpenedStockCount,
 }: ProductStockTabProps) {
   // Conferência de estoque aberta: a entrada seria recusada. A contagem física
   // continua liberada — ela é a ferramenta da própria conferência.
@@ -204,9 +211,18 @@ export function ProductStockTab({
           )}
 
           {/*
-            A contagem física saiu daqui em 23/09/2026 (pedido do dono): ela é o
-            "Corrigir estoque" do menu da linha na listagem de produtos.
+            A contagem física saiu daqui em 23/09/2026 e VOLTOU em 20/10/2026
+            como "Corrigir estoque" (fase 3 do plano de 14/10/2026). Fica
+            liberada com a conferência aberta: é a ferramenta dela.
           */}
+          <ProductStockCountButton
+            productId={productId}
+            productName={productName}
+            barcode={barcode}
+            suppliers={stock.suppliers}
+            autoOpen={autoOpenStockCount}
+            onAutoOpened={onAutoOpenedStockCount}
+          />
           {/*
             Desabilitado até o produto chegar: abrir antes preencheria custo e
             preço com 0 — e o preço lançado passa a valer no cadastro.

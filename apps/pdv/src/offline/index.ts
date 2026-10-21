@@ -46,6 +46,7 @@ export {
   installSnapshot,
   normalizeForSearch,
   refreshLocalDatabase,
+  refreshLocalStock,
   type SnapshotInstallResult,
 } from "./snapshot";
 

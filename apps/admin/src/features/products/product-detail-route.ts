@@ -100,6 +100,23 @@ export function productStockTabPathname(productGroupId: number, productId?: numb
 }
 
 /**
+ * Parâmetro que abre o "Corrigir estoque" da aba Estoque sozinho: `?corrigir=1`.
+ *
+ * É o atalho do PDV para o produto que o caixa recusou por "sem estoque"
+ * (20/10/2026): quem clicou quer corrigir o saldo, e cair na lista de entradas
+ * obrigaria a achar o botão com o cliente esperando. Só vale junto com
+ * `?aba=estoque`.
+ */
+export const DETAIL_STOCK_COUNT_PARAM = "corrigir";
+
+/** A URL atual pede a contagem aberta (`?corrigir=1`)? Lida uma vez, como a aba. */
+export function stockCountFromUrl(): boolean {
+  if (typeof window === "undefined") return false;
+
+  return new URLSearchParams(window.location.search).get(DETAIL_STOCK_COUNT_PARAM) === "1";
+}
+
+/**
  * Variação pedida pela URL atual, ou `null`.
  *
  * Só valida o formato. Se o id não pertencer ao grupo aberto, quem descarta é a

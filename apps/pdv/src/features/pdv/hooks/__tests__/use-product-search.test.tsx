@@ -347,4 +347,21 @@ describe("useProductSearch", () => {
       expect(result.current.results).toHaveLength(2);
     });
   });
+
+  it("applyStock troca o saldo na lista sem buscar de novo — e sem mexer na ordem", async () => {
+    // Buscar de novo poderia cair no caminho do bipe e mandar o produto sozinho
+    // para o carrinho; a volta do Corrigir estoque só atualiza o que está à vista.
+    searchProducts.mockResolvedValue([COCA, { ...FANTA, stock: 0 }]);
+    const { result } = renderHook(() => useProductSearch({ online: true }));
+    await type(result.current.setQuery, "refri");
+    searchProducts.mockClear();
+
+    act(() => result.current.applyStock([{ productId: FANTA.id, stock: 9 }]));
+
+    expect(searchProducts).not.toHaveBeenCalled();
+    expect(result.current.results.map((product) => [product.id, product.stock])).toEqual([
+      [COCA.id, COCA.stock],
+      [FANTA.id, 9],
+    ]);
+  });
 });

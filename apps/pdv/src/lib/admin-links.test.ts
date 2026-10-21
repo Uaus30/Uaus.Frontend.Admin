@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { adminBaseUrl, adminHomeUrl, adminProductEditUrl, openInNewTab } from "./admin-links";
+import {
+  adminBaseUrl,
+  adminHomeUrl,
+  adminProductEditUrl,
+  adminStockCorrectionUrl,
+  openInNewTab,
+} from "./admin-links";
 
 /** Coloca o PDV num endereço específico, como se estivesse servido dali. */
 function servidoEm(href: string) {
@@ -164,5 +170,23 @@ describe("openInNewTab", () => {
     openInNewTab(null);
 
     expect(window.open).not.toHaveBeenCalled();
+  });
+});
+
+describe("adminStockCorrectionUrl", () => {
+  it("abre o produto na aba Estoque da própria variação, com a contagem aberta", () => {
+    // Sem `variacao` a aba abriria na primeira variação do grupo, e contar na
+    // errada lança sobra numa e falta noutra.
+    servidoEm("https://pdv-dev.uaus.com.br/");
+
+    expect(adminStockCorrectionUrl({ id: 986 })).toBe(
+      "https://admin-dev.uaus.com.br/produtos?editar=986&aba=estoque&variacao=986&corrigir=1",
+    );
+  });
+
+  it("sem admin alcançável, null — o atalho some em vez de abrir o próprio PDV", () => {
+    servidoEm("http://192.168.0.42:4173/");
+
+    expect(adminStockCorrectionUrl({ id: 986 })).toBeNull();
   });
 });

@@ -17,6 +17,13 @@ export interface ScanFeedback {
    * pessoa tenta de novo ou desiste, e a mensagem precisa ficar à vista.
    */
   close?: boolean;
+  /**
+   * Um botão ao lado do aviso — o "Corrigir estoque" do produto que o PDV
+   * recusou por falta de saldo (20/10/2026). No celular a câmera fica por cima de
+   * tudo, inclusive do toast que leva o mesmo botão no balcão, então o atalho
+   * precisa estar AQUI. Tocar nele fecha a câmera: a pessoa vai para outra tela.
+   */
+  action?: { label: string; onClick: () => void };
 }
 
 /**
@@ -153,7 +160,23 @@ function ScannerBody({
             ) : (
               <CircleAlert className="h-4 w-4 shrink-0" />
             )}
-            <span className="min-w-0 break-words">{feedback.message}</span>
+            <span className="min-w-0 flex-1 break-words">{feedback.message}</span>
+            {feedback.action && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-9 shrink-0 bg-background"
+                onClick={() => {
+                  const { onClick } = feedback.action!;
+                  closedRef.current = true;
+                  onClose();
+                  onClick();
+                }}
+              >
+                {feedback.action.label}
+              </Button>
+            )}
           </>
         ) : status === "error" ? (
           // Sem câmera, "aponte para o código" mandaria fazer o impossível.

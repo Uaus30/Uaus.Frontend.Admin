@@ -12,6 +12,7 @@ A referência do modo offline (IndexedDB, fila, snapshot) é `apps/pdv/docs/offl
 - `hooks/use-pdv-payment-methods.ts`: formas de pagamento em uso, mesclando a API com a cópia da base local, mais o mapa `id → nome` que os cupons de vendas antigas usam.
 - `hooks/use-pdv-counter.ts`: o balcão. Busca, entrada no carrinho, foco do leitor de código de barras, pausar e retomar venda.
 - `hooks/use-product-search.ts`: estado da busca de produtos, disparo por digitação e leitura de código de barras. Usado pelo balcão **e** pelo diálogo de baixa.
+- `hooks/use-stock-correction-return.ts`: a volta do "Corrigir estoque" — relê o saldo dos produtos anotados quando o PDV fica visível de novo (seção 10.2).
 - `hooks/use-debounced-value.ts`: o par de parâmetros de toda busca digitada do PDV (`400ms` / `3 caracteres`) e o debounce genérico.
 - `hooks/use-sale-checkout.ts`: confirmação do pagamento — validações, gravação (API ou fila), aviso e cupom. É onde o CRUD de Cupom entra (ver "Ponto de extensão" abaixo).
 - `hooks/use-sale-history-actions.ts`: cancelar, reimprimir e reabrir para edição uma venda já registrada.
@@ -26,6 +27,7 @@ A referência do modo offline (IndexedDB, fila, snapshot) é `apps/pdv/docs/offl
 - `lib/build-sale-payload.ts`: carrinho + checkout → payload da venda. Desconto separado do preço, taxa pela parcela ativa.
 - `lib/build-sale-receipt.ts`: venda gravada + carrinho → `ReceiptData`.
 - `lib/format-queue-time.ts`: data curta do painel offline.
+- `lib/stock-correction.ts` e `lib/stock-correction-action.tsx`: o atalho "Corrigir estoque" — anotação dos produtos, disponibilidade e o botão dos avisos (seção 10.2).
 
 ### Componentes
 
@@ -117,6 +119,14 @@ Por isso `useProductSearch` expõe `notFound` separado de `results`: antes da pr
 ### 10. Produto zerado vai para o fim da lista
 
 `lib/product-search.ts` ordena os dois caminhos da busca (API e base local) deixando estoque zero por último, com ordenação estável para não embaralhar a relevância que a API devolveu. Zerado não pode ser vendido nem baixado; no topo, com o teto de 20 resultados, ele empurrava para fora da tela o item que o operador consegue usar. Continua aparecendo — sumir com ele faria o operador concluir que o cadastro foi apagado.
+
+### 10.2. "Corrigir estoque": do balcão para a aba Estoque do admin (20/10/2026)
+
+Fase 3 do plano de grupo × variação (14/10/2026). Quando o caixa recusa por **"Produto sem estoque"** ou **"Estoque insuficiente"** e a mercadoria está na mão do cliente, o erro é do sistema, e o operador não tinha saída ali. O caixa nunca vende consumindo o lote de outra variação: o dono recusou isso como "gambiarra, brecha para bug" (14/10/2026). A saída é o atalho **Corrigir estoque**, que abre o produto no admin, em nova aba, na aba Estoque da própria variação e com a contagem já aberta (`adminStockCorrectionUrl`, em `src/lib/admin-links.ts`).
+
+- **Onde aparece:** na linha "Sem estoque" da busca (ícone com a dica "Corrigir estoque" no balcão; botão com o texto "Corrigir" no celular, onde o toque não mostra dica), no aviso vermelho do bipe e do "+" do carrinho (`lib/stock-correction-action.tsx`) e no aviso da câmera do celular, que cobre o toast (`ScanFeedback.action`, em `packages/ui`). No celular o atalho aparece a pedido do dono (20/10/2026), mesmo abrindo o navegador por cima do app — o lápis de editar continua escondido lá.
+- **Quando não aparece:** sem internet ou sem saber onde o admin está (`canCorrectStock`). O admin não abriria, e a sobra da contagem vira lote com custo no servidor.
+- **A volta:** o atalho anota o produto (`lib/stock-correction.ts`, por 30 minutos). Quando o PDV volta a ficar visível (`visibilitychange` ou `focus`), `hooks/use-stock-correction-return.ts` relê o saldo pela busca do balcão e o põe na linha do carrinho (`refreshAvailableStock`, menos na reedição de venda), na base local (`refreshLocalStock`, descontando os débitos da fila que o servidor ainda não conhece) e na lista da busca (`applyStock`, sem buscar de novo — rebuscar poderia cair no caminho do bipe e pôr o produto sozinho no carrinho). Produto que voltou com saldo sai da anotação e ganha o aviso "Estoque atualizado"; o que segue zerado fica para a próxima volta.
 
 ### 10.1. A foto amplia na busca e no carrinho, pelo mesmo componente
 

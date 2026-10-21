@@ -3,7 +3,7 @@ import { normalizeForSearch } from "./catalog";
 import { toLocalCoupon, writeLocalCoupons } from "./coupons";
 import { toLocalPromotion, writeLocalPromotions } from "./promotions";
 import { CATALOG_STORES, META_KEY, STORE, openLocalDatabase } from "./database";
-import { clearAll, putAll, remove } from "./idb";
+import { clearAll, putAll, remove, updateMany } from "./idb";
 import { writeMeta } from "./meta";
 import { invalidateProductsCache } from "./catalog";
 import { listPendingSales } from "./pending-sales";
@@ -237,4 +237,38 @@ export async function clearLocalCatalog(): Promise<void> {
   await remove(db, STORE.meta, META_KEY.snapshotDownloadedAt);
   await remove(db, STORE.meta, META_KEY.snapshotGeneratedAt);
   await remove(db, STORE.meta, META_KEY.snapshotSchemaVersion);
+}
+
+/**
+ * Põe na base local o saldo que o servidor tem AGORA de alguns produtos — a
+ * volta do "Corrigir estoque" do admin (20/10/2026).
+ *
+ * Sem isto, o produto corrigido continuaria zerado na base local até o próximo
+ * snapshot (a abertura do caixa), e uma queda de internet no meio do dia voltaria
+ * a recusá-lo com a prateleira cheia.
+ *
+ * O saldo do servidor NÃO é aceito como veio, pelo mesmo motivo do snapshot: ele
+ * ainda não conhece os débitos da fila pendente, que são descontados aqui
+ * ({@link collectPendingStockDebits}). Produto fora da base local fica de fora —
+ * quem o põe lá é o snapshot.
+ *
+ * @param fresh Produtos e o saldo lido do servidor.
+ */
+export async function refreshLocalStock(fresh: Array<{ productId: number; stock: number }>): Promise<void> {
+  if (fresh.length === 0) return;
+
+  const [sales, writeOffs] = await Promise.all([listPendingSales(), listPendingWriteOffs()]);
+  const debitById = new Map(
+    collectPendingStockDebits(sales, writeOffs).map((debit) => [debit.productId, debit.quantity]),
+  );
+  const stockById = new Map(fresh.map((item) => [item.productId, item.stock]));
+
+  const db = await openLocalDatabase();
+  await updateMany<LocalProduct>(db, STORE.products, [...stockById.keys()], (current, key) => {
+    if (!current) return null;
+    const stock = stockById.get(key as number);
+    if (stock === undefined) return null;
+    return { ...current, stock: Math.max(0, stock - (debitById.get(key as number) ?? 0)) };
+  });
+  invalidateProductsCache();
 }

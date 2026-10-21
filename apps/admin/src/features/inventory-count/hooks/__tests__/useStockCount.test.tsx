@@ -61,7 +61,7 @@ describe("useStockCount — o saldo que a modal mostrou", () => {
     );
     const { result } = renderHook(() => useStockCount(20, 10), { wrapper });
 
-    act(() => result.current.updateForm({ counted: "7" }));
+    act(() => result.current.updateForm({ counted: "7", notes: "quebrou" }));
     act(() => result.current.submit());
 
     await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
@@ -83,7 +83,7 @@ describe("useStockCount — a sobra que reativa o produto", () => {
     const cancelar = subscribeToReactivations(ouvinte);
     const { result } = renderHook(() => useStockCount(20, 10), { wrapper: createWrapper() });
 
-    act(() => result.current.updateForm({ counted: "11" }));
+    act(() => result.current.updateForm({ counted: "11", notes: "caixa no depósito" }));
     act(() => result.current.submit());
 
     await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
@@ -137,11 +137,50 @@ describe("useStockCount — a sobra que reativa o produto", () => {
     const cancelar = subscribeToReactivations(ouvinte);
     const { result } = renderHook(() => useStockCount(20, 10), { wrapper: createWrapper() });
 
-    act(() => result.current.updateForm({ counted: "11" }));
+    act(() => result.current.updateForm({ counted: "11", notes: "caixa no depósito" }));
     act(() => result.current.submit());
 
     await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
     cancelar();
     expect(ouvinte).not.toHaveBeenCalled();
+  });
+});
+
+describe("useStockCount — a justificativa (14/10/2026)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("com sobra ou falta, não registra sem justificativa — e espaço em branco não conta", () => {
+    const { result } = renderHook(() => useStockCount(20, 10), { wrapper: createWrapper() });
+
+    act(() => result.current.updateForm({ counted: "7", notes: "   " }));
+
+    expect(result.current.notesRequired).toBe(true);
+    expect(result.current.canSubmit).toBe(false);
+    act(() => result.current.submit());
+    expect(mocks.registerStockCount).not.toHaveBeenCalled();
+  });
+
+  it("manda a justificativa digitada, sem os espaços das pontas", async () => {
+    mocks.registerStockCount.mockResolvedValue(resultado({ countedStock: 7, difference: -3 }));
+    const { result } = renderHook(() => useStockCount(20, 10), { wrapper: createWrapper() });
+
+    act(() => result.current.updateForm({ counted: "7", notes: "  quebrou na prateleira " }));
+    expect(result.current.canSubmit).toBe(true);
+    act(() => result.current.submit());
+
+    await waitFor(() => expect(mocks.registerStockCount).toHaveBeenCalled());
+    expect(mocks.registerStockCount).toHaveBeenCalledWith(
+      20,
+      expect.objectContaining({ countedQuantity: 7, notes: "quebrou na prateleira" }),
+    );
+  });
+
+  it("contagem igual ao sistema não pede justificativa: nada vai ser gravado", () => {
+    const { result } = renderHook(() => useStockCount(20, 10), { wrapper: createWrapper() });
+
+    act(() => result.current.updateForm({ counted: "10" }));
+
+    expect(result.current.notesRequired).toBe(false);
+    expect(result.current.canSubmit).toBe(true);
   });
 });

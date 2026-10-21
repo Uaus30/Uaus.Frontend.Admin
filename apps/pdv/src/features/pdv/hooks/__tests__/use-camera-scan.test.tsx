@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError, type ProductPdvSearchDto } from "@workspace/api-client-react";
 
 /**
@@ -105,5 +105,51 @@ describe("useCameraScan", () => {
 
     expect(feedback.tone).toBe("error");
     expect(feedback.message).toContain("Termo inválido.");
+  });
+});
+
+describe("useCameraScan — o Corrigir estoque no aviso da câmera (20/10/2026)", () => {
+  beforeEach(() => {
+    mocks.searchProducts.mockReset();
+    vi.stubEnv("VITE_ADMIN_URL", "https://admin-dev.uaus.com.br");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("produto recusado por falta de saldo leva o botão, que abre o admin na aba Estoque", async () => {
+    // No celular a câmera fica por cima do toast que leva o mesmo botão.
+    mocks.searchProducts.mockResolvedValue([{ ...CANECA, stock: 0 }]);
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const { read } = scan(vi.fn(() => false));
+
+    const feedback = await read("7891234567895");
+
+    expect(feedback.action?.label).toBe("Corrigir estoque");
+    feedback.action?.onClick();
+    expect(open).toHaveBeenCalledWith(
+      "https://admin-dev.uaus.com.br/produtos?editar=7&aba=estoque&variacao=7&corrigir=1",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
+  it("sem internet, o aviso sai sem o botão", async () => {
+    mocks.searchProducts.mockResolvedValue([{ ...CANECA, stock: 0 }]);
+    const { read } = scan(
+      vi.fn(() => false),
+      false,
+    );
+
+    expect((await read("7891234567895")).action).toBeUndefined();
+  });
+
+  it("produto que entrou não leva botão nenhum", async () => {
+    mocks.searchProducts.mockResolvedValue([CANECA]);
+    const { read } = scan();
+
+    expect((await read("7891234567895")).action).toBeUndefined();
   });
 });

@@ -22,6 +22,9 @@ import type { SupplierDto } from "@workspace/api-client-react";
 
 import type { useStockCount } from "../hooks/useStockCount";
 
+/** O mesmo teto do servidor (`RegisterStockCountRequest.NotesMaxLength`). */
+const STOCK_COUNT_NOTES_MAX_LENGTH = 300;
+
 type StockCountModalProps = {
   count: ReturnType<typeof useStockCount>;
   /** Nome composto da variação — a contagem é do SKU, não do grupo. */
@@ -58,6 +61,10 @@ type StockCountModalProps = {
  *
  * As cores são o vocabulário do repositório: verde = confere, âmbar = falta
  * (atenção), azul-primário = sobra. Nunca sozinhas — sempre com ícone e texto.
+ *
+ * A **justificativa** é obrigatória quando há sobra ou falta (14/10/2026): o
+ * rótulo ganha o asterisco e o Registrar trava até ela ser escrita — ver
+ * `useStockCount`.
  */
 export function StockCountModal({
   count,
@@ -81,7 +88,7 @@ export function StockCountModal({
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (ready && count.countedIsValid && !count.isSaving) count.submit();
+    if (ready && count.canSubmit && !count.isSaving) count.submit();
   }
 
   return (
@@ -183,14 +190,21 @@ export function StockCountModal({
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="contagem-observacao">Observação</Label>
+            <Label htmlFor="contagem-justificativa">
+              Justificativa{count.notesRequired && <span className="text-destructive"> *</span>}
+            </Label>
             <Textarea
-              id="contagem-observacao"
+              id="contagem-justificativa"
               rows={2}
+              maxLength={STOCK_COUNT_NOTES_MAX_LENGTH}
+              required={count.notesRequired}
               placeholder="Ex.: caixa esquecida no depósito"
               value={count.form.notes}
               onChange={(event) => count.updateForm({ notes: event.target.value })}
             />
+            <p className="text-xs text-muted-foreground">
+              Obrigatória quando há sobra ou falta: fica registrada na entrada ou na baixa.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -199,7 +213,7 @@ export function StockCountModal({
             </Button>
             <Button
               type="submit"
-              disabled={!ready || !count.countedIsValid || count.isSaving}
+              disabled={!ready || !count.canSubmit || count.isSaving}
               className="hover-elevate gap-2"
             >
               {count.isSaving && <Spinner className="h-4 w-4" />}

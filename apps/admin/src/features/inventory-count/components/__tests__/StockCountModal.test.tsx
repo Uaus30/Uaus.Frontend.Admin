@@ -3,16 +3,21 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { StockCountModal } from "../StockCountModal";
 
 /** O `useStockCount` aberto, com o que a modal lê. */
-function contagem(counted = "") {
+function contagem(counted = "", extras: { difference?: number | null; notes?: string } = {}) {
+  const difference = extras.difference ?? null;
+  const notes = extras.notes ?? "";
+  const notesRequired = difference !== null && difference !== 0;
   return {
     open: true,
     setOpen: vi.fn(),
-    form: { counted, supplierId: "", unitCost: "", notes: "" },
+    form: { counted, supplierId: "", unitCost: "", notes },
     updateForm: vi.fn(),
     openCount: vi.fn(),
     counted: counted === "" ? null : Number(counted),
     countedIsValid: counted !== "",
-    difference: null,
+    difference,
+    notesRequired,
+    canSubmit: counted !== "" && (!notesRequired || notes.trim() !== ""),
     isSaving: false,
     submit: vi.fn(),
   };
@@ -23,10 +28,16 @@ function campoDaContagem() {
   return document.getElementById("contagem-fisica") as HTMLInputElement;
 }
 
-function renderModal(props: { ready?: boolean; counted?: string; header?: React.ReactNode }) {
+function renderModal(props: {
+  ready?: boolean;
+  counted?: string;
+  header?: React.ReactNode;
+  difference?: number | null;
+  notes?: string;
+}) {
   render(
     <StockCountModal
-      count={contagem(props.counted)}
+      count={contagem(props.counted, { difference: props.difference, notes: props.notes })}
       productName="COPO"
       barcode={null}
       currentStock={null}
@@ -57,5 +68,33 @@ describe("StockCountModal — contagem aberta pela listagem", () => {
     expect((screen.getByRole("button", { name: /registrar contagem/i }) as HTMLButtonElement).disabled).toBe(
       false,
     );
+  });
+});
+
+describe("StockCountModal — a justificativa (14/10/2026)", () => {
+  afterEach(cleanup);
+
+  function registrar() {
+    return screen.getByRole("button", { name: /registrar contagem/i }) as HTMLButtonElement;
+  }
+
+  it("com falta e sem justificativa, o Registrar trava e o rótulo marca o obrigatório", () => {
+    renderModal({ counted: "7", difference: -3 });
+
+    expect(registrar().disabled).toBe(true);
+    expect(screen.getByLabelText(/justificativa/i)).toHaveProperty("required", true);
+  });
+
+  it("com a justificativa escrita, libera", () => {
+    renderModal({ counted: "7", difference: -3, notes: "quebrou" });
+
+    expect(registrar().disabled).toBe(false);
+  });
+
+  it("contagem igual ao sistema não exige justificativa", () => {
+    renderModal({ counted: "10", difference: 0 });
+
+    expect(registrar().disabled).toBe(false);
+    expect(screen.getByLabelText(/justificativa/i)).toHaveProperty("required", false);
   });
 });

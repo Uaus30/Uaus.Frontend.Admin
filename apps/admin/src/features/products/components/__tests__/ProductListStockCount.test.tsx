@@ -17,6 +17,8 @@ function estado(extras: Partial<State> = {}): State {
       counted: null,
       countedIsValid: false,
       difference: null,
+      notesRequired: false,
+      canSubmit: false,
       isSaving: false,
       submit: vi.fn(),
     },

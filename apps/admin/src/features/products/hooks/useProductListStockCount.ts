@@ -6,12 +6,6 @@ import { useAllSuppliers } from "@/hooks/use-catalog";
 import { useStockCount } from "@/features/inventory-count/hooks/useStockCount";
 import type { ProductTableRow } from "../types";
 
-/**
- * Observação gravada no documento quando a pessoa não escreve nenhuma. É o que
- * diz, meses depois, de onde veio a entrada ou a baixa.
- */
-export const LIST_STOCK_COUNT_NOTE = "Contagem de estoque pela listagem de produtos.";
-
 /** A linha tem um SKU que dá para contar? Grupo recém-criado, sem produto, não tem. */
 export function canCountStock(row: ProductTableRow): boolean {
   return row.variations.length > 0 || row.id > 0;
@@ -64,7 +58,7 @@ export function useProductListStockCount() {
   const product = fresh ? productQuery.data : undefined;
 
   const currentStock = productId !== null && product ? product.stock : null;
-  const count = useStockCount(productId, currentStock, { defaultNotes: LIST_STOCK_COUNT_NOTE });
+  const count = useStockCount(productId, currentStock);
 
   // Só com a modal aberta: a listagem abre com UMA requisição (README, seção 0),
   // e o catálogo de fornecedores só serve à sobra de quem está contando.
@@ -105,7 +99,7 @@ export function useProductListStockCount() {
 
     /**
      * Troca de variação apaga o que foi digitado para a outra: o número contado,
-     * e o fornecedor e o custo da sobra, que são de outro lote. A observação fica.
+     * e o fornecedor e o custo da sobra, que são de outro lote. A justificativa fica.
      */
     pickVariation(variationId: number) {
       setPickedVariationId(variationId);

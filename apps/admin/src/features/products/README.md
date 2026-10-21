@@ -467,8 +467,13 @@ fiados entre `pages/products.tsx` e dois hooks:
 - O item **Estoque** do menu da listagem, que abria o detalhe já nesta aba,
   saiu em 23/09/2026 (pedido do dono). A aba continua abrindo direto pelo link
   do recebimento de compra (`?aba=estoque`).
-- A **contagem física** também saiu daqui em 23/09/2026: é o "Corrigir estoque"
-  do menu da linha na listagem (seção 7).
+- A **contagem física** saiu daqui em 23/09/2026 e **voltou em 20/10/2026** como
+  o botão **Corrigir estoque**, ao lado de "Registrar Entrada"
+  (`components/detail/ProductStockCountButton.tsx`, fase 3 do plano de grupo ×
+  variação). É a mesma contagem do menu da linha (seção 7), na variação que a
+  aba está mostrando, e relê o saldo a cada abertura. O atalho do PDV para o
+  produto sem estoque chega aqui com `?aba=estoque&variacao=<id>&corrigir=1` e
+  abre a contagem sozinho, uma vez, e só se a variação pedida for do grupo.
 - Lista as **notas** que trouxeram o produto (`GET /PurchaseEntries?productId=`),
   da mais recente para a mais antiga. A ordenação é do backend (data de entrada
   decrescente e, no empate, id decrescente) — a tela não reordena nada.
@@ -865,8 +870,9 @@ Regras que valem a pena conhecer antes de mexer:
 
 Pedido do dono para a **correção pontual**: o item "Corrigir estoque" do menu da
 linha (três pontos e clique direito) abre a contagem física sem abrir o
-cadastro. Chamou-se "Contagem de estoque" até o mesmo dia, e é desde então o
-ÚNICO lugar da contagem — o botão "Contagem Física" da aba Estoque saiu. Usa o
+cadastro. Chamou-se "Contagem de estoque" até o mesmo dia, e foi o único lugar
+da contagem até 20/10/2026, quando o "Corrigir estoque" voltou também à aba
+Estoque do detalhe (ver a aba Estoque, acima). Usa o
 endpoint `POST /InventoryCounts/products/{id}/stock-count`, o `useStockCount` e
 a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
 
@@ -888,12 +894,13 @@ a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
   Leitura que falha mostra o motivo e "Tentar de novo". A lista de variações
   mostra só o nome, para a modal não exibir dois saldos do mesmo SKU.
 - **Trocar de variação apaga o número contado, o fornecedor e o custo** — são
-  de outro lote. A observação fica.
+  de outro lote. A justificativa fica.
 - **A listagem continua abrindo com uma requisição** (seção 0): os fornecedores,
   que só servem à sobra, são pedidos quando a modal abre.
-- **A observação em branco diz de onde veio**: "Contagem de estoque pela
-  listagem de produtos." Sem ela, o servidor grava "da conferência de
-  produtos".
+- **A justificativa é obrigatória com sobra ou falta** (20/10/2026, plano de
+  14/10/2026): o Registrar trava sem ela, e o servidor recusa do mesmo jeito.
+  Contagem igual ao sistema não grava nada e não a pede. O texto automático de
+  antes ("Contagem de estoque pela listagem de produtos.") saiu.
 - O menu não tem mais o item **Estoque** (23/09/2026): a entrada é pela aba
   Estoque do detalhe.
 - Grupo sem produto nenhum (linha com id 0) não oferece o item: não há SKU.

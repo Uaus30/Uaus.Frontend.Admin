@@ -14,6 +14,7 @@ import {
   useAllTags,
 } from "@/hooks/use-catalog";
 import {
+  DETAIL_STOCK_COUNT_PARAM,
   DETAIL_STOCK_PRODUCT_PARAM,
   DETAIL_TAB_PARAM,
   productDetailPathname,
@@ -105,6 +106,8 @@ function urlSemParametrosDeAbertura(): URL {
   // depois de a pessoa ter trocado de aba a devolveria para a de Estoque.
   url.searchParams.delete(DETAIL_TAB_PARAM);
   url.searchParams.delete(DETAIL_STOCK_PRODUCT_PARAM);
+  // Idem para a contagem: um F5 reabriria a modal de quem já corrigiu.
+  url.searchParams.delete(DETAIL_STOCK_COUNT_PARAM);
   return url;
 }
 

@@ -3,6 +3,7 @@ import type { ProductPdvSearchDto } from "@workspace/api-client-react";
 import { describeApiError } from "@workspace/core";
 import type { ScanFeedback } from "@workspace/ui";
 import { searchProducts } from "@/lib/product-search";
+import { canCorrectStock, openStockCorrection } from "../lib/stock-correction";
 
 export interface UseCameraScanParams {
   /** A API está respondendo. Decide a busca: servidor ou base local. */
@@ -25,6 +26,9 @@ export interface UseCameraScanParams {
  * prateleira; aqui se passam os itens da compra, um atrás do outro, como no
  * balcão. Para a mesma unidade duas vezes, afasta-se o produto e aproxima-se de
  * novo (o filtro de repetição do leitor espera 2,5 s), ou soma-se no carrinho.
+ *
+ * A recusa por falta de saldo leva o botão **Corrigir estoque** no próprio
+ * aviso (20/10/2026): a câmera cobre o toast que o leva no balcão.
  *
  * @returns A função que recebe cada código e responde o aviso.
  */
@@ -61,6 +65,13 @@ export function useCameraScan({ online, addProductToCart }: UseCameraScanParams)
             product.stock <= 0
               ? `${product.name}: sem estoque.`
               : `${product.name}: só há ${product.stock} no estoque.`,
+          action: canCorrectStock(online)
+            ? {
+                label: "Corrigir estoque",
+                onClick: () =>
+                  openStockCorrection({ id: product.id, name: product.name, barcode: product.barcode }),
+              }
+            : undefined,
         };
       }
 

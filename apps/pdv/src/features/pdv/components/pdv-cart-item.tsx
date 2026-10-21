@@ -4,6 +4,8 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button, Input, useToast } from "@workspace/ui";
 import { computeDiscount, formatCurrency, parseAmount, round2 } from "@workspace/core";
 import { itemListPrice, usePdvStore } from "@/stores/use-pdv-store";
+import { useOfflineStore } from "@/stores/use-offline-store";
+import { stockCorrectionToastAction } from "../lib/stock-correction-action";
 import { scrollIntoViewVertically } from "@/lib/scroll-into-view";
 import { PdvCartItemImage } from "./pdv-cart-item-image";
 import { PdvCartItemPromotionChip } from "./pdv-cart-item-promotion";
@@ -75,6 +77,8 @@ export function PdvCartItem({ item, promotion, compact = false }: PdvCartItemPro
   const updateQuantity = usePdvStore((state) => state.updateQuantity);
   const applyItemDiscount = usePdvStore((state) => state.applyItemDiscount);
   const applyItemSurcharge = usePdvStore((state) => state.applyItemSurcharge);
+  // Para o "Corrigir estoque" do aviso do "+": sem internet o atalho não abre.
+  const online = useOfflineStore((state) => state.online);
 
   /**
    * Acréscimo calculado a partir do preço digitado, à espera do motivo. `null`
@@ -343,6 +347,10 @@ export function PdvCartItem({ item, promotion, compact = false }: PdvCartItemPro
                       title: "Estoque insuficiente",
                       description: `Só há ${item.availableStock} unidade(s) de ${item.name}.`,
                       variant: "destructive",
+                      action: stockCorrectionToastAction(
+                        { id: item.productId, name: item.name, barcode: item.barcode },
+                        online,
+                      ),
                     });
                     return;
                   }
