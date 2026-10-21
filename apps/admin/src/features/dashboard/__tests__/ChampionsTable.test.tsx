@@ -86,6 +86,14 @@ describe("ChampionsTable — produto julgado pelo total", () => {
     expect(screen.queryByText("SACOLA [FLORES]")).toBeNull();
   });
 
+  it("produto controlado por variação avisa o tamanho zerado, mesmo com o total ok", () => {
+    // Decisão do dono (21/10/2026): a linha somava os tamanhos e dizia "ok" com o P zerado.
+    renderTable([{ ...sacola, name: "CUECA BOXER", outOfStockVariations: ["P"] }]);
+
+    // A célula aparece duas vezes: embaixo do nome no celular e na coluna no desktop.
+    expect(screen.getAllByText("P zerado").length).toBeGreaterThan(0);
+  });
+
   it("o produto comum não ganha o botão", () => {
     renderTable([pote]);
 

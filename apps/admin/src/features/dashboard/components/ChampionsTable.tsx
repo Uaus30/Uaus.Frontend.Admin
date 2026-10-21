@@ -5,7 +5,7 @@ import { Button, Skeleton, cn } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
 import type { useChampions } from "../hooks/useChampions";
 import type { DashboardChampion } from "../types";
-import { rankChange, stockLabel } from "../breakdowns";
+import { outOfStockVariationsLabel, rankChange, stockLabel } from "../breakdowns";
 import { ChartCard, ChartEmptyState } from "./chart-primitives";
 import { ChampionVariationsRow } from "./ChampionVariationsRow";
 
@@ -59,6 +59,8 @@ function RankCell({ champion }: { champion: DashboardChampion }) {
  */
 function StockCell({ champion }: { champion: DashboardChampion }) {
   const label = stockLabel(champion);
+  // Produto controlado por variação: a soma diria "ok" com um tamanho em falta.
+  const zeradas = outOfStockVariationsLabel(champion.outOfStockVariations);
   const tone =
     champion.stockAlert === "out" || champion.stockAlert === "critical"
       ? "bg-destructive/15 text-destructive font-medium"
@@ -73,6 +75,14 @@ function StockCell({ champion }: { champion: DashboardChampion }) {
       >
         {label}
       </span>
+      {zeradas && (
+        <span
+          className="text-[10px] font-medium text-destructive"
+          title={`Variações à venda sem estoque: ${champion.outOfStockVariations?.join(", ")}`}
+        >
+          {zeradas}
+        </span>
+      )}
       {champion.hasOpenPurchase && (
         <span
           className="inline-flex items-center gap-1 text-[10px] text-sky-400"

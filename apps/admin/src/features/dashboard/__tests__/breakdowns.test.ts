@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { buildDepartmentRows, formatCover, rankChange, stockLabel } from "../breakdowns";
+import {
+  buildDepartmentRows,
+  formatCover,
+  outOfStockVariationsLabel,
+  rankChange,
+  stockLabel,
+} from "../breakdowns";
 import type { DashboardBreakdown } from "../types";
 
 function slice(id: number, revenue: number, extra: Partial<DashboardBreakdown> = {}): DashboardBreakdown {
@@ -90,5 +96,14 @@ describe("estoque dos campeões", () => {
     expect(stockLabel({ stock: 0, daysOfCover: 0, stockAlert: "out" })).toBe("Esgotado");
     expect(stockLabel({ stock: 0, stockAlert: "untracked" })).toBe("sem controle");
     expect(stockLabel({ stock: 12, stockAlert: "ok" })).toBe("12 un");
+  });
+
+  it("a variação zerada do produto controlado por variação vira um aviso curto", () => {
+    expect(outOfStockVariationsLabel(undefined)).toBeNull();
+    expect(outOfStockVariationsLabel([])).toBeNull();
+    expect(outOfStockVariationsLabel(["P"])).toBe("P zerado");
+    expect(outOfStockVariationsLabel(["P", "M"])).toBe("P e M zerados");
+    expect(outOfStockVariationsLabel(["P", "M", "G"])).toBe("P, M e G zerados");
+    expect(outOfStockVariationsLabel(["P", "M", "G", "GG"])).toBe("4 variações zeradas");
   });
 });

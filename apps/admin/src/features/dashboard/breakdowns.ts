@@ -101,6 +101,18 @@ export function formatCover(days: number): string {
   return `+${Math.floor(days / 30)} meses`;
 }
 
+/**
+ * O aviso da variação zerada num produto controlado por variação: "P zerado",
+ * "P e M zerados", "P, M e G zerados"; com mais de três, só a contagem, para a
+ * célula do estoque não virar parágrafo. `null` sem nenhuma.
+ */
+export function outOfStockVariationsLabel(names: string[] | undefined): string | null {
+  if (!names || names.length === 0) return null;
+  if (names.length === 1) return `${names[0]} zerado`;
+  if (names.length > 3) return `${names.length} variações zeradas`;
+  return `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]} zerados`;
+}
+
 /** Texto do estoque de um campeão, na leitura da sua faixa. */
 export function stockLabel(
   champion: Pick<DashboardChampion, "stock" | "daysOfCover" | "stockAlert">,

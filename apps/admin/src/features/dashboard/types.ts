@@ -336,6 +336,13 @@ export type DashboardChampion = {
   hasOpenPurchase: boolean;
   stockAlert: ChampionStockAlert;
   /**
+   * Só no produto com "Controlar estoque por variação" ligado: as variações à
+   * venda zeradas, pelo valor das grades ("P"). A linha soma os tamanhos e diria
+   * "ok" com um deles em falta (decisão do dono, 21/10/2026). Omitido pela API
+   * anterior.
+   */
+  outOfStockVariations?: string[];
+  /**
    * A linha é o produto com variações INTEIRO (15/10/2026): venda, lucro e
    * saldo somados, porque o controle de estoque dele é pelo total.
    */
