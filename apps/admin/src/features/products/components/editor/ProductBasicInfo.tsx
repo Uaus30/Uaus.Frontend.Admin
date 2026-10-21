@@ -73,6 +73,9 @@ export function ProductBasicInfo({
               lookupBarcode(value);
             }}
             inputMode="numeric"
+            // Código com venda não se troca (fase 4): a API recusa do mesmo jeito.
+            readOnly={productEditor.hasSales === true}
+            title={productEditor.hasSales ? "Código com venda não se troca." : undefined}
             aria-invalid={barcodeInput.kind === "invalid"}
             className={`bg-background flex-1 font-mono transition-all duration-300 ${flashSuccess ? "animate-border-flash" : ""} ${
               barcodeInput.kind === "invalid"
@@ -83,6 +86,11 @@ export function ProductBasicInfo({
           />
         </div>
         {barcodeInput.error && <p className="text-xs font-medium text-red-500">{barcodeInput.error}</p>}
+        {productEditor.hasSales && (
+          <p className="text-xs text-muted-foreground">
+            Este código já tem vendas e não se troca. Para um código novo, cadastre a variação com ele.
+          </p>
+        )}
         {barcodeInput.kind === "internal" && (
           // Dizer o número que será gravado evita a surpresa de salvar "20" e
           // encontrar "2000000000206" no cadastro depois.

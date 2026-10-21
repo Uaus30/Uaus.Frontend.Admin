@@ -22,6 +22,7 @@ import { announceReactivatedProducts } from "@/lib/product-reactivation";
 import { planTripNotice } from "@/lib/stock-control";
 import { productStockTabPathname } from "@/features/products/product-detail-route";
 import { productFromPurchasePath } from "../purchases-route";
+import { conferencia, isNewBrandRow, purchaseItemIdOf } from "../lib/new-brand";
 import type { PurchaseFormItem, ReceiveForm } from "../types";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
 import { usePurchaseFromUrl } from "./usePurchaseFromUrl";
@@ -79,9 +80,26 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
     invoiceNumber: purchase?.invoiceNumber ?? "",
     notes: "",
     price: purchase?.suggestedPrice ?? 0,
-    // A grade vem com o que foi PEDIDO; conferir é ajustar o que veio.
-    items: (purchase?.items ?? []).flatMap((item) =>
-      item.productId == null
+    // A grade vem com o que foi PEDIDO; conferir é ajustar o que veio. A marca
+    // nova (fase 4) vem com o código que a compra já sabia, se sabia — o
+    // recebimento o exige, bipado ou gerado.
+    items: (purchase?.items ?? []).flatMap((item) => {
+      if (item.productId == null && item.newBrand)
+        return [
+          {
+            productId: -item.id,
+            name: item.newBrand,
+            barcode: null,
+            stock: 0,
+            quantity: item.quantity,
+            grossTotal: item.grossTotal,
+            finalTotal: item.finalTotal,
+            newBrand: item.newBrand,
+            newBarcode: item.newBarcode ?? "",
+            generateBarcode: false,
+          },
+        ];
+      return item.productId == null
         ? []
         : [
             {
@@ -93,9 +111,10 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
               grossTotal: item.grossTotal,
               finalTotal: item.finalTotal,
             },
-          ],
-    ),
+          ];
+    }),
     finalTotal: purchase?.finalTotal ?? 0,
+    currentBrand: "",
   };
 }
 
@@ -220,19 +239,32 @@ export function usePurchases() {
         invoiceNumber: payload.invoiceNumber || null,
         notes: payload.notes || null,
         price: payload.price > 0 ? payload.price : null,
-        // Grade só quando a compra tem mais de uma variação: com uma só não há
-        // conferência a fazer, e mandar a lista seria ruído no corpo.
-        items:
-          payload.items.length > 1
-            ? payload.items
-                .filter((item) => item.quantity > 0)
-                .map((item) => ({
-                  productId: item.productId,
-                  quantity: item.quantity,
-                  finalTotal: item.finalTotal,
-                }))
-            : undefined,
-        finalTotal: payload.items.length > 1 ? payload.finalTotal : undefined,
+        // Grade só quando a compra tem mais de uma variação (ou marca nova): com
+        // uma só não há conferência a fazer, e mandar a lista seria ruído no corpo.
+        // A marca nova vai SEMPRE, inclusive com zero: o servidor exige saber de
+        // cada uma se veio (fase 4).
+        items: conferencia(payload.items)
+          ? payload.items
+              .filter((item) => item.quantity > 0 || isNewBrandRow(item))
+              .map((item) =>
+                isNewBrandRow(item)
+                  ? {
+                      productId: null,
+                      purchaseItemId: purchaseItemIdOf(item),
+                      quantity: item.quantity,
+                      finalTotal: item.quantity > 0 ? item.finalTotal : 0,
+                      barcode: item.generateBarcode ? null : item.newBarcode?.trim() || null,
+                      generateBarcode: item.generateBarcode ?? false,
+                    }
+                  : {
+                      productId: item.productId,
+                      quantity: item.quantity,
+                      finalTotal: item.finalTotal,
+                    },
+              )
+          : undefined,
+        finalTotal: conferencia(payload.items) ? payload.finalTotal : undefined,
+        currentBrand: payload.currentBrand.trim() || null,
       }),
     onSuccess: async (purchase) => {
       await invalidate();
@@ -318,6 +350,18 @@ export function usePurchases() {
    * Só a quantidade e a fatia mudam aqui; o total pago é campo à parte, porque
    * mexer no que chegou não deve mexer no que saiu do bolso por efeito colateral.
    */
+  /** Linha de marca nova no recebimento: o código bipado ou o "Gerar código". */
+  function updateReceiveBrand(
+    productId: number,
+    campo: "newBarcode" | "generateBarcode",
+    valor: string | boolean,
+  ) {
+    setReceiveForm((current) => ({
+      ...current,
+      items: current.items.map((item) => (item.productId === productId ? { ...item, [campo]: valor } : item)),
+    }));
+  }
+
   function updateReceiveItem(productId: number, campo: "quantity" | "finalTotal", valor: number) {
     setReceiveForm((current) => ({
       ...current,
@@ -383,6 +427,7 @@ export function usePurchases() {
     receiveForm,
     updateReceiveForm,
     updateReceiveItem,
+    updateReceiveBrand,
     addReceiveItem,
     startReceive,
     cancelReceive: () => setReceiving(null),

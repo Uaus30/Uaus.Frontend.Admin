@@ -1,9 +1,10 @@
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check, Wand2 } from "lucide-react";
 import { Button, Input } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatQuantity } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { ProductSearchPicker, type ProductSearchOption } from "@/components/product-search-picker";
+import { isNewBrandRow } from "../lib/new-brand";
 import type { PurchaseFormItem } from "../types";
 
 type PurchaseReceiveGridProps = {
@@ -11,6 +12,12 @@ type PurchaseReceiveGridProps = {
   /** O total pago segundo a compra — ou o novo, se o operador já confirmou um. */
   finalTotal: number;
   onItemChange: (productId: number, campo: "quantity" | "finalTotal", valor: number) => void;
+  /** Marca nova: o código bipado ou o "Gerar código". */
+  onBrandChange?: (
+    productId: number,
+    campo: "newBarcode" | "generateBarcode",
+    valor: string | boolean,
+  ) => void;
   onAddVariation: (item: PurchaseFormItem) => void;
   onUseSum: (soma: number) => void;
 };
@@ -32,11 +39,18 @@ type PurchaseReceiveGridProps = {
  *
  * Quando o valor mudou de verdade (faltou item e o fornecedor abateu), o botão
  * "Usar a soma" confirma o total novo — explicitamente, que é o ponto.
+ *
+ * **Marca nova** (fase 4): a linha pede o código — bipar o da embalagem (se já
+ * for de uma variação deste produto, a recompra cai nela; de outro produto, o
+ * servidor recusa dizendo qual) ou "Gerar código", só para peça sem código, e
+ * quem gera etiqueta as unidades. Zero na quantidade é "não veio", e a marca
+ * não é cadastrada.
  */
 export function PurchaseReceiveGrid({
   items,
   finalTotal,
   onItemChange,
+  onBrandChange,
   onAddVariation,
   onUseSum,
 }: PurchaseReceiveGridProps) {
@@ -75,8 +89,58 @@ export function PurchaseReceiveGrid({
             {items.map((item) => (
               <TableRow key={item.productId} className={item.quantity > 0 ? "" : "opacity-60"}>
                 <TableCell className="py-2">
-                  <p className="break-words text-sm font-medium">{item.name}</p>
-                  <p className="font-mono text-2xs text-muted-foreground">{item.barcode || "Sem código"}</p>
+                  {isNewBrandRow(item) ? (
+                    <div className="space-y-1.5">
+                      <p className="break-words text-sm font-medium">
+                        {item.newBrand}{" "}
+                        <span className="text-2xs font-normal text-primary">(marca nova)</span>
+                      </p>
+                      {item.generateBarcode ? (
+                        <div className="flex flex-wrap items-center gap-2 text-2xs text-muted-foreground">
+                          <span>A loja gera o código — etiquete as unidades.</span>
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-2xs"
+                            onClick={() => onBrandChange?.(item.productId, "generateBarcode", false)}
+                          >
+                            Bipar o código
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            value={item.newBarcode ?? ""}
+                            onChange={(event) =>
+                              onBrandChange?.(item.productId, "newBarcode", event.target.value)
+                            }
+                            placeholder="Bipe o código"
+                            aria-label={`Código de barras de ${item.newBrand}`}
+                            inputMode="numeric"
+                            className="h-8 bg-background font-mono text-xs"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 shrink-0 gap-1 text-2xs"
+                            title="Só para peça sem código de barras: quem gera etiqueta as unidades"
+                            onClick={() => onBrandChange?.(item.productId, "generateBarcode", true)}
+                          >
+                            <Wand2 className="h-3.5 w-3.5" /> Gerar código
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <p className="break-words text-sm font-medium">{item.name}</p>
+                      <p className="font-mono text-2xs text-muted-foreground">
+                        {item.barcode || "Sem código"}
+                      </p>
+                    </>
+                  )}
                 </TableCell>
                 <TableCell className="py-2">
                   {/* Zero é o campo em branco e significa "não veio" — a variação
@@ -108,7 +172,7 @@ export function PurchaseReceiveGrid({
 
       <ProductSearchPicker
         onSelect={acrescentar}
-        selectedIds={items.map((item) => item.productId)}
+        selectedIds={items.filter((item) => !isNewBrandRow(item)).map((item) => item.productId)}
         placeholder="Veio uma variação que não estava no pedido? Busque e acrescente..."
       />
 

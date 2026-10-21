@@ -38,6 +38,12 @@ export interface PurchaseDto {
   /** Grupo do produto vinculado — é ele que abre a tela de detalhe do produto. */
   productGroupId?: number | null;
   /**
+   * O produto já tem variações? Com marca nova num produto SIMPLES (fase 4,
+   * 14/10/2026), o recebimento pede a marca do cadastro atual, que vira a
+   * primeira variação. Opcional por segurança de versão: ausente, trate como `true`.
+   */
+  groupHasVariations?: boolean;
+  /**
    * Categoria do produto: a escolhida na compra (produto ainda não cadastrado)
    * ou a do GRUPO, com produto vinculado. O backend escolhe uma das duas — a
    * compra nunca guarda cópia da do grupo.
@@ -139,12 +145,24 @@ export interface PurchaseItemDto {
   stock: number;
   /** Derivado: `finalTotal` ÷ `quantity`. Nunca é gravado. */
   unitFinal: number;
+  /**
+   * Marca NOVA (fase 4): a linha ainda sem cadastro, que nasce no recebimento com
+   * o código bipado ou gerado. Depois do recebimento continua aqui, como registro
+   * — aí `productId` já aponta para o cadastro criado.
+   */
+  newBrand?: string | null;
+  /** O código da marca nova, se já se sabia na compra. */
+  newBarcode?: string | null;
 }
 
 /** Uma linha da grade, como a tela a envia. */
 export interface SavePurchaseItemPayload {
-  /** Nulo só em produto novo, que é sempre compra de um item. */
+  /** Nulo em produto novo (um item só) e na linha de marca nova. */
   productId: number | null;
+  /** Marca nova de um produto que existe ("+ Nova variação (marca)"). Só com `productId` nulo. */
+  newBrand?: string | null;
+  /** Código da marca nova, se já se sabe. Opcional: o recebimento o exige. */
+  newBarcode?: string | null;
   /** Zero é "não comprei esta variação" — o backend descarta a linha. */
   quantity: number;
   /** Ignorados em rateio (o padrão), que é quando o backend os deriva. */
@@ -156,6 +174,11 @@ export interface SavePurchaseItemPayload {
 export interface SavePurchasePayload {
   supplierId: number;
   productId: number | null;
+  /**
+   * O produto (grupo) da compra. É como a compra SÓ de marca nova sabe de que
+   * produto é; com item vinculado, tem que ser o grupo dele.
+   */
+  productGroupId?: number | null;
   /**
    * Categoria do produto a comprar. **Obrigatória sem produto vinculado** — é
    * ela que o cadastro gerado no recebimento recebe pronto. Com produto
@@ -219,7 +242,14 @@ export interface SavePurchasePayload {
 
 /** Uma variação conferida no recebimento. */
 export interface ReceivePurchaseItemPayload {
-  productId: number;
+  /** A variação que já tem cadastro. Nulo na linha de marca nova. */
+  productId: number | null;
+  /** A linha de MARCA NOVA da compra: o cadastro dela nasce neste recebimento. */
+  purchaseItemId?: number | null;
+  /** O código bipado da marca nova. Vazio exige `generateBarcode`. */
+  barcode?: string | null;
+  /** "Gerar código": a peça não tem código de barras. */
+  generateBarcode?: boolean;
   /** Zero tira a variação do recebimento — ela não veio. */
   quantity: number;
   /** Fatia do total pago que cabe a esta variação. */
@@ -239,6 +269,11 @@ export interface ReceivePurchasePayload {
   notes?: string | null;
   /** Preço de venda a aplicar no cadastro. Nulo mantém o atual. */
   price?: number | null;
+  /**
+   * A marca do cadastro que JÁ existe, quando a compra traz marca nova de um
+   * produto SIMPLES: ele vira a primeira variação e precisa de uma.
+   */
+  currentBrand?: string | null;
   /** A grade conferida. Vazia mantém a da compra. */
   items?: ReceivePurchaseItemPayload[];
   /**

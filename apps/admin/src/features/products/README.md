@@ -963,3 +963,16 @@ O dono mexe pelo celular em preço, nome, foto, correção de estoque e variaç�
   na linha — as variações abertas não repetem a marca, porque nenhuma cor
   sozinha é o que precisa de compra. A compra a caminho de qualquer cor dá
   "Comprado" à linha. A regra é do backend (`StockControlUnits`).
+
+### Código com venda não se troca (fase 4, 21/10/2026)
+
+O código de barras de um cadastro que já vendeu fica **travado** no editor (no
+produto simples e em cada variação, `hasSales` do `ProductDto`), e a API recusa
+a troca (`ProductService.UpdateCoreAsync`). É ele que o caixa bipou e que está
+nos cupons e nas etiquetas: trocado, a mesma peça na prateleira deixaria de ser
+achada no PDV. A exclusão de cadastro com venda já era recusada. Consequência
+aceita pelo dono: um código digitado errado num produto que já vendeu não tem
+mais conserto pela tela. A linha da listagem não traz `hasSales`: o produto
+simples aberto por ela lê o campo no `GET /Products/{id}` que já completa o
+controle de estoque (`completarControleDeEstoque`), e o código trava quando a
+resposta chega.

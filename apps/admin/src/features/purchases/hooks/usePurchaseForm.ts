@@ -19,6 +19,7 @@ import { useSessao } from "@/hooks/use-sessao";
 import { withinImageLimit } from "@/lib/product-images";
 import { syncPurchaseDetailParam } from "../purchases-route";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import { isNewBrandRow, newBrandProblem, normalizeBrand } from "../lib/new-brand";
 import {
   applyPurchaseDefaults,
   purchaseDefaultsFromPayload,
@@ -112,10 +113,29 @@ export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] 
     // é o caminho de compatibilidade de sempre. É também o que torna a regra à
     // prova da corrida: a grade só aparece depois que a lista de variações do
     // grupo chega, e até lá o cabeçalho manda.
+    //
+    // A linha de MARCA NOVA (fase 4) também faz a grade existir, mesmo sozinha:
+    // ela não tem cadastro, e o cabeçalho não saberia descrevê-la. Ela ganha o id
+    // do item com o sinal trocado (`lib/new-brand.ts`).
     items:
-      (purchase.items ?? []).length > 1
-        ? (purchase.items ?? []).flatMap<PurchaseFormItem>((item) =>
-            item.productId == null
+      (purchase.items ?? []).length > 1 ||
+      (purchase.items ?? []).some((item) => item.productId == null && item.newBrand)
+        ? (purchase.items ?? []).flatMap<PurchaseFormItem>((item) => {
+            if (item.productId == null && item.newBrand)
+              return [
+                {
+                  productId: -item.id,
+                  name: item.newBrand,
+                  barcode: null,
+                  stock: 0,
+                  quantity: item.quantity,
+                  grossTotal: item.grossTotal,
+                  finalTotal: item.finalTotal,
+                  newBrand: item.newBrand,
+                  newBarcode: item.newBarcode ?? "",
+                },
+              ];
+            return item.productId == null
               ? []
               : [
                   {
@@ -127,8 +147,8 @@ export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] 
                     grossTotal: item.grossTotal,
                     finalTotal: item.finalTotal,
                   },
-                ],
-          )
+                ];
+          })
         : [],
     costSplitManual: purchase.costSplitManual ?? false,
     productName: purchase.productName,
@@ -258,7 +278,11 @@ export function purchaseDataWouldBeReplaced(form: PurchaseForm, productName: str
 }
 
 /** O que falta no formulário para gravar, ou `null` quando está pronto. */
-export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto): string | null {
+export function validatePurchaseForm(
+  form: PurchaseForm,
+  supplier?: SupplierDto,
+  existingBrands: string[] = [],
+): string | null {
   if (!form.supplierId) return "Selecione o fornecedor.";
   if (!purchaseHasProduct(form) && !form.productName.trim()) return "Informe o produto ou o nome do produto.";
   // Só onde ela tem dono: com produto vinculado a categoria é a do grupo, e vem
@@ -271,6 +295,8 @@ export function validatePurchaseForm(form: PurchaseForm, supplier?: SupplierDto)
     return "Informe a quantidade de ao menos uma variação.";
   if (form.items.some((item) => !Number.isInteger(item.quantity) || item.quantity < 0))
     return "A quantidade de cada variação deve ser um inteiro maior ou igual a zero.";
+  const marcaNova = newBrandProblem(form.items, existingBrands);
+  if (marcaNova) return marcaNova;
   if (!Number.isInteger(form.quantity) || form.quantity <= 0)
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
@@ -868,7 +894,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       return;
     }
 
-    const problem = validatePurchaseForm(form, supplier);
+    const problem = validatePurchaseForm(form, supplier, variations.existingBrands);
     if (problem) {
       toast({ title: "Atenção", description: problem, variant: "warning" });
       return;
@@ -877,6 +903,9 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     saveMutation.mutate({
       supplierId: Number(form.supplierId),
       productId: form.productId,
+      // A compra SÓ de marca nova não tem item com cadastro: é pelo grupo que
+      // ela diz de que produto é (fase 4).
+      productGroupId: form.productGroupId,
       // Com produto vinculado o backend usa a do grupo e ignora esta.
       categoryId: form.categoryId ? Number(form.categoryId) : null,
       productName: form.productName.trim(),
@@ -901,12 +930,23 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       // campo de quantidade que o operador acabou de editar.
       items: form.items
         .filter((item) => item.quantity > 0)
-        .map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          grossTotal: item.grossTotal,
-          finalTotal: item.finalTotal,
-        })),
+        .map((item) =>
+          isNewBrandRow(item)
+            ? {
+                productId: null,
+                newBrand: normalizeBrand(item.newBrand),
+                newBarcode: item.newBarcode?.trim() || null,
+                quantity: item.quantity,
+                grossTotal: item.grossTotal,
+                finalTotal: item.finalTotal,
+              }
+            : {
+                productId: item.productId,
+                quantity: item.quantity,
+                grossTotal: item.grossTotal,
+                finalTotal: item.finalTotal,
+              },
+        ),
       costSplitManual: form.costSplitManual,
     });
   }

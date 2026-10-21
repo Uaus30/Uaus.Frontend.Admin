@@ -4,9 +4,11 @@ import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
 import { formatCurrency } from "@workspace/core";
+import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { PurchaseReceiveGrid } from "./PurchaseReceiveGrid";
+import { conferencia, isNewBrandRow, receiveNewBrandProblem } from "../lib/new-brand";
 import type { PurchaseDto, PurchaseFormItem, ReceiveForm } from "../types";
 
 type PurchaseReceiveDialogProps = {
@@ -15,6 +17,12 @@ type PurchaseReceiveDialogProps = {
   onChange: <K extends keyof ReceiveForm>(field: K, value: ReceiveForm[K]) => void;
   /** Ajuste de uma variação na conferência. */
   onItemChange: (productId: number, campo: "quantity" | "finalTotal", valor: number) => void;
+  /** Marca nova: o código bipado ou o "Gerar código" (fase 4). */
+  onBrandChange?: (
+    productId: number,
+    campo: "newBarcode" | "generateBarcode",
+    valor: string | boolean,
+  ) => void;
   /** Variação que veio e não estava no pedido. */
   onAddItem: (item: PurchaseFormItem) => void;
   onCancel: () => void;
@@ -49,6 +57,11 @@ type PurchaseReceiveDialogProps = {
  * as duas já são a mesma lista quando o recebimento acontece — não sobrou
  * pergunta a fazer.
  *
+ * **Marca nova** (fase 4, 14/10/2026): a linha da marca de outro fabricante
+ * aparece na conferência com o campo do código — obrigatório aqui, bipado ou
+ * gerado. É no recebimento que o cadastro dela nasce. Em produto SIMPLES o
+ * diálogo pede também a marca do cadastro atual, que vira a primeira variação.
+ *
  * Compra anotada SEM custo (pendente) não se recebe daqui: a entrada gravaria o
  * lote a custo zero em silêncio. O diálogo diz isso e troca o botão de confirmar
  * por "Editar compra" — o backend recusa de qualquer jeito
@@ -60,6 +73,7 @@ export function PurchaseReceiveDialog({
   form,
   onChange,
   onItemChange,
+  onBrandChange,
   onAddItem,
   onCancel,
   onConfirm,
@@ -70,7 +84,15 @@ export function PurchaseReceiveDialog({
   const missingCost = purchase !== null && purchase.finalTotal <= 0;
   // Com uma variação só não há conferência a fazer: o que foi pedido é o que
   // chegou, e a grade seria uma tabela de uma linha para não decidir nada.
-  const conferindo = form.items.length > 1;
+  const conferindo = conferencia(form.items);
+  // Marca nova em produto simples: o cadastro atual vira a primeira variação e
+  // precisa de uma marca. `=== false` porque a API antiga omitia o campo.
+  const pedeMarcaAtual =
+    purchase?.groupHasVariations === false &&
+    form.items.some((item) => isNewBrandRow(item) && item.quantity > 0);
+  const problemaDaMarca =
+    receiveNewBrandProblem(form.items) ??
+    (pedeMarcaAtual && !form.currentBrand.trim() ? "Informe a marca do cadastro atual." : null);
   const somaDaGrade =
     Math.round(
       form.items.filter((item) => item.quantity > 0).reduce((total, item) => total + item.finalTotal, 0) *
@@ -100,9 +122,12 @@ export function PurchaseReceiveDialog({
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (missingCost || !gradeFecha) return;
+              if (missingCost || !gradeFecha || problemaDaMarca) return;
               onConfirm();
             }}
+            // O bipe do código da marca nova termina num Enter, que lançaria a
+            // entrada antes da conferência acabar.
+            onKeyDown={blockImplicitSubmit}
             className="mt-2 flex flex-col gap-5"
           >
             <div className="rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm">
@@ -189,9 +214,36 @@ export function PurchaseReceiveDialog({
                 items={form.items}
                 finalTotal={form.finalTotal}
                 onItemChange={onItemChange}
+                onBrandChange={onBrandChange}
                 onAddVariation={onAddItem}
                 onUseSum={(soma) => onChange("finalTotal", soma)}
               />
+            )}
+
+            {pedeMarcaAtual && (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase text-muted-foreground">
+                  Marca do cadastro atual <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={form.currentBrand}
+                  onChange={(event) => onChange("currentBrand", event.target.value.toUpperCase())}
+                  placeholder="Ex: ORIGINAL"
+                  maxLength={100}
+                  className="h-10 bg-background uppercase"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Com a marca nova, &quot;{purchase.productName}&quot; passa a ter variações de Marca. O
+                  cadastro de hoje (código {purchase.productBarcode || "atual"}) vira a primeira, com o mesmo
+                  estoque e as mesmas vendas.
+                </p>
+              </div>
+            )}
+
+            {problemaDaMarca && (
+              <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                {problemaDaMarca}
+              </p>
             )}
 
             <div className="space-y-2">
@@ -226,7 +278,7 @@ export function PurchaseReceiveDialog({
                 <Button
                   type="submit"
                   className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  disabled={isSaving || !gradeFecha || stockFrozen}
+                  disabled={isSaving || !gradeFecha || stockFrozen || problemaDaMarca !== null}
                 >
                   {isSaving ? "Lançando..." : "Confirmar recebimento"}
                 </Button>

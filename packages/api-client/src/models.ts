@@ -579,6 +579,11 @@ export interface ProductDto {
   status: EnumValue;
   canDelete: boolean;
   /**
+   * O cadastro já vendeu? Código com venda não se troca (fase 4, 14/10/2026), e
+   * o editor trava o campo. Opcional por segurança de versão.
+   */
+  hasSales?: boolean;
+  /**
    * Nome como o usuário vê: `name` mais os valores de grade entre colchetes, em
    * caixa alta. Igual a `name` em produto simples.
    *

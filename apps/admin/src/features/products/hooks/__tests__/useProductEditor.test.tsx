@@ -177,6 +177,29 @@ describe("useProductEditor Hook", () => {
     expect(result.current.isDirty).toBe(false);
   });
 
+  it("produto simples aberto pela LISTAGEM trava o código quando ele já vendeu", async () => {
+    // REGRESSÃO (revisão da fase 4, 21/10/2026): a linha da tabela não traz se o
+    // código vendeu, e o campo ficava editável — o salvar inteiro era recusado.
+    mocks.getProductById.mockResolvedValueOnce({ id: 10, stockControlEnabled: true, hasSales: true });
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.openDetail({
+        id: 10,
+        name: "COPO VERDE",
+        price: 15.5,
+        barcode: "123456",
+        stockControlEnabled: true,
+        productGroup: { id: 1, name: "COPO", hasVariations: false, showOnSite: true },
+        tags: [],
+        images: [],
+      });
+    });
+
+    await waitFor(() => expect(result.current.productEditor.hasSales).toBe(true));
+    expect(mocks.getProductById).toHaveBeenCalledWith(10);
+  });
+
   it("produto simples ganhando variação: a carga do grupo não apaga a linha da modal", async () => {
     // REGRESSÃO (produção, 12/09/2026 — produto 897 em admin.uaus.com.br):
     // "Configurar Variações" gerava a tabela e, um instante depois, ela voltava

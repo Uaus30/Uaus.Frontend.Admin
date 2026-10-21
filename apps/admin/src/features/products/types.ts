@@ -218,6 +218,12 @@ export type ProductEditorForm = {
   tagIds: number[];
   /** Optional EAN-8/EAN-13 barcode value */
   barcode?: string;
+  /**
+   * O cadastro já vendeu: o código de barras fica travado (fase 4, 14/10/2026 —
+   * código com venda não se troca; é ele que está nos cupons e nas etiquetas).
+   * Ausente quando a leitura não trouxe a informação: aí quem recusa é a API.
+   */
+  hasSales?: boolean;
 };
 
 /**

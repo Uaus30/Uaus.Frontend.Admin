@@ -57,6 +57,7 @@ export default function Purchases() {
         form={purchases.receiveForm}
         onChange={purchases.updateReceiveForm}
         onItemChange={purchases.updateReceiveItem}
+        onBrandChange={purchases.updateReceiveBrand}
         onAddItem={purchases.addReceiveItem}
         onCancel={purchases.cancelReceive}
         onConfirm={purchases.confirmReceive}

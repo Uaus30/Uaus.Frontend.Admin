@@ -336,6 +336,7 @@ export function useProductEditor() {
       status: productForm.getStatusIdAsString(product.status),
       tagIds: product.tags.map((tag: any) => tag.id),
       barcode: product.barcode || "",
+      hasSales: product.hasSales ?? false,
       // O servidor devolve os valores de grade já na ordem de exibição.
       values: (product.variationValues ?? []).map((value: ProductVariationValueDto) => ({
         gradeType: enumCode(value.gradeType, GRADE_TYPE) as GradeTypeCode,
@@ -390,6 +391,7 @@ export function useProductEditor() {
       status: restante.status,
       tagIds: restante.tagIds,
       barcode: restante.barcode,
+      hasSales: restante.hasSales,
     });
     setVariationDrafts([]);
     setActiveVariationKey(null);
@@ -407,6 +409,9 @@ export function useProductEditor() {
                 stockControlDisabledReason: dto.stockControlDisabledReason ?? null,
                 forecastStatus: dto.forecastStatus ?? null,
                 monthlySalesMedian: dto.monthlySalesMedian ?? null,
+                // A linha da listagem não traz se o código já vendeu; sem isto o
+                // campo ficava editável e o salvar inteiro era recusado (fase 4).
+                hasSales: dto.hasSales ?? atual.hasSales,
               }
             : atual,
         );
@@ -475,10 +480,14 @@ export function useProductEditor() {
           status: productForm.getStatusIdAsString(product.status),
           tagIds: product.tags.map((tag: any) => tag.id),
           barcode: product.barcode || "",
+          // A linha da listagem não traz; o detalhe aberto por link (ProductDto) traz.
+          hasSales: (product as { hasSales?: boolean }).hasSales ?? false,
         });
         setVariationDrafts([]);
         setActiveVariationKey(null);
-        if (product.stockControlEnabled === undefined && product.id) completarControleDeEstoque(product.id);
+        const semVendaNaLinha = (product as { hasSales?: boolean }).hasSales === undefined;
+        if ((product.stockControlEnabled === undefined || semVendaNaLinha) && product.id)
+          completarControleDeEstoque(product.id);
       }
     } else {
       productForm.resetForm();

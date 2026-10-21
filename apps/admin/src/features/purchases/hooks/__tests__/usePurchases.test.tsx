@@ -308,3 +308,66 @@ describe("usePurchases — filtro de situação", () => {
     expect(lastQueryParams().onlyOpen).toBeUndefined();
   });
 });
+
+describe("usePurchases — recebimento com marca nova (fase 4)", () => {
+  beforeEach(() => {
+    mocks.navigate.mockClear();
+    mocks.receivePurchase.mockReset();
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+  });
+
+  it("manda a linha da marca nova com o id do item, o código e a marca do cadastro atual", async () => {
+    mocks.receivePurchase.mockResolvedValue(compra({ productGroupId: 805, status: "Received" }));
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() =>
+      result.current.startReceive(
+        compra({
+          productId: null,
+          productGroupId: 805,
+          groupHasVariations: false,
+          items: [
+            {
+              id: 80,
+              productId: 963,
+              productName: "SACOLA",
+              quantity: 10,
+              grossTotal: 45,
+              finalTotal: 45,
+              stock: 1,
+              unitFinal: 4.5,
+            },
+            {
+              id: 81,
+              productName: "",
+              quantity: 10,
+              grossTotal: 45,
+              finalTotal: 45,
+              stock: 0,
+              unitFinal: 4.5,
+              newBrand: "VI",
+            },
+          ],
+        }),
+      ),
+    );
+    act(() => result.current.updateReceiveBrand(-81, "newBarcode", " 55 "));
+    act(() => result.current.updateReceiveForm("currentBrand", "ORIGINAL"));
+    act(() => result.current.confirmReceive());
+
+    await waitFor(() => expect(mocks.receivePurchase).toHaveBeenCalled());
+    const [, corpo] = mocks.receivePurchase.mock.calls[0];
+    expect(corpo.currentBrand).toBe("ORIGINAL");
+    expect(corpo.items).toEqual([
+      { productId: 963, quantity: 10, finalTotal: 45 },
+      {
+        productId: null,
+        purchaseItemId: 81,
+        quantity: 10,
+        finalTotal: 45,
+        barcode: "55",
+        generateBarcode: false,
+      },
+    ]);
+  });
+});

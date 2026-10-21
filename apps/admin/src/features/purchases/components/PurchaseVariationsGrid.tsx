@@ -1,8 +1,9 @@
-import { Calculator, PencilLine } from "lucide-react";
+import { Calculator, PencilLine, Plus, X } from "lucide-react";
 import { Button, Input, Spinner } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatQuantity } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
+import { isNewBrandRow } from "../lib/new-brand";
 import type { PurchaseFormItem } from "../types";
 
 type PurchaseVariationsGridProps = {
@@ -13,6 +14,12 @@ type PurchaseVariationsGridProps = {
   onQuantityChange: (productId: number, quantity: number) => void;
   onTotalChange: (productId: number, valor: number) => void;
   onToggleManual: (manual: boolean) => void;
+  /** Linha de marca nova: a marca ou o código digitado. */
+  onBrandChange?: (productId: number, campo: "newBrand" | "newBarcode", valor: string) => void;
+  onRemoveBrand?: (productId: number) => void;
+  /** O produto aceita marca nova — só simples ou com variações só de Marca. */
+  canAddBrand?: boolean;
+  onAddBrand?: () => void;
 };
 
 /**
@@ -32,6 +39,11 @@ type PurchaseVariationsGridProps = {
  *
  * Voltar para rateado recalcula tudo, então o botão avisa antes: o trabalho de
  * digitar dez valores não pode sumir por um clique sem confirmação.
+ *
+ * **Marca nova** (fase 4, 14/10/2026): "+ Nova variação (marca)" acrescenta a
+ * linha da marca de outro fabricante, ainda sem cadastro. O código é opcional
+ * aqui — muitas vezes só aparece com a caixa na mão — e o cadastro nasce no
+ * recebimento, com o código bipado ou gerado.
  */
 export function PurchaseVariationsGrid({
   items,
@@ -41,6 +53,10 @@ export function PurchaseVariationsGrid({
   onQuantityChange,
   onTotalChange,
   onToggleManual,
+  onBrandChange,
+  onRemoveBrand,
+  canAddBrand = false,
+  onAddBrand,
 }: PurchaseVariationsGridProps) {
   const compradas = items.filter((item) => item.quantity > 0);
   const totalDeUnidades = compradas.reduce((soma, item) => soma + item.quantity, 0);
@@ -103,8 +119,53 @@ export function PurchaseVariationsGrid({
             {items.map((item) => (
               <TableRow key={item.productId} className={item.quantity > 0 ? "" : "opacity-60"}>
                 <TableCell className="py-2">
-                  <p className="break-words text-sm font-medium">{item.name}</p>
-                  <p className="font-mono text-2xs text-muted-foreground">{item.barcode || "Sem código"}</p>
+                  {isNewBrandRow(item) ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          value={item.newBrand ?? ""}
+                          onChange={(event) =>
+                            onBrandChange?.(item.productId, "newBrand", event.target.value)
+                          }
+                          placeholder="Marca nova"
+                          aria-label="Marca da variação nova"
+                          maxLength={100}
+                          className="h-8 bg-background text-sm font-medium uppercase"
+                          readOnly={readOnly}
+                        />
+                        {!readOnly && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                            aria-label="Tirar a marca nova"
+                            onClick={() => onRemoveBrand?.(item.productId)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <Input
+                        value={item.newBarcode ?? ""}
+                        onChange={(event) =>
+                          onBrandChange?.(item.productId, "newBarcode", event.target.value)
+                        }
+                        placeholder="Código (opcional — exigido no recebimento)"
+                        aria-label="Código de barras da marca nova"
+                        inputMode="numeric"
+                        className="h-7 bg-background font-mono text-2xs"
+                        readOnly={readOnly}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="break-words text-sm font-medium">{item.name}</p>
+                      <p className="font-mono text-2xs text-muted-foreground">
+                        {item.barcode || "Sem código"}
+                      </p>
+                    </>
+                  )}
                   {/* Celular: o estoque vem embaixo do nome. As larguras fixas das
                       colunas somavam 352px e o custo ficava meio fora da tela. */}
                   <p className="text-2xs text-muted-foreground sm:hidden">
@@ -116,10 +177,12 @@ export function PurchaseVariationsGrid({
                 </TableCell>
                 <TableCell className="hidden py-2 text-right text-sm text-muted-foreground sm:table-cell">
                   {/* "2 → 5" só aparece na linha comprada: nas outras o operador
-                      não pediu previsão nenhuma. */}
-                  {item.quantity > 0
-                    ? `${formatQuantity(item.stock)} → ${formatQuantity(item.stock + item.quantity)}`
-                    : formatQuantity(item.stock)}
+                      não pediu previsão nenhuma. A marca nova ainda não tem estoque. */}
+                  {isNewBrandRow(item)
+                    ? "Nova"
+                    : item.quantity > 0
+                      ? `${formatQuantity(item.stock)} → ${formatQuantity(item.stock + item.quantity)}`
+                      : formatQuantity(item.stock)}
                 </TableCell>
                 <TableCell className="py-2">
                   {/* Zero é o campo EM BRANCO, como no resto do formulário: com
@@ -156,6 +219,18 @@ export function PurchaseVariationsGrid({
           </TableBody>
         </Table>
       </div>
+
+      {canAddBrand && !readOnly && onAddBrand && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={onAddBrand}
+        >
+          <Plus className="h-3.5 w-3.5" /> Nova variação (marca)
+        </Button>
+      )}
 
       <p className="text-xs text-muted-foreground">
         {compradas.length === 0 ? (

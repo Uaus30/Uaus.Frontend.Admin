@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
+import { GRADE_TYPE, PRODUCT_STATUS, enumCode } from "@workspace/api-client-react";
 import { getProductsPage } from "@/services/products.service";
 import { applyCostSplit, sumItems } from "../lib/purchase-items";
 import { spreadRestockQuantity } from "../lib/spread-restock";
+import { isNewBrandRow, nextNewBrandKey } from "../lib/new-brand";
 import type { PurchaseForm, PurchaseFormItem } from "../types";
 
 /** Nem inativa, nem rascunho: a variação que recebe parte da reposição do produto inteiro. */
@@ -21,6 +22,10 @@ type VariationOption = {
   stock: number;
   /** Nem inativa, nem rascunho — a que recebe parte da reposição do produto inteiro. */
   sellable: boolean;
+  /** A marca da variação (grade Marca), quando ela tem. */
+  brand: string | null;
+  /** Tem grade que NÃO é Marca (Cor, Tamanho...)? Aí o produto não aceita marca nova. */
+  hasOtherGrade: boolean;
 };
 
 type UsePurchaseVariationsParams = {
@@ -71,25 +76,113 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
 
   /** As variações do grupo, na ordem em que a grade as mostra. */
   const variations: VariationOption[] = (page?.data ?? [])
-    .map((produto) => ({
-      productId: produto.id,
-      name: produto.displayName || produto.name,
-      barcode: produto.barcode || null,
-      stock: produto.stock,
-      sellable: vendavel(produto.status),
-    }))
+    .map((produto) => {
+      const grades = (produto.variationValues ?? []).map((valor) => ({
+        tipo: enumCode(valor.gradeType, GRADE_TYPE),
+        valor: valor.value,
+      }));
+      return {
+        productId: produto.id,
+        name: produto.displayName || produto.name,
+        barcode: produto.barcode || null,
+        stock: produto.stock,
+        sellable: vendavel(produto.status),
+        brand: grades.find((grade) => grade.tipo === GRADE_TYPE.Brand)?.valor ?? null,
+        hasOtherGrade: grades.some((grade) => grade.tipo !== GRADE_TYPE.Brand),
+      };
+    })
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
-  /** O grupo tem mais de uma variação — é o que decide se a grade aparece. */
-  const hasGrid = variations.length > 1;
+  const hasNewBrand = form.items.some(isNewBrandRow);
+
+  /**
+   * A grade aparece com mais de uma variação — ou com marca nova, que num
+   * produto simples transforma o campo de quantidade numa grade de duas linhas.
+   */
+  const hasGrid = variations.length > 1 || hasNewBrand;
+
+  /**
+   * "+ Nova variação (marca)" (fase 4): só em produto simples ou com variações
+   * SÓ de Marca. Com Cor ou Tamanho, a variação nova teria uma grade só e o
+   * produto ficaria inconsistente — o backend recusa do mesmo jeito.
+   */
+  const canAddBrand = groupId !== null && variations.length > 0 && variations.every((v) => !v.hasOtherGrade);
 
   // A grade nasce quando a lista de variações chega, como AJUSTE DURANTE O
   // RENDER — não num efeito. Num efeito seria preciso guardar "já montei esta"
   // para não remontar a cada render, e remontar apagaria a quantidade que o
   // operador acabou de digitar. Aqui a condição se desfaz sozinha: depois do
   // ajuste a grade cobre todas as variações e nada mais dispara.
-  if (hasGrid && !cobreTodas(form.items, variations)) {
+  if (hasGrid && variations.length > 0 && !cobreTodas(form.items, variations)) {
     setForm((atual) => recompute(montarGrade(atual, variations)));
+  }
+
+  /**
+   * Acrescenta uma linha de marca nova. Em produto simples a grade ainda não
+   * existe: ela nasce com o cadastro atual (a quantidade do campo) e a linha nova.
+   */
+  function addNewBrand() {
+    onEdit();
+    setForm((atual) => {
+      const base = atual.items.length > 0 ? atual : montarGrade({ ...atual, items: [] }, variations);
+      const linha: PurchaseFormItem = {
+        productId: nextNewBrandKey(base.items),
+        name: "",
+        barcode: null,
+        stock: 0,
+        quantity: 1,
+        grossTotal: 0,
+        finalTotal: 0,
+        newBrand: "",
+        newBarcode: "",
+      };
+      return recompute({ ...base, items: [...base.items, linha] });
+    });
+  }
+
+  function setNewBrand(productId: number, campo: "newBrand" | "newBarcode", valor: string) {
+    onEdit();
+    setForm((atual) => ({
+      ...atual,
+      items: atual.items.map((item) =>
+        item.productId === productId
+          ? { ...item, [campo]: campo === "newBrand" ? valor.toUpperCase() : valor }
+          : item,
+      ),
+    }));
+  }
+
+  /**
+   * Tira a linha de marca nova. Sem marca nova e com uma variação só, a grade
+   * some e a quantidade volta ao campo — como era antes do clique.
+   *
+   * O produto volta ao cabeçalho: a compra GRAVADA com a marca nova tinha dois
+   * itens, e o servidor só preenche o produto da compra com item único. Sem
+   * isso, ela iria sem produto e viraria "produto ainda não cadastrado" — o
+   * recebimento abriria um cadastro em branco, duplicando o que existe. Em
+   * custo manual os totais eram a soma da grade, com a marca nova dentro: voltam
+   * a ser a soma do que ficou.
+   */
+  function removeNewBrand(productId: number) {
+    onEdit();
+    setForm((atual) => {
+      const items = atual.items.filter((item) => item.productId !== productId);
+      if (variations.length <= 1 && !items.some(isNewBrandRow)) {
+        const quantidade = items.reduce((soma, item) => soma + item.quantity, 0);
+        const totais = atual.costSplitManual
+          ? { grossTotal: sumItems(items, "grossTotal"), finalTotal: sumItems(items, "finalTotal") }
+          : {};
+        return {
+          ...atual,
+          ...totais,
+          productId: items[0]?.productId ?? variations[0]?.productId ?? atual.productId,
+          items: [],
+          quantity: Math.max(quantidade, 1),
+          costSplitManual: false,
+        };
+      }
+      return recompute({ ...atual, items });
+    });
   }
 
   function setItemQuantity(productId: number, quantity: number) {
@@ -159,6 +252,12 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
   return {
     variations,
     hasGrid,
+    canAddBrand,
+    /** As marcas que o produto já tem — a linha nova não pode repetir nenhuma. */
+    existingBrands: variations.flatMap((variacao) => (variacao.brand ? [variacao.brand] : [])),
+    addNewBrand,
+    setNewBrand,
+    removeNewBrand,
     isLoadingVariations: isFetching,
     setItemQuantity,
     setItemCost,
@@ -167,14 +266,15 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
   };
 }
 
-/** A grade já cobre exatamente estas variações? */
+/** A grade já cobre exatamente estas variações? As linhas de marca nova não contam. */
 function cobreTodas(items: PurchaseFormItem[], variations: VariationOption[]): boolean {
-  if (items.length !== variations.length) return false;
-  const naGrade = new Set(items.map((item) => item.productId));
+  const cadastradas = items.filter((item) => !isNewBrandRow(item));
+  if (cadastradas.length !== variations.length) return false;
+  const naGrade = new Set(cadastradas.map((item) => item.productId));
   return variations.every((variacao) => naGrade.has(variacao.productId));
 }
 
-/** A grade do grupo, preservando o que já foi digitado. */
+/** A grade do grupo, preservando o que já foi digitado — e as linhas de marca nova, no fim. */
 function montarGrade(atual: PurchaseForm, variations: VariationOption[]): PurchaseForm {
   const jaDigitado = new Map(atual.items.map((item) => [item.productId, item]));
   // A reposição do produto INTEIRO (linha de grupo do estoque baixo) se reparte
@@ -184,22 +284,24 @@ function montarGrade(atual: PurchaseForm, variations: VariationOption[]): Purcha
       ? spreadRestockQuantity(atual.quantity, variations)
       : null;
 
-  const items: PurchaseFormItem[] = variations.map(({ sellable: _vendavel, ...variacao }) => {
-    const anterior = jaDigitado.get(variacao.productId);
-    return {
-      ...variacao,
-      quantity:
-        anterior?.quantity ??
-        repartida?.get(variacao.productId) ??
-        // A variação escolhida na busca nasce com a quantidade do campo: é a que
-        // o operador já tinha em mente quando procurou o produto.
-        (variacao.productId === atual.productId ? Math.max(atual.quantity, 1) : 0),
-      grossTotal: anterior?.grossTotal ?? 0,
-      finalTotal: anterior?.finalTotal ?? 0,
-    };
-  });
+  const items: PurchaseFormItem[] = variations.map(
+    ({ sellable: _vendavel, brand: _marca, hasOtherGrade: _outra, ...variacao }) => {
+      const anterior = jaDigitado.get(variacao.productId);
+      return {
+        ...variacao,
+        quantity:
+          anterior?.quantity ??
+          repartida?.get(variacao.productId) ??
+          // A variação escolhida na busca nasce com a quantidade do campo: é a que
+          // o operador já tinha em mente quando procurou o produto.
+          (variacao.productId === atual.productId ? Math.max(atual.quantity, 1) : 0),
+        grossTotal: anterior?.grossTotal ?? 0,
+        finalTotal: anterior?.finalTotal ?? 0,
+      };
+    },
+  );
 
-  return { ...atual, items, spreadQuantity: false };
+  return { ...atual, items: [...items, ...atual.items.filter(isNewBrandRow)], spreadQuantity: false };
 }
 
 /**

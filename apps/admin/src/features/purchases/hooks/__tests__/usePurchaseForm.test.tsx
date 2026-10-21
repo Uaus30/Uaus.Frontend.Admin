@@ -1492,3 +1492,52 @@ describe("usePurchaseForm — compra em sequência (24/09/2026)", () => {
     );
   });
 });
+
+describe("purchaseToForm — marca nova (fase 4)", () => {
+  it("a linha de marca nova volta com o id do item negativo, e faz a grade existir mesmo sozinha", () => {
+    const form = purchaseToForm({
+      ...compra,
+      productId: null,
+      productGroupId: 3,
+      items: [
+        {
+          id: 81,
+          productName: "",
+          quantity: 4,
+          grossTotal: 40,
+          finalTotal: 40,
+          stock: 0,
+          unitFinal: 10,
+          newBrand: "VI",
+          newBarcode: "55",
+        },
+      ],
+    } as PurchaseDto);
+
+    expect(form.items).toHaveLength(1);
+    expect(form.items[0]).toMatchObject({ productId: -81, newBrand: "VI", newBarcode: "55", quantity: 4 });
+  });
+
+  it("valida a marca nova antes de ir à rede", () => {
+    const form = {
+      ...emptyPurchaseForm(),
+      supplierId: "1",
+      productGroupId: 3,
+      quantity: 2,
+      items: [
+        {
+          productId: -1,
+          name: "",
+          barcode: null,
+          stock: 0,
+          quantity: 2,
+          grossTotal: 0,
+          finalTotal: 0,
+          newBrand: "",
+        },
+      ],
+    };
+    expect(validatePurchaseForm(form)).toMatch(/Informe a marca/);
+    expect(validatePurchaseForm(form, undefined, [])).toMatch(/Informe a marca/);
+  });
+});

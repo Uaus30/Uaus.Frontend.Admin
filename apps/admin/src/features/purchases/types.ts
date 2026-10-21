@@ -33,6 +33,15 @@ export type PurchaseFormItem = {
    */
   grossTotal: number;
   finalTotal: number;
+  /**
+   * Linha de MARCA NOVA (fase 4, 14/10/2026): a marca de outro fabricante, ainda
+   * sem cadastro. Só nas linhas de `productId` negativo — ver `lib/new-brand.ts`.
+   */
+  newBrand?: string;
+  /** Código da marca nova: opcional na compra, obrigatório no recebimento. */
+  newBarcode?: string;
+  /** "Gerar código" no recebimento: a peça não tem código de barras. */
+  generateBarcode?: boolean;
 };
 
 /**
@@ -146,4 +155,9 @@ export type ReceiveForm = {
   items: PurchaseFormItem[];
   /** O total pago, que o operador pode confirmar como novo. */
   finalTotal: number;
+  /**
+   * A marca do cadastro que JÁ existe, quando a compra traz marca nova de um
+   * produto simples: ele vira a primeira variação e precisa de uma (fase 4).
+   */
+  currentBrand: string;
 };

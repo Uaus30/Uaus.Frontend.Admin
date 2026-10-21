@@ -1,4 +1,4 @@
-import { Lock, Package, ShoppingCart, X } from "lucide-react";
+import { Lock, Package, Plus, ShoppingCart, X } from "lucide-react";
 import { Button, Input, Textarea, cn, uppercaseKeepingCaret } from "@workspace/ui";
 import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
@@ -344,7 +344,32 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               onQuantityChange={form.setItemQuantity}
               onTotalChange={form.setVariationCost}
               onToggleManual={form.setCostSplitManual}
+              onBrandChange={form.setNewBrand}
+              onRemoveBrand={form.removeNewBrand}
+              canAddBrand={form.canAddBrand}
+              onAddBrand={form.addNewBrand}
             />
+          )}
+
+          {/* Produto SIMPLES ainda sem grade: a marca nova (fase 4) transforma o
+              campo de quantidade numa grade de duas linhas — o cadastro atual e
+              a marca nova. Com grade, o botão mora embaixo dela. */}
+          {!form.hasGrid && form.canAddBrand && !readOnly && (
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={form.addNewBrand}
+              >
+                <Plus className="h-3.5 w-3.5" /> Nova variação (marca)
+              </Button>
+              <p className="mt-1 text-xs text-muted-foreground">
+                A mesma peça de outro fabricante, com outro código: vira uma variação de Marca deste produto
+                no recebimento.
+              </p>
+            </div>
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

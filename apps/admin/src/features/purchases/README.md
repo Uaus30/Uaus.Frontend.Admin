@@ -172,6 +172,42 @@ recebeu, com empate na ordem da grade. Inativa e rascunho não recebem. Sem
 isso, `montarGrade` punha tudo na variação da URL — 40 sacolas de uma estampa
 só. Só na primeira montagem: o que o operador digitar depois fica.
 
+## Marca nova na compra e no recebimento (fase 4, 21/10/2026)
+
+Fase 4 do plano de grupo × variação aprovado pelo dono em 14/10/2026. A loja
+compra a mesma peça de outro fabricante, com outro código de barras. O modelo de
+"N códigos por cadastro" foi abandonado: cada código continua sendo um cadastro,
+e a marca diferente vira **variação de Marca** do mesmo produto — o controle de
+estoque pelo grupo (fase 2) julga o produto inteiro.
+
+- **Na compra**, "+ Nova variação (marca)" acrescenta a linha da marca nova, com
+  marca, quantidade e custo. O **código é opcional** aqui: muitas vezes só
+  aparece com a caixa na mão. Só aparece em produto **simples** ou com variações
+  **só de Marca** (`canAddBrand`): com Cor ou Tamanho, a variação nova teria uma
+  grade só e o produto ficaria inconsistente — o backend recusa do mesmo jeito.
+  Em produto simples, o campo de quantidade vira uma grade de duas linhas (o
+  cadastro atual e a marca nova); tirar a marca nova volta ao campo.
+- **A linha não tem cadastro.** Na tela ela tem um `productId` NEGATIVO, que é só
+  a chave (`lib/new-brand.ts`): a que veio do banco usa o id do item da compra
+  com o sinal trocado — é o `purchaseItemId` que o recebimento manda. A compra
+  SÓ de marca nova diz o produto pelo `productGroupId`.
+- **No recebimento o código é obrigatório**: bipar o da embalagem ou "Gerar
+  código" (só para peça sem código; quem gera etiqueta as unidades). Se o código
+  bipado já é de uma variação do mesmo produto, a recompra cai nela; de outro
+  produto, o servidor recusa dizendo qual. Zero na quantidade é "não veio", e a
+  marca não é cadastrada. Toda marca nova vai na conferência, inclusive com zero.
+  "Gerar código" manda sobre o código anotado na compra (quem clicou viu que a
+  embalagem não tem aquele), e o Enter do leitor no campo do código não lança o
+  recebimento (`blockImplicitSubmit`).
+- **Tirar a única marca nova** de uma compra já gravada devolve o produto ao
+  cabeçalho: com dois itens o servidor grava a compra sem produto, e sem isso
+  ela viraria "produto ainda não cadastrado". Em custo manual os totais voltam a
+  ser a soma do que ficou.
+- **Produto simples vira produto com variações.** O diálogo pede a "Marca do
+  cadastro atual", que vira a primeira variação — mesmo id, estoque e vendas.
+- O cadastro nasce no backend (`ProductBrandVariationService`), com o nome do
+  grupo, o preço do recebimento e a grade Marca.
+
 ## A galeria da compra É a galeria do produto (13/09/2026)
 
 Com produto vinculado, **as fotos da modal são as do GRUPO**
