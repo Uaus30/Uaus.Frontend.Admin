@@ -65,10 +65,11 @@ describe("useStockCorrectionReturn — a volta do Corrigir estoque", () => {
 
   it("na volta, o saldo novo vai para o carrinho, a base local e a lista — e o produto sai da anotação", async () => {
     itemNoCarrinho(1);
-    useStockCorrectionStore.getState().watch(CANECA);
     mocks.searchPdvProducts.mockResolvedValue([{ ...CANECA, price: 25, stock: 6, productGroupId: 3 }]);
     const onRefreshed = vi.fn();
     renderHook(() => useStockCorrectionReturn({ online: true, onRefreshed }));
+    // Anotado DEPOIS de montar: quem relê é a volta, e não a abertura.
+    useStockCorrectionStore.getState().watch(CANECA);
 
     voltarAoPdv();
 
@@ -83,10 +84,10 @@ describe("useStockCorrectionReturn — a volta do Corrigir estoque", () => {
 
   it("ainda zerado na volta: continua anotado para a próxima, sem aviso", async () => {
     // A pessoa voltou ao caixa antes de registrar a contagem no admin.
-    useStockCorrectionStore.getState().watch(CANECA);
     mocks.searchPdvProducts.mockResolvedValue([{ ...CANECA, price: 25, stock: 0, productGroupId: 3 }]);
     const onRefreshed = vi.fn();
     renderHook(() => useStockCorrectionReturn({ online: true, onRefreshed }));
+    useStockCorrectionStore.getState().watch(CANECA);
 
     voltarAoPdv();
 
@@ -101,6 +102,35 @@ describe("useStockCorrectionReturn — a volta do Corrigir estoque", () => {
     voltarAoPdv();
 
     expect(mocks.searchPdvProducts).not.toHaveBeenCalled();
+  });
+
+  it("ao abrir o PDV relê o que ficou anotado, sem precisar de uma volta", async () => {
+    // O celular pode encerrar o app instalado durante a correção: a anotação
+    // ficou no aparelho, mas a reabertura não é uma "volta" (revisão da fase 3).
+    useStockCorrectionStore.getState().watch(CANECA);
+    mocks.searchPdvProducts.mockResolvedValue([{ ...CANECA, price: 25, stock: 4, productGroupId: 3 }]);
+    const onRefreshed = vi.fn();
+
+    renderHook(() => useStockCorrectionReturn({ online: true, onRefreshed }));
+
+    await waitFor(() =>
+      expect(onRefreshed).toHaveBeenCalledWith([{ productId: 7, name: CANECA.name, stock: 4 }]),
+    );
+  });
+
+  it("relê quando a internet volta", async () => {
+    useStockCorrectionStore.getState().watch(CANECA);
+    mocks.searchPdvProducts.mockResolvedValue([{ ...CANECA, price: 25, stock: 2, productGroupId: 3 }]);
+    const onRefreshed = vi.fn();
+    const { rerender } = renderHook(
+      ({ online }: { online: boolean }) => useStockCorrectionReturn({ online, onRefreshed }),
+      { initialProps: { online: false } },
+    );
+    expect(mocks.searchPdvProducts).not.toHaveBeenCalled();
+
+    rerender({ online: true });
+
+    await waitFor(() => expect(onRefreshed).toHaveBeenCalled());
   });
 
   it("offline, não relê: fica para a próxima volta", () => {

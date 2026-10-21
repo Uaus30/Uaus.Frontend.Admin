@@ -845,18 +845,29 @@ describe("usePdvStore — refreshAvailableStock, a volta do Corrigir estoque", (
     expect(porProduto.get(8)).toBe(3);
   });
 
-  it("na reedição de venda não mexe: lá o disponível soma as unidades da própria venda", () => {
-    usePdvStore
-      .getState()
-      .loadSaleForEditing(
-        55,
-        [{ ...product({ productId: 7, quantity: 2, availableStock: 5 }), id: "1" }],
-        0,
-        EMPTY_CONSUMER,
-      );
+  it("na reedição de venda o saldo novo soma as unidades que a própria venda levou", () => {
+    // REGRESSÃO (revisão da fase 3, 21/10/2026): a reedição ficava de fora, e o
+    // "+" seguia recusando com o saldo de antes da correção.
+    usePdvStore.getState().loadSaleForEditing(
+      55,
+      [
+        { ...product({ productId: 7, quantity: 2, availableStock: 2 }), id: "1", editReservedQuantity: 2 },
+        // Acrescentada durante a reedição: não tem reserva.
+        { ...product({ productId: 8, quantity: 1, availableStock: 1 }), id: "2" },
+      ],
+      0,
+      EMPTY_CONSUMER,
+    );
 
-    usePdvStore.getState().refreshAvailableStock([{ productId: 7, stock: 3 }]);
+    usePdvStore.getState().refreshAvailableStock([
+      { productId: 7, stock: 3 },
+      { productId: 8, stock: 4 },
+    ]);
 
-    expect(usePdvStore.getState().items[0].availableStock).toBe(5);
+    const porProduto = new Map(
+      usePdvStore.getState().items.map((item) => [item.productId, item.availableStock]),
+    );
+    expect(porProduto.get(7)).toBe(5);
+    expect(porProduto.get(8)).toBe(4);
   });
 });

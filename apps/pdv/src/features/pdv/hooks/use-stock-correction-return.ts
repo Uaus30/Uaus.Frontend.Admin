@@ -24,7 +24,10 @@ const LOOKUP_LIMIT = 20;
 
 /**
  * A volta do "Corrigir estoque": relê o saldo dos produtos anotados pelo atalho
- * quando o PDV volta a ficar visível (fase 3 do plano de 14/10/2026).
+ * quando o PDV volta a ficar visível (fase 3 do plano de 14/10/2026) — e também
+ * quando ele ABRE e quando a internet volta. A abertura cobre o celular que
+ * encerrou o app durante a correção: a anotação ficou no aparelho, mas na
+ * reabertura não há "volta" nenhuma para disparar a releitura.
  *
  * A correção acontece em outra aba, no admin, e o PDV não tem como saber quando
  * ela termina. O sinal é a pessoa VOLTAR: `visibilitychange` (trocou de aba, ou
@@ -32,7 +35,8 @@ const LOOKUP_LIMIT = 20;
  * no balcão com dois monitores). Na volta, o saldo novo vai para:
  *
  * - **a linha do carrinho** (`refreshAvailableStock`), senão o "+" continuaria
- *   recusando com o saldo de quando o item entrou;
+ *   recusando com o saldo de quando o item entrou — na reedição de venda, somado
+ *   às unidades que a própria venda já levou;
  * - **a base local** (`refreshLocalStock`), senão a primeira queda de internet
  *   voltaria a recusar o produto com a prateleira cheia;
  * - **a lista da busca**, por quem chama (`onRefreshed`), senão a linha ficaria
@@ -45,6 +49,7 @@ export function useStockCorrectionReturn({ online, onRefreshed }: UseStockCorrec
   const { toast } = useToast();
   const onlineRef = useRef(online);
   const onRefreshedRef = useRef(onRefreshed);
+  const relerRef = useRef<() => void>(() => undefined);
   useEffect(() => {
     onlineRef.current = online;
     onRefreshedRef.current = onRefreshed;
@@ -86,6 +91,7 @@ export function useStockCorrectionReturn({ online, onRefreshed }: UseStockCorrec
     }
 
     const aoVoltar = () => void reler();
+    relerRef.current = aoVoltar;
     document.addEventListener("visibilitychange", aoVoltar);
     window.addEventListener("focus", aoVoltar);
     return () => {
@@ -93,6 +99,12 @@ export function useStockCorrectionReturn({ online, onRefreshed }: UseStockCorrec
       window.removeEventListener("focus", aoVoltar);
     };
   }, [toast]);
+
+  // Ao abrir, e quando a internet volta. Depois do efeito acima, que é o que
+  // deixa a releitura pronta.
+  useEffect(() => {
+    if (online) relerRef.current();
+  }, [online]);
 }
 
 /**

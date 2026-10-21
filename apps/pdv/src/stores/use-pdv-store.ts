@@ -176,9 +176,10 @@ interface PdvState {
    * volta do "Corrigir estoque" do admin (20/10/2026). Sem isso, o "+" da linha
    * continuaria recusando com o saldo de quando o item entrou no carrinho.
    *
-   * Na **reedição de venda** não mexe: lá o disponível é o saldo de hoje MAIS
-   * as unidades da própria venda (`use-sale-history-actions`), e só o saldo do
-   * servidor faria o "+" recusar o que a venda já levava.
+   * Na **reedição de venda** o disponível é o saldo de hoje MAIS as unidades que
+   * a própria venda levou na linha (`editReservedQuantity`, gravado por
+   * `use-sale-history-actions`): só o saldo do servidor faria o "+" recusar o que
+   * a venda já levava. Até 21/10/2026 a reedição ficava de fora da releitura.
    */
   refreshAvailableStock: (fresh: Array<{ productId: number; stock: number }>) => void;
   /** Aplica desconto por unidade na linha; zero restaura o preço de tabela. */
@@ -430,12 +431,17 @@ export const usePdvStore = create<PdvState>((set, get) => ({
 
   refreshAvailableStock: (fresh) =>
     set((state) => {
-      if (state.editingSaleId !== null || fresh.length === 0) return {};
+      if (fresh.length === 0) return {};
       const stockById = new Map(fresh.map((item) => [item.productId, item.stock]));
       return {
-        items: state.items.map((i) =>
-          stockById.has(i.productId) ? { ...i, availableStock: stockById.get(i.productId)! } : i,
-        ),
+        items: state.items.map((i) => {
+          const stock = stockById.get(i.productId);
+          if (stock === undefined) return i;
+          // Na reedição o disponível soma as unidades que a própria venda já
+          // levou: o servidor as devolve antes de regravar (revisão da fase 3).
+          const reservado = state.editingSaleId !== null ? (i.editReservedQuantity ?? 0) : 0;
+          return { ...i, availableStock: stock + reservado };
+        }),
       };
     }),
 

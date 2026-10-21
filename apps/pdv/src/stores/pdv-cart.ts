@@ -81,6 +81,13 @@ export interface PdvItem {
   /** Estoque disponível no momento em que o item entrou no carrinho. */
   availableStock: number;
   /**
+   * Na REEDIÇÃO de venda, as unidades que a venda original levou nesta linha. O
+   * estoque do servidor já não as contém e a reedição as devolve antes de
+   * regravar: o disponível é o saldo mais elas. Ausente na venda nova e na linha
+   * acrescentada durante a reedição.
+   */
+  editReservedQuantity?: number;
+  /**
    * Caminho da imagem principal do produto, como a busca devolve, ou nulo.
    *
    * Vem junto do resultado da busca, sem requisição nova — é o mesmo dado que a

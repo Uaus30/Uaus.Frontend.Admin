@@ -32,7 +32,46 @@ export type StockCorrectionTarget = {
  */
 export const STOCK_CORRECTION_WATCH_MS = 30 * 60 * 1000;
 
-type PendingCorrection = StockCorrectionTarget & { since: number };
+export type PendingCorrection = StockCorrectionTarget & { since: number };
+
+/**
+ * A anotação fica no APARELHO (revisão da fase 3, 21/10/2026). No celular o
+ * sistema pode encerrar o PDV instalado enquanto a pessoa está no admin; só em
+ * memória, a anotação sumia junto, e na reabertura ninguém relia o saldo. Sem
+ * `localStorage` (navegação privada, armazenamento cheio) ela vale enquanto o app
+ * estiver aberto, como antes.
+ */
+const STORAGE_KEY = "uaus.pdv.correcoes-de-estoque";
+
+/** As anotações gravadas no aparelho. Lixo no armazenamento vira lista vazia. */
+export function loadPendingCorrections(): Record<number, PendingCorrection> {
+  try {
+    const bruto: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    if (typeof bruto !== "object" || bruto === null) return {};
+    const pending: Record<number, PendingCorrection> = {};
+    for (const item of Object.values(bruto as Record<string, Partial<PendingCorrection> | null>)) {
+      if (typeof item?.id !== "number" || typeof item.name !== "string" || typeof item.since !== "number")
+        continue;
+      pending[item.id] = {
+        id: item.id,
+        name: item.name,
+        barcode: typeof item.barcode === "string" ? item.barcode : null,
+        since: item.since,
+      };
+    }
+    return pending;
+  } catch {
+    return {};
+  }
+}
+
+function savePendingCorrections(pending: Record<number, PendingCorrection>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pending));
+  } catch {
+    // Sem armazenamento, a anotação vale só enquanto o app estiver aberto.
+  }
+}
 
 type StockCorrectionState = {
   /** Produtos com correção aberta no admin, por id. */
@@ -43,7 +82,7 @@ type StockCorrectionState = {
 };
 
 export const useStockCorrectionStore = create<StockCorrectionState>((set) => ({
-  pending: {},
+  pending: loadPendingCorrections(),
   watch: (target, now = Date.now()) =>
     set((state) => ({ pending: { ...state.pending, [target.id]: { ...target, since: now } } })),
   forget: (ids) =>
@@ -53,6 +92,8 @@ export const useStockCorrectionStore = create<StockCorrectionState>((set) => ({
       return { pending };
     }),
 }));
+
+useStockCorrectionStore.subscribe((state) => savePendingCorrections(state.pending));
 
 /**
  * Os produtos a reler agora. As anotações vencidas saem da lista no caminho.
