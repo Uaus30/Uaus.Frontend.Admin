@@ -201,7 +201,7 @@ describe("useProductEditor Hook", () => {
   });
 
   it("trocar o código de um cadastro com venda recarrega a tela com as duas variações (22/10/2026)", async () => {
-    // O servidor manteve o código antigo neste cadastro (MARCA ANTERIOR 1) e criou
+    // O servidor manteve o código antigo neste cadastro (marca M1) e criou
     // a variação 11 com o código novo: o produto simples passou a ter variações, e
     // a tabela tem que trazer as duas — com a nova selecionada.
     mocks.saveProductGroupWithProducts.mockResolvedValueOnce({
@@ -214,7 +214,7 @@ describe("useProductEditor Hook", () => {
             newProductId: 11,
             newBarcode: "2000000000770",
             previousBarcode: "123456",
-            previousBrand: "MARCA ANTERIOR 1",
+            previousBrand: "M1",
           },
         } as never,
       ],
@@ -234,7 +234,7 @@ describe("useProductEditor Hook", () => {
     });
     mocks.getProductsPage.mockResolvedValue({
       data: [
-        linha(10, "123456", [{ gradeType: GRADE_TYPE.Brand, value: "MARCA ANTERIOR 1" }]),
+        linha(10, "123456", [{ gradeType: GRADE_TYPE.Brand, value: "M1" }]),
         linha(11, "2000000000770", []),
       ],
       total: 2,

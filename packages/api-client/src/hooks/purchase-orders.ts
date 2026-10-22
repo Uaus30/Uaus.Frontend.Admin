@@ -306,7 +306,7 @@ export interface ReceivePurchasePayload {
   /**
    * "Código de barras mudou?" (22/10/2026): o código novo de uma variação já
    * cadastrada da compra. Sem venda, o backend só troca o código; com venda, o
-   * cadastro fica com o antigo como "MARCA ANTERIOR N" e as unidades desta compra
+   * cadastro fica com o antigo como a marca "M1" (M2…) e as unidades desta compra
    * entram na variação nova, com o código novo.
    */
   barcodeChanges?: ReceiveBarcodeChangePayload[];

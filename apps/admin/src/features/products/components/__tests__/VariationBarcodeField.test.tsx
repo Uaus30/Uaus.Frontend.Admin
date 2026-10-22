@@ -21,7 +21,7 @@ function campo() {
 }
 
 describe("VariationBarcodeField — código com venda (fase 4; troca liberada em 22/10/2026)", () => {
-  it("variação que já vendeu: o código se troca, e a dica diz que o antigo vira MARCA ANTERIOR", () => {
+  it("variação que já vendeu: o código se troca, e a dica diz que o antigo fica com a marca M1", () => {
     render(
       <VariationBarcodeField
         variation={variacao({ hasSales: true })}
@@ -31,7 +31,7 @@ describe("VariationBarcodeField — código com venda (fase 4; troca liberada em
     );
 
     expect(campo().readOnly).toBe(false);
-    expect(campo().title).toMatch(/MARCA ANTERIOR/);
+    expect(campo().title).toMatch(/marca M1/);
   });
 
   it("variação sem venda continua editável", () => {

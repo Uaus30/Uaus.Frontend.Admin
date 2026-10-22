@@ -139,7 +139,7 @@ describe("marca em branco (22/10/2026)", () => {
       form: grupo({ hasVariations: true }),
       productEditor: produto(),
       variationDrafts: [
-        variacao({ key: "a", values: [{ gradeType: GRADE_TYPE.Brand, value: "MARCA ANTERIOR 1" }] }),
+        variacao({ key: "a", values: [{ gradeType: GRADE_TYPE.Brand, value: "M1" }] }),
         variacao({ key: "b", values: [] }),
       ],
     });

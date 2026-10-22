@@ -352,7 +352,7 @@ export function useProductEditor() {
   /**
    * Recarrega a tela depois que salvar trocou o código de um cadastro COM venda
    * (22/10/2026): o servidor deixou o código antigo neste cadastro, como a
-   * variação MARCA ANTERIOR, e criou outra variação com o código novo. O produto
+   * variação de marca M1 (M2…), e criou outra variação com o código novo. O produto
    * simples passou a ter variações, e a tabela precisa das duas.
    *
    * A ordem importa. A lista do grupo é buscada ANTES de liberar a hidratação da

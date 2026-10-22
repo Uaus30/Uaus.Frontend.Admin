@@ -194,7 +194,7 @@ recebimento dela é o que gera a entrada.
 - **"Código de barras mudou?" no recebimento** (`PurchaseReceiveBarcodeChanges`,
   `lib/receive-barcode.ts`): o fabricante trocou o código da embalagem. Sem
   venda, o código é só trocado no cadastro; com venda, o cadastro fica com o
-  antigo (e com o estoque) como `MARCA ANTERIOR N`, e as unidades desta compra
+  antigo (e com o estoque) como a marca `M1` (`M2`…), e as unidades desta compra
   entram numa variação nova, com o código novo e sem marca — são elas que o caixa
   vai bipar com ele. Abre sozinho quando as instruções falam de código. A mesma
   regra vale no editor de produto (ver `features/products/README.md`).

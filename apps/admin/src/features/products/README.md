@@ -970,8 +970,10 @@ O dono mexe pelo celular em preço, nome, foto, correção de estoque e variaç�
 mesmo cadastro, a peça na prateleira deixaria de ser achada no PDV. Até
 21/10/2026 o campo ficava travado. **Desde 22/10/2026 (decisão do dono) a troca
 é aceita assim**: o cadastro com venda fica com o código ANTIGO — e com o
-estoque, os lotes e as vendas — como a variação de Marca **`MARCA ANTERIOR N`**,
-e o código novo nasce numa variação nova do mesmo produto, **sem marca** (o dono
+estoque, os lotes e as vendas — como a variação de Marca **`M1`** (`M2`, `M3`…
+nas trocas seguintes; até 22/10/2026 era `MARCA ANTERIOR 1`, e o dono pediu algo
+neutro, porque a marca sai no cupom e no site), e o código novo nasce numa
+variação nova do mesmo produto, **sem marca** (o dono
 a preenche nas variações, se quiser). Produto simples passa a ter variações. O
 estoque mínimo vai para a variação nova, que é a que se repõe dali em diante.
 

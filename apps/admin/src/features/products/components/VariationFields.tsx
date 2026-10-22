@@ -67,7 +67,7 @@ export function VariationBarcodeField({
           updateVariationDraft(variation.key, (draft) => ({ ...draft, barcode: e.target.value }))
         }
         // Código com venda não se troca NO MESMO cadastro: desde 22/10/2026
-        // trocá-lo deixa o antigo nesta variação como MARCA ANTERIOR e cria a do
+        // trocá-lo deixa o antigo nesta variação com a marca M1 (M2…) e cria a do
         // código novo, sem marca. O `title` avisa antes.
         placeholder="Auto"
         inputMode="numeric"
@@ -76,7 +76,7 @@ export function VariationBarcodeField({
         title={
           barcodeInput.error ??
           (variation.hasSales
-            ? "Código com venda: trocar mantém este código aqui como MARCA ANTERIOR e cria a variação do código novo."
+            ? "Código com venda: trocar mantém este código aqui com a marca M1 (M2, M3… nas trocas seguintes) e cria a variação do código novo."
             : undefined)
         }
         className={cn(

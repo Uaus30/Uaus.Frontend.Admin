@@ -310,7 +310,7 @@ export function useProductSubmit({
 
       await invalidateProductQueries(saved.group.id);
       // O código de um cadastro COM venda foi trocado (22/10/2026): o servidor o
-      // manteve neste cadastro, como MARCA ANTERIOR, e criou a variação do código
+      // manteve neste cadastro, com a marca M1 (M2…), e criou a variação do código
       // novo. A tela recarrega as variações — o produto simples passou a tê-las.
       const separacao = saved.products.find((product) => product.barcodeSplit)?.barcodeSplit;
       if (separacao) {

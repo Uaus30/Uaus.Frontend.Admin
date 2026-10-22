@@ -382,7 +382,7 @@ describe("PurchaseReceiveDialog — instruções, código novo e teto (22/10/202
     fireEvent.change(screen.getByLabelText("Código novo de SACOLA"), { target: { value: "77" } });
 
     expect(onBarcodeChange).toHaveBeenCalledWith(963, "77");
-    expect(screen.getByText(/MARCA ANTERIOR/)).toBeTruthy();
+    expect(screen.getByText("M1")).toBeTruthy();
   });
 
   it("instrução que fala de código já abre a seção", () => {

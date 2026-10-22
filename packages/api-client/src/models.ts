@@ -586,8 +586,8 @@ export interface ProductDto {
   hasSales?: boolean;
   /**
    * Só na resposta da edição que trocou o código de um cadastro COM venda
-   * (22/10/2026): este cadastro ficou com o código antigo, como "MARCA ANTERIOR
-   * N", e o código novo nasceu noutra variação, sem marca. Omitido no resto.
+   * (22/10/2026): este cadastro ficou com o código antigo, como a marca "M1"
+   * (M2…), e o código novo nasceu noutra variação, sem marca. Omitido no resto.
    */
   barcodeSplit?: ProductBarcodeSplitDto;
   /**
@@ -3289,6 +3289,6 @@ export interface ProductBarcodeSplitDto {
   newBarcode: string;
   /** O código que ficou no cadastro editado. */
   previousBarcode: string;
-  /** A marca que o cadastro editado recebeu ("MARCA ANTERIOR 1"). */
+  /** A marca que o cadastro editado recebeu ("M1"). */
   previousBrand: string;
 }

@@ -22,8 +22,8 @@ type PurchaseReceiveBarcodeChangesProps = {
  *
  * O fabricante trocou o código da embalagem: quem recebe bipa o novo na variação.
  * Sem venda, o código é só trocado no cadastro. Com venda, o cadastro fica com o
- * código antigo — e com o estoque e as vendas dele — como a variação MARCA
- * ANTERIOR, e as unidades desta compra entram numa variação nova, com o código
+ * código antigo — e com o estoque e as vendas dele — como a variação de marca
+ * M1 (M2…), e as unidades desta compra entram numa variação nova, com o código
  * novo e sem marca. O texto diz isso antes de confirmar, porque o efeito aparece
  * em outra tela (a de Produtos).
  *
@@ -59,9 +59,9 @@ export function PurchaseReceiveBarcodeChanges({
         <div className="space-y-3 border-t border-border/40 px-4 py-3">
           <p className="text-xs leading-relaxed text-muted-foreground">
             Bipe o código novo da embalagem. Se o código atual ainda não vendeu, ele é só trocado. Se já
-            vendeu, o cadastro atual fica com ele (e com o estoque) como a variação{" "}
-            <span className="font-semibold">MARCA ANTERIOR</span>, e estas unidades entram numa variação nova,
-            com o código novo e sem marca.
+            vendeu, o cadastro atual fica com ele (e com o estoque) como a variação de marca{" "}
+            <span className="font-semibold">M1</span> (M2, M3… nas trocas seguintes), e estas unidades entram
+            numa variação nova, com o código novo e sem marca.
           </p>
           {cadastradas.map((item) => {
             const digitado = changes[item.productId] ?? "";

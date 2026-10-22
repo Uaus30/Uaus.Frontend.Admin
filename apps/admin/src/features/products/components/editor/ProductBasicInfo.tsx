@@ -88,8 +88,8 @@ export function ProductBasicInfo({
         {productEditor.hasSales && (
           <p className="text-xs text-muted-foreground">
             Este código já tem vendas. Se trocar, ele fica neste cadastro (com o estoque e as vendas) como a
-            variação <span className="font-semibold">MARCA ANTERIOR</span>, e o código novo vira uma variação
-            nova do produto, sem marca.
+            variação de marca <span className="font-semibold">M1</span> (M2, M3… nas trocas seguintes), e o
+            código novo vira uma variação nova do produto, sem marca.
           </p>
         )}
         {barcodeInput.kind === "internal" && (

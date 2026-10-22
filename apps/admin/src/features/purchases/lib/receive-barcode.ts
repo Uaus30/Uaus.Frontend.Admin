@@ -7,7 +7,7 @@ import type { PurchaseFormItem } from "../types";
  *
  * O fabricante troca o código da embalagem, e a compra chega com o número novo.
  * Quem recebe bipa o código novo na variação: sem venda, o backend só troca o
- * código; com venda, o cadastro fica com o antigo como "MARCA ANTERIOR N" e as
+ * código; com venda, o cadastro fica com o antigo como a marca "M1" (M2…) e as
  * unidades desta compra entram numa variação nova, com o código novo — são elas
  * que o caixa vai bipar com ele.
  *
