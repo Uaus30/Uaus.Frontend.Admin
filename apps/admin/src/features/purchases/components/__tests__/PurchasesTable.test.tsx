@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { SupplierDto } from "@workspace/api-client-react";
 import { PurchasesTable } from "../PurchasesTable";
 import type { PurchaseDto } from "../../types";
 
@@ -28,7 +29,12 @@ function compra(overrides: Record<string, unknown> = {}): PurchaseDto {
   } as unknown as PurchaseDto;
 }
 
-function renderTable(items: PurchaseDto[], onEdit = vi.fn()) {
+const FORNECEDORES = [
+  { id: 1, name: "Shopee" },
+  { id: 4, name: "Atacado" },
+] as unknown as SupplierDto[];
+
+function renderTable(items: PurchaseDto[], onEdit = vi.fn(), supplierFilter = "all") {
   render(
     <PurchasesTable
       items={items}
@@ -37,6 +43,9 @@ function renderTable(items: PurchaseDto[], onEdit = vi.fn()) {
       setSearch={vi.fn()}
       statusFilter="open"
       setStatusFilter={vi.fn()}
+      supplierFilter={supplierFilter}
+      setSupplierFilter={vi.fn()}
+      suppliers={FORNECEDORES}
       page={1}
       totalPages={1}
       setPage={vi.fn()}
@@ -73,5 +82,60 @@ describe("PurchasesTable — no celular (06/10/2026)", () => {
     const item = screen.getByRole("menuitem", { name: /lançar recebimento/i });
     expect(item.getAttribute("aria-disabled")).toBe("true");
     expect(within(item).getByText("Marque como a caminho antes")).toBeTruthy();
+  });
+});
+
+describe("PurchasesTable — instruções de recebimento (22/10/2026)", () => {
+  it("a compra com instruções mostra o ícone pulsando; sem instruções, nada", () => {
+    renderTable([compra({ receivingInstructions: "Vender avulso" }), compra({ id: 8 })]);
+
+    const icones = screen.getAllByTestId("receiving-instructions-icon");
+    expect(icones).toHaveLength(1);
+    expect(icones[0].getAttribute("aria-label")).toBe("Instruções de recebimento: Vender avulso");
+    expect(icones[0].querySelector("svg")?.getAttribute("class")).toContain("animate-pulse");
+  });
+
+  it("o clique no ícone mostra o texto e NÃO abre a compra", async () => {
+    const { onEdit } = renderTable([compra({ receivingInstructions: "Atualizar o código de barras" })]);
+
+    fireEvent.click(screen.getByTestId("receiving-instructions-icon"));
+
+    expect(onEdit).not.toHaveBeenCalled();
+    const textos = await screen.findAllByText("Atualizar o código de barras");
+    expect(textos.length).toBeGreaterThan(0);
+
+    // O conteúdo do tooltip vai para um portal, mas o clique nele sobe pela
+    // árvore do React: sem o bloqueio, tocar no texto abria a compra.
+    fireEvent.click(textos[0]);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+});
+
+describe("PurchasesTable — filtro de fornecedor (22/10/2026)", () => {
+  it("sem filtro, o select diz todos os fornecedores", () => {
+    renderTable([compra()]);
+    expect(
+      within(screen.getByRole("combobox", { name: "Fornecedor" })).getByText("Todos os fornecedores"),
+    ).toBeTruthy();
+  });
+
+  it("com filtro lembrado, o select mostra o fornecedor e fica destacado", () => {
+    renderTable([compra()], vi.fn(), "4");
+    const select = screen.getByRole("combobox", { name: "Fornecedor" });
+    expect(within(select).getByText("Atacado")).toBeTruthy();
+    expect(select.className).toContain("border-primary/60");
+  });
+});
+
+describe("PurchasesTable — cor da margem em quatro faixas (22/10/2026)", () => {
+  // Custo 4,50: a 7,50 a margem é 40%; a 6,80, 33,8%; a 5,80, 22,4%; a 5,00, 10%.
+  it.each([
+    [7.5, "text-emerald-600"],
+    [6.8, "text-lime-600"],
+    [5.8, "text-orange-600"],
+    [5, "text-red-600"],
+  ])("custo 4,50 vendido a %s pinta %s", (preco, cor) => {
+    renderTable([compra({ suggestedPrice: preco })]);
+    expect(screen.getByTitle(/Sobre o preço sugerido/).className).toContain(cor);
   });
 });

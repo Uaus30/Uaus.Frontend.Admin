@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GRADE_TYPE } from "@workspace/api-client-react";
-import { validateProductForm } from "../validateProductForm";
+import { belowCostItems, salePriceLimitProblem, validateProductForm } from "../validateProductForm";
 import type { ProductEditorForm, ProductGroupForm, VariationDraft } from "../../types";
 
 function grupo(overrides: Partial<ProductGroupForm> = {}): ProductGroupForm {
@@ -130,5 +130,108 @@ describe("validateProductForm", () => {
 
     expect(errors).toEqual({ [`grade-${GRADE_TYPE.Color}-product-2`]: true });
     expect(firstErrorElementId).toBe(`input-grade-${GRADE_TYPE.Color}-product-2`);
+  });
+});
+
+describe("marca em branco (22/10/2026)", () => {
+  it("a variação sem marca passa — é como nasce a do código novo de um cadastro com venda", () => {
+    const { errors } = validateProductForm({
+      form: grupo({ hasVariations: true }),
+      productEditor: produto(),
+      variationDrafts: [
+        variacao({ key: "a", values: [{ gradeType: GRADE_TYPE.Brand, value: "MARCA ANTERIOR 1" }] }),
+        variacao({ key: "b", values: [] }),
+      ],
+    });
+
+    expect(errors).toEqual({});
+  });
+
+  it("as outras grades continuam obrigatórias", () => {
+    const { errors } = validateProductForm({
+      form: grupo({ hasVariations: true }),
+      productEditor: produto(),
+      variationDrafts: [
+        variacao({ key: "a", values: [{ gradeType: GRADE_TYPE.Color, value: "AZUL" }] }),
+        variacao({ key: "b", values: [{ gradeType: GRADE_TYPE.Color, value: "" }] }),
+      ],
+    });
+
+    expect(errors).toEqual({ [`grade-${GRADE_TYPE.Color}-b`]: true });
+  });
+});
+
+describe("salePriceLimitProblem — teto de R$ 30", () => {
+  it("aponta o preço do produto simples acima do teto", () => {
+    const problema = salePriceLimitProblem({
+      form: grupo(),
+      productEditor: produto({ price: 30.01 }),
+      variationDrafts: [],
+    });
+
+    expect(problema?.errors).toEqual({ price: true });
+    expect(problema?.message).toMatch(/teto da loja/);
+  });
+
+  it("aponta só as variações acima do teto, e o teto exato passa", () => {
+    const problema = salePriceLimitProblem({
+      form: grupo({ hasVariations: true }),
+      productEditor: produto(),
+      variationDrafts: [variacao({ key: "a", price: 30 }), variacao({ key: "b", price: 35 })],
+    });
+
+    expect(problema?.errors).toEqual({ "price-b": true });
+    expect(
+      salePriceLimitProblem({ form: grupo(), productEditor: produto({ price: 30 }), variationDrafts: [] }),
+    ).toBeNull();
+  });
+});
+
+describe("belowCostItems — margem negativa pergunta antes", () => {
+  it("produto simples com preço abaixo do último custo", () => {
+    expect(
+      belowCostItems({
+        form: grupo(),
+        productEditor: produto({ price: 20 }),
+        variationDrafts: [],
+        simpleCost: 22,
+      }),
+    ).toEqual(["COPO TÉRMICO"]);
+    expect(
+      belowCostItems({
+        form: grupo(),
+        productEditor: produto({ price: 25 }),
+        variationDrafts: [],
+        simpleCost: 22,
+      }),
+    ).toEqual([]);
+    expect(
+      belowCostItems({
+        form: grupo(),
+        productEditor: produto({ price: 20 }),
+        variationDrafts: [],
+        simpleCost: null,
+      }),
+    ).toEqual([]);
+  });
+
+  it("nas variações, só as gravadas com custo — a nova não tem custo para comparar", () => {
+    const itens = belowCostItems({
+      form: grupo({ hasVariations: true }),
+      productEditor: produto(),
+      variationDrafts: [
+        variacao({
+          key: "a",
+          price: 20,
+          costPrice: 25,
+          values: [{ gradeType: GRADE_TYPE.Brand, value: "MASTER" }],
+        }),
+        variacao({ key: "b", price: 20, costPrice: 10 }),
+        variacao({ key: "c", price: 5 }),
+      ],
+      simpleCost: null,
+    });
+
+    expect(itens).toEqual(["COPO TÉRMICO [MASTER]"]);
   });
 });

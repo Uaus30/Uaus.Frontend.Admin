@@ -457,3 +457,169 @@ describe("usePurchases — produto novo com variações (fase 5)", () => {
     await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
   });
 });
+
+describe("usePurchases — filtro de fornecedor lembrado (22/10/2026)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    mocks.useGetPurchases.mockReturnValue({ data: undefined, isLoading: false, isError: false, error: null });
+  });
+
+  it("sem memória, pede todos os fornecedores", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    expect(result.current.supplierFilter).toBe("all");
+    expect(lastQueryParams()).not.toHaveProperty("supplierId");
+  });
+
+  it("o filtro escolhido vai na consulta, volta à página 1 e sobrevive à tela ser desmontada", () => {
+    const primeira = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+    act(() => primeira.result.current.setPage(2));
+    act(() => primeira.result.current.setSupplierFilter("13"));
+
+    expect(primeira.result.current.page).toBe(1);
+    expect(lastQueryParams()).toMatchObject({ supplierId: 13, page: 1 });
+
+    // Registrar a compra ou lançar o recebimento leva para fora e volta: a tela
+    // nasce de novo, com o filtro de antes.
+    primeira.unmount();
+    const segunda = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+    expect(segunda.result.current.supplierFilter).toBe("13");
+    expect(lastQueryParams()).toMatchObject({ supplierId: 13 });
+  });
+});
+
+describe("usePurchases — código de barras mudou e margem negativa no recebimento (22/10/2026)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+    mocks.receivePurchase.mockResolvedValue(
+      compra({ productId: 963, productGroupId: 805, status: "Received" }),
+    );
+  });
+
+  const comItem = () =>
+    compra({
+      productId: 963,
+      productGroupId: 805,
+      productPrice: 9.9,
+      items: [
+        {
+          id: 6,
+          productId: 963,
+          productName: "SACOLA KRAFT",
+          barcode: "7891234567895",
+          quantity: 20,
+          grossTotal: 90,
+          finalTotal: 90,
+          stock: 3,
+          unitFinal: 4.5,
+        },
+      ],
+    });
+
+  it("o código novo bipado vai no corpo do recebimento", async () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(comItem()));
+    act(() => result.current.updateReceiveBarcode(963, " 77 "));
+    act(() => result.current.confirmReceive());
+
+    await waitFor(() =>
+      expect(mocks.receivePurchase).toHaveBeenCalledWith(
+        7,
+        expect.objectContaining({ barcodeChanges: [{ productId: 963, barcode: "77" }] }),
+      ),
+    );
+  });
+
+  it("sem código novo, o corpo não leva a lista", async () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(comItem()));
+    act(() => result.current.confirmReceive());
+
+    await waitFor(() => expect(mocks.receivePurchase).toHaveBeenCalled());
+    expect(mocks.receivePurchase.mock.calls[0][1].barcodeChanges).toBeUndefined();
+  });
+
+  it("preço abaixo do custo pergunta antes, e só confirmando lança", async () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(comItem()));
+    act(() => result.current.updateReceiveForm("price", 3.9));
+    act(() => result.current.confirmReceive());
+
+    expect(result.current.belowCostOpen).toBe(true);
+    expect(mocks.receivePurchase).not.toHaveBeenCalled();
+
+    act(() => result.current.confirmReceiveBelowCost());
+    await waitFor(() =>
+      expect(mocks.receivePurchase).toHaveBeenCalledWith(7, expect.objectContaining({ price: 3.9 })),
+    );
+  });
+
+  it("confirmar depois de revisar não lança — o diálogo ainda está saindo da tela", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(comItem()));
+    act(() => result.current.updateReceiveForm("price", 3.9));
+    act(() => result.current.confirmReceive());
+    act(() => result.current.cancelReceiveBelowCost());
+    act(() => result.current.confirmReceiveBelowCost());
+
+    expect(mocks.receivePurchase).not.toHaveBeenCalled();
+  });
+
+  it("preço em branco confere o preço ATUAL do produto contra o custo", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive({ ...(comItem() as object), productPrice: 4 } as never));
+    act(() => result.current.updateReceiveForm("price", 0));
+    act(() => result.current.confirmReceive());
+
+    expect(result.current.belowCostOpen).toBe(true);
+  });
+
+  it("preço acima do teto da loja não vai à rede", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() => result.current.startReceive(comItem()));
+    act(() => result.current.updateReceiveForm("price", 31));
+    act(() => result.current.confirmReceive());
+
+    expect(mocks.receivePurchase).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ description: expect.stringMatching(/teto da loja/) }),
+    );
+  });
+});
+
+describe("usePurchases — preço do recebimento sem preço na compra (22/10/2026)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+  });
+
+  it("vem com o preço ATUAL do produto quando a compra não decidiu um", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() =>
+      result.current.startReceive(compra({ productId: 963, productGroupId: 805, productPrice: 9.9 })),
+    );
+
+    expect(result.current.receiveForm.price).toBe(9.9);
+  });
+
+  it("o preço decidido na compra continua mandando", () => {
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+
+    act(() =>
+      result.current.startReceive(
+        compra({ productId: 963, productGroupId: 805, productPrice: 9.9, suggestedPrice: 12.9 }),
+      ),
+    );
+
+    expect(result.current.receiveForm.price).toBe(12.9);
+  });
+});

@@ -142,7 +142,8 @@ recebimento dela é o que gera a entrada.
   estoque). No recebimento ele já vem preenchido e passa a valer no cadastro do
   produto; em branco (zero) o produto fica com o preço que já tem. Perguntar de
   novo no recebimento seria pedir a mesma decisão duas vezes.
-- **O campo nasce preenchido com o preço do cálculo de margem** (13/09/2026):
+- **O campo nasce preenchido com o preço do cálculo de margem** (13/09/2026;
+  na REPOSIÇÃO, com o preço atual do produto desde 22/10/2026 — ver abaixo):
   informar o total final preenche o sugerido com 40% de margem sobre o custo
   unitário, arredondado para cima ao múltiplo de dez centavos. Na maioria das
   compras a sugestão é o que se pratica, e digitá-la de novo seria repetir uma
@@ -160,6 +161,43 @@ recebimento dela é o que gera a entrada.
   hospedagem aceita. URL e busca na web passam antes pelo proxy do backend
   (CORS). No recebimento de produto novo, as mesmas imagens viram a galeria do
   cadastro sem novo upload.
+
+## Ajustes de 22/10/2026 (pedido do dono)
+
+- **Filtro por fornecedor, lembrado** (`lib/purchase-filters.ts`). Ao lado do
+  filtro de situação; o fornecedor escolhido fica no `localStorage`, por usuário
+  como a memória da última compra, e sobrevive a registrar uma compra e a lançar
+  um recebimento — que leva à tela do produto e desmonta esta. Fornecedor
+  excluído deixa de filtrar. Filtrando, o select fica destacado, para ninguém
+  procurar a compra de outro fornecedor numa lista recortada.
+- **Margem em quatro faixas** — vermelho abaixo de 20%, laranja de 20% a 30%,
+  amarelo-limão de 30% a 40%, verde a partir de 40% —, a mesma em toda tela
+  (`marginBand` do `core` e `apps/admin/src/lib/margin-tone.ts`).
+- **Teto de R$ 30** no preço sugerido e no preço do recebimento: a sugestão pela
+  margem para no teto (`suggestedSalePrice`), e acima dele o formulário não grava
+  (o backend recusa do mesmo jeito). **Margem negativa é permitida**, mas pergunta
+  antes de gravar — na compra e no recebimento (onde o preço em branco é
+  conferido pelo preço atual do produto).
+- **Reposição nasce com o preço ATUAL do produto** (`lib/purchase-pricing.ts`),
+  e não com a margem sobre o custo: repor não é decidir preço de novo. Variações
+  com preços diferentes nascem em BRANCO — em branco, o recebimento mantém o
+  preço de cada uma (`request.Price ?? compra.SuggestedPrice ?? produto.Price`, no
+  backend); um preço único achataria os outros. Produto novo segue os 40%.
+- **Instruções de recebimento** (`purchases.receiving_instructions`, até 1.000
+  caracteres): o recado de quem comprou para quem recebe — "vender avulso",
+  "atualizar o código de barras". Chama-se assim, e não "Observações", para não
+  se confundir com a observação do produto. É o último campo da compra, abaixo
+  das fotos, em âmbar quando preenchido; na listagem, um ícone de mensagem âmbar
+  pulsa na linha e mostra o texto no tooltip (no toque, o clique alterna — e não
+  abre a compra); no recebimento e no cadastro de produto novo vindo da compra,
+  um quadro âmbar no alto.
+- **"Código de barras mudou?" no recebimento** (`PurchaseReceiveBarcodeChanges`,
+  `lib/receive-barcode.ts`): o fabricante trocou o código da embalagem. Sem
+  venda, o código é só trocado no cadastro; com venda, o cadastro fica com o
+  antigo (e com o estoque) como `MARCA ANTERIOR N`, e as unidades desta compra
+  entram numa variação nova, com o código novo e sem marca — são elas que o caixa
+  vai bipar com ele. Abre sozinho quando as instruções falam de código. A mesma
+  regra vale no editor de produto (ver `features/products/README.md`).
 
 ## A reposição do produto inteiro se reparte na grade (15/10/2026)
 

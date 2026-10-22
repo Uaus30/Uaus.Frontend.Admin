@@ -40,6 +40,17 @@ describe("PricingPreview", () => {
     expect(screen.queryByTestId("pricing-preview")).toBeNull();
   });
 
+  it("a sugestão para no teto de R$ 30 da loja, e diz por quê (22/10/2026)", () => {
+    // Custo 20 pediria R$ 33,40 para 40% de margem — acima do que a loja vende.
+    const onApplySuggested = vi.fn();
+    render(<PricingPreview unitCost={20} price={25} onApplySuggested={onApplySuggested} />);
+
+    expect(screen.getByText(/Sugerido \(teto da loja\)/)).toBeTruthy();
+    expect(screen.getByText("R$ 30,00")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Usar sugerido/ }));
+    expect(onApplySuggested).toHaveBeenCalledWith(30);
+  });
+
   it("mostra a margem negativa quando o preço está abaixo do custo", () => {
     render(<PricingPreview unitCost={10} price={8} onApplySuggested={vi.fn()} />);
 

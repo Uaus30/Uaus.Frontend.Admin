@@ -144,4 +144,21 @@ describe("PurchaseEditorModal — nota fiscal e leitor de código (24/09/2026)",
 
     expect(screen.getByText("2000000000206")).toBeTruthy();
   });
+
+  it("as instruções de recebimento são o último campo, abaixo das fotos, e ficam em destaque quando preenchidas", () => {
+    // Pedido do dono (22/10/2026): "Instruções de recebimento", e não
+    // "Observações" — para não confundir com a observação do produto.
+    renderModal();
+
+    const campo = screen.getByLabelText("Instruções de recebimento") as HTMLTextAreaElement;
+    const fotos = screen.getByText("Fotos", { selector: "label" });
+    expect(fotos.compareDocumentPosition(campo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(campo.className).not.toContain("border-amber-500/60");
+
+    fireEvent.change(campo, { target: { value: "Vender avulso" } });
+
+    expect((screen.getByLabelText("Instruções de recebimento") as HTMLTextAreaElement).className).toContain(
+      "border-amber-500/60",
+    );
+  });
 });

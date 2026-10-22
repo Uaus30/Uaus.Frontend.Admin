@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useDebounce, useToast } from "@workspace/ui";
-import { describeApiError } from "@workspace/core";
+import { describeApiError, exceedsMaxSalePrice, isBelowCost } from "@workspace/core";
 import {
   PURCHASE_STATUS,
   deletePurchase,
@@ -18,11 +18,19 @@ import {
 } from "@workspace/api-client-react";
 import { RESOURCE_KEYS, useAllCategories, useAllDepartments, useAllSuppliers } from "@/hooks/use-catalog";
 import { useApiErrorToast } from "@/hooks/use-api-error-toast";
+import { useSessao } from "@/hooks/use-sessao";
 import { announceReactivatedProducts } from "@/lib/product-reactivation";
 import { planTripNotice } from "@/lib/stock-control";
 import { productStockTabPathname } from "@/features/products/product-detail-route";
 import { productFromPurchasePath } from "../purchases-route";
 import { conferencia, isNewBrandRow, purchaseItemIdOf } from "../lib/new-brand";
+import {
+  effectiveSupplierFilter,
+  purchasesSupplierParams,
+  readSupplierFilter,
+  rememberSupplierFilter,
+} from "../lib/purchase-filters";
+import { barcodeChangesOf, receiveBarcodeProblem, receiveUnitCost } from "../lib/receive-barcode";
 import type { PurchaseFormItem, ReceiveForm } from "../types";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
 import { usePurchaseFromUrl } from "./usePurchaseFromUrl";
@@ -79,7 +87,9 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
     entryDate: todayDateKey(),
     invoiceNumber: purchase?.invoiceNumber ?? "",
     notes: "",
-    price: purchase?.suggestedPrice ?? 0,
+    // Sem preço na compra, o ATUAL do produto (22/10/2026): a reposição grava o
+    // preço em branco quando ninguém o mexeu, e o recebimento mostra o de agora.
+    price: purchase?.suggestedPrice ?? purchase?.productPrice ?? 0,
     // A grade vem com o que foi PEDIDO; conferir é ajustar o que veio. A marca
     // nova (fase 4) vem com o código que a compra já sabia, se sabia — o
     // recebimento o exige, bipado ou gerado.
@@ -118,6 +128,7 @@ function emptyReceiveForm(purchase?: PurchaseDto): ReceiveForm {
     }),
     finalTotal: purchase?.finalTotal ?? 0,
     currentBrand: "",
+    barcodeChanges: {},
   };
 }
 
@@ -149,6 +160,18 @@ export function usePurchases() {
   const [statusFilter, setStatusFilterState] = useState<string>(STATUS_FILTER_OPEN);
   const [page, setPage] = useState(1);
 
+  const { data: suppliers = [] } = useAllSuppliers();
+
+  // O filtro de fornecedor é LEMBRADO (22/10/2026, pedido do dono): registrar uma
+  // compra ou lançar um recebimento — que leva à tela do produto e desmonta esta —
+  // não o desfaz. Enquanto ninguém escolhe nesta visita, vale o gravado; quem
+  // escolhe grava. Ver `lib/purchase-filters.ts`.
+  const { data: usuario } = useSessao();
+  const userId = usuario?.id ?? null;
+  const lembrado = useMemo(() => readSupplierFilter(userId), [userId]);
+  const [supplierChoice, setSupplierChoice] = useState<string | null>(null);
+  const supplierFilter = effectiveSupplierFilter(supplierChoice ?? lembrado, suppliers);
+
   function setSearch(value: string) {
     setSearchValue(value);
     setPage(1);
@@ -159,15 +182,21 @@ export function usePurchases() {
     setPage(1);
   }
 
+  function setSupplierFilter(value: string) {
+    setSupplierChoice(value);
+    rememberSupplierFilter(userId, value);
+    setPage(1);
+  }
+
   const list = useGetPurchases({
     ...purchasesStatusParams(statusFilter),
+    ...purchasesSupplierParams(supplierFilter),
     search: search || undefined,
     page,
     limit: PAGE_SIZE,
   });
   useApiErrorToast(list.isError, list.error);
 
-  const { data: suppliers = [] } = useAllSuppliers();
   // O recebimento grava entrada: com a conferência de estoque aberta, fica pausado.
   const stockFrozen = useGetStockFreezeStatus().data?.salesPaused === true;
   // Departamento e categoria saíram do cadastro de produto para a compra
@@ -235,6 +264,8 @@ export function usePurchases() {
   // ---- Recebimento de produto já cadastrado ----
   const [receiving, setReceiving] = useState<PurchaseDto | null>(null);
   const [receiveForm, setReceiveForm] = useState<ReceiveForm>(emptyReceiveForm);
+  /** O preço do recebimento fica abaixo do custo: a confirmação está aberta. */
+  const [belowCostOpen, setBelowCostOpen] = useState(false);
 
   const receiveMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: ReceiveForm }) =>
@@ -271,6 +302,8 @@ export function usePurchases() {
           : undefined,
         finalTotal: conferencia(payload.items) ? payload.finalTotal : undefined,
         currentBrand: payload.currentBrand.trim() || null,
+        // "Código de barras mudou?" (22/10/2026): só o que mudou de fato.
+        barcodeChanges: barcodeChangesOf(payload.items, payload.barcodeChanges),
       }),
     onSuccess: async (purchase) => {
       await invalidate();
@@ -370,6 +403,14 @@ export function usePurchases() {
     }));
   }
 
+  /** "Código de barras mudou?": o código novo de uma variação cadastrada da compra. */
+  function updateReceiveBarcode(productId: number, valor: string) {
+    setReceiveForm((current) => ({
+      ...current,
+      barcodeChanges: { ...current.barcodeChanges, [productId]: valor },
+    }));
+  }
+
   function updateReceiveItem(productId: number, campo: "quantity" | "finalTotal", valor: number) {
     setReceiveForm((current) => ({
       ...current,
@@ -397,12 +438,33 @@ export function usePurchases() {
     form.openEdit(purchase);
   }
 
-  function confirmReceive() {
+  /**
+   * Confirma o recebimento.
+   *
+   * Preço abaixo do custo — margem negativa — é permitido (22/10/2026: o custo
+   * pode passar do teto de R$ 30), mas pergunta antes: é o número que só se digita
+   * por engano ou de propósito. Em branco vale o preço atual do produto, que
+   * também é conferido.
+   */
+  function confirmReceive(aceitaPrejuizo = false) {
     if (!receiving) return;
     if (!receiveForm.entryDate) {
       toast({ title: "Informe a data da entrada", variant: "warning" });
       return;
     }
+    const problema = exceedsMaxSalePrice(receiveForm.price)
+      ? "O preço de venda não pode passar de R$ 30,00, o teto da loja."
+      : receiveBarcodeProblem(receiveForm.items, receiveForm.barcodeChanges);
+    if (problema) {
+      toast({ title: "Atenção", description: problema, variant: "warning" });
+      return;
+    }
+    const preco = receiveForm.price > 0 ? receiveForm.price : (receiving.productPrice ?? 0);
+    if (!aceitaPrejuizo && isBelowCost(receiveUnitCost(receiving, receiveForm.items), preco)) {
+      setBelowCostOpen(true);
+      return;
+    }
+    setBelowCostOpen(false);
     receiveMutation.mutate({ id: receiving.id, payload: receiveForm });
   }
 
@@ -412,6 +474,8 @@ export function usePurchases() {
     setSearch,
     statusFilter,
     setStatusFilter,
+    supplierFilter,
+    setSupplierFilter,
     page,
     setPage,
     totalPages: list.data?.totalPages ?? 1,
@@ -436,11 +500,19 @@ export function usePurchases() {
     updateReceiveForm,
     updateReceiveItem,
     updateReceiveBrand,
+    updateReceiveBarcode,
     addReceiveItem,
     startReceive,
     cancelReceive: () => setReceiving(null),
     editReceiving,
-    confirmReceive,
+    confirmReceive: () => confirmReceive(),
+    /** A pergunta da margem negativa no recebimento. */
+    belowCostOpen,
+    // Só com a pergunta de pé — ver `usePurchaseForm.confirmBelowCost`.
+    confirmReceiveBelowCost: () => {
+      if (belowCostOpen) confirmReceive(true);
+    },
+    cancelReceiveBelowCost: () => setBelowCostOpen(false),
     isReceiving: receiveMutation.isPending,
     stockFrozen,
   };

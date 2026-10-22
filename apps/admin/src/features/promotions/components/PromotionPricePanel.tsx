@@ -9,23 +9,18 @@ import {
   TableRow,
 } from "@workspace/ui";
 import { formatCurrency, marginBand } from "@workspace/core";
+import { marginToneClass } from "@/lib/margin-tone";
 import { AlertTriangle, Info, TrendingDown } from "lucide-react";
 import type { PromotionPreviewDto } from "../types";
 
 /**
- * Cor da margem — verde ≥ 40%, âmbar de 30% a 40%, vermelho abaixo.
- *
- * Vem de `marginBand` do `packages/core`, e não de um corte próprio desta tela:
- * a faixa de margem já é vocabulário da loja, e um segundo corte aqui faria o
- * mesmo produto sair âmbar na entrada de estoque e verde na promoção.
+ * Cor da margem — as quatro faixas de `marginBand` do `packages/core`, nas cores
+ * de `marginToneClass`, e não um corte próprio desta tela: a faixa de margem já é
+ * vocabulário da loja, e um segundo corte aqui faria o mesmo produto sair de uma
+ * cor na entrada de estoque e de outra na promoção.
  */
 function marginClass(margin: number | null | undefined): string {
-  const band = marginBand(margin ?? null);
-
-  if (band === "healthy") return "text-emerald-600 dark:text-emerald-400";
-  if (band === "tight") return "text-amber-600 dark:text-amber-400";
-  if (band === "low") return "text-destructive";
-  return "text-muted-foreground";
+  return marginToneClass(marginBand(margin ?? null));
 }
 
 /** Margem em texto. Nula é "—", nunca "0%": desconhecida não é zero. */

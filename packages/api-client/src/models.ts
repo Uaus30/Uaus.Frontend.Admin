@@ -579,10 +579,17 @@ export interface ProductDto {
   status: EnumValue;
   canDelete: boolean;
   /**
-   * O cadastro já vendeu? Código com venda não se troca (fase 4, 14/10/2026), e
-   * o editor trava o campo. Opcional por segurança de versão.
+   * O cadastro já vendeu? Código com venda não se troca no MESMO cadastro (fase
+   * 4, 14/10/2026): desde 22/10/2026 trocá-lo separa o produto em duas variações
+   * (`barcodeSplit`), e o editor avisa antes. Opcional por segurança de versão.
    */
   hasSales?: boolean;
+  /**
+   * Só na resposta da edição que trocou o código de um cadastro COM venda
+   * (22/10/2026): este cadastro ficou com o código antigo, como "MARCA ANTERIOR
+   * N", e o código novo nasceu noutra variação, sem marca. Omitido no resto.
+   */
+  barcodeSplit?: ProductBarcodeSplitDto;
   /**
    * Nome como o usuário vê: `name` mais os valores de grade entre colchetes, em
    * caixa alta. Igual a `name` em produto simples.
@@ -3273,4 +3280,15 @@ export interface CatalogPieceHistoryDto {
   cooldownDays: number;
   /** Da mais recente para a mais antiga. */
   pieces: CatalogPieceDto[];
+}
+
+/** A separação de um cadastro com venda que trocou de código (22/10/2026). */
+export interface ProductBarcodeSplitDto {
+  /** A variação nova, com o código novo e sem marca. */
+  newProductId: number;
+  newBarcode: string;
+  /** O código que ficou no cadastro editado. */
+  previousBarcode: string;
+  /** A marca que o cadastro editado recebeu ("MARCA ANTERIOR 1"). */
+  previousBrand: string;
 }

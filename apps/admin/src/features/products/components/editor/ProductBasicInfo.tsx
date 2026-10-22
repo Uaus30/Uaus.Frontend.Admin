@@ -73,9 +73,8 @@ export function ProductBasicInfo({
               lookupBarcode(value);
             }}
             inputMode="numeric"
-            // Código com venda não se troca (fase 4): a API recusa do mesmo jeito.
-            readOnly={productEditor.hasSales === true}
-            title={productEditor.hasSales ? "Código com venda não se troca." : undefined}
+            // Código com venda não se troca NO MESMO cadastro: desde 22/10/2026
+            // trocá-lo cria a variação do código novo — o aviso abaixo diz como.
             aria-invalid={barcodeInput.kind === "invalid"}
             className={`bg-background flex-1 font-mono transition-all duration-300 ${flashSuccess ? "animate-border-flash" : ""} ${
               barcodeInput.kind === "invalid"
@@ -88,7 +87,9 @@ export function ProductBasicInfo({
         {barcodeInput.error && <p className="text-xs font-medium text-red-500">{barcodeInput.error}</p>}
         {productEditor.hasSales && (
           <p className="text-xs text-muted-foreground">
-            Este código já tem vendas e não se troca. Para um código novo, cadastre a variação com ele.
+            Este código já tem vendas. Se trocar, ele fica neste cadastro (com o estoque e as vendas) como a
+            variação <span className="font-semibold">MARCA ANTERIOR</span>, e o código novo vira uma variação
+            nova do produto, sem marca.
           </p>
         )}
         {barcodeInput.kind === "internal" && (

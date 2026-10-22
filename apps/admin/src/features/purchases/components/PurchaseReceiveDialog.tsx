@@ -1,13 +1,14 @@
-import { AlertTriangle, PackageCheck, Pencil } from "lucide-react";
-import { Button, Input, Textarea, cn } from "@workspace/ui";
+import { AlertTriangle, MessageSquareWarning, PackageCheck, Pencil } from "lucide-react";
+import { Button, ConfirmDialog, Input, Textarea, cn } from "@workspace/ui";
 import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
-import { formatCurrency } from "@workspace/core";
+import { exceedsMaxSalePrice, formatCurrency } from "@workspace/core";
 import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { PurchaseReceiveGrid } from "./PurchaseReceiveGrid";
+import { PurchaseReceiveBarcodeChanges } from "./PurchaseReceiveBarcodeChanges";
 import {
   conferencia,
   currentBrandProblem,
@@ -28,6 +29,8 @@ type PurchaseReceiveDialogProps = {
     campo: "newBarcode" | "generateBarcode",
     valor: string | boolean,
   ) => void;
+  /** "Código de barras mudou?": o código novo de uma variação cadastrada. */
+  onBarcodeChange?: (productId: number, value: string) => void;
   /** Variação que veio e não estava no pedido. */
   onAddItem: (item: PurchaseFormItem) => void;
   onCancel: () => void;
@@ -40,6 +43,10 @@ type PurchaseReceiveDialogProps = {
    * avisa e trava o confirmar, em vez de o operador descobrir pela recusa.
    */
   stockFrozen?: boolean;
+  /** O preço ficou abaixo do custo: a confirmação da margem negativa está aberta. */
+  belowCostOpen?: boolean;
+  onConfirmBelowCost?: () => void;
+  onCancelBelowCost?: () => void;
 };
 
 /**
@@ -84,12 +91,16 @@ export function PurchaseReceiveDialog({
   onChange,
   onItemChange,
   onBrandChange,
+  onBarcodeChange,
   onAddItem,
   onCancel,
   onConfirm,
   onEditPurchase,
   isSaving,
   stockFrozen = false,
+  belowCostOpen = false,
+  onConfirmBelowCost,
+  onCancelBelowCost,
 }: PurchaseReceiveDialogProps) {
   const missingCost = purchase !== null && purchase.finalTotal <= 0;
   // Com uma variação só não há conferência a fazer: o que foi pedido é o que
@@ -105,7 +116,11 @@ export function PurchaseReceiveDialog({
   const problemaDaMarca =
     receiveNewBrandProblem(form.items, produtoNovo ? "variação" : "marca") ??
     (pedeMarcaAtual ? currentBrandProblem(form.items, form.currentBrand) : null) ??
-    (produtoNovo && form.price <= 0 ? "Informe o preço de venda: o produto novo nasce com ele." : null);
+    (produtoNovo && form.price <= 0 ? "Informe o preço de venda: o produto novo nasce com ele." : null) ??
+    // A loja é "tudo até R$ 30" (22/10/2026).
+    (exceedsMaxSalePrice(form.price)
+      ? "O preço de venda não pode passar de R$ 30,00, o teto da loja."
+      : null);
   const somaDaGrade =
     Math.round(
       form.items.filter((item) => item.quantity > 0).reduce((total, item) => total + item.finalTotal, 0) *
@@ -161,6 +176,21 @@ export function PurchaseReceiveDialog({
               </p>
             </div>
 
+            {/* O recado de quem comprou (22/10/2026): no alto, em âmbar, antes de
+                qualquer campo — é para ser lido com a caixa na mão. */}
+            {purchase.receivingInstructions && (
+              <div
+                data-testid="receive-instructions"
+                className="flex items-start gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3.5 py-3 text-sm leading-relaxed text-amber-800 dark:text-amber-200"
+              >
+                <MessageSquareWarning className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide">Instruções de recebimento</p>
+                  <p className="whitespace-pre-line break-words">{purchase.receivingInstructions}</p>
+                </div>
+              </div>
+            )}
+
             {missingCost && (
               <div
                 data-testid="receive-missing-cost"
@@ -213,7 +243,8 @@ export function PurchaseReceiveDialog({
                     ? "O preço do produto novo, em todas as variações."
                     : purchase.suggestedPrice
                       ? "Veio do preço sugerido na compra. Em branco (zero) mantém o preço atual."
-                      : "Em branco (zero) mantém o preço atual do cadastro."}
+                      : "Em branco (zero) mantém o preço atual do cadastro."}{" "}
+                  Até R$ 30,00.
                 </p>
               </div>
             </div>
@@ -234,6 +265,17 @@ export function PurchaseReceiveDialog({
                 newRowSuffix={produtoNovo ? "variação nova" : "marca nova"}
                 allowAddVariation={!produtoNovo}
                 onUseSum={(soma) => onChange("finalTotal", soma)}
+              />
+            )}
+
+            {/* O fabricante trocou o código da embalagem (22/10/2026). Produto novo
+                não tem cadastro a trocar: o código de cada variação já está acima. */}
+            {!produtoNovo && onBarcodeChange && (
+              <PurchaseReceiveBarcodeChanges
+                items={form.items}
+                changes={form.barcodeChanges}
+                onChange={onBarcodeChange}
+                defaultOpen={/c[oó]digo/i.test(purchase.receivingInstructions ?? "")}
               />
             )}
 
@@ -303,6 +345,19 @@ export function PurchaseReceiveDialog({
             </div>
           </form>
         )}
+
+        {/* Margem negativa é permitida (o custo pode passar do teto de R$ 30), mas
+            pergunta antes: é o número que só se digita por engano ou de propósito. */}
+        <ConfirmDialog
+          open={belowCostOpen}
+          onOpenChange={(aberto) => !aberto && onCancelBelowCost?.()}
+          title="Preço abaixo do custo"
+          description="O preço de venda fica abaixo do custo unitário desta compra — a margem é negativa e cada venda dá prejuízo. Confirmar mesmo assim?"
+          confirmLabel="Confirmar com margem negativa"
+          cancelLabel="Revisar o preço"
+          destructive
+          onConfirm={() => onConfirmBelowCost?.()}
+        />
       </DialogContent>
     </Dialog>
   );

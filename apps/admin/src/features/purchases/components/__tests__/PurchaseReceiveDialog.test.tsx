@@ -329,3 +329,76 @@ describe("PurchaseReceiveDialog — produto novo com variações (fase 5)", () =
     expect(confirmar().disabled).toBe(false);
   });
 });
+
+describe("PurchaseReceiveDialog — instruções, código novo e teto (22/10/2026)", () => {
+  function renderCom(
+    extras: Partial<PurchaseDto>,
+    form: Partial<ReceiveForm> = {},
+    onBarcodeChange = vi.fn(),
+  ) {
+    render(
+      <PurchaseReceiveDialog
+        purchase={{ ...compra(), ...extras } as PurchaseDto}
+        form={{ ...formulario(), barcodeChanges: {}, ...form } as ReceiveForm}
+        onChange={vi.fn()}
+        onItemChange={vi.fn()}
+        onBarcodeChange={onBarcodeChange}
+        onAddItem={vi.fn()}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+        onEditPurchase={vi.fn()}
+        isSaving={false}
+      />,
+    );
+    return { onBarcodeChange };
+  }
+
+  const item = {
+    productId: 963,
+    name: "SACOLA",
+    barcode: "7891234567895",
+    stock: 3,
+    quantity: 20,
+    grossTotal: 90,
+    finalTotal: 90,
+  };
+
+  it("mostra as instruções de recebimento em destaque, antes dos campos", () => {
+    renderCom({ receivingInstructions: "Vender avulso" } as Partial<PurchaseDto>);
+
+    expect(screen.getByTestId("receive-instructions").textContent).toContain("Vender avulso");
+  });
+
+  it("sem instruções, o quadro não aparece", () => {
+    renderCom({});
+
+    expect(screen.queryByTestId("receive-instructions")).toBeNull();
+  });
+
+  it("'Código de barras mudou?' abre e manda o código novo da variação", () => {
+    const { onBarcodeChange } = renderCom({}, { items: [item] });
+
+    fireEvent.click(screen.getByRole("button", { name: /código de barras mudou/i }));
+    fireEvent.change(screen.getByLabelText("Código novo de SACOLA"), { target: { value: "77" } });
+
+    expect(onBarcodeChange).toHaveBeenCalledWith(963, "77");
+    expect(screen.getByText(/MARCA ANTERIOR/)).toBeTruthy();
+  });
+
+  it("instrução que fala de código já abre a seção", () => {
+    renderCom({ receivingInstructions: "Atualizar o código de barras" } as Partial<PurchaseDto>, {
+      items: [item],
+    });
+
+    expect(screen.getByLabelText("Código novo de SACOLA")).toBeTruthy();
+  });
+
+  it("preço acima do teto trava o confirmar e diz por quê", () => {
+    renderCom({}, { price: 31 });
+
+    expect(screen.getByText(/teto da loja/)).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: /confirmar recebimento/i }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+});

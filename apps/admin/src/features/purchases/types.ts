@@ -124,6 +124,11 @@ export type PurchaseForm = {
   invoiceNumber: string;
   details: string;
   purchaseLink: string;
+  /**
+   * Instruções de recebimento (22/10/2026): o recado para quem vai receber —
+   * "vender avulso", "atualizar o código de barras". Vazio é "sem instrução".
+   */
+  receivingInstructions: string;
   /** Dia da compra, `yyyy-MM-dd`. Nasce hoje. */
   purchaseDate: string;
   quantity: number;
@@ -170,4 +175,10 @@ export type ReceiveForm = {
    * produto simples: ele vira a primeira variação e precisa de uma (fase 4).
    */
   currentBrand: string;
+  /**
+   * "Código de barras mudou?" (22/10/2026): o código novo digitado ou bipado, por
+   * `productId` da variação cadastrada. Vazio é "não mudou". Ver
+   * `lib/receive-barcode.ts`.
+   */
+  barcodeChanges: Record<number, string>;
 };

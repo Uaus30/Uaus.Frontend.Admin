@@ -200,6 +200,75 @@ describe("useProductEditor Hook", () => {
     expect(mocks.getProductById).toHaveBeenCalledWith(10);
   });
 
+  it("trocar o código de um cadastro com venda recarrega a tela com as duas variações (22/10/2026)", async () => {
+    // O servidor manteve o código antigo neste cadastro (MARCA ANTERIOR 1) e criou
+    // a variação 11 com o código novo: o produto simples passou a ter variações, e
+    // a tabela tem que trazer as duas — com a nova selecionada.
+    mocks.saveProductGroupWithProducts.mockResolvedValueOnce({
+      group: { id: 1 },
+      products: [
+        {
+          id: 10,
+          canDelete: false,
+          barcodeSplit: {
+            newProductId: 11,
+            newBarcode: "2000000000770",
+            previousBarcode: "123456",
+            previousBrand: "MARCA ANTERIOR 1",
+          },
+        } as never,
+      ],
+    });
+    const linha = (id: number, barcode: string, valores: { gradeType: number; value: string }[]) => ({
+      id,
+      name: "COPO",
+      description: "",
+      price: 15.5,
+      stock: id === 10 ? 2 : 0,
+      minStock: 0,
+      status: 2,
+      barcode,
+      productGroupId: 1,
+      variationValues: valores,
+      canDelete: false,
+    });
+    mocks.getProductsPage.mockResolvedValue({
+      data: [
+        linha(10, "123456", [{ gradeType: GRADE_TYPE.Brand, value: "MARCA ANTERIOR 1" }]),
+        linha(11, "2000000000770", []),
+      ],
+      total: 2,
+    });
+
+    const { result } = renderHook(() => useProductEditor(), { wrapper: createWrapper() });
+    act(() => {
+      result.current.openDetail({
+        id: 10,
+        name: "COPO",
+        price: 15.5,
+        stock: 2,
+        status: 2,
+        barcode: "123456",
+        hasSales: true,
+        department: { id: 2 },
+        category: { id: 5 },
+        productGroup: { id: 1, name: "COPO", hasVariations: false },
+        tags: [],
+        images: [],
+      });
+    });
+    act(() => result.current.setProductEditor((atual) => ({ ...atual, barcode: "77" })));
+
+    await act(async () => {
+      await result.current.handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
+    });
+
+    await waitFor(() => expect(result.current.form.hasVariations).toBe(true));
+    await waitFor(() => expect(result.current.variationDrafts.map((draft) => draft.id)).toEqual([10, 11]));
+    expect(result.current.activeVariationKey).toBe("product-11");
+    expect(result.current.variationDrafts[1].values).toEqual([]);
+  });
+
   it("produto simples ganhando variação: a carga do grupo não apaga a linha da modal", async () => {
     // REGRESSÃO (produção, 12/09/2026 — produto 897 em admin.uaus.com.br):
     // "Configurar Variações" gerava a tabela e, um instante depois, ela voltava
@@ -853,10 +922,9 @@ describe("cadastro a partir de uma compra", () => {
     expect(result.current.form.description).toBe("500ml");
     expect(result.current.productEditor.name).toBe("CANECA TERMICA");
     // Sem preço sugerido na compra, cai na regra da loja: 40% de margem sobre o
-    // custo unitário FINAL (33,33 / 0,6 = 55,55), arredondado PARA CIMA ao
-    // múltiplo de 10 centavos — 55,50 daria 39,9%, e a sugestão nunca fica
-    // abaixo do alvo.
-    expect(result.current.productEditor.price).toBe(55.6);
+    // custo unitário FINAL (33,33 / 0,6 = 55,55) — mas nunca acima do teto de
+    // R$ 30 (22/10/2026). A margem que sobra aparece na cor dela.
+    expect(result.current.productEditor.price).toBe(30);
     // As fotos entram JÁ enviadas (imageId): o salvar só cria a associação.
     expect(result.current.images).toEqual([
       { imageId: 9, name: "CANECA TERMICA", url: expect.stringContaining("caneca.jpg") },

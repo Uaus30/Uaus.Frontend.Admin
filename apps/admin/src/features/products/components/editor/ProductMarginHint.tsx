@@ -1,5 +1,5 @@
 import { formatCurrency, formatPercentage, marginBand, marginPercent } from "@workspace/core";
-import { marginToneClass } from "@/features/stock-entries/lib/margin-tone";
+import { marginToneClass } from "@/lib/margin-tone";
 import type { MarginBase } from "../../lib/costAndStock";
 
 type ProductMarginHintProps = {

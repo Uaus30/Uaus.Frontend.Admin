@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { marginBand, marginPercent, markupPercent, suggestedPrice } from "./pricing";
+import {
+  MAX_SALE_PRICE,
+  exceedsMaxSalePrice,
+  isBelowCost,
+  marginBand,
+  marginPercent,
+  markupPercent,
+  suggestedPrice,
+  suggestedSalePrice,
+} from "./pricing";
 
 describe("marginPercent", () => {
   it.each([
@@ -89,19 +98,49 @@ describe("marginBand", () => {
     [40, "healthy"],
     [39.99, "tight"],
     [30, "tight"],
-    [29.99, "low"],
-    [25.83, "low"],
+    [29.99, "thin"],
+    [25.83, "thin"],
+    [20, "thin"],
+    [19.99, "low"],
     [0, "low"],
     [-20, "low"],
   ])("margem de %s%% cai na faixa %s", (margem, esperado) => {
-    // Os cortes são a regra do dono: verde a partir de 40%, amarelo de 30% a
-    // 40%, vermelho abaixo de 30%. Antes o corte era 20% e uma margem de
-    // 25,83% saía verde na entrada de estoque.
+    // Os cortes são a regra do dono (22/10/2026): verde a partir de 40%,
+    // amarelo-limão de 30% a 40%, laranja de 20% a 30% e vermelho abaixo de 20%.
+    // Cada borda é do degrau de CIMA: 30% já é amarelo, 20% já é laranja.
     expect(marginBand(margem)).toBe(esperado);
   });
 
   it("não classifica o que não tem margem", () => {
     expect(marginBand(null)).toBeNull();
     expect(marginBand(Number.NaN)).toBeNull();
+  });
+});
+
+describe("teto do preço de venda", () => {
+  it("a sugestão pela margem para no teto da loja", () => {
+    // Custo 20 pede 33,40 para 40% de margem; a loja não vende acima de 30.
+    expect(suggestedPrice(20)).toBe(33.4);
+    expect(suggestedSalePrice(20)).toBe(MAX_SALE_PRICE);
+    expect(suggestedSalePrice(8.9)).toBe(14.9);
+    expect(suggestedSalePrice(0)).toBeNull();
+  });
+
+  it("só passa do teto o que é maior que 30", () => {
+    expect(exceedsMaxSalePrice(30)).toBe(false);
+    expect(exceedsMaxSalePrice(30.01)).toBe(true);
+    expect(exceedsMaxSalePrice(0)).toBe(false);
+  });
+});
+
+describe("isBelowCost", () => {
+  it.each([
+    [35, 30, true],
+    [30, 30, false],
+    [10, 15, false],
+    [0, 10, false],
+    [10, 0, false],
+  ])("custo %s e preço %s: abaixo do custo = %s", (custo, preco, esperado) => {
+    expect(isBelowCost(custo, preco)).toBe(esperado);
   });
 });

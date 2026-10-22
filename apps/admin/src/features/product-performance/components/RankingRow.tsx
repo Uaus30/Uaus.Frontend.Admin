@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { TableCell, TableRow, cn } from "@workspace/ui";
 import { formatCurrency, marginBand } from "@workspace/core";
+import { marginToneClass } from "@/lib/margin-tone";
 import type { ProductPerformanceItemDto, ProductPerformanceParametersDto } from "@workspace/api-client-react";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
 import { BI_TONE_FILL, BI_TONE_PILL, BI_TONE_TEXT } from "@/lib/bi-tone";
@@ -81,13 +82,6 @@ function explicarMargem(
 
   return `Margem realizada no período. ${daLoja}`;
 }
-
-/** Cor da margem — a mesma faixa da entrada de estoque e do recebimento de compra. */
-const MARGEM_TOM = {
-  healthy: "text-emerald-600 dark:text-emerald-400",
-  tight: "text-amber-600 dark:text-amber-400",
-  low: "text-destructive",
-} as const;
 
 /**
  * Uma linha do ranking.
@@ -207,7 +201,7 @@ export function RankingRow({ produto, parameters, mostrarRisco }: RankingRowProp
       <TableCell
         className={cn(
           "px-2 py-2 text-right font-mono text-[12px] tabular-nums",
-          faixaDaMargem ? MARGEM_TOM[faixaDaMargem] : "text-muted-foreground",
+          marginToneClass(faixaDaMargem),
         )}
         title={explicarMargem(produto, margem, parameters)}
       >

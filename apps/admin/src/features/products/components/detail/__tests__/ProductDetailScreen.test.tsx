@@ -50,9 +50,16 @@ vi.mock("@/features/inventory-count/components/ProductConferenceBanner", () => (
   ProductConferenceBanner: () => null,
 }));
 
-// A validação tem teste próprio; aqui ela só precisa deixar o salvar seguir.
+// A validação tem teste próprio; aqui ela só precisa deixar o salvar seguir —
+// inclusive o teto de R$ 30 e a pergunta da margem negativa (22/10/2026).
 vi.mock("../../../lib/validateProductForm", () => ({
   validateProductForm: mocks.validateProductForm,
+  salePriceLimitProblem: () => null,
+  belowCostItems: () => [],
+}));
+// O "Último custo" do produto simples vem do servidor; aqui não há custo.
+vi.mock("../../../hooks/useProductForEntry", () => ({
+  useProductForEntry: () => ({ data: undefined }),
 }));
 
 const { ProductDetailScreen } = await import("../ProductDetailScreen");

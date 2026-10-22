@@ -1,3 +1,5 @@
+import { GRADE_TYPE } from "@workspace/api-client-react";
+import { MAX_SALE_PRICE, exceedsMaxSalePrice, formatCurrency, isBelowCost } from "@workspace/core";
 import type { ProductEditorForm, ProductGroupForm, VariationDraft } from "../types";
 import { gradesDasVariacoes } from "./variationGrades";
 
@@ -60,6 +62,9 @@ export function validateProductForm({
 
     variationDrafts.forEach((draft) => {
       for (const grade of gradesDoGrupo) {
+        // A MARCA pode ficar em branco (22/10/2026, decisão do dono): é como nasce
+        // a variação do código novo quando o antigo já tinha vendas.
+        if (grade.type === GRADE_TYPE.Brand) continue;
         const valor = (draft.values ?? []).find((value) => value.gradeType === grade.type)?.value?.trim();
         if (!valor) marcar(`grade-${grade.type}-${draft.key}`, `input-grade-${grade.type}-${draft.key}`);
       }
@@ -69,4 +74,55 @@ export function validateProductForm({
   }
 
   return { errors, firstErrorElementId };
+}
+
+/**
+ * Preço acima do teto da loja (R$ 30, 22/10/2026): as chaves dos campos para a
+ * tela pintar e a mensagem do aviso, ou `null` quando está tudo dentro. O backend
+ * recusa do mesmo jeito; aqui o aviso aponta o campo antes da ida à rede.
+ */
+export function salePriceLimitProblem({
+  form,
+  productEditor,
+  variationDrafts,
+}: ValidateProductFormParams): { errors: Record<string, boolean>; message: string } | null {
+  const errors: Record<string, boolean> = {};
+  if (!form.hasVariations) {
+    if (exceedsMaxSalePrice(productEditor.price)) errors.price = true;
+  } else {
+    for (const draft of variationDrafts)
+      if (exceedsMaxSalePrice(draft.price)) errors[`price-${draft.key}`] = true;
+  }
+  if (Object.keys(errors).length === 0) return null;
+  return {
+    errors,
+    message: `O preço de venda não pode passar de ${formatCurrency(MAX_SALE_PRICE)}, o teto da loja.`,
+  };
+}
+
+/**
+ * O que vai ser gravado com preço ABAIXO do custo — margem negativa (22/10/2026).
+ *
+ * A loja permite (o custo pode passar do teto de R$ 30), mas a tela pergunta
+ * antes. O custo do produto simples vem de fora (o "Último custo" da aba, ou o
+ * da compra no cadastro que veio dela); o de cada variação gravada vem do
+ * rascunho. Variação nova não tem custo, e não entra.
+ */
+export function belowCostItems({
+  form,
+  productEditor,
+  variationDrafts,
+  simpleCost,
+}: ValidateProductFormParams & { simpleCost: number | null }): string[] {
+  if (!form.hasVariations)
+    return simpleCost !== null && isBelowCost(simpleCost, productEditor.price)
+      ? [form.productGroupName || productEditor.name]
+      : [];
+
+  return variationDrafts
+    .filter((draft) => draft.costPrice !== undefined && isBelowCost(draft.costPrice, draft.price))
+    .map((draft) => {
+      const valores = draft.values.map((value) => value.value.trim()).filter(Boolean);
+      return valores.length > 0 ? `${form.productGroupName} [${valores.join(", ")}]` : form.productGroupName;
+    });
 }

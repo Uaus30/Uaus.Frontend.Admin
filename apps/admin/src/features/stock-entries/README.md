@@ -37,7 +37,9 @@ deixou de existir, e redirecionar para Produtos seria adivinhar.
 - `components/StockEntryDetailsModal.tsx` — o espelho da nota e o cancelamento.
 - `components/PricingPreview.tsx` — margem, markup e preço sugerido. Usado
   também pela compra e pelo recebimento (`features/purchases`).
-- `lib/margin-tone.ts` — a cor de cada faixa de margem.
+- A cor de cada faixa de margem mora em `apps/admin/src/lib/margin-tone.ts`
+  (saiu daqui em 22/10/2026, quando passou a ser usada por toda tela que mostra
+  margem). O preço sugerido do `PricingPreview` para no teto de R$ 30 da loja.
 - `types.ts` — só o que é da TELA. O que descreve a resposta da API vive em
   `packages/api-client` (`ReceivedPurchaseEntryDto`); as cópias locais saíram em
   13/09/2026, e uma delas já estava incompleta — faltava `userName`, e era por

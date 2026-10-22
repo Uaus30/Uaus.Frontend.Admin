@@ -7,6 +7,7 @@ import { buildPublicImageUrl } from "@/services/core";
 import { syncProductTags, syncProductGroupImages } from "@/services/products.service";
 import { createImageFromFile } from "@/services/images.service";
 import { chaveDaCombinacao } from "../../lib/variationNames";
+import { gradesDasVariacoes } from "../../lib/variationGrades";
 import type {
   LocalImage,
   ProductGroupForm,
@@ -15,6 +16,7 @@ import type {
   VariationDraft,
 } from "../../types";
 import { describeApiError } from "@workspace/core";
+import { GRADE_TYPE } from "@workspace/api-client-react";
 import { applyStockControlChoice, stockControlPayload } from "../../lib/stockControlChoice";
 
 export interface UseProductSubmitProps {
@@ -38,6 +40,11 @@ export interface UseProductSubmitProps {
   savedBaseline: SavedBaseline | null;
   setSavedBaseline: React.Dispatch<React.SetStateAction<SavedBaseline | null>>;
   setForm: React.Dispatch<React.SetStateAction<ProductGroupForm>>;
+  /**
+   * Salvar trocou o código de um cadastro COM venda (22/10/2026): o produto
+   * ganhou a variação do código novo, e a tela recarrega as variações do grupo.
+   */
+  onBarcodeSplit: (newProductId: number) => Promise<void>;
 }
 
 /** A galeria da tela é a mesma que abriu: mesmas fotos, na mesma ordem, nenhuma nova. */
@@ -67,6 +74,7 @@ export function useProductSubmit({
   savedBaseline,
   setSavedBaseline,
   setForm,
+  onBarcodeSplit,
 }: UseProductSubmitProps) {
   const { toast } = useToast();
 
@@ -166,16 +174,24 @@ export function useProductSubmit({
         // Duas variações do mesmo grupo não podem ter a mesma combinação de
         // grades: elas teriam o mesmo nome exibido e ninguém saberia qual vender.
         // O backend recusa também — aqui é o retorno rápido, sem ida à rede.
+        //
+        // A MARCA pode ficar em branco (22/10/2026, decisão do dono): é como nasce
+        // a variação do código novo quando o antigo já tinha vendas. As outras
+        // grades continuam obrigatórias, e duas variações em branco caem na
+        // checagem de combinação repetida.
+        const grades = gradesDasVariacoes(variationDrafts);
+        const soMarca = grades.length > 0 && grades.every((grade) => grade.type === GRADE_TYPE.Brand);
         const combinacoes = new Set<string>();
         for (const draft of variationDrafts) {
-          if (draft.values.length === 0) {
+          const preenchidos = draft.values.filter((value) => value.value.trim());
+          if (preenchidos.length === 0 && !soMarca) {
             throw new Error("Toda variação precisa de pelo menos um valor de grade.");
           }
           if (!draft.status) {
             throw new Error("Preencha o status em todas as variações.");
           }
 
-          const chave = chaveDaCombinacao(draft.values);
+          const chave = chaveDaCombinacao(preenchidos);
           if (combinacoes.has(chave)) {
             throw new Error(
               "Existem variações com a mesma combinação de grades. Remova a duplicidade para continuar.",
@@ -198,11 +214,15 @@ export function useProductSubmit({
           // nenhuma leva o campo e cada uma mantém o que o relatório decidiu.
           ...stockControlPayload(form.stockControl),
           status: getStatusNumber(draft.status),
-          variationValues: draft.values.map((value, index) => ({
-            gradeType: value.gradeType,
-            value: value.value.trim(),
-            displayOrder: index,
-          })),
+          // A marca em branco não vai: a API recusa valor vazio, e sem a linha a
+          // variação fica sem marca, que é o que o operador deixou.
+          variationValues: draft.values
+            .filter((value) => value.value.trim())
+            .map((value, index) => ({
+              gradeType: value.gradeType,
+              value: value.value.trim(),
+              displayOrder: index,
+            })),
         }));
       }
 
@@ -289,17 +309,34 @@ export function useProductSubmit({
       }
 
       await invalidateProductQueries(saved.group.id);
-      if (form.hasVariations) {
+      // O código de um cadastro COM venda foi trocado (22/10/2026): o servidor o
+      // manteve neste cadastro, como MARCA ANTERIOR, e criou a variação do código
+      // novo. A tela recarrega as variações — o produto simples passou a tê-las.
+      const separacao = saved.products.find((product) => product.barcodeSplit)?.barcodeSplit;
+      if (separacao) {
+        await onBarcodeSplit(separacao.newProductId);
+      } else if (form.hasVariations) {
         await refetchGroupProducts();
       }
 
-      toast({
-        title: form.hasVariations
-          ? "Grupo e variações salvos."
-          : editingGroupId
-            ? "Produto atualizado."
-            : "Produto criado.",
-      });
+      toast(
+        separacao
+          ? {
+              title: "Código novo virou uma variação",
+              description:
+                `O código ${separacao.previousBarcode} já tinha vendas e ficou na variação ${separacao.previousBrand}, ` +
+                `com o estoque e as vendas dele. O código ${separacao.newBarcode} é uma variação nova, sem marca — ` +
+                "dê uma marca a ela nas variações, se quiser.",
+              variant: "warning",
+            }
+          : {
+              title: form.hasVariations
+                ? "Grupo e variações salvos."
+                : editingGroupId
+                  ? "Produto atualizado."
+                  : "Produto criado.",
+            },
+      );
 
       // O novo ponto de partida é o que o servidor tem agora. O interruptor vem
       // da resposta: omitido, ele pode ter sido ligado por outra tela — e a tela

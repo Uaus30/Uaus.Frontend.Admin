@@ -8,8 +8,9 @@ import {
   marginPercent,
   markupPercent,
   suggestedPrice,
+  suggestedSalePrice,
 } from "@workspace/core";
-import { marginToneClass } from "../lib/margin-tone";
+import { marginToneClass } from "@/lib/margin-tone";
 
 type PricingPreviewProps = {
   /** Custo unitário digitado na entrada. */
@@ -42,8 +43,12 @@ type PricingPreviewProps = {
  * "margem 100%" para eles seria informação enganosa.
  */
 export function PricingPreview({ unitCost, price, onApplySuggested, readOnly }: PricingPreviewProps) {
-  const suggested = suggestedPrice(unitCost);
+  // A sugestão para no teto de R$ 30 da loja (22/10/2026): custo acima de ~R$ 18
+  // pediria mais que isso para 40% de margem, e o salvar recusaria o próprio
+  // número que a tela acabou de sugerir.
+  const suggested = suggestedSalePrice(unitCost);
   if (suggested === null) return null;
+  const noTeto = suggested < (suggestedPrice(unitCost) ?? 0);
 
   const margin = marginPercent(unitCost, price);
   const markup = markupPercent(unitCost, price);
@@ -71,7 +76,7 @@ export function PricingPreview({ unitCost, price, onApplySuggested, readOnly }: 
 
       <div className="flex items-center gap-2">
         <span className="text-muted-foreground">
-          Sugerido ({DEFAULT_TARGET_MARGIN_PERCENT}% de margem):{" "}
+          {noTeto ? "Sugerido (teto da loja)" : `Sugerido (${DEFAULT_TARGET_MARGIN_PERCENT}% de margem)`}:{" "}
           <span className="font-semibold text-foreground">{formatCurrency(suggested)}</span>
         </span>
         {/* `type="button"`: a modal é um <form>, e um botão sem tipo enviaria a

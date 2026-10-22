@@ -89,6 +89,12 @@ export interface PurchaseDto {
   details?: string | null;
   purchaseLink?: string | null;
   /**
+   * Instruções de recebimento (22/10/2026): o recado de quem comprou para quem
+   * vai receber — "vender avulso", "atualizar o código de barras". Ausente quando
+   * não há; é a presença que acende o ícone da listagem.
+   */
+  receivingInstructions?: string | null;
+  /**
    * Dia em que a compra foi feita, `yyyy-MM-ddT00:00:00` sem fuso. NÃO é
    * `createdAt`: o pedido costuma ser lançado no sistema depois de fechado, e é
    * esta data que a listagem ordena e exibe.
@@ -217,6 +223,8 @@ export interface SavePurchasePayload {
   invoiceNumber: string | null;
   details: string | null;
   purchaseLink: string | null;
+  /** Instruções de recebimento, até 1000 caracteres. Nulo é "sem instrução". */
+  receivingInstructions?: string | null;
   /** `yyyy-MM-ddT00:00:00`, sem fuso. Nulo é hoje. */
   purchaseDate: string | null;
   quantity: number;
@@ -296,10 +304,24 @@ export interface ReceivePurchasePayload {
   /** A grade conferida. Vazia mantém a da compra. */
   items?: ReceivePurchaseItemPayload[];
   /**
+   * "Código de barras mudou?" (22/10/2026): o código novo de uma variação já
+   * cadastrada da compra. Sem venda, o backend só troca o código; com venda, o
+   * cadastro fica com o antigo como "MARCA ANTERIOR N" e as unidades desta compra
+   * entram na variação nova, com o código novo.
+   */
+  barcodeChanges?: ReceiveBarcodeChangePayload[];
+  /**
    * O total pago, se mudou. Nulo mantém o da compra — e aí a soma dos itens
    * precisa fechar com ele, senão o backend recusa dizendo a diferença.
    */
   finalTotal?: number | null;
+}
+
+/** O código novo de uma variação da compra, bipado no recebimento. */
+export interface ReceiveBarcodeChangePayload {
+  productId: number;
+  /** Como foi bipado ou digitado; o backend converte pela regra do cadastro de produto. */
+  barcode: string;
 }
 
 /** Fechamento de compra de produto NOVO, depois do cadastro e da entrada. */

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@workspace/ui";
+import { ArrowLeft, MessageSquareWarning } from "lucide-react";
+import { Button, ConfirmDialog } from "@workspace/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui";
 import { useToast } from "@workspace/ui";
 import { PRODUCT_STATUS, useGetStockFreezeStatus } from "@workspace/api-client-react";
@@ -9,7 +9,9 @@ import type { ProductGrade, VariationDraft } from "../../types";
 import { resolveBarcodeInput } from "@workspace/core";
 import { nomeExibidoDaVariacao, opcoesDeVariacao } from "../../lib/variationNames";
 import { collectPastedImageFiles, optimizePastedImages } from "../../lib/pasteProductImages";
-import { validateProductForm } from "../../lib/validateProductForm";
+import { belowCostItems, salePriceLimitProblem, validateProductForm } from "../../lib/validateProductForm";
+import { resolveMarginBase } from "../../lib/costAndStock";
+import { useProductForEntry } from "../../hooks/useProductForEntry";
 import { useFirstPhotoSitePrompt } from "../../hooks/editor/useFirstPhotoSitePrompt";
 import { ProductNotesAlert } from "./ProductNotesAlert";
 import { ProductDetailActions } from "./ProductDetailActions";
@@ -156,6 +158,14 @@ export function ProductDetailScreen({
     syncVariationStock,
     getStatusNumber,
   } = editor;
+  // O "Último custo" do produto simples, para a pergunta da margem negativa. É a
+  // mesma consulta (e o mesmo cache) do bloco de preço da aba Dados.
+  const { data: produtoDoCusto } = useProductForEntry(form.hasVariations ? null : productEditor.id);
+  /**
+   * Preço abaixo do custo esperando a confirmação (22/10/2026): o que vai ficar
+   * com margem negativa e se o salvar veio do Avançar, para seguir de aba depois.
+   */
+  const [prejuizo, setPrejuizo] = useState<{ itens: string[]; avancar: boolean } | null>(null);
 
   // Só na montagem: a tela desmonta ao fechar, então cada abertura relê a aba.
   const [activeTab, setActiveTab] = useState<string>(initialTab ?? "dados");
@@ -283,7 +293,7 @@ export function ProductDetailScreen({
    * Valida e grava. Devolve `true` só quando o servidor confirmou — é o que o
    * Avançar espera para trocar de aba.
    */
-  async function salvar(): Promise<boolean> {
+  async function salvar(opcoes: { aceitaPrejuizo?: boolean; avancar?: boolean } = {}): Promise<boolean> {
     const { errors, firstErrorElementId } = validateProductForm({ form, productEditor, variationDrafts });
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
@@ -296,7 +306,27 @@ export function ProductDetailScreen({
       return false;
     }
 
+    // A loja é "tudo até R$ 30" (22/10/2026); o backend recusa do mesmo jeito.
+    const acimaDoTeto = salePriceLimitProblem({ form, productEditor, variationDrafts });
+    if (acimaDoTeto) {
+      setValidationErrors(acimaDoTeto.errors);
+      setActiveTab("dados");
+      toast({ title: "Atenção", description: acimaDoTeto.message, variant: "warning" });
+      return false;
+    }
+
     setValidationErrors({});
+
+    // Preço abaixo do custo é permitido (o custo pode passar do teto), mas
+    // pergunta antes de gravar.
+    if (!opcoes.aceitaPrejuizo) {
+      const custoSimples = resolveMarginBase(produtoDoCusto?.costPrice, purchaseContext)?.cost ?? null;
+      const itens = belowCostItems({ form, productEditor, variationDrafts, simpleCost: custoSimples });
+      if (itens.length > 0) {
+        setPrejuizo({ itens, avancar: opcoes.avancar ?? false });
+        return false;
+      }
+    }
 
     // O cadastro novo que veio de uma compra só termina com a entrada, que o
     // estoque congelado recusa. Salvo agora, o produto nasceria sem estoque e a
@@ -336,9 +366,21 @@ export function ProductDetailScreen({
 
   /** Salva e, dando certo, vai para a próxima aba (ver `PROXIMA_ABA`). */
   async function avancar() {
-    const gravou = await salvar();
+    const gravou = await salvar({ avancar: true });
     if (!gravou) return;
     setActiveTab(PROXIMA_ABA[activeTab] ?? "dados");
+  }
+
+  /** "Gravar com margem negativa": grava e, se o pedido veio do Avançar, avança. */
+  async function confirmarPrejuizo() {
+    const pendente = prejuizo;
+    // Pergunta já respondida com "Revisar o preço": o diálogo ainda fica na tela
+    // durante a animação de saída, e um clique no botão de gravar nesse intervalo
+    // gravaria o prejuízo que a pessoa acabou de recusar (smoke de 22/10/2026).
+    if (pendente === null) return;
+    setPrejuizo(null);
+    const gravou = await salvar({ aceitaPrejuizo: true });
+    if (gravou && pendente?.avancar) setActiveTab(PROXIMA_ABA[activeTab] ?? "dados");
   }
 
   const cadastroNovo = editingGroupId === null;
@@ -414,6 +456,23 @@ export function ProductDetailScreen({
         {/* Só aparece quando o cadastro está numa conferência ABERTA — é o que
             permite conferir sem sair da tela em que a correção é feita. */}
         <ProductConferenceBanner productGroupId={editingGroupId} />
+
+        {/* O recado de quem comprou, para quem cadastra com a caixa na mão
+            (22/10/2026) — o mesmo destaque do diálogo de recebimento. */}
+        {purchaseContext?.receivingInstructions && (
+          <div
+            data-testid="product-purchase-instructions"
+            className="flex items-start gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3.5 py-3 text-sm leading-relaxed text-amber-800 dark:text-amber-200"
+          >
+            <MessageSquareWarning className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide">
+                Instruções de recebimento da compra #{purchaseContext.purchaseId}
+              </p>
+              <p className="whitespace-pre-line break-words">{purchaseContext.receivingInstructions}</p>
+            </div>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex flex-wrap items-center gap-3">
@@ -544,6 +603,26 @@ export function ProductDetailScreen({
         onGoToConflictingPurchase={editor.goToConflictingPurchase}
         onDismissPurchaseConflict={editor.dismissPurchaseConflict}
         sitePrompt={sitePrompt}
+      />
+
+      <ConfirmDialog
+        open={prejuizo !== null}
+        onOpenChange={(aberto) => !aberto && setPrejuizo(null)}
+        title="Preço abaixo do custo"
+        details={
+          prejuizo && (
+            <ul className="list-disc pl-5 text-sm">
+              {prejuizo.itens.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )
+        }
+        description="O preço de venda fica abaixo do último custo — a margem é negativa e cada venda dá prejuízo. Gravar mesmo assim?"
+        confirmLabel="Gravar com margem negativa"
+        cancelLabel="Revisar o preço"
+        destructive
+        onConfirm={confirmarPrejuizo}
       />
 
       <VariationGradesModal

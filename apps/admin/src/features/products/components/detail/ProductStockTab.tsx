@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatPercentage, formatQuantity, marginBand, marginPercent } from "@workspace/core";
-import { marginToneClass } from "@/features/stock-entries/lib/margin-tone";
+import { marginToneClass } from "@/lib/margin-tone";
 import { PURCHASE_ENTRY_TYPE, enumCode, useGetStockFreezeStatus } from "@workspace/api-client-react";
 import { useProductStockEntries } from "@/features/stock-entries/hooks/useProductStockEntries";
 import { useEntryCostCorrection } from "@/features/stock-entries/hooks/useEntryCostCorrection";

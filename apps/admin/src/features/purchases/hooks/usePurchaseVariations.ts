@@ -26,6 +26,8 @@ type VariationOption = {
   brand: string | null;
   /** Tem grade que NÃO é Marca (Cor, Tamanho...)? Aí o produto não aceita marca nova. */
   hasOtherGrade: boolean;
+  /** Preço de venda atual — o da reposição nasce com ele (`defaultSuggestedPrice`). */
+  price: number;
 };
 
 type UsePurchaseVariationsParams = {
@@ -89,6 +91,7 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
         sellable: vendavel(produto.status),
         brand: grades.find((grade) => grade.tipo === GRADE_TYPE.Brand)?.valor ?? null,
         hasOtherGrade: grades.some((grade) => grade.tipo !== GRADE_TYPE.Brand),
+        price: produto.price ?? 0,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -245,6 +248,8 @@ export function usePurchaseVariations({ form, setForm, onEdit }: UsePurchaseVari
     canAddBrand,
     /** As marcas que o produto já tem — a linha nova não pode repetir nenhuma. */
     existingBrands: variations.flatMap((variacao) => (variacao.brand ? [variacao.brand] : [])),
+    /** O preço atual de cada variação do grupo (vazio enquanto a lista não chega). */
+    groupPrices: variations.map((variacao) => variacao.price),
     addNewBrand,
     setNewBrand,
     removeNewBrand,

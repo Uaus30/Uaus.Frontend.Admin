@@ -1,7 +1,13 @@
 import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@workspace/ui";
-import { describeApiError, resolveBarcodeInput, suggestedPrice, toDateKey } from "@workspace/core";
+import {
+  describeApiError,
+  exceedsMaxSalePrice,
+  isBelowCost,
+  resolveBarcodeInput,
+  toDateKey,
+} from "@workspace/core";
 import {
   GRADE_TYPE,
   PURCHASE_STATUS,
@@ -20,6 +26,7 @@ import { useSessao } from "@/hooks/use-sessao";
 import { withinImageLimit } from "@/lib/product-images";
 import { syncPurchaseDetailParam } from "../purchases-route";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import { defaultSuggestedPrice } from "../lib/purchase-pricing";
 import { isNewBrandRow, newBrandProblem, newVariationProblem, normalizeBrand } from "../lib/new-brand";
 import {
   applyPurchaseDefaults,
@@ -59,6 +66,7 @@ export function emptyPurchaseForm(): PurchaseForm {
     invoiceNumber: "",
     details: "",
     purchaseLink: "",
+    receivingInstructions: "",
     purchaseDate: todayDateKey(),
     quantity: 1,
     grossTotal: 0,
@@ -166,6 +174,7 @@ export function purchaseToForm(purchase: PurchaseDto, categories: CategoryDto[] 
     invoiceNumber: purchase.invoiceNumber ?? "",
     details: purchase.details ?? "",
     purchaseLink: purchase.purchaseLink ?? "",
+    receivingInstructions: purchase.receivingInstructions ?? "",
     purchaseDate: dateKeyFromApi(purchase.purchaseDate),
     quantity: purchase.quantity,
     grossTotal: purchase.grossTotal,
@@ -316,6 +325,9 @@ export function validatePurchaseForm(
     return "A quantidade deve ser um inteiro maior que zero.";
   if (form.grossTotal < 0 || form.finalTotal < 0) return "Os valores não podem ser negativos.";
   if (form.suggestedPrice < 0) return "O preço sugerido de venda não pode ser negativo.";
+  // A loja é "tudo até R$ 30" (22/10/2026); o backend recusa do mesmo jeito.
+  if (exceedsMaxSalePrice(form.suggestedPrice))
+    return "O preço sugerido de venda não pode passar de R$ 30,00, o teto da loja.";
   // O bruto primeiro: o final nasce igual a ele, e digitá-lo resolve os dois.
   if (purchaseCostIsRequired(form) && form.grossTotal <= 0)
     return "Informe o total bruto da compra: só compra pendente pode ficar sem ele.";
@@ -428,6 +440,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       setDiscardOpen(false);
       setPendingProduct(null);
       setPendingBarcode(null);
+      setBelowCostOpen(false);
     }
   }
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
@@ -445,6 +458,12 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   const [dirty, setDirty] = useState(false);
   /** A confirmação de descartar está aberta, esperando a resposta. */
   const [discardOpen, setDiscardOpen] = useState(false);
+  /**
+   * O preço sugerido ficou abaixo do custo: a confirmação da margem negativa está
+   * aberta (22/10/2026). A loja permite — o custo pode passar do teto de R$ 30 —,
+   * mas pergunta antes de gravar.
+   */
+  const [belowCostOpen, setBelowCostOpen] = useState(false);
   /**
    * O produto escolhido no seletor, esperando a resposta sobre nome e fotos.
    *
@@ -890,18 +909,29 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setForm((current) => ({ ...current, departmentId: departamentoDaCategoria }));
   }
 
-  // O preço sugerido nasce do CÁLCULO DE MARGEM (custo ÷ 0,6, arredondado para
-  // cima ao múltiplo de R$ 0,10) assim que o custo unitário existe, e continua
-  // editável. É ajuste durante o RENDER, e não efeito: a condição se desfaz
-  // sozinha depois do ajuste, e num efeito seria preciso guardar "já sugeri
-  // para este custo" só para não repor o número em cima do que foi digitado.
+  // O preço sugerido nasce PREENCHIDO e continua editável: na reposição, com o
+  // preço ATUAL do produto (22/10/2026, pedido do dono); no produto novo, com o
+  // cálculo de margem (custo ÷ 0,6, para cima ao múltiplo de R$ 0,10) — e nunca
+  // acima do teto de R$ 30. Ver `defaultSuggestedPrice`. É ajuste durante o
+  // RENDER, e não efeito: a condição se desfaz sozinha depois do ajuste, e num
+  // efeito seria preciso guardar "já sugeri" só para não repor o número em cima
+  // do que foi digitado.
   const custoUnitario = derivePurchaseTotals(form.quantity, form.grossTotal, form.finalTotal).unitFinal;
-  const precoPelaMargem = suggestedPrice(custoUnitario) ?? 0;
-  if (open && !readOnly && !precoTocado && form.suggestedPrice !== precoPelaMargem) {
-    setForm((current) => ({ ...current, suggestedPrice: precoPelaMargem }));
+  const precoPadrao = defaultSuggestedPrice({
+    hasProduct: purchaseHasProduct(form),
+    productPrice: form.productPrice,
+    groupPrices: variations.groupPrices,
+    unitCost: custoUnitario,
+  });
+  if (open && !readOnly && !precoTocado && form.suggestedPrice !== precoPadrao) {
+    setForm((current) => ({ ...current, suggestedPrice: precoPadrao }));
   }
 
-  function submit(event?: React.FormEvent) {
+  /**
+   * Grava a compra. `aceitaPrejuizo` é a resposta da confirmação de margem
+   * negativa: sem ela, preço sugerido abaixo do custo pergunta antes.
+   */
+  function submit(event?: React.FormEvent, aceitaPrejuizo = false) {
     event?.preventDefault();
 
     if (readOnly) return;
@@ -920,6 +950,12 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       toast({ title: "Atenção", description: problem, variant: "warning" });
       return;
     }
+
+    if (!aceitaPrejuizo && isBelowCost(custoUnitario, form.suggestedPrice)) {
+      setBelowCostOpen(true);
+      return;
+    }
+    setBelowCostOpen(false);
 
     saveMutation.mutate({
       supplierId: Number(form.supplierId),
@@ -941,13 +977,19 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       invoiceNumber: form.invoiceNumber.trim() || null,
       details: form.details.trim() || null,
       purchaseLink: form.purchaseLink.trim() || null,
+      receivingInstructions: form.receivingInstructions.trim() || null,
       // Instante LOCAL sem fuso, como a entrada de estoque: a coluna é
       // `timestamp without time zone`, e `toISOString()` jogaria o dia para trás.
       purchaseDate: `${form.purchaseDate}T00:00:00`,
       quantity: form.quantity,
       grossTotal: form.grossTotal,
       finalTotal: form.finalTotal,
-      suggestedPrice: form.suggestedPrice > 0 ? form.suggestedPrice : null,
+      // Na REPOSIÇÃO o preço que ninguém mexeu é o atual do produto, e vai em
+      // branco: gravá-lo congelaria o preço do dia, e uma mudança de etiqueta entre
+      // a compra e o recebimento seria desfeita no recebimento. Em branco, a
+      // compra reaberta e o recebimento mostram o preço atual de então.
+      suggestedPrice:
+        form.suggestedPrice > 0 && (precoTocado || !purchaseHasProduct(form)) ? form.suggestedPrice : null,
       status: Number(form.status),
       // Com produto vinculado esta lista VIRA a galeria do grupo, na mesma
       // transação. Ver `SavePurchasePayload.imageIds`.
@@ -1039,5 +1081,14 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     ...newProductGrid,
     submit,
     isSaving: saveMutation.isPending,
+    /** A pergunta da margem negativa: preço sugerido abaixo do custo unitário. */
+    belowCostOpen,
+    unitCost: custoUnitario,
+    // Só com a pergunta de pé: o diálogo que fecha ainda aceita clique durante a
+    // animação de saída, e confirmar ali gravaria o que acabou de ser recusado.
+    confirmBelowCost: () => {
+      if (belowCostOpen) submit(undefined, true);
+    },
+    cancelBelowCost: () => setBelowCostOpen(false),
   };
 }

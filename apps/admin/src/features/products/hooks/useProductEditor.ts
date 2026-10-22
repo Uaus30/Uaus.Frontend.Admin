@@ -14,7 +14,7 @@ import {
   type PurchaseDto,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
-import { describeApiError, suggestedPrice } from "@workspace/core";
+import { describeApiError, suggestedSalePrice } from "@workspace/core";
 import type {
   LocalImage,
   ProductGroupForm,
@@ -318,6 +318,7 @@ export function useProductEditor() {
     savedBaseline,
     setSavedBaseline,
     setForm,
+    onBarcodeSplit: reloadAfterBarcodeSplit,
   });
 
   function toVariationDraft(product: any): VariationDraft {
@@ -344,7 +345,45 @@ export function useProductEditor() {
       })),
       images: productImagesHook.toLocalImages(product.images),
       canDelete: product.canDelete,
+      costPrice: product.costPrice ?? undefined,
     };
+  }
+
+  /**
+   * Recarrega a tela depois que salvar trocou o código de um cadastro COM venda
+   * (22/10/2026): o servidor deixou o código antigo neste cadastro, como a
+   * variação MARCA ANTERIOR, e criou outra variação com o código novo. O produto
+   * simples passou a ter variações, e a tabela precisa das duas.
+   *
+   * A ordem importa. A lista do grupo é buscada ANTES de liberar a hidratação da
+   * tabela (`loadedGroupId`): liberada antes, ela se refaria com a lista velha —
+   * sem a variação nova — e não se refaria de novo quando a nova chegasse. O
+   * rascunho provisório com a chave da variação nova impede o efeito do grupo sem
+   * variações de criar uma linha temporária no meio do caminho, e deixa a nova
+   * selecionada quando a tabela chegar.
+   */
+  async function reloadAfterBarcodeSplit(newProductId: number) {
+    const chave = `product-${newProductId}`;
+    setForm((current) => ({ ...current, hasVariations: true }));
+    setProductEditor(createEmptyProductEditor(productForm.defaultStatus));
+    setVariationDrafts((atual) =>
+      atual.length > 0
+        ? atual
+        : [
+            {
+              ...createEmptyProductEditor(productForm.defaultStatus),
+              key: chave,
+              id: newProductId,
+              name: form.productGroupName,
+              images: [],
+              canDelete: false,
+              values: [],
+            },
+          ],
+    );
+    setActiveVariationKey(chave);
+    await refetchGroupProducts();
+    setLoadedGroupId(null);
   }
 
   /**
@@ -535,7 +574,8 @@ export function useProductEditor() {
     setProductEditor({
       ...createEmptyProductEditor(productForm.defaultStatus),
       name: purchase.productName,
-      price: purchase.suggestedPrice || suggestedPrice(purchase.unitFinal) || 0,
+      // Nunca acima do teto de R$ 30 da loja (22/10/2026).
+      price: purchase.suggestedPrice || suggestedSalePrice(purchase.unitFinal) || 0,
       // O código digitado na compra (24/09/2026): é com ele que o produto nasce.
       barcode: purchase.productBarcode ?? "",
     });
@@ -555,6 +595,7 @@ export function useProductEditor() {
       unitCost: purchase.unitFinal,
       productName: purchase.productName,
       invoiceNumber: purchase.invoiceNumber ?? null,
+      receivingInstructions: purchase.receivingInstructions ?? null,
     });
     setDetailOpen(true);
     // O código veio pronto, sem ninguém digitar — e é a digitação que dispara a

@@ -153,6 +153,11 @@ export type PurchaseContext = {
   productName: string;
   /** Nº da nota digitado na compra (24/09/2026), que a entrada recebe pronto. */
   invoiceNumber: string | null;
+  /**
+   * Instruções de recebimento da compra (22/10/2026): o recado de quem comprou
+   * para quem está cadastrando com a caixa na mão. A tela o mostra em destaque.
+   */
+  receivingInstructions: string | null;
 };
 
 /**
@@ -264,6 +269,11 @@ export type VariationDraft = ProductEditorForm & {
   images: LocalImage[];
   /** True if this variation can be deleted (e.g., has no stock or transaction history) */
   canDelete: boolean;
+  /**
+   * Último custo da variação gravada, para o salvar perguntar antes de gravar
+   * preço abaixo dele (margem negativa, 22/10/2026). Ausente na variação nova.
+   */
+  costPrice?: number;
   /**
    * Valores de grade desta variação, na ordem de exibição.
    *

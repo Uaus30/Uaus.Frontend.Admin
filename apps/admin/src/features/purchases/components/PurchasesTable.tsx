@@ -14,19 +14,20 @@ import { Button, ImageHoverZoom, Input, Spinner } from "@workspace/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
-import { PURCHASE_STATUS, buildPublicImageUrl, enumCode } from "@workspace/api-client-react";
+import {
+  PURCHASE_STATUS,
+  buildPublicImageUrl,
+  enumCode,
+  type SupplierDto,
+} from "@workspace/api-client-react";
 import { formatCurrency, formatPercentage, formatShortDate, marginBand } from "@workspace/core";
+import { marginToneClass } from "@/lib/margin-tone";
 import type { PurchaseDto } from "../types";
 import { STATUS_FILTER_ALL, STATUS_FILTER_OPEN } from "../hooks/usePurchases";
+import { SUPPLIER_FILTER_ALL } from "../lib/purchase-filters";
 import { purchaseMarginPercent } from "../lib/purchase-totals";
 import { PurchaseStatusBadge } from "./PurchaseStatusBadge";
-
-/** A cor de cada faixa de margem. Mesma regra da entrada de estoque e do recebimento. */
-const MARGIN_COLOR: Record<string, string> = {
-  healthy: "text-emerald-600",
-  tight: "text-amber-600",
-  low: "text-red-600",
-};
+import { ReceivingInstructionsIcon } from "./ReceivingInstructionsIcon";
 
 type PurchasesTableProps = {
   items: PurchaseDto[];
@@ -35,6 +36,11 @@ type PurchasesTableProps = {
   setSearch: (value: string) => void;
   statusFilter: string;
   setStatusFilter: (value: string) => void;
+  /** Fornecedor filtrado (id como string) ou `SUPPLIER_FILTER_ALL`. Lembrado entre visitas. */
+  supplierFilter: string;
+  setSupplierFilter: (value: string) => void;
+  /** O catálogo de fornecedores, já na ordem da loja (Shopee primeiro). */
+  suppliers: SupplierDto[];
   page: number;
   totalPages: number;
   setPage: (value: number) => void;
@@ -51,8 +57,8 @@ type PurchasesTableProps = {
  * As colunas de dinheiro respondem à pergunta que a tela existe para responder:
  * <b>por quanto entrou e quanto sobra</b>. Ficaram o unitário final — o custo que
  * o lote vai gravar — e a <b>margem prevista</b>, nas mesmas faixas de cor de
- * toda tela que mostra margem (verde a partir de 40%, amarelo de 30% a 40%,
- * vermelho abaixo). O <b>total final saiu</b> em 13/09/2026: é a soma de um
+ * toda tela que mostra margem (verde a partir de 40%, amarelo-limão de 30% a 40%,
+ * laranja de 20% a 30%, vermelho abaixo). O <b>total final saiu</b> em 13/09/2026: é a soma de um
  * pedido cujo tamanho varia, então R$ 1.500 e R$ 30 não se comparam entre linhas
  * — quem compara é o unitário. O total continua a um clique, na compra.
  *
@@ -76,6 +82,9 @@ export function PurchasesTable({
   setSearch,
   statusFilter,
   setStatusFilter,
+  supplierFilter,
+  setSupplierFilter,
+  suppliers,
   page,
   totalPages,
   setPage,
@@ -98,20 +107,41 @@ export function PurchasesTable({
             aria-label="Buscar compra"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Situação">
-            <SelectValue placeholder="Situação" />
-          </SelectTrigger>
-          <SelectContent>
-            {/* "Não lançadas" é o padrão: a tela responde "o que ainda está por
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          {/* O filtro de fornecedor é LEMBRADO (22/10/2026): registrar uma compra
+            ou lançar um recebimento não o desfaz. Destacado quando filtra, para
+            ninguém procurar a compra de outro fornecedor numa lista recortada. */}
+          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+            <SelectTrigger
+              className={`w-full sm:w-[220px] ${supplierFilter !== SUPPLIER_FILTER_ALL ? "border-primary/60 bg-primary/5" : ""}`}
+              aria-label="Fornecedor"
+            >
+              <SelectValue placeholder="Fornecedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SUPPLIER_FILTER_ALL}>Todos os fornecedores</SelectItem>
+              {suppliers.map((supplier) => (
+                <SelectItem key={supplier.id} value={String(supplier.id)}>
+                  {supplier.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Situação">
+              <SelectValue placeholder="Situação" />
+            </SelectTrigger>
+            <SelectContent>
+              {/* "Não lançadas" é o padrão: a tela responde "o que ainda está por
                 chegar", e a lançada já vive na aba de estoque do produto. */}
-            <SelectItem value={STATUS_FILTER_OPEN}>Não lançadas</SelectItem>
-            <SelectItem value={STATUS_FILTER_ALL}>Todas as situações</SelectItem>
-            <SelectItem value={String(PURCHASE_STATUS.Pending)}>Pendente</SelectItem>
-            <SelectItem value={String(PURCHASE_STATUS.InTransit)}>A caminho</SelectItem>
-            <SelectItem value={String(PURCHASE_STATUS.Received)}>Lançado</SelectItem>
-          </SelectContent>
-        </Select>
+              <SelectItem value={STATUS_FILTER_OPEN}>Não lançadas</SelectItem>
+              <SelectItem value={STATUS_FILTER_ALL}>Todas as situações</SelectItem>
+              <SelectItem value={String(PURCHASE_STATUS.Pending)}>Pendente</SelectItem>
+              <SelectItem value={String(PURCHASE_STATUS.InTransit)}>A caminho</SelectItem>
+              <SelectItem value={String(PURCHASE_STATUS.Received)}>Lançado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isLoading ? (
@@ -231,6 +261,11 @@ export function PurchasesTable({
                             <PurchaseStatusBadge status={purchase.status} />
                           </div>
                         </div>
+                        {/* O recado para quem recebe (22/10/2026): pisca na linha, e o
+                            texto aparece no tooltip sem abrir a compra. */}
+                        {purchase.receivingInstructions && (
+                          <ReceivingInstructionsIcon text={purchase.receivingInstructions} />
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="hidden px-4 py-3 text-sm lg:table-cell">
@@ -261,7 +296,8 @@ export function PurchasesTable({
                     </TableCell>
                     {/* Margem prevista: quanto sobra vendendo pelo preço decidido na
                         compra (ou, sem ele, pelo preço que o produto já tem). Mesmas
-                        faixas de cor de toda tela que mostra margem. */}
+                        quatro faixas de cor de toda tela que mostra margem
+                        (`marginToneClass`). */}
                     <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
                       {margin === null || band === null ? (
                         <span className="text-muted-foreground" title="Sem custo ou sem preço de venda">
@@ -269,7 +305,7 @@ export function PurchasesTable({
                         </span>
                       ) : (
                         <span
-                          className={`font-semibold ${MARGIN_COLOR[band]}`}
+                          className={`font-semibold ${marginToneClass(band)}`}
                           title={
                             purchase.suggestedPrice
                               ? `Sobre o preço sugerido nesta compra (${formatCurrency(purchase.suggestedPrice)})`

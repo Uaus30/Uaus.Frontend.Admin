@@ -99,11 +99,11 @@ const compra: PurchaseDto = {
   purchaseLink: "https://shopee.com.br/x",
   purchaseDate: "2026-08-28T00:00:00",
   quantity: 3,
-  grossTotal: 120,
-  finalTotal: 100,
-  suggestedPrice: 55.6,
-  unitGross: 40,
-  unitFinal: 33.33,
+  grossTotal: 60,
+  finalTotal: 50,
+  suggestedPrice: 27.8,
+  unitGross: 20,
+  unitFinal: 16.67,
   adjustmentPercent: -16.67,
   status: "InTransit",
   receivedAt: null,
@@ -290,7 +290,7 @@ describe("purchaseToForm", () => {
     expect(form.images[0].imageId).toBe(9);
     // O campo de data trabalha em `yyyy-MM-dd`; o backend manda o instante.
     expect(form.purchaseDate).toBe("2026-08-28");
-    expect(form.suggestedPrice).toBe(55.6);
+    expect(form.suggestedPrice).toBe(27.8);
   });
 
   it("carrega a grade de variações gravada", () => {
@@ -467,8 +467,8 @@ describe("usePurchaseForm", () => {
       result.current.update("categoryId", "7");
       result.current.update("productName", " CANECA ");
       result.current.update("quantity", 3);
-      result.current.update("grossTotal", 120);
-      result.current.update("finalTotal", 100);
+      result.current.update("grossTotal", 60);
+      result.current.update("finalTotal", 50);
       result.current.update("purchaseDate", "2026-09-01");
     });
 
@@ -483,15 +483,15 @@ describe("usePurchaseForm", () => {
           productId: null,
           productName: "CANECA",
           quantity: 3,
-          grossTotal: 120,
-          finalTotal: 100,
+          grossTotal: 60,
+          finalTotal: 50,
           // Instante LOCAL: `toISOString()` jogaria o dia para trás no Brasil.
           purchaseDate: "2026-09-01T00:00:00",
           categoryId: 7,
-          // O preço sugerido nasce do CÁLCULO DE MARGEM: custo unitário 33,33
-          // (R$ 100 ÷ 3) a 40% de margem dá 55,55, arredondado PARA CIMA ao
+          // O preço sugerido nasce do CÁLCULO DE MARGEM: custo unitário 16,67
+          // (R$ 50 ÷ 3) a 40% de margem dá 27,78, arredondado PARA CIMA ao
           // múltiplo de dez centavos. Ninguém digitou — a tela já tinha a conta.
-          suggestedPrice: 55.6,
+          suggestedPrice: 27.8,
           status: 1,
           imageIds: [],
         }),
@@ -514,8 +514,8 @@ describe("usePurchaseForm", () => {
       result.current.update("supplierId", "1");
       result.current.update("categoryId", "7");
       result.current.update("productName", "CANECA");
-      result.current.update("finalTotal", 100);
-      result.current.update("suggestedPrice", 55.6);
+      result.current.update("finalTotal", 10);
+      result.current.update("suggestedPrice", 25.6);
     });
 
     await act(async () => {
@@ -523,7 +523,7 @@ describe("usePurchaseForm", () => {
     });
 
     await waitFor(() =>
-      expect(mocks.createPurchase).toHaveBeenCalledWith(expect.objectContaining({ suggestedPrice: 55.6 })),
+      expect(mocks.createPurchase).toHaveBeenCalledWith(expect.objectContaining({ suggestedPrice: 25.6 })),
     );
   });
 
@@ -789,8 +789,8 @@ describe("usePurchaseForm", () => {
       { wrapper: createWrapper() },
     );
 
-    act(() => result.current.openEdit({ ...compra, suggestedPrice: 99.9 }));
-    expect(result.current.form.suggestedPrice).toBe(99.9);
+    act(() => result.current.openEdit({ ...compra, suggestedPrice: 29.9 }));
+    expect(result.current.form.suggestedPrice).toBe(29.9);
     // E o departamento da categoria gravada aparece resolvido pelo catálogo.
     expect(result.current.form.departmentId).toBe("4");
   });
@@ -1178,10 +1178,10 @@ describe("usePurchaseForm — compra em sequência (24/09/2026)", () => {
   it("compra reaberta com desconto registrado não perde o final ao corrigir o bruto", () => {
     const { result } = renderForm();
 
-    // Bruto 120, final 100: o desconto já está gravado.
+    // Bruto 60, final 50: o desconto já está gravado.
     act(() => result.current.openEdit(compra));
-    act(() => result.current.setGrossTotal(130));
-    expect(result.current.form.finalTotal).toBe(100);
+    act(() => result.current.setGrossTotal(70));
+    expect(result.current.form.finalTotal).toBe(50);
 
     // Reaberta com final igual ao bruto, ele volta a acompanhar.
     act(() => result.current.openEdit({ ...compra, grossTotal: 100, finalTotal: 100 }));

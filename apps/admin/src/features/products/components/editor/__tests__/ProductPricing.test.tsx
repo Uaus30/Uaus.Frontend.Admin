@@ -67,14 +67,14 @@ describe("ProductPricing — margem abaixo do preço de venda", () => {
 
     fireEvent.focus(campoDoPreco());
     fireEvent.change(campoDoPreco(), { target: { value: "5" } });
-    // (5 − 4,12) / 5 = 17,60% → vermelho, abaixo de 30%.
+    // (5 − 4,12) / 5 = 17,60% → vermelho, abaixo de 20%.
     expect(margem().textContent).toBe("17,60%");
     expect(margem().className).toContain("text-red-600");
 
     fireEvent.change(campoDoPreco(), { target: { value: "6,5" } });
-    // (6,50 − 4,12) / 6,50 = 36,62% → amarelo, de 30% a 40%.
+    // (6,50 − 4,12) / 6,50 = 36,62% → amarelo-limão, de 30% a 40% (22/10/2026).
     expect(margem().textContent).toBe("36,62%");
-    expect(margem().className).toContain("text-amber-600");
+    expect(margem().className).toContain("text-lime-600");
 
     // Saindo do campo, o valor vai para o formulário e a margem continua a mesma.
     fireEvent.blur(campoDoPreco());

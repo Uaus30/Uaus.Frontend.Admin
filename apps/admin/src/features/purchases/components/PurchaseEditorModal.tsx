@@ -1,4 +1,4 @@
-import { Lock, Package, Plus, ShoppingCart, X } from "lucide-react";
+import { Lock, MessageSquareWarning, Package, Plus, ShoppingCart, X } from "lucide-react";
 import { Button, Input, Textarea, cn, uppercaseKeepingCaret } from "@workspace/ui";
 import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
@@ -13,11 +13,12 @@ import {
   type GradeTypeCode,
   type SupplierDto,
 } from "@workspace/api-client-react";
-import { formatCurrency } from "@workspace/core";
+import { MAX_SALE_PRICE, formatCurrency } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { ProductSearchPicker } from "@/components/product-search-picker";
 import { derivePurchaseTotals } from "../lib/purchase-totals";
+import { variationPricesDiffer } from "../lib/purchase-pricing";
 import { PURCHASE_INVOICE_NUMBER_MAX_LENGTH } from "../lib/purchase-memory";
 import { purchaseHasProduct } from "../hooks/usePurchaseForm";
 import { PurchaseBarcodeField } from "./PurchaseBarcodeField";
@@ -492,12 +493,22 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               {/* O preço que a loja cobra HOJE, ao lado do que vai passar a valer:
                   é a comparação que decide se a compra muda a etiqueta. Em produto
                   novo não existe preço atual, e a linha simplesmente não aparece. */}
-              {values.productPrice !== null && (
+              {values.productPrice !== null && !variationPricesDiffer(form.groupPrices) && (
                 <p className="text-xs text-muted-foreground">
                   Preço atual do produto:{" "}
                   <span className="font-medium text-foreground">{formatCurrency(values.productPrice)}</span>
                 </p>
               )}
+              {/* Variações com preços diferentes: em branco, cada uma mantém o seu
+                  no recebimento — um preço aqui valeria para todas. */}
+              {variationPricesDiffer(form.groupPrices) && (
+                <p className="text-xs text-muted-foreground">
+                  As variações têm preços diferentes: em branco, cada uma mantém o seu.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Até {formatCurrency(MAX_SALE_PRICE)}, o teto da loja.
+              </p>
             </div>
             <div className="md:col-span-2">
               <PricingPreview
@@ -542,6 +553,38 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
             onSearchWeb={() => form.setImageSearchOpen(true)}
           />
 
+          {/* Instruções de recebimento (22/10/2026): o recado para quem vai receber
+              — "vender avulso", "atualizar o código de barras". Por último, abaixo
+              das fotos, e com outro nome que "Observações" para não se confundir com
+              a observação do produto. Preenchido, o campo fica em âmbar: é o mesmo
+              destaque com que o recebimento o mostra, e o ícone que pisca na
+              listagem. */}
+          <div className="space-y-2">
+            <label
+              htmlFor="purchase-receiving-instructions"
+              className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground"
+            >
+              <MessageSquareWarning
+                className={cn("h-3.5 w-3.5", values.receivingInstructions.trim() && "text-amber-500")}
+              />
+              Instruções de recebimento
+            </label>
+            <Textarea
+              id="purchase-receiving-instructions"
+              data-testid="purchase-receiving-instructions"
+              value={values.receivingInstructions}
+              onChange={(event) => update("receivingInstructions", event.target.value)}
+              placeholder="Dicas para quem vai receber: vender avulso, atualizar o código de barras..."
+              maxLength={1000}
+              className={cn(
+                "min-h-16",
+                values.receivingInstructions.trim() &&
+                  "border-amber-500/60 bg-amber-500/10 font-medium text-amber-900 focus-visible:ring-amber-500 dark:text-amber-100",
+              )}
+              readOnly={readOnly}
+            />
+          </div>
+
           <div
             className={cn(
               "mt-2 flex items-center justify-end gap-2 border-t border-border/40 pt-4",
@@ -576,6 +619,19 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
           onUseProductGallery={form.confirmProductWithGallery}
           onKeepPurchaseImages={form.confirmProductKeepingImages}
           onCancel={form.cancelProductSelection}
+        />
+
+        {/* Margem negativa é permitida (o custo pode passar do teto de R$ 30), mas
+            pergunta antes de gravar — 22/10/2026. */}
+        <ConfirmDialog
+          open={form.belowCostOpen}
+          onOpenChange={(aberto) => !aberto && form.cancelBelowCost()}
+          title="Preço abaixo do custo"
+          description={`O preço sugerido (${formatCurrency(values.suggestedPrice)}) fica abaixo do custo unitário (${formatCurrency(form.unitCost)}) — a margem é negativa e cada venda dá prejuízo. Gravar mesmo assim?`}
+          confirmLabel="Gravar com margem negativa"
+          cancelLabel="Revisar o preço"
+          destructive
+          onConfirm={form.confirmBelowCost}
         />
 
         <ConfirmDialog

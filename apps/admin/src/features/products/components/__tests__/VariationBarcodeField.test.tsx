@@ -20,8 +20,8 @@ function campo() {
   return screen.getByLabelText("Código de barras") as HTMLInputElement;
 }
 
-describe("VariationBarcodeField — código com venda não se troca (fase 4)", () => {
-  it("variação que já vendeu: o código fica travado e o motivo aparece na dica", () => {
+describe("VariationBarcodeField — código com venda (fase 4; troca liberada em 22/10/2026)", () => {
+  it("variação que já vendeu: o código se troca, e a dica diz que o antigo vira MARCA ANTERIOR", () => {
     render(
       <VariationBarcodeField
         variation={variacao({ hasSales: true })}
@@ -30,8 +30,8 @@ describe("VariationBarcodeField — código com venda não se troca (fase 4)", (
       />,
     );
 
-    expect(campo().readOnly).toBe(true);
-    expect(campo().title).toBe("Código com venda não se troca.");
+    expect(campo().readOnly).toBe(false);
+    expect(campo().title).toMatch(/MARCA ANTERIOR/);
   });
 
   it("variação sem venda continua editável", () => {

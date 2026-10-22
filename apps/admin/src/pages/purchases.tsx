@@ -39,6 +39,9 @@ export default function Purchases() {
           setSearch={purchases.setSearch}
           statusFilter={purchases.statusFilter}
           setStatusFilter={purchases.setStatusFilter}
+          supplierFilter={purchases.supplierFilter}
+          setSupplierFilter={purchases.setSupplierFilter}
+          suppliers={purchases.suppliers}
           page={purchases.page}
           totalPages={purchases.totalPages}
           setPage={purchases.setPage}
@@ -58,12 +61,16 @@ export default function Purchases() {
         onChange={purchases.updateReceiveForm}
         onItemChange={purchases.updateReceiveItem}
         onBrandChange={purchases.updateReceiveBrand}
+        onBarcodeChange={purchases.updateReceiveBarcode}
         onAddItem={purchases.addReceiveItem}
         onCancel={purchases.cancelReceive}
         onConfirm={purchases.confirmReceive}
         onEditPurchase={purchases.editReceiving}
         isSaving={purchases.isReceiving}
         stockFrozen={purchases.stockFrozen}
+        belowCostOpen={purchases.belowCostOpen}
+        onConfirmBelowCost={purchases.confirmReceiveBelowCost}
+        onCancelBelowCost={purchases.cancelReceiveBelowCost}
       />
 
       <ProductImageSearchModal

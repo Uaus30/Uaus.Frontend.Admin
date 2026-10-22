@@ -1,7 +1,7 @@
 import { formatPercentage, marginBand } from "@workspace/core";
 import type { ReceivedPurchaseEntryItemDto } from "@workspace/api-client-react";
 import { describeCostCorrectionMargin } from "../lib/cost-correction";
-import { marginToneClass } from "../lib/margin-tone";
+import { marginToneClass } from "@/lib/margin-tone";
 
 type CostCorrectionMarginProps = {
   item: ReceivedPurchaseEntryItemDto;

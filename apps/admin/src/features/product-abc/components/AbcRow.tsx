@@ -1,17 +1,11 @@
 import { Link } from "wouter";
 import { TableCell, TableRow, cn } from "@workspace/ui";
 import { formatCurrency, marginBand } from "@workspace/core";
+import { marginToneClass } from "@/lib/margin-tone";
 import type { ProductAbcItemDto } from "@workspace/api-client-react";
 import { BI_TONE_PILL } from "@/lib/bi-tone";
 import { formatInteger, formatPercent } from "@/features/supplier-performance/lib/format";
 import { CLASS_COLORS, FREQUENCY_HINTS, FREQUENCY_LABELS, matrixCellReading } from "../lib/abc";
-
-/** Cor da margem — a mesma faixa da entrada de estoque e do recebimento de compra. */
-const MARGEM_TOM = {
-  healthy: "text-emerald-600 dark:text-emerald-400",
-  tight: "text-amber-600 dark:text-amber-400",
-  low: "text-destructive",
-} as const;
 
 /** Acima disto o item aparece em cestas maiores que a média da loja. */
 const CESTA_ALTA = 1.2;
@@ -115,7 +109,7 @@ export function AbcRow({ produto }: { produto: ProductAbcItemDto }) {
       <TableCell
         className={cn(
           "px-2 py-2 text-right font-mono text-[12px] tabular-nums",
-          faixaDaMargem ? MARGEM_TOM[faixaDaMargem] : "text-muted-foreground",
+          marginToneClass(faixaDaMargem),
         )}
         title="Verde a partir de 40%, âmbar de 30% a 40%, vermelho abaixo de 30% — a faixa de margem da loja"
       >

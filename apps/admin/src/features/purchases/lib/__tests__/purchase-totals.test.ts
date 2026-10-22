@@ -87,9 +87,11 @@ describe("purchaseMarginPercent", () => {
     expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 8 }))).toBe("low");
   });
 
-  it("as tres faixas seguem a regra de toda tela que mostra margem", () => {
-    // Verde a partir de 40%, amarelo de 30% a 40%, vermelho abaixo (`marginBand`).
+  it("as quatro faixas seguem a regra de toda tela que mostra margem", () => {
+    // Verde a partir de 40%, amarelo-limão de 30% a 40%, laranja de 20% a 30% e
+    // vermelho abaixo de 20% (`marginBand`, 22/10/2026).
     expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 14.3 }))).toBe("tight");
-    expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 13 }))).toBe("low");
+    expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 13 }))).toBe("thin");
+    expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 12 }))).toBe("low");
   });
 });

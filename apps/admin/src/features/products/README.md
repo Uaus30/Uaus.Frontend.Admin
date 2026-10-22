@@ -964,15 +964,40 @@ O dono mexe pelo celular em preço, nome, foto, correção de estoque e variaç�
   sozinha é o que precisa de compra. A compra a caminho de qualquer cor dá
   "Comprado" à linha. A regra é do backend (`StockControlUnits`).
 
-### Código com venda não se troca (fase 4, 21/10/2026)
+### Código com venda não se troca NO MESMO cadastro (fase 4, 21/10/2026; revisto em 22/10/2026)
 
-O código de barras de um cadastro que já vendeu fica **travado** no editor (no
-produto simples e em cada variação, `hasSales` do `ProductDto`), e a API recusa
-a troca (`ProductService.UpdateCoreAsync`). É ele que o caixa bipou e que está
-nos cupons e nas etiquetas: trocado, a mesma peça na prateleira deixaria de ser
-achada no PDV. A exclusão de cadastro com venda já era recusada. Consequência
-aceita pelo dono: um código digitado errado num produto que já vendeu não tem
-mais conserto pela tela. A linha da listagem não traz `hasSales`: o produto
-simples aberto por ela lê o campo no `GET /Products/{id}` que já completa o
-controle de estoque (`completarControleDeEstoque`), e o código trava quando a
-resposta chega.
+É o código que o caixa bipou e que está nos cupons e nas etiquetas: trocado no
+mesmo cadastro, a peça na prateleira deixaria de ser achada no PDV. Até
+21/10/2026 o campo ficava travado. **Desde 22/10/2026 (decisão do dono) a troca
+é aceita assim**: o cadastro com venda fica com o código ANTIGO — e com o
+estoque, os lotes e as vendas — como a variação de Marca **`MARCA ANTERIOR N`**,
+e o código novo nasce numa variação nova do mesmo produto, **sem marca** (o dono
+a preenche nas variações, se quiser). Produto simples passa a ter variações. O
+estoque mínimo vai para a variação nova, que é a que se repõe dali em diante.
+
+- O campo fica editável, com o aviso por extenso no produto simples e no `title`
+  de cada variação (`hasSales` do `ProductDto`).
+- Quem separa é o backend (`ProductBrandVariationService.ChangeBarcodeAsync`): o
+  `PUT` grava o cadastro com o código antigo e devolve `barcodeSplit`. A tela
+  recarrega as variações do grupo (`useProductEditor.reloadAfterBarcodeSplit`) e
+  seleciona a nova; a ordem — buscar a lista ANTES de liberar a hidratação da
+  tabela — está explicada no JSDoc.
+- Só em produto simples ou com variações só de Marca; com Cor ou Tamanho, a API
+  recusa dizendo por quê. Duas variações sem marca não existem: a segunda troca
+  pede uma marca para a primeira antes.
+- **A Marca pode ficar em branco** nas variações (`validateProductForm`,
+  `useProductSubmit`): as outras grades continuam obrigatórias, e o valor vazio
+  não vai no corpo (a API recusa valor de grade vazio).
+- O mesmo vale no recebimento da compra ("Código de barras mudou?", ver
+  `features/purchases/README.md`), onde as unidades que chegaram vão para a
+  variação do código novo.
+
+### Teto de R$ 30 e margem negativa (22/10/2026)
+
+A loja é "tudo até R$ 30": o salvar recusa preço acima disso
+(`salePriceLimitProblem`, pintando o campo) e a API também (`SalePriceLimit`).
+Preço ABAIXO do custo — margem negativa — é permitido, porque o custo pode
+passar do teto, mas o salvar pergunta antes (`belowCostItems` e o
+`ConfirmDialog` do `ProductDetailScreen`); vindo do Avançar, confirmado, segue de
+aba. O cadastro vindo de uma compra também mostra as **instruções de
+recebimento** dela, em âmbar, no alto da tela.

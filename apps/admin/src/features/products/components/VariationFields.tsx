@@ -66,14 +66,19 @@ export function VariationBarcodeField({
         onChange={(e) =>
           updateVariationDraft(variation.key, (draft) => ({ ...draft, barcode: e.target.value }))
         }
-        // Código com venda não se troca (fase 4): é ele que o caixa bipou e que
-        // está nos cupons e nas etiquetas. A API recusa do mesmo jeito.
-        readOnly={variation.hasSales === true}
+        // Código com venda não se troca NO MESMO cadastro: desde 22/10/2026
+        // trocá-lo deixa o antigo nesta variação como MARCA ANTERIOR e cria a do
+        // código novo, sem marca. O `title` avisa antes.
         placeholder="Auto"
         inputMode="numeric"
         aria-invalid={invalid}
         aria-label="Código de barras"
-        title={variation.hasSales ? "Código com venda não se troca." : (barcodeInput.error ?? undefined)}
+        title={
+          barcodeInput.error ??
+          (variation.hasSales
+            ? "Código com venda: trocar mantém este código aqui como MARCA ANTERIOR e cria a variação do código novo."
+            : undefined)
+        }
         className={cn(
           look(compact),
           "font-mono text-xs",
