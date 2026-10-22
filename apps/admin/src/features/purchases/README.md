@@ -453,22 +453,25 @@ como a caminho primeiro, o que já exige o custo de que a entrada precisa.
   (`Math.Clamp(size, 1, 100)`), então pedir mais não traria mais; a paginação
   continua na tela para "Todas as situações", que inclui o histórico de lançadas
   e cresce sem parar.
-- **As colunas de dinheiro respondem "por quanto entrou e quanto sobra".**
-  Ficaram o **unitário final** — o custo que o lote vai gravar, com o desconto
-  negociado ao lado — e a **margem prevista**, nas faixas de cor de toda tela que
-  mostra margem. O **total final saiu** em 13/09/2026: é a soma de um pedido cujo
+- **As colunas de dinheiro respondem "por quanto entrou, por quanto sai e quanto
+  sobra"** (Custo, Preço e Margem desde 22/10/2026, pedido do dono). O **Custo** é
+  o unitário final, que o lote vai gravar — o percentual de desconto ou acréscimo
+  que ficava ao lado saiu, e continua na compra. O **Preço** é o de venda contra o
+  qual a margem é calculada (`purchaseSalePrice`: o sugerido na compra e, sem ele,
+  o atual do produto; traço sem nenhum dos dois). A **Margem** usa as faixas de
+  cor de toda tela que mostra margem. O **total final saiu** em 13/09/2026: é a soma de um pedido cujo
   tamanho varia, e R$ 1.500 ao lado de R$ 30 não diz qual compra foi melhor.
   Continua a um clique, na compra. A margem sai de `purchaseMarginPercent`: custo
   unitário contra o preço sugerido da compra e, sem ele, contra o preço que o
   produto já tem — **traço, nunca zero**, quando falta um dos dois, porque zero
   leria como "vende no custo".
 - **A listagem encolhe por prioridade, não por sorte.** Abaixo de `2xl` saem
-  **Unit. final**, **Margem** e **Data da compra**, e ficam produto, fornecedor,
-  quantidade, situação e ações. Com as oito colunas a tabela pede mais de
+  **Custo**, **Preço**, **Margem** e **Data da compra**, e ficam produto,
+  fornecedor, quantidade, situação e ações. Com todas as colunas a tabela pede mais de
   1.200px, e a área útil de um notebook Full HD a 125% de zoom — ou do monitor
   auxiliar da loja — é de ~1.140px: aparecia uma barra de rolagem horizontal e o
   que caía fora da tela era a ponta direita, ou seja, a situação e o menu de
-  opções. Os três valores continuam a um clique, porque a linha abre a compra; a
+  opções. Os quatro valores continuam a um clique, porque a linha abre a compra; a
   barra de rolagem não tinha atalho.
 - **O nome do produto NÃO é link para o cadastro** (13/09/2026): clicar nele abre
   a compra, como o resto da linha. Era link, e o gesto mais natural de uma lista

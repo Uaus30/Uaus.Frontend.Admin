@@ -25,7 +25,7 @@ import { marginToneClass } from "@/lib/margin-tone";
 import type { PurchaseDto } from "../types";
 import { STATUS_FILTER_ALL, STATUS_FILTER_OPEN } from "../hooks/usePurchases";
 import { SUPPLIER_FILTER_ALL } from "../lib/purchase-filters";
-import { purchaseMarginPercent } from "../lib/purchase-totals";
+import { purchaseMarginPercent, purchaseSalePrice } from "../lib/purchase-totals";
 import { PurchaseStatusBadge } from "./PurchaseStatusBadge";
 import { ReceivingInstructionsIcon } from "./ReceivingInstructionsIcon";
 
@@ -55,15 +55,18 @@ type PurchasesTableProps = {
  * Listagem de compras.
  *
  * As colunas de dinheiro respondem à pergunta que a tela existe para responder:
- * <b>por quanto entrou e quanto sobra</b>. Ficaram o unitário final — o custo que
- * o lote vai gravar — e a <b>margem prevista</b>, nas mesmas faixas de cor de
- * toda tela que mostra margem (verde a partir de 40%, amarelo-limão de 30% a 40%,
- * laranja de 20% a 30%, vermelho abaixo). O <b>total final saiu</b> em 13/09/2026: é a soma de um
- * pedido cujo tamanho varia, então R$ 1.500 e R$ 30 não se comparam entre linhas
- * — quem compara é o unitário. O total continua a um clique, na compra.
+ * <b>por quanto entrou, por quanto sai e quanto sobra</b> (22/10/2026, pedido do
+ * dono): o <b>Custo</b> — o unitário final, que o lote vai gravar —, o <b>Preço</b>
+ * de venda contra o qual a margem é calculada (o sugerido na compra ou, sem ele,
+ * o atual do produto) e a <b>Margem</b>, nas mesmas faixas de cor de toda tela que
+ * mostra margem (verde a partir de 40%, amarelo-limão de 30% a 40%, laranja de
+ * 20% a 30%, vermelho abaixo). O percentual de desconto ou acréscimo ao lado do
+ * custo saiu: ele fica na compra, onde os totais são digitados. O <b>total final
+ * saiu</b> em 13/09/2026: é a soma de um pedido cujo tamanho varia, então R$ 1.500
+ * e R$ 30 não se comparam entre linhas — quem compara é o unitário.
  *
  * <b>Abaixo de `2xl` a tabela se reduz ao essencial</b> — produto, fornecedor,
- * quantidade, situação e ações. Com as oito colunas a largura mínima passava de
+ * quantidade, situação e ações. Com todas as colunas a largura mínima passava de
  * 1.200px, e a área útil de quem usa o notebook a 125% de zoom (ou o monitor
  * auxiliar da loja) é de ~1.140px: sobrava uma barra de rolagem horizontal, e o
  * que ficava fora da tela era justamente a ponta direita — a situação e o menu
@@ -161,7 +164,8 @@ export function PurchasesTable({
                 <TableHead className="px-3 py-3 lg:px-4">Produto</TableHead>
                 <TableHead className="hidden px-4 py-3 lg:table-cell">Fornecedor</TableHead>
                 <TableHead className="hidden px-4 py-3 text-right lg:table-cell">Qtd.</TableHead>
-                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Unit. final</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Custo</TableHead>
+                <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Preço</TableHead>
                 <TableHead className="hidden px-4 py-3 text-right 2xl:table-cell">Margem</TableHead>
                 <TableHead className="hidden px-4 py-3 lg:table-cell">Situação</TableHead>
                 <TableHead className="hidden px-4 py-3 2xl:table-cell">Data da compra</TableHead>
@@ -181,6 +185,7 @@ export function PurchasesTable({
                 // Custo zero é "ainda não informado" — só compra pendente fica assim — e
                 // R$ 0,00 leria como "de graça". O traço diz que o número não existe.
                 const hasCost = purchase.finalTotal > 0;
+                const salePrice = purchaseSalePrice(purchase);
                 const margin = purchaseMarginPercent(purchase);
                 const band = marginBand(margin);
                 return (
@@ -274,23 +279,41 @@ export function PurchasesTable({
                     <TableCell className="hidden px-4 py-3 text-right font-mono text-sm lg:table-cell">
                       {purchase.quantity}
                     </TableCell>
-                    <TableCell className="hidden px-4 py-3 text-right text-sm 2xl:table-cell">
+                    {/* Custo: o unitário final, que o lote vai gravar. O desconto ou
+                        acréscimo negociado fica na compra (22/10/2026). */}
+                    <TableCell
+                      data-testid="purchase-cost"
+                      className="hidden px-4 py-3 text-right text-sm 2xl:table-cell"
+                    >
                       {hasCost ? (
-                        <>
-                          <span className="font-semibold">{formatCurrency(purchase.unitFinal)}</span>
-                          {purchase.adjustmentPercent !== 0 && (
-                            <span
-                              className={`ml-1 text-xs ${purchase.adjustmentPercent < 0 ? "text-emerald-600" : "text-amber-600"}`}
-                              title="Desconto (ou acréscimo) negociado sobre o total bruto"
-                            >
-                              ({purchase.adjustmentPercent > 0 ? "+" : ""}
-                              {formatPercentage(purchase.adjustmentPercent)})
-                            </span>
-                          )}
-                        </>
+                        <span className="font-semibold">{formatCurrency(purchase.unitFinal)}</span>
                       ) : (
                         <span className="text-muted-foreground" title="Custo ainda não informado">
                           —
+                        </span>
+                      )}
+                    </TableCell>
+                    {/* Preço de venda: o número contra o qual a margem ao lado é
+                        calculada — o sugerido na compra ou, sem ele, o atual do
+                        produto (`purchaseSalePrice`). */}
+                    <TableCell
+                      data-testid="purchase-price"
+                      className="hidden px-4 py-3 text-right text-sm 2xl:table-cell"
+                    >
+                      {salePrice === null ? (
+                        <span className="text-muted-foreground" title="Sem preço de venda definido">
+                          —
+                        </span>
+                      ) : (
+                        <span
+                          className="font-semibold"
+                          title={
+                            purchase.suggestedPrice
+                              ? "Preço sugerido nesta compra"
+                              : "Preço atual do produto (a compra não definiu outro)"
+                          }
+                        >
+                          {formatCurrency(salePrice)}
                         </span>
                       )}
                     </TableCell>

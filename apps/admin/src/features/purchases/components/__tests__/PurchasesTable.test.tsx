@@ -139,3 +139,29 @@ describe("PurchasesTable — cor da margem em quatro faixas (22/10/2026)", () =>
     expect(screen.getByTitle(/Sobre o preço sugerido/).className).toContain(cor);
   });
 });
+
+describe("PurchasesTable — Custo, Preço e Margem (22/10/2026)", () => {
+  it("o cabeçalho diz Custo e Preço, nessa ordem, antes da Margem", () => {
+    renderTable([compra()]);
+    const cabecalhos = screen.getAllByRole("columnheader").map((th) => th.textContent);
+    expect(cabecalhos.slice(3, 6)).toEqual(["Custo", "Preço", "Margem"]);
+    expect(cabecalhos).not.toContain("Unit. final");
+  });
+
+  it("o custo não mostra mais o percentual de desconto ou acréscimo", () => {
+    renderTable([compra({ grossTotal: 100, adjustmentPercent: -10 })]);
+    // O `Intl` separa "R$" do número com espaço não separável.
+    expect(screen.getByTestId("purchase-cost").textContent?.replace(/\s/g, " ")).toBe("R$ 4,50");
+  });
+
+  it("o preço é o sugerido na compra e, sem ele, o atual do produto", () => {
+    renderTable([compra({ suggestedPrice: 7.5, productPrice: 9 }), compra({ id: 8, productPrice: 9 })]);
+    const precos = screen.getAllByTestId("purchase-price").map((td) => td.textContent?.replace(/\s/g, " "));
+    expect(precos).toEqual(["R$ 7,50", "R$ 9,00"]);
+  });
+
+  it("sem preço nenhum, traço — nunca R$ 0,00", () => {
+    renderTable([compra()]);
+    expect(screen.getByTestId("purchase-price").textContent).toBe("—");
+  });
+});

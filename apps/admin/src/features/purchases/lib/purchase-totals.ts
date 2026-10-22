@@ -54,7 +54,22 @@ export function derivePurchaseTotals(
  * é uma afirmação que ninguém fez.
  */
 export function purchaseMarginPercent(purchase: PurchaseDto): number | null {
-  const price = purchase.suggestedPrice || purchase.productPrice || 0;
-  if (price <= 0 || purchase.unitFinal <= 0) return null;
+  const price = purchaseSalePrice(purchase);
+  if (price === null || purchase.unitFinal <= 0) return null;
   return marginPercent(purchase.unitFinal, price);
+}
+
+/**
+ * O preço de venda da compra, como a coluna "Preço" da listagem o mostra
+ * (22/10/2026): o sugerido na compra e, sem ele, o preço que o produto já tem —
+ * EXATAMENTE o número contra o qual a margem ao lado é calculada. Mostrar outro
+ * deixaria as duas colunas contando histórias diferentes.
+ *
+ * `null` (traço na tela) quando não há nenhum dos dois: produto novo sem preço
+ * decidido, ou compra com variações de preços diferentes, onde em branco cada
+ * uma mantém o seu no recebimento e nenhum número responde pela compra.
+ */
+export function purchaseSalePrice(purchase: PurchaseDto): number | null {
+  const price = purchase.suggestedPrice || purchase.productPrice || 0;
+  return price > 0 ? price : null;
 }

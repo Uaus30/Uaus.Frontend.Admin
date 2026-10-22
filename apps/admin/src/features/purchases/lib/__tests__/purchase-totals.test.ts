@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { marginBand } from "@workspace/core";
 import type { PurchaseDto } from "../../types";
-import { derivePurchaseTotals, purchaseMarginPercent } from "../purchase-totals";
+import { derivePurchaseTotals, purchaseMarginPercent, purchaseSalePrice } from "../purchase-totals";
 
 describe("derivePurchaseTotals", () => {
   it("deriva unitarios e percentual dos totais, como o backend", () => {
@@ -93,5 +93,17 @@ describe("purchaseMarginPercent", () => {
     expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 14.3 }))).toBe("tight");
     expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 13 }))).toBe("thin");
     expect(marginBand(purchaseMarginPercent({ ...compra, suggestedPrice: 12 }))).toBe("low");
+  });
+});
+
+describe("purchaseSalePrice — a coluna Preço (22/10/2026)", () => {
+  it("é o sugerido na compra e, sem ele, o preço atual do produto — o mesmo da margem", () => {
+    expect(purchaseSalePrice({ ...compra, suggestedPrice: 12.5, productPrice: 20 })).toBe(12.5);
+    expect(purchaseSalePrice({ ...compra, productPrice: 20 })).toBe(20);
+  });
+
+  it("sem nenhum dos dois é traço, nunca zero", () => {
+    expect(purchaseSalePrice({ ...compra, suggestedPrice: null, productPrice: null })).toBeNull();
+    expect(purchaseSalePrice({ ...compra, suggestedPrice: 0, productPrice: 0 })).toBeNull();
   });
 });
