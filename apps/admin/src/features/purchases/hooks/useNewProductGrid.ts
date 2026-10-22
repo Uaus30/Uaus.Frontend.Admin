@@ -28,6 +28,12 @@ export function useNewProductGrid({ setForm, onEdit }: UseNewProductGridParams) 
    * existe. Trocar de um tipo para outro mantém as linhas (só o rótulo muda), e
    * "Sem variações" volta ao campo com a soma — em custo manual, os totais
    * também viram a soma do que estava na grade.
+   *
+   * **O código de barras já digitado não se perde** (22/10/2026, relato do dono):
+   * com a grade, o campo do cabeçalho some — o código passa a ser de cada
+   * variação —, e o que estava nele vai para a PRIMEIRA linha, como a quantidade.
+   * Voltando a "Sem variações", o código da primeira linha volta ao cabeçalho.
+   * Antes ele simplesmente sumia, e quem tinha bipado a embalagem bipava de novo.
    */
   function setNewProductGradeType(tipo: number | null) {
     onEdit();
@@ -40,6 +46,7 @@ export function useNewProductGrid({ setForm, onEdit }: UseNewProductGridParams) 
               finalTotal: sumItems(atual.items, "finalTotal"),
             }
           : {};
+        const codigoDaPrimeira = atual.items[0]?.newBarcode?.trim() || null;
         return {
           ...atual,
           ...totais,
@@ -47,13 +54,17 @@ export function useNewProductGrid({ setForm, onEdit }: UseNewProductGridParams) 
           items: [],
           quantity: Math.max(sumItems(atual.items, "quantity"), 1),
           costSplitManual: false,
+          productBarcode: atual.productBarcode ?? codigoDaPrimeira,
         };
       }
       if (atual.newVariationGradeType !== null) return { ...atual, newVariationGradeType: tipo };
 
-      const primeira = emptyNewRow(nextNewBrandKey([]), Math.max(atual.quantity, 1));
+      const primeira = {
+        ...emptyNewRow(nextNewBrandKey([]), Math.max(atual.quantity, 1)),
+        newBarcode: atual.productBarcode?.trim() ?? "",
+      };
       const segunda = emptyNewRow(nextNewBrandKey([primeira]), 1);
-      // O código passa a ser de cada variação: o do cabeçalho sai.
+      // O código passa a ser de cada variação: o do cabeçalho vai para a primeira.
       return recomputeGrid({
         ...atual,
         newVariationGradeType: tipo,

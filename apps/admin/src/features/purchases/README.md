@@ -266,7 +266,8 @@ dois fabricantes), e o campo de quantidade vira a grade, uma linha por valor.
   acrescentar ou tirar linha são o `usePurchaseVariations`; o que é da fase 5
   (escolher o tipo) é o `useNewProductGrid`. São ao menos duas linhas — produto
   com uma variação só não existe —, e o código de barras do cabeçalho some: é de
-  cada variação.
+  cada variação. O que já estava digitado nele vai para a **primeira** variação
+  (22/10/2026), e volta ao cabeçalho com "Sem variações" — antes sumia.
 - **No recebimento o produto nasce na conferência** (decisão do dono), e não no
   cadastro preenchido: o "Lançar recebimento" abre o diálogo, cada variação pede
   o código (bipado ou gerado), o preço é obrigatório e não se acrescenta

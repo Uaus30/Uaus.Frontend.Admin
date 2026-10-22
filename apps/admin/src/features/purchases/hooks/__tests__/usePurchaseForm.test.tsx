@@ -1585,6 +1585,31 @@ describe("compra de produto novo com variações (fase 5)", () => {
     expect(corpo.items[0]).not.toHaveProperty("newBrand");
   });
 
+  it("o código já digitado no cabeçalho vai para a primeira variação, e volta com Sem variações", () => {
+    // Relato do dono (22/10/2026): o código bipado sumia ao escolher a grade.
+    const { result } = renderForm();
+    act(() => result.current.openNew());
+    act(() => result.current.setProductBarcode("7891234567895"));
+
+    act(() => result.current.setNewProductGradeType(GRADE_TYPE.Size));
+
+    expect(result.current.form.productBarcode).toBeNull();
+    expect(result.current.form.items.map((item) => item.newBarcode)).toEqual(["7891234567895", ""]);
+
+    act(() => result.current.setNewProductGradeType(null));
+
+    expect(result.current.form.productBarcode).toBe("7891234567895");
+  });
+
+  it("sem código no cabeçalho, as variações nascem sem código", () => {
+    const { result } = renderForm();
+    act(() => result.current.openNew());
+
+    act(() => result.current.setNewProductGradeType(GRADE_TYPE.Size));
+
+    expect(result.current.form.items.map((item) => item.newBarcode)).toEqual(["", ""]);
+  });
+
   it('"Sem variações" volta ao campo de quantidade com a soma', () => {
     const { result } = renderForm();
     act(() => result.current.openEdit(compra));
