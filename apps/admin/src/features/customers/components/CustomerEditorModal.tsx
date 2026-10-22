@@ -16,6 +16,7 @@ import {
   Textarea,
   cn,
   filledFieldClass,
+  formatDigitsKeepingCaret,
 } from "@workspace/ui";
 import { Loader2, Users } from "lucide-react";
 import {
@@ -200,7 +201,7 @@ function CustomerFormBody({
             aria-label="CPF"
             inputMode="numeric"
             value={form.document}
-            onChange={(event) => set("document", formatCpf(event.target.value))}
+            onChange={(event) => set("document", formatDigitsKeepingCaret(event.target, formatCpf))}
             placeholder="000.000.000-00"
             className={filled(form.document)}
           />
@@ -279,7 +280,7 @@ function CustomerFormBody({
               aria-label="Nascimento"
               inputMode="numeric"
               value={form.birthDate}
-              onChange={(event) => set("birthDate", formatDateBr(event.target.value))}
+              onChange={(event) => set("birthDate", formatDigitsKeepingCaret(event.target, formatDateBr))}
               placeholder="dd/mm/aaaa"
               className={filled(form.birthDate)}
             />

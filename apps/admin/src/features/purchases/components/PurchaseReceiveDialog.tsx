@@ -1,5 +1,5 @@
 import { AlertTriangle, MessageSquareWarning, PackageCheck, Pencil } from "lucide-react";
-import { Button, ConfirmDialog, Input, Textarea, cn } from "@workspace/ui";
+import { Button, ConfirmDialog, Input, Textarea, cn, uppercaseKeepingCaret } from "@workspace/ui";
 import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui";
 import { DatePicker, formatDateInput, guardCalendarDismiss, parseDateInput } from "@workspace/ui";
@@ -286,7 +286,8 @@ export function PurchaseReceiveDialog({
                 </label>
                 <Input
                   value={form.currentBrand}
-                  onChange={(event) => onChange("currentBrand", event.target.value.toUpperCase())}
+                  // Caixa alta sem jogar o cursor para o fim — ver `uppercaseKeepingCaret`.
+                  onChange={(event) => onChange("currentBrand", uppercaseKeepingCaret(event.target))}
                   placeholder="Ex: ORIGINAL"
                   maxLength={100}
                   className="h-10 bg-background uppercase"

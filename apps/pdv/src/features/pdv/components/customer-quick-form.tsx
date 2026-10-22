@@ -22,6 +22,7 @@ import {
   Textarea,
   cn,
   filledFieldClass,
+  formatDigitsKeepingCaret,
 } from "@workspace/ui";
 import {
   ageRangeFromBirthDate,
@@ -178,7 +179,7 @@ export function CustomerQuickForm({
             aria-label="CPF"
             inputMode="numeric"
             value={form.document}
-            onChange={(event) => set("document", formatCpf(event.target.value))}
+            onChange={(event) => set("document", formatDigitsKeepingCaret(event.target, formatCpf))}
             placeholder="000.000.000-00"
             className={cn("h-10 font-mono", filled(form.document))}
           />
@@ -241,7 +242,7 @@ export function CustomerQuickForm({
               aria-label="Nascimento"
               inputMode="numeric"
               value={form.birthDate}
-              onChange={(event) => set("birthDate", formatDateBr(event.target.value))}
+              onChange={(event) => set("birthDate", formatDigitsKeepingCaret(event.target, formatDateBr))}
               placeholder="dd/mm/aaaa"
               className={cn("h-9 font-mono", filled(form.birthDate))}
             />

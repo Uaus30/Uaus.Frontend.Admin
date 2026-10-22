@@ -50,6 +50,7 @@ export * from "./lib/environment";
 export * from "./lib/filled-field";
 export * from "./lib/toast-report";
 export * from "./lib/uppercase-input";
+export * from "./lib/masked-input";
 export * from "./lib/utils";
 
 // Hooks que os componentes deste pacote consomem.

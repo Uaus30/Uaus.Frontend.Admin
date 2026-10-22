@@ -1,5 +1,5 @@
 import { Calculator, PencilLine, Plus, X } from "lucide-react";
-import { Button, Input, Spinner } from "@workspace/ui";
+import { Button, Input, Spinner, uppercaseKeepingCaret } from "@workspace/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui";
 import { formatCurrency, formatQuantity } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
@@ -137,8 +137,11 @@ export function PurchaseVariationsGrid({
                       <div className="flex items-center gap-1.5">
                         <Input
                           value={item.newBrand ?? ""}
+                          // `uppercaseKeepingCaret`: o estado grava em caixa alta, e
+                          // com o valor do campo diferente do estado o React jogava o
+                          // cursor para o fim a cada letra digitada no meio (22/10/2026).
                           onChange={(event) =>
-                            onBrandChange?.(item.productId, "newBrand", event.target.value)
+                            onBrandChange?.(item.productId, "newBrand", uppercaseKeepingCaret(event.target))
                           }
                           placeholder={newRowLabel ?? "Marca nova"}
                           aria-label={
