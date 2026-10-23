@@ -296,7 +296,17 @@ export function StockEntryDetailsModal({
                  é obrigatório: a mesma nota serve à entrada lançada direto por
                  esta aba, que não veio de compra nenhuma, e o espelho da nota
                  não guarda qual dos dois caminhos a criou. */
-              description="Isto removerá os lotes de estoque associados e recalculará o estoque atual dos produtos. Os itens recebidos nesta nota deixam de contar no saldo. Se ela veio de uma compra, a compra volta para A caminho e pode ser lançada de novo. A nota cancelada não volta."
+              /* O preço volta desde 23/10/2026 — só o que ninguém mudou depois,
+                 e só nas notas que guardaram o preço de antes. A frase segue o
+                 servidor: prometer a volta numa nota antiga faria o operador
+                 sair achando que o preço voltou. */
+              description={
+                "Isto removerá os lotes de estoque associados e recalculará o estoque atual dos produtos. Os itens recebidos nesta nota deixam de contar no saldo" +
+                (entryDetails.previousPriceRecorded
+                  ? ", e o preço de venda que ela aplicou volta ao de antes, se ninguém o mudou depois."
+                  : ". Esta nota é anterior ao registro do preço de antes: se ela mudou o preço de venda, ele não volta sozinho — confira no cadastro.") +
+                " Se ela veio de uma compra, a compra volta para A caminho e pode ser lançada de novo. A nota cancelada não volta."
+              }
               confirmLabel="Sim, cancelar entrada"
               destructive
               onConfirm={() => onDelete({ id: entryDetails.id })}

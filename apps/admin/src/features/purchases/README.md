@@ -190,9 +190,21 @@ produto — e quem precisa desfazer está olhando para a compra.
 - **Cancelado, a compra abre em edição**, já "A caminho" — é onde se troca o
   produto errado (o X do "Produto já cadastrado") antes de receber de novo. Com o
   produto excluído, ela volta como produto novo.
-- O que o cancelamento **não** desfaz, quando o produto fica: o preço de venda
-  aplicado, a reativação e a troca de código feitas no recebimento. A
-  confirmação avisa.
+- **O preço de venda que o recebimento aplicou volta ao de antes** (23/10/2026,
+  pedido do dono), quando ninguém o mudou depois — a linha da variação mostra
+  "Preço volta de R$ 25,00 para R$ 10,00". Quem decide é o servidor (a nota
+  guarda o preço de antes desde esta data); nota mais antiga não guardou, e a
+  confirmação avisa que o preço dela não volta sozinho. A reativação e a troca
+  de código feitas no recebimento continuam sem volta.
+- **Desistir pelo rodapé reabre a compra**: a modal fechou para a confirmação
+  abrir, e o "Voltar" relê a compra e a abre de novo — a lista abre em "Não
+  lançadas", sem ela.
+- A prévia **nunca vem do cache** (o padrão de 30 s do admin mostraria um
+  cancelamento que o servidor já recusa), **não é relida depois do cancelamento**
+  (a compra já não está lançada; seria um 400 no console), e quando **falha** a
+  confirmação mostra o erro no lugar do botão — inclusive quando a releitura
+  depois de uma recusa falha com o dado velho ainda em mãos. O botão trava o
+  duplo clique por `ref`, que vale no mesmo quadro.
 
 Hook: `hooks/useCancelPurchaseReceipt.ts`, chamado de dentro de `usePurchases`.
 Diálogo: `components/CancelReceiptDialog.tsx`. A regra do servidor está em

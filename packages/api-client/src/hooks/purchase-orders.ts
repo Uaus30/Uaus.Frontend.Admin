@@ -463,6 +463,18 @@ export interface PurchaseReceiptCancellationItemDto {
   productName: string;
   barcode: string;
   quantity: number;
+  /** Preço de venda do cadastro agora. */
+  currentPrice: number;
+  /**
+   * O preço que volta ao cadastro com o cancelamento (23/10/2026). Ausente quando
+   * o preço fica — a nota não o mudou, ou alguém o mudou depois.
+   */
+  revertsToPrice?: number | null;
+  /**
+   * A nota guardou o preço de antes (lançadas desde 23/10/2026). Falso nas
+   * anteriores: se ela mudou o preço, ele não volta sozinho.
+   */
+  previousPriceRecorded: boolean;
 }
 
 /**

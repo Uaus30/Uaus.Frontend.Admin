@@ -66,6 +66,7 @@ export default function Purchases() {
         target={purchases.cancelReceipt.target}
         preview={purchases.cancelReceipt.preview}
         isLoadingPreview={purchases.cancelReceipt.isLoadingPreview}
+        previewError={purchases.cancelReceipt.previewError}
         isRefreshingPreview={purchases.cancelReceipt.isRefreshingPreview}
         deleteGeneratedProduct={purchases.cancelReceipt.deleteGeneratedProduct}
         onDeleteGeneratedProductChange={purchases.cancelReceipt.setDeleteGeneratedProduct}

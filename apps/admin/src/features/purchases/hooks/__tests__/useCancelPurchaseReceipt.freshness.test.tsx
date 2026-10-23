@@ -31,7 +31,16 @@ const PREVIA = {
   purchaseId: 12,
   purchaseEntryId: 40,
   canCancel: true,
-  items: [{ productId: 10, productName: "BALDE", barcode: "100", quantity: 3 }],
+  items: [
+    {
+      productId: 10,
+      productName: "BALDE",
+      barcode: "100",
+      quantity: 3,
+      currentPrice: 10,
+      previousPriceRecorded: true,
+    },
+  ],
   otherPurchaseIds: [],
 };
 
@@ -74,6 +83,21 @@ describe("useCancelPurchaseReceipt — a prévia é sempre a de agora", () => {
     act(() => result.current.start({ id: 12, productName: "BALDE" }));
 
     await waitFor(() => expect(previewRequests()).toBe(2));
+  });
+
+  it("depois de cancelar, a prévia não é relida: a compra já não está lançada", async () => {
+    mocks.cancelPurchaseReceipt.mockResolvedValue({ id: 12, status: "InTransit", productName: "BALDE" });
+    const { result } = renderCancel();
+    act(() => result.current.start({ id: 12, productName: "BALDE" }));
+    await waitFor(() => expect(result.current.preview?.canCancel).toBe(true));
+
+    act(() => result.current.confirm());
+    await waitFor(() => expect(result.current.target).toBeNull());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // No smoke de 23/10/2026 a releitura saía com 400, duas linhas vermelhas no
+    // console a cada cancelamento.
+    expect(previewRequests()).toBe(1);
   });
 
   it("a recusa do servidor relê a prévia, e o botão espera por ela", async () => {

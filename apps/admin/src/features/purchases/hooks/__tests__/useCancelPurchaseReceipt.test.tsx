@@ -32,7 +32,16 @@ function previa(extras: Partial<PurchaseReceiptCancellationDto> = {}): PurchaseR
     purchaseId: 286,
     purchaseEntryId: 1323,
     canCancel: true,
-    items: [{ productId: 1250, productName: "SACOLA [VERMELHA]", barcode: "7908573487583", quantity: 4 }],
+    items: [
+      {
+        productId: 1250,
+        productName: "SACOLA [VERMELHA]",
+        barcode: "7908573487583",
+        quantity: 4,
+        currentPrice: 7,
+        previousPriceRecorded: true,
+      },
+    ],
     otherPurchaseIds: [],
     ...extras,
   };
@@ -45,12 +54,13 @@ const GERADO = {
   canDelete: true,
 };
 
-function setup(preview: PurchaseReceiptCancellationDto | undefined) {
+function setup(preview: PurchaseReceiptCancellationDto | undefined, estado: { isError?: boolean } = {}) {
   mocks.useGetPurchaseReceiptCancellation.mockImplementation((id: number | null) => ({
     data: id == null ? undefined : preview,
     isLoading: false,
-    isError: false,
-    error: null,
+    isFetching: false,
+    isError: id != null && (estado.isError ?? false),
+    error: estado.isError ? new Error("Só a compra lançada tem recebimento para cancelar.") : null,
   }));
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -136,6 +146,63 @@ describe("useCancelPurchaseReceipt", () => {
     act(() => carregando.result.current.confirm());
 
     expect(mocks.cancelPurchaseReceipt).not.toHaveBeenCalled();
+  });
+
+  it("depois de cancelar, a prévia não é relida — e o catálogo de grupos é", async () => {
+    const { result, invalidate, onCancelled } = setup(previa({ generatedProduct: GERADO }));
+    act(() => result.current.start({ id: 286, productName: "SACOLA" }));
+
+    act(() => result.current.confirm());
+    await waitFor(() => expect(onCancelled).toHaveBeenCalled());
+
+    // A compra deixou de estar lançada: relida, a prévia viraria um 400 no console.
+    const daCompra = invalidate.mock.calls
+      .map(([filtro]) => filtro)
+      .find((filtro) => JSON.stringify(filtro?.queryKey) === JSON.stringify(getGetPurchasesQueryKey()));
+    const naoRelida = { queryKey: ["purchases", "receipt-cancellation", 286] } as never;
+    const relida = { queryKey: ["purchases", "page", {}] } as never;
+    expect(daCompra?.predicate?.(naoRelida)).toBe(false);
+    expect(daCompra?.predicate?.(relida)).toBe(true);
+    expect(invalidate.mock.calls.map(([filtro]) => filtro?.queryKey)).toContainEqual(
+      RESOURCE_KEYS.productGroups,
+    );
+  });
+
+  it("dois cliques no mesmo quadro mandam um cancelamento só", async () => {
+    const { result, onCancelled } = setup(previa());
+    act(() => result.current.start({ id: 286, productName: "SACOLA" }));
+
+    act(() => {
+      result.current.confirm();
+      result.current.confirm();
+    });
+
+    await waitFor(() => expect(onCancelled).toHaveBeenCalled());
+    expect(mocks.cancelPurchaseReceipt).toHaveBeenCalledTimes(1);
+  });
+
+  it("prévia com erro não sustenta o botão e diz o motivo", () => {
+    const { result } = setup(previa(), { isError: true });
+    act(() => result.current.start({ id: 286, productName: "SACOLA" }));
+
+    act(() => result.current.confirm());
+
+    expect(result.current.previewError).toBe("Só a compra lançada tem recebimento para cancelar.");
+    expect(mocks.cancelPurchaseReceipt).not.toHaveBeenCalled();
+  });
+
+  it("desistir avisa quem abriu; cancelar, não", async () => {
+    const { result, onCancelled } = setup(previa());
+    const desistiu = vi.fn();
+
+    act(() => result.current.start({ id: 286, productName: "SACOLA" }, { onDismiss: desistiu }));
+    act(() => result.current.close());
+    expect(desistiu).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.start({ id: 286, productName: "SACOLA" }, { onDismiss: desistiu }));
+    act(() => result.current.confirm());
+    await waitFor(() => expect(onCancelled).toHaveBeenCalled());
+    expect(desistiu).toHaveBeenCalledTimes(1);
   });
 
   it("recusa do servidor mantém a confirmação aberta e mostra o motivo", async () => {

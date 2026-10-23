@@ -7,6 +7,7 @@ import {
   PURCHASE_STATUS,
   deletePurchase,
   enumCode,
+  getPurchase,
   getGetLowStockQueryKey,
   getGetPurchasesQueryKey,
   receivePurchase,
@@ -232,12 +233,29 @@ export function usePurchases() {
    * O "Cancelar recebimento" do rodapé da compra lançada. A modal da compra
    * fecha antes de a confirmação abrir: dois diálogos empilhados disputariam o
    * foco, e a compra volta a abrir sozinha, editável, quando o cancelamento sai.
+   *
+   * Desistir ("Voltar") reabre a compra como estava: quem estava olhando para ela
+   * não pode cair na lista — que abre em "Não lançadas", sem a compra. Ela é
+   * relida, porque o formulário não guarda a compra inteira.
    */
   function cancelReceiptOfOpenPurchase() {
     if (form.editingId == null) return;
     const target = { id: form.editingId, productName: form.form.productName };
     form.requestClose();
-    cancelReceipt.start(target);
+    cancelReceipt.start(target, {
+      onDismiss: () => {
+        getPurchase(target.id)
+          .then(form.openEdit)
+          .catch((error: unknown) =>
+            toast({
+              title: "Não foi possível reabrir a compra",
+              description: describeApiError(error, "Abra a compra de novo pela lista."),
+              error,
+              variant: "destructive",
+            }),
+          );
+      },
+    });
   }
 
   // Quem chega de `/estoque/compras?produto=10&fornecedor=13` — o "Resolver" do

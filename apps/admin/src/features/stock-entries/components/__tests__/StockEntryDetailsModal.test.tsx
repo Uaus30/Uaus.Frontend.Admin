@@ -12,6 +12,7 @@ const entryDetails = {
   total: 62.67,
   canEdit: true,
   canDelete: true,
+  previousPriceRecorded: true,
   items: [
     {
       id: 1,
@@ -58,6 +59,26 @@ describe("StockEntryDetailsModal", () => {
     fireEvent.click(screen.getByRole("button", { name: /Cancelar Entrada/i }));
 
     expect(screen.getByText(/a compra volta para A caminho/i)).toBeTruthy();
+  });
+
+  it("avisa que o preço que a nota aplicou volta (23/10/2026)", () => {
+    renderModal();
+
+    fireEvent.click(screen.getByRole("button", { name: /Cancelar Entrada/i }));
+
+    expect(screen.getByText(/o preço de venda que ela aplicou volta ao de antes/i)).toBeTruthy();
+  });
+
+  it("nota anterior ao registro do preço de antes não promete a volta do preço", () => {
+    // Revisão de 23/10/2026: o script só criou a coluna, e toda nota mais antiga
+    // ficou sem o preço de antes — prometer a volta faria o operador sair achando
+    // que o preço voltou.
+    renderModal({ entryDetails: { ...entryDetails, previousPriceRecorded: false } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Cancelar Entrada/i }));
+
+    expect(screen.queryByText(/o preço de venda que ela aplicou volta ao de antes/i)).toBeNull();
+    expect(screen.getByText(/ele não volta sozinho/i)).toBeTruthy();
   });
 
   it("não oferece o cancelamento quando parte do lote já saiu, e diz por quê", () => {

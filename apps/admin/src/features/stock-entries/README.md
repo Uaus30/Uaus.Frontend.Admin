@@ -103,6 +103,12 @@ por esta aba, que não veio de compra nenhuma, e o espelho da nota
 sempre é melhor que calar: quem cancela aqui não está olhando para a tela de
 Compras.
 
+**Cancelar também devolve o preço** que a nota aplicou (23/10/2026, decisão do
+dono, regra do backend): volta o de antes quando ninguém o mudou depois. Só a
+nota lançada depois desta data guarda o preço de antes, e a confirmação segue o
+espelho (`previousPriceRecorded`): na nota antiga ela avisa que o preço não volta
+sozinho, em vez de prometer uma volta que não acontece.
+
 ### 4.1 Correção do custo da última entrada (23/09/2026)
 
 Decisão do dono: o custo unitário da **última entrada** de uma variação se

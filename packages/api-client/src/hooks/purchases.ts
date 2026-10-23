@@ -122,6 +122,12 @@ export interface ReceivedPurchaseEntryDto {
   purchaseId?: number | null;
   canEdit: boolean;
   canDelete: boolean;
+  /**
+   * A nota guardou o preço de antes de cada item (lançadas depois de 23/10/2026).
+   * Só nela o cancelamento devolve o preço que ela aplicou. Ausente na API antiga:
+   * trate como falso.
+   */
+  previousPriceRecorded?: boolean;
   items: ReceivedPurchaseEntryItemDto[];
   /**
    * Só na resposta do `receive`, e só quando a entrada reativou alguém; em

@@ -9,6 +9,15 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   useGetStockFreezeStatus: vi.fn(() => ({ data: { salesPaused: false } })),
   toast: vi.fn(),
+  getPurchase: vi.fn(),
+  // A prévia do cancelamento não vai à rede nos testes desta tela.
+  useGetPurchaseReceiptCancellation: vi.fn(() => ({
+    data: undefined,
+    isLoading: true,
+    isFetching: false,
+    isError: false,
+    error: null,
+  })),
 }));
 
 vi.mock("@workspace/ui", async (importOriginal) => ({
@@ -26,6 +35,8 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   useGetPurchases: mocks.useGetPurchases,
   receivePurchase: mocks.receivePurchase,
   useGetStockFreezeStatus: mocks.useGetStockFreezeStatus,
+  getPurchase: mocks.getPurchase,
+  useGetPurchaseReceiptCancellation: mocks.useGetPurchaseReceiptCancellation,
 }));
 
 vi.mock("@/hooks/use-catalog", async (importOriginal) => ({
@@ -621,5 +632,32 @@ describe("usePurchases — preço do recebimento sem preço na compra (22/10/202
     );
 
     expect(result.current.receiveForm.price).toBe(12.9);
+  });
+});
+
+describe("usePurchases — Cancelar recebimento pelo rodapé (23/10/2026)", () => {
+  beforeEach(() => {
+    mocks.useGetPurchases.mockReturnValue({ data: { data: [], total: 0 }, isLoading: false });
+    mocks.getPurchase.mockReset();
+  });
+
+  it("a modal da compra fecha para a confirmação abrir, e desistir a reabre", async () => {
+    const lancada = compra({ id: 251, status: "Received", productName: "CAMISETA TESTE" });
+    mocks.getPurchase.mockResolvedValue(lancada);
+    const { result } = renderHook(() => usePurchases(), { wrapper: createWrapper() });
+    act(() => result.current.form.openEdit(lancada));
+
+    act(() => result.current.cancelReceiptOfOpenPurchase());
+
+    expect(result.current.form.open).toBe(false);
+    expect(result.current.cancelReceipt.target).toEqual({ id: 251, productName: "CAMISETA TESTE" });
+
+    // "Voltar": a lista abre em "Não lançadas", sem esta compra — sem reabrir, o
+    // operador perdia de vista o que estava olhando.
+    act(() => result.current.cancelReceipt.close());
+
+    await waitFor(() => expect(result.current.form.open).toBe(true));
+    expect(mocks.getPurchase).toHaveBeenCalledWith(251);
+    expect(result.current.form.editingId).toBe(251);
   });
 });

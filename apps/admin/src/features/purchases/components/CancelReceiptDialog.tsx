@@ -11,7 +11,7 @@ import {
   Spinner,
 } from "@workspace/ui";
 import type { PurchaseReceiptCancellationDto } from "@workspace/api-client-react";
-import { formatShortDate } from "@workspace/core";
+import { formatCurrency, formatShortDate } from "@workspace/core";
 import type { ReceiptCancellationTarget } from "../hooks/useCancelPurchaseReceipt";
 
 type CancelReceiptDialogProps = {
@@ -20,6 +20,8 @@ type CancelReceiptDialogProps = {
   /** A prévia do servidor. `undefined` enquanto a consulta não respondeu. */
   preview: PurchaseReceiptCancellationDto | undefined;
   isLoadingPreview: boolean;
+  /** A prévia falhou: a frase aparece no lugar do botão de confirmar. */
+  previewError?: string | null;
   /** A prévia está sendo relida: o botão de confirmar espera por ela. */
   isRefreshingPreview?: boolean;
   /** A caixa "excluir também o produto criado" — só aparece quando ele pode sair. */
@@ -46,6 +48,7 @@ export function CancelReceiptDialog({
   target,
   preview,
   isLoadingPreview,
+  previewError = null,
   isRefreshingPreview = false,
   deleteGeneratedProduct,
   onDeleteGeneratedProductChange,
@@ -55,6 +58,9 @@ export function CancelReceiptDialog({
 }: CancelReceiptDialogProps) {
   const generated = preview?.generatedProduct;
   const keepsProduct = !generated || !deleteGeneratedProduct;
+  const canConfirm = preview?.canCancel === true && !previewError;
+  // Nota anterior a 23/10/2026: não guardou o preço de antes, e o dela fica.
+  const priceNotRecorded = preview?.items.some((item) => !item.previousPriceRecorded) ?? false;
 
   return (
     <AlertDialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
@@ -81,7 +87,12 @@ export function CancelReceiptDialog({
           </p>
         )}
 
-        {isLoadingPreview || !preview ? (
+        {previewError ? (
+          <p className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm leading-relaxed text-foreground">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <span>{previewError}</span>
+          </p>
+        ) : isLoadingPreview || !preview ? (
           <div className="flex justify-center py-6" data-testid="receipt-cancellation-loading">
             <Spinner />
           </div>
@@ -107,6 +118,14 @@ export function CancelReceiptDialog({
                         {item.productName}
                       </span>
                       <span className="font-mono text-xs text-muted-foreground">{item.barcode}</span>
+                      {/* O preço que o recebimento aplicou volta (23/10/2026) —
+                          só quando ninguém o mudou depois; o servidor decide. */}
+                      {item.revertsToPrice != null && (
+                        <span className="block text-xs text-foreground">
+                          Preço volta de {formatCurrency(item.currentPrice)} para{" "}
+                          <span className="font-semibold">{formatCurrency(item.revertsToPrice)}</span>
+                        </span>
+                      )}
                     </span>
                     <span className="shrink-0 font-semibold text-destructive">−{item.quantity} un</span>
                   </li>
@@ -151,15 +170,23 @@ export function CancelReceiptDialog({
             {generated && !generated.canDelete && (
               <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-muted-foreground">
                 O produto <span className="font-medium text-foreground">{generated.name}</span>, criado neste
-                recebimento, continua no cadastro: {generated.blockedReason}
+                recebimento, continua no cadastro:{" "}
+                {generated.blockedReason ?? "ele tem outro movimento além deste recebimento."}
+              </p>
+            )}
+
+            {keepsProduct && priceNotRecorded && (
+              <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:text-amber-100">
+                Esta entrada é anterior a 23/10/2026 e não guardou o preço de antes: se ela mudou o preço de
+                venda, ele não volta sozinho — confira no cadastro.
               </p>
             )}
 
             {keepsProduct && (
               <p className="text-xs leading-relaxed text-muted-foreground">
-                O cadastro fica como o recebimento o deixou: o preço de venda aplicado, a reativação e a troca
-                de código de barras feitas nele não são desfeitas. A compra continua vinculada ao produto —
-                para trocar, edite a compra e desvincule.
+                O preço de venda volta ao de antes quando ninguém o mudou depois do recebimento. A reativação
+                e a troca de código de barras feitas nele não são desfeitas. A compra continua vinculada ao
+                produto — para trocar, edite a compra e desvincule.
               </p>
             )}
           </div>
@@ -167,9 +194,9 @@ export function CancelReceiptDialog({
 
         <AlertDialogFooter>
           <Button type="button" variant="outline" onClick={onClose} disabled={isCancelling}>
-            {preview && !preview.canCancel ? "Fechar" : "Voltar"}
+            {previewError || (preview && !preview.canCancel) ? "Fechar" : "Voltar"}
           </Button>
-          {preview?.canCancel && (
+          {canConfirm && (
             <Button
               type="button"
               variant="destructive"
