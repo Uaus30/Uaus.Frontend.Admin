@@ -32,6 +32,7 @@ import {
 } from "../lib/purchase-filters";
 import { barcodeChangesOf, receiveBarcodeProblem, receiveUnitCost } from "../lib/receive-barcode";
 import type { PurchaseFormItem, ReceiveForm } from "../types";
+import { useCancelPurchaseReceipt } from "./useCancelPurchaseReceipt";
 import { useNewPurchaseFromUrl } from "./useNewPurchaseFromUrl";
 import { usePurchaseFromUrl } from "./usePurchaseFromUrl";
 import { purchaseHasProduct, todayDateKey, usePurchaseForm } from "./usePurchaseForm";
@@ -222,6 +223,22 @@ export function usePurchases() {
   }
 
   const form = usePurchaseForm({ onSaved: invalidate, suppliers, categories });
+
+  // "Cancelar recebimento" (23/10/2026): cancelada, a compra abre em edição já "A
+  // caminho" — é ali que se troca o produto errado antes de receber de novo.
+  const cancelReceipt = useCancelPurchaseReceipt({ onCancelled: form.openEdit });
+
+  /**
+   * O "Cancelar recebimento" do rodapé da compra lançada. A modal da compra
+   * fecha antes de a confirmação abrir: dois diálogos empilhados disputariam o
+   * foco, e a compra volta a abrir sozinha, editável, quando o cancelamento sai.
+   */
+  function cancelReceiptOfOpenPurchase() {
+    if (form.editingId == null) return;
+    const target = { id: form.editingId, productName: form.form.productName };
+    form.requestClose();
+    cancelReceipt.start(target);
+  }
 
   // Quem chega de `/estoque/compras?produto=10&fornecedor=13` — o "Resolver" do
   // relatório de estoque baixo — cai no formulário já preenchido.
@@ -515,5 +532,8 @@ export function usePurchases() {
     cancelReceiveBelowCost: () => setBelowCostOpen(false),
     isReceiving: receiveMutation.isPending,
     stockFrozen,
+    // cancelamento do recebimento
+    cancelReceipt,
+    cancelReceiptOfOpenPurchase,
   };
 }

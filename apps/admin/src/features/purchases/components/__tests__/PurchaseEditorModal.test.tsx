@@ -38,6 +38,66 @@ function renderModal() {
   );
 }
 
+/** A modal aberta numa compra GRAVADA, com a situação que o teste pede. */
+function ExistingHarness({ status, onCancelReceipt }: { status: string; onCancelReceipt: () => void }) {
+  const form = usePurchaseForm({ onSaved: vi.fn(), suppliers: [], categories: [] });
+  const [opened, setOpened] = useState(false);
+  if (!opened) {
+    setOpened(true);
+    form.openEdit({
+      id: 280,
+      createdAt: "2026-10-22T10:00:00",
+      supplierId: 1,
+      supplierName: "Atacado",
+      productName: "CANECA TERMICA",
+      purchaseDate: "2026-10-22T00:00:00",
+      quantity: 3,
+      grossTotal: 30,
+      finalTotal: 30,
+      unitGross: 10,
+      unitFinal: 10,
+      adjustmentPercent: 0,
+      status,
+      images: [],
+      items: [],
+      costSplitManual: false,
+    } as unknown as Parameters<typeof form.openEdit>[0]);
+  }
+  return (
+    <PurchaseEditorModal form={form} suppliers={[]} departments={[]} onCancelReceipt={onCancelReceipt} />
+  );
+}
+
+function renderExisting(status: string) {
+  const onCancelReceipt = vi.fn();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ExistingHarness status={status} onCancelReceipt={onCancelReceipt} />
+    </QueryClientProvider>,
+  );
+  return { onCancelReceipt };
+}
+
+describe("PurchaseEditorModal — Cancelar recebimento (23/10/2026)", () => {
+  afterEach(() => cleanup());
+
+  it("a compra lançada mostra o botão no rodapé, e o aviso diz que é por ele que se corrige", () => {
+    const { onCancelReceipt } = renderExisting("Received");
+
+    expect(screen.getByText(/Para corrigir, cancele o recebimento/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /cancelar recebimento/i }));
+    expect(onCancelReceipt).toHaveBeenCalledTimes(1);
+  });
+
+  it("a compra ainda a caminho é editável e não tem o botão", () => {
+    renderExisting("InTransit");
+
+    expect(screen.queryByRole("button", { name: /cancelar recebimento/i })).toBeNull();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeTruthy();
+  });
+});
+
 describe("PurchaseEditorModal — nome do produto", () => {
   afterEach(() => cleanup());
 

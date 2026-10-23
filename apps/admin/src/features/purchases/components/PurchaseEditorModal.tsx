@@ -1,4 +1,4 @@
-import { Lock, MessageSquareWarning, Package, Plus, ShoppingCart, X } from "lucide-react";
+import { Lock, MessageSquareWarning, Package, Plus, ShoppingCart, Undo2, X } from "lucide-react";
 import { Button, Input, Textarea, cn, uppercaseKeepingCaret } from "@workspace/ui";
 import { MOBILE_STICKY_FOOTER } from "./mobile-footer";
 import { blockImplicitSubmit } from "@/lib/block-implicit-submit";
@@ -34,6 +34,8 @@ type PurchaseEditorModalProps = {
   form: ReturnType<typeof usePurchaseForm>;
   suppliers: SupplierDto[];
   departments: DepartmentDto[];
+  /** "Cancelar recebimento" da compra lançada. Sem ele, o botão do rodapé não aparece. */
+  onCancelReceipt?: () => void;
 };
 
 /**
@@ -77,7 +79,12 @@ type PurchaseEditorModalProps = {
  * um clique de dois pixels fora da caixa. Quem decide se há o que perder é o
  * `dirty` do `usePurchaseForm` — compra aberta só para consultar fecha direto.
  */
-export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEditorModalProps) {
+export function PurchaseEditorModal({
+  form,
+  suppliers,
+  departments,
+  onCancelReceipt,
+}: PurchaseEditorModalProps) {
   const { form: values, update, readOnly, linkRequired, costRequired, categoryLocked } = form;
   const derived = derivePurchaseTotals(values.quantity, values.grossTotal, values.finalTotal);
   // Com variações o cabeçalho não aponta para nenhuma delas: quem diz que a
@@ -111,8 +118,8 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
             <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               Esta compra já foi lançada no estoque e não pode mais ser alterada — a entrada existe, e mudar
-              quantidade ou valor aqui deixaria os dois documentos discordando. Para corrigir, edite a entrada
-              de estoque correspondente.
+              quantidade ou valor aqui deixaria os dois documentos discordando. Para corrigir, cancele o
+              recebimento: o estoque sai e a compra volta para A caminho, editável.
             </span>
           </div>
         )}
@@ -591,6 +598,12 @@ export function PurchaseEditorModal({ form, suppliers, departments }: PurchaseEd
               MOBILE_STICKY_FOOTER,
             )}
           >
+            {/* Vermelho e à esquerda, longe do "Fechar": desfaz estoque de verdade. */}
+            {readOnly && onCancelReceipt && (
+              <Button type="button" variant="destructive" className="mr-auto gap-2" onClick={onCancelReceipt}>
+                <Undo2 className="h-4 w-4" /> Cancelar recebimento
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={form.requestClose}>
               {readOnly ? "Fechar" : "Cancelar"}
             </Button>

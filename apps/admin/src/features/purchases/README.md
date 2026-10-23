@@ -35,7 +35,8 @@ recebimento dela é o que gera a entrada.
 - **Situação: Pendente (vermelho) → A caminho (azul) → Lançado (verde).** Só
   as duas primeiras são escolhidas à mão. **Lançado nasce do recebimento** e
   torna a compra imutável — não se edita nem se exclui uma compra cuja entrada
-  já existe. A cor mora em `PurchaseStatusBadge`, e em nenhum outro lugar.
+  já existe. A volta é o **"Cancelar recebimento"** (23/10/2026, seção própria
+  abaixo). A cor mora em `PurchaseStatusBadge`, e em nenhum outro lugar.
 - **Pendente aceita só o essencial: fornecedor, produto (ou nome), quantidade e
   data.** É a anotação de "preciso comprar isto" — do relatório de estoque baixo
   ou de uma ideia no balcão —, antes de escolher o anúncio, negociar o preço ou
@@ -161,6 +162,41 @@ recebimento dela é o que gera a entrada.
   hospedagem aceita. URL e busca na web passam antes pelo proxy do backend
   (CORS). No recebimento de produto novo, as mesmas imagens viram a galeria do
   cadastro sem novo upload.
+
+## Cancelar recebimento (23/10/2026, pedido do dono)
+
+O incidente: uma compra lançada no produto de código de barras errado, que
+precisava ser recebida de novo no código certo. Desde 14/09/2026 cancelar a
+ENTRADA já devolvia a compra para "A caminho", mas só pela aba Estoque do
+produto — e quem precisa desfazer está olhando para a compra.
+
+- **Onde:** item vermelho "Cancelar recebimento" no menu ⋮ da compra lançada (no
+  lugar do antigo "Lançada — não pode ser alterada") e botão vermelho no rodapé
+  da compra lançada, à esquerda, longe do "Fechar". O rodapé fecha a modal antes
+  de abrir a confirmação — dois diálogos empilhados disputariam o foco.
+- **A confirmação mostra a PRÉVIA do servidor** (`GET /Purchases/{id}/receipt-cancellation`)
+  e nada além: o que sai do estoque, a nota, as outras compras que a mesma nota
+  fechou e o produto que o recebimento cadastrou. Quando não dá — unidade já
+  vendida ou baixada, conferência aberta —, o motivo aparece no lugar do botão.
+  A tela não adivinha nada: o servidor é quem sabe se o produto nasceu no
+  recebimento, e o produto criado pela tela de Produtos a compra só conhece
+  pelo cabeçalho.
+- **O produto criado no recebimento sai junto por padrão** (a caixa vem
+  marcada). Quem cancela um recebimento de produto novo quase sempre o faz
+  porque o CADASTRO saiu errado; mantê-lo deixaria a compra presa a ele, e o
+  recebimento seguinte cairia de novo no mesmo produto. Desmarcar serve a quem
+  errou só a quantidade ou o custo. Produto que não pode sair (venda, baixa, outra
+  entrada, outra compra) vem sem caixa, com o motivo.
+- **Cancelado, a compra abre em edição**, já "A caminho" — é onde se troca o
+  produto errado (o X do "Produto já cadastrado") antes de receber de novo. Com o
+  produto excluído, ela volta como produto novo.
+- O que o cancelamento **não** desfaz, quando o produto fica: o preço de venda
+  aplicado, a reativação e a troca de código feitas no recebimento. A
+  confirmação avisa.
+
+Hook: `hooks/useCancelPurchaseReceipt.ts`, chamado de dentro de `usePurchases`.
+Diálogo: `components/CancelReceiptDialog.tsx`. A regra do servidor está em
+`Uaus.Backend.Api/Uaus.Application/Services/PurchaseReceiptCancellationService.cs`.
 
 ## Ajustes de 22/10/2026 (pedido do dono)
 

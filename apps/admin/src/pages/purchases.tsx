@@ -4,6 +4,7 @@ import { usePurchases } from "@/features/purchases/hooks/usePurchases";
 import { PurchasesTable } from "@/features/purchases/components/PurchasesTable";
 import { PurchaseEditorModal } from "@/features/purchases/components/PurchaseEditorModal";
 import { PurchaseReceiveDialog } from "@/features/purchases/components/PurchaseReceiveDialog";
+import { CancelReceiptDialog } from "@/features/purchases/components/CancelReceiptDialog";
 import { ProductImageSearchModal } from "@/features/products/components/ProductImageSearchModal";
 
 /**
@@ -49,11 +50,29 @@ export default function Purchases() {
           onDelete={purchases.remove}
           onSetStatus={purchases.setStatus}
           onReceive={purchases.startReceive}
+          onCancelReceipt={purchases.cancelReceipt.start}
           mutatingId={purchases.mutatingId}
         />
       </div>
 
-      <PurchaseEditorModal form={form} suppliers={purchases.suppliers} departments={purchases.departments} />
+      <PurchaseEditorModal
+        form={form}
+        suppliers={purchases.suppliers}
+        departments={purchases.departments}
+        onCancelReceipt={purchases.cancelReceiptOfOpenPurchase}
+      />
+
+      <CancelReceiptDialog
+        target={purchases.cancelReceipt.target}
+        preview={purchases.cancelReceipt.preview}
+        isLoadingPreview={purchases.cancelReceipt.isLoadingPreview}
+        isRefreshingPreview={purchases.cancelReceipt.isRefreshingPreview}
+        deleteGeneratedProduct={purchases.cancelReceipt.deleteGeneratedProduct}
+        onDeleteGeneratedProductChange={purchases.cancelReceipt.setDeleteGeneratedProduct}
+        onClose={purchases.cancelReceipt.close}
+        onConfirm={purchases.cancelReceipt.confirm}
+        isCancelling={purchases.cancelReceipt.isCancelling}
+      />
 
       <PurchaseReceiveDialog
         purchase={purchases.receiving}

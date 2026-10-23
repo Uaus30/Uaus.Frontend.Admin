@@ -34,7 +34,12 @@ const FORNECEDORES = [
   { id: 4, name: "Atacado" },
 ] as unknown as SupplierDto[];
 
-function renderTable(items: PurchaseDto[], onEdit = vi.fn(), supplierFilter = "all") {
+function renderTable(
+  items: PurchaseDto[],
+  onEdit = vi.fn(),
+  supplierFilter = "all",
+  onCancelReceipt = vi.fn(),
+) {
   render(
     <PurchasesTable
       items={items}
@@ -53,11 +58,43 @@ function renderTable(items: PurchaseDto[], onEdit = vi.fn(), supplierFilter = "a
       onDelete={vi.fn()}
       onSetStatus={vi.fn()}
       onReceive={vi.fn()}
+      onCancelReceipt={onCancelReceipt}
       mutatingId={null}
     />,
   );
-  return { onEdit };
+  return { onEdit, onCancelReceipt };
 }
+
+function abrirMenu(id = 7) {
+  fireEvent.pointerDown(screen.getByRole("button", { name: `Opções da compra ${id}` }), {
+    button: 0,
+    ctrlKey: false,
+  });
+}
+
+describe("PurchasesTable — Cancelar recebimento (23/10/2026)", () => {
+  it("a compra lançada oferece cancelar o recebimento, e o clique passa a compra", () => {
+    const lancada = compra({ status: "Received", purchaseEntryId: 1325 });
+    const { onCancelReceipt, onEdit } = renderTable([lancada]);
+
+    abrirMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: /cancelar recebimento/i }));
+
+    expect(onCancelReceipt).toHaveBeenCalledWith(lancada);
+    expect(onEdit).not.toHaveBeenCalled();
+    // Lançada continua sem "Excluir": o caminho de corrigir é o cancelamento.
+    expect(screen.queryByRole("menuitem", { name: /excluir/i })).toBeNull();
+  });
+
+  it("compra ainda não lançada não tem recebimento para cancelar", () => {
+    renderTable([compra({ status: "InTransit" })]);
+
+    abrirMenu();
+
+    expect(screen.queryByRole("menuitem", { name: /cancelar recebimento/i })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: /lançar recebimento/i })).toBeTruthy();
+  });
+});
 
 describe("PurchasesTable — no celular (06/10/2026)", () => {
   it("fornecedor, quantidade e situação vêm embaixo do nome", () => {

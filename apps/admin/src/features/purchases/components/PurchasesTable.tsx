@@ -8,6 +8,7 @@ import {
   Search,
   Trash2,
   Truck,
+  Undo2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button, ImageHoverZoom, Input, Spinner } from "@workspace/ui";
@@ -48,6 +49,8 @@ type PurchasesTableProps = {
   onDelete: (id: number) => void;
   onSetStatus: (id: number, status: number) => void;
   onReceive: (purchase: PurchaseDto) => void;
+  /** "Cancelar recebimento" da compra lançada: abre a confirmação, com a prévia do servidor. */
+  onCancelReceipt: (purchase: PurchaseDto) => void;
   mutatingId: number | null | undefined;
 };
 
@@ -95,6 +98,7 @@ export function PurchasesTable({
   onDelete,
   onSetStatus,
   onReceive,
+  onCancelReceipt,
   mutatingId,
 }: PurchasesTableProps) {
   return (
@@ -441,8 +445,16 @@ export function PurchasesTable({
                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
                               </DropdownMenuItem>
                             )}
+                            {/* A compra lançada não se edita nem se exclui: o caminho de
+                                corrigir é desfazer o recebimento (23/10/2026). A
+                                confirmação diz antes se dá — e, se não dá, por quê. */}
                             {received && (
-                              <DropdownMenuItem disabled>Lançada — não pode ser alterada</DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => onCancelReceipt(purchase)}
+                              >
+                                <Undo2 className="mr-2 h-4 w-4" /> Cancelar recebimento
+                              </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>

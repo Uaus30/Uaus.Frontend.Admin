@@ -455,3 +455,103 @@ export async function markPurchaseReceived(
   if (!response.data) throw new Error("Não foi possível lançar a compra.");
   return response.data;
 }
+
+/** Uma variação da nota que o "Cancelar recebimento" tira do estoque. */
+export interface PurchaseReceiptCancellationItemDto {
+  productId: number;
+  /** Nome composto, com as grades ("SACOLA [URSO]"). */
+  productName: string;
+  barcode: string;
+  quantity: number;
+}
+
+/**
+ * O produto que o PRÓPRIO recebimento cadastrou — o novo com variações, criado
+ * na conferência, ou o novo simples, criado pela tela de Produtos a partir da
+ * compra. O cancelamento pode excluí-lo junto.
+ */
+export interface ReceiptGeneratedProductDto {
+  productGroupId: number;
+  name: string;
+  /** O código de cada variação, na ordem do cadastro. */
+  barcodes: string[];
+  canDelete: boolean;
+  /** Por que o produto tem de ficar. Ausente quando pode ser excluído. */
+  blockedReason?: string | null;
+}
+
+/**
+ * A prévia do "Cancelar recebimento" (23/10/2026): o que sai do estoque, se dá
+ * para cancelar e, se não, por quê. Quem decide é o servidor — a tela só mostra.
+ */
+export interface PurchaseReceiptCancellationDto {
+  purchaseId: number;
+  /** Ausente na compra lançada sem entrada vinculada. */
+  purchaseEntryId?: number | null;
+  canCancel: boolean;
+  /** A frase que a tela mostra quando não dá. Ausente quando dá. */
+  blockedReason?: string | null;
+  entryDate?: string | null;
+  invoiceNumber?: string | null;
+  items: PurchaseReceiptCancellationItemDto[];
+  /** Outras compras fechadas pela MESMA nota: voltam juntas para "A caminho". */
+  otherPurchaseIds: number[];
+  /** Ausente na reposição — produto que já existia antes da compra nunca é excluído. */
+  generatedProduct?: ReceiptGeneratedProductDto | null;
+}
+
+export interface CancelPurchaseReceiptPayload {
+  /**
+   * Exclui também o produto que o recebimento cadastrou, e a compra volta a ser de
+   * produto novo. Falso mantém o cadastro: só o estoque sai.
+   */
+  deleteGeneratedProduct: boolean;
+}
+
+/** Sob o prefixo das compras: cancelar e receber de novo invalidam os dois juntos. */
+export const getGetPurchaseReceiptCancellationQueryKey = (): QueryKey => [
+  ...getGetPurchasesQueryKey(),
+  "receipt-cancellation",
+];
+
+/**
+ * A prévia do cancelamento de UMA compra lançada. **Nunca sai do cache**: entre
+ * duas aberturas da confirmação uma unidade pode ter sido vendida (a prévia velha
+ * ofereceria um cancelamento que o servidor recusa) ou a conferência pode ter
+ * sido encerrada (a velha continuaria bloqueando). O padrão do admin é de 30 s
+ * (`STALE_TIME.operacao`), e é por isso que os dois tempos são zerados aqui: com
+ * `gcTime` zero a prévia some quando a confirmação fecha, e reabrir é carregar de
+ * novo — com o spinner, e não com o número velho clicável.
+ */
+export function useGetPurchaseReceiptCancellation(
+  id: number | null,
+  options?: {
+    query?: Omit<
+      UseQueryOptions<PurchaseReceiptCancellationDto, ApiError, PurchaseReceiptCancellationDto, QueryKey>,
+      "queryKey" | "queryFn"
+    >;
+  },
+) {
+  return useQuery<PurchaseReceiptCancellationDto, ApiError, PurchaseReceiptCancellationDto, QueryKey>({
+    queryKey: [...getGetPurchaseReceiptCancellationQueryKey(), id],
+    queryFn: () => apiGetOrThrow<PurchaseReceiptCancellationDto>(`/Purchases/${id}/receipt-cancellation`),
+    staleTime: 0,
+    gcTime: 0,
+    ...options?.query,
+    enabled: id != null && (options?.query?.enabled ?? true),
+  });
+}
+
+/**
+ * Cancela o recebimento: a entrada sai (lotes, saldo e custo voltam), a compra vai
+ * para "A caminho" e, se pedido, o produto que o recebimento cadastrou é excluído
+ * — numa transação só. Devolve a compra como ficou.
+ */
+export async function cancelPurchaseReceipt(
+  id: number,
+  payload: CancelPurchaseReceiptPayload,
+): Promise<PurchaseDto> {
+  const response = await apiPost<PurchaseDto>(`/Purchases/${id}/cancel-receipt`, payload);
+  if (!response.data) throw new Error("Não foi possível cancelar o recebimento.");
+  return response.data;
+}
