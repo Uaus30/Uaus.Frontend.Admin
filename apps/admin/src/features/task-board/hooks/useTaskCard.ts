@@ -1,45 +1,48 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  addTaskChecklistItem,
   deleteTaskCardAttachment,
-  deleteTaskChecklistItem,
   getGetTaskCardQueryKey,
   saveTaskCardSolution,
   TASK_CARDS_QUERY_KEY,
   updateTaskCard,
-  updateTaskChecklistItem,
   uploadTaskCardAttachment,
   useGetTaskBoardMembers,
   useGetTaskCard,
   useGetTaskLabels,
   type SaveTaskCardPayload,
-  type TaskCardChecklistItemDto,
   type TaskCardDto,
   type TaskCardMemberDto,
+  type TaskCardPriorityCode,
   type TaskLabelDto,
 } from "@workspace/api-client-react";
 import { useToast } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
 import { isBlankRichText } from "@/components/rich-text";
+import { priorityCode } from "../tasks";
 
-/** O payload de edição a partir do cartão atual, com o que mudou por cima. */
+/**
+ * O payload de edição a partir da tarefa atual, com o que mudou por cima. Tarefa
+ * migrada sem responsável manda zero, e o servidor responde "Informe o responsável"
+ * — é o empurrão para escolher alguém, em vez de a tela inventar um.
+ */
 function payloadFrom(card: TaskCardDto, overrides: Partial<SaveTaskCardPayload>): SaveTaskCardPayload {
   return {
     title: card.title,
     description: card.description ?? null,
+    priority: priorityCode(card.priority) as TaskCardPriorityCode,
+    assigneeId: card.assignee?.userId ?? 0,
     labelIds: card.labels.map((l) => l.id),
-    memberIds: card.members.map((m) => m.userId),
     ...overrides,
   };
 }
 
-/** Etiquetas e membros escolhidos num clique — a parte do PUT que a modal antecipa. */
-type Selection = Pick<Partial<SaveTaskCardPayload>, "labelIds" | "memberIds">;
+/** Etiquetas, responsável e prioridade escolhidos num clique — a parte do PUT que a modal antecipa. */
+type Selection = Pick<Partial<SaveTaskCardPayload>, "labelIds" | "assigneeId" | "priority">;
 
 /**
- * O cartão com a seleção nova de etiquetas e membros — o que a modal mostra
- * enquanto o PUT viaja. Etiqueta e membro saem do próprio cartão ou das listas
- * completas; id que nenhuma das duas conhece some, como sumiria no servidor.
+ * A tarefa com a seleção nova — o que a modal mostra enquanto o PUT viaja.
+ * Etiqueta e responsável saem da própria tarefa ou das listas completas; id que
+ * nenhuma das duas conhece some, como sumiria no servidor.
  */
 function withSelection(
   card: TaskCardDto,
@@ -48,39 +51,39 @@ function withSelection(
   users: TaskCardMemberDto[],
 ): TaskCardDto {
   const labelById = new Map([...labels, ...card.labels].map((l) => [l.id, l]));
-  const memberById = new Map([...users, ...card.members].map((m) => [m.userId, m]));
+  const userById = new Map([...users, ...(card.assignee ? [card.assignee] : [])].map((u) => [u.userId, u]));
   return {
     ...card,
     labels: selection.labelIds?.flatMap((id) => labelById.get(id) ?? []) ?? card.labels,
-    members: selection.memberIds?.flatMap((id) => memberById.get(id) ?? []) ?? card.members,
+    assignee:
+      selection.assigneeId !== undefined ? (userById.get(selection.assigneeId) ?? null) : card.assignee,
+    priority: selection.priority ?? card.priority,
   };
 }
 
 /**
  * useTaskCard
  *
- * Hook da modal de detalhe: o cartão completo e cada edição como mutação
- * própria — título, descrição, solução, etiquetas, membros, checklist e anexos.
- * Comentários e histórico estão em `useCardActivity`.
+ * Hook da modal de detalhe: a tarefa completa e cada edição como mutação
+ * própria — título, descrição, solução, responsável, prioridade, etiquetas e
+ * anexos. Comentários e histórico estão em `useCardActivity`.
  *
- * Cada campo salva sozinho (ao sair do campo ou marcar a caixa), sem botão
- * "Salvar" geral: é o jeito do Trello, e reduz o que uma pessoa sobrescreve da
- * outra no mesmo cartão — reduz, não elimina: o PUT manda etiquetas e membros
- * inteiros a partir do cartão em cache, então duas modais abertas no mesmo
- * cartão podem desfazer uma a etiqueta da outra. Aceito: o quadro é de uma
- * loja, não de uma equipe de cinquenta. O custo real é que toda mutação
- * invalida o prefixo dos cartões, e o quadro atrás da modal acompanha.
+ * Cada campo salva sozinho (ao sair do campo ou ao escolher), sem botão
+ * "Salvar" geral, e reduz o que uma pessoa sobrescreve da outra na mesma
+ * tarefa — reduz, não elimina: o PUT manda a tarefa inteira a partir do cache,
+ * então duas modais abertas na mesma tarefa podem desfazer uma a etiqueta da
+ * outra. Aceito: a lista é de uma loja, não de uma equipe de cinquenta.
  *
  * **Duas gravações seguidas na MESMA modal não se atropelam** (06/10/2026).
- * Antes, marcar a etiqueta A e logo a B mandava dois PUTs montados do cartão
+ * Antes, marcar a etiqueta A e logo a B mandava dois PUTs montados da tarefa
  * ainda sem a A — o segundo levava só a B, e a A se perdia; o mesmo valia para
- * etiqueta seguida de membro ou de título. Agora:
+ * etiqueta seguida de responsável ou de título. Agora:
  *
  * - os PUTs do cartão fazem fila (`scope`) e chegam ao servidor na ordem em que
  *   foram feitos;
  * - cada PUT é montado na hora de SAIR da fila, a partir do cartão do cache —
  *   a gravação anterior já respondeu;
- * - etiqueta e membro entram no cache no clique (a marca aparece na hora, e o
+ * - etiqueta, responsável e prioridade entram no cache no clique (a marca aparece na hora, e o
  *   clique seguinte parte dela); título e descrição, só depois de gravados;
  * - o cartão só é relido depois do último PUT da fila: reler no meio traria do
  *   servidor o estado sem a gravação seguinte e apagaria a marca.
@@ -97,7 +100,7 @@ export function useTaskCard(cardId: number | null) {
 
   const { data: card, isLoading, isError } = useGetTaskCard(cardId);
   const { data: labels } = useGetTaskLabels();
-  // Quem pode ser membro, pela rota do próprio quadro.
+  // Quem pode ser responsável, pela rota da própria lista.
   const { data: members } = useGetTaskBoardMembers();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: TASK_CARDS_QUERY_KEY });
@@ -124,7 +127,7 @@ export function useTaskCard(cardId: number | null) {
     // — ou não tem, se ela falhou, e o texto recusado não vai de carona nesta.
     mutationFn: (overrides: Partial<SaveTaskCardPayload>) => {
       const current = currentCard();
-      if (!current) throw new Error("O cartão ainda não foi carregado.");
+      if (!current) throw new Error("A tarefa ainda não foi carregada.");
       return updateTaskCard(cardId!, payloadFrom(current, overrides));
     },
     onSuccess: (_data, { title, description }) => {
@@ -139,7 +142,7 @@ export function useTaskCard(cardId: number | null) {
           },
       );
     },
-    onError: fail("Erro ao salvar o cartão"),
+    onError: fail("Erro ao salvar a tarefa"),
     // Esta gravação ainda conta como pendente aqui; 1 é "sou a última da fila".
     // Com erro também relê: a marca que não gravou some.
     onSettled: () => (queryClient.isMutating({ mutationKey: saveKey }) <= 1 ? invalidate() : undefined),
@@ -164,31 +167,9 @@ export function useTaskCard(cardId: number | null) {
       saveTaskCardSolution(card!.id, input),
     onSuccess: async (_data, input) => {
       await invalidate();
-      if (input.finish) toast({ title: `Solução salva e tarefa #${card?.number} finalizada.` });
+      if (input.finish) toast({ title: `Solução salva e tarefa #${card?.number} concluída.` });
     },
     onError: fail("Erro ao salvar a solução"),
-  });
-
-  const checklistAddMutation = useMutation({
-    mutationFn: (text: string) => addTaskChecklistItem(card!.id, { text, isDone: false }),
-    onSuccess: invalidate,
-    onError: fail("Erro ao adicionar o item"),
-  });
-
-  const checklistUpdateMutation = useMutation({
-    mutationFn: (input: { item: TaskCardChecklistItemDto; text?: string; isDone?: boolean }) =>
-      updateTaskChecklistItem(card!.id, input.item.id, {
-        text: input.text ?? input.item.text,
-        isDone: input.isDone ?? input.item.isDone,
-      }),
-    onSuccess: invalidate,
-    onError: fail("Erro ao atualizar o item"),
-  });
-
-  const checklistDeleteMutation = useMutation({
-    mutationFn: (itemId: number) => deleteTaskChecklistItem(card!.id, itemId),
-    onSuccess: invalidate,
-    onError: fail("Erro ao remover o item"),
   });
 
   const uploadMutation = useMutation({
@@ -206,7 +187,7 @@ export function useTaskCard(cardId: number | null) {
     onError: fail("Erro ao remover o anexo"),
   });
 
-  /** Liga/desliga uma etiqueta no cartão. */
+  /** Liga/desliga uma etiqueta na tarefa. */
   function toggleLabel(labelId: number) {
     const now = currentCard();
     if (!now) return;
@@ -217,13 +198,18 @@ export function useTaskCard(cardId: number | null) {
     saveSelection({ labelIds });
   }
 
-  /** Liga/desliga um membro no cartão. */
-  function toggleMember(userId: number) {
+  /** Passa a tarefa para outra pessoa. Uma só: escolher a mesma não grava nada. */
+  function setAssignee(userId: number) {
     const now = currentCard();
-    if (!now) return;
-    const current = now.members.map((m) => m.userId);
-    const memberIds = current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId];
-    saveSelection({ memberIds });
+    if (!now || now.assignee?.userId === userId) return;
+    saveSelection({ assigneeId: userId });
+  }
+
+  /** Muda a prioridade. A mesma de antes não grava nada. */
+  function setPriority(priority: TaskCardPriorityCode) {
+    const now = currentCard();
+    if (!now || priorityCode(now.priority) === priority) return;
+    saveSelection({ priority });
   }
 
   /** Salva o título se mudou e não ficou vazio (vazio é recusado pelo servidor; nem manda). */
@@ -248,9 +234,9 @@ export function useTaskCard(cardId: number | null) {
   }
 
   /**
-   * Solução: HTML do editor, vazio apaga. Com `finish`, o servidor também leva o
-   * cartão para Finalizado na mesma gravação — mesmo sem mudança no texto, que é
-   * o "Salvar e finalizar" de uma solução já registrada.
+   * Solução: HTML do editor, vazio apaga. Com `finish`, o servidor também conclui
+   * a tarefa na mesma gravação — mesmo sem mudança no texto, que é o "Salvar e
+   * concluir" de uma solução já registrada.
    */
   function saveSolution(solution: string, finish = false): Promise<unknown> {
     if (!card) return Promise.resolve();
@@ -269,18 +255,11 @@ export function useTaskCard(cardId: number | null) {
     saveTitle,
     saveDescription,
     toggleLabel,
-    toggleMember,
+    setAssignee,
+    setPriority,
     isSaving: saveMutation.isPending,
     saveSolution,
     isSavingSolution: solutionMutation.isPending,
-
-    addChecklistItem: (text: string) => checklistAddMutation.mutateAsync(text),
-    toggleChecklistItem: (item: TaskCardChecklistItemDto) =>
-      checklistUpdateMutation.mutate({ item, isDone: !item.isDone }),
-    renameChecklistItem: (item: TaskCardChecklistItemDto, text: string) =>
-      checklistUpdateMutation.mutate({ item, text }),
-    deleteChecklistItem: (itemId: number) => checklistDeleteMutation.mutate(itemId),
-    isChecklistBusy: checklistAddMutation.isPending || checklistUpdateMutation.isPending,
 
     uploadAttachment: (file: File) => uploadMutation.mutateAsync(file),
     isUploading: uploadMutation.isPending,

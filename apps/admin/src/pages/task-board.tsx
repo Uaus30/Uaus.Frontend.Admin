@@ -1,115 +1,199 @@
 import { useState } from "react";
-import { Archive, Loader2, SquareKanban, Tags } from "lucide-react";
+import { CircleCheckBig, ListTodo, Loader2, Plus, Tags } from "lucide-react";
 import { Button } from "@workspace/ui";
 import { describeApiError } from "@workspace/core";
-import { useTaskBoard } from "@/features/task-board/hooks/useTaskBoard";
-import { useTaskSearch } from "@/features/task-board/hooks/useTaskSearch";
-import { TaskBoard } from "@/features/task-board/components/TaskBoard";
-import { TaskSearchBox } from "@/features/task-board/components/TaskSearchBox";
+import { useTaskList } from "@/features/task-board/hooks/useTaskList";
+import { TaskListCard } from "@/features/task-board/components/TaskListCard";
+import { TaskFilters, TaskTabs } from "@/features/task-board/components/TaskListFilters";
 import { TaskCardDialog } from "@/features/task-board/components/TaskCardDialog";
+import { NewTaskDialog } from "@/features/task-board/components/NewTaskDialog";
 import { TaskLabelsDialog } from "@/features/task-board/components/TaskLabelsDialog";
-import { ArchivedCardsSheet } from "@/features/task-board/components/ArchivedCardsSheet";
-import boardBackground from "@/features/task-board/assets/board-background.webp";
+import type { TaskListController } from "@/features/task-board/hooks/useTaskList";
 
 /**
- * Página do quadro de tarefas (rota `/tarefas`).
+ * Página das tarefas (rota `/tarefas`): a lista de anotações do que falta fazer,
+ * da mais urgente para a menos, com o botão grande de concluir em cada uma. Foi o
+ * "Modelo B" que o dono escolheu em 23/10/2026, no lugar do quadro de colunas.
  *
- * A rota é `fullBleed` (ver `routes.ts`): o layout entrega o `<main>` sem
- * padding, sem largura máxima e com altura definida, e o quadro é a única tela
- * que quer a imagem de fundo encostada nas bordas, como no Trello. O que rola é
- * a coluna (por dentro) e o quadro (de lado) — a página em si não rola.
+ * Abre nas tarefas de quem está logado; o filtro mostra as de todos ou de uma
+ * pessoa. Os dados e as ações moram em `useTaskList`.
  */
 export default function TaskBoardPage() {
-  const board = useTaskBoard();
-  const search = useTaskSearch();
+  const list = useTaskList();
   const [labelsOpen, setLabelsOpen] = useState(false);
-  const [archivedOpen, setArchivedOpen] = useState(false);
 
   return (
-    <div
-      className="flex h-full flex-col overflow-hidden bg-cover bg-center"
-      style={{ backgroundImage: `url(${boardBackground})` }}
-    >
-      <header className="flex flex-col gap-2 border-b border-white/10 bg-background/55 px-3 py-2.5 backdrop-blur-md sm:flex-row sm:items-center sm:gap-3 sm:px-5">
-        <div className="flex items-center gap-2">
-          <SquareKanban className="h-5 w-5 text-primary" />
-          <h1 className="font-display text-lg font-bold tracking-tight text-foreground">Tarefas</h1>
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <div className="flex items-center gap-2">
+            <ListTodo className="h-6 w-6 text-primary" />
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Tarefas</h1>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Anotações do que falta fazer, da mais urgente para a menos.
+          </p>
         </div>
-
-        <div className="min-w-0 flex-1 sm:max-w-xl">
-          <TaskSearchBox
-            value={search.input}
-            onChange={search.setInput}
-            onClear={search.clear}
-            isActive={search.isActive}
-            isSearching={search.isSearching}
-            results={search.results}
-            onOpen={board.openCard}
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:ml-auto">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 bg-background/40 backdrop-blur"
-            onClick={() => setLabelsOpen(true)}
-          >
+        <div className="flex gap-2">
+          <Button type="button" variant="ghost" className="gap-1.5" onClick={() => setLabelsOpen(true)}>
             <Tags className="h-4 w-4" /> Etiquetas
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 bg-background/40 backdrop-blur"
-            onClick={() => setArchivedOpen(true)}
-          >
-            <Archive className="h-4 w-4" /> Arquivados
+          <Button type="button" size="lg" className="flex-1 gap-1.5 sm:flex-none" onClick={list.openNew}>
+            <Plus className="h-5 w-5" /> Nova tarefa
           </Button>
         </div>
-      </header>
-
-      <div className="board-scroll min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-3 py-3 sm:px-5 sm:py-4">
-        {board.isLoading ? (
-          <div className="flex items-center gap-2 rounded-lg bg-background/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
-            <Loader2 className="h-4 w-4 animate-spin" /> Carregando o quadro…
-          </div>
-        ) : board.isError ? (
-          <div className="rounded-lg bg-background/80 px-4 py-3 text-sm text-destructive backdrop-blur">
-            Não foi possível carregar o quadro. {describeApiError(board.error)}
-          </div>
-        ) : (
-          <TaskBoard board={board} />
-        )}
       </div>
 
+      <TaskTabs
+        view={list.view}
+        onChange={list.setView}
+        pendingCount={list.pendingCount}
+        doneCount={list.doneCount}
+        whoLabel={whoLabel(list)}
+        finishedWindowDays={list.finishedWindowDays}
+      />
+
+      <TaskFilters
+        who={list.who}
+        onWhoChange={list.setWho}
+        users={list.users}
+        meId={list.meId}
+        countFor={list.countFor}
+        search={list.search.input}
+        onSearchChange={list.search.setInput}
+        onSearchClear={list.search.clear}
+      />
+
+      <TaskListBody list={list} />
+
       <TaskCardDialog
-        cardId={board.selectedCardId}
-        onClose={board.closeCard}
-        onMove={board.moveCardToColumn}
-        onFinish={board.finishCard}
-        isMoving={board.isMoving}
-        onArchive={board.archiveCard}
-        onUnarchive={board.unarchiveCard}
-        onDelete={board.deleteCard}
+        cardId={list.selectedCardId}
+        onClose={list.closeCard}
+        onComplete={list.complete}
+        onReopen={list.reopen}
+        isMoving={list.isMoving}
+        onDelete={list.deleteCard}
         onManageLabels={() => setLabelsOpen(true)}
-        isArchiving={board.isArchiving}
-        isDeleting={board.isDeleting}
+        isDeleting={list.isDeleting}
+      />
+
+      <NewTaskDialog
+        open={list.isNewOpen}
+        onClose={list.closeNew}
+        users={list.users}
+        meId={list.meId}
+        onCreate={list.createTask}
+        isCreating={list.isCreating}
       />
 
       <TaskLabelsDialog open={labelsOpen} onClose={() => setLabelsOpen(false)} />
+    </div>
+  );
+}
 
-      <ArchivedCardsSheet
-        open={archivedOpen}
-        onClose={() => setArchivedOpen(false)}
-        onOpenCard={(id) => {
-          setArchivedOpen(false);
-          board.openCard(id);
-        }}
-        onUnarchive={board.unarchiveCard}
-        isUnarchiving={board.isArchiving}
+/** "para você", "de todos", "de Rafael" — embaixo do número de pendentes. */
+function whoLabel(list: TaskListController): string {
+  if (list.who === "mine") return "para você";
+  if (list.who === "all") return "de todos";
+  const user = list.users.find((u) => u.userId === list.who);
+  return user ? `de ${user.firstName}` : "de uma pessoa";
+}
+
+function TaskListBody({ list }: { list: TaskListController }) {
+  if (list.isLoading) {
+    return (
+      <p className="flex items-center gap-2 rounded-lg border px-4 py-3 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Carregando as tarefas…
+      </p>
+    );
+  }
+
+  if (list.isError) {
+    return (
+      <p className="rounded-lg border border-destructive/40 px-4 py-3 text-sm text-destructive">
+        Não foi possível carregar as tarefas. {describeApiError(list.error)}
+      </p>
+    );
+  }
+
+  const searching = list.search.isActive;
+
+  if (list.visible.length === 0) {
+    if (searching) {
+      return (
+        <EmptyState
+          title={list.search.isSearching ? "Buscando…" : "Nada encontrado"}
+          text={
+            list.search.isSearching ? undefined : `Nenhuma tarefa com “${list.search.input.trim()}” aqui.`
+          }
+          action={{ label: "Limpar busca", onClick: list.search.clear }}
+        />
+      );
+    }
+    if (list.view === "done") {
+      return <EmptyState text={`Nenhuma tarefa finalizada nos últimos ${list.finishedWindowDays} dias.`} />;
+    }
+    return (
+      <EmptyState
+        icon
+        title="Tudo em dia!"
+        text={list.who === "mine" ? "Nenhuma tarefa pendente para você." : "Nenhuma tarefa pendente aqui."}
+        action={
+          list.who === "all"
+            ? undefined
+            : { label: "Ver as tarefas de todos", onClick: () => list.setWho("all") }
+        }
       />
+    );
+  }
+
+  const showOlder = list.view === "done" && !searching && !list.allFinished && list.hiddenFinishedCount > 0;
+
+  return (
+    <div className="space-y-3">
+      {list.visible.map((card) => (
+        <TaskListCard
+          key={card.id}
+          card={card}
+          meId={list.meId}
+          completing={list.completing.has(card.id)}
+          onOpen={list.openCard}
+          onComplete={list.complete}
+          onReopen={list.reopen}
+        />
+      ))}
+      {showOlder && (
+        <p className="pt-1 text-center text-sm text-muted-foreground">
+          Mostrando as finalizadas dos últimos {list.finishedWindowDays} dias.{" "}
+          <button
+            type="button"
+            className="font-semibold text-primary hover:underline"
+            onClick={list.showAllFinished}
+          >
+            Ver as {list.hiddenFinishedCount} mais antigas
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function EmptyState(props: {
+  icon?: boolean;
+  title?: string;
+  text?: string;
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed px-4 py-14 text-center text-muted-foreground">
+      {props.icon && <CircleCheckBig className="mx-auto mb-3 h-14 w-14 text-emerald-500" aria-hidden />}
+      {props.title && <h3 className="mb-1 text-lg font-semibold text-foreground">{props.title}</h3>}
+      {props.text && <p>{props.text}</p>}
+      {props.action && (
+        <Button type="button" variant="outline" className="mt-4" onClick={props.action.onClick}>
+          {props.action.label}
+        </Button>
+      )}
     </div>
   );
 }

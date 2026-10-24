@@ -3,7 +3,7 @@ import { ExternalLink, FileText, Image as ImageIcon, Loader2, Paperclip, Trash2,
 import { Button, ConfirmDialog } from "@workspace/ui";
 import { formatBrasiliaDateTime } from "@workspace/core";
 import type { TaskCardAttachmentDto } from "@workspace/api-client-react";
-import { formatFileSize } from "../board";
+import { formatFileSize } from "../tasks";
 
 interface CardAttachmentsProps {
   attachments: TaskCardAttachmentDto[];
@@ -130,7 +130,7 @@ export function CardAttachments({
         onOpenChange={(open) => !open && setToDelete(null)}
         title="Remover este anexo?"
         itemName={toDelete?.fileName}
-        description="O anexo sai do cartão. O arquivo não pode ser recuperado pela tela depois disso."
+        description="O anexo sai da tarefa. O arquivo não pode ser recuperado pela tela depois disso."
         confirmLabel="Sim, remover"
         destructive
         loading={isDeleting}

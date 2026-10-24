@@ -1,62 +1,55 @@
-import { Archive, ArchiveRestore, Clock, Trash2 } from "lucide-react";
-import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui";
+import { Clock, Trash2 } from "lucide-react";
+import { Button } from "@workspace/ui";
 import { formatBrasiliaDateTime } from "@workspace/core";
 import type {
   TaskCardDto,
   TaskCardMemberDto,
-  TaskCardStatusCode,
+  TaskCardPriorityCode,
   TaskLabelDto,
 } from "@workspace/api-client-react";
-import { BOARD_COLUMNS, statusCode } from "../board";
-import { LabelsPicker, MembersPicker } from "./CardPickers";
+import { priorityCode } from "../tasks";
+import { AssigneePicker, LabelsPicker, PriorityPicker } from "./CardPickers";
 
 interface CardSidebarProps {
   card: TaskCardDto;
   labels: TaskLabelDto[];
   users: TaskCardMemberDto[];
+  onAssign: (userId: number) => void;
+  onPriority: (priority: TaskCardPriorityCode) => void;
   onToggleLabel: (labelId: number) => void;
-  onToggleMember: (userId: number) => void;
   isSaving: boolean;
-  onMove: (cardId: number, status: TaskCardStatusCode) => Promise<unknown>;
   onManageLabels: () => void;
-  onArchive: (cardId: number) => Promise<unknown>;
-  onUnarchive: (cardId: number) => Promise<unknown>;
-  isArchiving: boolean;
   onRequestDelete: () => void;
   isDeleting: boolean;
 }
 
 /**
- * A coluna de ações da modal, à direita do conteúdo como no Trello: coluna,
- * etiquetas, membros, arquivar, excluir e as datas do cartão.
+ * A coluna de ações do detalhe, à direita do conteúdo: responsável, prioridade,
+ * etiquetas, excluir e as datas da tarefa. Concluir e reabrir ficam no topo da
+ * modal, em destaque — é a ação que se faz toda vez.
  */
 export function CardSidebar(props: CardSidebarProps) {
   const { card } = props;
 
   return (
     <aside className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Coluna</p>
-      <Select
-        value={String(statusCode(card.status))}
-        onValueChange={(value) => void props.onMove(card.id, Number(value) as TaskCardStatusCode)}
-        disabled={card.isArchived}
-      >
-        <SelectTrigger className="h-9 w-full text-sm">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {BOARD_COLUMNS.map((column) => (
-            <SelectItem key={column.status} value={String(column.status)}>
-              <span className="inline-flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${column.dot}`} />
-                {column.title}
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <p className="text-xs font-medium text-muted-foreground">Responsável</p>
+      <AssigneePicker
+        users={props.users}
+        assignee={card.assignee}
+        onChange={props.onAssign}
+        disabled={props.isSaving}
+      />
 
-      <p className="pt-2 text-xs font-medium text-muted-foreground">Adicionar ao cartão</p>
+      <p className="pt-2 text-xs font-medium text-muted-foreground">Prioridade</p>
+      <PriorityPicker
+        value={priorityCode(card.priority)}
+        onChange={props.onPriority}
+        disabled={props.isSaving}
+        columns={2}
+      />
+
+      <p className="pt-2 text-xs font-medium text-muted-foreground">Classificar</p>
       <LabelsPicker
         labels={props.labels}
         selectedIds={card.labels.map((l) => l.id)}
@@ -64,37 +57,8 @@ export function CardSidebar(props: CardSidebarProps) {
         onManage={props.onManageLabels}
         disabled={props.isSaving}
       />
-      <MembersPicker
-        users={props.users}
-        selectedIds={card.members.map((m) => m.userId)}
-        onToggle={props.onToggleMember}
-        disabled={props.isSaving}
-      />
 
       <p className="pt-2 text-xs font-medium text-muted-foreground">Ações</p>
-      {card.isArchived ? (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="w-full justify-start gap-2"
-          disabled={props.isArchiving}
-          onClick={() => void props.onUnarchive(card.id)}
-        >
-          <ArchiveRestore className="h-4 w-4" /> Desarquivar
-        </Button>
-      ) : (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="w-full justify-start gap-2"
-          disabled={props.isArchiving}
-          onClick={() => void props.onArchive(card.id)}
-        >
-          <Archive className="h-4 w-4" /> Arquivar
-        </Button>
-      )}
       <Button
         type="button"
         variant="secondary"
@@ -108,11 +72,11 @@ export function CardSidebar(props: CardSidebarProps) {
 
       <div className="space-y-1 pt-3 text-[11px] leading-relaxed text-muted-foreground">
         <p className="flex items-center gap-1">
-          <Clock className="h-3 w-3" /> Criado em {formatBrasiliaDateTime(card.createdAt)}
+          <Clock className="h-3 w-3" /> Anotada em {formatBrasiliaDateTime(card.createdAt)}
           {card.createdBy ? ` por ${card.createdBy}` : ""}
         </p>
-        {card.updatedAt && <p>Atualizado em {formatBrasiliaDateTime(card.updatedAt)}</p>}
-        {card.finishedAt && <p>Finalizado em {formatBrasiliaDateTime(card.finishedAt)}</p>}
+        {card.updatedAt && <p>Atualizada em {formatBrasiliaDateTime(card.updatedAt)}</p>}
+        {card.finishedAt && <p>Concluída em {formatBrasiliaDateTime(card.finishedAt)}</p>}
       </div>
     </aside>
   );

@@ -10,20 +10,10 @@ import {
   DialogTitle,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   cn,
 } from "@workspace/ui";
-import {
-  TASK_LABEL_COLORS,
-  TASK_LABEL_PRIORITY,
-  type TaskLabelDto,
-  type TaskLabelPriorityCode,
-} from "@workspace/api-client-react";
-import { LABEL_PRIORITY_LABEL, labelClasses, priorityCode } from "../board";
+import { TASK_LABEL_COLORS, type TaskLabelDto } from "@workspace/api-client-react";
+import { labelClasses } from "../tasks";
 import { useTaskLabels } from "../hooks/useTaskLabels";
 
 interface TaskLabelsDialogProps {
@@ -31,18 +21,10 @@ interface TaskLabelsDialogProps {
   onClose: () => void;
 }
 
-const PRIORITIES: TaskLabelPriorityCode[] = [
-  TASK_LABEL_PRIORITY.None,
-  TASK_LABEL_PRIORITY.Low,
-  TASK_LABEL_PRIORITY.Normal,
-  TASK_LABEL_PRIORITY.High,
-  TASK_LABEL_PRIORITY.Urgent,
-];
-
 /**
- * Cadastro das etiquetas: nome, cor (uma amostra por chave da paleta) e
- * prioridade. Lista em cima, formulário embaixo — o mesmo formulário cria e
- * edita.
+ * Cadastro das etiquetas: nome e cor (uma amostra por chave da paleta). Lista em
+ * cima, formulário embaixo — o mesmo formulário cria e edita. A prioridade saiu
+ * daqui em 23/10/2026: agora é da tarefa, e a etiqueta só classifica.
  */
 export function TaskLabelsDialog({ open, onClose }: TaskLabelsDialogProps) {
   const ctl = useTaskLabels();
@@ -54,8 +36,8 @@ export function TaskLabelsDialog({ open, onClose }: TaskLabelsDialogProps) {
         <DialogHeader className="border-b px-5 pb-3 pt-5">
           <DialogTitle>Etiquetas</DialogTitle>
           <DialogDescription>
-            Nome, cor e prioridade. A prioridade é da etiqueta e é opcional: o cartão herda a maior entre as
-            que carrega, e as sem prioridade ficam por último.
+            Nome e cor. A etiqueta classifica a tarefa (Cadastro, Pedido de cliente…); a prioridade é
+            escolhida em cada tarefa.
           </DialogDescription>
         </DialogHeader>
 
@@ -75,11 +57,6 @@ export function TaskLabelsDialog({ open, onClose }: TaskLabelsDialogProps) {
                     )}
                   >
                     {label.name}
-                  </span>
-                  <span className="w-16 text-xs text-muted-foreground">
-                    {priorityCode(label.priority) > 0
-                      ? LABEL_PRIORITY_LABEL[priorityCode(label.priority)]
-                      : ""}
                   </span>
                   <Button
                     type="button"
@@ -149,27 +126,6 @@ export function TaskLabelsDialog({ open, onClose }: TaskLabelsDialogProps) {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Prioridade</Label>
-            <Select
-              value={String(ctl.form.priority)}
-              onValueChange={(value) =>
-                ctl.setForm({ ...ctl.form, priority: Number(value) as TaskLabelPriorityCode })
-              }
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITIES.map((priority) => (
-                  <SelectItem key={priority} value={String(priority)}>
-                    {LABEL_PRIORITY_LABEL[priority]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="flex items-center justify-end gap-2">
             {ctl.editingId && (
               <Button type="button" variant="ghost" size="sm" onClick={ctl.cancelEdit}>
@@ -187,7 +143,7 @@ export function TaskLabelsDialog({ open, onClose }: TaskLabelsDialogProps) {
           onOpenChange={(value) => !value && setToDelete(null)}
           title="Excluir esta etiqueta?"
           itemName={toDelete?.name}
-          description="Ela sai de todos os cartões que a usam. Os cartões continuam; só a etiqueta some."
+          description="Ela sai de todas as tarefas que a usam. As tarefas continuam; só a etiqueta some."
           confirmLabel="Sim, excluir"
           destructive
           loading={ctl.isDeleting}

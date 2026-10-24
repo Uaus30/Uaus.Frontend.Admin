@@ -15,8 +15,8 @@ interface CardRichTextFieldProps {
   /** Grava; a edição só fecha quando a promessa resolve — se falhar, o rascunho fica. */
   onSave: (html: string) => Promise<unknown>;
   /**
-   * Mostra o "Salvar e finalizar" ao lado do "Salvar". Só a solução tem, e só
-   * em cartão que pode ir para Finalizado (não arquivado e ainda fora dela).
+   * Mostra o "Salvar e concluir" ao lado do "Salvar". Só a solução tem, e só
+   * em tarefa ainda pendente.
    */
   onSaveAndFinish?: (html: string) => Promise<unknown>;
   isSaving: boolean;
@@ -30,10 +30,10 @@ interface CardRichTextFieldProps {
 }
 
 /**
- * Um campo de texto formatado do cartão — a descrição e a solução: texto que
+ * Um campo de texto formatado da tarefa — a descrição e a solução: texto que
  * abre para edição ao clicar, com a barra de formatação. Salva no botão ou com
  * Ctrl+Enter; Esc descarta. Não salva a cada tecla porque cada gravação
- * invalida o quadro inteiro.
+ * invalida a lista inteira.
  *
  * Só manda o que mudou: abrir e salvar sem mexer não grava nada — senão uma
  * descrição antiga em texto puro viraria HTML e o histórico diria "editou a
@@ -136,7 +136,7 @@ export function CardRichTextField(props: CardRichTextFieldProps) {
                 onClick={saveAndFinish}
                 disabled={isSaving || isBlankRichText(draft)}
               >
-                <CircleCheckBig className="h-4 w-4 text-emerald-500" /> Salvar e finalizar
+                <CircleCheckBig className="h-4 w-4 text-emerald-500" /> Salvar e concluir
               </Button>
             )}
             <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>

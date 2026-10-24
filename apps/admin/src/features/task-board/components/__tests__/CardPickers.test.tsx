@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TaskCardMemberDto, TaskLabelDto } from "@workspace/api-client-react";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
-import { LabelsPicker, MembersPicker } from "../CardPickers";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, TooltipProvider } from "@workspace/ui";
+import { AssigneePicker, LabelsPicker, PriorityPicker } from "../CardPickers";
 
 const ETIQUETAS: TaskLabelDto[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -19,16 +19,18 @@ const USUARIOS: TaskCardMemberDto[] = Array.from({ length: 12 }, (_, i) => ({
   fullName: `Pessoa${i + 1} Silva`,
 }));
 
-/** Os seletores moram na lateral do cartão, que é um diálogo (`TaskCardDialog`). */
+/** Os seletores moram na lateral da tarefa, que é um diálogo (`TaskCardDialog`). */
 function noCartao(children: ReactNode) {
   return render(
-    <Dialog open>
-      <DialogContent>
-        <DialogTitle>Cartão</DialogTitle>
-        <DialogDescription>Cartão de teste</DialogDescription>
-        {children}
-      </DialogContent>
-    </Dialog>,
+    <TooltipProvider>
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Tarefa</DialogTitle>
+          <DialogDescription>Tarefa de teste</DialogDescription>
+          {children}
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>,
   );
 }
 
@@ -50,7 +52,7 @@ function rodaCancelada(item: HTMLElement) {
   return roda.defaultPrevented;
 }
 
-describe("seletores do cartão dentro do diálogo", () => {
+describe("seletores da tarefa dentro do diálogo", () => {
   beforeAll(() => {
     // O Popper do Radix mede o gatilho; o jsdom não tem ResizeObserver.
     globalThis.ResizeObserver ??= class {
@@ -74,11 +76,33 @@ describe("seletores do cartão dentro do diálogo", () => {
     expect(rodaCancelada(screen.getByText("Etiqueta 1"))).toBe(false);
   });
 
-  it("a roda do mouse rola a lista de membros", () => {
-    noCartao(<MembersPicker users={USUARIOS} selectedIds={[]} onToggle={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "Membros" }));
+  it("a roda do mouse rola a lista de responsáveis", () => {
+    noCartao(<AssigneePicker users={USUARIOS} assignee={USUARIOS[0]} onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Responsável: Pessoa1 Silva" }));
 
-    expect(rodaCancelada(screen.getByText("Pessoa1"))).toBe(false);
+    expect(rodaCancelada(screen.getAllByText("Pessoa1")[1])).toBe(false);
+  });
+
+  it("escolher o responsável troca uma pessoa só e fecha o seletor", () => {
+    const onChange = vi.fn();
+    noCartao(<AssigneePicker users={USUARIOS} assignee={null} onChange={onChange} />);
+
+    // Sem ninguém (tarefa migrada), o botão pede a escolha.
+    fireEvent.click(screen.getByRole("button", { name: "Escolher o responsável" }));
+    fireEvent.click(screen.getByText("Pessoa3"));
+
+    expect(onChange).toHaveBeenCalledWith(3);
+    expect(screen.queryByText("Pessoa4")).toBeNull();
+  });
+
+  it("a prioridade é escolhida num toque, com a atual marcada", () => {
+    const onChange = vi.fn();
+    noCartao(<PriorityPicker value={2} onChange={onChange} />);
+
+    expect(screen.getByRole("radio", { name: "Normal" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("radio", { name: "Urgente" }));
+
+    expect(onChange).toHaveBeenCalledWith(4);
   });
 
   it("'Gerenciar etiquetas' fecha o seletor antes de abrir o cadastro", () => {

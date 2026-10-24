@@ -6,7 +6,7 @@
     "commit": "6bfd51a1eff954984a922de5b13c1e58d83aa638",
     "commitData": "2026-10-23T11:27:30-03:00",
     "pastas": ["Uaus.Application/DTOs"],
-    "arquivos": 115
+    "arquivos": 114
   },
   "serializacao": {
     "ignoreCondition": "WhenWritingNull",
@@ -77,6 +77,7 @@
     "SupplierStatus",
     "SupplierType",
     "TaskCardActivityKind",
+    "TaskCardPriority",
     "TaskCardStatus",
     "TaskLabelPriority",
     "UserStatus"
@@ -29182,7 +29183,7 @@
     {
       "nome": "TaskBoardDto",
       "arquivo": "Uaus.Application/DTOs/TaskCards/TaskBoardDto.cs",
-      "linha": 8,
+      "linha": 9,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -29198,7 +29199,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 10
+          "linha": 11
         },
         {
           "nome": "hiddenFinishedCount",
@@ -29211,7 +29212,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 13
+          "linha": 14
         },
         {
           "nome": "finishedWindowDays",
@@ -29224,7 +29225,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 16
+          "linha": 17
         }
       ]
     },
@@ -29457,68 +29458,6 @@
       ]
     },
     {
-      "nome": "TaskCardChecklistItemDto",
-      "arquivo": "Uaus.Application/DTOs/TaskCards/TaskCardChecklistItemDto.cs",
-      "linha": 4,
-      "herda": null,
-      "abstrata": false,
-      "generica": false,
-      "campos": [
-        {
-          "nome": "id",
-          "nomeCSharp": "Id",
-          "tipo": "long",
-          "tipoBase": "long",
-          "anulavel": false,
-          "colecao": false,
-          "elemento": null,
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 6
-        },
-        {
-          "nome": "text",
-          "nomeCSharp": "Text",
-          "tipo": "string",
-          "tipoBase": "string",
-          "anulavel": false,
-          "colecao": false,
-          "elemento": null,
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 8
-        },
-        {
-          "nome": "isDone",
-          "nomeCSharp": "IsDone",
-          "tipo": "bool",
-          "tipoBase": "bool",
-          "anulavel": false,
-          "colecao": false,
-          "elemento": null,
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 10
-        },
-        {
-          "nome": "position",
-          "nomeCSharp": "Position",
-          "tipo": "int",
-          "tipoBase": "int",
-          "anulavel": false,
-          "colecao": false,
-          "elemento": null,
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 12
-        }
-      ]
-    },
-    {
       "nome": "TaskCardDto",
       "arquivo": "Uaus.Application/DTOs/TaskCards/TaskCardDto.cs",
       "linha": 10,
@@ -29602,46 +29541,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 24
+          "linha": 25
         },
         {
-          "nome": "position",
-          "nomeCSharp": "Position",
-          "tipo": "double",
-          "tipoBase": "double",
+          "nome": "priority",
+          "nomeCSharp": "Priority",
+          "tipo": "TaskCardPriority",
+          "tipoBase": "TaskCardPriority",
           "anulavel": false,
           "colecao": false,
           "elemento": null,
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 26
-        },
-        {
-          "nome": "isArchived",
-          "nomeCSharp": "IsArchived",
-          "tipo": "bool",
-          "tipoBase": "bool",
-          "anulavel": false,
-          "colecao": false,
-          "elemento": null,
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 28
-        },
-        {
-          "nome": "archivedAt",
-          "nomeCSharp": "ArchivedAt",
-          "tipo": "DateTime?",
-          "tipoBase": "DateTime",
-          "anulavel": true,
-          "colecao": false,
-          "elemento": null,
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 30
+          "linha": 27
         },
         {
           "nome": "finishedAt",
@@ -29654,7 +29567,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 32
+          "linha": 29
         },
         {
           "nome": "labels",
@@ -29667,33 +29580,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
+          "linha": 31
+        },
+        {
+          "nome": "assignee",
+          "nomeCSharp": "Assignee",
+          "tipo": "TaskCardMemberDto?",
+          "tipoBase": "TaskCardMemberDto",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
           "linha": 34
-        },
-        {
-          "nome": "members",
-          "nomeCSharp": "Members",
-          "tipo": "List<TaskCardMemberDto>",
-          "tipoBase": "List<TaskCardMemberDto>",
-          "anulavel": false,
-          "colecao": true,
-          "elemento": "TaskCardMemberDto",
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 36
-        },
-        {
-          "nome": "checklistItems",
-          "nomeCSharp": "ChecklistItems",
-          "tipo": "List<TaskCardChecklistItemDto>",
-          "tipoBase": "List<TaskCardChecklistItemDto>",
-          "anulavel": false,
-          "colecao": true,
-          "elemento": "TaskCardChecklistItemDto",
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 39
         },
         {
           "nome": "attachments",
@@ -29706,7 +29606,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 42
+          "linha": 37
         },
         {
           "nome": "createdAt",
@@ -29719,7 +29619,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 44
+          "linha": 39
         },
         {
           "nome": "updatedAt",
@@ -29732,7 +29632,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 46
+          "linha": 41
         },
         {
           "nome": "createdBy",
@@ -29745,7 +29645,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 48
+          "linha": 43
         },
         {
           "nome": "updatedBy",
@@ -29758,7 +29658,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 50
+          "linha": 45
         }
       ]
     },
@@ -29869,13 +29769,13 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 20
+          "linha": 21
         },
         {
-          "nome": "position",
-          "nomeCSharp": "Position",
-          "tipo": "double",
-          "tipoBase": "double",
+          "nome": "priority",
+          "nomeCSharp": "Priority",
+          "tipo": "TaskCardPriority",
+          "tipoBase": "TaskCardPriority",
           "anulavel": false,
           "colecao": false,
           "elemento": null,
@@ -29883,19 +29783,6 @@
           "nuloPerdoado": false,
           "somenteLeitura": false,
           "linha": 23
-        },
-        {
-          "nome": "isArchived",
-          "nomeCSharp": "IsArchived",
-          "tipo": "bool",
-          "tipoBase": "bool",
-          "anulavel": false,
-          "colecao": false,
-          "elemento": null,
-          "dicionario": false,
-          "nuloPerdoado": false,
-          "somenteLeitura": false,
-          "linha": 25
         },
         {
           "nome": "finishedAt",
@@ -29908,7 +29795,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 28
+          "linha": 26
+        },
+        {
+          "nome": "finishedBy",
+          "nomeCSharp": "FinishedBy",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 33
         },
         {
           "nome": "hasDescription",
@@ -29921,33 +29821,33 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 30
+          "linha": 35
         },
         {
-          "nome": "checklistTotal",
-          "nomeCSharp": "ChecklistTotal",
-          "tipo": "int",
-          "tipoBase": "int",
-          "anulavel": false,
+          "nome": "descriptionPreview",
+          "nomeCSharp": "DescriptionPreview",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
           "colecao": false,
           "elemento": null,
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 32
+          "linha": 38
         },
         {
-          "nome": "checklistDone",
-          "nomeCSharp": "ChecklistDone",
-          "tipo": "int",
-          "tipoBase": "int",
-          "anulavel": false,
+          "nome": "solutionPreview",
+          "nomeCSharp": "SolutionPreview",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
           "colecao": false,
           "elemento": null,
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 34
+          "linha": 41
         },
         {
           "nome": "attachmentsCount",
@@ -29960,7 +29860,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 36
+          "linha": 43
         },
         {
           "nome": "labels",
@@ -29973,20 +29873,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 39
+          "linha": 46
         },
         {
-          "nome": "members",
-          "nomeCSharp": "Members",
-          "tipo": "List<TaskCardMemberDto>",
-          "tipoBase": "List<TaskCardMemberDto>",
-          "anulavel": false,
-          "colecao": true,
-          "elemento": "TaskCardMemberDto",
+          "nome": "assignee",
+          "nomeCSharp": "Assignee",
+          "tipo": "TaskCardMemberDto?",
+          "tipoBase": "TaskCardMemberDto",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 41
+          "linha": 49
         },
         {
           "nome": "createdAt",
@@ -29999,7 +29899,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 43
+          "linha": 51
+        },
+        {
+          "nome": "createdBy",
+          "nomeCSharp": "CreatedBy",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 54
         },
         {
           "nome": "updatedAt",
@@ -30012,7 +29925,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 45
+          "linha": 56
         }
       ]
     },

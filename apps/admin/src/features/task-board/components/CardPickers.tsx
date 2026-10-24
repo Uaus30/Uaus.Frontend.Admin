@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Check, Tag, UserRoundPlus } from "lucide-react";
+import { Check, Tag, UserRound } from "lucide-react";
 import { Button, Input, Popover, PopoverContent, PopoverTrigger, cn } from "@workspace/ui";
-import type { TaskCardMemberDto, TaskLabelDto } from "@workspace/api-client-react";
-import { LABEL_PRIORITY_LABEL, labelClasses, priorityCode } from "../board";
+import type { TaskCardMemberDto, TaskCardPriorityCode, TaskLabelDto } from "@workspace/api-client-react";
+import { PRIORITIES, labelClasses } from "../tasks";
+import { PRIORITY_ICONS } from "../priority-icons";
+import { MemberAvatar } from "./CardBits";
 
 interface LabelsPickerProps {
   labels: TaskLabelDto[];
@@ -13,15 +15,15 @@ interface LabelsPickerProps {
 }
 
 /**
- * Seletor de etiquetas do cartão: cada linha liga/desliga na hora (sem botão
+ * Seletor de etiquetas da tarefa: cada linha liga/desliga na hora (sem botão
  * "aplicar"), e o link do rodapé abre o cadastro para criar uma que falta sem
- * sair do cartão.
+ * sair da tarefa.
  *
- * **Os dois seletores daqui são `modal`** (06/10/2026): moram na lateral do
- * cartão, que é um diálogo, e a lista vai para um portal fora dele. O diálogo
- * trava a rolagem de tudo o que está fora da caixa dele, e a roda do mouse
- * morria na lista — a mesma falha da busca de produto da compra. Modal, o
- * seletor vira a trava mais recente, e a rolagem vale dentro dele.
+ * **Os seletores daqui são `modal`** (06/10/2026): moram na lateral da tarefa,
+ * que é um diálogo, e a lista vai para um portal fora dele. O diálogo trava a
+ * rolagem de tudo o que está fora da caixa dele, e a roda do mouse morria na
+ * lista — a mesma falha da busca de produto da compra. Modal, o seletor vira a
+ * trava mais recente, e a rolagem vale dentro dele.
  */
 export function LabelsPicker({ labels, selectedIds, onToggle, onManage, disabled }: LabelsPickerProps) {
   const [open, setOpen] = useState(false);
@@ -62,11 +64,6 @@ export function LabelsPicker({ labels, selectedIds, onToggle, onManage, disabled
                     >
                       {label.name}
                     </span>
-                    <span className="w-14 text-right text-[11px] text-muted-foreground">
-                      {priorityCode(label.priority) > 0
-                        ? LABEL_PRIORITY_LABEL[priorityCode(label.priority)]
-                        : ""}
-                    </span>
                     <span className="flex h-5 w-5 items-center justify-center">
                       {selected && <Check className="h-4 w-4 text-primary" />}
                     </span>
@@ -96,34 +93,53 @@ export function LabelsPicker({ labels, selectedIds, onToggle, onManage, disabled
   );
 }
 
-interface MembersPickerProps {
+interface AssigneePickerProps {
   users: TaskCardMemberDto[];
-  selectedIds: number[];
-  onToggle: (userId: number) => void;
+  /** O responsável atual; nulo em tarefa migrada sem ninguém. */
+  assignee: TaskCardMemberDto | null | undefined;
+  onChange: (userId: number) => void;
   disabled?: boolean;
 }
 
-/** Seletor de membros: os usuários do sistema, com busca por nome. */
-export function MembersPicker({ users, selectedIds, onToggle, disabled }: MembersPickerProps) {
+/**
+ * Seletor do responsável: UMA pessoa (decisão do dono, 23/10/2026 — "Minhas
+ * tarefas" sem ambiguidade). O botão mostra quem é; sem ninguém, avisa em âmbar
+ * para a pessoa escolher, e a lista tem busca por nome.
+ */
+export function AssigneePicker({ users, assignee, onChange, disabled }: AssigneePickerProps) {
+  const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const term = filter.trim().toLowerCase();
   const visible = users.filter((u) => !term || u.fullName.toLowerCase().includes(term));
 
   return (
-    <Popover modal>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="secondary"
           size="sm"
-          className="w-full justify-start gap-2"
+          className={cn(
+            "w-full justify-start gap-2",
+            !assignee && "border border-amber-500/60 text-amber-400 hover:text-amber-300",
+          )}
           disabled={disabled}
+          aria-label={assignee ? `Responsável: ${assignee.fullName}` : "Escolher o responsável"}
         >
-          <UserRoundPlus className="h-4 w-4" /> Membros
+          {assignee ? (
+            <>
+              <MemberAvatar member={assignee} size="sm" className="h-5 w-5 text-[10px]" />
+              <span className="truncate">{assignee.firstName}</span>
+            </>
+          ) : (
+            <>
+              <UserRound className="h-4 w-4" /> Sem responsável
+            </>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-2">
-        <p className="px-1 pb-2 text-xs font-medium text-muted-foreground">Membros</p>
+        <p className="px-1 pb-2 text-xs font-medium text-muted-foreground">Responsável</p>
         <Input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -132,12 +148,15 @@ export function MembersPicker({ users, selectedIds, onToggle, disabled }: Member
         />
         <ul className="max-h-64 space-y-0.5 overflow-y-auto">
           {visible.map((user) => {
-            const selected = selectedIds.includes(user.userId);
+            const selected = assignee?.userId === user.userId;
             return (
               <li key={user.userId}>
                 <button
                   type="button"
-                  onClick={() => onToggle(user.userId)}
+                  onClick={() => {
+                    onChange(user.userId);
+                    setOpen(false);
+                  }}
                   className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/10"
                 >
                   <span className="flex-1 truncate">
@@ -157,5 +176,50 @@ export function MembersPicker({ users, selectedIds, onToggle, disabled }: Member
         </ul>
       </PopoverContent>
     </Popover>
+  );
+}
+
+interface PriorityPickerProps {
+  value: number;
+  onChange: (priority: TaskCardPriorityCode) => void;
+  disabled?: boolean;
+  /** Duas por linha (a lateral estreita do detalhe) ou as quatro lado a lado. */
+  columns?: 2 | 4;
+}
+
+/**
+ * As quatro prioridades em botões lado a lado, da mais urgente para a menos: um
+ * toque resolve, e todas ficam à vista. A escolhida ganha o tom dela, com o ícone
+ * e o nome — a cor nunca sozinha.
+ */
+export function PriorityPicker({ value, onChange, disabled, columns = 4 }: PriorityPickerProps) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Prioridade"
+      className={cn("grid gap-1.5", columns === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4")}
+    >
+      {PRIORITIES.map((p) => {
+        const Icon = PRIORITY_ICONS[p.code];
+        const selected = p.code === value;
+        return (
+          <button
+            key={p.code}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={disabled}
+            onClick={() => onChange(p.code)}
+            className={cn(
+              "inline-flex h-9 items-center justify-center gap-1 rounded-md border border-input text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50",
+              selected && p.selected,
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" strokeWidth={2.6} aria-hidden />
+            {p.name}
+          </button>
+        );
+      })}
+    </div>
   );
 }

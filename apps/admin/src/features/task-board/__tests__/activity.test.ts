@@ -15,30 +15,52 @@ function row(overrides: Partial<TaskCardActivityDto>): TaskCardActivityDto {
 
 /**
  * O que está sendo protegido: a frase de cada fato do histórico (o servidor
- * manda o tipo pelo NOME), "finalizou" quando o destino é Finalizado, tipo
- * desconhecido que não vira linha em branco, e o comentário que só o autor edita.
+ * manda o tipo pelo NOME), "concluiu" e "reabriu" sem as situações óbvias, as
+ * linhas antigas do quadro (colunas, membros, checklist) que continuam legíveis,
+ * tipo desconhecido que não vira linha em branco, e o comentário que só o autor edita.
  */
 describe("describeActivity", () => {
-  it("criou o cartão, com a coluna em que nasceu quando há", () => {
+  it("criou a tarefa; a situação de nascimento só aparece quando não é Pendente (linhas do quadro)", () => {
+    expect(describeActivity(row({ kind: "Created", toStatus: "Pending" }))).toEqual({
+      text: "criou a tarefa",
+      to: undefined,
+    });
     expect(describeActivity(row({ kind: "Created", toStatus: "Backlog" }))).toEqual({
-      text: "criou o cartão",
+      text: "criou a tarefa",
       to: "Backlog",
     });
-    expect(describeActivity(row({ kind: "Created" }))).toEqual({ text: "criou o cartão", to: undefined });
+    expect(describeActivity(row({ kind: "Created" }))).toEqual({ text: "criou a tarefa", to: undefined });
   });
 
-  it("mover para Finalizado é 'finalizou a tarefa'; para outra coluna, 'moveu o cartão'", () => {
-    expect(describeActivity(row({ kind: "Moved", fromStatus: "Testing", toStatus: "Done" }))).toEqual({
-      text: "finalizou a tarefa",
-      from: "Testing",
-      to: "Done",
+  it("concluir e reabrir dizem o que foi feito; o movimento entre colunas antigas leva as duas", () => {
+    expect(describeActivity(row({ kind: "Moved", fromStatus: "Pending", toStatus: "Done" }))).toEqual({
+      text: "concluiu a tarefa",
     });
-    expect(describeActivity(row({ kind: "Moved", fromStatus: "Backlog", toStatus: "Doing" })).text).toBe(
-      "moveu o cartão",
+    expect(describeActivity(row({ kind: "Moved", fromStatus: "Testing", toStatus: "Done" })).text).toBe(
+      "concluiu a tarefa",
     );
+    expect(describeActivity(row({ kind: "Moved", fromStatus: "Done", toStatus: "Pending" }))).toEqual({
+      text: "reabriu a tarefa",
+    });
+    expect(describeActivity(row({ kind: "Moved", fromStatus: "Backlog", toStatus: "Doing" }))).toEqual({
+      text: "moveu a tarefa",
+      from: "Backlog",
+      to: "Doing",
+    });
   });
 
-  it("os fatos com complemento trazem o nome entre aspas", () => {
+  it("responsável e prioridade trazem o nome novo entre aspas", () => {
+    expect(describeActivity(row({ kind: "AssigneeChanged", text: "Bruno Lima" }))).toEqual({
+      text: "passou a tarefa para",
+      quote: "Bruno Lima",
+    });
+    expect(describeActivity(row({ kind: "PriorityChanged", text: "Alta" }))).toEqual({
+      text: "mudou a prioridade para",
+      quote: "Alta",
+    });
+  });
+
+  it("os fatos com complemento trazem o nome entre aspas, inclusive os antigos", () => {
     expect(describeActivity(row({ kind: "LabelAdded", text: "Bug" }))).toEqual({
       text: "adicionou a etiqueta",
       quote: "Bug",
@@ -47,7 +69,8 @@ describe("describeActivity", () => {
     expect(describeActivity(row({ kind: "ChecklistItemChecked", text: "Ligar" })).text).toBe(
       "concluiu no checklist",
     );
-    expect(describeActivity(row({ kind: "TitleChanged", text: "Novo" })).text).toBe("renomeou o cartão para");
+    expect(describeActivity(row({ kind: "MemberAdded", text: "Ana Souza" })).text).toBe("adicionou o membro");
+    expect(describeActivity(row({ kind: "TitleChanged", text: "Novo" })).text).toBe("renomeou a tarefa para");
   });
 
   it("solução: registrou, editou e removeu", () => {
@@ -57,11 +80,12 @@ describe("describeActivity", () => {
   });
 
   it("aceita o tipo pelo número também", () => {
-    expect(describeActivity(row({ kind: 4 })).text).toBe("arquivou o cartão");
+    expect(describeActivity(row({ kind: 4 })).text).toBe("arquivou a tarefa");
+    expect(describeActivity(row({ kind: 22, text: "Ana" })).text).toBe("passou a tarefa para");
   });
 
   it("tipo que a tela não conhece (servidor mais novo) não vira linha em branco", () => {
-    expect(describeActivity(row({ kind: "SomethingNew" })).text).toBe("atualizou o cartão");
+    expect(describeActivity(row({ kind: "SomethingNew" })).text).toBe("atualizou a tarefa");
   });
 });
 

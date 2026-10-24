@@ -58,9 +58,10 @@ export interface AppRoute {
   publica?: boolean;
   /**
    * A página ocupa o `<main>` inteiro, sem o padding e o `max-w-7xl` do layout,
-   * e com a altura da área útil. É o que o quadro de tarefas precisa: fundo até
-   * as bordas e colunas que rolam por dentro. Fora daqui, toda tela é um
-   * documento centralizado que cresce para baixo.
+   * e com a altura da área útil — para uma tela com fundo até as bordas e colunas
+   * que rolam por dentro, como foi o quadro de tarefas até 23/10/2026 (hoje uma
+   * lista comum). Nenhuma rota usa agora; toda tela é um documento centralizado
+   * que cresce para baixo.
    */
   fullBleed?: boolean;
 }
@@ -361,7 +362,7 @@ export const ROUTES: AppRoute[] = [
 
   // Em "Sistema" por escolha do dono (30/09/2026), e primeiro do grupo: é a
   // única tela dele que se abre todo dia.
-  { path: "/tarefas", label: "Tarefas", group: "Sistema", component: TaskBoard, fullBleed: true },
+  { path: "/tarefas", label: "Tarefas", group: "Sistema", component: TaskBoard },
   {
     path: "/configuracoes",
     label: "Configurações",

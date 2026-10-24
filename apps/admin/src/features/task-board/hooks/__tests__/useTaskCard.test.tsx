@@ -36,12 +36,10 @@ const card: TaskCardDto = {
   title: "Impressora",
   description: "Texto antigo, sem formatação",
   solution: "<p>Troquei o cabo</p>",
-  status: "Testing",
-  position: 1024,
-  isArchived: false,
+  status: "Pending",
+  priority: "Normal",
   labels: [],
-  members: [],
-  checklistItems: [],
+  assignee: { userId: 5, firstName: "Ana", fullName: "Ana Souza" },
   attachments: [],
   createdAt: "2026-10-01T10:00:00",
 };
@@ -57,9 +55,9 @@ function setup() {
 }
 
 /**
- * O que está sendo protegido: a solução vai pela rota própria (nunca no PUT do
- * cartão, que a apagaria num admin antigo); o editor vazio vira "sem texto";
- * nada é gravado quando nada mudou — menos o "Salvar e finalizar", que finaliza
+ * O que está sendo protegido: a solução vai pela rota própria (nunca no PUT da
+ * tarefa, que a apagaria num admin antigo); o editor vazio vira "sem texto";
+ * nada é gravado quando nada mudou — menos o "Salvar e concluir", que conclui
  * mesmo com a solução igual.
  */
 describe("useTaskCard — descrição e solução", () => {
@@ -88,7 +86,7 @@ describe("useTaskCard — descrição e solução", () => {
     expect(mocks.updateTaskCard).not.toHaveBeenCalled();
   });
 
-  it("solução igual não grava; com finalizar, grava e finaliza", async () => {
+  it("solução igual não grava; com concluir, grava e conclui", async () => {
     const { result } = setup();
 
     await act(async () => {
@@ -106,7 +104,7 @@ describe("useTaskCard — descrição e solução", () => {
       }),
     );
     await waitFor(() =>
-      expect(mocks.toast).toHaveBeenCalledWith({ title: "Solução salva e tarefa #37 finalizada." }),
+      expect(mocks.toast).toHaveBeenCalledWith({ title: "Solução salva e tarefa #37 concluída." }),
     );
   });
 
@@ -141,13 +139,29 @@ describe("useTaskCard — descrição e solução", () => {
     );
   });
 
-  it("o PUT do cartão não leva a solução", async () => {
+  it("o PUT da tarefa não leva a solução, e leva prioridade e responsável de volta", async () => {
     const { result } = setup();
 
     act(() => result.current.saveTitle("Impressora térmica"));
 
     await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalled());
     expect(mocks.updateTaskCard.mock.calls[0][1]).not.toHaveProperty("solution");
+    // O servidor recusa o PUT sem os dois (para um admin antigo não gravar um padrão por cima).
+    expect(mocks.updateTaskCard.mock.calls[0][1]).toMatchObject({ priority: 2, assigneeId: 5 });
+  });
+
+  it("tarefa migrada sem responsável manda zero: o servidor pede para escolher", async () => {
+    mocks.useGetTaskCard.mockReturnValue({
+      data: { ...card, assignee: undefined },
+      isLoading: false,
+      isError: false,
+    });
+    const { result } = setup();
+
+    act(() => result.current.saveTitle("Impressora térmica"));
+
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalled());
+    expect(mocks.updateTaskCard.mock.calls[0][1].assigneeId).toBe(0);
   });
 });
 
@@ -155,7 +169,10 @@ const ETIQUETAS = [
   { id: 1, name: "Bug", color: "red", priority: "Urgent", createdAt: "2026-10-01T00:00:00" },
   { id: 2, name: "Ideia", color: "sky", priority: "Low", createdAt: "2026-10-01T00:00:00" },
 ];
-const USUARIOS = [{ userId: 5, firstName: "Ana", fullName: "Ana Souza" }];
+const USUARIOS = [
+  { userId: 5, firstName: "Ana", fullName: "Ana Souza" },
+  { userId: 6, firstName: "Bruno", fullName: "Bruno Lima" },
+];
 
 /** Um PUT que só responde quando o teste manda — o servidor "lento". */
 function putsControlados() {
@@ -183,9 +200,9 @@ function putsControlados() {
 }
 
 /**
- * O defeito: cada PUT manda etiquetas e membros INTEIROS, montados do cartão em
- * cache. Marcar a etiqueta A e logo a B, antes de o cartão ser relido, mandava
- * o segundo PUT sem a A — e a A se perdia.
+ * O defeito: cada PUT manda a tarefa INTEIRA, montada do cache. Marcar a
+ * etiqueta A e logo a B, antes de a tarefa ser relida, mandava o segundo PUT sem
+ * a A — e a A se perdia. Vale igual para responsável e prioridade.
  */
 describe("useTaskCard — gravações seguidas não se atropelam", () => {
   beforeEach(() => {
@@ -213,17 +230,38 @@ describe("useTaskCard — gravações seguidas não se atropelam", () => {
     await servidor.responder(1);
   });
 
-  it("etiqueta seguida de membro: o PUT do membro não desfaz a etiqueta", async () => {
+  it("etiqueta, responsável e prioridade em seguida: cada PUT leva o que veio antes", async () => {
     const servidor = putsControlados();
-    const { result } = setup();
+    const { result, queryClient } = setup();
 
     act(() => result.current.toggleLabel(1));
-    act(() => result.current.toggleMember(5));
+    act(() => result.current.setAssignee(6));
+    act(() => result.current.setPriority(4));
+
+    // A escolha aparece na hora: o responsável novo, com o nome, e a prioridade.
+    const noCache = queryClient.getQueryData<TaskCardDto>([...getGetTaskCardQueryKey(), { id: 7 }]);
+    expect(noCache?.assignee?.fullName).toBe("Bruno Lima");
+    expect(noCache?.priority).toBe(4);
 
     await servidor.responder(0);
-    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(2));
-    expect(mocks.updateTaskCard.mock.calls[1][1]).toMatchObject({ labelIds: [1], memberIds: [5] });
     await servidor.responder(1);
+    await waitFor(() => expect(mocks.updateTaskCard).toHaveBeenCalledTimes(3));
+    expect(mocks.updateTaskCard.mock.calls[1][1]).toMatchObject({ labelIds: [1], assigneeId: 6 });
+    expect(mocks.updateTaskCard.mock.calls[2][1]).toMatchObject({
+      labelIds: [1],
+      assigneeId: 6,
+      priority: 4,
+    });
+    await servidor.responder(2);
+  });
+
+  it("escolher o mesmo responsável ou a mesma prioridade não grava", () => {
+    const { result } = setup();
+
+    act(() => result.current.setAssignee(5));
+    act(() => result.current.setPriority(2));
+
+    expect(mocks.updateTaskCard).not.toHaveBeenCalled();
   });
 
   it("a marca aparece na hora, e o cartão só é relido depois do último PUT da fila", async () => {

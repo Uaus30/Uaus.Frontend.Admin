@@ -3,8 +3,8 @@ import { Button, ConfirmDialog, cn } from "@workspace/ui";
 import type { TaskCardActivityDto } from "@workspace/api-client-react";
 import { RichTextEditingArea, RichTextEditor, RichTextView, isBlankRichText } from "@/components/rich-text";
 import { describeActivity, formatActivityDate, initials, isComment } from "../activity";
-import { memberColor } from "../board";
-import { ColumnBadge } from "./CardBits";
+import { memberColor } from "../tasks";
+import { StatusBadge } from "./CardBits";
 
 interface ActivityItemProps {
   activity: TaskCardActivityDto;
@@ -21,7 +21,7 @@ export function ActivityItem(props: ActivityItemProps) {
   return isComment(props.activity) ? <CommentItem {...props} /> : <HistoryItem activity={props.activity} />;
 }
 
-/** "Ana Souza moveu o cartão de [Fazendo] para [Testes] · 05/10/2026 às 14:32" */
+/** "Ana Souza concluiu a tarefa de [Pendente] para [Finalizado] · 23/10/2026 às 14:32" */
 function HistoryItem({ activity }: { activity: TaskCardActivityDto }) {
   const phrase = describeActivity(activity);
 
@@ -34,15 +34,15 @@ function HistoryItem({ activity }: { activity: TaskCardActivityDto }) {
         {phrase.from != null && phrase.to != null ? (
           <>
             {" de "}
-            <ColumnBadge status={phrase.from} className="px-1.5 py-0 text-[11px]" />
+            <StatusBadge status={phrase.from} className="px-1.5 py-0 text-[11px]" />
             {" para "}
-            <ColumnBadge status={phrase.to} className="px-1.5 py-0 text-[11px]" />
+            <StatusBadge status={phrase.to} className="px-1.5 py-0 text-[11px]" />
           </>
         ) : (
           phrase.to != null && (
             <>
               {" em "}
-              <ColumnBadge status={phrase.to} className="px-1.5 py-0 text-[11px]" />
+              <StatusBadge status={phrase.to} className="px-1.5 py-0 text-[11px]" />
             </>
           )
         )}
@@ -164,7 +164,7 @@ function CommentItem({ activity, canEdit, onUpdate, isUpdating, onDelete, isDele
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title="Excluir este comentário?"
-        description="O comentário some da atividade do cartão e não volta pela tela."
+        description="O comentário some da atividade da tarefa e não volta pela tela."
         confirmLabel="Sim, excluir"
         destructive
         loading={isDeleting}

@@ -1,15 +1,16 @@
 import { Tooltip, TooltipContent, TooltipTrigger, cn } from "@workspace/ui";
 import type { EnumValue, TaskCardMemberDto, TaskLabelDto } from "@workspace/api-client-react";
-import { BOARD_COLUMNS, columnTitle, labelClasses, memberColor, statusCode } from "../board";
+import { PRIORITY_ICONS } from "../priority-icons";
+import { STATUS_BADGES, labelClasses, memberColor, priorityDef, statusCode } from "../tasks";
 
 /**
- * Peças pequenas e puras do cartão, compartilhadas entre o quadro, a busca, a
- * lista de arquivados e a modal: etiqueta, avatar de membro e badge de coluna.
+ * Peças pequenas e puras da tarefa, compartilhadas entre a lista, o detalhe e a
+ * atividade: etiqueta, avatar, selo de prioridade e selo de situação.
  */
 
 interface TaskLabelChipProps {
   label: TaskLabelDto;
-  /** Compacto: só a faixa de cor com o nome pequeno (no cartão). */
+  /** Compacto: só a faixa de cor com o nome pequeno (no cartão da lista). */
   size?: "sm" | "md";
   className?: string;
 }
@@ -20,7 +21,7 @@ export function TaskLabelChip({ label, size = "md", className }: TaskLabelChipPr
       title={label.name}
       className={cn(
         "inline-flex max-w-full items-center truncate rounded-md font-semibold leading-none",
-        size === "sm" ? "h-4 px-1.5 text-[10px]" : "h-6 px-2 text-xs",
+        size === "sm" ? "h-[18px] px-1.5 text-[10.5px]" : "h-6 px-2 text-xs",
         labelClasses(label.color).chip,
         className,
       )}
@@ -36,7 +37,7 @@ interface MemberAvatarProps {
   className?: string;
 }
 
-/** Círculo com a inicial; o nome completo fica no tooltip. O quadro mostra só o primeiro nome. */
+/** Círculo com a inicial; o nome completo fica no tooltip. A lista mostra só o primeiro nome. */
 export function MemberAvatar({ member, size = "md", className }: MemberAvatarProps) {
   const initial = member.firstName.trim().charAt(0).toUpperCase() || "?";
 
@@ -46,7 +47,7 @@ export function MemberAvatar({ member, size = "md", className }: MemberAvatarPro
         <span
           aria-label={member.fullName}
           className={cn(
-            "inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold text-white ring-2 ring-background",
+            "inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold text-white",
             size === "sm" ? "h-6 w-6 text-[11px]" : "h-8 w-8 text-sm",
             memberColor(member.userId),
             className,
@@ -60,30 +61,29 @@ export function MemberAvatar({ member, size = "md", className }: MemberAvatarPro
   );
 }
 
-/** Até `max` avatares e um "+N" para o resto. */
-export function MemberStack({ members, max = 3 }: { members: TaskCardMemberDto[]; max?: number }) {
-  if (members.length === 0) return null;
-  const shown = members.slice(0, max);
-  const rest = members.length - shown.length;
+/** "⌃⌃ Urgente": ícone, nome e o tom da prioridade. */
+export function PriorityBadge({ priority, className }: { priority: EnumValue; className?: string }) {
+  const def = priorityDef(priority);
+  const Icon = PRIORITY_ICONS[def.code];
 
   return (
-    <div className="flex -space-x-1.5">
-      {shown.map((m) => (
-        <MemberAvatar key={m.userId} member={m} size="sm" />
-      ))}
-      {rest > 0 && (
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground ring-2 ring-background">
-          +{rest}
-        </span>
+    <span
+      className={cn(
+        "inline-flex h-[22px] items-center gap-1 rounded-md pl-1.5 pr-2 text-xs font-bold",
+        def.text,
+        def.soft,
+        className,
       )}
-    </div>
+    >
+      <Icon className="h-3.5 w-3.5" strokeWidth={2.6} aria-hidden />
+      {def.name}
+    </span>
   );
 }
 
-/** Nome da coluna com a bolinha da cor dela — para fora do quadro (busca, arquivados). */
-export function ColumnBadge({ status, className }: { status: EnumValue; className?: string }) {
-  const code = statusCode(status);
-  const column = BOARD_COLUMNS.find((c) => c.status === code);
+/** Nome da situação com a bolinha da cor dela — no detalhe e nas linhas do histórico. */
+export function StatusBadge({ status, className }: { status: EnumValue; className?: string }) {
+  const badge = STATUS_BADGES[statusCode(status)];
 
   return (
     <span
@@ -92,8 +92,8 @@ export function ColumnBadge({ status, className }: { status: EnumValue; classNam
         className,
       )}
     >
-      <span className={cn("h-2 w-2 rounded-full", column?.dot ?? "bg-muted-foreground")} />
-      {columnTitle(status)}
+      <span className={cn("h-2 w-2 rounded-full", badge?.dot ?? "bg-muted-foreground")} />
+      {badge?.title ?? "—"}
     </span>
   );
 }

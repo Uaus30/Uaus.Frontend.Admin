@@ -2639,14 +2639,16 @@ export interface SavePromotionPayload {
 }
 
 // ---------------------------------------------------------------------------
-// Quadro de tarefas (TaskCards / TaskLabels)
+// Tarefas (TaskCards / TaskLabels) — lista de pendentes e finalizadas desde
+// 23/10/2026; antes, um quadro de cinco colunas. As rotas guardam o nome "cards".
 //
 // Contrato do backend em Uaus.Backend.Api/Uaus.Application/DTOs/TaskCards/.
 // ---------------------------------------------------------------------------
 
 /**
- * A coluna do quadro (enum `TaskCardStatus` do backend). As colunas são FIXAS e
- * nesta ordem — o quadro é um fluxo de trabalho, não listas livres.
+ * A situação da tarefa (enum `TaskCardStatus` do backend): `Pending` ou `Done`.
+ * Backlog, Fazendo e Testes eram colunas do quadro e só aparecem nas linhas antigas
+ * do histórico ("moveu de Fazendo para Testes") — o servidor recusa gravá-las.
  */
 export const TASK_CARD_STATUS = {
   None: 0,
@@ -2657,10 +2659,28 @@ export const TASK_CARD_STATUS = {
   Done: 5,
 } as const;
 
-/** Código da coluna no que é ENVIADO ao servidor. Nas respostas o campo é `EnumValue`. */
+/** Código da situação no que é ENVIADO ao servidor. Nas respostas o campo é `EnumValue`. */
 export type TaskCardStatusCode = (typeof TASK_CARD_STATUS)[keyof typeof TASK_CARD_STATUS];
 
-/** Prioridade de uma etiqueta (enum `TaskLabelPriority`). É da ETIQUETA, não do cartão. */
+/**
+ * Prioridade da TAREFA (enum `TaskCardPriority`), desde 23/10/2026. Os números são
+ * os da prioridade de etiqueta, de onde as tarefas antigas a herdaram.
+ */
+export const TASK_CARD_PRIORITY = {
+  None: 0,
+  Low: 1,
+  Normal: 2,
+  High: 3,
+  Urgent: 4,
+} as const;
+
+export type TaskCardPriorityCode = (typeof TASK_CARD_PRIORITY)[keyof typeof TASK_CARD_PRIORITY];
+
+/**
+ * Prioridade de uma etiqueta (enum `TaskLabelPriority`). Desde 23/10/2026 não
+ * ordena nem pinta nada — a prioridade é da tarefa —, mas o servidor ainda a grava
+ * e exige no cadastro da etiqueta.
+ */
 export const TASK_LABEL_PRIORITY = {
   None: 0,
   Low: 1,
@@ -2695,24 +2715,17 @@ export interface TaskLabelDto {
   name: string;
   /** Chave da paleta (`TASK_LABEL_COLORS`). */
   color: string;
-  /** Enum TaskLabelPriority — chega como NOME; leia com `enumCode` e `TASK_LABEL_PRIORITY`. */
+  /** Enum TaskLabelPriority — chega como NOME. Só para o cadastro devolver o que recebeu. */
   priority: EnumValue;
   createdAt: string;
   updatedAt?: string | null;
 }
 
-/** Usuário vinculado a um cartão. O quadro mostra só o primeiro nome. */
+/** Usuário que pode ser (ou é) responsável por uma tarefa. A lista mostra só o primeiro nome. */
 export interface TaskCardMemberDto {
   userId: number;
   firstName: string;
   fullName: string;
-}
-
-export interface TaskCardChecklistItemDto {
-  id: number;
-  text: string;
-  isDone: boolean;
-  position: number;
 }
 
 export interface TaskCardAttachmentDto {
@@ -2727,8 +2740,8 @@ export interface TaskCardAttachmentDto {
 }
 
 /**
- * O cartão como o QUADRO o desenha: sem descrição, checklist ou anexos — só as
- * contagens. O completo é o `TaskCardDto`, buscado ao abrir o cartão.
+ * A tarefa como a LISTA a desenha: em vez da descrição e da solução inteiras, o
+ * começo de cada uma em texto puro. O completo é o `TaskCardDto`, buscado ao abrir.
  */
 export interface TaskCardSummaryDto {
   id: number;
@@ -2737,19 +2750,25 @@ export interface TaskCardSummaryDto {
   title: string;
   /** Enum TaskCardStatus — chega como NOME; leia com `enumCode` e `TASK_CARD_STATUS`. */
   status: EnumValue;
-  /** Ordem dentro da coluna, crescente. */
-  position: number;
-  isArchived: boolean;
-  /** Quando entrou em Finalizado. Omitido fora dessa coluna. */
+  /** Enum TaskCardPriority — chega como NOME; leia com `enumCode` e `TASK_CARD_PRIORITY`. */
+  priority: EnumValue;
+  /** Quando foi concluída. Omitido enquanto pendente. */
   finishedAt?: string | null;
+  /** Nome de quem concluiu. Omitido sem a linha "finalizou" no histórico. */
+  finishedBy?: string | null;
   hasDescription: boolean;
-  checklistTotal: number;
-  checklistDone: number;
+  /** O começo da descrição em texto puro. Omitido sem descrição. */
+  descriptionPreview?: string | null;
+  /** O começo da solução em texto puro. Omitido sem solução. */
+  solutionPreview?: string | null;
   attachmentsCount: number;
-  /** Da mais urgente para a menos. */
+  /** Por nome. */
   labels: TaskLabelDto[];
-  members: TaskCardMemberDto[];
+  /** Omitido em tarefa migrada sem ninguém, ou com o responsável excluído. */
+  assignee?: TaskCardMemberDto | null;
   createdAt: string;
+  /** Nome completo de quem anotou. */
+  createdBy?: string | null;
   updatedAt?: string | null;
 }
 
@@ -2757,20 +2776,17 @@ export interface TaskCardDto {
   id: number;
   number: number;
   title: string;
-  /** HTML do editor do admin. Cartões anteriores a 05/10/2026 trazem texto puro. */
+  /** HTML do editor do admin. Tarefas anteriores a 05/10/2026 trazem texto puro. */
   description?: string | null;
   /** Como a demanda foi resolvida, no formato da descrição. Grava-se por `saveTaskCardSolution`. */
   solution?: string | null;
   /** Enum TaskCardStatus — chega como NOME; leia com `enumCode`. */
   status: EnumValue;
-  position: number;
-  isArchived: boolean;
-  archivedAt?: string | null;
+  /** Enum TaskCardPriority — chega como NOME; leia com `enumCode`. */
+  priority: EnumValue;
   finishedAt?: string | null;
   labels: TaskLabelDto[];
-  members: TaskCardMemberDto[];
-  /** Na ordem de exibição. */
-  checklistItems: TaskCardChecklistItemDto[];
+  assignee?: TaskCardMemberDto | null;
   /** Do mais recente para o mais antigo. */
   attachments: TaskCardAttachmentDto[];
   createdAt: string;
@@ -2779,27 +2795,31 @@ export interface TaskCardDto {
   updatedBy?: string | null;
 }
 
-/** O quadro inteiro numa resposta, mais quantos finalizados antigos ficaram de fora. */
+/** A lista inteira numa resposta, mais quantas finalizadas antigas ficaram de fora. */
 export interface TaskBoardDto {
   items: TaskCardSummaryDto[];
-  /** Zero quando o admin pediu todos (`allFinished`). */
+  /** Zero quando o admin pediu todas (`allFinished`). */
   hiddenFinishedCount: number;
   /** A janela em dias que o servidor aplicou (30). */
   finishedWindowDays: number;
 }
 
+/**
+ * Criação ou edição. O PUT manda a tarefa inteira; `priority` e `assigneeId` são
+ * obrigatórios — o servidor recusa sem eles, em vez de gravar um padrão por cima.
+ */
 export interface SaveTaskCardPayload {
   title: string;
   description?: string | null;
-  /** Coluna inicial. Só na criação; no PUT é ignorado (coluna muda pelo `move`). */
-  status?: TaskCardStatusCode;
+  priority: TaskCardPriorityCode;
+  assigneeId: number;
   labelIds: number[];
-  memberIds: number[];
 }
 
+/** Concluir (`Done`) ou reabrir (`Pending`). */
 export interface MoveTaskCardPayload {
   status: TaskCardStatusCode;
-  /** Média entre os vizinhos, ou ZERO para "no fim da coluna" (o servidor calcula). */
+  /** ZERO: no fim da situação (o servidor calcula). Resto do arrasto do quadro. */
   position: number;
 }
 
@@ -2809,15 +2829,11 @@ export interface SaveTaskLabelPayload {
   priority: TaskLabelPriorityCode;
 }
 
-export interface SaveTaskChecklistItemPayload {
-  text: string;
-  isDone: boolean;
-}
-
 /**
- * O que aconteceu numa linha da atividade do cartão (enum `TaskCardActivityKind`).
+ * O que aconteceu numa linha da atividade da tarefa (enum `TaskCardActivityKind`).
  * Só `Comment` é escrito por uma pessoa; o resto o servidor grava junto com a
- * ação. A frase ("moveu de Fazendo para Testes") é montada pela tela.
+ * ação. A frase ("passou a tarefa para Bruno Lima") é montada pela tela. Arquivar,
+ * membros e checklist saíram em 23/10/2026 e só aparecem nas linhas antigas.
  */
 export const TASK_CARD_ACTIVITY_KIND = {
   None: 0,
@@ -2841,6 +2857,8 @@ export const TASK_CARD_ACTIVITY_KIND = {
   ChecklistItemChecked: 18,
   ChecklistItemUnchecked: 19,
   ChecklistItemRemoved: 20,
+  PriorityChanged: 21,
+  AssigneeChanged: 22,
 } as const;
 
 export type TaskCardActivityKindCode = (typeof TASK_CARD_ACTIVITY_KIND)[keyof typeof TASK_CARD_ACTIVITY_KIND];
@@ -2852,12 +2870,13 @@ export interface TaskCardActivityDto {
   kind: EnumValue;
   /**
    * O HTML do comentário, ou o complemento do fato: nome da etiqueta, do anexo,
-   * do membro, texto do item do checklist, título novo. Omitido quando não há.
+   * do responsável, da prioridade, título novo (e, nas linhas antigas, membro e
+   * item do checklist). Omitido quando não há.
    */
   text?: string | null;
-  /** Coluna de origem ao mover (enum TaskCardStatus, pelo nome). */
+  /** Situação de origem ao mover (enum TaskCardStatus, pelo nome). */
   fromStatus?: EnumValue;
-  /** Coluna de destino ao mover, ou a coluna em que o cartão nasceu. */
+  /** Situação de destino ao mover, ou a situação em que a tarefa nasceu. */
   toStatus?: EnumValue;
   /** Quem fez. Só o autor vê "Editar" e "Excluir" no comentário. */
   userId?: number | null;
@@ -2871,7 +2890,7 @@ export interface TaskCardActivityDto {
 export interface SaveTaskCardSolutionPayload {
   /** HTML do editor; vazio apaga a solução. */
   solution: string | null;
-  /** Também leva o cartão para o fim de Finalizado ("Salvar e finalizar"). */
+  /** Também conclui a tarefa, na mesma gravação ("Salvar e concluir"). */
   finish: boolean;
 }
 

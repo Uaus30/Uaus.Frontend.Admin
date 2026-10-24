@@ -1,38 +1,43 @@
 import { useRef, useState } from "react";
-import { Archive, CircleCheckBig, Loader2, TextAlignStart } from "lucide-react";
-import { Button, ConfirmDialog, Dialog, DialogContent, DialogDescription, DialogTitle } from "@workspace/ui";
-import { TASK_CARD_STATUS, type TaskCardStatusCode } from "@workspace/api-client-react";
+import { Check, CircleCheckBig, Loader2, RotateCcw, TextAlignStart } from "lucide-react";
+import {
+  Button,
+  ConfirmDialog,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  useToast,
+} from "@workspace/ui";
 import { RICH_TEXT_EDITING_ATTRIBUTE } from "@/components/rich-text";
-import { statusCode } from "../board";
+import { isDone as isDoneStatus } from "../tasks";
 import { useCardActivity } from "../hooks/useCardActivity";
 import { useTaskCard } from "../hooks/useTaskCard";
 import { CardActivity } from "./CardActivity";
 import { CardAttachments } from "./CardAttachments";
-import { ColumnBadge, MemberAvatar, TaskLabelChip } from "./CardBits";
-import { CardChecklist } from "./CardChecklist";
+import { MemberAvatar, PriorityBadge, StatusBadge, TaskLabelChip } from "./CardBits";
 import { CardRichTextField } from "./CardRichTextField";
 import { CardSidebar } from "./CardSidebar";
 import { CardTitleInput } from "./CardTitleInput";
 
+type CardRef = { id: number; number: number };
+
 interface TaskCardDialogProps {
   cardId: number | null;
   onClose: () => void;
-  onMove: (cardId: number, status: TaskCardStatusCode) => Promise<unknown>;
-  /** "Finalizar tarefa": para o fim de Finalizado, de qualquer coluna. */
-  onFinish: (cardId: number) => Promise<unknown>;
+  /** O botão verde do topo: conclui e fecha a modal (a tarefa sai da lista de pendentes). */
+  onComplete: (card: CardRef) => Promise<unknown>;
+  onReopen: (card: CardRef) => Promise<unknown>;
   isMoving: boolean;
-  onArchive: (cardId: number) => Promise<unknown>;
-  onUnarchive: (cardId: number) => Promise<unknown>;
   onDelete: (cardId: number) => Promise<unknown>;
   onManageLabels: () => void;
-  isArchiving: boolean;
   isDeleting: boolean;
 }
 
 /**
- * A modal de detalhe do cartão. No celular ocupa a tela inteira e tudo rola
+ * A modal de detalhe da tarefa. No celular ocupa a tela inteira e tudo rola
  * junto, com a atividade no fim; no desktop largo são dois painéis, como no
- * ClickUp: o cartão (conteúdo e ações) à esquerda e a atividade à direita, cada
+ * ClickUp: a tarefa (conteúdo e ações) à esquerda e a atividade à direita, cada
  * um com a própria rolagem. A rolagem é nativa (`overflow-y-auto`), não
  * `ScrollArea` — armadilha 7 do CLAUDE.md.
  *
@@ -41,16 +46,19 @@ interface TaskCardDialogProps {
  * o que foi escrito.
  */
 export function TaskCardDialog(props: TaskCardDialogProps) {
-  const { cardId, onClose, onFinish, isMoving, onDelete, isDeleting } = props;
+  const { cardId, onClose, onComplete, onReopen, isMoving, onDelete, isDeleting } = props;
   const ctl = useTaskCard(cardId);
   const activity = useCardActivity(cardId);
   const card = ctl.card;
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  const isDone = card !== null && statusCode(card.status) === TASK_CARD_STATUS.Done;
-  const canFinish = card !== null && !isDone && !card.isArchived;
+  const isDone = card !== null && isDoneStatus(card.status);
+
+  /** Uma descrição, solução ou comentário em edição na modal. */
+  const isEditing = () => contentRef.current?.querySelector(`[${RICH_TEXT_EDITING_ATTRIBUTE}]`) != null;
 
   return (
     <Dialog open={cardId !== null} onOpenChange={(open) => !open && onClose()}>
@@ -60,47 +68,66 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
           // Com uma edição aberta (descrição, solução, comentário), o Esc é dela: a
           // área de edição cancela se o foco está nela, e a modal não fecha levando o
           // rascunho junto. Sem edição aberta, o Esc fecha a modal como sempre.
-          if (contentRef.current?.querySelector(`[${RICH_TEXT_EDITING_ATTRIBUTE}]`)) e.preventDefault();
+          if (isEditing()) e.preventDefault();
         }}
         className="flex h-[100dvh] w-full max-w-none flex-col gap-0 rounded-none p-0 sm:h-[92vh] sm:max-w-4xl sm:rounded-xl lg:max-w-6xl"
       >
         {!card ? (
           <div className="flex flex-1 items-center justify-center p-10 text-muted-foreground">
             {ctl.isError ? (
-              "Não foi possível abrir o cartão."
+              "Não foi possível abrir a tarefa."
             ) : (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> Abrindo…
               </span>
             )}
-            <DialogTitle className="sr-only">Cartão</DialogTitle>
-            <DialogDescription className="sr-only">Detalhe do cartão</DialogDescription>
+            <DialogTitle className="sr-only">Tarefa</DialogTitle>
+            <DialogDescription className="sr-only">Detalhe da tarefa</DialogDescription>
           </div>
         ) : (
           <>
             <header className="space-y-2 border-b px-4 pb-3 pr-12 pt-4 sm:px-6 sm:pr-14">
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="font-mono">#{card.number}</span>
-                <ColumnBadge status={card.status} />
-                {card.isArchived && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5">
-                    <Archive className="h-3 w-3" /> Arquivado
-                  </span>
-                )}
+                <StatusBadge status={card.status} />
+                {!isDone && <PriorityBadge priority={card.priority} />}
                 {isDone ? (
-                  <span className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <CircleCheckBig className="h-3.5 w-3.5" /> Finalizada
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+                      <CircleCheckBig className="h-3.5 w-3.5" /> Finalizada
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 gap-1.5"
+                      disabled={isMoving}
+                      onClick={() => void onReopen(card)}
+                    >
+                      <RotateCcw className="h-4 w-4" /> Reabrir
+                    </Button>
                   </span>
                 ) : (
                   <Button
                     type="button"
-                    size="sm"
-                    className="ml-auto h-8 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
-                    disabled={!canFinish || isMoving}
-                    title={card.isArchived ? "Desarquive o cartão para finalizá-lo" : undefined}
-                    onClick={() => void onFinish(card.id)}
+                    className="ml-auto h-10 gap-2 bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
+                    disabled={isMoving}
+                    onClick={() => {
+                      // Concluir fecha a modal, e o rascunho de uma edição aberta iria
+                      // junto, sem aviso — a mesma guarda do Esc (achado da revisão de
+                      // 23/10/2026). Na solução, "Salvar e concluir" faz as duas coisas.
+                      if (isEditing()) {
+                        toast({
+                          title: "Salve ou cancele a edição antes de concluir.",
+                          description: 'Na solução, "Salvar e concluir" grava o texto e conclui de uma vez.',
+                        });
+                        return;
+                      }
+                      onClose();
+                      void onComplete(card);
+                    }}
                   >
-                    <CircleCheckBig className="h-4 w-4" /> Finalizar tarefa
+                    <Check className="h-5 w-5" strokeWidth={3} /> Concluir tarefa
                   </Button>
                 )}
               </div>
@@ -109,44 +136,37 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
                 <CardTitleInput key={card.title} title={card.title} onSave={ctl.saveTitle} />
               </DialogTitle>
               <DialogDescription className="sr-only">
-                Detalhe e edição do cartão #{card.number}
+                Detalhe e edição da tarefa #{card.number}
               </DialogDescription>
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
               <div className="lg:min-h-0 lg:overflow-y-auto">
-                <div className="grid gap-6 p-4 sm:grid-cols-[1fr_190px] sm:p-6">
+                <div className="grid gap-6 p-4 sm:grid-cols-[1fr_200px] sm:p-6">
                   <div className="min-w-0 space-y-6">
-                    {(card.labels.length > 0 || card.members.length > 0) && (
-                      <div className="flex flex-wrap items-start gap-4">
-                        {card.labels.length > 0 && (
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground">Etiquetas</p>
-                            <div className="flex flex-wrap gap-1">
-                              {card.labels.map((label) => (
-                                <TaskLabelChip key={label.id} label={label} />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {card.members.length > 0 && (
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground">Membros</p>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {card.members.map((member) => (
-                                <span
-                                  key={member.userId}
-                                  className="inline-flex items-center gap-1.5 text-sm"
-                                >
-                                  <MemberAvatar member={member} size="sm" />
-                                  {member.firstName}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+                    <div className="flex flex-wrap items-start gap-4">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">Para</p>
+                        {card.assignee ? (
+                          <span className="inline-flex items-center gap-1.5 text-sm">
+                            <MemberAvatar member={card.assignee} size="sm" />
+                            {card.assignee.fullName}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-amber-400">Sem responsável — escolha ao lado</span>
                         )}
                       </div>
-                    )}
+                      {card.labels.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Etiquetas</p>
+                          <div className="flex flex-wrap gap-1">
+                            {card.labels.map((label) => (
+                              <TaskLabelChip key={label.id} label={label} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     <CardRichTextField
                       key={`description-${card.description ?? ""}`}
@@ -155,7 +175,7 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
                       value={card.description ?? ""}
                       emptyLabel="Adicionar uma descrição mais detalhada…"
                       placeholder="Detalhe a demanda: o que precisa ser feito, para quem, até quando…"
-                      ariaLabel="Descrição do cartão"
+                      ariaLabel="Descrição da tarefa"
                       onSave={ctl.saveDescription}
                       isSaving={ctl.isSaving}
                     />
@@ -167,20 +187,11 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
                       value={card.solution ?? ""}
                       emptyLabel="Registrar como a demanda foi resolvida…"
                       placeholder="O que foi feito, onde, e o que conferir se voltar a acontecer…"
-                      ariaLabel="Solução do cartão"
+                      ariaLabel="Solução da tarefa"
                       onSave={(html) => ctl.saveSolution(html)}
-                      onSaveAndFinish={canFinish ? (html) => ctl.saveSolution(html, true) : undefined}
+                      onSaveAndFinish={isDone ? undefined : (html) => ctl.saveSolution(html, true)}
                       isSaving={ctl.isSavingSolution}
                       highlightFilled
-                    />
-
-                    <CardChecklist
-                      items={card.checklistItems}
-                      onAdd={ctl.addChecklistItem}
-                      onToggle={ctl.toggleChecklistItem}
-                      onRename={ctl.renameChecklistItem}
-                      onDelete={ctl.deleteChecklistItem}
-                      busy={ctl.isChecklistBusy}
                     />
 
                     <CardAttachments
@@ -196,14 +207,11 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
                     card={card}
                     labels={ctl.labels}
                     users={ctl.users}
+                    onAssign={ctl.setAssignee}
+                    onPriority={ctl.setPriority}
                     onToggleLabel={ctl.toggleLabel}
-                    onToggleMember={ctl.toggleMember}
                     isSaving={ctl.isSaving}
-                    onMove={props.onMove}
                     onManageLabels={props.onManageLabels}
-                    onArchive={props.onArchive}
-                    onUnarchive={props.onUnarchive}
-                    isArchiving={props.isArchiving}
                     onRequestDelete={() => setConfirmDelete(true)}
                     isDeleting={isDeleting}
                   />
@@ -228,9 +236,9 @@ export function TaskCardDialog(props: TaskCardDialogProps) {
             <ConfirmDialog
               open={confirmDelete}
               onOpenChange={setConfirmDelete}
-              title="Excluir este cartão?"
+              title="Excluir esta tarefa?"
               itemName={`#${card.number} — ${card.title}`}
-              description="O cartão some do quadro, da busca e dos arquivados, com o checklist e os anexos. O número dele não é reaproveitado. Para tirar do quadro sem perder, prefira Arquivar."
+              description="A tarefa some da lista e da busca, com os anexos. O número dela não é reaproveitado. Se ela já foi feita, prefira Concluir: fica registrada nas finalizadas."
               confirmLabel="Sim, excluir"
               destructive
               loading={isDeleting}

@@ -27,7 +27,7 @@ export const CardTitleInput = forwardRef<HTMLInputElement, CardTitleInputProps>(
         if (e.key === "Escape") setValue(title);
       }}
       maxLength={200}
-      aria-label="Título do cartão"
+      aria-label="Título da tarefa"
       className="w-full rounded-md bg-transparent px-1 text-lg font-semibold leading-tight tracking-tight outline-none ring-ring focus:bg-foreground/10 focus:ring-2"
     />
   );

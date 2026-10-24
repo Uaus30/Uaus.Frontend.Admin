@@ -8,9 +8,11 @@ import {
 import { formatBrasiliaDateTime } from "@workspace/core";
 
 /**
- * Regras puras da linha do tempo do cartão (comentários e histórico): a frase de
+ * Regras puras da linha do tempo da tarefa (comentários e histórico): a frase de
  * cada fato e quem pode mexer em qual comentário. O servidor manda o fato
- * (tipo, complemento, colunas); a frase é daqui.
+ * (tipo, complemento, situações); a frase é daqui. Arquivar, membros, checklist e
+ * as colunas Backlog/Fazendo/Testes saíram em 23/10/2026 e só aparecem nas linhas
+ * antigas — por isso as frases deles continuam aqui.
  */
 
 const KIND = TASK_CARD_ACTIVITY_KIND;
@@ -26,22 +28,23 @@ export function isComment(activity: TaskCardActivityDto): boolean {
 
 /**
  * Uma linha do histórico, pronta para desenhar: o verbo, o complemento entre
- * aspas (nome da etiqueta, do anexo…) e as colunas quando houve movimento.
+ * aspas (nome da etiqueta, do anexo…) e as situações quando houve movimento
+ * entre colunas do quadro antigo.
  */
 export interface ActivityPhrase {
-  /** "moveu o cartão", "registrou a solução"… — sem o nome de quem fez, que vem antes. */
+  /** "concluiu a tarefa", "registrou a solução"… — sem o nome de quem fez, que vem antes. */
   text: string;
   /** O complemento, exibido entre aspas depois do verbo. */
   quote?: string;
-  /** Coluna de origem, para o badge "de". */
+  /** Situação de origem, para o selo "de". */
   from?: EnumValue;
-  /** Coluna de destino (ou a de nascimento), para o badge "para"/"em". */
+  /** Situação de destino (ou a de nascimento), para o selo "para"/"em". */
   to?: EnumValue;
 }
 
 const SIMPLE: Record<number, string> = {
-  [KIND.Archived]: "arquivou o cartão",
-  [KIND.Unarchived]: "desarquivou o cartão",
+  [KIND.Archived]: "arquivou a tarefa",
+  [KIND.Unarchived]: "desarquivou a tarefa",
   [KIND.DescriptionChanged]: "editou a descrição",
   [KIND.SolutionAdded]: "registrou a solução",
   [KIND.SolutionEdited]: "editou a solução",
@@ -49,7 +52,9 @@ const SIMPLE: Record<number, string> = {
 };
 
 const WITH_QUOTE: Record<number, string> = {
-  [KIND.TitleChanged]: "renomeou o cartão para",
+  [KIND.TitleChanged]: "renomeou a tarefa para",
+  [KIND.PriorityChanged]: "mudou a prioridade para",
+  [KIND.AssigneeChanged]: "passou a tarefa para",
   [KIND.LabelAdded]: "adicionou a etiqueta",
   [KIND.LabelRemoved]: "removeu a etiqueta",
   [KIND.MemberAdded]: "adicionou o membro",
@@ -63,21 +68,32 @@ const WITH_QUOTE: Record<number, string> = {
 };
 
 /**
- * A frase de um fato do histórico. Ir para Finalizado é dito como "finalizou a
- * tarefa" — é o que o botão "Finalizar tarefa" e o "Salvar e finalizar" fazem, e
- * o que a pessoa procura ao ler a linha do tempo. Tipo desconhecido (um servidor
- * mais novo que a tela) vira "atualizou o cartão", nunca linha em branco.
+ * A frase de um fato do histórico. Ir para Finalizado é "concluiu a tarefa" e
+ * voltar dele é "reabriu a tarefa" — é o que os botões fazem, e as situações não
+ * vão junto porque seriam óbvias. As situações só aparecem nos movimentos do
+ * quadro antigo ("moveu a tarefa de Fazendo para Testes") e no nascimento fora de
+ * Pendente. Tipo desconhecido (um servidor mais novo que a tela) vira "atualizou
+ * a tarefa", nunca linha em branco.
  */
 export function describeActivity(activity: TaskCardActivityDto): ActivityPhrase {
   const kind = activityKind(activity);
   const quote = activity.text ?? undefined;
+  const from = enumCode(activity.fromStatus, TASK_CARD_STATUS);
+  const to = enumCode(activity.toStatus, TASK_CARD_STATUS);
 
-  if (kind === KIND.Created) return { text: "criou o cartão", to: activity.toStatus ?? undefined };
+  if (kind === KIND.Created) {
+    return {
+      text: "criou a tarefa",
+      to: activity.toStatus != null && to !== TASK_CARD_STATUS.Pending ? activity.toStatus : undefined,
+    };
+  }
 
   if (kind === KIND.Moved) {
-    const finished = enumCode(activity.toStatus, TASK_CARD_STATUS) === TASK_CARD_STATUS.Done;
+    if (to === TASK_CARD_STATUS.Done) return { text: "concluiu a tarefa" };
+    if (from === TASK_CARD_STATUS.Done && to === TASK_CARD_STATUS.Pending)
+      return { text: "reabriu a tarefa" };
     return {
-      text: finished ? "finalizou a tarefa" : "moveu o cartão",
+      text: "moveu a tarefa",
       from: activity.fromStatus ?? undefined,
       to: activity.toStatus ?? undefined,
     };
@@ -86,7 +102,7 @@ export function describeActivity(activity: TaskCardActivityDto): ActivityPhrase 
   if (kind in SIMPLE) return { text: SIMPLE[kind] };
   if (kind in WITH_QUOTE) return { text: WITH_QUOTE[kind], quote };
 
-  return { text: "atualizou o cartão" };
+  return { text: "atualizou a tarefa" };
 }
 
 /**
