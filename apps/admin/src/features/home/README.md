@@ -53,6 +53,27 @@ mexer aqui reprova o teste em vez de deixar um botão levando à 404.
 - **O cartão inteiro é o link.** Botão dentro do cartão deixaria área morta
   entre o ícone e o texto. Duas colunas no celular dão alvos de mais de 140px de
   lado num aparelho de 360px.
-- **Cor neutra.** Verde, âmbar e vermelho têm significado fixo
-  (`Uaus.Docs/dominio/convencoes-de-interface.md`); atalho não é estado. O
-  laranja da marca no ícone só diz "isto se toca".
+- **Uma cor por botão** (pedido do dono, 24/10/2026; até ali eram todos
+  neutros, com o laranja da marca no ícone). Com dez botões iguais, achar um era
+  ler os rótulos; com cor, o olho vai direto. A cor está no quadrado do ícone,
+  no brilho do canto e na borda ao passar o mouse; o texto continua neutro.
+  - A paleta (`tones.ts`) **não usa verde, âmbar, vermelho nem cinza**, nem os
+    vizinhos que se confundem com eles: cada um já diz um estado no sistema
+    (`Uaus.Docs/dominio/convencoes-de-interface.md`), e atalho não é estado — um
+    "Estoque" âmbar leria como alerta.
+  - Ela está em **ordem de matiz**, e dois botões que se tocam (lado a lado ou
+    um embaixo do outro, nas duas e nas quatro colunas) nunca recebem cores
+    vizinhas nela — azul ao lado de índigo se confunde de relance.
+  - Trocar a cor de um botão é trocar o `tone` em `shortcuts.ts`. O teste
+    (`home-tones.test.tsx`) reprova cor repetida, cor de estado e vizinhos
+    parecidos.
+- **Polígonos atrás dos botões** (24/10/2026), a mesma malha da tela de entrada
+  do Prisma (`components/PolygonBackground.tsx`), em laranja, violeta e
+  azul-céu. Fica **fixa na janela**: presa à página, cobria só a altura dos
+  botões e deixava a metade de baixo vazia no desktop. É enfeite, então não pode
+  custar o primeiro toque: pausa com a aba oculta, fica parada se o aparelho pede
+  menos movimento, tem de 26 a 70 pontos conforme a área, anda pelo relógio com
+  teto de 60 quadros por segundo (numa tela de 120 Hz o original desenhava o
+  dobro) e, sem canvas ou sem `ResizeObserver`, desenha o que der em vez de
+  derrubar a tela. Os cartões são translúcidos (`bg-card/80`) mas **sem
+  `backdrop-blur`**: o desfoque seria refeito a cada quadro, nos dez cartões.

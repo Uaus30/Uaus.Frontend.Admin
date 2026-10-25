@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { ShortcutTone } from "./tones";
 
 /** Um botão da grade da tela inicial. */
 export interface HomeShortcut {
@@ -13,4 +14,6 @@ export interface HomeShortcut {
   /** Caminho de uma rota VISÍVEL do `routes.ts` (o teste da grade confere). */
   href: string;
   icon: LucideIcon;
+  /** A cor do botão — uma por botão, sem repetir (ver `tones.ts`). */
+  tone: ShortcutTone;
 }

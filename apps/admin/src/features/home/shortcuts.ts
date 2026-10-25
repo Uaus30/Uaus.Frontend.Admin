@@ -24,6 +24,12 @@ import type { HomeShortcut } from "./types";
  * linha do celular é um assunto. Botão novo entra com o seu par, ou a linha de
  * baixo inteira escorrega uma casa e mistura os assuntos.
  *
+ * Cada botão tem a sua cor (24/10/2026), distribuída para que dois vizinhos —
+ * lado a lado ou um embaixo do outro, nas duas e nas quatro colunas — nunca
+ * tenham matizes vizinhos (azul ao lado de índigo, ciano em cima de céu).
+ * Trocar a cor de um botão é trocar o `tone` aqui; o teste confere que nenhuma
+ * se repete e que nenhum par de vizinhos se confunde.
+ *
  * Os caminhos que já têm constante na feature dona vêm dela; os outros são
  * literais, e o teste da grade confere que cada um é uma rota visível do
  * `routes.ts` — renomear uma rota sem mexer aqui reprova o teste em vez de
@@ -36,12 +42,14 @@ export const HOME_SHORTCUTS: readonly HomeShortcut[] = [
     description: "Indicadores e faturamento do período",
     href: "/dashboard",
     icon: LayoutDashboard,
+    tone: "blue",
   },
   {
     label: "Lucros",
     description: "O que trouxe lucro no período",
     href: "/bi/o-que-trouxe-lucro",
     icon: TrendingUp,
+    tone: "purple",
   },
 
   // O cadastro: o produto e o que está errado nele.
@@ -50,12 +58,14 @@ export const HOME_SHORTCUTS: readonly HomeShortcut[] = [
     description: "Cadastro, preço e estoque",
     href: "/produtos",
     icon: Package,
+    tone: "orange",
   },
   {
     label: "Anomalias",
     description: "Cadastros com algo para corrigir",
     href: PRODUCT_ANOMALIES_PATH,
     icon: ScanSearch,
+    tone: "sky",
   },
 
   // A reposição: o que está acabando e o pedido que repõe.
@@ -64,12 +74,14 @@ export const HOME_SHORTCUTS: readonly HomeShortcut[] = [
     description: "O que está acabando e precisa repor",
     href: LOW_STOCK_REPORT_PATH,
     icon: PackageMinus,
+    tone: "violet",
   },
   {
     label: "Compras",
     description: "Pedidos de reposição e recebimento",
     href: PURCHASES_PATH,
     icon: ShoppingCart,
+    tone: "pink",
   },
 
   // A saída: o que vendeu e o que divulga.
@@ -78,12 +90,14 @@ export const HOME_SHORTCUTS: readonly HomeShortcut[] = [
     description: "Vendas do balcão e do site",
     href: "/vendas",
     icon: Receipt,
+    tone: "cyan",
   },
   {
     label: "Catálogos",
     description: "Gerar o catálogo de divulgação",
     href: "/marketing/catalogo",
     icon: BookOpen,
+    tone: "indigo",
   },
 
   // Por último, a pedido do dono: o que está em oferta e o que há para fazer.
@@ -92,11 +106,13 @@ export const HOME_SHORTCUTS: readonly HomeShortcut[] = [
     description: "Preço promocional com vigência",
     href: PROMOTIONS_PATH,
     icon: BadgePercent,
+    tone: "fuchsia",
   },
   {
     label: "Tarefas",
     description: "O quadro de tarefas da loja",
     href: "/tarefas",
     icon: SquareKanban,
+    tone: "teal",
   },
 ];
