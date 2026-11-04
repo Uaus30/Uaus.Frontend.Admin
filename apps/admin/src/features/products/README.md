@@ -905,6 +905,26 @@ a `StockCountModal`; o estado mora em `hooks/useProductListStockCount.ts`.
   Estoque do detalhe.
 - Grupo sem produto nenhum (linha com id 0) não oferece o item: não há SKU.
 
+### 7.1. Banners de destaque pelo menu da linha (04/11/2026)
+
+Pedido do dono: divulgar à parte UM produto, no formato do catálogo. O menu da
+linha (três pontos e clique direito) ganhou um bloco, entre linhas para o
+"Excluir" não ficar colado a ele (`lib/spotlightBannerOptions.ts`):
+
+- **"Banner de novidade"** — sempre, por padrão, também para produto antigo
+  (decisão do dono).
+- **"Banner promocional"** — só com promoção no preço que a linha já mostra
+  (`shelf`: relâmpago, Dia a Dia ou combo).
+- **"Banner de reposição"** — só com a marca `isRecentRestock` da tabela: lote
+  de compra nos últimos 7 dias num produto que não é novidade. A conta é do
+  servidor (`GroupStockDates`), a mesma do banner, numa consulta para a página.
+
+O item abre a janela do catálogo (`SpotlightDialog`), que já gera no tipo
+escolhido e confere tudo de novo no servidor — a promoção pode ter acabado
+entre a listagem e o toque. Quem desenha é a feature do catálogo; a página
+(`pages/products.tsx`) liga as duas, e o menu só avisa o tipo pedido. Regras do
+banner em `features/marketing-catalog/README.md`, "Banner de destaque".
+
 ### 8. Busca pela câmera e a listagem no celular (30/09/2026)
 
 - **Câmera ao lado da busca** (`ProductTableFilters`): o código lido vai para a

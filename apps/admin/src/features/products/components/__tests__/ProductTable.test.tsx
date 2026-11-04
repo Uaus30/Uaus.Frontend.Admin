@@ -259,6 +259,56 @@ describe("ProductTable — Corrigir estoque no menu da linha", () => {
   });
 });
 
+describe("ProductTable — banners de destaque no menu da linha (04/11/2026)", () => {
+  afterEach(cleanup);
+
+  function itensDoMenu() {
+    fireEvent.contextMenu(screen.getByRole("link", { name: "COPO INFANTIL PLÁSTICO COM ESTAMPA" }));
+    return screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
+  }
+
+  it("sem promoção nem compra da semana, só o banner de novidade — o padrão", () => {
+    renderTable({ onSpotlight: vi.fn() });
+
+    const itens = itensDoMenu();
+    expect(itens).toContain("Banner de novidade");
+    expect(itens).not.toContain("Banner promocional");
+    expect(itens).not.toContain("Banner de reposição");
+  });
+
+  it("com promoção ativa no preço da linha, oferece o promocional; com compra da semana, a reposição", () => {
+    renderTable({
+      onSpotlight: vi.fn(),
+      enrichedProducts: [
+        row({
+          isRecentRestock: true,
+          shelf: { kind: "combo", price: 9.9, offer: "3 por R$ 25,00", promotion: {} as never },
+        }),
+      ],
+    });
+
+    expect(itensDoMenu()).toEqual(
+      expect.arrayContaining(["Banner de novidade", "Banner promocional", "Banner de reposição"]),
+    );
+  });
+
+  it("o item pede o banner do produto da linha, no tipo escolhido", () => {
+    const onSpotlight = vi.fn();
+    renderTable({ onSpotlight, enrichedProducts: [row({ isRecentRestock: true })] });
+    itensDoMenu();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: /banner de reposição/i }));
+
+    expect(onSpotlight).toHaveBeenCalledWith(expect.objectContaining({ productGroupId: 825 }), "restock");
+  });
+
+  it("sem o onSpotlight, os itens não aparecem", () => {
+    renderTable();
+
+    expect(itensDoMenu()).not.toContain("Banner de novidade");
+  });
+});
+
 describe("ProductTable — coluna de estoque (04/10/2026)", () => {
   afterEach(cleanup);
 

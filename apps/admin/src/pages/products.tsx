@@ -23,6 +23,8 @@ import { FirstPhotoSiteDialog } from "@/features/products/components/detail/Firs
 import type { ProductTableRow } from "@/features/products/types";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
 import { AnomaliesShortcut } from "@/features/product-anomalies/components/AnomaliesShortcut";
+import { SpotlightDialog } from "@/features/marketing-catalog/components/SpotlightDialog";
+import { useSpotlightBanner } from "@/features/marketing-catalog/hooks/useSpotlightBanner";
 
 /**
  * Página de Produtos: a listagem e, no lugar dela, o detalhe do produto.
@@ -50,6 +52,9 @@ export default function Products() {
   const stockCount = useProductListStockCount();
   // A primeira foto pela lupa também pergunta pelo site (pedido do dono, 23/09/2026).
   const sitePrompt = useListFirstPhotoSitePrompt();
+  // Banner de destaque pelo menu da linha (pedido do dono, 04/11/2026). Mora na
+  // feature do catálogo, que é quem desenha; a página liga as duas.
+  const spotlight = useSpotlightBanner();
   const editor = useProductEditor();
   const [historyProductGroupId, setHistoryProductGroupId] = useState<number | null>(null);
   const [historyProductGroupName, setHistoryProductGroupName] = useState("");
@@ -198,10 +203,14 @@ export default function Products() {
           updatingPriceId={table.updatingPriceId}
           onSearchInternetImage={setSearchImageProduct}
           onStockCount={stockCount.openFor}
+          onSpotlight={(product, kind) =>
+            spotlight.openFor({ productGroupId: product.productGroupId, name: product.name }, kind)
+          }
         />
       </div>
 
       <ProductListStockCount state={stockCount} />
+      <SpotlightDialog state={spotlight} />
       <FirstPhotoSiteDialog
         open={sitePrompt.open}
         immediate

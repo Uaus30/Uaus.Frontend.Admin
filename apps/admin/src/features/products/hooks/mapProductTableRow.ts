@@ -32,6 +32,8 @@ export function mapProductTableRow(row: ProductTableRowDto): ProductTableRow {
     atMinimumStock: row.atMinimumStock ?? false,
     needsRestock: row.needsRestock ?? false,
     purchaseInTransit: row.purchaseInTransit ?? false,
+    // Ausente num backend anterior a 04/11/2026: o menu não oferece a reposição.
+    isRecentRestock: row.isRecentRestock ?? false,
     variationCount: row.variationCount,
     variations: (row.variations ?? []).map((variation) => ({
       id: variation.id,

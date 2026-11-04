@@ -82,6 +82,11 @@ export type ProductTableRow = {
   atMinimumStock?: boolean;
   needsRestock?: boolean;
   purchaseInTransit?: boolean;
+  /**
+   * Compra nos últimos 7 dias, sem ser novidade (04/11/2026): o menu da linha
+   * oferece o "Banner de reposição". A régua é do servidor, a mesma do banner.
+   */
+  isRecentRestock?: boolean;
   /** Produtos ativos do grupo. Grupo sem variações tem 1. */
   variationCount: number;
   /**
@@ -310,3 +315,10 @@ export type ProductGrade = {
   /** Na ordem em que o operador digitou; é ela que ordena a matriz. */
   values: string[];
 };
+
+/**
+ * O tipo do banner de destaque que o menu da linha pede (04/11/2026). É o mesmo
+ * `SpotlightKind` do catálogo, repetido aqui porque uma feature não importa da
+ * outra: quem liga os dois é a página.
+ */
+export type SpotlightBannerKind = "offer" | "new" | "restock";

@@ -27,13 +27,14 @@ import {
   ClipboardList,
 } from "lucide-react";
 import type { CategoryDto, DepartmentDto, EnumOptionDto } from "@workspace/api-client-react";
-import type { ProductTableRow } from "../types";
+import type { ProductTableRow, SpotlightBannerKind } from "../types";
 import { productDetailPathname } from "../product-detail-route";
 import { canCountStock } from "../hooks/useProductListStockCount";
 import { ProductPriceCell } from "./ProductPriceCell";
 import { ProductStockCell } from "./ProductStockCell";
 import { ProductTableFilters } from "./ProductTableFilters";
 import { ProductTableVariations } from "./ProductTableVariations";
+import { SpotlightContextItems, SpotlightDropdownItems } from "./ProductSpotlightMenuItems";
 import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui";
 import { ImageHoverZoom } from "@workspace/ui";
@@ -72,6 +73,12 @@ type ProductTableProps = {
   onUpdatePrice?: (product: ProductTableRow, newPrice: number) => Promise<void>;
   updatingPriceId?: number | null;
   onSearchInternetImage?: (product: ProductTableRow) => void;
+  /**
+   * Os banners de destaque do produto (04/11/2026): novidade sempre, promocional
+   * com promoção ativa, reposição com compra da semana. Ausente, os itens não
+   * aparecem.
+   */
+  onSpotlight?: (product: ProductTableRow, kind: SpotlightBannerKind) => void;
 };
 
 /** Colunas da tabela — o `colSpan` da linha aninhada precisa cobrir todas. */
@@ -142,6 +149,7 @@ export function ProductTable({
   onUpdatePrice,
   updatingPriceId,
   onSearchInternetImage,
+  onSpotlight,
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = useState<ProductTableRow | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
@@ -430,6 +438,9 @@ export function ProductTable({
                                   <History className="h-3.5 w-3.5 text-muted-foreground" />
                                   Histórico
                                 </DropdownMenuItem>
+                                {onSpotlight && (
+                                  <SpotlightDropdownItems product={product} onSpotlight={onSpotlight} />
+                                )}
                                 <DropdownMenuItem
                                   onClick={() => setProductToDelete(product)}
                                   className="cursor-pointer gap-2 text-destructive focus:text-destructive"
@@ -466,6 +477,7 @@ export function ProductTable({
                           Histórico
                         </ContextMenuItem>
                       )}
+                      {onSpotlight && <SpotlightContextItems product={product} onSpotlight={onSpotlight} />}
                       <ContextMenuItem
                         onClick={() => setProductToDelete(product)}
                         className="cursor-pointer gap-2 text-destructive focus:text-destructive"
