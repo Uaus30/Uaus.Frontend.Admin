@@ -36,6 +36,8 @@ interface CatalogProductPickerProps {
   isFull: boolean;
   /** Devolve se o produto entrou — só então o campo se esvazia. */
   onAdd: (result: CatalogSearchItemDto) => boolean;
+  /** O título do quadro. A aba Destaque escolhe UM produto, e não adiciona vários. */
+  heading?: string;
 }
 
 /**
@@ -62,6 +64,7 @@ export function CatalogProductPicker({
   selectedIds,
   isFull,
   onAdd,
+  heading = "Adicionar produtos",
 }: CatalogProductPickerProps) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const cameraAvailable = canUseCamera();
@@ -76,7 +79,7 @@ export function CatalogProductPicker({
   return (
     <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
       <div>
-        <p className="text-sm font-medium text-foreground">Adicionar produtos</p>
+        <p className="text-sm font-medium text-foreground">{heading}</p>
         <p className="text-xs text-muted-foreground">
           Busque pelo nome ou pelo código de barras. A lista aparece a partir de 3 letras, ou no Enter.
         </p>

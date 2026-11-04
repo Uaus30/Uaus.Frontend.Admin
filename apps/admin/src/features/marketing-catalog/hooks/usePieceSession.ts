@@ -208,6 +208,20 @@ export function usePieceSession() {
     record(piece);
   }, [piece, record]);
 
+  /**
+   * Volta à moldura vazia e invalida a geração em curso. É o banner de
+   * destaque trocando de produto (04/11/2026): a peça do produto anterior,
+   * esmaecida atrás da nova, faria a pessoa achar que o banner era de outro.
+   */
+  const clear = useCallback(() => {
+    runRef.current += 1;
+    setPiece(null);
+    setStatus("idle");
+    setProgress(null);
+    setBusyNoun(null);
+    setErrorMessage(null);
+  }, []);
+
   return {
     status,
     piece,
@@ -223,5 +237,6 @@ export function usePieceSession() {
     draw,
     share,
     download,
+    clear,
   };
 }

@@ -80,6 +80,8 @@ describe("rótulos do que a API devolve pelo nome", () => {
     expect(themeLabel("Department", "Brinquedos")).toBe("Brinquedos");
     // A peça escolhida à mão (15/10/2026).
     expect(themeLabel("Custom")).toBe("Personalizado");
+    // O banner de um produto só (04/11/2026).
+    expect(themeLabel("Spotlight")).toBe("Destaque");
     // O departamento foi excluído depois: a API omite o nome.
     expect(themeLabel("Department")).toBe("Departamento");
     expect(themeLabel("Sazonal")).toBe("Tema");
@@ -88,6 +90,7 @@ describe("rótulos do que a API devolve pelo nome", () => {
   it("papel", () => {
     expect(roleLabel("Offer")).toBe("Promoção");
     expect(roleLabel("Slow")).toBe("Achado");
+    expect(roleLabel("Restock")).toBe("Reposição");
     expect(roleLabel("Desconhecido")).toBe("—");
   });
 });

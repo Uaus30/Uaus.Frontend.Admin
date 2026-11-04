@@ -51,6 +51,20 @@ export const CUSTOM_THEME: CatalogThemeOption = {
 };
 
 /**
+ * O "tema" do banner de destaque (04/11/2026): um produto só, escolhido. Como o
+ * Personalizado, não está no seletor — é com ele que a peça vai ao histórico, e
+ * o tipo (promoção, novidade, reposição) vai no papel do produto.
+ */
+export const SPOTLIGHT_THEME: CatalogThemeOption = {
+  key: "spotlight",
+  theme: CATALOG_THEME.Spotlight,
+  label: "Destaque",
+  title: "",
+  products: 0,
+  productsWithLargePhoto: 0,
+};
+
+/**
  * As opções do seletor, na ordem em que a API manda: os temas fixos e depois os
  * departamentos, em ordem alfabética. Tema que esta versão da tela não conhece
  * fica de fora em vez de aparecer sem nome.
@@ -95,6 +109,7 @@ export function themeLabel(theme: EnumValue, departmentName?: string | null): st
   if (code === CATALOG_THEME.Department) return departmentName || "Departamento";
   if (code === CATALOG_THEME.General) return "Geral";
   if (code === CATALOG_THEME.Custom) return CUSTOM_THEME.label;
+  if (code === CATALOG_THEME.Spotlight) return SPOTLIGHT_THEME.label;
   return FIXED_THEMES[code]?.label ?? "Tema";
 }
 

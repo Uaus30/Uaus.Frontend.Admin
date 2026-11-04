@@ -8,13 +8,15 @@ tela não mostra custo, margem nem saldo.
 O contrato completo — decisões, números medidos, regras do sorteio e etapas —
 está em `PLANO-CATALOGO.md`, na raiz do repositório.
 
-**Estado: as quatro etapas, mais a aba Personalizado (15/10/2026).** Três
-formatos — banner 9:16, banner 4:5 e catálogo em PDF —, com escolha de tema e
-título, sorteio do servidor e troca dos produtos marcados; e o histórico das
-peças que saíram, com o descanso de quem já apareceu e a venda antes e depois
-(rota `/marketing/catalogo/historico`). A tela tem duas abas: **Automático** (o
-sorteio) e **Personalizado** (os produtos escolhidos um a um, só em banner —
-seção própria no fim das regras).
+**Estado: as quatro etapas, a aba Personalizado (15/10/2026) e o banner de
+destaque (04/11/2026).** Três formatos — banner 9:16, banner 4:5 e catálogo em
+PDF —, com escolha de tema e título, sorteio do servidor e troca dos produtos
+marcados; e o histórico das peças que saíram, com o descanso de quem já
+apareceu e a venda antes e depois (rota `/marketing/catalogo/historico`). A tela
+tem três abas: **Automático** (o sorteio), **Personalizado** (os produtos
+escolhidos um a um, só em banner) e **Destaque** (um produto só, como promoção,
+novidade ou reposição — que também sai pelo menu da listagem de Produtos).
+Cada uma tem seção própria no fim das regras.
 
 ## Regras de negócio
 
@@ -303,6 +305,53 @@ Natal) escolhendo os produtos um a um, como na seleção das Etiquetas.
 - **Cada aba tem a sua peça** (`usePieceSession`): os hooks moram na página, e
   alternar entre as abas não apaga nada.
 
+## Banner de destaque (04/11/2026)
+
+Pedido do dono: um banner de UM produto por vez, no formato do catálogo, para
+divulgar à parte o que é novo, o que está em promoção e o que voltou. Sai em
+dois lugares — a aba **Destaque** desta tela e o menu de cada linha da
+listagem de Produtos — e é o mesmo hook (`useSpotlightBanner`) nos dois.
+
+- **Três tipos, e o servidor diz qual cabe** (`GET /Catalogs/spotlight/{grupo}`):
+  - **Promocional**: há promoção no preço de agora (relâmpago, Dia a Dia ou
+    combo). É o único tipo que trava — sem promoção o selo mentiria sobre o
+    preço.
+  - **Novidade**: até 30 dias na loja, a régua do sorteio. Vale para qualquer
+    produto (decisão do dono); fora da janela, a tela só avisa os dias.
+  - **Reposição**: lote de COMPRA nos últimos 7 dias, contando hoje, num
+    produto que não é novidade. Sobra da contagem ("Ajuste Manual") e nota
+    excluída não contam (decisão do dono). Escolhível à mão também; a marca
+    "sugerido" segue os dados.
+- **No menu da linha**: "Banner de novidade" sempre; "Banner promocional" só
+  com promoção no preço da linha (`shelf`); "Banner de reposição" só com a marca
+  `isRecentRestock` da tabela. A janela já abre gerando, no tipo do menu e no
+  último tamanho usado no aparelho. A página de Produtos liga as duas features
+  (`pages/products.tsx`): o menu não importa do catálogo.
+- **Os dois banners do catálogo, sem o PDF.** A moldura é a mesma
+  (`template/PieceFrame.tsx`), e as artes também. No 9:16 a foto fica em cima;
+  no 4:5, à esquerda — o painel desse formato é baixo.
+- **O preço é o de agora e segue a regra do card** (`template/Price.tsx`, o
+  mesmo do catálogo): "de" riscado, "a partir de", e o combo no selo do
+  promocional. Com promoção no preço, a validade e o limite vão abaixo dele
+  ("Válida até 08/11", "Só hoje", "Limite de 3 por cliente" — decisão do dono),
+  em qualquer tipo: acompanham o preço impresso. O dia da validade sai do TEXTO
+  da API, nunca de `new Date`.
+- **O selo de reposição diz "REPOSIÇÃO"**, a palavra do dono, em marrom: não se
+  confunde com o laranja da novidade nem com o vermelho da promoção.
+- **Foto em alta, nunca esticada demais.** A foto vem com até 1080 px (no
+  catálogo, 640), e o molde não a amplia mais que duas vezes. Abaixo de 300 px
+  no menor lado a tela avisa e aponta BI › Anomalias — avisa, não trava
+  (decisão do dono).
+- **Trocar o tipo volta ao título sugerido** dele, como o tema no Automático. O
+  nome pode ser reescrito só no banner, como na etiqueta de gôndola.
+- **Histórico**: tema **Destaque** (`CATALOG_THEME.Spotlight`), e o tipo no
+  papel do produto (Promoção, Novidade, Reposição). Como o Personalizado, não
+  põe ninguém no descanso do sorteio e não grava a memória dele.
+- **Trocar de produto apaga a peça anterior** (`usePieceSession.clear`): o
+  banner de outro produto esmaecido atrás do novo pareceria do produto errado.
+- **Na janela, a prévia vem antes dos campos no celular** — o contrário da
+  regra 12: ela nunca abre vazia, e o próximo passo é compartilhar.
+
 ## Promoção na peça e a memória do sorteio (05/10/2026)
 
 - O selo de promoção diz **"PROMOÇÃO"** em vermelho com o raio amarelo (era
@@ -398,6 +447,10 @@ os valores sobem para o `packages/core`.
   e a posição de cada card (`cardRects`).
 - `template/text.ts`: preço partido, data da loja, aviso, corpo do título.
 - `template/CatalogPiece.tsx` e `ProductCard.tsx`: o molde, um só para as três.
+- `template/PieceFrame.tsx` e `Price.tsx`: a moldura (arte, título, painel e
+  rodapé) e o preço, comuns ao catálogo e ao banner de destaque.
+- `template/SpotlightPiece.tsx` e `spotlightGeometry.ts`: o banner de destaque —
+  o molde de um produto só e as medidas dele.
 - `lib/formats.ts`: os três formatos — quantidades, foto mínima, arquivo.
 - `lib/catalogProducts.ts`: o item sorteado no formato do molde; papéis e selo.
 - `lib/themes.ts`: as opções do seletor de tema, com rótulo e título sugerido.
@@ -415,6 +468,10 @@ os valores sobem para o `packages/core`.
 - `lib/history.ts`: a diferença com sinal e o estado da medição, em texto.
 - `lib/swapPlan.ts`: a troca em lote — os marcados juntos por papel, e cada um
   casado com o seu substituto.
+- `lib/spotlight.ts`, `lib/buildSpotlight.ts` e `hooks/useSpotlightBanner.ts`: o
+  banner de destaque — tipos, validade, avisos, a montagem e o ciclo na tela.
+- `components/SpotlightControls.tsx` e `SpotlightDialog.tsx`: tipo, tamanho,
+  título e nome, e a janela que o menu da listagem de Produtos abre.
 - `hooks/usePieceSession.ts`: o ciclo de uma peça na tela — gerar sem a resposta
   atrasada cobrir a nova, prévia, compartilhar, baixar e registrar. As duas abas
   usam.

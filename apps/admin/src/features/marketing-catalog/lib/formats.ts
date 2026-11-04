@@ -1,6 +1,6 @@
 import { CATALOG_FORMAT, enumCode, type EnumValue } from "@workspace/api-client-react";
 import { FEED, PAGE, PIECE_SPECS, STORY, type PieceKind } from "../template/geometry";
-import type { CatalogFormat } from "../types";
+import type { CatalogFormat, SpotlightFormat } from "../types";
 import type { CatalogThemeOption } from "./themes";
 
 /** Um formato de peça: o que a tela mostra, o que vai ao sorteio e o arquivo que sai. */
@@ -99,6 +99,12 @@ export const DEFAULT_FORMAT: CatalogFormat = "story";
  * grande, e escolher um a um não é o uso dele.
  */
 export const CUSTOM_FORMAT_ORDER: readonly CatalogFormat[] = ["story", "feed"];
+
+/**
+ * Os tamanhos do banner de destaque (04/11/2026): os dois banners do catálogo,
+ * "nos dois tamanhos padrões" (pedido do dono). Um produto não faz um PDF.
+ */
+export const SPOTLIGHT_FORMAT_ORDER: readonly SpotlightFormat[] = ["story", "feed"];
 
 /** Quantos produtos a peça comporta — é o teto da escolha à mão. */
 export function formatCapacity(format: CatalogFormatOption): number {

@@ -6,23 +6,29 @@ import { CatalogProductPicker } from "@/features/marketing-catalog/components/Ca
 import { CustomCatalogControls } from "@/features/marketing-catalog/components/CustomCatalogControls";
 import { CustomSelectionList } from "@/features/marketing-catalog/components/CustomSelectionList";
 import { PieceOutput } from "@/features/marketing-catalog/components/PieceOutput";
+import { SpotlightControls } from "@/features/marketing-catalog/components/SpotlightControls";
 import { useCatalogGenerator } from "@/features/marketing-catalog/hooks/useCatalogGenerator";
 import { useCatalogProductSearch } from "@/features/marketing-catalog/hooks/useCatalogProductSearch";
 import { useCustomCatalog } from "@/features/marketing-catalog/hooks/useCustomCatalog";
+import { useSpotlightBanner } from "@/features/marketing-catalog/hooks/useSpotlightBanner";
 import { PIECE_SPECS } from "@/features/marketing-catalog/template/geometry";
 
 /**
  * Catálogo de divulgação (rota `/marketing/catalogo`).
  *
- * Duas abas, cada uma com a sua peça: o Automático (o sistema sorteia) e o
- * Personalizado (a pessoa escolhe os produtos um a um, desde 15/10/2026). Os
- * hooks moram na página, e não dentro das abas, para alternar entre elas não
- * apagar a peça nem a lista da outra.
+ * Três abas, cada uma com a sua peça: o Automático (o sistema sorteia), o
+ * Personalizado (a pessoa escolhe os produtos um a um, desde 15/10/2026) e o
+ * Destaque (um produto só, como promoção, novidade ou reposição, desde
+ * 04/11/2026). Os hooks moram na página, e não dentro das abas, para alternar
+ * entre elas não apagar a peça nem a lista da outra.
  */
 export default function MarketingCatalogPage() {
   const generator = useCatalogGenerator();
   const custom = useCustomCatalog();
   const search = useCatalogProductSearch();
+  const spotlight = useSpotlightBanner();
+  const spotlightSearch = useCatalogProductSearch();
+  const spotlightName = spotlight.info?.name ?? spotlight.target?.name ?? "";
   const { piece, isGenerating } = generator;
 
   return (
@@ -37,7 +43,8 @@ export default function MarketingCatalogPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           No Automático o sistema sorteia os produtos e monta a peça pronta: banner em imagem para o status do
           WhatsApp e o story do Instagram, ou catálogo em PDF para os grupos. No Personalizado, você escolhe
-          os produtos do banner um a um.
+          os produtos do banner um a um. No Destaque, o banner é de um produto só: promoção, novidade ou
+          reposição.
         </p>
       </div>
 
@@ -45,6 +52,7 @@ export default function MarketingCatalogPage() {
         <TabsList className="w-fit">
           <TabsTrigger value="automatic">Automático</TabsTrigger>
           <TabsTrigger value="custom">Personalizado</TabsTrigger>
+          <TabsTrigger value="spotlight">Destaque</TabsTrigger>
         </TabsList>
 
         <TabsContent value="automatic">
@@ -161,6 +169,68 @@ export default function MarketingCatalogPage() {
                 onShare={custom.share}
                 onDownload={custom.download}
                 emptyHint="Escolha os produtos, escreva o título e toque em Gerar banner."
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="spotlight">
+          {/* A ordem do Personalizado: escolher o produto, o tipo e o tamanho, gerar,
+              e só então a prévia (à direita no computador). */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
+              <CatalogProductPicker
+                heading="Escolher o produto"
+                search={spotlightSearch.search}
+                setSearch={spotlightSearch.setSearch}
+                onSubmit={spotlightSearch.submit}
+                onClear={spotlightSearch.clear}
+                onScanCode={spotlightSearch.searchNow}
+                results={spotlightSearch.results}
+                isLoading={spotlightSearch.isSearching}
+                hasSearched={spotlightSearch.hasSearched}
+                hasFailed={spotlightSearch.hasFailed}
+                selectedIds={spotlight.target ? [spotlight.target.productGroupId] : []}
+                isFull={false}
+                onAdd={(result) => {
+                  spotlight.select({ productGroupId: result.productGroupId, name: result.name });
+                  return true;
+                }}
+              />
+              <SpotlightControls
+                productLabel={spotlightName}
+                kinds={spotlight.kinds}
+                kind={spotlight.kind}
+                onKindChange={spotlight.setKind}
+                formats={spotlight.formats}
+                format={spotlight.format}
+                onFormatChange={spotlight.setFormat}
+                title={spotlight.title}
+                titlePlaceholder={spotlight.titlePlaceholder}
+                onTitleChange={spotlight.setTitle}
+                printedName={spotlight.printedName}
+                namePlaceholder={spotlightName || "Nome do cadastro"}
+                onPrintedNameChange={spotlight.setPrintedName}
+                hints={spotlight.hints}
+                disabled={!spotlight.target || spotlight.isGenerating}
+                hasPiece={spotlight.piece !== null}
+                onGenerate={() => void spotlight.generate()}
+              />
+            </div>
+
+            <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
+              <PieceOutput
+                status={spotlight.status}
+                format={spotlight.format}
+                piece={spotlight.piece}
+                progress={spotlight.progress}
+                busyNoun={spotlight.busyNoun}
+                errorMessage={spotlight.errorMessage}
+                canShare={spotlight.canShare}
+                isGenerating={spotlight.isGenerating}
+                onShare={spotlight.share}
+                onDownload={spotlight.download}
+                emptyHint="Escolha o produto, o tipo e o tamanho e toque em Gerar banner."
               />
             </div>
           </div>
