@@ -1,12 +1,12 @@
 {
   "versao": 1,
-  "geradoEm": "2026-10-23",
+  "geradoEm": "2026-11-04",
   "origem": {
     "repositorio": "Uaus.Backend.Api",
-    "commit": "6bfd51a1eff954984a922de5b13c1e58d83aa638",
-    "commitData": "2026-10-23T11:27:30-03:00",
+    "commit": "3c3ec126ffc86b914e92b4bb659ec45c02533a8e",
+    "commitData": "2026-10-23T21:46:26-03:00",
     "pastas": ["Uaus.Application/DTOs"],
-    "arquivos": 114
+    "arquivos": 115
   },
   "serializacao": {
     "ignoreCondition": "WhenWritingNull",
@@ -3345,6 +3345,133 @@
           "nuloPerdoado": false,
           "somenteLeitura": false,
           "linha": 107
+        }
+      ]
+    },
+    {
+      "nome": "CatalogSpotlightDto",
+      "arquivo": "Uaus.Application/DTOs/Catalogs/CatalogSpotlightDto.cs",
+      "linha": 18,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "productGroupId",
+          "nomeCSharp": "ProductGroupId",
+          "tipo": "long",
+          "tipoBase": "long",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 20
+        },
+        {
+          "nome": "name",
+          "nomeCSharp": "Name",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 23
+        },
+        {
+          "nome": "imageUrl",
+          "nomeCSharp": "ImageUrl",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 26
+        },
+        {
+          "nome": "unavailable",
+          "nomeCSharp": "Unavailable",
+          "tipo": "CatalogUnavailableReason",
+          "tipoBase": "CatalogUnavailableReason",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 29
+        },
+        {
+          "nome": "card",
+          "nomeCSharp": "Card",
+          "tipo": "StorefrontProductDto?",
+          "tipoBase": "StorefrontProductDto",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 36
+        },
+        {
+          "nome": "daysInStore",
+          "nomeCSharp": "DaysInStore",
+          "tipo": "int",
+          "tipoBase": "int",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 39
+        },
+        {
+          "nome": "isNew",
+          "nomeCSharp": "IsNew",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 42
+        },
+        {
+          "nome": "lastPurchaseEntryOn",
+          "nomeCSharp": "LastPurchaseEntryOn",
+          "tipo": "DateTime?",
+          "tipoBase": "DateTime",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 45
+        },
+        {
+          "nome": "isRestock",
+          "nomeCSharp": "IsRestock",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 48
         }
       ]
     },
@@ -18886,6 +19013,19 @@
           "linha": 169
         },
         {
+          "nome": "isRecentRestock",
+          "nomeCSharp": "IsRecentRestock",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 177
+        },
+        {
           "nome": "variationCount",
           "nomeCSharp": "VariationCount",
           "tipo": "int",
@@ -18896,7 +19036,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 172
+          "linha": 180
         },
         {
           "nome": "variations",
@@ -18909,7 +19049,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 178
+          "linha": 186
         },
         {
           "nome": "tags",
@@ -18922,7 +19062,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 181
+          "linha": 189
         },
         {
           "nome": "images",
@@ -18935,7 +19075,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 187
+          "linha": 195
         }
       ]
     },
@@ -26337,7 +26477,7 @@
     {
       "nome": "StorefrontComboDto",
       "arquivo": "Uaus.Application/DTOs/Storefront/StorefrontProductDto.cs",
-      "linha": 81,
+      "linha": 89,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -26353,7 +26493,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 84
+          "linha": 92
         },
         {
           "nome": "discountType",
@@ -26366,7 +26506,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 87
+          "linha": 95
         },
         {
           "nome": "discountValue",
@@ -26379,7 +26519,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 90
+          "linha": 98
+        },
+        {
+          "nome": "validUntil",
+          "nomeCSharp": "ValidUntil",
+          "tipo": "DateTime?",
+          "tipoBase": "DateTime",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 105
         }
       ]
     },
@@ -26536,7 +26689,7 @@
     {
       "nome": "StorefrontFlashPromotionDto",
       "arquivo": "Uaus.Application/DTOs/Storefront/StorefrontProductDto.cs",
-      "linha": 98,
+      "linha": 113,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -26552,7 +26705,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 100
+          "linha": 115
         },
         {
           "nome": "name",
@@ -26565,7 +26718,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 101
+          "linha": 116
         },
         {
           "nome": "imageUrl",
@@ -26578,7 +26731,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 102
+          "linha": 117
         },
         {
           "nome": "promotion",
@@ -26591,7 +26744,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 105
+          "linha": 120
         }
       ]
     },
@@ -26634,7 +26787,7 @@
     {
       "nome": "StorefrontProductDetailDto",
       "arquivo": "Uaus.Application/DTOs/Storefront/StorefrontProductDto.cs",
-      "linha": 205,
+      "linha": 220,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -26650,7 +26803,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 207
+          "linha": 222
         },
         {
           "nome": "name",
@@ -26663,7 +26816,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 208
+          "linha": 223
         },
         {
           "nome": "description",
@@ -26676,7 +26829,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 209
+          "linha": 224
         },
         {
           "nome": "price",
@@ -26689,7 +26842,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 210
+          "linha": 225
         },
         {
           "nome": "priceMax",
@@ -26702,7 +26855,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 211
+          "linha": 226
         },
         {
           "nome": "hasVariations",
@@ -26715,7 +26868,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 212
+          "linha": 227
         },
         {
           "nome": "departmentId",
@@ -26728,7 +26881,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 215
+          "linha": 230
         },
         {
           "nome": "departmentName",
@@ -26741,7 +26894,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 216
+          "linha": 231
         },
         {
           "nome": "categoryId",
@@ -26754,7 +26907,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 219
+          "linha": 234
         },
         {
           "nome": "categoryName",
@@ -26767,7 +26920,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 220
+          "linha": 235
         },
         {
           "nome": "images",
@@ -26780,7 +26933,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 221
+          "linha": 236
         },
         {
           "nome": "tags",
@@ -26793,7 +26946,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 222
+          "linha": 237
         },
         {
           "nome": "variations",
@@ -26806,7 +26959,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 223
+          "linha": 238
         },
         {
           "nome": "stockBadge",
@@ -26819,7 +26972,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 226
+          "linha": 241
         },
         {
           "nome": "promotion",
@@ -26832,7 +26985,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 229
+          "linha": 244
         },
         {
           "nome": "combo",
@@ -26845,14 +26998,14 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 236
+          "linha": 251
         }
       ]
     },
     {
       "nome": "StorefrontProductDto",
       "arquivo": "Uaus.Application/DTOs/Storefront/StorefrontProductDto.cs",
-      "linha": 118,
+      "linha": 133,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -26868,7 +27021,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 120
+          "linha": 135
         },
         {
           "nome": "name",
@@ -26881,7 +27034,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 121
+          "linha": 136
         },
         {
           "nome": "description",
@@ -26894,7 +27047,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 122
+          "linha": 137
         },
         {
           "nome": "price",
@@ -26907,7 +27060,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 125
+          "linha": 140
         },
         {
           "nome": "priceMax",
@@ -26920,7 +27073,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 131
+          "linha": 146
         },
         {
           "nome": "hasVariations",
@@ -26933,7 +27086,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 133
+          "linha": 148
         },
         {
           "nome": "categoryName",
@@ -26946,7 +27099,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 134
+          "linha": 149
         },
         {
           "nome": "imageUrl",
@@ -26959,7 +27112,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 141
+          "linha": 156
         },
         {
           "nome": "tags",
@@ -26972,7 +27125,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 143
+          "linha": 158
         },
         {
           "nome": "stockBadge",
@@ -26985,7 +27138,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 150
+          "linha": 165
         },
         {
           "nome": "promotion",
@@ -26998,7 +27151,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 157
+          "linha": 172
         },
         {
           "nome": "combo",
@@ -27011,7 +27164,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 164
+          "linha": 179
         }
       ]
     },
@@ -27100,6 +27253,19 @@
           "nuloPerdoado": false,
           "somenteLeitura": false,
           "linha": 67
+        },
+        {
+          "nome": "validUntil",
+          "nomeCSharp": "ValidUntil",
+          "tipo": "DateTime?",
+          "tipoBase": "DateTime",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 75
         }
       ]
     },
@@ -27142,7 +27308,7 @@
     {
       "nome": "StorefrontVariationDto",
       "arquivo": "Uaus.Application/DTOs/Storefront/StorefrontProductDto.cs",
-      "linha": 173,
+      "linha": 188,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -27158,7 +27324,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 175
+          "linha": 190
         },
         {
           "nome": "price",
@@ -27171,7 +27337,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 178
+          "linha": 193
         },
         {
           "nome": "promotionalPrice",
@@ -27184,7 +27350,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 188
+          "linha": 203
         }
       ]
     },
