@@ -16,6 +16,7 @@ import type {
   CatalogPieceRegisteredDto,
   CatalogSearchItemDto,
   CatalogSelectionDto,
+  CatalogSpotlightDto,
   CatalogThemeDto,
   QueryKey,
 } from "../models";
@@ -126,6 +127,17 @@ export async function getCatalogSelection(productGroupIds: number[]): Promise<Ca
     throw new ApiError("A seleção do catálogo veio sem conteúdo.", 204, null, "POST", "/Catalogs/selection");
   }
   return response.data;
+}
+
+/**
+ * Um produto para o banner de destaque (04/11/2026): o card de agora (ou o
+ * motivo de não poder entrar) e se ele é novidade ou reposição.
+ *
+ * Função, e não hook de query, pelo mesmo motivo da seleção: o preço vai
+ * IMPRESSO no banner e tem de ser o do instante em que ele é gerado.
+ */
+export function getCatalogSpotlight(productGroupId: number): Promise<CatalogSpotlightDto> {
+  return apiGetOrThrow<CatalogSpotlightDto>(`/Catalogs/spotlight/${productGroupId}`);
 }
 
 /** Uma peça que saiu do admin. Os enums vão como código numérico. */

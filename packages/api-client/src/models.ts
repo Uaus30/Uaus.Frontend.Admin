@@ -803,6 +803,12 @@ export interface ProductTableRowDto {
   needsRestock?: boolean;
   /** Tem compra "A caminho" — a etiqueta "Comprado", que prevalece sobre "Comprar!". */
   purchaseInTransit?: boolean;
+  /**
+   * Compra nos últimos 7 dias num produto que não é novidade (04/11/2026): acende
+   * o item "Banner de reposição" no menu da linha. Opcional por segurança de
+   * versão: ausente (API anterior), o item não aparece.
+   */
+  isRecentRestock?: boolean;
   /** Produtos ativos do grupo. Grupo sem variações tem 1. */
   variationCount: number;
   tags: ProductTableTagDto[];
@@ -2040,6 +2046,14 @@ export interface StorefrontPromotionDto {
   endsInSeconds?: number | null;
   /** Teto de unidades por venda. Ausente = sem limite. */
   maxQuantityPerSale?: number | null;
+  /**
+   * Fim da VIGÊNCIA, no horário da loja e sem fuso (`2026-11-08T23:59:59`).
+   * Ausente = sem data para acabar. Não é a contagem das 18h de `endsInSeconds`:
+   * serve ao "Válida até" do banner de destaque do admin (04/11/2026). Leia o dia
+   * pelo texto (`slice(0, 10)`), nunca por `new Date`, que o deslocaria fora de
+   * Brasília.
+   */
+  validUntil?: string | null;
 }
 
 /**
@@ -2055,6 +2069,8 @@ export interface StorefrontComboDto {
   discountType: EnumValue;
   /** Preço do kit, percentual ou preço por unidade, conforme o tipo. */
   discountValue: number;
+  /** Fim da vigência do combo, no horário da loja. Ausente = sem data para acabar. */
+  validUntil?: string | null;
 }
 
 /**
@@ -3138,6 +3154,11 @@ export const CATALOG_THEME = {
    * no registro da peça — o sorteio recusa — e não entra no descanso do sorteio.
    */
   Custom: 6,
+  /**
+   * Banner de destaque (04/11/2026): UM produto por imagem. Só existe no
+   * registro da peça — o sorteio recusa — e não entra no descanso do sorteio.
+   */
+  Spotlight: 7,
 } as const;
 
 /**
@@ -3167,6 +3188,11 @@ export const CATALOG_ROLE = {
   Regular: 4,
   /** Tem saldo e não vendeu no período. */
   Slow: 5,
+  /**
+   * Reposição: compra nos últimos 7 dias num produto que não é novidade. Só no
+   * banner de destaque — o sorteio não classifica ninguém assim.
+   */
+  Restock: 6,
 } as const;
 
 /** Um tema disponível, com quantos cadastros ele tem para sortear. */
@@ -3236,6 +3262,32 @@ export interface CatalogSelectionDto {
   items: CatalogItemDto[];
   /** Quem foi escolhido e já não pode entrar (vendeu tudo, saiu do site). */
   unavailable: CatalogUnavailableDto[];
+}
+
+/**
+ * Um produto para o banner de destaque (04/11/2026): o card de agora, se ele pode
+ * entrar, e o que o servidor sabe para sugerir o tipo. A promoção é a do card
+ * (`promotion` ou `combo`); a novidade e a reposição vêm prontas, pela régua do
+ * catálogo.
+ */
+export interface CatalogSpotlightDto {
+  productGroupId: number;
+  /** O nome do cadastro, o mesmo do card. */
+  name: string;
+  /** A capa. Ausente sem foto. */
+  imageUrl?: string | null;
+  /** Por que não pode entrar (`CATALOG_UNAVAILABLE_REASON`); `None` quando pode. */
+  unavailable: EnumValue;
+  /** O card do site de AGORA. Ausente para quem não pode entrar. */
+  card?: StorefrontProductDto | null;
+  /** Há quantos dias está na loja, pela régua do sorteio. */
+  daysInStore: number;
+  /** Até 30 dias na loja. */
+  isNew: boolean;
+  /** O dia do lote de compra mais recente, sem fuso. Ausente sem compra registrada. */
+  lastPurchaseEntryOn?: string | null;
+  /** Compra nos últimos 7 dias, sem ser novidade. */
+  isRestock: boolean;
 }
 
 /** O formato de uma peça. Vai ao servidor como código e volta como NOME. */
