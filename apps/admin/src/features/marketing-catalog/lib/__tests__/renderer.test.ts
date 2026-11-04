@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PieceData } from "../../types";
+import type { PieceData, SpotlightData } from "../../types";
 import type { RenderRequest, RenderResponse } from "../render.worker";
 
 /**
@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({ rasterize: vi.fn(), warmUp: vi.fn() }));
 
 vi.mock("../rasterize", () => ({ rasterize: mocks.rasterize, warmUp: mocks.warmUp }));
 
-const { preloadRenderer, renderPiece, resetRendererForTests } = await import("../renderer");
+const { preloadRenderer, renderPiece, renderSpotlight, resetRendererForTests } = await import("../renderer");
 
 const DATA = { title: "Destaques", cards: [] } as unknown as PieceData;
 const HERE = { data: new Uint8ClampedArray(4), width: 1, height: 1 };
@@ -73,7 +73,10 @@ describe("renderPiece", () => {
     await vi.waitFor(() => expect(lastWorker().received).toHaveLength(1));
 
     const request = lastWorker().received[0];
-    expect(request).toMatchObject({ kind: "render", piece: "story", data: DATA });
+    expect(request).toMatchObject({
+      kind: "render",
+      drawing: { template: "catalog", piece: "story", data: DATA },
+    });
     lastWorker().reply({ id: request.id, ok: true, pixels: FROM_WORKER });
 
     await expect(pending).resolves.toBe(FROM_WORKER);
@@ -99,7 +102,7 @@ describe("renderPiece", () => {
     vi.stubGlobal("Worker", undefined);
 
     await expect(renderPiece("feed", DATA)).resolves.toBe(HERE);
-    expect(mocks.rasterize).toHaveBeenCalledWith("feed", DATA);
+    expect(mocks.rasterize).toHaveBeenCalledWith({ template: "catalog", piece: "feed", data: DATA });
   });
 
   it("worker que não sobe (navegador antigo): desenha na thread principal, sem tentar de novo", async () => {
@@ -134,6 +137,29 @@ describe("renderPiece", () => {
     await expect(renderPiece("story", DATA)).resolves.toBe(HERE);
     expect(FakeWorker.instances).toHaveLength(1);
     expect(broken.received).toHaveLength(1);
+  });
+
+  it("o banner de destaque vai ao mesmo worker, dizendo qual molde desenhar", async () => {
+    const spotlight = { kind: "restock", title: "Reposição" } as unknown as SpotlightData;
+    const pending = renderSpotlight("feed", spotlight);
+    await vi.waitFor(() => expect(lastWorker().received).toHaveLength(1));
+
+    const request = lastWorker().received[0];
+    expect(request).toMatchObject({
+      kind: "render",
+      drawing: { template: "spotlight", piece: "feed", data: spotlight },
+    });
+    lastWorker().reply({ id: request.id, ok: true, pixels: FROM_WORKER });
+
+    await expect(pending).resolves.toBe(FROM_WORKER);
+  });
+
+  it("sem worker, o banner de destaque também sai pela thread principal", async () => {
+    vi.stubGlobal("Worker", undefined);
+    const spotlight = { kind: "new" } as unknown as SpotlightData;
+
+    await expect(renderSpotlight("story", spotlight)).resolves.toBe(HERE);
+    expect(mocks.rasterize).toHaveBeenCalledWith({ template: "spotlight", piece: "story", data: spotlight });
   });
 
   it("se o desenho falha também na thread principal, o erro chega a quem chamou", async () => {

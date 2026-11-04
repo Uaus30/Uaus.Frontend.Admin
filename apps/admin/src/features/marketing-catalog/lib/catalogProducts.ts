@@ -18,6 +18,7 @@ const ROLE_BY_CODE: Record<number, CatalogRole> = {
   [CATALOG_ROLE.BestSeller]: "bestSeller",
   [CATALOG_ROLE.Regular]: "regular",
   [CATALOG_ROLE.Slow]: "slow",
+  [CATALOG_ROLE.Restock]: "restock",
 };
 
 /** O caminho de volta: é o código que a troca de um produto manda ao servidor. */
@@ -27,6 +28,7 @@ export const ROLE_CODE: Record<CatalogRole, number> = {
   bestSeller: CATALOG_ROLE.BestSeller,
   regular: CATALOG_ROLE.Regular,
   slow: CATALOG_ROLE.Slow,
+  restock: CATALOG_ROLE.Restock,
 };
 
 /** Como o papel aparece na lista de produtos da tela. */
@@ -38,6 +40,8 @@ export const ROLE_LABEL: Record<CatalogRole, string> = {
   bestSeller: "Mais vendido",
   regular: "Intermediário",
   slow: "Achado",
+  // Só no banner de destaque (04/11/2026): o sorteio não classifica ninguém assim.
+  restock: "Reposição",
 };
 
 /** O rótulo do papel que a API devolve (pelo nome), para o histórico. */

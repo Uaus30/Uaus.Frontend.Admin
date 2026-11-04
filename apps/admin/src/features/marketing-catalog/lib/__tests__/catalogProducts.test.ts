@@ -133,6 +133,7 @@ describe("toCatalogProducts", () => {
 
 describe("ROLE_CODE", () => {
   it("devolve ao servidor o código do papel, para a troca manter a mistura", () => {
-    expect(ROLE_CODE).toEqual({ offer: 1, new: 2, bestSeller: 3, regular: 4, slow: 5 });
+    // A reposição (6) só existe no banner de destaque (04/11/2026).
+    expect(ROLE_CODE).toEqual({ offer: 1, new: 2, bestSeller: 3, regular: 4, slow: 5, restock: 6 });
   });
 });

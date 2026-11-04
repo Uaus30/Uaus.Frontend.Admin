@@ -1,6 +1,4 @@
-import type { PieceKind } from "../template/geometry";
-import type { PieceData } from "../types";
-import { rasterize, warmUp, type RenderedPixels } from "./rasterize";
+import { rasterize, warmUp, type Drawing, type RenderedPixels } from "./rasterize";
 
 /**
  * O desenho da peça, fora da thread principal.
@@ -13,7 +11,7 @@ import { rasterize, warmUp, type RenderedPixels } from "./rasterize";
  */
 
 /** O que se pede ao worker: aquecer (baixar bibliotecas e fontes) ou desenhar uma peça. */
-export type RenderJob = { kind: "warm" } | { kind: "render"; piece: PieceKind; data: PieceData };
+export type RenderJob = { kind: "warm" } | { kind: "render"; drawing: Drawing };
 
 export type RenderRequest = RenderJob & { id: number };
 
@@ -39,7 +37,7 @@ scope.onmessage = (event) => {
         return;
       }
 
-      const pixels = await rasterize(request.piece, request.data);
+      const pixels = await rasterize(request.drawing);
       // O buffer é TRANSFERIDO, não copiado: são 8 MB num banner e 10 MB numa página.
       scope.postMessage({ id: request.id, ok: true, pixels }, [pixels.data.buffer]);
     } catch (error) {

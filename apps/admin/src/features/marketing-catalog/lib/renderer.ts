@@ -1,6 +1,6 @@
 import type { PieceKind } from "../template/geometry";
-import type { PieceData } from "../types";
-import type { RenderedPixels } from "./rasterize";
+import type { PieceData, SpotlightData, SpotlightFormat } from "../types";
+import type { Drawing, RenderedPixels } from "./rasterize";
 import type { RenderJob, RenderRequest, RenderResponse } from "./render.worker";
 
 /**
@@ -78,25 +78,34 @@ function ask(target: Worker, job: RenderJob): Promise<RenderedPixels | undefined
 }
 
 /** O mesmo desenho, na thread principal. */
-async function renderHere(kind: PieceKind, data: PieceData): Promise<RenderedPixels> {
+async function renderHere(drawing: Drawing): Promise<RenderedPixels> {
   const { rasterize } = await import("./rasterize");
-  return rasterize(kind, data);
+  return rasterize(drawing);
 }
 
-/** Desenha uma peça (ou uma página do catálogo) e devolve os pixels. */
-export async function renderPiece(kind: PieceKind, data: PieceData): Promise<RenderedPixels> {
+async function render(drawing: Drawing): Promise<RenderedPixels> {
   const target = getWorker();
 
   if (target) {
     try {
-      const pixels = await ask(target, { kind: "render", piece: kind, data });
+      const pixels = await ask(target, { kind: "render", drawing });
       if (pixels) return pixels;
     } catch (error) {
       console.warn("Catálogo: o worker de desenho falhou nesta peça; desenhando na thread principal.", error);
     }
   }
 
-  return renderHere(kind, data);
+  return renderHere(drawing);
+}
+
+/** Desenha uma peça (ou uma página do catálogo) e devolve os pixels. */
+export function renderPiece(kind: PieceKind, data: PieceData): Promise<RenderedPixels> {
+  return render({ template: "catalog", piece: kind, data });
+}
+
+/** Desenha um banner de destaque (04/11/2026), pelo mesmo worker e a mesma rede de segurança. */
+export function renderSpotlight(format: SpotlightFormat, data: SpotlightData): Promise<RenderedPixels> {
+  return render({ template: "spotlight", piece: format, data });
 }
 
 /**

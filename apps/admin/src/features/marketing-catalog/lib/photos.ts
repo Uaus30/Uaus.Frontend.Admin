@@ -18,6 +18,12 @@ import type { RenderedPixels } from "./rasterize";
 /** Maior lado da foto dentro do banner. O card maior tem ~500 px. */
 const PHOTO_MAX_SIDE = 640;
 
+/**
+ * Maior lado da foto do banner de destaque (04/11/2026): o card ocupa o painel
+ * inteiro, e a foto é desenhada com até ~940 px — reduzida a 640 ela borraria.
+ */
+export const SPOTLIGHT_PHOTO_MAX_SIDE = 1080;
+
 const JPEG_QUALITY = 0.9;
 
 /** Reduz para caber em `maxSide`, sem nunca ampliar. */
@@ -91,7 +97,7 @@ export interface LoadedPhoto {
 
 const photoCache = new Map<string, Promise<LoadedPhoto>>();
 
-async function downloadPhoto(url: string): Promise<LoadedPhoto> {
+async function downloadPhoto(url: string, maxSide: number): Promise<LoadedPhoto> {
   // `no-store` é o que faz o CORS funcionar: o admin já mostrou esta mesma URL
   // num `<img>` comum, e o navegador guardou a resposta SEM o cabeçalho de
   // CORS. Lida do cache, ela seria recusada aqui mesmo com o bucket liberado.
@@ -99,7 +105,7 @@ async function downloadPhoto(url: string): Promise<LoadedPhoto> {
   if (!response.ok) throw new Error(`Foto indisponível (${response.status}).`);
 
   const image = await decode(await response.blob());
-  const size = fitWithin(image.naturalWidth, image.naturalHeight, PHOTO_MAX_SIDE);
+  const size = fitWithin(image.naturalWidth, image.naturalHeight, maxSide);
 
   const canvas = document.createElement("canvas");
   canvas.width = size.width;
@@ -123,10 +129,14 @@ async function downloadPhoto(url: string): Promise<LoadedPhoto> {
  *
  * O tamanho original vem junto porque o catálogo em PDF recusa foto pequena
  * (ver `minPhotoSide` em `formats.ts`): o servidor já filtra pelo tamanho
- * gravado, mas imagem ainda não medida passa por lá, e aqui é a última rede.
+ * gravado, mas imagem ainda não medida passa por lá, e aqui é a última rede. O
+ * banner de destaque usa o mesmo número para avisar da foto pequena.
+ *
+ * @param maxSide Até onde reduzir. A mesma foto em dois tamanhos são duas
+ *   entradas do cache: a do catálogo não pode servir ao destaque, e vice-versa.
  */
-export function loadPhoto(url: string): Promise<LoadedPhoto> {
-  return remember(photoCache, url, () => downloadPhoto(url));
+export function loadPhoto(url: string, maxSide = PHOTO_MAX_SIDE): Promise<LoadedPhoto> {
+  return remember(photoCache, `${maxSide}|${url}`, () => downloadPhoto(url, maxSide));
 }
 
 /**

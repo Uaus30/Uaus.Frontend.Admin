@@ -93,4 +93,17 @@ export const BADGE_LABEL: Record<CatalogBadge, string> = {
   offer: "PROMOÇÃO",
   new: "NOVIDADE",
   lastUnits: "ÚLTIMAS UNIDADES",
+  // A palavra é do dono (04/11/2026), também na imagem que o cliente vê.
+  restock: "REPOSIÇÃO",
 };
+
+/**
+ * O fator do preço conforme os dígitos dos reais, para ele caber na linha do
+ * banner de destaque: a loja vende até R$ 30 (dois dígitos, o corpo cheio), mas
+ * o molde não pode estourar com o preço de uma variação maior.
+ */
+export function priceDigitsFactor(price: number): number {
+  const digits = splitPrice(price).whole.replace(/\D/g, "").length;
+  if (digits <= 2) return 1;
+  return digits === 3 ? 0.82 : 0.68;
+}

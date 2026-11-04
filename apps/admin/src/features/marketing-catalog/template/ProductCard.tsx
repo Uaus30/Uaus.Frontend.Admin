@@ -2,7 +2,8 @@ import type { CSSProperties } from "react";
 import type { CatalogBadge, CatalogCard } from "../types";
 import type { PieceGrid } from "./geometry";
 import { CATALOG_COLORS } from "./palette";
-import { BADGE_LABEL, formatPrice, splitPrice } from "./text";
+import { PriceCaption, PriceFigure } from "./Price";
+import { BADGE_LABEL } from "./text";
 
 /**
  * O card de um produto no molde.
@@ -24,6 +25,9 @@ const BADGE_STYLE: Record<CatalogBadge, CSSProperties> = {
     color: CATALOG_COLORS.orange,
     border: `2px solid ${CATALOG_COLORS.orange}`,
   },
+  // Só no banner de destaque (04/11/2026): o marrom do texto, que não se
+  // confunde com o laranja da novidade nem com o vermelho da promoção.
+  restock: { backgroundColor: CATALOG_COLORS.ink, color: CATALOG_COLORS.white },
 };
 
 /**
@@ -31,8 +35,10 @@ const BADGE_STYLE: Record<CatalogBadge, CSSProperties> = {
  * no lugar da palavra: o card não tem altura para mais uma linha abaixo do preço
  * (150 px de texto na escala 1, já ocupados por nome, "de" e preço), e o selo é
  * onde o olho procura a promoção.
+ *
+ * O banner de destaque usa o mesmo selo, maior (`scale`).
  */
-function Badge({ badge, scale, text }: { badge: CatalogBadge; scale: number; text?: string }) {
+export function Badge({ badge, scale, text }: { badge: CatalogBadge; scale: number; text?: string }) {
   const size = Math.round(15 * scale);
   return (
     <div
@@ -60,44 +66,6 @@ function Badge({ badge, scale, text }: { badge: CatalogBadge; scale: number; tex
   );
 }
 
-/**
- * A linha miúda acima do preço: o "de" riscado da oferta e o "a partir de".
- *
- * **Os dois convivem**, como no site (`PriceTag` da loja). Oferta de 20% num
- * grupo com variações de R$ 10 e R$ 16 custa de R$ 8,00 a R$ 12,80: imprimir só
- * "de R$ 10,00" sobre o R$ 8,00 prometeria o menor preço para todas as
- * variações (achado da revisão de 03/10/2026).
- *
- * Sem legenda a linha continua ocupando a altura: é o que alinha os preços de
- * uma mesma fileira, com e sem oferta.
- */
-function PriceCaption({ card, scale }: { card: CatalogCard; scale: number }) {
-  const hasReference = card.referencePrice != null;
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: Math.round(5 * scale),
-        height: Math.round(22 * scale),
-        fontSize: Math.round(17 * scale),
-        fontWeight: 600,
-        color: CATALOG_COLORS.muted,
-      }}
-    >
-      {hasReference && <div style={{ display: "flex" }}>de</div>}
-      {hasReference && (
-        <div style={{ display: "flex", textDecoration: "line-through" }}>
-          {formatPrice(card.referencePrice!)}
-        </div>
-      )}
-      {card.hasPriceRange && (
-        <div style={{ display: "flex" }}>{hasReference ? "· a partir de" : "a partir de"}</div>
-      )}
-    </div>
-  );
-}
-
 interface ProductCardProps {
   card: CatalogCard;
   grid: PieceGrid;
@@ -107,7 +75,6 @@ interface ProductCardProps {
 
 export function ProductCard({ card, grid, softShadow }: ProductCardProps) {
   const { scale } = grid;
-  const price = splitPrice(card.price);
   const photoPadding = Math.round(14 * scale);
 
   return (
@@ -175,40 +142,7 @@ export function ProductCard({ card, grid, softShadow }: ProductCardProps) {
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <PriceCaption card={card} scale={scale} />
-          <div style={{ display: "flex", alignItems: "flex-start", color: CATALOG_COLORS.orange }}>
-            <div
-              style={{
-                display: "flex",
-                marginTop: Math.round(7 * scale),
-                marginRight: Math.round(5 * scale),
-                fontSize: Math.round(22 * scale),
-                fontWeight: 800,
-              }}
-            >
-              R$
-            </div>
-            <div
-              style={{
-                display: "flex",
-                fontSize: Math.round(52 * scale),
-                fontWeight: 900,
-                lineHeight: 1,
-                letterSpacing: -1,
-              }}
-            >
-              {price.whole}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                marginTop: Math.round(5 * scale),
-                fontSize: Math.round(25 * scale),
-                fontWeight: 800,
-              }}
-            >
-              {`,${price.cents}`}
-            </div>
-          </div>
+          <PriceFigure price={card.price} scale={scale} />
         </div>
       </div>
 

@@ -21,7 +21,12 @@ export interface TitleBox {
   fontScale: number;
 }
 
-export interface PieceSpec {
+/**
+ * A moldura de uma peça: a arte do cabeçalho com o título, o painel creme e o
+ * rodapé com o contato e o aviso. É o que o catálogo e o banner de destaque
+ * (04/11/2026) têm em comum — o que muda entre eles é o que vai DENTRO do painel.
+ */
+export interface FrameSpec {
   width: number;
   height: number;
   /** Altura da arte do cabeçalho. Ela continua 40 px por baixo do painel. */
@@ -33,6 +38,11 @@ export interface PieceSpec {
   /** A arte do rodapé sobe por baixo do canto arredondado do painel. */
   footerArtHeight: number;
   panelRadius: number;
+  /** Sombra esfumada do painel e dos cards (o desfoque custa caro no desenho). */
+  softShadows: boolean;
+}
+
+export interface PieceSpec extends FrameSpec {
   panelPaddingX: number;
   panelPaddingY: number;
   gap: number;
@@ -51,11 +61,7 @@ export interface PieceSpec {
   maxCardRatio: number;
   /** Teto do fator da tipografia do card. */
   maxScale: number;
-  /**
-   * Sombra esfumada do painel e dos cards. Custa caro no desenho (é um
-   * desfoque por elemento), então a página do PDF, que são várias, não usa.
-   */
-  softShadows: boolean;
+  // `softShadows` (em `FrameSpec`): a página do PDF, que são várias, não usa.
 }
 
 /** Até 4 produtos, 2 colunas; acima disso, 3. */

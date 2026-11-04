@@ -1,9 +1,39 @@
-import { createElement } from "react";
+import { createElement, type ReactElement } from "react";
 import resvgWasmUrl from "@resvg/resvg-wasm/index_bg.wasm?url";
 import { CatalogPiece } from "../template/CatalogPiece";
 import { PIECE_SPECS, type PieceKind } from "../template/geometry";
-import type { PieceData } from "../types";
+import { SpotlightPiece } from "../template/SpotlightPiece";
+import { SPOTLIGHT_SPECS } from "../template/spotlightGeometry";
+import type { PieceData, SpotlightData, SpotlightFormat } from "../types";
 import { loadCatalogFonts } from "./fonts";
+
+/**
+ * O que desenhar: uma peça do catálogo (ou uma página do PDF), ou um banner de
+ * destaque (04/11/2026). Viaja pelo `postMessage` — por isso leva o NOME das
+ * medidas, e não as medidas, que têm função.
+ */
+export type Drawing =
+  | { template: "catalog"; piece: PieceKind; data: PieceData }
+  | { template: "spotlight"; piece: SpotlightFormat; data: SpotlightData };
+
+/** O molde e o tamanho de cada desenho. */
+function prepare(drawing: Drawing): { element: ReactElement; width: number; height: number } {
+  if (drawing.template === "spotlight") {
+    const spec = SPOTLIGHT_SPECS[drawing.piece];
+    return {
+      element: createElement(SpotlightPiece, { spec, ...drawing.data }),
+      width: spec.width,
+      height: spec.height,
+    };
+  }
+
+  const spec = PIECE_SPECS[drawing.piece];
+  return {
+    element: createElement(CatalogPiece, { spec, ...drawing.data }),
+    width: spec.width,
+    height: spec.height,
+  };
+}
 
 /**
  * Do molde aos pixels.
@@ -66,18 +96,14 @@ export async function warmUp(): Promise<void> {
  * decodificá-lo logo depois custava 1,6 s dos 3 s da geração (medido em
  * 03/10/2026, num banner de 9 produtos). Os pixels vão direto para o canvas.
  */
-export async function rasterize(kind: PieceKind, data: PieceData): Promise<RenderedPixels> {
-  const spec = PIECE_SPECS[kind];
+export async function rasterize(drawing: Drawing): Promise<RenderedPixels> {
+  const { element, width, height } = prepare(drawing);
   const [{ satori, Resvg }, fonts] = await Promise.all([loadLibraries(), loadCatalogFonts()]);
 
-  const svg = await satori(createElement(CatalogPiece, { spec, ...data }), {
-    width: spec.width,
-    height: spec.height,
-    fonts,
-  });
+  const svg = await satori(element, { width, height, fonts });
 
   const resvg = new Resvg(svg, {
-    fitTo: { mode: "width", value: spec.width },
+    fitTo: { mode: "width", value: width },
     // O texto já chegou em curvas: procurar fonte do sistema seria trabalho à toa.
     font: { loadSystemFonts: false },
   });

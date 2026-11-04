@@ -1,10 +1,7 @@
-import feedHeaderUrl from "../assets/feed-header.jpg";
-import pageHeaderUrl from "../assets/page-header.jpg";
-import footerArtUrl from "../assets/story-footer.jpg";
-import storyHeaderUrl from "../assets/story-header.jpg";
 import { cardRects, PIECE_SPECS, type PieceKind } from "../template/geometry";
 import { formatStoreDate } from "../template/text";
 import type { CatalogCard, CatalogProduct, PieceData } from "../types";
+import { FOOTER_ART, HEADER_ART } from "./art";
 import type { CatalogFormatOption } from "./formats";
 import { productLink } from "./links";
 import { writePdf } from "./pdfWriter";
@@ -42,13 +39,6 @@ export interface PieceResult {
   products: CatalogProduct[];
 }
 
-/** A arte do cabeçalho muda com a peça; a do rodapé é a mesma nas três. */
-const HEADER_ART: Record<PieceKind, string> = {
-  story: storyHeaderUrl,
-  feed: feedHeaderUrl,
-  page: pageHeaderUrl,
-};
-
 /** Meio ponto por pixel: a página de 1080 px vira 540 pt, perto da largura de um celular. */
 const PDF_POINTS_PER_PIXEL = 0.5;
 
@@ -58,9 +48,7 @@ const PDF_POINTS_PER_PIXEL = 0.5;
  */
 export function preloadPiece(): void {
   preloadRenderer();
-  void Promise.all([footerArtUrl, ...Object.values(HEADER_ART)].map(loadAssetAsDataUrl)).catch(
-    () => undefined,
-  );
+  void Promise.all([FOOTER_ART, ...Object.values(HEADER_ART)].map(loadAssetAsDataUrl)).catch(() => undefined);
 }
 
 interface LoadedCard {
@@ -164,7 +152,7 @@ export async function buildPiece(request: PieceRequest): Promise<PieceResult> {
 
   const [header, footer, loaded] = await Promise.all([
     loadAssetAsDataUrl(HEADER_ART[format.piece]),
-    loadAssetAsDataUrl(footerArtUrl),
+    loadAssetAsDataUrl(FOOTER_ART),
     loadCards(request.candidates, format.minPhotoSide),
   ]);
 
