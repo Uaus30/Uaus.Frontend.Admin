@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CatalogThemeDto } from "@workspace/api-client-react";
-import { buildThemeOptions, DEFAULT_THEME_KEY, describeProductCount } from "../themes";
+import { buildThemeOptions, DEFAULT_THEME_KEY, describeProductCount, themeLabel } from "../themes";
 
 /** A lista como a API manda: enum pelo nome, campos de departamento só no tema dele. */
 const fromApi: CatalogThemeDto[] = [
@@ -89,6 +89,30 @@ describe("buildThemeOptions", () => {
 
     expect(options).toHaveLength(1);
     expect(options[0].products).toBe(0);
+  });
+
+  it("Novidades, Reposição e Natal (05/11/2026) têm rótulo e título, na ordem da API", () => {
+    const options = buildThemeOptions([
+      { theme: "NewArrivals", products: 14, productsWithLargePhoto: 9 },
+      { theme: "Restock", products: 6, productsWithLargePhoto: 2 },
+      { theme: "Christmas", products: 0, productsWithLargePhoto: 0 },
+    ]);
+
+    expect(options.map(({ key, label, title, products }) => ({ key, label, title, products }))).toEqual([
+      { key: "10", label: "Novidades", title: "Novidades", products: 14 },
+      { key: "9", label: "Reposição", title: "Reposição", products: 6 },
+      // Fora da época o Natal fica zerado, e continua na lista.
+      { key: "8", label: "Natal", title: "Natal", products: 0 },
+    ]);
+  });
+});
+
+describe("themeLabel", () => {
+  it("o histórico dá nome aos temas novos, e não 'Tema'", () => {
+    expect(themeLabel("Christmas")).toBe("Natal");
+    expect(themeLabel("Restock")).toBe("Reposição");
+    expect(themeLabel("NewArrivals")).toBe("Novidades");
+    expect(themeLabel("NewsAndOffers")).toBe("Novidades e promoções");
   });
 });
 

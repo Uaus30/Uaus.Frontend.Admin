@@ -23,14 +23,21 @@ export interface CatalogThemeOption {
  *
  * "Achados" é o nome que o dono deu à pouca saída (03/10/2026): o cliente não
  * pode ler nada que soe a encalhe.
+ *
+ * Natal, Reposição e Novidades (05/11/2026) são RECORTES: a peça só leva quem
+ * pertence ao tema e pode sair com menos produtos que o formato comporta.
  */
 const FIXED_THEMES: Record<number, { label: string; title: string }> = {
   // "Promoções e Novidades" desde 05/10/2026, a pedido do dono — é o título que
   // ele já vinha digitando à mão nas peças do sorteio inteligente.
   [CATALOG_THEME.General]: { label: "Geral (mistura inteligente)", title: "Promoções e Novidades" },
   [CATALOG_THEME.NewsAndOffers]: { label: "Novidades e promoções", title: "Novidades e promoções" },
+  [CATALOG_THEME.NewArrivals]: { label: "Novidades", title: "Novidades" },
+  // "Reposição" é a palavra do dono, a mesma do selo do banner de destaque.
+  [CATALOG_THEME.Restock]: { label: "Reposição", title: "Reposição" },
   [CATALOG_THEME.BestSellers]: { label: "Mais vendidos", title: "Os mais vendidos" },
   [CATALOG_THEME.Finds]: { label: "Achados", title: "Achados" },
+  [CATALOG_THEME.Christmas]: { label: "Natal", title: "Natal" },
 };
 
 /** O tema que a tela abre selecionado. */

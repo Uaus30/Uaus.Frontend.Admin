@@ -74,9 +74,21 @@ corte é de até 5% (regra do servidor, a mesma do site).
 
 ### 7. O tema sugere o título; a pessoa pode trocar
 
-Os quatro temas fixos e um por departamento vêm de `GET /Catalogs/themes`, com
+Os sete temas fixos e um por departamento vêm de `GET /Catalogs/themes`, com
 quantos cadastros cada um tem para sortear. Tema sem produto continua na lista,
-desabilitado: sumir com "Novidades" num mês sem novidade pareceria defeito.
+desabilitado: sumir com "Novidades" num mês sem novidade pareceria defeito — e
+o Natal fica assim fora da época.
+
+Há dois tipos de tema (05/11/2026), e a diferença é do servidor:
+
+- **Assunto** — Geral, Novidades e promoções, Mais vendidos, Achados: o assunto
+  vem primeiro e o que faltar é completado com outros papéis. A peça sai cheia.
+- **Recorte** — departamento, **Natal** (a categoria "Natal", pelo nome),
+  **Reposição** (compra nos últimos 7 dias num produto que não é novidade, a
+  régua do banner de destaque) e **Novidades** (até 30 dias na loja, mesmo em
+  promoção): só entra quem pertence, inclusive na troca de produto. A peça pode
+  sair com menos produtos que o formato comporta — a grade se ajusta —, e a
+  contagem ao lado do tema avisa antes.
 
 O título do cabeçalho nasce do tema ("Cozinha") e é editável ("Utilidades de
 cozinha"), até 36 caracteres — o que cabe em uma linha na menor fonte.

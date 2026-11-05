@@ -3159,6 +3159,15 @@ export const CATALOG_THEME = {
    * registro da peça — o sorteio recusa — e não entra no descanso do sorteio.
    */
   Spotlight: 7,
+  /** Natal (05/11/2026): só a categoria "Natal", na mistura geral, como o departamento. */
+  Christmas: 8,
+  /**
+   * Reposição (05/11/2026): só quem recebeu compra nos últimos 7 dias e não é
+   * novidade — a régua do banner de destaque.
+   */
+  Restock: 9,
+  /** Novidades (05/11/2026): só o que está na loja há até 30 dias, mesmo em promoção. */
+  NewArrivals: 10,
 } as const;
 
 /**
