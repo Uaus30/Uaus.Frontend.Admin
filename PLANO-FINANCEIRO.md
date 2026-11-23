@@ -36,10 +36,14 @@ junta tudo.
 | 13  | **Compra que leva o mês ao vermelho só pede confirmação**, não é bloqueada (por enquanto)                                                    | o mesmo padrão da margem negativa: o dono decide, mas a tela pergunta antes (seção 7.3)                          |
 | 14  | **Os custos fixos ficam como estão.** A loja é MEI, sem contador e sem controle fiscal rígido por enquanto                                  | a linha do vermelho usa o cadastro atual (R$ 865/mês); o pagamento dos sócios é a retirada no fechamento (seção 3.2), não custo fixo. Se o boleto mensal do MEI sair do caixa da loja, ele entra como mais um custo fixo, pela tela |
 
-A decisão 8 tem uma leitura minha que o dono precisa confirmar: o saldo inicial
-conta como o aporte, inclusive na linha do verde. Com saldo, o mês pode comprar
-mais que o custo vendido e continuar verde. O texto "verde com saldo" e o cartão
-de estoque a custo do painel existem para isso não passar despercebido.
+**Decisão 8 confirmada pelo dono (23/11/2026, depois do smoke):** o saldo do mês
+só é definido no fechamento do mês anterior, com o valor confirmado à mão, porque
+é no fechamento que o lucro líquido é distribuído. O saldo confirmado é, portanto,
+o dinheiro que os sócios decidiram deixar na loja, e conta inteiro como saldo
+disponível, inclusive na linha do verde. Consequência aceita: com saldo, o mês
+pode comprar mais que o custo vendido (e antes de as vendas cobrirem os fixos) e
+continuar verde. O texto "verde com saldo" e o cartão de estoque a custo do
+painel existem para isso não passar despercebido.
 
 ### 0.2 Em aberto, com a recomendação
 
