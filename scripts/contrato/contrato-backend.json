@@ -1,12 +1,12 @@
 {
   "versao": 1,
-  "geradoEm": "2026-11-04",
+  "geradoEm": "2026-11-23",
   "origem": {
     "repositorio": "Uaus.Backend.Api",
-    "commit": "3c3ec126ffc86b914e92b4bb659ec45c02533a8e",
-    "commitData": "2026-10-23T21:46:26-03:00",
+    "commit": "b0816c232bafa7052bfe0ae68505a27b15231748",
+    "commitData": "2026-11-05T15:02:01-03:00",
     "pastas": ["Uaus.Application/DTOs"],
-    "arquivos": 115
+    "arquivos": 118
   },
   "serializacao": {
     "ignoreCondition": "WhenWritingNull",
@@ -61,6 +61,7 @@
     "PromotionDiscountType",
     "PromotionPerformanceClass",
     "PromotionType",
+    "PurchaseBand",
     "PurchaseEntryEffect",
     "PurchaseEntryType",
     "PurchaseStatus",
@@ -2123,6 +2124,244 @@
           "nuloPerdoado": false,
           "somenteLeitura": false,
           "linha": 32
+        }
+      ]
+    },
+    {
+      "nome": "CapitalContributionDto",
+      "arquivo": "Uaus.Application/DTOs/CapitalContributions/CapitalContributionDto.cs",
+      "linha": 4,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "id",
+          "nomeCSharp": "Id",
+          "tipo": "long",
+          "tipoBase": "long",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 6
+        },
+        {
+          "nome": "partnerId",
+          "nomeCSharp": "PartnerId",
+          "tipo": "long",
+          "tipoBase": "long",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 8
+        },
+        {
+          "nome": "partnerName",
+          "nomeCSharp": "PartnerName",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 11
+        },
+        {
+          "nome": "contributionDate",
+          "nomeCSharp": "ContributionDate",
+          "tipo": "DateTime",
+          "tipoBase": "DateTime",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 14
+        },
+        {
+          "nome": "amount",
+          "nomeCSharp": "Amount",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 16
+        },
+        {
+          "nome": "notes",
+          "nomeCSharp": "Notes",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 18
+        },
+        {
+          "nome": "createdAt",
+          "nomeCSharp": "CreatedAt",
+          "tipo": "DateTime",
+          "tipoBase": "DateTime",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 21
+        },
+        {
+          "nome": "createdBy",
+          "nomeCSharp": "CreatedBy",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 24
+        }
+      ]
+    },
+    {
+      "nome": "CapitalContributionPartnerTotalDto",
+      "arquivo": "Uaus.Application/DTOs/CapitalContributions/CapitalContributionDto.cs",
+      "linha": 50,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "partnerId",
+          "nomeCSharp": "PartnerId",
+          "tipo": "long",
+          "tipoBase": "long",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 52
+        },
+        {
+          "nome": "partnerName",
+          "nomeCSharp": "PartnerName",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 54
+        },
+        {
+          "nome": "total",
+          "nomeCSharp": "Total",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 56
+        },
+        {
+          "nome": "count",
+          "nomeCSharp": "Count",
+          "tipo": "int",
+          "tipoBase": "int",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 59
+        }
+      ]
+    },
+    {
+      "nome": "CapitalContributionsMonthDto",
+      "arquivo": "Uaus.Application/DTOs/CapitalContributions/CapitalContributionDto.cs",
+      "linha": 28,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "month",
+          "nomeCSharp": "Month",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 31
+        },
+        {
+          "nome": "isClosed",
+          "nomeCSharp": "IsClosed",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 37
+        },
+        {
+          "nome": "total",
+          "nomeCSharp": "Total",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 40
+        },
+        {
+          "nome": "items",
+          "nomeCSharp": "Items",
+          "tipo": "List<CapitalContributionDto>",
+          "tipoBase": "List<CapitalContributionDto>",
+          "anulavel": false,
+          "colecao": true,
+          "elemento": "CapitalContributionDto",
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 43
         }
       ]
     },
@@ -7533,7 +7772,7 @@
     {
       "nome": "FinancialClosingDto",
       "arquivo": "Uaus.Application/DTOs/FinancialClosings/FinancialClosingDto.cs",
-      "linha": 7,
+      "linha": 14,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -7549,7 +7788,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 9
+          "linha": 16
+        },
+        {
+          "nome": "calculationVersion",
+          "nomeCSharp": "CalculationVersion",
+          "tipo": "int",
+          "tipoBase": "int",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 19
         },
         {
           "nome": "periodStart",
@@ -7562,7 +7814,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 12
+          "linha": 22
         },
         {
           "nome": "periodEnd",
@@ -7575,7 +7827,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 15
+          "linha": 25
         },
         {
           "nome": "revenue",
@@ -7588,7 +7840,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 17
+          "linha": 28
         },
         {
           "nome": "discounts",
@@ -7601,7 +7853,72 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 19
+          "linha": 31
+        },
+        {
+          "nome": "grossSales",
+          "nomeCSharp": "GrossSales",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 34
+        },
+        {
+          "nome": "discountsTotal",
+          "nomeCSharp": "DiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 37
+        },
+        {
+          "nome": "itemDiscountsTotal",
+          "nomeCSharp": "ItemDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 40
+        },
+        {
+          "nome": "promotionDiscountsTotal",
+          "nomeCSharp": "PromotionDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 43
+        },
+        {
+          "nome": "couponDiscountsTotal",
+          "nomeCSharp": "CouponDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 46
         },
         {
           "nome": "cogsCost",
@@ -7614,7 +7931,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 21
+          "linha": 48
         },
         {
           "nome": "grossProfit",
@@ -7627,7 +7944,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 23
+          "linha": 50
         },
         {
           "nome": "purchasesTotal",
@@ -7640,7 +7957,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 26
+          "linha": 53
+        },
+        {
+          "nome": "purchasesPaidTotal",
+          "nomeCSharp": "PurchasesPaidTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 56
         },
         {
           "nome": "writeOffLossesTotal",
@@ -7653,7 +7983,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 29
+          "linha": 62
+        },
+        {
+          "nome": "stockSurplusTotal",
+          "nomeCSharp": "StockSurplusTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 65
         },
         {
           "nome": "fixedCostsTotal",
@@ -7666,7 +8009,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 31
+          "linha": 67
         },
         {
           "nome": "variableCostsTotal",
@@ -7679,7 +8022,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 34
+          "linha": 70
         },
         {
           "nome": "netProfit",
@@ -7692,7 +8035,124 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 37
+          "linha": 73
+        },
+        {
+          "nome": "contributionsTotal",
+          "nomeCSharp": "ContributionsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 76
+        },
+        {
+          "nome": "withdrawalsTotal",
+          "nomeCSharp": "WithdrawalsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 79
+        },
+        {
+          "nome": "monthCash",
+          "nomeCSharp": "MonthCash",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 82
+        },
+        {
+          "nome": "openingBalance",
+          "nomeCSharp": "OpeningBalance",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 85
+        },
+        {
+          "nome": "calculatedBalance",
+          "nomeCSharp": "CalculatedBalance",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 88
+        },
+        {
+          "nome": "closingBalance",
+          "nomeCSharp": "ClosingBalance",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 91
+        },
+        {
+          "nome": "balanceDifference",
+          "nomeCSharp": "BalanceDifference",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 94
+        },
+        {
+          "nome": "balanceNotes",
+          "nomeCSharp": "BalanceNotes",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 97
+        },
+        {
+          "nome": "purchaseBand",
+          "nomeCSharp": "PurchaseBand",
+          "tipo": "PurchaseBand?",
+          "tipoBase": "PurchaseBand",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 100
         },
         {
           "nome": "salesCount",
@@ -7705,7 +8165,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 39
+          "linha": 102
         },
         {
           "nome": "notes",
@@ -7718,7 +8178,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 41
+          "linha": 104
         },
         {
           "nome": "closedByUserId",
@@ -7731,7 +8191,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 43
+          "linha": 106
         },
         {
           "nome": "closedByUserName",
@@ -7744,7 +8204,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 45
+          "linha": 108
         },
         {
           "nome": "createdAt",
@@ -7757,7 +8217,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 48
+          "linha": 111
+        },
+        {
+          "nome": "isLatest",
+          "nomeCSharp": "IsLatest",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 118
         },
         {
           "nome": "shares",
@@ -7770,7 +8243,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 51
+          "linha": 121
         },
         {
           "nome": "variableCosts",
@@ -7783,18 +8256,31 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 54
+          "linha": 124
         }
       ]
     },
     {
-      "nome": "FinancialClosingPreviewDto",
-      "arquivo": "Uaus.Application/DTOs/FinancialClosings/FinancialClosingPreviewDto.cs",
-      "linha": 13,
+      "nome": "FinancialClosingNextDto",
+      "arquivo": "Uaus.Application/DTOs/FinancialClosings/FinancialClosingNextDto.cs",
+      "linha": 8,
       "herda": null,
       "abstrata": false,
       "generica": false,
       "campos": [
+        {
+          "nome": "month",
+          "nomeCSharp": "Month",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 11
+        },
         {
           "nome": "periodStart",
           "nomeCSharp": "PeriodStart",
@@ -7806,7 +8292,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 16
+          "linha": 14
         },
         {
           "nome": "periodEnd",
@@ -7819,7 +8305,95 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
+          "linha": 17
+        },
+        {
+          "nome": "isImplantation",
+          "nomeCSharp": "IsImplantation",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 23
+        },
+        {
+          "nome": "previousClosingBalance",
+          "nomeCSharp": "PreviousClosingBalance",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 29
+        }
+      ]
+    },
+    {
+      "nome": "FinancialClosingPreviewDto",
+      "arquivo": "Uaus.Application/DTOs/FinancialClosings/FinancialClosingPreviewDto.cs",
+      "linha": 16,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "calculationVersion",
+          "nomeCSharp": "CalculationVersion",
+          "tipo": "int",
+          "tipoBase": "int",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
           "linha": 19
+        },
+        {
+          "nome": "isImplantation",
+          "nomeCSharp": "IsImplantation",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 25
+        },
+        {
+          "nome": "periodStart",
+          "nomeCSharp": "PeriodStart",
+          "tipo": "DateTime",
+          "tipoBase": "DateTime",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 28
+        },
+        {
+          "nome": "periodEnd",
+          "nomeCSharp": "PeriodEnd",
+          "tipo": "DateTime",
+          "tipoBase": "DateTime",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 31
         },
         {
           "nome": "revenue",
@@ -7832,7 +8406,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 21
+          "linha": 34
         },
         {
           "nome": "discounts",
@@ -7845,7 +8419,72 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 23
+          "linha": 37
+        },
+        {
+          "nome": "grossSales",
+          "nomeCSharp": "GrossSales",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 40
+        },
+        {
+          "nome": "discountsTotal",
+          "nomeCSharp": "DiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 43
+        },
+        {
+          "nome": "itemDiscountsTotal",
+          "nomeCSharp": "ItemDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 46
+        },
+        {
+          "nome": "promotionDiscountsTotal",
+          "nomeCSharp": "PromotionDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 49
+        },
+        {
+          "nome": "couponDiscountsTotal",
+          "nomeCSharp": "CouponDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 52
         },
         {
           "nome": "cogsCost",
@@ -7858,7 +8497,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 25
+          "linha": 54
         },
         {
           "nome": "grossProfit",
@@ -7871,7 +8510,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 27
+          "linha": 56
         },
         {
           "nome": "purchasesTotal",
@@ -7884,7 +8523,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 30
+          "linha": 59
+        },
+        {
+          "nome": "purchasesPaidTotal",
+          "nomeCSharp": "PurchasesPaidTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 62
         },
         {
           "nome": "writeOffLossesTotal",
@@ -7897,7 +8549,33 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 33
+          "linha": 65
+        },
+        {
+          "nome": "writeOffsByReason",
+          "nomeCSharp": "WriteOffsByReason",
+          "tipo": "List<FinancialReportWriteOffByReasonDto>",
+          "tipoBase": "List<FinancialReportWriteOffByReasonDto>",
+          "anulavel": false,
+          "colecao": true,
+          "elemento": "FinancialReportWriteOffByReasonDto",
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 68
+        },
+        {
+          "nome": "stockSurplusTotal",
+          "nomeCSharp": "StockSurplusTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 71
         },
         {
           "nome": "fixedCostsTotal",
@@ -7910,7 +8588,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 35
+          "linha": 73
         },
         {
           "nome": "variableCostsTotal",
@@ -7923,7 +8601,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 38
+          "linha": 76
         },
         {
           "nome": "netProfit",
@@ -7936,7 +8614,124 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 41
+          "linha": 79
+        },
+        {
+          "nome": "contributionsTotal",
+          "nomeCSharp": "ContributionsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 82
+        },
+        {
+          "nome": "withdrawalsTotal",
+          "nomeCSharp": "WithdrawalsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 85
+        },
+        {
+          "nome": "monthCash",
+          "nomeCSharp": "MonthCash",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 88
+        },
+        {
+          "nome": "openingBalance",
+          "nomeCSharp": "OpeningBalance",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 94
+        },
+        {
+          "nome": "calculatedBalance",
+          "nomeCSharp": "CalculatedBalance",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 97
+        },
+        {
+          "nome": "closingBalance",
+          "nomeCSharp": "ClosingBalance",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 100
+        },
+        {
+          "nome": "balanceDifference",
+          "nomeCSharp": "BalanceDifference",
+          "tipo": "decimal?",
+          "tipoBase": "decimal",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 103
+        },
+        {
+          "nome": "balanceNotes",
+          "nomeCSharp": "BalanceNotes",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 106
+        },
+        {
+          "nome": "purchaseBand",
+          "nomeCSharp": "PurchaseBand",
+          "tipo": "PurchaseBand?",
+          "tipoBase": "PurchaseBand",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 109
         },
         {
           "nome": "salesCount",
@@ -7949,7 +8744,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 43
+          "linha": 111
         },
         {
           "nome": "fixedCosts",
@@ -7962,7 +8757,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 46
+          "linha": 114
         },
         {
           "nome": "variableCosts",
@@ -7975,7 +8770,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 53
+          "linha": 121
         },
         {
           "nome": "shares",
@@ -7988,7 +8783,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 56
+          "linha": 127
         },
         {
           "nome": "warnings",
@@ -8001,14 +8796,14 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 58
+          "linha": 129
         }
       ]
     },
     {
       "nome": "FinancialClosingShareDto",
       "arquivo": "Uaus.Application/DTOs/FinancialClosings/FinancialClosingDto.cs",
-      "linha": 70,
+      "linha": 140,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -8024,7 +8819,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 72
+          "linha": 142
         },
         {
           "nome": "partnerName",
@@ -8037,7 +8832,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 74
+          "linha": 144
         },
         {
           "nome": "percentage",
@@ -8050,7 +8845,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 76
+          "linha": 146
         },
         {
           "nome": "amount",
@@ -8063,14 +8858,27 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 78
+          "linha": 149
+        },
+        {
+          "nome": "withdrawnAmount",
+          "nomeCSharp": "WithdrawnAmount",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 152
         }
       ]
     },
     {
       "nome": "FinancialClosingVariableCostDto",
       "arquivo": "Uaus.Application/DTOs/FinancialClosings/FinancialClosingDto.cs",
-      "linha": 61,
+      "linha": 131,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -8086,7 +8894,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 63
+          "linha": 133
         },
         {
           "nome": "amount",
@@ -8099,14 +8907,14 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 66
+          "linha": 136
         }
       ]
     },
     {
       "nome": "FinancialReportFixedCostItemDto",
       "arquivo": "Uaus.Application/DTOs/FinancialReports/FinancialReportSummaryDto.cs",
-      "linha": 86,
+      "linha": 127,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -8122,7 +8930,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 88
+          "linha": 129
         },
         {
           "nome": "name",
@@ -8135,7 +8943,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 90
+          "linha": 131
         },
         {
           "nome": "monthlyAmount",
@@ -8148,7 +8956,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 92
+          "linha": 133
         },
         {
           "nome": "monthsCount",
@@ -8161,7 +8969,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 95
+          "linha": 136
         },
         {
           "nome": "total",
@@ -8174,14 +8982,14 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 98
+          "linha": 139
         }
       ]
     },
     {
       "nome": "FinancialReportFixedCostsDto",
       "arquivo": "Uaus.Application/DTOs/FinancialReports/FinancialReportSummaryDto.cs",
-      "linha": 74,
+      "linha": 115,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -8197,7 +9005,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 76
+          "linha": 117
         },
         {
           "nome": "items",
@@ -8210,14 +9018,14 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 78
+          "linha": 119
         }
       ]
     },
     {
       "nome": "FinancialReportSummaryDto",
       "arquivo": "Uaus.Application/DTOs/FinancialReports/FinancialReportSummaryDto.cs",
-      "linha": 14,
+      "linha": 17,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -8233,7 +9041,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 17
+          "linha": 20
         },
         {
           "nome": "endDate",
@@ -8246,7 +9054,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 20
+          "linha": 23
         },
         {
           "nome": "sales",
@@ -8259,7 +9067,72 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 23
+          "linha": 29
+        },
+        {
+          "nome": "grossSales",
+          "nomeCSharp": "GrossSales",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 32
+        },
+        {
+          "nome": "discountsTotal",
+          "nomeCSharp": "DiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 35
+        },
+        {
+          "nome": "itemDiscountsTotal",
+          "nomeCSharp": "ItemDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 38
+        },
+        {
+          "nome": "promotionDiscountsTotal",
+          "nomeCSharp": "PromotionDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 41
+        },
+        {
+          "nome": "couponDiscountsTotal",
+          "nomeCSharp": "CouponDiscountsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 44
         },
         {
           "nome": "purchasesTotal",
@@ -8272,7 +9145,20 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 26
+          "linha": 51
+        },
+        {
+          "nome": "purchasesPaidTotal",
+          "nomeCSharp": "PurchasesPaidTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 58
         },
         {
           "nome": "writeOffs",
@@ -8285,7 +9171,33 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 29
+          "linha": 61
+        },
+        {
+          "nome": "stockSurplusTotal",
+          "nomeCSharp": "StockSurplusTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 64
+        },
+        {
+          "nome": "contributionsTotal",
+          "nomeCSharp": "ContributionsTotal",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 67
         },
         {
           "nome": "fixedCosts",
@@ -8298,7 +9210,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 32
+          "linha": 70
         },
         {
           "nome": "grossProfit",
@@ -8311,7 +9223,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 35
+          "linha": 73
         },
         {
           "nome": "netProfit",
@@ -8324,7 +9236,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 38
+          "linha": 79
         },
         {
           "nome": "partnerDistribution",
@@ -8337,7 +9249,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 44
+          "linha": 85
         },
         {
           "nome": "warnings",
@@ -8350,14 +9262,14 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 47
+          "linha": 88
         }
       ]
     },
     {
       "nome": "FinancialReportWriteOffByReasonDto",
       "arquivo": "Uaus.Application/DTOs/FinancialReports/FinancialReportSummaryDto.cs",
-      "linha": 62,
+      "linha": 103,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -8373,7 +9285,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 64
+          "linha": 105
         },
         {
           "nome": "reasonName",
@@ -8386,7 +9298,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 66
+          "linha": 107
         },
         {
           "nome": "totalCost",
@@ -8399,7 +9311,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 68
+          "linha": 109
         },
         {
           "nome": "totalQuantity",
@@ -8412,14 +9324,14 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 70
+          "linha": 111
         }
       ]
     },
     {
       "nome": "FinancialReportWriteOffsDto",
       "arquivo": "Uaus.Application/DTOs/FinancialReports/FinancialReportSummaryDto.cs",
-      "linha": 51,
+      "linha": 92,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -8435,7 +9347,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 54
+          "linha": 95
         },
         {
           "nome": "totalQuantity",
@@ -8448,7 +9360,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 56
+          "linha": 97
         },
         {
           "nome": "byReason",
@@ -8461,7 +9373,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 58
+          "linha": 99
         }
       ]
     },
@@ -12275,7 +13187,7 @@
     {
       "nome": "PartnerDistributionItemDto",
       "arquivo": "Uaus.Application/DTOs/FinancialReports/FinancialReportSummaryDto.cs",
-      "linha": 102,
+      "linha": 143,
       "herda": null,
       "abstrata": false,
       "generica": false,
@@ -12291,7 +13203,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 104
+          "linha": 145
         },
         {
           "nome": "partnerName",
@@ -12304,7 +13216,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 106
+          "linha": 147
         },
         {
           "nome": "percentage",
@@ -12317,7 +13229,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 108
+          "linha": 149
         },
         {
           "nome": "amount",
@@ -12330,7 +13242,7 @@
           "dicionario": false,
           "nuloPerdoado": false,
           "somenteLeitura": false,
-          "linha": 111
+          "linha": 152
         }
       ]
     },
@@ -21873,6 +22785,341 @@
           "nuloPerdoado": false,
           "somenteLeitura": false,
           "linha": 24
+        }
+      ]
+    },
+    {
+      "nome": "PurchaseBudgetDto",
+      "arquivo": "Uaus.Application/DTOs/PurchaseBudget/PurchaseBudgetDto.cs",
+      "linha": 20,
+      "herda": null,
+      "abstrata": false,
+      "generica": false,
+      "campos": [
+        {
+          "nome": "month",
+          "nomeCSharp": "Month",
+          "tipo": "string",
+          "tipoBase": "string",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 23
+        },
+        {
+          "nome": "periodStart",
+          "nomeCSharp": "PeriodStart",
+          "tipo": "DateTime",
+          "tipoBase": "DateTime",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 26
+        },
+        {
+          "nome": "periodEnd",
+          "nomeCSharp": "PeriodEnd",
+          "tipo": "DateTime",
+          "tipoBase": "DateTime",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 29
+        },
+        {
+          "nome": "isCurrentMonth",
+          "nomeCSharp": "IsCurrentMonth",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 32
+        },
+        {
+          "nome": "isClosedMonth",
+          "nomeCSharp": "IsClosedMonth",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 35
+        },
+        {
+          "nome": "isProvisional",
+          "nomeCSharp": "IsProvisional",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 41
+        },
+        {
+          "nome": "pendingClosingMonth",
+          "nomeCSharp": "PendingClosingMonth",
+          "tipo": "string?",
+          "tipoBase": "string",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 44
+        },
+        {
+          "nome": "openingBalance",
+          "nomeCSharp": "OpeningBalance",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 47
+        },
+        {
+          "nome": "contributions",
+          "nomeCSharp": "Contributions",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 50
+        },
+        {
+          "nome": "availableBalance",
+          "nomeCSharp": "AvailableBalance",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 53
+        },
+        {
+          "nome": "revenue",
+          "nomeCSharp": "Revenue",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 56
+        },
+        {
+          "nome": "costOfSales",
+          "nomeCSharp": "CostOfSales",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 59
+        },
+        {
+          "nome": "purchasesPaid",
+          "nomeCSharp": "PurchasesPaid",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 62
+        },
+        {
+          "nome": "purchasesPlanned",
+          "nomeCSharp": "PurchasesPlanned",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 65
+        },
+        {
+          "nome": "plannedWithoutValueCount",
+          "nomeCSharp": "PlannedWithoutValueCount",
+          "tipo": "int",
+          "tipoBase": "int",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 68
+        },
+        {
+          "nome": "fixedCosts",
+          "nomeCSharp": "FixedCosts",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 71
+        },
+        {
+          "nome": "greenLimit",
+          "nomeCSharp": "GreenLimit",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 74
+        },
+        {
+          "nome": "redLimit",
+          "nomeCSharp": "RedLimit",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 77
+        },
+        {
+          "nome": "greenRoom",
+          "nomeCSharp": "GreenRoom",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 80
+        },
+        {
+          "nome": "redRoom",
+          "nomeCSharp": "RedRoom",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 83
+        },
+        {
+          "nome": "band",
+          "nomeCSharp": "Band",
+          "tipo": "PurchaseBand",
+          "tipoBase": "PurchaseBand",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 86
+        },
+        {
+          "nome": "bandIfPlannedBought",
+          "nomeCSharp": "BandIfPlannedBought",
+          "tipo": "PurchaseBand",
+          "tipoBase": "PurchaseBand",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 89
+        },
+        {
+          "nome": "reliesOnBalance",
+          "nomeCSharp": "ReliesOnBalance",
+          "tipo": "bool",
+          "tipoBase": "bool",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 92
+        },
+        {
+          "nome": "stockValueAtCost",
+          "nomeCSharp": "StockValueAtCost",
+          "tipo": "decimal",
+          "tipoBase": "decimal",
+          "anulavel": false,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 98
+        },
+        {
+          "nome": "stockDays",
+          "nomeCSharp": "StockDays",
+          "tipo": "int?",
+          "tipoBase": "int",
+          "anulavel": true,
+          "colecao": false,
+          "elemento": null,
+          "dicionario": false,
+          "nuloPerdoado": false,
+          "somenteLeitura": false,
+          "linha": 104
         }
       ]
     },

@@ -11,6 +11,9 @@ import {
 } from "@workspace/api-client-react";
 
 const mocks = vi.hoisted(() => ({
+  // A faixa de compras do mês (23/11/2026): fora dos testes dela, sem resposta —
+  // a linha some e a gravação segue, que é o comportamento com a faixa carregando.
+  useGetPurchaseBudget: vi.fn(() => ({ data: undefined })),
   createPurchase: vi.fn(),
   updatePurchase: vi.fn(),
   getProductGroupById: vi.fn(),
@@ -20,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@workspace/api-client-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@workspace/api-client-react")>()),
+  useGetPurchaseBudget: mocks.useGetPurchaseBudget,
   createPurchase: mocks.createPurchase,
   updatePurchase: mocks.updatePurchase,
 }));

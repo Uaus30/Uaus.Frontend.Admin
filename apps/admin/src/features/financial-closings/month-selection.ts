@@ -8,23 +8,17 @@
  *
  * Nada neste arquivo passa por `Date` ao ler datas vindas da API: `new Date("2026-08-01")`
  * é interpretado como UTC e volta 31/07 no Brasil (armadilha 2 do CLAUDE.md).
+ *
+ * Desde 23/11/2026 a competência obedece à CORRENTE DE SALDOS: o saldo
+ * confirmado de um mês abre o seguinte, então só se fecha M com M−1 fechado no
+ * fluxo novo (a exceção é a implantação). O mês que pode ser fechado é um só —
+ * o que `GET /FinancialClosings/next` aponta —, e os outros aparecem travados,
+ * cada um com o motivo.
  */
 
-/** Nomes dos meses em pt-BR — índice 0 = janeiro. */
-const MONTH_NAMES = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-] as const;
+import { monthName } from "@workspace/core";
+
+export { monthName };
 
 /** Quantos anos o select oferece, contando o atual. */
 const YEAR_SPAN = 5;
@@ -38,20 +32,25 @@ export interface Competence {
 
 /**
  * Por que o mês está (ou não está) disponível para fechar:
- * - `disponivel`: mês encerrado e ainda sem fechamento — o caso normal;
- * - `em-andamento`: mês corrente, ainda correndo (fechar congela dados parciais);
+ * - `disponivel`: o mês que aguarda fechamento, já encerrado — o caso normal;
+ * - `em-andamento`: o mês que aguarda fechamento é o corrente (fechar congela dados parciais);
  * - `fechado`: já existe fechamento cobrindo o mês;
- * - `nao-iniciado`: mês futuro, sem nada para fechar.
+ * - `nao-iniciado`: mês futuro, sem nada para fechar;
+ * - `aguardando`: o mês anterior ainda está aberto — a corrente de saldos exige fechá-lo antes;
+ * - `anterior`: mês antes do último fechamento que ficou sem fechamento — a corrente não volta.
  */
-export type MonthAvailability = "disponivel" | "em-andamento" | "fechado" | "nao-iniciado";
+export type MonthAvailability =
+  "disponivel" | "em-andamento" | "fechado" | "nao-iniciado" | "aguardando" | "anterior";
 
 /** Item do select de mês, com o estado que a tela colore e trava. */
 export interface MonthOption extends Competence {
   /** Nome do mês em pt-BR ("Agosto"). */
   label: string;
   availability: MonthAvailability;
-  /** `true` para `fechado` e `nao-iniciado` — o que não dá para escolher. */
+  /** `true` para tudo o que não é `disponivel` nem `em-andamento` — o que não dá para escolher. */
   disabled: boolean;
+  /** O estado por extenso quando ele depende do mês: "Aguardando outubro". */
+  statusLabel?: string;
 }
 
 /** Período gravado no backend, e a forma como ele volta na listagem. */
@@ -77,11 +76,6 @@ function pad(value: number): string {
 function parseYearMonth(value: string): Competence | null {
   const match = /^(\d{4})-(\d{2})/.exec(value);
   return match ? { year: Number(match[1]), month: Number(match[2]) } : null;
-}
-
-/** Nome do mês em pt-BR. */
-export function monthName(month: number): string {
-  return MONTH_NAMES[month - 1] ?? "";
 }
 
 /** Competência por extenso, como aparece na tela ("Agosto de 2026"). */
@@ -163,35 +157,53 @@ export function closedMonthsOf(year: number, closings: readonly PeriodLike[]): n
   return [...closed].sort((first, second) => first - second);
 }
 
+/** O mês anterior (1–12), virando de janeiro para dezembro. */
+function previousMonth(month: number): number {
+  return month === 1 ? 12 : month - 1;
+}
+
 /**
  * Os 12 meses do ano com o estado de cada um — a fonte do select.
  *
  * `fechado` tem precedência sobre `nao-iniciado`: se por algum motivo existe
  * fechamento num mês futuro, o motivo do travamento que interessa é esse.
+ *
+ * Com `nextMonth` (o que `GET /FinancialClosings/next` aponta), só ele fica
+ * livre: depois dele é `aguardando` (o anterior está aberto), antes dele é
+ * `anterior`. Sem `nextMonth` — a consulta falhou —, vale a regra antiga e o
+ * servidor recusa na confirmação o que estiver fora da corrente.
  */
 export function buildMonthOptions(
   year: number,
   closedMonths: readonly number[],
   reference: Date = new Date(),
+  nextMonth: Competence | null = null,
 ): MonthOption[] {
   const closed = new Set(closedMonths);
   const currentIndex = monthIndex(reference.getFullYear(), reference.getMonth() + 1);
+  const nextIndex = nextMonth ? monthIndex(nextMonth.year, nextMonth.month) : null;
 
-  return MONTH_NAMES.map((label, index) => {
+  return Array.from({ length: 12 }, (_, index) => {
     const month = index + 1;
     const current = monthIndex(year, month);
 
     let availability: MonthAvailability = "disponivel";
     if (closed.has(month)) availability = "fechado";
     else if (current > currentIndex) availability = "nao-iniciado";
+    else if (nextIndex !== null && current > nextIndex) availability = "aguardando";
+    else if (nextIndex !== null && current < nextIndex) availability = "anterior";
     else if (current === currentIndex) availability = "em-andamento";
 
     return {
       year,
       month,
-      label,
+      label: monthName(month),
       availability,
-      disabled: availability === "fechado" || availability === "nao-iniciado",
+      disabled: availability !== "disponivel" && availability !== "em-andamento",
+      statusLabel:
+        availability === "aguardando"
+          ? `Aguardando ${monthName(previousMonth(month)).toLowerCase()}`
+          : undefined,
     };
   });
 }

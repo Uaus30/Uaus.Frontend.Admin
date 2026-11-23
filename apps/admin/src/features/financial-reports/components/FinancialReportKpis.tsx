@@ -1,5 +1,9 @@
 import {
+  BadgePercent,
+  HandCoins,
   Package,
+  PackageCheck,
+  PackagePlus,
   PackageX,
   PiggyBank,
   Receipt,
@@ -49,18 +53,28 @@ function KpiCard({ label, value, icon: Icon, hint, className, valueClassName }: 
   );
 }
 
+/** Os doze cards, para o esqueleto ter o tamanho da grade que vem. */
+const KPI_COUNT = 12;
+
 /**
  * FinancialReportKpis
  *
- * Os oito números do relatório do período. Compras e perdas aparecem lado a
- * lado com os demais, mas são informativas: o CMV já cobre o custo dos itens
- * vendidos, então nenhuma das duas entra no lucro líquido.
+ * Os números do período na MESMA conta do resultado do fechamento (versão 2,
+ * 23/11/2026): vendas brutas, descontos por origem, vendas líquidas, custo das
+ * vendas, lucro bruto, baixas e sobras (agora dentro do lucro), custos fixos e
+ * lucro líquido. Sem a mesma conta, o resumo e o fechamento do mesmo mês dariam
+ * lucros diferentes.
+ *
+ * O "Compras" antigo somava ENTRADAS de estoque pela data de entrada, inclusive
+ * o ajuste manual: virou "Entradas de estoque", ao lado das "Compras pagas" — o
+ * dinheiro que saiu, pela data da compra, que é o que a faixa de compras usa.
+ * Os dois são informativos: o custo do que foi vendido já está no CMV.
  */
 export function FinancialReportKpis({ summary, isLoading }: FinancialReportKpisProps) {
   if (isLoading || !summary) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+        {Array.from({ length: KPI_COUNT }, (_, index) => (
           <Skeleton key={index} className="h-[110px] rounded-xl" />
         ))}
       </div>
@@ -68,17 +82,30 @@ export function FinancialReportKpis({ summary, isLoading }: FinancialReportKpisP
   }
 
   const { sales, fixedCosts, writeOffs } = summary;
+  const saleDiscount = summary.discountsTotal - summary.itemDiscountsTotal;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <KpiCard
-        label="Faturamento"
-        value={formatCurrency(sales.revenue)}
+        label="Vendas brutas"
+        value={formatCurrency(summary.grossSales)}
         icon={Wallet}
-        hint={sales.discount > 0 ? `${formatCurrency(sales.discount)} em descontos` : undefined}
+        hint="Vendas líquidas + descontos concedidos"
       />
       <KpiCard
-        label="CMV"
+        label="Descontos concedidos"
+        value={formatCurrency(summary.discountsTotal)}
+        icon={BadgePercent}
+        hint={`No item ${formatCurrency(summary.itemDiscountsTotal)} (promoção ${formatCurrency(summary.promotionDiscountsTotal)}) · na venda ${formatCurrency(saleDiscount)} (cupom ${formatCurrency(summary.couponDiscountsTotal)})`}
+      />
+      <KpiCard
+        label="Vendas líquidas"
+        value={formatCurrency(sales.revenue)}
+        icon={Receipt}
+        hint={`${sales.salesCount.toLocaleString("pt-BR")} venda(s) · ticket médio ${formatCurrency(sales.averageTicket)}`}
+      />
+      <KpiCard
+        label="Custo das vendas (CMV)"
         value={formatCurrency(sales.cost)}
         icon={Package}
         hint="Custo FIFO dos itens vendidos"
@@ -90,6 +117,18 @@ export function FinancialReportKpis({ summary, isLoading }: FinancialReportKpisP
         hint={`Margem de ${formatPercentage(sales.marginPercentage)}`}
       />
       <KpiCard
+        label="Baixas a custo"
+        value={formatCurrency(writeOffs.totalCost)}
+        icon={PackageX}
+        hint={`${formatQuantity(writeOffs.totalQuantity)} item(ns) — descontam do lucro líquido`}
+      />
+      <KpiCard
+        label="Sobras de estoque"
+        value={formatCurrency(summary.stockSurplusTotal)}
+        icon={PackagePlus}
+        hint="Entradas de ajuste manual — somam no lucro"
+      />
+      <KpiCard
         label="Custos Fixos"
         value={formatCurrency(fixedCosts.total)}
         icon={ReceiptText}
@@ -99,27 +138,27 @@ export function FinancialReportKpis({ summary, isLoading }: FinancialReportKpisP
         label="Lucro Líquido"
         value={formatCurrency(summary.netProfit)}
         icon={PiggyBank}
-        hint="Lucro bruto − custos fixos"
+        hint="Lucro bruto − baixas + sobras − custos fixos"
         className="border-primary/40 bg-primary/5"
         valueClassName={summary.netProfit < 0 ? "text-destructive" : undefined}
       />
       <KpiCard
-        label="Compras no período"
-        value={formatCurrency(summary.purchasesTotal)}
+        label="Compras pagas"
+        value={formatCurrency(summary.purchasesPaidTotal)}
         icon={ShoppingCart}
-        hint="Informativo — não entra no lucro líquido"
+        hint="O dinheiro que saiu, pela data da compra — informativo"
       />
       <KpiCard
-        label="Perdas no período"
-        value={formatCurrency(writeOffs.totalCost)}
-        icon={PackageX}
-        hint={`${formatQuantity(writeOffs.totalQuantity)} item(ns) baixado(s) — informativo`}
+        label="Entradas de estoque"
+        value={formatCurrency(summary.purchasesTotal)}
+        icon={PackageCheck}
+        hint="Pela data de entrada, com o ajuste manual — informativo"
       />
       <KpiCard
-        label="Ticket médio"
-        value={formatCurrency(sales.averageTicket)}
-        icon={Receipt}
-        hint={`${sales.salesCount.toLocaleString("pt-BR")} venda(s) no período`}
+        label="Aportes"
+        value={formatCurrency(summary.contributionsTotal)}
+        icon={HandCoins}
+        hint="Entram no caixa, não no lucro"
       />
     </div>
   );

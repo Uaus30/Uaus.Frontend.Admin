@@ -11,24 +11,25 @@ type WriteOffsByReasonCardProps = {
 /**
  * WriteOffsByReasonCard
  *
- * Perdas do período agrupadas por motivo (baixas de estoque confirmadas).
- * INFORMATIVAS: o CMV já cobre o custo FIFO dos itens vendidos, então a perda
- * não entra no lucro líquido.
+ * Baixas do período agrupadas por motivo (perda, doação, consumo, inventário),
+ * a custo FIFO. Desde a conta nova (23/11/2026) elas DESCONTAM do lucro líquido:
+ * é o produto que saiu da loja sem virar dinheiro. Continuam fora do
+ * faturamento, do caixa e da faixa de compras.
  */
 export function WriteOffsByReasonCard({ writeOffs }: WriteOffsByReasonCardProps) {
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Perdas por motivo</CardTitle>
+        <CardTitle className="text-lg font-semibold">Baixas por motivo</CardTitle>
         <CardDescription>
-          Baixas de estoque confirmadas no período — informativas, não entram no lucro líquido.
+          Baixas de estoque efetivadas no período, a custo — descontam do lucro líquido.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {writeOffs.byReason.length === 0 ? (
           <div className="py-10 text-center text-muted-foreground">
             <PackageX className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-            <p className="font-medium">Nenhuma perda registrada no período</p>
+            <p className="font-medium">Nenhuma baixa registrada no período</p>
             <p className="text-sm">Baixas de estoque confirmadas aparecem aqui por motivo.</p>
           </div>
         ) : (

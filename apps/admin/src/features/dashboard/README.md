@@ -25,6 +25,7 @@ não tem nenhum dado simulado: todos os números vêm de vendas reais.
 - `components/MonthComparisonCard.tsx`: "Ritmo do mês" — curva acumulada do mês atual contra o anterior.
 - `components/DepartmentBreakdownCard.tsx`: faturamento por departamento, com variação contra a base e as categorias de cada um ao clicar.
 - `components/RevenueBreakdownCard.tsx`: quebra do faturamento por forma de pagamento.
+- `components/PurchaseBandCard.tsx` + `hooks/usePurchaseBandCard.ts`: o cartão pequeno da faixa de compras do mês, que abre o Painel Financeiro (regra 7).
 - `components/ChampionsTable.tsx`: produtos campeões — top por lucro dos últimos 30 dias, estoque como alerta e "Ver mais".
 - `components/PatternsPanel.tsx` + `components/PatternChart.tsx`: padrões por dia da semana, hora do dia e dia do mês.
 - `components/IntelligencePanel.tsx` + `components/RestockList.tsx` + `components/BasketInsights.tsx`: inteligência comercial.
@@ -114,3 +115,7 @@ Quebras nominais (categoria, forma de pagamento) usam **um único matiz** com o 
 - **Campeões e reposição:** sem a largura mínima de 720px abaixo do `lg`; ficam
   o produto e o número que decide (lucro, ou o "Comprar"), e o resto vem embaixo
   do nome.
+
+### 7. A faixa de compras do mês (23/11/2026)
+
+Um cartão pequeno, logo abaixo dos alertas de estoque e de compras: a faixa de compras do mês **de calendário** (verde, amarelo ou vermelho, com ícone e palavra) e o "pode comprar", ou o aporte que volta ao verde. O toque abre o Painel Financeiro, onde está o resto. O mês não segue o seletor de período: a faixa responde "o mês aguenta mais compras?", e essa pergunta só existe para o mês que está correndo. Falhando a consulta, o cartão some — o Dashboard é a tela de vendas, e um erro do financeiro não toma o lugar dela. A cor, o ícone e as frases são os de `src/lib/purchase-band.ts`, os mesmos do Painel e de Compras.

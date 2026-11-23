@@ -101,6 +101,38 @@ describe("buildMonthOptions", () => {
   });
 });
 
+describe("buildMonthOptions com a corrente de saldos (23/11/2026)", () => {
+  const reference = new Date(2026, 10, 23); // 23/11/2026
+
+  it("só o mês que aguarda fechamento fica livre; depois dele aguarda, antes dele não volta", () => {
+    // Setembro fechado, outubro aguarda (o `next`).
+    const options = buildMonthOptions(2026, [9], reference, { year: 2026, month: 10 });
+    const byMonth = (month: number) => options[month - 1];
+
+    expect(byMonth(10)).toMatchObject({ availability: "disponivel", disabled: false });
+    expect(byMonth(11)).toMatchObject({
+      availability: "aguardando",
+      disabled: true,
+      statusLabel: "Aguardando outubro",
+    });
+    expect(byMonth(9)).toMatchObject({ availability: "fechado", disabled: true });
+    expect(byMonth(8)).toMatchObject({ availability: "anterior", disabled: true });
+    expect(byMonth(12)).toMatchObject({ availability: "nao-iniciado", disabled: true });
+  });
+
+  it("o mês que aguarda pode ser o corrente: fica livre, em andamento", () => {
+    const options = buildMonthOptions(2026, [10], reference, { year: 2026, month: 11 });
+
+    expect(options[10]).toMatchObject({ availability: "em-andamento", disabled: false });
+  });
+
+  it("janeiro aguardando diz dezembro", () => {
+    const options = buildMonthOptions(2027, [], new Date(2027, 1, 10), { year: 2026, month: 12 });
+
+    expect(options[0]).toMatchObject({ availability: "aguardando", statusLabel: "Aguardando dezembro" });
+  });
+});
+
 describe("competenceOfPeriod", () => {
   it("deve reconhecer o mês-calendário cheio", () => {
     expect(

@@ -5,6 +5,7 @@ import { describeApiError } from "@workspace/core";
 import {
   cancelPurchaseReceipt,
   getGetLowStockQueryKey,
+  getGetPurchaseBudgetQueryKey,
   getGetPurchaseEntriesQueryKey,
   getGetPurchaseEntryDetailsQueryKey,
   getGetPurchaseReceiptCancellationQueryKey,
@@ -91,6 +92,8 @@ export function useCancelPurchaseReceipt({
       queryClient.invalidateQueries({ queryKey: getGetPurchaseEntryDetailsQueryKey() }),
       queryClient.invalidateQueries({ queryKey: ["product-for-entry"] }),
       queryClient.invalidateQueries({ queryKey: getGetLowStockQueryKey() }),
+      // Mutação de compra invalida a faixa de compras (contrato do financeiro).
+      queryClient.invalidateQueries({ queryKey: getGetPurchaseBudgetQueryKey() }),
     ]);
   }
 

@@ -163,6 +163,19 @@ recebimento dela é o que gera a entrada.
   (CORS). No recebimento de produto novo, as mesmas imagens viram a galeria do
   cadastro sem novo upload.
 
+## A faixa de compras (23/11/2026)
+
+Na hora de comprar, a tela diz se o mês aguenta a compra (`PLANO-FINANCEIRO.md`, seções 2 e 7.3). A faixa do mês vem do servidor (`GET /PurchaseBudget`); a de uma compra ainda não gravada sai da mesma regra, no core (`purchaseBandFor`). Cor, ícone e frases são os de `src/lib/purchase-band.ts`, os mesmos do Painel Financeiro e do Dashboard.
+
+- **O que conta (K)**: compra **A caminho** ou **Lançado**, pela **data da compra**, pelo total final — o bruto, se faltar o final. **Pendente não conta**: é "preciso comprar isto"; aparece só como planejado.
+- **No topo da listagem** (`PurchaseBudgetBanner`, no estilo do `OpenPurchasesAlert`): "Novembro está verde: pode comprar R$ 439,00 no verde, R$ 1.712,00 até o vermelho", com link para o Painel. Com pendentes que têm valor: "Se fizer as pendentes (R$ 600,00), o mês vai para amarelo". Provisória (mês anterior sem fechamento no fluxo novo), diz que é e qual mês fechar. Ao contrário do alerta de compras em aberto, não some no verde: o verde também é informação.
+- **No editor** (`PurchaseBandLine`), quando a compra passa a valer dinheiro ou muda o quanto vale — criada já como A caminho, mudada de Pendente para A caminho, ou com o total alterado numa compra que já contava: "Esta compra mantém novembro no verde", "leva novembro para o amarelo" ou "para o vermelho", com o que sobra depois dela. Só a **diferença** entra (`purchaseBandImpact`): a compra gravada já está no K do servidor. A compra que troca de mês conta inteira no mês novo. A consulta da faixa só sai quando a compra muda K — abrir uma compra para conferir não pergunta nada ao servidor.
+- **Levar ao vermelho pergunta, sem bloquear** (decisão 13): "Com esta compra, novembro não cobre os custos fixos. Comprar mesmo assim?" — o padrão da margem negativa. As duas perguntas são independentes e andam em fila: margem primeiro, faixa depois, e quem respondeu a primeira não a vê de novo. Os dois "confirmar" só agem com a própria pergunta de pé: um clique logo depois de fechar um diálogo cai nele durante a animação de saída (smoke de 22/10/2026), e sem a guarda gravaria a compra duas vezes. Reduzir o valor de uma compra no vermelho não pergunta nada.
+- **"Marcar como a caminho" no menu ⋮ da linha pergunta igual** (`useStatusRedBandGuard`, revisão adversarial de 23/11/2026). É o caminho mais usado de Pendente para A caminho — o recebimento de uma Pendente fica travado até ela ser marcada —, e sem o guarda o menu gravava direto, levando o mês ao vermelho calado. O guarda busca a faixa do mês da data da compra (`getPurchaseBudget`), soma a compra inteira (Pendente valia zero em K) e, se o mês fica vermelho, abre "Comprar no vermelho?" com "Marcar mesmo assim" / "Deixar pendente". O "sim" só age com a pergunta de pé, e um clique duplo no menu não consulta nem grava duas vezes. Voltar para Pendente não consulta nada.
+- **A faixa carregando, ou falhando, não trava a gravação**: sem a resposta, não há linha nem pergunta.
+- **Data em mês já fechado**: a linha avisa que a compra conta no mês da data, mas não muda o fechamento — o dinheiro dela aparece como diferença de saldo. Ali não se pergunta nada.
+- **Toda mutação de compra invalida a faixa** (`["PurchaseBudget"]`): registrar, editar, trocar a situação, excluir, receber e cancelar o recebimento — e o "mark-received" do cadastro de produto novo, porque a entrada gravada antes contava como entrada direta até ser ligada à compra.
+
 ## Cancelar recebimento (23/10/2026, pedido do dono)
 
 O incidente: uma compra lançada no produto de código de barras errado, que

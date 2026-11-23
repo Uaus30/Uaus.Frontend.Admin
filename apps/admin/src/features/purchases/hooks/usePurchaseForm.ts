@@ -39,6 +39,8 @@ import { usePurchaseBarcodeLookup } from "./usePurchaseBarcodeLookup";
 import { usePurchaseImages } from "./usePurchaseImages";
 import { usePurchaseVariations } from "./usePurchaseVariations";
 import { useNewProductGrid } from "./useNewProductGrid";
+import { usePurchaseBandImpact } from "./usePurchaseBandImpact";
+import { purchaseMoneyValue, type PurchaseMoney } from "../lib/purchase-band-impact";
 
 /** Hoje, em `yyyy-MM-dd` — componentes LOCAIS, nunca `toISOString()`. */
 export function todayDateKey(): string {
@@ -441,6 +443,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       setPendingProduct(null);
       setPendingBarcode(null);
       setBelowCostOpen(false);
+      setRedBandOpen(false);
     }
   }
   const [form, setForm] = useState<PurchaseForm>(emptyPurchaseForm);
@@ -464,6 +467,17 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
    * mas pergunta antes de gravar.
    */
   const [belowCostOpen, setBelowCostOpen] = useState(false);
+  /**
+   * A compra leva o mês ao vermelho da faixa de compras: a confirmação está
+   * aberta (decisão 13, 23/11/2026). Pergunta, nunca bloqueia — o mesmo padrão
+   * da margem negativa.
+   */
+  const [redBandOpen, setRedBandOpen] = useState(false);
+  /**
+   * O que a compra GRAVADA valia na faixa (mês e valor em K), para a linha da
+   * faixa somar só a diferença. `null` na compra nova.
+   */
+  const [original, setOriginal] = useState<PurchaseMoney | null>(null);
   /**
    * O produto escolhido no seletor, esperando a resposta sobre nome e fotos.
    *
@@ -508,6 +522,9 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   const [readOnly, setReadOnly] = useState(false);
 
   const supplier = suppliers.find((item) => String(item.id) === form.supplierId);
+
+  // A linha da faixa de compras no editor (seção 7.3 do PLANO-FINANCEIRO).
+  const bandImpact = usePurchaseBandImpact({ open, readOnly, form, original });
 
   // O campo de código só existe na compra de produto novo, e é só ali que um
   // código já cadastrado tem o que vincular.
@@ -591,6 +608,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setReadOnly(false);
     setPrecoTocado(false);
     finalTocadoRef.current = false;
+    setOriginal(null);
     setOpen(true);
   }
 
@@ -599,6 +617,14 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setEditingId(purchase.id);
     setForm(purchaseToForm(purchase, categories));
     setReadOnly(enumCode(purchase.status, PURCHASE_STATUS) === PURCHASE_STATUS.Received);
+    setOriginal({
+      monthKey: dateKeyFromApi(purchase.purchaseDate).slice(0, 7),
+      value: purchaseMoneyValue(
+        enumCode(purchase.status, PURCHASE_STATUS),
+        purchase.grossTotal,
+        purchase.finalTotal,
+      ),
+    });
     // Preço já decidido é decisão tomada: o cálculo de margem não a substitui.
     setPrecoTocado((purchase.suggestedPrice ?? 0) > 0);
     // Final diferente do bruto é desconto ou frete já registrado: corrigir o
@@ -636,6 +662,7 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
     setPrecoTocado(false);
     finalTocadoRef.current = false;
     setDataLembrada(null);
+    setOriginal(null);
     setForm({
       ...emptyPurchaseForm(),
       productId: dados.productId,
@@ -930,8 +957,11 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
   /**
    * Grava a compra. `aceitaPrejuizo` é a resposta da confirmação de margem
    * negativa: sem ela, preço sugerido abaixo do custo pergunta antes.
+   * `aceitaVermelho` é a resposta da confirmação da faixa: compra que leva o mês
+   * ao vermelho pergunta antes, DEPOIS da margem — as duas perguntas são
+   * independentes, e quem aceitou a primeira não a vê de novo.
    */
-  function submit(event?: React.FormEvent, aceitaPrejuizo = false) {
+  function submit(event?: React.FormEvent, aceitaPrejuizo = false, aceitaVermelho = false) {
     event?.preventDefault();
 
     if (readOnly) return;
@@ -956,6 +986,13 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       return;
     }
     setBelowCostOpen(false);
+
+    // A faixa ainda carregando não segura a gravação: ela avisa, nunca trava.
+    if (!aceitaVermelho && bandImpact?.leadsToRed) {
+      setRedBandOpen(true);
+      return;
+    }
+    setRedBandOpen(false);
 
     saveMutation.mutate({
       supplierId: Number(form.supplierId),
@@ -1090,5 +1127,17 @@ export function usePurchaseForm({ onSaved, suppliers, categories }: UsePurchaseF
       if (belowCostOpen) submit(undefined, true);
     },
     cancelBelowCost: () => setBelowCostOpen(false),
+    /** A compra na faixa de compras do mês da data, ou `null` quando não há linha. */
+    bandImpact,
+    /** A pergunta da faixa: a compra leva o mês ao vermelho. */
+    redBandOpen,
+    // Só com a pergunta de pé, pelo mesmo motivo da margem: um clique logo depois
+    // de fechar o diálogo cai nele durante a animação de saída (smoke de
+    // 22/10/2026). A margem já foi respondida ou não se aplicava — por isso o
+    // `true` dela vai junto.
+    confirmRedBand: () => {
+      if (redBandOpen) submit(undefined, true, true);
+    },
+    cancelRedBand: () => setRedBandOpen(false),
   };
 }

@@ -189,22 +189,27 @@ describe("buildMenu", () => {
     ]);
   });
 
-  it("Financeiro abre pelo Resumo Financeiro e põe Baixas logo após Vendas", () => {
-    // "Resumo Financeiro" é a tela que se chamava "Relatórios" — o rótulo
-    // antigo colidiria com o grupo novo de mesmo nome. A posição dos dois é
-    // escolhida, não alfabética nem acidental: a ordem dentro do grupo é a
-    // ordem das ROUTES.
+  it("Financeiro abre pelo Painel Financeiro, com Aportes antes dos Fechamentos", () => {
+    // A ordem é do PLANO-FINANCEIRO (seção 7.7, 23/11/2026): o Painel abre o
+    // grupo e o Resumo vem logo depois; Baixas segue Vendas; Aportes fica antes
+    // dos Fechamentos, porque o aporte entra no saldo que o fechamento confirma.
+    // "Resumo Financeiro" é a tela que se chamava "Relatórios" — o rótulo antigo
+    // colidiria com o grupo de mesmo nome. A ordem dentro do grupo é a das ROUTES.
     const financeiro = buildMenu().find((item) => item.name === "Financeiro");
 
     expect(financeiro?.items?.map((s) => s.name)).toEqual([
+      "Painel Financeiro",
       "Resumo Financeiro",
       "Vendas",
       "Baixas",
+      "Aportes",
       "Fechamentos Mensais",
       "Custos Fixos",
       "Sócios",
       "Formas de Pagamento",
     ]);
+    expect(financeiro?.items?.[0].href).toBe("/financeiro/painel");
+    expect(financeiro?.items?.[4].href).toBe("/financeiro/aportes");
   });
 
   it("Inventário mora no grupo Relatórios, e não no grupo Estoque", () => {

@@ -13,7 +13,7 @@ import {
   type GradeTypeCode,
   type SupplierDto,
 } from "@workspace/api-client-react";
-import { MAX_SALE_PRICE, formatCurrency } from "@workspace/core";
+import { MAX_SALE_PRICE, formatCurrency, monthNameOf } from "@workspace/core";
 import { CurrencyInput } from "@/features/products/components/CurrencyInput";
 import { PricingPreview } from "@/features/stock-entries/components/PricingPreview";
 import { ProductSearchPicker } from "@/components/product-search-picker";
@@ -23,6 +23,7 @@ import { PURCHASE_INVOICE_NUMBER_MAX_LENGTH } from "../lib/purchase-memory";
 import { purchaseHasProduct } from "../hooks/usePurchaseForm";
 import { PurchaseBarcodeField } from "./PurchaseBarcodeField";
 import { PurchaseDerivedTotals } from "./PurchaseDerivedTotals";
+import { PurchaseBandLine } from "./PurchaseBandLine";
 import { PurchaseVariationsGrid } from "./PurchaseVariationsGrid";
 import { NewProductGradeField } from "./NewProductGradeField";
 import { PurchaseImagesField } from "./PurchaseImagesField";
@@ -476,6 +477,10 @@ export function PurchaseEditorModal({
 
           <PurchaseDerivedTotals derived={derived} />
 
+          {/* A faixa de compras do mês com esta compra (23/11/2026): só quando
+              ela passa a valer dinheiro ou muda o quanto vale. */}
+          {!readOnly && <PurchaseBandLine impact={form.bandImpact} />}
+
           {/* O preço de venda decidido na hora de COMPRAR: é aqui que se olha para
               o custo, e é aqui que a conta de margem ainda pode mudar a decisão de
               comprar. No recebimento ele já vem preenchido e passa a valer no
@@ -645,6 +650,20 @@ export function PurchaseEditorModal({
           cancelLabel="Revisar o preço"
           destructive
           onConfirm={form.confirmBelowCost}
+        />
+
+        {/* Compra que leva o mês ao vermelho pergunta, sem bloquear (decisão 13).
+            Depois da margem negativa no DOM: quando as duas perguntas se seguem,
+            a da faixa abre por cima da que está saindo. */}
+        <ConfirmDialog
+          open={form.redBandOpen}
+          onOpenChange={(aberto) => !aberto && form.cancelRedBand()}
+          title="Comprar no vermelho?"
+          description={`Com esta compra, ${monthNameOf(form.bandImpact?.monthKey).toLowerCase() || "o mês"} não cobre os custos fixos. Comprar mesmo assim?`}
+          confirmLabel="Comprar mesmo assim"
+          cancelLabel="Revisar a compra"
+          destructive
+          onConfirm={form.confirmRedBand}
         />
 
         <ConfirmDialog

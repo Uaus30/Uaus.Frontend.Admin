@@ -1,6 +1,10 @@
 import { Plus } from "lucide-react";
-import { Button } from "@workspace/ui";
+import { monthNameOf } from "@workspace/core";
+import { Button, ConfirmDialog } from "@workspace/ui";
 import { usePurchases } from "@/features/purchases/hooks/usePurchases";
+import { useMonthPurchaseBudget } from "@/features/purchases/hooks/useMonthPurchaseBudget";
+import { useStatusRedBandGuard } from "@/features/purchases/hooks/useStatusRedBandGuard";
+import { PurchaseBudgetBanner } from "@/features/purchases/components/PurchaseBudgetBanner";
 import { PurchasesTable } from "@/features/purchases/components/PurchasesTable";
 import { PurchaseEditorModal } from "@/features/purchases/components/PurchaseEditorModal";
 import { PurchaseReceiveDialog } from "@/features/purchases/components/PurchaseReceiveDialog";
@@ -15,6 +19,10 @@ import { ProductImageSearchModal } from "@/features/products/components/ProductI
  */
 export default function Purchases() {
   const purchases = usePurchases();
+  const monthBudget = useMonthPurchaseBudget();
+  // "Marcar como a caminho" pelo menu da linha pergunta como o editor quando
+  // leva o mês ao vermelho (decisão 13: pergunta, nunca bloqueia).
+  const statusGuard = useStatusRedBandGuard(purchases.items, purchases.setStatus);
   const { form } = purchases;
 
   return (
@@ -33,6 +41,9 @@ export default function Purchases() {
           </Button>
         </div>
 
+        {/* A faixa de compras do mês (23/11/2026): se o mês aguenta a próxima compra. */}
+        <PurchaseBudgetBanner budget={monthBudget} />
+
         <PurchasesTable
           items={purchases.items}
           isLoading={purchases.isLoading}
@@ -48,12 +59,23 @@ export default function Purchases() {
           setPage={purchases.setPage}
           onEdit={form.openEdit}
           onDelete={purchases.remove}
-          onSetStatus={purchases.setStatus}
+          onSetStatus={statusGuard.request}
           onReceive={purchases.startReceive}
           onCancelReceipt={purchases.cancelReceipt.start}
           mutatingId={purchases.mutatingId}
         />
       </div>
+
+      <ConfirmDialog
+        open={statusGuard.pending !== null}
+        onOpenChange={(aberto) => !aberto && statusGuard.cancel()}
+        title="Comprar no vermelho?"
+        description={`Com esta compra a caminho, ${monthNameOf(statusGuard.pending?.monthKey).toLowerCase() || "o mês"} não cobre os custos fixos. Marcar como a caminho mesmo assim?`}
+        confirmLabel="Marcar mesmo assim"
+        cancelLabel="Deixar pendente"
+        destructive
+        onConfirm={statusGuard.confirm}
+      />
 
       <PurchaseEditorModal
         form={form}

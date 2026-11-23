@@ -1,177 +1,180 @@
 import {
+  Button,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
+  cn,
 } from "@workspace/ui";
-import { Button } from "@workspace/ui";
-import { Label } from "@workspace/ui";
-import { Textarea } from "@workspace/ui";
-import { ArrowLeft, Loader2, Lock } from "lucide-react";
-import { ClosingSummary } from "./ClosingSummary";
+import { ArrowLeft, ArrowRight, Loader2, Lock } from "lucide-react";
 import { CompetencePicker } from "./CompetencePicker";
-import type {
-  FinancialClosingPreviewDto,
-  FinancialClosingVariableCostDto,
-  MonthOption,
-  NewClosingStep,
-} from "../types";
+import { ResultAndCashStep } from "./ResultAndCashStep";
+import { BalanceStep } from "./BalanceStep";
+import type { useNewClosing } from "../hooks/useNewClosing";
+import type { NewClosingStep } from "../types";
 
 interface NewClosingDialogProps {
-  open: boolean;
-  step: NewClosingStep;
-  /** Ano da competência. */
-  year: number;
-  /** Mês da competência (1–12) ou `null` enquanto ninguém escolheu. */
-  month: number | null;
-  yearOptions: number[];
-  monthOptions: MonthOption[];
-  isLoadingMonths: boolean;
-  notes: string;
-  preview: FinancialClosingPreviewDto | null;
-  isCalculating: boolean;
-  isSaving: boolean;
-  onClose: () => void;
-  onYearChange: (year: number) => void;
-  onMonthChange: (month: number) => void;
-  onApplyLastMonth: () => void;
-  onCalculatePreview: () => void;
-  onAddVariableCost: (cost: FinancialClosingVariableCostDto) => void;
-  onRemoveVariableCost: (index: number) => void;
-  onBackToCompetence: () => void;
-  onNotesChange: (notes: string) => void;
-  onConfirm: () => void;
+  closing: ReturnType<typeof useNewClosing>;
+}
+
+const STEPS: { key: NewClosingStep; label: string }[] = [
+  { key: "competencia", label: "Competência" },
+  { key: "resultado", label: "Resultado e caixa" },
+  { key: "saldo", label: "Retiradas e saldo" },
+];
+
+const DESCRIPTIONS: Record<NewClosingStep, string> = {
+  competencia: "Escolha o mês a fechar e calcule a prévia — nada é gravado nesse passo.",
+  resultado: "Confira o resultado e o caixa calculados no servidor. Os custos variáveis entram aqui.",
+  saldo: "Digite as retiradas e confirme o saldo que fica para a loja. Ao confirmar, tudo é congelado.",
+};
+
+/** Os três passos, com o atual em destaque — no celular, só os números. */
+function StepIndicator({ step }: { step: NewClosingStep }) {
+  const current = STEPS.findIndex((item) => item.key === step);
+  return (
+    <ol className="flex items-center gap-2 text-xs" aria-label="Passos do fechamento">
+      {STEPS.map((item, index) => (
+        <li
+          key={item.key}
+          aria-current={index === current ? "step" : undefined}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-2.5 py-1",
+            index === current
+              ? "border-primary bg-primary/10 font-semibold text-foreground"
+              : "text-muted-foreground",
+          )}
+        >
+          <span>{index + 1}</span>
+          <span className={cn(index !== current && "hidden sm:inline")}>{item.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 /**
  * NewClosingDialog
  *
- * Diálogo de novo fechamento em dois passos: escolha da competência — mês e ano,
- * com atalho "Último mês" — → prévia calculada no servidor + observações +
- * confirmação. A prévia não persiste nada; ao confirmar, o servidor recalcula e
- * congela.
+ * O novo fechamento em três passos (23/11/2026): competência → resultado e
+ * caixa → retiradas e saldo. A prévia não persiste nada; ao confirmar, o
+ * servidor recalcula e congela tudo — números, rateio, retiradas e o saldo que
+ * abre o mês seguinte. Renderiza o que `useNewClosing` devolve.
  */
-export function NewClosingDialog({
-  open,
-  step,
-  year,
-  month,
-  yearOptions,
-  monthOptions,
-  isLoadingMonths,
-  notes,
-  preview,
-  isCalculating,
-  isSaving,
-  onClose,
-  onYearChange,
-  onMonthChange,
-  onApplyLastMonth,
-  onCalculatePreview,
-  onAddVariableCost,
-  onRemoveVariableCost,
-  onBackToCompetence,
-  onNotesChange,
-  onConfirm,
-}: NewClosingDialogProps) {
-  const selected = monthOptions.find((option) => option.month === month) ?? null;
-  // Mês fechado só chega aqui pelo atalho "Último mês" (o select o trava): a
-  // prévia fica bloqueada porque a confirmação seria recusada por sobreposição.
-  const canCalculate = selected != null && selected.availability !== "fechado";
+export function NewClosingDialog({ closing }: NewClosingDialogProps) {
+  const { step, preview, competence } = closing;
+  const busy = closing.isCalculating || closing.isSaving;
 
   return (
-    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={closing.open} onOpenChange={(value) => !value && closing.closeNewClosing()}>
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
             Novo Fechamento Financeiro
           </DialogTitle>
-          <DialogDescription>
-            {step === "competencia"
-              ? "Escolha o mês e o ano a fechar e calcule a prévia — nada é gravado nesse passo."
-              : "Confira os números calculados no servidor. Ao confirmar, valores e rateio são congelados."}
-          </DialogDescription>
+          <DialogDescription>{DESCRIPTIONS[step]}</DialogDescription>
+          <StepIndicator step={step} />
         </DialogHeader>
 
-        {step === "competencia" ? (
-          <>
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1 pt-2">
+          {step === "competencia" && (
             <CompetencePicker
-              year={year}
-              month={month}
-              yearOptions={yearOptions}
-              monthOptions={monthOptions}
-              isLoadingMonths={isLoadingMonths}
-              disabled={isCalculating}
-              onYearChange={onYearChange}
-              onMonthChange={onMonthChange}
-              onApplyLastMonth={onApplyLastMonth}
+              year={competence.year}
+              month={competence.month}
+              yearOptions={competence.yearOptions}
+              monthOptions={competence.monthOptions}
+              isLoadingMonths={competence.isLoadingMonths}
+              next={competence.next}
+              disabled={closing.isCalculating}
+              onYearChange={competence.handleYearChange}
+              onMonthChange={competence.handleMonthChange}
+              onApplySuggested={competence.applySuggested}
             />
+          )}
+          {step === "resultado" && preview && (
+            <ResultAndCashStep
+              preview={preview}
+              isImplantation={closing.isImplantation}
+              isRecalculating={closing.isCalculating}
+              onAddVariableCost={closing.handleAddVariableCost}
+              onRemoveVariableCost={closing.handleRemoveVariableCost}
+            />
+          )}
+          {step === "saldo" && preview && (
+            <BalanceStep
+              preview={preview}
+              isImplantation={closing.isImplantation}
+              withdrawalDrafts={closing.withdrawalDrafts}
+              onWithdrawalChange={closing.setWithdrawal}
+              openingBalanceText={closing.openingBalanceText}
+              onOpeningBalanceChange={closing.setOpeningBalanceText}
+              onCommit={closing.commitBalanceInputs}
+              closingBalanceText={closing.closingBalanceText}
+              onClosingBalanceChange={closing.setClosingBalance}
+              balanceNotes={closing.balanceNotes}
+              onBalanceNotesChange={closing.setBalanceNotes}
+              notes={closing.notes}
+              onNotesChange={closing.setNotes}
+              balance={closing.balance}
+              inputsDirty={closing.inputsDirty}
+              isRecalculating={closing.isCalculating}
+            />
+          )}
+        </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={onClose} disabled={isCalculating}>
+        <DialogFooter className="gap-2">
+          {step === "competencia" ? (
+            <>
+              <Button variant="outline" onClick={closing.closeNewClosing} disabled={closing.isCalculating}>
                 Cancelar
               </Button>
               <Button
-                onClick={onCalculatePreview}
-                disabled={isCalculating || !canCalculate}
+                onClick={closing.handleCalculatePreview}
+                disabled={closing.isCalculating || !competence.selected || competence.selected.disabled}
                 className="gap-2"
               >
-                {isCalculating && <Loader2 className="h-4 w-4 animate-spin" />}
+                {closing.isCalculating && <Loader2 className="h-4 w-4 animate-spin" />}
                 Calcular prévia
               </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          preview && (
+            </>
+          ) : (
             <>
-              <div className="space-y-4 pt-2">
-                <ClosingSummary
-                  closing={preview}
-                  fixedCostItems={preview.fixedCosts.items}
-                  warnings={preview.warnings}
-                  onAddVariableCost={onAddVariableCost}
-                  onRemoveVariableCost={onRemoveVariableCost}
-                  isRecalculating={isCalculating}
-                />
-
-                <div className="space-y-2">
-                  <Label htmlFor="closing-notes">Observações</Label>
-                  <Textarea
-                    id="closing-notes"
-                    value={notes}
-                    onChange={(e) => onNotesChange(e.target.value)}
-                    placeholder="Opcional — contexto do fechamento, ajustes combinados etc."
-                    maxLength={500}
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={onBackToCompetence}
-                  disabled={isSaving}
-                  className="gap-1.5"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Voltar
+              <Button
+                variant="outline"
+                onClick={step === "saldo" ? closing.backToResult : closing.backToCompetence}
+                disabled={busy}
+                className="gap-1.5"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+              </Button>
+              {step === "resultado" ? (
+                <Button onClick={closing.goToBalance} disabled={busy} className="gap-1.5">
+                  Avançar
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
-                {/*
-                  Travado durante o recálculo: confirmar com um lançamento em voo
-                  gravaria a lista antiga enquanto a tela já mostra a nova.
-                */}
-                <Button onClick={onConfirm} disabled={isSaving || isCalculating} className="gap-2">
-                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              ) : (
+                // Travado durante o recálculo e com retirada fora da conta:
+                // confirmar ali gravaria um saldo que a tela não mostrou.
+                <Button
+                  onClick={closing.handleConfirmClosing}
+                  disabled={!closing.canConfirm}
+                  className="gap-2"
+                >
+                  {closing.isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
                   Confirmar fechamento
                 </Button>
-              </DialogFooter>
+              )}
             </>
-          )
-        )}
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

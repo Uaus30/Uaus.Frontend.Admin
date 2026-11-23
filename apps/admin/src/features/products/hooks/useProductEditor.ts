@@ -9,6 +9,7 @@ import {
   enumCode,
   getGetPurchasesQueryKey,
   markPurchaseReceived,
+  getGetPurchaseBudgetQueryKey,
   type GradeTypeCode,
   type ProductVariationValueDto,
   type PurchaseDto,
@@ -615,7 +616,12 @@ export function useProductEditor() {
 
     try {
       await markPurchaseReceived(purchaseContext.purchaseId, { productId, purchaseEntryId });
-      await queryClient.invalidateQueries({ queryKey: getGetPurchasesQueryKey() });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetPurchasesQueryKey() }),
+        // A entrada gravada antes contava como entrada direta na faixa de compras;
+        // ligada à compra, deixa de contar (contrato do financeiro, seção 4).
+        queryClient.invalidateQueries({ queryKey: getGetPurchaseBudgetQueryKey() }),
+      ]);
       toast({
         title: "Compra lançada",
         description: `A compra de ${purchaseContext.productName} passou a Lançado, vinculada a este produto.`,

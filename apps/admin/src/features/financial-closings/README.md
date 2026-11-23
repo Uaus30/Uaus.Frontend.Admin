@@ -1,21 +1,25 @@
 # Módulo Fechamentos Financeiros (Admin)
 
-Fechamento financeiro **mensal** (rota `/financeiro/fechamentos`): o documento oficial que congela os números do mês e o rateio de lucros entre os sócios. Relatórios são prévias ao vivo; o fechamento é o que vale.
+Fechamento financeiro **mensal** (rota `/financeiro/fechamentos`): o documento oficial que congela os números do mês, o rateio de lucros entre os sócios, as retiradas e **o saldo que fica para a loja** — que abre o mês seguinte. Relatórios são prévias ao vivo; o fechamento é o que vale. Contrato da conta nova em `PLANO-FINANCEIRO.md` (seções 3, 6.1 e 7.5).
 
 ---
 
 ## Estrutura de Arquivos
 
-- `components/FinancialClosingsTable.tsx`: Tabela dos fechamentos confirmados; a linha abre o detalhe. Não há edição — fechamento se refaz excluindo.
-- `components/NewClosingDialog.tsx`: Diálogo em dois passos: competência (mês/ano) → prévia calculada no servidor + observações + confirmação.
-- `components/CompetencePicker.tsx`: Selects de ano e mês do passo 1, com o atalho "Último mês" e o travamento dos meses já fechados.
-- `components/ClosingDetailsDialog.tsx`: Detalhe com os números congelados, rateio, observações, autoria e o botão de exclusão.
-- `components/ClosingSummary.tsx`: Resumo financeiro compartilhado entre a prévia e o detalhe (cards, custos variáveis, custos fixos por competência, rateio e warnings).
-- `components/VariableCostsTable.tsx`: Tabela dos gastos eventuais — editável na prévia, só de leitura no documento confirmado.
-- `month-selection.ts`: Domínio da competência — conversão mês/ano ↔ período, meses fechados do ano, estados do select e rótulo do período na tela. Puro e testado.
-- `hooks/useFinancialClosings.ts`: Hook controlador único — listagem paginada sem filtro, mutações de prévia/confirmação/exclusão e estado dos diálogos. A confirmação envia sempre o período **congelado junto com a prévia** exibida, nunca a competência atual do formulário.
-- `__tests__/month-selection.test.ts`, `components/__tests__/VariableCostsTable.test.tsx` e `hooks/__tests__/useFinancialClosings.test.tsx`: Testes (Vitest + React Testing Library).
-- `types.ts`: Tipos locais (`NewClosingStep`, `ClosingNumbers`), re-export dos tipos de competência + DTOs do api-client.
+- `hooks/useFinancialClosings.ts`: listagem paginada sem filtro, detalhe e exclusão.
+- `hooks/useNewClosing.ts`: o diálogo de novo fechamento em três passos — prévia, recálculos, retiradas, saldo e confirmação.
+- `hooks/useClosingCompetence.ts`: a competência — ano, mês, o `next` e o estado de cada mês no select.
+- `components/NewClosingDialog.tsx`: os três passos (competência → resultado e caixa → retiradas e saldo).
+- `components/CompetencePicker.tsx`: passo 1 — selects de ano e mês, legenda dos estados e o atalho "Mês sugerido".
+- `components/ResultAndCashStep.tsx`: passo 2 — avisos, resultado, custos variáveis, custos fixos e caixa.
+- `components/BalanceStep.tsx`: passo 3 — saldo inicial da implantação, retiradas, saldo confirmado e observações.
+- `components/ClosingResultBlock.tsx`, `ClosingCashBlock.tsx`, `ClosingSharesBlock.tsx`: os três blocos da conta, os mesmos na prévia e no documento. `StatementRow.tsx` é a linha da conta.
+- `components/ClosingDetailsDialog.tsx`: o documento congelado e a exclusão (só no último).
+- `components/VariableCostsTable.tsx`, `FixedCostItemsTable.tsx`, `FinancialClosingsTable.tsx`.
+- `month-selection.ts`: domínio da competência (mês/ano ↔ período, meses fechados, estados do select). Puro e testado.
+- `closing-balance.ts`: leitura dos campos do passo 3 e a conferência do saldo. Puro e testado.
+- `closing-statement.ts`: fechamento da conta antiga e o "—" dos campos novos.
+- `financial-closings-route.ts`: o caminho da tela (o botão da faixa provisória leva para cá).
 
 ---
 
@@ -23,65 +27,82 @@ Fechamento financeiro **mensal** (rota `/financeiro/fechamentos`): o documento o
 
 ### 0. A unidade é o mês, não o período (06/09/2026)
 
-- A escolha do que fechar é **mês + ano**, não mais um calendário de período livre: um select de ano (o atual pré-selecionado) e um select de mês. O atalho, antes "Mês anterior", agora se chama **"Último mês"** e seleciona o último mês-calendário encerrado.
-- Isso alinha a tela ao que o cálculo já fazia: custos fixos entram por **competência mensal**, com o valor cheio de cada mês tocado. Fechar "01/08 a 15/08" lançava agosto inteiro de custo fixo contra meio mês de faturamento.
-- **A listagem não tem mais filtro.** Fechamento é um documento por mês; com paginação e ordem decrescente, o mais recente já está na primeira linha. Filtrar por período o que já vem ordenado por período era um campo a preencher para não mudar nada.
-- O período continua sendo o que o backend grava e valida (a API não mudou): `monthRange` converte a competência escolhida em `periodStart`/`periodEnd`, e `describePeriod` faz o caminho de volta na exibição.
-- **Fechamentos antigos, de período livre, continuam válidos.** Onde eles não cobrem um mês cheio, a tela mostra o intervalo de datas em vez da competência — dizer "Agosto de 2026" num documento de 15/07 a 10/08 esconderia justamente o que ele tem de diferente.
+- A escolha do que fechar é **mês + ano**. O período continua sendo o que o backend grava e valida: `monthRange` converte a competência em `periodStart`/`periodEnd`, e `describePeriod` faz o caminho de volta.
+- **Fechamentos antigos, de período livre, continuam válidos.** Onde não cobrem um mês cheio, a tela mostra o intervalo de datas.
+- A listagem não tem filtro: um documento por mês, do mais recente para o mais antigo.
 
-### 0.1. Cores dos meses no select
+### 1. A corrente de saldos (23/11/2026)
+
+- **O saldo confirmado de um mês é o saldo inicial do seguinte.** Por isso **só se fecha M com M−1 fechado no fluxo novo**; a exceção é a **implantação** (o primeiro fechamento do fluxo novo), em que o saldo inicial é opcional.
+- O diálogo abre no mês que `GET /FinancialClosings/next` aponta, já escolhido; os outros aparecem travados com o motivo. Se o `next` falhar, a sugestão cai no último mês encerrado e o select volta à regra antiga — o servidor recusa o que estiver fora da corrente.
+- **Só o último fechamento pode ser excluído**: excluir um do meio deixaria o seguinte com um saldo inicial que não existe mais. O botão só aparece no último (`isLatest`); nos outros, a tela diz por quê. Excluir o último devolve o mês seguinte ao estado "aguardando".
+
+### 1.1. Cores dos meses no select
 
 Psicologia das cores, com ícone e texto redundantes (cor sozinha não informa quem não a distingue):
 
-| Estado       | Cor               | Ícone         | Selecionável                   |
-| ------------ | ----------------- | ------------- | ------------------------------ |
-| Disponível   | verde (`emerald`) | check         | sim                            |
-| Em andamento | âmbar (`amber`)   | círculo traço | sim, com aviso de dado parcial |
-| Fechado      | cinza (`muted`)   | cadeado       | **não**                        |
-| Não iniciado | cinza (`muted`)   | calendário ✗  | **não**                        |
+| Estado                     | Cor               | Ícone         | Selecionável                   |
+| -------------------------- | ----------------- | ------------- | ------------------------------ |
+| Disponível                 | verde (`emerald`) | check         | sim — é o mês que aguarda      |
+| Em andamento               | âmbar (`amber`)   | círculo traço | sim, com aviso de dado parcial |
+| Fechado                    | cinza (`muted`)   | cadeado       | **não**                        |
+| Não iniciado               | cinza (`muted`)   | calendário ✗  | **não**                        |
+| Aguardando (mês anterior)  | cinza (`muted`)   | ampulheta     | **não** — "Aguardando outubro" |
+| Antes do último fechamento | cinza (`muted`)   | histórico     | **não**                        |
 
-- "Fechado" sai da **sobreposição** com fechamentos existentes, não da igualdade de período: um fechamento antigo de 15/07 a 10/08 trava julho **e** agosto, que é exatamente o que a confirmação recusaria.
-- O atalho "Último mês" não passa pelo select e pode cair num mês já fechado. Quando isso acontece, o aviso vermelho aparece embaixo dos selects e "Calcular prévia" fica travado — em vez de deixar o usuário descobrir na recusa do servidor.
+- "Fechado" sai da **sobreposição** com fechamentos existentes, não da igualdade de período: um fechamento antigo de 15/07 a 10/08 trava julho **e** agosto.
 
-### 0.2. Custos variáveis: o que o operador digita (06/09/2026)
+### 2. Os três passos
 
-- Acima dos custos fixos, a prévia tem a tabela **"Custos variáveis no período"**: gastos eventuais do mês que descem do lucro bruto igual aos custos fixos. É para o que não tem cadastro — a conta do contador, o conserto do freezer, a taxa que apareceu uma vez. Cadastrá-los como custo fixo sujaria um cadastro que é recorrente por natureza e relançaria o valor em todo mês seguinte.
-- **Cada linha lançada refaz a conta no servidor.** Nada é ajustado no cliente: o lucro líquido e o rateio exibidos vêm sempre da resposta da prévia, com o rateio refeito pela mesma função da confirmação. Somar no cliente daria um rateio que não fecha com o lucro ao lado dele.
-- **A tabela lista o eco do servidor, não o estado local.** Por isso uma falha de rede não deixa a linha na tela com o valor fora da conta: se a prévia não voltou, nada mudou. Enquanto o recálculo está em voo, a edição e o botão de confirmar ficam travados.
-- **A confirmação envia a lista congelada com a prévia**, junto com o período — os dois produziram os números conferidos.
-- Voltar ao passo da competência **mantém** os gastos lançados: quem volta costuma ir corrigir o mês, e perder cinco linhas digitadas seria punir a correção. A prévia em si é descartada, porque valia para o período anterior.
-- Documento confirmado **não edita** o gasto: a tabela vira leitura, como todo o resto. Refazer é excluir o fechamento e lançar de novo.
-- Regra de entrada: descrição obrigatória e valor **maior que zero** — negativo entraria como receita disfarçada de custo. O backend recusa igual, e é dele que sai a mensagem quando alguém tenta por fora da tela.
+1. **Competência**: o mês e o cálculo da prévia. Nada é gravado.
+2. **Resultado e caixa**: as contas das seções 3.1 e 3.2 do plano, com os custos variáveis editáveis; descontos por origem e baixas por motivo.
+3. **Retiradas e saldo**: a retirada de cada sócio ao lado do que o rateio dá a ele; o saldo confirmado; a observação da diferença; e, na implantação, o saldo no início do mês (opcional).
 
-### 1. Fechamento congela tudo
+**Toda entrada que muda a conta refaz a prévia no servidor** — gasto eventual, retirada, saldo inicial — e a tela vive da resposta: nada é somado no cliente. A retirada vai à conta ao sair do campo; enquanto há retirada digitada fora da conta (ou recálculo em voo), "Confirmar" fica travado — confirmar ali gravaria um saldo que a tela não mostrou. Clicar nele com a retirada ainda fora leva à conta primeiro.
 
-- Na confirmação o servidor **recalcula** os números do período (nunca confia nos valores da prévia exibida no cliente) e grava faturamento, CMV, lucro bruto, custos fixos, lucro líquido e o rateio por sócio (nome, percentual e valor **congelados**).
-- Editar um sócio ou um custo fixo depois **não** altera fechamentos existentes — o histórico mora no próprio fechamento.
+### 3. O resultado (o lucro, que é rateado)
 
-### 2. Sem status
+```
+  Vendas brutas − descontos concedidos = vendas líquidas
+− custo das vendas = lucro bruto
+− baixas a custo + sobras de estoque − custos fixos − custos variáveis = lucro líquido
+```
 
-- Fechamento não tem rascunho nem aprovação: **só existe depois de confirmado**. A prévia (`POST /financialclosings/preview`) não persiste nada; soma de percentuais ≠ 100 e período parcial de mês viram _warnings_ na prévia (a confirmação é que recusa).
+- **Descontos por origem**: no item (com a promoção como parcela) e na venda (com o cupom como parcela). Parcela nunca se soma de novo.
+- **Baixas entram no lucro** pelo custo FIFO congelado — é o produto que saiu sem virar dinheiro. Continuam fora do faturamento, do caixa e da faixa. **Sobras** (entradas de ajuste manual) somam.
+- O lucro líquido é rateado pelos percentuais dos sócios; lucro negativo distribui prejuízo, em vermelho.
 
-### 3. Validações da confirmação
+### 4. O caixa (o saldo, que abre o mês seguinte)
 
-- O servidor recusa: período inválido, sobreposição com fechamento existente e soma dos percentuais dos sócios ativos ≠ 100. As mensagens chegam ao usuário via `describeApiError`.
+```
+  Saldo inicial + vendas + aportes − compras pagas − fixos − variáveis − retiradas
+= saldo calculado
+  saldo confirmado (digitado)   →   diferença = confirmado − calculado
+```
 
-### 4. Competência mensal dos custos fixos
+- **O saldo confirmado nasce igual ao calculado e o acompanha** a cada recálculo, até alguém mexer nele.
+- **Diferença acima de R$ 1,00, para mais ou para menos, exige observação** (até 300 caracteres): taxa de cartão, venda no cartão que não caiu, despesa fora do sistema, erro de lançamento. Saldo chutado carregaria o erro para todos os meses seguintes.
+- **Implantação sem saldo inicial**: não há calculado nem diferença; registra-se só o confirmado, que então é digitado.
+- **Avisos, nunca bloqueio** (decisão F): retirada acima do que o rateio dá, retiradas acima do caixa do mês (vendas + aportes − compras pagas − fixos − variáveis) e saldo confirmado negativo.
+- "Entradas de estoque" (o antigo "Compras", pela data de entrada) aparece só como informação; o dinheiro que saiu é "Compras pagas".
 
-- Cada mês-calendário tocado pelo período lança o valor mensal **cheio** de cada custo vigente (sem pró-rata) — é a razão de a tela ter passado a trabalhar por mês, e não por período livre (regra 0).
+### 5. A conta antiga não é recalculada
 
-### 5. Compras e perdas são informativas (custo variável não)
+- Os fechamentos de março a outubro/2026 têm `calculationVersion` 1: a tela diz "fechado com a conta antiga: baixas fora do lucro e só o desconto da venda", e mostra "—" nos campos novos (vendas brutas, descontos por origem, sobras, aportes, compras pagas, retiradas, saldos) — nunca o zero da API, que pareceria dado.
 
-- Aparecem no resumo mas **não** entram no lucro líquido: o CMV já cobre o custo FIFO dos itens vendidos.
-- O custo variável é o oposto: entra no lucro líquido, porque é dinheiro que saiu e não está em nenhum outro lugar da conta.
+### 6. Fechamento congela tudo
 
-### 6. Lucro negativo distribui prejuízo
+- Na confirmação o servidor **recalcula** tudo e recusa o que a prévia só avisava: período que não começa depois do último fechamento, mês anterior sem fechamento no fluxo novo (fora da implantação), saldo confirmado ausente e diferença sem observação. A confirmação envia a entrada **congelada com a prévia exibida** (período, gastos eventuais, retiradas — uma por sócio do rateio — e o saldo inicial), mais o saldo confirmado e as observações.
+- Editar um sócio ou um custo fixo depois não altera fechamentos existentes.
+- Confirmar ou excluir invalida os fechamentos (o prefixo alcança o `next`), a faixa de compras e os aportes: o saldo abre o mês seguinte, e o mês fechado deixa de aceitar aporte.
 
-- O rateio aceita lucro líquido negativo — os valores por sócio saem negativos, e a UI os destaca em vermelho.
+### 7. Custos variáveis: o que o operador digita (06/09/2026)
 
-### 7. Excluir permite refazer — e é logado
+- Gastos eventuais do mês (a conta do contador, o conserto do freezer) que descem do lucro bruto como os fixos. **A tabela lista o eco do servidor**, não o estado local: falha de rede não deixa a linha na tela com o valor fora da conta.
+- Voltar ao passo da competência **mantém** os gastos e as retiradas digitados; só a prévia é descartada.
+- Descrição obrigatória e valor maior que zero.
 
-- Excluir um fechamento libera o período para fechar de novo. É ação destrutiva de documento: o backend grava log (`LogType.FinancialClosingDeleted`) com período, lucro líquido e usuário.
-- O aviso disso é o `ConfirmDialog` do `ClosingDetailsDialog`, e ele cita o período e o lucro líquido da tela. Mora ali, e não no hook, porque é no detalhe que esses números estão visíveis — e porque um diálogo declarativo precisa de alguém que o renderize.
-- O que o aviso precisa dizer, e o `window.confirm` anterior não dizia: **refazer o fechamento pode dar outro número.** O novo cálculo usa os sócios, percentuais e custos fixos de hoje, não os que estavam vigentes quando o período foi fechado.
-- `handleDeleteClosing` devolve a Promise da mutação. O diálogo só fecha quando ela resolve; falhando, ele permanece aberto com o erro no toast, em vez de sumir sem dizer se o documento saiu.
+### 8. Excluir é logado
+
+- O `ConfirmDialog` do detalhe cita o período e o lucro líquido, e avisa: o mês volta a aguardar e o seguinte volta a esperar por ele; refazer pode dar outro número (sócios, percentuais e custos fixos de hoje). O backend grava log com o usuário.
+- `handleDeleteClosing` devolve a Promise da mutação: falhando, o diálogo permanece aberto com o erro no toast.

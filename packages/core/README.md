@@ -14,14 +14,16 @@ bater com o total enviado à API nem com o subtotal impresso no cupom.
 
 ## O que entra
 
-| Arquivo        | Responsabilidade                                                                                     |
-| -------------- | ---------------------------------------------------------------------------------------------------- |
-| `money.ts`     | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
-| `discount.ts`  | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem`                                       |
-| `format.ts`    | `formatDate`, `formatShortDate`, `toDateKey`                                                         |
-| `text.ts`      | `normalizeSearchText`                                                                                |
-| `mask.ts`      | `cleanPhone`, `formatPhone`                                                                          |
-| `api-error.ts` | `describeApiError`                                                                                   |
+| Arquivo            | Responsabilidade                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `money.ts`         | `round2`, `parseAmount`, `parseAmountOrNull`, `formatCurrency`, `formatQuantity`, `formatPercentage` |
+| `discount.ts`      | `computeDiscount`, `computeSaleTotals`, `allocateCouponByItem`                                       |
+| `format.ts`        | `formatDate`, `formatShortDate`, `toDateKey`                                                         |
+| `text.ts`          | `normalizeSearchText`                                                                                |
+| `mask.ts`          | `cleanPhone`, `formatPhone`                                                                          |
+| `api-error.ts`     | `describeApiError`                                                                                   |
+| `month.ts`         | `toMonthKey`, `parseMonthKey`, `formatMonthKey`, `monthKeyRange`, `shiftMonthKey`, `monthName`       |
+| `purchase-band.ts` | `purchaseBandFor` — a faixa de compras (verde, amarelo, vermelho) de um gasto contra as duas linhas  |
 
 ## O que NÃO entra
 
@@ -101,6 +103,20 @@ ApiError` — é o que mantém o helper independente do cliente HTTP e testável
    carimbo" (`stampProgress`, que conta a compra antes do prêmio) e o desenho do
    cartão digital em trechos até o próximo prêmio (`cardSlots`: com 8 carimbos
    num cartão de 10, as casas 6 a 10), como o cartão de papel.
+
+10. **A faixa de compras testa o verde primeiro** (`purchase-band.ts`,
+    23/11/2026). `purchaseBandFor(gasto, linhaVerde, linhaVermelha)`: verde se o
+    gasto não passa da linha verde, amarelo se não passa da vermelha, vermelho
+    nos demais — nessa ordem, porque no começo do mês a linha vermelha fica
+    negativa e comprar dentro do custo vendido não pode dar vermelho. Bordas
+    inclusivas e comparação em centavos (`round2`). É o par do domínio do
+    backend (`PurchaseBudgetRules.Classify`), como `MAX_SALE_PRICE` é o do
+    `SalePriceLimit`: a tela de Compras e o Painel simulam a compra com ela.
+
+11. **Mês é `yyyy-MM` lido pelos dígitos** (`month.ts`, 23/11/2026). A chave
+    sai dos componentes LOCAIS (`toMonthKey`), nunca de `toISOString()`, e a
+    data da API é lida sem passar por `Date` (`parseMonthKey`) — a armadilha 2
+    do CLAUDE.md, no formato do financeiro.
 
 ## Testes
 

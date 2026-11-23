@@ -20,6 +20,9 @@ import { PURCHASES_PATH } from "@/features/purchases/purchases-route";
 import { PROMOTIONS_MATCH_PATH, PROMOTIONS_PATH } from "@/features/promotions/promotion-route";
 import { HOME_PATH } from "@/features/home/home-route";
 import { PRODUCT_ANOMALIES_PATH } from "@/features/product-anomalies/anomalies-route";
+import { FINANCIAL_DASHBOARD_PATH } from "@/features/financial-dashboard/financial-dashboard-route";
+import { CAPITAL_CONTRIBUTIONS_PATH } from "@/features/capital-contributions/capital-contributions-route";
+import { FINANCIAL_CLOSINGS_PATH } from "@/features/financial-closings/financial-closings-route";
 
 /**
  * Fonte ÚNICA das rotas do admin.
@@ -79,8 +82,10 @@ const Tags = lazy(() => import("@/pages/tags"));
 const GondolaLabels = lazy(() => import("@/pages/gondola-labels"));
 const Sales = lazy(() => import("@/pages/sales"));
 const CashRegisterSessions = lazy(() => import("@/pages/cash-register-sessions"));
+const FinPanel = lazy(() => import("@/pages/financial-dashboard"));
 const FinancialReports = lazy(() => import("@/pages/financial-reports"));
-const FinancialClosings = lazy(() => import("@/pages/financial-closings"));
+const Contributions = lazy(() => import("@/pages/capital-contributions"));
+const Closings = lazy(() => import("@/pages/financial-closings"));
 const FixedCosts = lazy(() => import("@/pages/fixed-costs"));
 const Partners = lazy(() => import("@/pages/partners"));
 const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods"));
@@ -203,7 +208,11 @@ export const ROUTES: AppRoute[] = [
   { path: "/etiquetas-gondola", label: "Etiquetas", group: "Estoque", component: GondolaLabels },
 
   // Dentro do grupo, o menu segue a ordem DESTA lista. Em "Financeiro" ela é
-  // escolhida: o Resumo Financeiro abre o grupo e Baixas vem logo após Vendas.
+  // escolhida (23/11/2026, PLANO-FINANCEIRO seção 7.7): o Painel Financeiro abre
+  // o grupo, o Resumo vem logo depois, Baixas após Vendas, e Aportes antes dos
+  // Fechamentos — o aporte entra no saldo que o fechamento confirma. Uma linha
+  // por tela, para o grupo caber de uma olhada.
+  { path: FINANCIAL_DASHBOARD_PATH, label: "Painel Financeiro", group: "Financeiro", component: FinPanel },
   {
     path: "/financeiro/relatorios",
     label: "Resumo Financeiro",
@@ -212,20 +221,11 @@ export const ROUTES: AppRoute[] = [
   },
   { path: "/vendas", label: "Vendas", group: "Financeiro", component: Sales },
   { path: "/estoque/baixas", label: "Baixas", group: "Financeiro", component: StockWriteOffs },
+  { path: CAPITAL_CONTRIBUTIONS_PATH, label: "Aportes", group: "Financeiro", component: Contributions },
   // Caminho mantido, oculto temporariamente do menu a pedido.
   { path: "/financeiro/caixas", component: CashRegisterSessions, hidden: true },
-  {
-    path: "/financeiro/fechamentos",
-    label: "Fechamentos Mensais",
-    group: "Financeiro",
-    component: FinancialClosings,
-  },
-  {
-    path: "/financeiro/custos-fixos",
-    label: "Custos Fixos",
-    group: "Financeiro",
-    component: FixedCosts,
-  },
+  { path: FINANCIAL_CLOSINGS_PATH, label: "Fechamentos Mensais", group: "Financeiro", component: Closings },
+  { path: "/financeiro/custos-fixos", label: "Custos Fixos", group: "Financeiro", component: FixedCosts },
   { path: "/financeiro/socios", label: "Sócios", group: "Financeiro", component: Partners },
   {
     path: "/financeiro/formas-pagamento",

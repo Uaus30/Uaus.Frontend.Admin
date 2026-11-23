@@ -1201,7 +1201,13 @@ export interface FinancialReportWriteOffByReasonDto {
   totalQuantity: number;
 }
 
-/** Perdas do período — INFORMATIVAS: não entram no lucro líquido (o CMV já cobre o custo vendido). */
+/**
+ * Baixas do período (perda, doação, consumo, inventário), a custo FIFO.
+ *
+ * Desde a conta nova (23/11/2026, `calculationVersion` 2) elas ENTRAM no lucro
+ * líquido, numa linha própria: é o produto que saiu da loja sem virar dinheiro.
+ * Continuam fora do faturamento, do caixa e da faixa de compras.
+ */
 export interface FinancialReportWriteOffsDto {
   totalCost: number;
   totalQuantity: number;
@@ -1236,18 +1242,46 @@ export interface PartnerDistributionItemDto {
   amount: number;
 }
 
-/** Relatório financeiro do período — PRÉVIA calculada ao vivo; o documento oficial é o fechamento. */
+/**
+ * Relatório financeiro do período — PRÉVIA calculada ao vivo; o documento oficial é o fechamento.
+ *
+ * Usa a MESMA conta do resultado do fechamento (versão 2): sem isso, o resumo e
+ * o fechamento do mesmo mês dariam lucros diferentes.
+ */
 export interface FinancialReportSummaryDto {
   startDate: string;
   endDate: string;
   sales: FinancialPeriodTotalsDto;
-  /** Compras do período — informativas, não entram no lucro líquido. */
+  /**
+   * ENTRADAS de estoque do período, pela data de entrada, inclusive o ajuste
+   * manual — informativas. A tela as chama de "Entradas de estoque"; o dinheiro
+   * que saiu é `purchasesPaidTotal`.
+   */
   purchasesTotal: number;
   writeOffs: FinancialReportWriteOffsDto;
   fixedCosts: FinancialReportFixedCostsDto;
   /** = sales.profit. */
   grossProfit: number;
-  /** = grossProfit − fixedCosts.total. */
+  /** Vendas líquidas + descontos concedidos (todos). */
+  grossSales: number;
+  /** Desconto na venda + desconto no item. Promoção e cupom são PARCELAS, nunca somas. */
+  discountsTotal: number;
+  /** Desconto no item (por unidade × quantidade). */
+  itemDiscountsTotal: number;
+  /** Parcela do desconto no item que veio de promoção. */
+  promotionDiscountsTotal: number;
+  /** Parcela do desconto na venda que veio de cupom. */
+  couponDiscountsTotal: number;
+  /** Sobras de estoque (entradas de ajuste manual), a custo — somam no lucro. */
+  stockSurplusTotal: number;
+  /** Compras pagas (K): compras A caminho e Lançado pela data da compra, mais entradas diretas. */
+  purchasesPaidTotal: number;
+  /** Aportes dos sócios com data no período. */
+  contributionsTotal: number;
+  /**
+   * Conta da versão 2, sem os custos variáveis (que só existem no fechamento):
+   * grossProfit − baixas + sobras − fixedCosts.total.
+   */
   netProfit: number;
   /** Sócios ativos com os percentuais atuais; vazio se a distribuição não foi configurada. */
   partnerDistribution: PartnerDistributionItemDto[];
@@ -1265,6 +1299,11 @@ export interface FinancialClosingShareDto {
   percentage: number;
   /** Valor congelado; o resíduo de arredondamento já foi aplicado ao sócio de maior percentual. */
   amount: number;
+  /**
+   * O que o sócio RETIROU no fechamento, ao lado do que o rateio dava (`amount`).
+   * Retirar menos deixa o dinheiro na loja; zero nos fechamentos antigos.
+   */
+  withdrawnAmount: number;
 }
 
 /**
@@ -1283,22 +1322,75 @@ export interface FinancialClosingVariableCostDto {
 }
 
 /**
+ * Os números da conta nova (versão 2, 23/11/2026), comuns ao documento e à
+ * prévia: descontos por origem, sobras, caixa do mês e a corrente de saldos.
+ *
+ * Nos fechamentos antigos (`calculationVersion` 1, de março a outubro/2026)
+ * nada disto foi calculado, e eles não são recalculados: a tela mostra "—" nos
+ * campos novos em vez de ler os zeros que vierem, e diz por quê.
+ */
+export interface FinancialClosingStatementDto {
+  /** 2 nos fechamentos do fluxo novo; 1 nos antigos (baixas fora do lucro e só o desconto da venda). */
+  calculationVersion: number;
+  /** Vendas líquidas + descontos concedidos (todos). */
+  grossSales: number;
+  /** `discounts` (o da venda) + `itemDiscountsTotal`. */
+  discountsTotal: number;
+  /** Desconto no item, por unidade × quantidade. */
+  itemDiscountsTotal: number;
+  /** PARCELA do desconto no item que veio de promoção — já está dentro dele. */
+  promotionDiscountsTotal: number;
+  /** PARCELA do desconto na venda que veio de cupom — já está dentro dele. */
+  couponDiscountsTotal: number;
+  /** Sobras de estoque (entradas de ajuste manual), a custo — somam no lucro. */
+  stockSurplusTotal: number;
+  /** Compras pagas (K) — o dinheiro que saiu, pela data da compra. */
+  purchasesPaidTotal: number;
+  /** Aportes dos sócios com data no mês. */
+  contributionsTotal: number;
+  /** Soma das retiradas digitadas por sócio. */
+  withdrawalsTotal: number;
+  /** Caixa do mês: vendas + aportes − compras pagas − fixos − variáveis. */
+  monthCash: number;
+  /**
+   * Saldo inicial (S): o confirmado no fechamento anterior. Na implantação é o
+   * digitado, e pode faltar — aí não há conferência do calculado.
+   */
+  openingBalance?: number | null;
+  /** S + V + A − K − F − variáveis − retiradas. Ausente sem saldo inicial. */
+  calculatedBalance?: number | null;
+  /** Saldo confirmado (dinheiro + conta + Pix): abre o mês seguinte. */
+  closingBalance?: number | null;
+  /** Confirmado − calculado. Ausente sem um dos dois. */
+  balanceDifference?: number | null;
+  /** Explicação da diferença — obrigatória quando ela passa de R$ 1,00. */
+  balanceNotes?: string | null;
+  /** Faixa de compras do fim do mês (`PURCHASE_BAND`). Ausente nos antigos. */
+  purchaseBand?: EnumValue;
+}
+
+/**
  * Fechamento financeiro de um período. Todos os números são CONGELADOS na
  * confirmação — recalculados no servidor, nunca vindos do cliente.
  */
-export interface FinancialClosingDto {
+export interface FinancialClosingDto extends FinancialClosingStatementDto {
   id: number;
   createdAt: string;
   periodStart: string;
   /** Fim do período, inclusivo. */
   periodEnd: string;
+  /** Vendas líquidas (V). */
   revenue: number;
+  /** Desconto dado NA VENDA (cabeçalho). O total concedido é `discountsTotal`. */
   discounts: number;
   cogsCost: number;
   grossProfit: number;
-  /** Compras do período — informativas, não entram no lucro líquido. */
+  /** Entradas de estoque do período, pela data de entrada — informativas. */
   purchasesTotal: number;
-  /** Custo FIFO das baixas confirmadas — informativo, não entra no lucro líquido. */
+  /**
+   * Custo FIFO das baixas efetivadas. Na versão 2 desconta do lucro líquido; na
+   * versão 1 era só informativo.
+   */
   writeOffLossesTotal: number;
   /** Total por competência mensal (valor cheio de cada mês tocado, sem pró-rata). */
   fixedCostsTotal: number;
@@ -1312,13 +1404,18 @@ export interface FinancialClosingDto {
   shares: FinancialClosingShareDto[];
   /** Gastos eventuais congelados, na ordem em que foram lançados. */
   variableCosts: FinancialClosingVariableCostDto[];
+  /**
+   * É o último fechamento — o ÚNICO que pode ser excluído. Excluir um do meio
+   * deixaria o seguinte com um saldo inicial que não existe mais.
+   */
+  isLatest: boolean;
 }
 
 /**
  * Prévia de fechamento: mesmos números do fechamento, sem persistir nada.
  * Soma de percentuais ≠ 100 vira warning aqui (a confirmação é que recusa).
  */
-export interface FinancialClosingPreviewDto {
+export interface FinancialClosingPreviewDto extends FinancialClosingStatementDto {
   periodStart: string;
   /** Fim do período, inclusivo. */
   periodEnd: string;
@@ -1343,27 +1440,181 @@ export interface FinancialClosingPreviewDto {
   variableCosts: FinancialClosingVariableCostDto[];
   /** Avisos como período parcial de mês ou soma de percentuais ≠ 100. */
   warnings: string[];
+  /** Primeiro fechamento do fluxo novo: o saldo inicial é opcional. */
+  isImplantation: boolean;
+  /** As baixas do mês por motivo — a mesma lista do resumo financeiro. */
+  writeOffsByReason: FinancialReportWriteOffByReasonDto[];
 }
 
-/** Período e gastos eventuais enviados para calcular a prévia do fechamento. */
+/** A retirada de um sócio no fechamento. Zero é resposta válida: o dinheiro fica na loja. */
+export interface FinancialClosingWithdrawalPayload {
+  partnerId: number;
+  /** Maior ou igual a zero. */
+  amount: number;
+}
+
+/** O que a prévia recebe: período, gastos eventuais, retiradas e o saldo. */
 export interface PreviewFinancialClosingPayload {
   periodStart: string;
   /** Inclusivo. */
   periodEnd: string;
   /** Gastos eventuais do período. Omitido ou vazio quando não há nenhum. */
   variableCosts?: FinancialClosingVariableCostDto[];
+  /**
+   * Saldo no início do mês. Só vale na IMPLANTAÇÃO; fora dela o servidor usa o
+   * saldo confirmado no fechamento anterior e ignora este.
+   */
+  openingBalance?: number | null;
+  /** Uma por sócio ativo, com `amount` ≥ 0. Vazia antes de alguém digitar. */
+  withdrawals: FinancialClosingWithdrawalPayload[];
+  /** Saldo confirmado. Obrigatório na confirmação. */
+  closingBalance?: number | null;
+  /** Até 300 caracteres; obrigatória na confirmação quando a diferença passa de R$ 1,00. */
+  balanceNotes?: string | null;
 }
 
 /**
- * Dados enviados ao confirmar um fechamento. O servidor recalcula tudo —
- * exceto os gastos eventuais, que só existem no que foi digitado aqui.
+ * Dados enviados ao confirmar um fechamento — o corpo da prévia mais as
+ * observações. O servidor recalcula tudo, exceto o que só existe no que foi
+ * digitado aqui: gastos eventuais, retiradas e o saldo confirmado.
  */
-export interface CreateFinancialClosingPayload {
-  periodStart: string;
-  /** Inclusivo. */
-  periodEnd: string;
+export interface CreateFinancialClosingPayload extends PreviewFinancialClosingPayload {
   notes?: string | null;
-  variableCosts?: FinancialClosingVariableCostDto[];
+}
+
+/** `GET /FinancialClosings/next`: o mês que aguarda fechamento. */
+export interface FinancialClosingNextDto {
+  /** "yyyy-MM". */
+  month: string;
+  periodStart: string;
+  periodEnd: string;
+  /** Primeiro fechamento do fluxo novo: o saldo inicial é opcional. */
+  isImplantation: boolean;
+  /** O saldo confirmado no fechamento anterior — ausente na implantação. */
+  previousClosingBalance?: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Aportes dos sócios e faixa de compras (PLANO-FINANCEIRO.md, seção 6.1).
+// ---------------------------------------------------------------------------
+
+/**
+ * Aporte de um sócio: dinheiro que entra como saldo disponível do mês.
+ *
+ * NÃO é dívida da loja com o sócio (decisão 9): sem saldo devedor nem
+ * devolução — o painel só mostra quanto cada sócio já aportou.
+ */
+export interface CapitalContributionDto {
+  id: number;
+  partnerId: number;
+  partnerName: string;
+  /** Data do aporte (`"yyyy-MM-ddT00:00:00"`, calendário de Brasília). */
+  contributionDate: string;
+  amount: number;
+  notes?: string | null;
+  createdAt: string;
+  /** Nome de quem lançou. */
+  createdBy?: string | null;
+}
+
+/** Corpo do `POST` e do `PUT /CapitalContributions`. */
+export interface SaveCapitalContributionPayload {
+  /** Sócio ATIVO na hora de lançar. */
+  partnerId: number;
+  /** `"yyyy-MM-dd"` — data de calendário, nunca `toISOString()`. */
+  contributionDate: string;
+  /** Maior que zero. */
+  amount: number;
+  /** Para quê, até 300 caracteres. */
+  notes?: string | null;
+}
+
+/** `GET /CapitalContributions?month=yyyy-MM`: os aportes do mês e o total. */
+export interface CapitalContributionsMonthDto {
+  /** "yyyy-MM". */
+  month: string;
+  /** O mês já tem fechamento: aporte nele não é lançado, alterado nem excluído. */
+  isClosed: boolean;
+  total: number;
+  items: CapitalContributionDto[];
+}
+
+/** Acumulado de um sócio desde a abertura — informativo. */
+export interface CapitalContributionPartnerTotalDto {
+  partnerId: number;
+  partnerName: string;
+  total: number;
+  count: number;
+}
+
+/**
+ * Faixa de compras do mês (enum `PurchaseBand` do backend).
+ *
+ * Na resposta chega pelo NOME (`"Green"`): leia com `enumCode(valor, PURCHASE_BAND)`.
+ * A comparação de uma compra simulada com as linhas é `purchaseBandFor`, do
+ * `@workspace/core`.
+ */
+export const PURCHASE_BAND = {
+  Green: 1,
+  Yellow: 2,
+  Red: 3,
+} as const;
+
+export type PurchaseBandCode = (typeof PURCHASE_BAND)[keyof typeof PURCHASE_BAND];
+
+/**
+ * `GET /PurchaseBudget?month=yyyy-MM`: a faixa de compras do mês (seção 2 do
+ * plano). Os símbolos são os do plano: S saldo inicial, A aportes, V vendas
+ * líquidas, C custo das vendas, K compras pagas, F custos fixos.
+ */
+export interface PurchaseBudgetDto {
+  /** "yyyy-MM". */
+  month: string;
+  periodStart: string;
+  periodEnd: string;
+  isCurrentMonth: boolean;
+  /** O mês já tem fechamento. */
+  isClosedMonth: boolean;
+  /** O mês anterior não foi fechado no fluxo novo: S fica fora (zero). */
+  isProvisional: boolean;
+  /** Qual mês falta fechar ("yyyy-MM"), quando provisória. */
+  pendingClosingMonth?: string | null;
+  /** S — zero quando provisória. */
+  openingBalance: number;
+  /** A. */
+  contributions: number;
+  /** S + A. */
+  availableBalance: number;
+  /** V. */
+  revenue: number;
+  /** C. */
+  costOfSales: number;
+  /** K. */
+  purchasesPaid: number;
+  /** Compras Pendentes COM valor — o "planejado", fora de K. */
+  purchasesPlanned: number;
+  /** Quantas Pendentes não têm valor e por isso ficam fora do planejado. */
+  plannedWithoutValueCount: number;
+  /** F. */
+  fixedCosts: number;
+  /** C + S + A. */
+  greenLimit: number;
+  /** V + S + A − F. */
+  redLimit: number;
+  /** Linha verde − K (negativo quando já passou). */
+  greenRoom: number;
+  /** Linha vermelha − K (negativo quando já passou). */
+  redRoom: number;
+  /** A faixa (`PURCHASE_BAND`). */
+  band: EnumValue;
+  /** A faixa se as pendentes com valor forem compradas. */
+  bandIfPlannedBought: EnumValue;
+  /** Sem S + A a faixa seria pior: a tela diz "com saldo" ou "com aporte". */
+  reliesOnBalance: boolean;
+  /** Estoque de hoje a custo. */
+  stockValueAtCost: number;
+  /** Dias de estoque; ausente sem custo vendido nos últimos 90 dias. */
+  stockDays?: number | null;
 }
 
 export interface AuthSession {

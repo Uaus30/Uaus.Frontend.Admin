@@ -10,10 +10,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui";
-import { CalendarClock, CalendarOff, CircleCheck, CircleDashed, Info, Lock } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarOff,
+  CircleCheck,
+  CircleDashed,
+  History,
+  Hourglass,
+  Info,
+  Lock,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { formatCurrency, formatMonthKey } from "@workspace/core";
 import { formatCompetenceRange } from "../month-selection";
-import type { MonthAvailability, MonthOption } from "../types";
+import type { FinancialClosingNextDto, MonthAvailability, MonthOption } from "../types";
 
 /**
  * Psicologia das cores do select de mês: verde libera, âmbar pede atenção,
@@ -26,14 +36,18 @@ const MONTH_STATUS: Record<MonthAvailability, { label: string; icon: LucideIcon;
   "em-andamento": { label: "Em andamento", icon: CircleDashed, className: "text-amber-600" },
   fechado: { label: "Fechado", icon: Lock, className: "text-muted-foreground" },
   "nao-iniciado": { label: "Não iniciado", icon: CalendarOff, className: "text-muted-foreground" },
+  aguardando: { label: "Aguardando", icon: Hourglass, className: "text-muted-foreground" },
+  anterior: { label: "Antes do último fechamento", icon: History, className: "text-muted-foreground" },
 };
 
 /** Texto da legenda de cada estado — o que o tooltip do rótulo "Mês" explica. */
 const LEGEND: Record<MonthAvailability, string> = {
-  disponivel: "Disponível: mês encerrado e sem fechamento.",
+  disponivel: "Disponível: o mês que aguarda fechamento.",
   "em-andamento": "Em andamento: mês corrente, dados ainda parciais.",
   fechado: "Fechado: já existe fechamento cobrindo o mês.",
   "nao-iniciado": "Não iniciado: mês futuro, nada a fechar.",
+  aguardando: "Aguardando: o mês anterior ainda está aberto — o saldo dele abre este.",
+  anterior: "Antes do último fechamento: a corrente de saldos não volta.",
 };
 
 interface CompetencePickerProps {
@@ -42,22 +56,24 @@ interface CompetencePickerProps {
   month: number | null;
   yearOptions: number[];
   monthOptions: MonthOption[];
-  /** Enquanto os meses fechados não chegam, o select fica travado. */
+  /** Enquanto os meses fechados e o `next` não chegam, o select fica travado. */
   isLoadingMonths: boolean;
+  /** O mês que aguarda fechamento (`GET /FinancialClosings/next`); ausente se a consulta falhou. */
+  next?: FinancialClosingNextDto;
   /** Trava tudo durante o cálculo da prévia. */
   disabled: boolean;
   onYearChange: (year: number) => void;
   onMonthChange: (month: number) => void;
-  onApplyLastMonth: () => void;
+  onApplySuggested: () => void;
 }
 
 /**
  * CompetencePicker
  *
- * Escolha da competência do fechamento: um select de ano (o atual
- * pré-selecionado) e um select de mês em que **só os meses ainda sem fechamento
- * são selecionáveis**. Substituiu o calendário de período livre — o fechamento
- * é sempre um mês-calendário inteiro, que é o que os custos fixos já assumiam.
+ * Escolha da competência do fechamento: um select de ano e um select de mês.
+ * Com a corrente de saldos (23/11/2026) só um mês é selecionável — o que
+ * aguarda fechamento, já escolhido ao abrir —, e cada um dos outros diz por que
+ * está travado. O atalho "Mês sugerido" volta a ele depois de mexer no ano.
  */
 export function CompetencePicker({
   year,
@@ -65,10 +81,11 @@ export function CompetencePicker({
   yearOptions,
   monthOptions,
   isLoadingMonths,
+  next,
   disabled,
   onYearChange,
   onMonthChange,
-  onApplyLastMonth,
+  onApplySuggested,
 }: CompetencePickerProps) {
   const selected = monthOptions.find((option) => option.month === month) ?? null;
 
@@ -146,7 +163,7 @@ export function CompetencePicker({
                     <span>{option.label}</span>
                     {option.availability !== "disponivel" && (
                       <span className={`text-xs ${MONTH_STATUS[option.availability].className}`}>
-                        {MONTH_STATUS[option.availability].label}
+                        {option.statusLabel ?? MONTH_STATUS[option.availability].label}
                       </span>
                     )}
                   </span>
@@ -161,12 +178,12 @@ export function CompetencePicker({
         type="button"
         variant="outline"
         size="sm"
-        onClick={onApplyLastMonth}
+        onClick={onApplySuggested}
         disabled={disabled}
         className="gap-1.5"
       >
-        <CalendarClock className="h-4 w-4" />
-        Último mês
+        <CalendarCheck className="h-4 w-4" />
+        Mês sugerido
       </Button>
 
       {selected && (
@@ -189,7 +206,30 @@ export function CompetencePicker({
               Este mês já tem fechamento. Exclua o existente para refazer.
             </p>
           )}
+          {!selected.disabled && next?.isImplantation && (
+            <p className="mt-1 flex items-start gap-1.5 text-muted-foreground">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Implantação: o primeiro fechamento com saldo. O saldo no início do mês é opcional.
+            </p>
+          )}
+          {!selected.disabled && next?.previousClosingBalance != null && (
+            <p className="mt-1 text-muted-foreground">
+              Saldo inicial:{" "}
+              <span className="font-medium text-foreground">
+                {formatCurrency(next.previousClosingBalance)}
+              </span>
+              , confirmado no fechamento anterior.
+            </p>
+          )}
         </div>
+      )}
+
+      {next && (
+        <p className="text-xs text-muted-foreground">
+          Aguarda fechamento:{" "}
+          <span className="font-medium text-foreground">{formatMonthKey(next.month)}</span>. Só se fecha um
+          mês com o anterior fechado — o saldo confirmado de um abre o seguinte.
+        </p>
       )}
 
       <p className="text-xs text-muted-foreground">

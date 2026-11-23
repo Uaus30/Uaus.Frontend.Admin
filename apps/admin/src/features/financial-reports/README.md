@@ -1,13 +1,13 @@
 # Módulo de Relatórios Financeiros (Admin)
 
-Prévia ao vivo do resultado financeiro de um período: faturamento, CMV, lucro bruto, custos fixos, lucro líquido e a distribuição prevista entre os sócios. A tela é **somente leitura** — nada aqui persiste dados.
+Prévia ao vivo do resultado financeiro de um período: vendas brutas, descontos por origem, vendas líquidas, CMV, lucro bruto, baixas, sobras, custos fixos, lucro líquido e a distribuição prevista entre os sócios. A tela é **somente leitura** — nada aqui persiste dados. Menu: "Resumo Financeiro", logo abaixo do Painel Financeiro.
 
 ## Estrutura de Arquivos
 
-- `components/FinancialReportKpis.tsx`: Grade com os oito indicadores do período (faturamento, CMV, lucro bruto com margem, custos fixos, lucro líquido em destaque, compras, perdas e ticket médio).
+- `components/FinancialReportKpis.tsx`: Grade com os doze indicadores do período, na conta do resultado do fechamento (ver regra 2).
 - `components/FinancialReportWarnings.tsx`: Banner amber com os avisos do backend (período parcial de mês, distribuição não configurada etc.).
 - `components/FixedCostsCard.tsx`: Tabela dos custos fixos considerados no período (nome, valor mensal, meses de competência, total).
-- `components/WriteOffsByReasonCard.tsx`: Perdas do período agrupadas por motivo (quantidade e custo FIFO).
+- `components/WriteOffsByReasonCard.tsx`: Baixas do período agrupadas por motivo (quantidade e custo FIFO).
 - `components/PartnerDistributionCard.tsx`: Distribuição prevista do lucro líquido entre os sócios ativos (nome, percentual, valor).
 - `hooks/useFinancialReports.ts`: Hook controlador — período filtrado (strings `yyyy-MM-dd`), consulta `useGetFinancialReportSummary`, toast de erro com `describeApiError` e exposição de `isError`/`error` para o estado de erro da página.
 - `hooks/__tests__/useFinancialReports.test.tsx`: Testes unitários do hook controlador (Vitest + React Testing Library).
@@ -20,14 +20,17 @@ Prévia ao vivo do resultado financeiro de um período: faturamento, CMV, lucro 
 - Todos os números são recalculados ao vivo pelo backend a cada consulta; nada é persistido por esta tela.
 - O documento oficial do período é o **fechamento financeiro** (feature `financial-closings`), que congela números e rateio na confirmação.
 
-### 2. Fórmula do resultado
+### 2. A mesma conta do fechamento (23/11/2026)
 
-- `Faturamento − CMV = Lucro Bruto` e `Lucro Bruto − Custos Fixos = Lucro Líquido`.
-- O lucro bruto é **exatamente a conta do Dashboard** (fonte única no backend) — as duas telas nunca divergem.
+- `Vendas brutas − descontos = vendas líquidas`, `vendas líquidas − CMV = lucro bruto` e `lucro bruto − baixas + sobras − custos fixos = lucro líquido` — a conta da versão 2 do fechamento, sem os custos variáveis (que só existem no fechamento). Sem a mesma conta, o resumo e o fechamento do mesmo mês dariam lucros diferentes (`PLANO-FINANCEIRO.md`, seção 3.1).
+- O lucro bruto continua **exatamente a conta do Dashboard** (fonte única no backend).
+- **Descontos por origem**: no item (com a promoção como parcela) e na venda (com o cupom como parcela). Parcela nunca se soma de novo: a promoção já está dentro do desconto no item, e o cupom, dentro do da venda.
 
-### 3. Compras e perdas são informativas
+### 3. Baixas e sobras entram no lucro; compras são informativas
 
-- Aparecem como cards e na tabela de perdas por motivo, mas **não entram no lucro líquido**: o CMV já cobre o custo FIFO dos itens vendidos.
+- **Baixas** (perda, doação, consumo, inventário) descontam do lucro líquido pelo custo FIFO congelado; **sobras** (entradas de ajuste manual) somam. Até 23/11/2026 as baixas eram só informativas.
+- O antigo "Compras" somava ENTRADAS de estoque pela data de entrada, inclusive o ajuste manual: virou **"Entradas de estoque"**, ao lado das **"Compras pagas"** — o dinheiro que saiu, pela data da compra, que é o que a faixa de compras usa. Os dois são informativos: o custo do vendido já está no CMV.
+- Os **aportes** do período aparecem à parte: entram no caixa, não no lucro.
 
 ### 4. Custos fixos por competência mensal
 

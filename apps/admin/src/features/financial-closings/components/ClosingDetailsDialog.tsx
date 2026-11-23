@@ -1,18 +1,21 @@
 import { useState } from "react";
 import {
+  Button,
+  ConfirmDialog,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from "@workspace/ui";
-import { Button } from "@workspace/ui";
-import { ConfirmDialog } from "@workspace/ui";
 import { Loader2, Lock, Trash2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@workspace/core";
 import { describePeriod } from "../month-selection";
-import { ClosingSummary } from "./ClosingSummary";
+import { ClosingResultBlock } from "./ClosingResultBlock";
+import { ClosingCashBlock } from "./ClosingCashBlock";
+import { ClosingSharesBlock } from "./ClosingSharesBlock";
+import { VariableCostsTable } from "./VariableCostsTable";
 import type { FinancialClosingDto } from "../types";
 
 interface ClosingDetailsDialogProps {
@@ -28,13 +31,14 @@ interface ClosingDetailsDialogProps {
 /**
  * ClosingDetailsDialog
  *
- * Detalhe de um fechamento confirmado: números congelados, rateio por sócio,
- * observações e autoria. Não há edição — para refazer o período, o caminho é
- * excluir (ação registrada em log) e fechar de novo.
+ * O documento congelado de um fechamento, nos três blocos: resultado, caixa e
+ * rateio com as retiradas. Não há edição — para refazer, exclui-se e fecha-se
+ * de novo.
  *
- * A confirmação da exclusão mora aqui porque é daqui que ela é disparada, e
- * porque o aviso precisa citar o período e o lucro líquido que estão na tela —
- * é o que separa "excluir um rascunho" de "apagar o documento oficial do mês".
+ * **Só o último fechamento pode ser excluído** (corrente de saldos): excluir um
+ * do meio deixaria o seguinte com um saldo inicial que não existe mais. O botão
+ * só aparece no último; nos outros, a tela diz por quê. A confirmação cita o
+ * período e o lucro líquido da tela, e avisa que o mês seguinte volta a aguardar.
  */
 export function ClosingDetailsDialog({
   open,
@@ -65,8 +69,8 @@ export function ClosingDetailsDialog({
             {closing ? `Fechamento de ${describePeriod(closing)}` : "Fechamento Financeiro"}
           </DialogTitle>
           <DialogDescription>
-            Números e rateio congelados na confirmação — alterações posteriores em sócios ou custos fixos não
-            afetam este documento.
+            Números, rateio, retiradas e saldo congelados na confirmação — alterações posteriores em sócios ou
+            custos fixos não afetam este documento.
           </DialogDescription>
         </DialogHeader>
 
@@ -74,15 +78,18 @@ export function ClosingDetailsDialog({
           <div className="py-12 text-center text-muted-foreground">Carregando fechamento...</div>
         ) : (
           <>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-2 pr-2">
-              <ClosingSummary closing={closing} />
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-2 pt-2">
+              <ClosingResultBlock closing={closing} />
+              <VariableCostsTable items={closing.variableCosts} total={closing.variableCostsTotal} />
+              <ClosingCashBlock closing={closing} showConfirmation />
+              <ClosingSharesBlock closing={closing} />
 
               {closing.notes && (
                 <div className="rounded-lg border bg-muted/20 p-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Observações
                   </p>
-                  <p className="mt-1 text-sm whitespace-pre-wrap">{closing.notes}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm">{closing.notes}</p>
                 </div>
               )}
 
@@ -94,26 +101,32 @@ export function ClosingDetailsDialog({
             </div>
 
             <DialogFooter className="gap-2 sm:justify-between">
-              <Button
-                variant="destructive"
-                onClick={() => setConfirmingDelete(true)}
-                disabled={isDeleting}
-                className="gap-2"
-              >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Excluir fechamento
-              </Button>
+              {closing.isLatest ? (
+                <Button
+                  variant="destructive"
+                  onClick={() => setConfirmingDelete(true)}
+                  disabled={isDeleting}
+                  className="gap-2"
+                >
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Excluir fechamento
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground sm:max-w-sm" data-testid="delete-locked">
+                  Só o último fechamento pode ser excluído: o saldo deste abre o mês seguinte.
+                </p>
+              )}
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
             </DialogFooter>
 
             <ConfirmDialog
-              open={confirmingDelete}
+              open={confirmingDelete && closing.isLatest}
               onOpenChange={setConfirmingDelete}
               title="Excluir este fechamento financeiro?"
               itemName={`${describePeriod(closing)} · lucro líquido ${formatCurrency(closing.netProfit)}`}
-              description="O documento oficial do período some, junto com o rateio congelado entre os sócios. O período volta a ficar livre para um novo fechamento, e um novo cálculo pode dar outro número: ele usa os sócios, percentuais e custos fixos de HOJE. A exclusão fica registrada em log com o seu usuário. A ação não pode ser desfeita."
+              description="O documento do mês some, junto com o rateio, as retiradas e o saldo confirmado. O mês volta a aguardar fechamento, e o seguinte volta a esperar por ele. Um novo cálculo pode dar outro número: ele usa os sócios, percentuais e custos fixos de HOJE. A exclusão fica registrada em log com o seu usuário. A ação não pode ser desfeita."
               confirmLabel="Sim, excluir fechamento"
               destructive
               loading={isDeleting}

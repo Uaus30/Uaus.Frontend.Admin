@@ -1,8 +1,10 @@
 /**
- * Financeiro — custos fixos, sócios, relatório e fechamentos.
+ * Financeiro — custos fixos, sócios e o resumo financeiro.
  *
- * Fatia de `hooks.ts`, que tinha 1.755 linhas num arquivo só. A superfície
- * pública não mudou: tudo continua saindo de `@workspace/api-client-react`.
+ * Fatia de `hooks.ts`, que tinha 1.755 linhas num arquivo só. Os fechamentos
+ * moram em `financial-closings.ts`; aportes e faixa de compras, em
+ * `capital-contributions.ts` e `purchase-budget.ts`. A superfície pública não
+ * mudou: tudo continua saindo de `@workspace/api-client-react`.
  */
 
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
@@ -17,15 +19,11 @@ import {
 } from "../client";
 import type {
   BackendPagedResult,
-  CreateFinancialClosingPayload,
   CreatePartnerPayload,
-  FinancialClosingDto,
-  FinancialClosingPreviewDto,
   FinancialReportSummaryDto,
   FixedCostDto,
   PartnerDto,
   PartnerProfitSharesDto,
-  PreviewFinancialClosingPayload,
   QueryKey,
   SaveFixedCostPayload,
   UiPagedResult,
@@ -34,7 +32,7 @@ import type {
 } from "../models";
 
 // ---------------------------------------------------------------------------
-// Financeiro — custos fixos, sócios, relatório e fechamentos
+// Financeiro — custos fixos, sócios e resumo
 //
 // Contrato do backend em Uaus.Backend.Api/docs/financeiro.md.
 // ---------------------------------------------------------------------------
@@ -204,93 +202,4 @@ export function useGetFinancialReportSummary(
       }),
     ...options?.query,
   });
-}
-
-/** Chave de cache da listagem de fechamentos financeiros. */
-export const getGetFinancialClosingsQueryKey = (): QueryKey => ["FinancialClosings"];
-
-/** Lista os fechamentos (filtro sobre o início do período; mais recentes primeiro). */
-export function useGetFinancialClosings(
-  params?: { startDate?: string; endDate?: string; page?: number; limit?: number },
-  options?: {
-    query?: Omit<
-      UseQueryOptions<
-        UiPagedResult<FinancialClosingDto>,
-        ApiError,
-        UiPagedResult<FinancialClosingDto>,
-        QueryKey
-      >,
-      "queryKey" | "queryFn"
-    >;
-  },
-) {
-  return useQuery<UiPagedResult<FinancialClosingDto>, ApiError, UiPagedResult<FinancialClosingDto>, QueryKey>(
-    {
-      queryKey: [...getGetFinancialClosingsQueryKey(), params ?? {}],
-      queryFn: async () => {
-        const result = await apiGetOrThrow<BackendPagedResult<FinancialClosingDto>>("/FinancialClosings", {
-          startDate: params?.startDate,
-          endDate: params?.endDate,
-          page: params?.page ?? 1,
-          size: params?.limit ?? 20,
-        });
-        return mapPagedResult(result);
-      },
-      ...options?.query,
-    },
-  );
-}
-
-/**
- * Detalha um fechamento com o rateio congelado por sócio.
- *
- * @param id ID do fechamento; a query fica desabilitada enquanto for indefinido.
- */
-export function useGetFinancialClosingById(
-  id?: number,
-  options?: {
-    query?: Omit<
-      UseQueryOptions<FinancialClosingDto, ApiError, FinancialClosingDto, QueryKey>,
-      "queryKey" | "queryFn"
-    >;
-  },
-) {
-  return useQuery<FinancialClosingDto, ApiError, FinancialClosingDto, QueryKey>({
-    queryKey: ["financial-closing-details", id ?? 0],
-    enabled: !!id,
-    queryFn: async () => apiGetOrThrow<FinancialClosingDto>(`/FinancialClosings/${id}`),
-    ...options?.query,
-  });
-}
-
-/**
- * Calcula a prévia de um fechamento SEM persistir nada.
- * Soma de percentuais ≠ 100, período parcial de mês e sobreposição com
- * fechamento existente viram warnings.
- */
-export async function previewFinancialClosing(
-  data: PreviewFinancialClosingPayload,
-): Promise<FinancialClosingPreviewDto | null> {
-  const response = await apiPost<FinancialClosingPreviewDto>("/FinancialClosings/preview", data);
-  return response.data;
-}
-
-/**
- * Confirma o fechamento: o servidor RECALCULA tudo e congela números e rateio.
- *
- * @throws {ApiError} Período inválido, sobreposição com fechamento existente ou
- * soma dos percentuais dos sócios ativos ≠ 100.
- * @returns O ID criado (do header Location) ou null se o header não vier.
- */
-export async function createFinancialClosing(data: CreateFinancialClosingPayload): Promise<number | null> {
-  const response = await apiPost<FinancialClosingDto>("/FinancialClosings", data);
-  return extractCreatedId(response.response);
-}
-
-/**
- * Exclui um fechamento para permitir refazê-lo.
- * Ação destrutiva de documento — o backend registra em log quem excluiu.
- */
-export async function deleteFinancialClosing(id: number): Promise<void> {
-  await apiDelete<null>(`/FinancialClosings/${id}`);
 }

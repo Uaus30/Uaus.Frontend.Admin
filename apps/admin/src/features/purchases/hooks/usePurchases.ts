@@ -9,6 +9,7 @@ import {
   enumCode,
   getPurchase,
   getGetLowStockQueryKey,
+  getGetPurchaseBudgetQueryKey,
   getGetPurchasesQueryKey,
   receivePurchase,
   updatePurchaseStatus,
@@ -220,6 +221,9 @@ export function usePurchases() {
       // baixo (14/10/2026); sem isso, o vermelho do painel ficaria até um
       // minuto com o número velho.
       queryClient.invalidateQueries({ queryKey: getGetLowStockQueryKey() }),
+      // A faixa de compras soma as compras A caminho e Lançado (K): registrar,
+      // trocar a situação, excluir e receber mudam o número do mês.
+      queryClient.invalidateQueries({ queryKey: getGetPurchaseBudgetQueryKey() }),
     ]);
   }
 

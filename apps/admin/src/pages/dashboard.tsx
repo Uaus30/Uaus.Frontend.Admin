@@ -18,6 +18,8 @@ import { PatternsPanel } from "@/features/dashboard/components/PatternsPanel";
 import { IntelligencePanel } from "@/features/dashboard/components/IntelligencePanel";
 import { LowStockAlert } from "@/features/low-stock/components/LowStockAlert";
 import { OpenPurchasesAlert } from "@/features/purchases/components/OpenPurchasesAlert";
+import { PurchaseBandCard } from "@/features/dashboard/components/PurchaseBandCard";
+import { usePurchaseBandCard } from "@/features/dashboard/hooks/usePurchaseBandCard";
 
 /**
  * Dashboard
@@ -40,6 +42,7 @@ export default function Dashboard() {
   const champions = useChampions();
   const patterns = useSalesPatterns();
   const intelligence = useSalesIntelligence();
+  const purchaseBand = usePurchaseBandCard();
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,6 +68,10 @@ export default function Dashboard() {
             Âmbar, e abaixo do vermelho, porque é trabalho em curso — não
             urgência. Some sozinho quando não há compra em aberto. */}
       <OpenPurchasesAlert />
+
+      {/* A faixa de compras do mês (23/11/2026): se o mês aguenta mais compras.
+            O toque abre o Painel Financeiro. */}
+      <PurchaseBandCard budget={purchaseBand.budget} isLoading={purchaseBand.isLoading} />
 
       {dashboard.isError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

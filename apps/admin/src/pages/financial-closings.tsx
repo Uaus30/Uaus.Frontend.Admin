@@ -2,10 +2,17 @@ import { Button } from "@workspace/ui";
 import { TablePagination } from "@workspace/ui";
 import { Lock, Plus, RefreshCw } from "lucide-react";
 import { PAGE_SIZE, useFinancialClosings } from "@/features/financial-closings/hooks/useFinancialClosings";
+import { useNewClosing } from "@/features/financial-closings/hooks/useNewClosing";
 import { FinancialClosingsTable } from "@/features/financial-closings/components/FinancialClosingsTable";
 import { NewClosingDialog } from "@/features/financial-closings/components/NewClosingDialog";
 import { ClosingDetailsDialog } from "@/features/financial-closings/components/ClosingDetailsDialog";
 
+/**
+ * Fechamentos Mensais (`/financeiro/fechamentos`).
+ *
+ * Página fina: a listagem e o detalhe vêm de `useFinancialClosings`; o novo
+ * fechamento em três passos, de `useNewClosing`.
+ */
 export default function FinancialClosingsPage() {
   const {
     closings,
@@ -14,28 +21,6 @@ export default function FinancialClosingsPage() {
     refetch,
     page,
     setPage,
-    newClosingOpen,
-    step,
-    year,
-    month,
-    yearOptions,
-    monthOptions,
-    isLoadingMonths,
-    notes,
-    setNotes,
-    preview,
-    isCalculatingPreview,
-    isSavingClosing,
-    openNewClosing,
-    closeNewClosing,
-    handleYearChange,
-    handleMonthChange,
-    applyLastMonth,
-    handleCalculatePreview,
-    handleAddVariableCost,
-    handleRemoveVariableCost,
-    backToCompetence,
-    handleConfirmClosing,
     detailsId,
     closingDetails,
     isLoadingDetails,
@@ -44,6 +29,7 @@ export default function FinancialClosingsPage() {
     openDetails,
     handleDeleteClosing,
   } = useFinancialClosings();
+  const newClosing = useNewClosing();
 
   return (
     <div className="space-y-6">
@@ -57,8 +43,8 @@ export default function FinancialClosingsPage() {
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Congele os números de um período e o rateio de lucros entre os sócios — o fechamento é o documento
-            oficial do módulo financeiro.
+            Congele os números do mês, o rateio entre os sócios e o saldo que fica para a loja — o saldo
+            confirmado abre o mês seguinte.
           </p>
         </div>
 
@@ -73,7 +59,7 @@ export default function FinancialClosingsPage() {
             <RefreshCw className="w-4 h-4" />
           </Button>
 
-          <Button onClick={openNewClosing} className="gap-2 hover-elevate">
+          <Button onClick={newClosing.openNewClosing} className="gap-2 hover-elevate">
             <Plus className="w-4 h-4" /> Novo Fechamento
           </Button>
         </div>
@@ -93,32 +79,10 @@ export default function FinancialClosingsPage() {
         />
       )}
 
-      {/* Diálogo de novo fechamento (2 passos) */}
-      <NewClosingDialog
-        open={newClosingOpen}
-        step={step}
-        year={year}
-        month={month}
-        yearOptions={yearOptions}
-        monthOptions={monthOptions}
-        isLoadingMonths={isLoadingMonths}
-        notes={notes}
-        preview={preview}
-        isCalculating={isCalculatingPreview}
-        isSaving={isSavingClosing}
-        onClose={closeNewClosing}
-        onYearChange={handleYearChange}
-        onMonthChange={handleMonthChange}
-        onApplyLastMonth={applyLastMonth}
-        onCalculatePreview={handleCalculatePreview}
-        onAddVariableCost={handleAddVariableCost}
-        onRemoveVariableCost={handleRemoveVariableCost}
-        onBackToCompetence={backToCompetence}
-        onNotesChange={setNotes}
-        onConfirm={handleConfirmClosing}
-      />
+      {/* Novo fechamento (3 passos) */}
+      <NewClosingDialog closing={newClosing} />
 
-      {/* Diálogo de detalhe */}
+      {/* Detalhe */}
       <ClosingDetailsDialog
         open={detailsId != null}
         closing={closingDetails}
