@@ -94,7 +94,7 @@ Psicologia das cores, com ícone e texto redundantes (cor sozinha não informa q
 
 - Na confirmação o servidor **recalcula** tudo e recusa o que a prévia só avisava: período que não começa depois do último fechamento, mês anterior sem fechamento no fluxo novo (fora da implantação), saldo confirmado ausente e diferença sem observação. A confirmação envia a entrada **congelada com a prévia exibida** (período, gastos eventuais, retiradas — uma por sócio do rateio — e o saldo inicial), mais o saldo confirmado e as observações.
 - Editar um sócio ou um custo fixo depois não altera fechamentos existentes.
-- Confirmar ou excluir invalida os fechamentos (o prefixo alcança o `next`), a faixa de compras e os aportes: o saldo abre o mês seguinte, e o mês fechado deixa de aceitar aporte.
+- Confirmar ou excluir invalida os fechamentos (o prefixo alcança o `next` e o detalhe em cache — `["FinancialClosings", "detail", id]`, montado a partir de `getGetFinancialClosingByIdQueryKey()` —, que traz o `isLatest`: sem isso, excluído o último, o anterior seguia sem o botão Excluir até recarregar a página, smoke de 23/11/2026), a faixa de compras e os aportes: o saldo abre o mês seguinte, e o mês fechado deixa de aceitar aporte.
 
 ### 7. Custos variáveis: o que o operador digita (06/09/2026)
 

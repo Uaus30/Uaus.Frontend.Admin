@@ -1,3 +1,4 @@
+import { QueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CapitalContributionDto, PurchaseBudgetDto } from "../models";
 import {
@@ -7,7 +8,11 @@ import {
   getGetCapitalContributionsQueryKey,
   updateCapitalContribution,
 } from "./capital-contributions";
-import { getGetFinancialClosingNextQueryKey, getGetFinancialClosingsQueryKey } from "./financial-closings";
+import {
+  getGetFinancialClosingByIdQueryKey,
+  getGetFinancialClosingNextQueryKey,
+  getGetFinancialClosingsQueryKey,
+} from "./financial-closings";
 import { getGetPurchaseBudgetQueryKey, getPurchaseBudget } from "./purchase-budget";
 
 /**
@@ -109,5 +114,18 @@ describe("chaves de cache do contrato", () => {
     expect(getGetCapitalContributionTotalsByPartnerQueryKey().slice(0, 1)).toEqual(
       getGetCapitalContributionsQueryKey(),
     );
+  });
+
+  it("o detalhe de um fechamento fica debaixo do prefixo, e invalidar os fechamentos o alcança", async () => {
+    // Smoke de 23/11/2026: excluído o último fechamento, o detalhe do anterior,
+    // já em cache com `isLatest: false`, seguia sem o botão Excluir até recarregar.
+    const detailKey = [...getGetFinancialClosingByIdQueryKey(), 7];
+    expect(detailKey).toEqual(["FinancialClosings", "detail", 7]);
+
+    const client = new QueryClient();
+    client.setQueryData(detailKey, { id: 7, isLatest: false });
+    await client.invalidateQueries({ queryKey: getGetFinancialClosingsQueryKey() });
+
+    expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true);
   });
 });

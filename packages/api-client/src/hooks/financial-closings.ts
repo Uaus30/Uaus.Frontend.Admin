@@ -65,6 +65,22 @@ export function useGetFinancialClosings(
 }
 
 /**
+ * Prefixo da chave do detalhe de um fechamento: `["FinancialClosings", "detail"]`
+ * — quem consulta acrescenta o id, como manda a convenção das chaves.
+ *
+ * Fica debaixo do prefixo da listagem porque o detalhe traz o `isLatest`, e ele
+ * muda quando OUTRO fechamento é criado ou excluído. Com a chave antiga
+ * (`["financial-closing-details", id]`), o detalhe já em cache do anterior
+ * continuava sem o botão Excluir depois de excluir o último, até recarregar a
+ * página (smoke de 23/11/2026). Invalidar os fechamentos agora alcança os
+ * detalhes.
+ */
+export const getGetFinancialClosingByIdQueryKey = (): QueryKey => [
+  ...getGetFinancialClosingsQueryKey(),
+  "detail",
+];
+
+/**
  * Detalha um fechamento com o rateio congelado por sócio.
  *
  * @param id ID do fechamento; a query fica desabilitada enquanto for indefinido.
@@ -79,7 +95,7 @@ export function useGetFinancialClosingById(
   },
 ) {
   return useQuery<FinancialClosingDto, ApiError, FinancialClosingDto, QueryKey>({
-    queryKey: ["financial-closing-details", id ?? 0],
+    queryKey: [...getGetFinancialClosingByIdQueryKey(), id ?? 0],
     enabled: !!id,
     queryFn: async () => apiGetOrThrow<FinancialClosingDto>(`/FinancialClosings/${id}`),
     ...options?.query,

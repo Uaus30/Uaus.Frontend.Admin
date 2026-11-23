@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   deleteFinancialClosing,
   getGetCapitalContributionsQueryKey,
+  getGetFinancialClosingByIdQueryKey,
   getGetFinancialClosingsQueryKey,
   getGetPurchaseBudgetQueryKey,
   useGetFinancialClosingById,
@@ -56,7 +57,7 @@ export function useFinancialClosings() {
       // O documento não existe mais — o cache do detalhe sai junto. O prefixo
       // dos fechamentos alcança a listagem e o `next` (o mês volta a aguardar);
       // a faixa perde o saldo inicial e o mês volta a aceitar aporte.
-      queryClient.removeQueries({ queryKey: ["financial-closing-details", id] });
+      queryClient.removeQueries({ queryKey: [...getGetFinancialClosingByIdQueryKey(), id] });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetFinancialClosingsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetPurchaseBudgetQueryKey() }),
